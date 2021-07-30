@@ -1,0 +1,8 @@
+name = "FUSE"
+uuid = "e64856f0-3bb8-4376-b4b7-c03396503992"
+authors = ["Orso Meneghini <orso82@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+StructArrays = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
