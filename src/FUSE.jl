@@ -30,34 +30,39 @@ import JSON
     JSON.parsefile("/Users/meneghini/Coding/atom/omas/omas/imas_structures/$version/$ids.json")  # parse and transform data
 end
 
-desired_structure = keys(load_imasdd("equilibrium"))
+desired_structure = keys(load_imasdd("core_profiles"))
 
 branches = Vector()
 push!(branches,"")
-
-imasdd = load_imasdd("equilibrium")
 
 # generate hierarchy of dicts
 p = Progress(length(desired_structure); showspeed=true)
 ddict = Dict()
 for sel in desired_structure
     # FUSE_verbose && println(sel)
-    ProgressMeter.next!(p)#; showvalues = [(:state,"hierarchy: $(sel)")])
+    ProgressMeter.next!(p)# ; showvalues = [(:state,"hierarchy: $(sel)")])
+    if endswith(sel, "error_upper") | endswith(sel, "error_lower") | endswith(sel, "error_index") | endswith(sel, ".local")
+        continue
+    end
     path = split(sel, ".")
     
+    imasdd = load_imasdd(String(path[1]))
+
     h = ddict
     for (k, item) in enumerate(path)
         if (k > 1) & (k == length(path))
             if imasdd[sel]["data_type"] in ["STRUCTURE", "STRUCT_ARRAY"]
                 continue
             elseif imasdd[sel]["data_type"] in ["INT_0D", "INT_TYPE"]
-                h[item] = ":: Int = 0"
+                h[item] = ":: Int32 = 0"
             elseif imasdd[sel]["data_type"] == "FLT_0D"
                 h[item] = ":: Float64 = 0.0"
             elseif imasdd[sel]["data_type"] == "STR_0D"
                 h[item] = ":: String = \"\""
+            elseif imasdd[sel]["data_type"] == "STR_1D"
+                h[item] = ":: Array{String, 1} = String[]"
             elseif imasdd[sel]["data_type"] == "INT_1D"
-                h[item] = ":: Array{Int, 1} = zeros(Int,(0))"
+                h[item] = ":: Array{Int32, 1} = zeros(Int32,(0))"
             elseif imasdd[sel]["data_type"] in ["FLT_1D", "FLT_1D_TYPE"]
                 h[item] = ":: Array{Float64, 1} = zeros(Float64,(0))"
             elseif imasdd[sel]["data_type"] == "FLT_2D"
@@ -86,13 +91,14 @@ end
 # generate Julia data structures
 p = Progress(length(branches); showspeed=true)
 for branch in reverse(branches)
-    ProgressMeter.next!(p)#; showvalues = [(:state,"hierarchy: $(sel)")])
+    ProgressMeter.next!(p)# ; showvalues = [(:branch,branch)])
     h = ddict
     for item in branch
         h = h[item]
     end
 
-    struct_name = replace(join(branch, "__"), "[:]" => "")
+    sep = "__"
+    struct_name = replace(join(branch, sep), "[:]" => "")
     txt = []
     for (item, info) in h
         if typeof(info) <: String
@@ -102,9 +108,9 @@ for branch in reverse(branches)
                 push!(txt, "    $(item) :: $(item) = $(item)()")
             elseif occursin("[:]", item)
                 item = replace(item, "[:]" => "")
-                push!(txt, "    $(item) :: StructArray{$(struct_name)__$(item)} = StructArray($(struct_name)__$(item)() for k in 1:1)")
+                push!(txt, "    $(item) :: StructArray{$(struct_name)$(sep)$(item)} = StructArray($(struct_name)$(sep)$(item)() for k in 1:1)")
             else
-                push!(txt, "    $(item) :: $(struct_name)__$(item) = $(struct_name)__$(item)()")
+                push!(txt, "    $(item) :: $(struct_name)$(sep)$(item) = $(struct_name)$(sep)$(item)()")
             end
         end
     end
@@ -124,9 +130,13 @@ end
 """
     end
     FUSE_verbose && println(txt)
-    eval(Meta.parse(txt))
+    try
+        eval(Meta.parse(txt))
+    catch
+        error(txt)
+    end
 end
 
-#eval(Meta.parse(join(structures_code,"\n")))
+# eval(Meta.parse(join(structures_code,"\n")))
 
 end # module
