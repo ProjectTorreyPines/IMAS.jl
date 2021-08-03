@@ -2,36 +2,52 @@ __precompile__()
 
 module FUSE
 
-const FUSE_verbose = false
 const imas_version = "3_32_1"
 const omas_imas_structure_folder = "/Users/meneghini/Coding/atom/omas/omas/imas_structures"
+
+import JSON
+using Memoize
+
+"""
+Function used to read the IMAS data structures in the OMAS JSON format
+"""
+@memoize function load_imasdd(ids;imas_version=imas_version)
+    JSON.parsefile("$omas_imas_structure_folder/$imas_version/$ids.json")  # parse and transform data
+end
 
 #= ==================================== =#
 # FUSE data structure
 #= ==================================== =#
 
-desired_structure = split(chomp("""
+const desired_structure = split(chomp("""
+core_profiles.profiles_1d[:].grid.rho_tor_norm
 core_profiles.profiles_1d[:].electrons.density
 core_profiles.profiles_1d[:].electrons.density_fast
 equilibrium.time_slice[:].global_quantities.ip
-core_profiles.profiles_1d[:].grid.rho_tor_norm
 """))
+
+# filenames = readdir("$omas_imas_structure_folder/$imas_version")
+# desired_structure = []
+# for filename in filenames
+#     if startswith(filename, "_") || ! endswith(filename, ".json")
+#         continue
+#     end
+#     filename = replace(filename, ".json" => "")
+#     for item in keys(load_imasdd(filename))
+#         push!(desired_structure, item)
+#     end
+# end
+
 
 #= ==================================== =#
 # Implementing selected IMAS DD as Julia structures
 #= ==================================== =#
-using Memoize
+
 using StructArrays:StructArray
 
-using ProgressMeter
-ProgressMeter.ijulia_behavior(:clear)
-
-import JSON
-
-@memoize function load_imasdd(ids;imas_version=imas_version)
-    JSON.parsefile("$omas_imas_structure_folder/$imas_version/$ids.json")  # parse and transform data
-end
-
+"""
+function used to translate the desired IMAS data structures into Julia structs
+"""
 function imas_julia_struct(desired_structure)
     struct_commands = []
 
@@ -39,11 +55,8 @@ function imas_julia_struct(desired_structure)
     push!(branches, "")
 
     # generate hierarchy of dicts
-    p = Progress(length(desired_structure); showspeed=true)
     ddict = Dict()
     for sel in desired_structure
-        # FUSE_verbose && println(sel)
-        ProgressMeter.next!(p)# ; showvalues = [(:state,"hierarchy: $(sel)")])
         if endswith(sel, "error_upper") | endswith(sel, "error_lower") | endswith(sel, "error_index")
             continue
         end
@@ -115,12 +128,9 @@ function imas_julia_struct(desired_structure)
             h = h[item]
         end
     end
-    # FUSE_verbose && JSON.print(ddict,4)
 
     # generate Julia data structures
-    p = Progress(length(branches); showspeed=true)
     for branch in reverse(branches)
-        ProgressMeter.next!(p)# ; showvalues = [(:branch,branch)])
         h = ddict
         for item in branch
             h = h[item]
@@ -158,27 +168,20 @@ $(txt)
 end
 """
         end
-        FUSE_verbose && println(txt)
         push!(struct_commands, txt)
     end
 
     return struct_commands
 end
 
-desired_structure = []
-for filename in readdir("$omas_imas_structure_folder/$imas_version")
-    if startswith(filename, "_") || ! endswith(filename, ".json")
-        continue
-    end
-    filename = replace(filename, ".json" => "")
-    for item in keys(load_imasdd(filename))
-        push!(desired_structure, item)
-    end
-end
 
-struct_commands = imas_julia_struct(desired_structure)
-
+# Compile the Julia structs
+using ProgressMeter
+ProgressMeter.ijulia_behavior(:clear)
+const struct_commands = imas_julia_struct(desired_structure)
+p = Progress(length(struct_commands); desc="Compile IMAS structs", showspeed=true)
 for txt in struct_commands
+    ProgressMeter.next!(p)
     try
         eval(Meta.parse(txt))
     catch e
