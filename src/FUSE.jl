@@ -2,7 +2,6 @@ __precompile__()
 
 module FUSE
 
-
 include("dd.jl")
 
 """
