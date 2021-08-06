@@ -41,10 +41,10 @@ end
 # Implementing selected IMAS DD as Julia structures
 #= ==================================== =#
 
-using StructArrays:StructArray
+abstract type FDS end
 
 """
-function used to translate the desired IMAS data structures into Julia structs
+Function used to translate the desired IMAS data structures into Julia structs
 """
 function imas_julia_struct(desired_structure)
     struct_commands = []
@@ -69,54 +69,54 @@ function imas_julia_struct(desired_structure)
                     continue
 
                 elseif imasdd[sel]["data_type"] == "STR_0D"
-                    h[item] = ":: String = \"\""
+                    h[item] = ":: Union{Nothing, String} = nothing"
                 elseif imasdd[sel]["data_type"] == "STR_1D"
-                    h[item] = ":: Array{String, 1} = String[]"
+                    h[item] = ":: Union{Nothing, Array{String, 1}} = nothing"
 
                 elseif imasdd[sel]["data_type"] in ["INT_0D", "INT_TYPE"]
-                    h[item] = ":: Int32 = 0"
+                    h[item] = ":: Union{Nothing, Int32} = nothing"
                 elseif imasdd[sel]["data_type"] == "INT_1D"
-                    h[item] = ":: Array{Int32, 1} = zeros(Int32, 0)"
+                    h[item] = ":: Union{Nothing, Array{Int32, 1}} = nothing"
                 elseif imasdd[sel]["data_type"] == "INT_2D"
-                    h[item] = ":: Array{Int32, 2} = zeros(Int32, (0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Int32, 2}} = nothing"
                 elseif imasdd[sel]["data_type"] == "INT_3D"
-                    h[item] = ":: Array{Int32, 3} = zeros(Int32, (0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Int32, 3}} = nothing"
                 elseif imasdd[sel]["data_type"] == "INT_4D"
-                    h[item] = ":: Array{Int32, 4} = zeros(Int32, (0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Int32, 4}} = nothing"
                 elseif imasdd[sel]["data_type"] == "INT_5D"
-                    h[item] = ":: Array{Int32, 5} = zeros(Int32, (0, 0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Int32, 5}} = nothing"
                 elseif imasdd[sel]["data_type"] == "INT_6D"
-                    h[item] = ":: Array{Int32, 6} = zeros(Int32, (0, 0, 0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Int32, 6}} = nothing"
 
                 elseif imasdd[sel]["data_type"] == "FLT_0D"
-                    h[item] = ":: Float64 = 0.0"
+                    h[item] = ":: Union{Nothing, Float64} = nothing"
                 elseif imasdd[sel]["data_type"] in ["FLT_1D", "FLT_1D_TYPE"]
-                    h[item] = ":: Array{Float64, 1} = zeros(Float64, 0)"
+                    h[item] = ":: Union{Nothing, Array{Float64, 1}} = nothing"
                 elseif imasdd[sel]["data_type"] == "FLT_2D"
-                    h[item] = ":: Array{Float64, 2} = zeros(Float64, (0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Float64, 2}} = nothing"
                 elseif imasdd[sel]["data_type"] == "FLT_3D"
-                    h[item] = ":: Array{Float64, 3} = zeros(Float64, (0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Float64, 3}} = nothing"
                 elseif imasdd[sel]["data_type"] == "FLT_4D"
-                    h[item] = ":: Array{Float64, 4} = zeros(Float64, (0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Float64, 4}} = nothing"
                 elseif imasdd[sel]["data_type"] == "FLT_5D"
-                    h[item] = ":: Array{Float64, 5} = zeros(Float64, (0, 0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Float64, 5}} = nothing"
                 elseif imasdd[sel]["data_type"] == "FLT_6D"
-                    h[item] = ":: Array{Float64, 6} = zeros(Float64, (0, 0, 0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Float64, 6}} = nothing"
 
                 elseif imasdd[sel]["data_type"] == "CPX_0D"
-                    h[item] = ":: Complex{Float64} = 0.0 + 0.0im"
+                    h[item] = ":: Union{Nothing, Complex{Float64} = nothing"
                 elseif imasdd[sel]["data_type"] == "CPX_1D"
-                    h[item] = ":: Array{Complex{Float64}, 1} = zeros(Complex{Float64}, 0)"
+                    h[item] = ":: Union{Nothing, Array{Complex{Float64}, 1}} = nothing"
                 elseif imasdd[sel]["data_type"] == "CPX_2D"
-                    h[item] = ":: Array{Complex{Float64}, 2} = zeros(Complex{Float64}, (0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Complex{Float64}, 2}} = nothing"
                 elseif imasdd[sel]["data_type"] == "CPX_3D"
-                    h[item] = ":: Array{Complex{Float64}, 3} = zeros(Complex{Float64}, (0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Complex{Float64}, 3}} = nothing"
                 elseif imasdd[sel]["data_type"] == "CPX_4D"
-                    h[item] = ":: Array{Complex{Float64}, 4} = zeros(Complex{Float64}, (0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Complex{Float64}, 4}} = nothing"
                 elseif imasdd[sel]["data_type"] == "CPX_5D"
-                    h[item] = ":: Array{Complex{Float64}, 5} = zeros(Complex{Float64}, (0, 0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Complex{Float64}, 5}} = nothing"
                 elseif imasdd[sel]["data_type"] == "CPX_6D"
-                    h[item] = ":: Array{Complex{Float64}, 6} = zeros(Complex{Float64}, (0, 0, 0, 0, 0, 0))"
+                    h[item] = ":: Union{Nothing, Array{Complex{Float64}, 6}} = nothing"
 
                 else
                     throw(ArgumentError("$(sel) IMAS $(imasdd[sel]["data_type"]) has not been mapped to Julia data type"))
@@ -131,6 +131,7 @@ function imas_julia_struct(desired_structure)
     end
 
     # generate Julia data structures
+    is_structarray = false
     for branch in reverse(branches)
         h = ddict
         for item in branch
@@ -138,17 +139,24 @@ function imas_julia_struct(desired_structure)
         end
 
         sep = "__"
+        is_structarray = length(branch)>0 && occursin("[",branch[end])
         struct_name = replace(join(branch, sep), "[:]" => "")
         txt = []
         for (item, info) in h
+            # leaf
             if typeof(info) <: String
                 push!(txt, "    var\"$(item)\" $(info)")
+            # branch
             else
+                # top level
                 if length(struct_name) == 0
-                    push!(txt, "    var\"$(item)\" :: $(item) = $(item)()")
+                    push!(txt, "    var\"$(item)\" :: Union{Nothing, $(item)} = $(item)()")
+                    #push!(txt, "    var\"$(item)\" :: Union{Nothing, $(item)} = nothing")
+                # arrays of structs
                 elseif occursin("[:]", item)
                     item = replace(item, "[:]" => "")
-                    push!(txt, "    var\"$(item)\" :: StructArray{$(struct_name)$(sep)$(item)} = StructArray($(struct_name)$(sep)$(item)() for k in 1:1)")
+                    push!(txt, "    var\"$(item)\" :: Vector{$(struct_name)$(sep)$(item)} = [$(struct_name)$(sep)$(item)()]")
+                # structs
                 else
                     push!(txt, "    var\"$(item)\" :: $(struct_name)$(sep)$(item) = $(struct_name)$(sep)$(item)()")
                 end
@@ -158,13 +166,19 @@ function imas_julia_struct(desired_structure)
         txt = join(txt, "\n")
         if length(struct_name) == 0
             txt = """
-Base.@kwdef mutable struct dd
+Base.@kwdef mutable struct dd <: FDS
+$(txt)
+end
+"""
+        elseif is_structarray
+            txt = """
+Base.@kwdef mutable struct $(struct_name) <: FDS
 $(txt)
 end
 """
         else
             txt = """
-Base.@kwdef mutable struct $(struct_name)
+Base.@kwdef mutable struct $(struct_name) <: FDS
 $(txt)
 end
 """
@@ -193,6 +207,6 @@ for txt in struct_commands
 end
 
 open("$(dirname(@__FILE__))/dd.jl","w") do io
-    println(io, "using StructArrays:StructArray\n")
+    println(io, "abstract type FDS end\n")
     println(io, join(struct_commands, "\n"))
 end
