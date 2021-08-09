@@ -2,7 +2,7 @@ using Pkg
 Pkg.activate(dirname(dirname(@__FILE__)))
 
 const imas_version = "3_33_0"
-const omas_imas_structure_folder = "/Users/meneghini/Coding/atom/omas/omas/imas_structures"
+const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
 
 import JSON
 using Memoize
@@ -17,14 +17,6 @@ end
 #= ==================================== =#
 # FUSE data structure
 #= ==================================== =#
-
-desired_structure = split(chomp("""
-core_profiles.profiles_1d[:].grid.rho_tor_norm
-core_profiles.profiles_1d[:].electrons.density
-core_profiles.profiles_1d[:].electrons.density_fast
-equilibrium.time_slice[:].global_quantities.ip
-"""))
-
 filenames = readdir("$omas_imas_structure_folder/$imas_version")
 desired_structure = []
 for filename in filenames
@@ -44,9 +36,12 @@ end
 abstract type FDS end
 
 """
-Function used to translate the desired IMAS data structures into Julia structs
+    desired_structure::Vector{String}
+
+Translate the IMAS `desired_structure` entries into Julia structs
 """
-function imas_julia_struct(desired_structure)
+function imas_julia_struct(desired_structure::Vector{String})
+    supported_types = Union{}
     struct_commands = []
 
     branches = Vector()
@@ -70,53 +65,76 @@ function imas_julia_struct(desired_structure)
 
                 elseif imasdd[sel]["data_type"] == "STR_0D"
                     h[item] = ":: Union{Nothing, String} = nothing"
+                    supported_types = Union{supported_types,String}
                 elseif imasdd[sel]["data_type"] == "STR_1D"
                     h[item] = ":: Union{Nothing, Array{String, 1}} = nothing"
+                    supported_types = Union{supported_types,Array{String}}
 
                 elseif imasdd[sel]["data_type"] in ["INT_0D", "INT_TYPE"]
                     h[item] = ":: Union{Nothing, Int32} = nothing"
+                    supported_types = Union{supported_types,Int32}
                 elseif imasdd[sel]["data_type"] == "INT_1D"
                     h[item] = ":: Union{Nothing, Array{Int32, 1}} = nothing"
+                    supported_types = Union{supported_types,Array{Int32}}
                 elseif imasdd[sel]["data_type"] == "INT_2D"
                     h[item] = ":: Union{Nothing, Array{Int32, 2}} = nothing"
+                    supported_types = Union{supported_types,Array{Int32}}
                 elseif imasdd[sel]["data_type"] == "INT_3D"
                     h[item] = ":: Union{Nothing, Array{Int32, 3}} = nothing"
+                    supported_types = Union{supported_types,Array{Int32}}
                 elseif imasdd[sel]["data_type"] == "INT_4D"
                     h[item] = ":: Union{Nothing, Array{Int32, 4}} = nothing"
+                    supported_types = Union{supported_types,Array{Int32}}
                 elseif imasdd[sel]["data_type"] == "INT_5D"
                     h[item] = ":: Union{Nothing, Array{Int32, 5}} = nothing"
+                    supported_types = Union{supported_types,Array{Int32}}
                 elseif imasdd[sel]["data_type"] == "INT_6D"
                     h[item] = ":: Union{Nothing, Array{Int32, 6}} = nothing"
+                    supported_types = Union{supported_types,Array{Int32}}
 
                 elseif imasdd[sel]["data_type"] == "FLT_0D"
                     h[item] = ":: Union{Nothing, Float64} = nothing"
+                    supported_types = Union{supported_types,Float64}
                 elseif imasdd[sel]["data_type"] in ["FLT_1D", "FLT_1D_TYPE"]
                     h[item] = ":: Union{Nothing, Array{Float64, 1}} = nothing"
+                    supported_types = Union{supported_types,Array{Float64}}
                 elseif imasdd[sel]["data_type"] == "FLT_2D"
                     h[item] = ":: Union{Nothing, Array{Float64, 2}} = nothing"
+                    supported_types = Union{supported_types,Array{Float64}}
                 elseif imasdd[sel]["data_type"] == "FLT_3D"
                     h[item] = ":: Union{Nothing, Array{Float64, 3}} = nothing"
+                    supported_types = Union{supported_types,Array{Float64}}
                 elseif imasdd[sel]["data_type"] == "FLT_4D"
                     h[item] = ":: Union{Nothing, Array{Float64, 4}} = nothing"
+                    supported_types = Union{supported_types,Array{Float64}}
                 elseif imasdd[sel]["data_type"] == "FLT_5D"
                     h[item] = ":: Union{Nothing, Array{Float64, 5}} = nothing"
+                    supported_types = Union{supported_types,Array{Float64}}
                 elseif imasdd[sel]["data_type"] == "FLT_6D"
                     h[item] = ":: Union{Nothing, Array{Float64, 6}} = nothing"
+                    supported_types = Union{supported_types,Array{Float64}}
 
                 elseif imasdd[sel]["data_type"] == "CPX_0D"
                     h[item] = ":: Union{Nothing, Complex{Float64} = nothing"
+                    supported_types = Union{supported_types,Complex{Float64}}
                 elseif imasdd[sel]["data_type"] == "CPX_1D"
                     h[item] = ":: Union{Nothing, Array{Complex{Float64}, 1}} = nothing"
+                    supported_types = Union{supported_types,Array{Complex{Float64}}}
                 elseif imasdd[sel]["data_type"] == "CPX_2D"
                     h[item] = ":: Union{Nothing, Array{Complex{Float64}, 2}} = nothing"
+                    supported_types = Union{supported_types,Array{Complex{Float64}}}
                 elseif imasdd[sel]["data_type"] == "CPX_3D"
                     h[item] = ":: Union{Nothing, Array{Complex{Float64}, 3}} = nothing"
+                    supported_types = Union{supported_types,Array{Complex{Float64}}}
                 elseif imasdd[sel]["data_type"] == "CPX_4D"
                     h[item] = ":: Union{Nothing, Array{Complex{Float64}, 4}} = nothing"
+                    supported_types = Union{supported_types,Array{Complex{Float64}}}
                 elseif imasdd[sel]["data_type"] == "CPX_5D"
                     h[item] = ":: Union{Nothing, Array{Complex{Float64}, 5}} = nothing"
+                    supported_types = Union{supported_types,Array{Complex{Float64}}}
                 elseif imasdd[sel]["data_type"] == "CPX_6D"
                     h[item] = ":: Union{Nothing, Array{Complex{Float64}, 6}} = nothing"
+                    supported_types = Union{supported_types,Array{Complex{Float64}}}
 
                 else
                     throw(ArgumentError("$(sel) IMAS $(imasdd[sel]["data_type"]) has not been mapped to Julia data type"))
@@ -139,7 +157,7 @@ function imas_julia_struct(desired_structure)
         end
 
         sep = "__"
-        is_structarray = length(branch)>0 && occursin("[",branch[end])
+        is_structarray = length(branch) > 0 && occursin("[", branch[end])
         struct_name = replace(join(branch, sep), "[:]" => "")
         txt = []
         for (item, info) in h
@@ -151,7 +169,6 @@ function imas_julia_struct(desired_structure)
                 # top level
                 if length(struct_name) == 0
                     push!(txt, "    var\"$(item)\" :: Union{Nothing, $(item)} = $(item)()")
-                    #push!(txt, "    var\"$(item)\" :: Union{Nothing, $(item)} = nothing")
                 # arrays of structs
                 elseif occursin("[:]", item)
                     item = replace(item, "[:]" => "")
@@ -186,11 +203,11 @@ end
         push!(struct_commands, txt)
     end
 
-    return struct_commands
+    return struct_commands, supported_types
 end
 
 
-const struct_commands = imas_julia_struct(desired_structure)
+const (struct_commands, supported_types) = imas_julia_struct(desired_structure)
 
 # Parse the Julia structs to make sure there are no issues
 using ProgressMeter
@@ -208,5 +225,6 @@ end
 
 open("$(dirname(@__FILE__))/dd.jl","w") do io
     println(io, "abstract type FDS end\n")
+    println(io, "supported_types = $(string(supported_types))\n")
     println(io, join(struct_commands, "\n"))
 end
