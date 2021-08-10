@@ -61,11 +61,7 @@ function Base.getindex(p::FuseParameters, key)
     if typeof(parameter) <: ScalarParameter
         return parameter.value
     elseif typeof(parameter) <: SwitchParameter
-        if typeof(parameter.options[parameter.value]) <: ScalarParameter
-            return parameter.options[parameter.value].value
-        else
-            return parameter.value
-        end
+        parameter.options[parameter.value].value
     else
         throw(KeyError(key))
     end

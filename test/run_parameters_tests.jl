@@ -52,7 +52,7 @@ end
 
 @testset "parameters_access" begin
     # test the fuse_parameters
-    @test FUSE.fuse_parameters[:bootstrapModel] == :gi
+    @test typeof(FUSE.fuse_parameters[:bootstrapModel]) <: FUSE.CBSGi
     FUSE.fuse_parameters[:bootstrapModel] = :user => 0.5
     @test FUSE.fuse_parameters[:bootstrapModel] == 0.5
 end
