@@ -6,6 +6,8 @@ import JSON
 
 include("dd.jl")
 
+include("parameters.jl")
+
 #= ==================== =#
 #= FUNCTION DEFINITIONS =#
 #= ==================== =#
