@@ -30,17 +30,22 @@ for filename in filenames
 end
 
 #= ==================================== =#
-# Implementing selected IMAS DD as Julia structures
+# Header
 #= ==================================== =#
 
 abstract type FDS end
+include("functionarrays.jl")
+
+#= ================================================= =#
+#  Implementing selected IMAS DD as Julia structures
+#= ================================================= =#
 
 """
     desired_structure::Vector{String}
 
 Translate the IMAS `desired_structure` entries into Julia structs
 """
-function imas_julia_struct(desired_structure::Vector{String})
+function imas_julia_struct(desired_structure::Vector)
     supported_types = Union{}
     struct_commands = []
 
@@ -96,8 +101,8 @@ function imas_julia_struct(desired_structure::Vector{String})
                     h[item] = ":: Union{Nothing, Float64} = nothing"
                     supported_types = Union{supported_types,Float64}
                 elseif imasdd[sel]["data_type"] in ["FLT_1D", "FLT_1D_TYPE"]
-                    h[item] = ":: Union{Nothing, Array{Float64, 1}} = nothing"
-                    supported_types = Union{supported_types,Array{Float64}}
+                    h[item] = ":: Union{Nothing, Array{Float64, 1}, NumericalFunctionVector{Float64}} = nothing"
+                    supported_types = Union{supported_types,Array{Float64}, NumericalFunctionVector{Float64}}
                 elseif imasdd[sel]["data_type"] == "FLT_2D"
                     h[item] = ":: Union{Nothing, Array{Float64, 2}} = nothing"
                     supported_types = Union{supported_types,Array{Float64}}
@@ -207,7 +212,7 @@ end
 end
 
 
-const (struct_commands, supported_types) = imas_julia_struct(desired_structure)
+struct_commands, supported_types = imas_julia_struct(desired_structure)
 
 # Parse the Julia structs to make sure there are no issues
 using ProgressMeter
@@ -225,6 +230,7 @@ end
 
 open("$(dirname(@__FILE__))/dd.jl","w") do io
     println(io, "abstract type FDS end\n")
+    println(io, "include(\"functionarrays.jl\")\n")
     println(io, "supported_types = $(string(supported_types))\n")
     println(io, join(struct_commands, "\n"))
 end
