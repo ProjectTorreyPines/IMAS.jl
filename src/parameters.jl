@@ -56,6 +56,7 @@ mutable struct FuseParameters
     parameters::Dict{Symbol,AbstractParameter}
 end
 
+
 function Base.getindex(p::FuseParameters, key)
     parameter = p.parameters[key]
     if typeof(parameter) <: ScalarParameter
@@ -66,6 +67,7 @@ function Base.getindex(p::FuseParameters, key)
         throw(KeyError(key))
     end
 end
+
 
 function Base.setindex!(p::FuseParameters, value, key)
     parameter = p.parameters[key]
@@ -85,11 +87,9 @@ function Base.setindex!(p::FuseParameters, value, key)
     end
 end
 
+
 #= ================= =#
 #   Parameters list   #
 #= ================= =#
 
 include("parameters_list.jl")
-
-# define FuseParameters for rapid access of .value property
-fuse_parameters = FuseParameters(fuse_parameters)
