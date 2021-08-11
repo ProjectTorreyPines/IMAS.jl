@@ -2,6 +2,28 @@ import JSON
 
 include("dd.jl")
 
+import Base: resize!
+
+"""
+    resize!(collection::Vector{T}, n::Int) where {T<:FUSE.FDS}
+
+Change size of a FDS array of structures
+"""
+function resize!(collection::Vector{T}, n::Int) where {T<:FUSE.FDS}
+    if n > length(collection)
+        for k in length(collection):n - 1
+            push!(collection, eltype(collection)())
+            # println("push $(length(collection))")
+        end
+    elseif n < length(collection)
+        for k in n:length(collection) - 1
+            pop!(collection)
+            # println("pop $(length(collection))")
+        end
+    end
+    return collection
+end
+
 """
     struct_field_type(structure::DataType, field::Symbol)
 

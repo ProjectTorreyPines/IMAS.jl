@@ -172,7 +172,7 @@ function imas_julia_struct(desired_structure::Vector{String})
                 # arrays of structs
                 elseif occursin("[:]", item)
                     item = replace(item, "[:]" => "")
-                    push!(txt, "    var\"$(item)\" :: Vector{$(struct_name)$(sep)$(item)} = [$(struct_name)$(sep)$(item)()]")
+                    push!(txt, "    var\"$(item)\" :: Vector{$(struct_name)$(sep)$(item)} = $(struct_name)$(sep)$(item)[]")
                 # structs
                 else
                     push!(txt, "    var\"$(item)\" :: $(struct_name)$(sep)$(item) = $(struct_name)$(sep)$(item)()")
