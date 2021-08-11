@@ -71,26 +71,26 @@ function imas_julia_struct(desired_structure::Vector{String})
                     supported_types = Union{supported_types,Array{String}}
 
                 elseif imasdd[sel]["data_type"] in ["INT_0D", "INT_TYPE"]
-                    h[item] = ":: Union{Nothing, Int32} = nothing"
-                    supported_types = Union{supported_types,Int32}
+                    h[item] = ":: Union{Nothing, Int} = nothing"
+                    supported_types = Union{supported_types,Int}
                 elseif imasdd[sel]["data_type"] == "INT_1D"
-                    h[item] = ":: Union{Nothing, Array{Int32, 1}} = nothing"
-                    supported_types = Union{supported_types,Array{Int32}}
+                    h[item] = ":: Union{Nothing, Array{Int, 1}} = nothing"
+                    supported_types = Union{supported_types,Array{Int}}
                 elseif imasdd[sel]["data_type"] == "INT_2D"
-                    h[item] = ":: Union{Nothing, Array{Int32, 2}} = nothing"
-                    supported_types = Union{supported_types,Array{Int32}}
+                    h[item] = ":: Union{Nothing, Array{Int, 2}} = nothing"
+                    supported_types = Union{supported_types,Array{Int}}
                 elseif imasdd[sel]["data_type"] == "INT_3D"
-                    h[item] = ":: Union{Nothing, Array{Int32, 3}} = nothing"
-                    supported_types = Union{supported_types,Array{Int32}}
+                    h[item] = ":: Union{Nothing, Array{Int, 3}} = nothing"
+                    supported_types = Union{supported_types,Array{Int}}
                 elseif imasdd[sel]["data_type"] == "INT_4D"
-                    h[item] = ":: Union{Nothing, Array{Int32, 4}} = nothing"
-                    supported_types = Union{supported_types,Array{Int32}}
+                    h[item] = ":: Union{Nothing, Array{Int, 4}} = nothing"
+                    supported_types = Union{supported_types,Array{Int}}
                 elseif imasdd[sel]["data_type"] == "INT_5D"
-                    h[item] = ":: Union{Nothing, Array{Int32, 5}} = nothing"
-                    supported_types = Union{supported_types,Array{Int32}}
+                    h[item] = ":: Union{Nothing, Array{Int, 5}} = nothing"
+                    supported_types = Union{supported_types,Array{Int}}
                 elseif imasdd[sel]["data_type"] == "INT_6D"
-                    h[item] = ":: Union{Nothing, Array{Int32, 6}} = nothing"
-                    supported_types = Union{supported_types,Array{Int32}}
+                    h[item] = ":: Union{Nothing, Array{Int, 6}} = nothing"
+                    supported_types = Union{supported_types,Array{Int}}
 
                 elseif imasdd[sel]["data_type"] == "FLT_0D"
                     h[item] = ":: Union{Nothing, Float64} = nothing"
