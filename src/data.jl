@@ -57,6 +57,7 @@ function dict2fuse(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}
         elseif (typeof(v) <: Array) && (length(v) > 0) && (typeof(v[1]) <: Dict)
             ff = getfield(fds, Symbol(k))
             if verbose println(("｜"^level) * string(k)) end
+            resize!(ff,length(v))
             for i in 1:length(v)
                 if verbose println(("｜"^(level + 1)) * string(i)) end
                 dict2fuse(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose)

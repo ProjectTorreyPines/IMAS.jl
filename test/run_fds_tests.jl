@@ -7,11 +7,13 @@ using Test
 @testset "basic_dd_IO" begin
     # instantiate and populate top-level FDS
     data = FUSE.dd();
+    resize!(data.core_profiles.profiles_1d,1)
     data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0, 1, length=10)
     @test length(data.core_profiles.profiles_1d[1].grid.rho_tor_norm) == 10
 
     # try adding some data to separate core_profiles FDS
     crp = FUSE.core_profiles()
+    resize!(crp.profiles_1d,1)
     crp.profiles_1d[1].grid.rho_tor_norm = range(0, 1, length=10)
     crp.profiles_1d[1].electrons.density = (1.0 .- crp.profiles_1d[1].grid.rho_tor_norm).^2
     @test length(crp.profiles_1d[1].grid.rho_tor_norm) == 10
