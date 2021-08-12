@@ -208,8 +208,8 @@ function imas_julia_struct(desired_structure::Vector)
             struct_name = "dd"
         end
         txt_parent = """
-    _parent :: Union{Nothing, WeakRef} = nothing
-    function $(struct_name)($(inits), _parent=nothing)
+    _parent :: WeakRef = WeakRef(nothing)
+    function $(struct_name)($(inits), _parent=WeakRef(nothing))
         obj = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
 $(txt_parent)
         return obj
