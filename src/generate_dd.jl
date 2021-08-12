@@ -24,6 +24,9 @@ for filename in filenames
     if startswith(filename, "_") || ! endswith(filename, ".json")
         continue
     end
+    if ! (filename in ["equilibrium.json","core_profiles.json"])
+        continue
+    end
     filename = replace(filename, ".json" => "")
     for item in keys(load_imasdd(filename))
         push!(desired_structure, item)
@@ -33,8 +36,6 @@ end
 #= ==================================== =#
 # Header
 #= ==================================== =#
-
-abstract type FDS end
 include("functionarrays.jl")
 
 #= ================================================= =#
@@ -183,11 +184,14 @@ function imas_julia_struct(desired_structure::Vector)
                 # top level
                 if length(struct_name) == 0
                     push!(txt, "    var\"$(item)\" :: Union{Nothing, $(item)} = $(item)()")
+                    push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
+                    push!(inits, "var\"$(item)\"=$(item)()")
                     # arrays of structs
                 elseif occursin("[:]", item)
                     item = replace(item, "[:]" => "")
-                    push!(txt, "    var\"$(item)\" :: Vector{$(struct_name)$(sep)$(item)} = $(struct_name)$(sep)$(item)[]")
-                    push!(inits, "var\"$(item)\"=$(struct_name)$(sep)$(item)[]")
+                    push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name)$(sep)$(item)} = FDSvector($(struct_name)$(sep)$(item)[])")
+                    push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
+                    push!(inits, "var\"$(item)\"=FDSvector($(struct_name)$(sep)$(item)[])")
                     # structs
                 else
                     push!(txt, "    var\"$(item)\" :: $(struct_name)$(sep)$(item) = $(struct_name)$(sep)$(item)()")
@@ -200,6 +204,9 @@ function imas_julia_struct(desired_structure::Vector)
         txt = join(txt, "\n")
         txt_parent = join(txt_parent, "\n")
         inits = join(inits, ", ")
+        if length(struct_name) == 0
+            struct_name = "dd"
+        end
         txt_parent = """
     _parent :: Union{Nothing, WeakRef} = nothing
     function $(struct_name)($(inits), _parent=nothing)
@@ -209,20 +216,13 @@ $(txt_parent)
     end
 """
 
-        if length(struct_name) == 0
-            txt = """
-Base.@kwdef mutable struct dd <: FDS
-$(txt)
-end
-"""
-        else
-            txt = """
+        txt = """
 Base.@kwdef mutable struct $(struct_name) <: FDS
 $(txt)
 $(rstrip(txt_parent))
 end
 """
-        end
+
         push!(struct_commands, txt)
     end
 

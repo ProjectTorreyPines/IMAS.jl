@@ -5,19 +5,21 @@ include("dd.jl")
 import Base: resize!
 
 """
-    resize!(collection::Vector{T}, n::Int) where {T<:FUSE.FDS}
+    resize!(collection::FUSE.FDSvector, n::Int)
 
 Change size of a FDS array of structures
 """
-function resize!(collection::Vector{T}, n::Int) where {T<:FUSE.FDS}
+function resize!(collection::FUSE.FDSvector{T}, n::Int) where {T<:FUSE.FDS}
     if n > length(collection)
         for k in length(collection):n - 1
-            push!(collection, eltype(collection)())
+            obj = eltype(collection)()
+            obj._parent = collection._parent
+            push!(collection.value, obj)
             # println("push $(length(collection))")
         end
     elseif n < length(collection)
         for k in n:length(collection) - 1
-            pop!(collection)
+            pop!(collection.value)
             # println("pop $(length(collection))")
         end
     end
