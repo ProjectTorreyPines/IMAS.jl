@@ -2,6 +2,7 @@ using Pkg
 Pkg.activate(dirname(dirname(@__FILE__)))
 
 const imas_version = "3_33_0"
+ENV["OMAS_ROOT"] = "/Users/meneghini/Coding/atom/omas"
 const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
 
 import JSON
@@ -47,14 +48,14 @@ Translate the IMAS `desired_structure` entries into Julia structs
 """
 function imas_julia_struct(desired_structure::Vector)
     supported_types = Union{}
-    struct_commands = []
+    struct_commands = String[]
 
     branches = Vector()
     push!(branches, "")
 
     # generate hierarchy of dicts
     ddict = Dict()
-    for sel in desired_structure
+    for sel in sort(desired_structure)
         if endswith(sel, "error_upper") | endswith(sel, "error_lower") | endswith(sel, "error_index")
             continue
         end
@@ -101,8 +102,13 @@ function imas_julia_struct(desired_structure::Vector)
                     h[item] = ":: Union{Nothing, Float64} = nothing"
                     supported_types = Union{supported_types,Float64}
                 elseif imasdd[sel]["data_type"] in ["FLT_1D", "FLT_1D_TYPE"]
-                    h[item] = ":: Union{Nothing, Array{Float64, 1}, NumericalFunctionVector{Float64}} = nothing"
-                    supported_types = Union{supported_types,Array{Float64}, NumericalFunctionVector{Float64}}
+                    if false
+                        h[item] = ":: Union{Nothing, Array{Float64, 1}, NumericalFunctionVector{Float64}} = nothing"
+                        supported_types = Union{supported_types,Array{Float64},NumericalFunctionVector{Float64}}
+                    else
+                        h[item] = ":: Union{Nothing, Array{Float64, 1}} = nothing"
+                        supported_types = Union{supported_types,Array{Float64}}
+                    end
                 elseif imasdd[sel]["data_type"] == "FLT_2D"
                     h[item] = ":: Union{Nothing, Array{Float64, 2}} = nothing"
                     supported_types = Union{supported_types,Array{Float64}}
@@ -164,37 +170,48 @@ function imas_julia_struct(desired_structure::Vector)
         sep = "__"
         is_structarray = length(branch) > 0 && occursin("[", branch[end])
         struct_name = replace(join(branch, sep), "[:]" => "")
-        txt = []
+        txt = String[]
+        txt_parent = String[]
+        inits = String[]
         for (item, info) in h
             # leaf
             if typeof(info) <: String
                 push!(txt, "    var\"$(item)\" $(info)")
+                push!(inits, "var\"$(item)\"=nothing")
             # branch
             else
                 # top level
                 if length(struct_name) == 0
                     push!(txt, "    var\"$(item)\" :: Union{Nothing, $(item)} = $(item)()")
-                # arrays of structs
+                    # arrays of structs
                 elseif occursin("[:]", item)
                     item = replace(item, "[:]" => "")
                     push!(txt, "    var\"$(item)\" :: Vector{$(struct_name)$(sep)$(item)} = $(struct_name)$(sep)$(item)[]")
-                # structs
+                    push!(inits, "var\"$(item)\"=$(struct_name)$(sep)$(item)[]")
+                    # structs
                 else
                     push!(txt, "    var\"$(item)\" :: $(struct_name)$(sep)$(item) = $(struct_name)$(sep)$(item)()")
+                    push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
+                    push!(inits, "var\"$(item)\"=$(struct_name)$(sep)$(item)()")
                 end
             end
         end
-        
+
         txt = join(txt, "\n")
+        txt_parent = join(txt_parent, "\n")
+        inits = join(inits, ", ")
+        txt_parent = """
+    _parent :: Union{Nothing, WeakRef} = nothing
+    function $(struct_name)($(inits), _parent=nothing)
+        obj = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
+$(txt_parent)
+        return obj
+    end
+"""
+
         if length(struct_name) == 0
             txt = """
 Base.@kwdef mutable struct dd <: FDS
-$(txt)
-end
-"""
-        elseif is_structarray
-            txt = """
-Base.@kwdef mutable struct $(struct_name) <: FDS
 $(txt)
 end
 """
@@ -202,6 +219,7 @@ end
             txt = """
 Base.@kwdef mutable struct $(struct_name) <: FDS
 $(txt)
+$(rstrip(txt_parent))
 end
 """
         end
