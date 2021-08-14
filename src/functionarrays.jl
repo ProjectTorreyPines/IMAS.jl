@@ -3,32 +3,32 @@ abstract type FDS end
 
 mutable struct FDSvector{T} <: AbstractVector{T}
     value::Vector{T}
-    _parent::Union{Nothing, WeakRef}
-    function FDSvector(x::Vector{T}) where {T<:FDS}
+    _parent::Union{Nothing,WeakRef}
+    function FDSvector(x::Vector{T}) where {T <: FDS}
         return new{T}(x, nothing)
     end
 end
 
-struct bla <: FDS end
-
-function Base.getindex(x::FDSvector, i::Int64)
+function Base.getindex(x::FDSvector{T}, i::Int64) where {T <: FDS}
     x.value[i]
 end
 
-Base.size(x::FDSvector) = size(x.value)
+function Base.size(x::FDSvector{T}) where {T <: FDS}
+    size(x.value)
+end
 
-function Base.setindex!(x::FDSvector, v, i::Int64)
+function Base.setindex!(x::FDSvector{T}, v, i::Int64) where {T <: FDS}
     x.value[i] = v
     v._parent = x._parent
 end
 
 import Base: push!, pop!
 
-function push!(x::FDSvector, v)
+function push!(x::FDSvector{T}, v) where {T <: FDS}
     push!(x.value, v)
 end
 
-function pop!(x::Vector{T}) where {T<:FDS}
+function pop!(x::Vector{T}) where {T <: FDS}
     pop!(x.value)
 end
 
