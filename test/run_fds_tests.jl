@@ -33,6 +33,17 @@ using Test
     crp1d.grid.rho_tor_norm = range(0, 1, length=10)
     crp1d.electrons.density = (1.0 .- crp1d.grid.rho_tor_norm).^2
     @test length(crp1d.grid.rho_tor_norm) == 10
+
+    # reach top FDS in different situations
+    @test data === FUSE.top(data)
+    @test data === FUSE.top(data.core_profiles.profiles_1d)
+    @test data === FUSE.top(data.core_profiles.profiles_1d[1])
+    @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid)
+#    data === FUSE.top(data.core_profiles.profiles_1d[1].grid.rho_tor_norm) # this does not work yet
+    @test crp1d === FUSE.top(crp1d)
+    @test crp1d === FUSE.top(crp1d.grid)
+#    @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm) # this does not work yet
+
 end
 
 @testset "JSON_IO" begin
