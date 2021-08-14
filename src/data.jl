@@ -71,7 +71,7 @@ function dict2fuse(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}
             target_type = typeintersect(supported_types, struct_field_type(typeof(fds), Symbol(k)))
             if target_type <: Array
                 if ndims(target_type) == 2
-                    v = hcat(v...)'
+                    v = reduce(hcat,v)
                 end
             end
             v = convert(target_type, v)
