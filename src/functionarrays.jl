@@ -22,7 +22,7 @@ function Base.setindex!(x::FDSvector, v, i::Int64)
     v._parent = x._parent
 end
 
-import Base: push!, pop
+import Base: push!, pop!
 
 function push!(x::FDSvector, v)
     push!(x.value, v)

@@ -5,11 +5,11 @@ include("dd.jl")
 import Base: resize!
 
 """
-    resize!(collection::FUSE.FDSvector, n::Int)
+    resize!(collection::FDSvector{T}, n::Int) where {T<:FDS}
 
 Change size of a FDS array of structures
 """
-function resize!(collection::FUSE.FDSvector{T}, n::Int) where {T<:FUSE.FDS}
+function resize!(collection::FDSvector{T}, n::Int) where {T<:FDS}
     if n > length(collection)
         for k in length(collection):n - 1
             obj = eltype(collection)()
@@ -45,7 +45,7 @@ Populate FUSE data structure `fds` based on data contained in Julia dictionary `
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 """
-function dict2fuse(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::FDS
+function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[]) where {T<:FDS}
     # recursively traverse `dtc` structure
     level = length(path)
     for (k, v) in dct
@@ -68,7 +68,7 @@ function dict2fuse(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}
         # Leaf
         else
             if verbose print(("｜"^level) * string(k) * " → ") end
-            target_type = typeintersect(supported_types, struct_field_type(typeof(fds), Symbol(k)))
+            target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), Symbol(k)))
             if target_type <: Array
                 if ndims(target_type) == 2
                     v = reduce(hcat,v)
@@ -92,7 +92,10 @@ Load from a file with give `filename` the OMAS data structure saved in JSON form
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 """
 function json2fuse(filename::String; verbose::Bool=false)::FDS
-    return FUSE.dict2fuse(JSON.parsefile(filename); verbose=verbose)
+    fds_data = dd()
+    json_data = JSON.parsefile(filename)
+    FUSE.dict2fuse(json_data, fds_data; verbose=verbose)
+    return fds_data
 end
 
 """

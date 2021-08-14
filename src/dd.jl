@@ -2,10 +2,684 @@ abstract type FDS end
 
 include("functionarrays.jl")
 
-supported_types = Union{Float64, Int64, String, Array{Float64, N} where N, Array{Int64, N} where N, Array{String, N} where N}
+convertsion_types = Union{Float64, Int64, String, Array{Float64, N} where N, Array{Int64, N} where N, Array{String, N} where N}
+
+Base.@kwdef mutable struct wall__temperature_reference <: FDS
+    var"data" :: Union{Nothing, Float64} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__temperature_reference(var"data"=nothing, var"description"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"data", var"description", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__ids_properties__version_put <: FDS
+    var"access_layer_language" :: Union{Nothing, String} = nothing
+    var"data_dictionary" :: Union{Nothing, String} = nothing
+    var"access_layer" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__ids_properties__version_put(var"access_layer_language"=nothing, var"data_dictionary"=nothing, var"access_layer"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"access_layer_language", var"data_dictionary", var"access_layer", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__ids_properties <: FDS
+    var"provider" :: Union{Nothing, String} = nothing
+    var"version_put" :: wall__ids_properties__version_put = wall__ids_properties__version_put()
+    var"homogeneous_time" :: Union{Nothing, Int} = nothing
+    var"source" :: Union{Nothing, String} = nothing
+    var"creation_date" :: Union{Nothing, String} = nothing
+    var"comment" :: Union{Nothing, String} = nothing
+    var"occurrence" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__ids_properties(var"provider"=nothing, var"version_put"=wall__ids_properties__version_put(), var"homogeneous_time"=nothing, var"source"=nothing, var"creation_date"=nothing, var"comment"=nothing, var"occurrence"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
+        obj.version_put._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__global_quantities__neutral__element <: FDS
+    var"atoms_n" :: Union{Nothing, Int} = nothing
+    var"z_n" :: Union{Nothing, Float64} = nothing
+    var"multiplicity" :: Union{Nothing, Float64} = nothing
+    var"a" :: Union{Nothing, Float64} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__global_quantities__neutral__element(var"atoms_n"=nothing, var"z_n"=nothing, var"multiplicity"=nothing, var"a"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__global_quantities__neutral <: FDS
+    var"label" :: Union{Nothing, String} = nothing
+    var"sputtering_chemical_coefficient" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"gas_puff" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"recycling_particles_coefficient" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"pumping_speed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"particle_flux_from_wall" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"recycling_energy_coefficient" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"wall_inventory" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"particle_flux_from_plasma" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"sputtering_physical_coefficient" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"element" :: FDSvector{T} where {T<:wall__global_quantities__neutral__element} = FDSvector(wall__global_quantities__neutral__element[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__global_quantities__neutral(var"label"=nothing, var"sputtering_chemical_coefficient"=nothing, var"gas_puff"=nothing, var"recycling_particles_coefficient"=nothing, var"pumping_speed"=nothing, var"particle_flux_from_wall"=nothing, var"recycling_energy_coefficient"=nothing, var"wall_inventory"=nothing, var"particle_flux_from_plasma"=nothing, var"sputtering_physical_coefficient"=nothing, var"element"=FDSvector(wall__global_quantities__neutral__element[]), _parent=WeakRef(nothing))
+        obj = new(var"label", var"sputtering_chemical_coefficient", var"gas_puff", var"recycling_particles_coefficient", var"pumping_speed", var"particle_flux_from_wall", var"recycling_energy_coefficient", var"wall_inventory", var"particle_flux_from_plasma", var"sputtering_physical_coefficient", var"element", _parent)
+        obj.element._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__global_quantities__electrons <: FDS
+    var"particle_flux_from_plasma" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gas_puff" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_outer_target" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pumping_speed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"particle_flux_from_wall" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"power_inner_target" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__global_quantities__electrons(var"particle_flux_from_plasma"=nothing, var"gas_puff"=nothing, var"power_outer_target"=nothing, var"pumping_speed"=nothing, var"particle_flux_from_wall"=nothing, var"power_inner_target"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"particle_flux_from_plasma", var"gas_puff", var"power_outer_target", var"pumping_speed", var"particle_flux_from_wall", var"power_inner_target", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__global_quantities <: FDS
+    var"neutral" :: FDSvector{T} where {T<:wall__global_quantities__neutral} = FDSvector(wall__global_quantities__neutral[])
+    var"power_incident" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_radiated" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_inner_target_ion_total" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"temperature" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_conducted" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_convected" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"current_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"electrons" :: wall__global_quantities__electrons = wall__global_quantities__electrons()
+    var"power_density_inner_target_max" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_black_body" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_recombination_neutrals" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_to_cooling" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_density_outer_target_max" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_recombination_plasma" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_currents" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"power_neutrals" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__global_quantities(var"neutral"=FDSvector(wall__global_quantities__neutral[]), var"power_incident"=nothing, var"power_radiated"=nothing, var"power_inner_target_ion_total"=nothing, var"temperature"=nothing, var"power_conducted"=nothing, var"power_convected"=nothing, var"current_tor"=nothing, var"electrons"=wall__global_quantities__electrons(), var"power_density_inner_target_max"=nothing, var"power_black_body"=nothing, var"power_recombination_neutrals"=nothing, var"power_to_cooling"=nothing, var"power_density_outer_target_max"=nothing, var"power_recombination_plasma"=nothing, var"power_currents"=nothing, var"power_neutrals"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"neutral", var"power_incident", var"power_radiated", var"power_inner_target_ion_total", var"temperature", var"power_conducted", var"power_convected", var"current_tor", var"electrons", var"power_density_inner_target_max", var"power_black_body", var"power_recombination_neutrals", var"power_to_cooling", var"power_density_outer_target_max", var"power_recombination_plasma", var"power_currents", var"power_neutrals", _parent)
+        obj.neutral._parent = WeakRef(obj)
+        obj.electrons._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__first_wall_power_flux_peak <: FDS
+    var"time" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"data" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__first_wall_power_flux_peak(var"time"=nothing, var"data"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"time", var"data", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__type <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__type(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__space__objects_per_dimension__object__boundary <: FDS
+    var"neighbours" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__space__objects_per_dimension__object__boundary(var"neighbours"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"neighbours", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__space__objects_per_dimension__object <: FDS
+    var"nodes" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"measure" :: Union{Nothing, Float64} = nothing
+    var"geometry" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"boundary" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__space__objects_per_dimension__object__boundary} = FDSvector(wall__description_ggd__grid_ggd__space__objects_per_dimension__object__boundary[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__space__objects_per_dimension__object(var"nodes"=nothing, var"measure"=nothing, var"geometry"=nothing, var"boundary"=FDSvector(wall__description_ggd__grid_ggd__space__objects_per_dimension__object__boundary[]), _parent=WeakRef(nothing))
+        obj = new(var"nodes", var"measure", var"geometry", var"boundary", _parent)
+        obj.boundary._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__space__objects_per_dimension <: FDS
+    var"object" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__space__objects_per_dimension__object} = FDSvector(wall__description_ggd__grid_ggd__space__objects_per_dimension__object[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__space__objects_per_dimension(var"object"=FDSvector(wall__description_ggd__grid_ggd__space__objects_per_dimension__object[]), _parent=WeakRef(nothing))
+        obj = new(var"object", _parent)
+        obj.object._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__space__identifier <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__space__identifier(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__space__geometry_type <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__space__geometry_type(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__space <: FDS
+    var"coordinates_type" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"geometry_type" :: wall__description_ggd__grid_ggd__space__geometry_type = wall__description_ggd__grid_ggd__space__geometry_type()
+    var"identifier" :: wall__description_ggd__grid_ggd__space__identifier = wall__description_ggd__grid_ggd__space__identifier()
+    var"objects_per_dimension" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__space__objects_per_dimension} = FDSvector(wall__description_ggd__grid_ggd__space__objects_per_dimension[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__space(var"coordinates_type"=nothing, var"geometry_type"=wall__description_ggd__grid_ggd__space__geometry_type(), var"identifier"=wall__description_ggd__grid_ggd__space__identifier(), var"objects_per_dimension"=FDSvector(wall__description_ggd__grid_ggd__space__objects_per_dimension[]), _parent=WeakRef(nothing))
+        obj = new(var"coordinates_type", var"geometry_type", var"identifier", var"objects_per_dimension", _parent)
+        obj.geometry_type._parent = WeakRef(obj)
+        obj.identifier._parent = WeakRef(obj)
+        obj.objects_per_dimension._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__identifier <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__identifier(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__grid_subset__metric <: FDS
+    var"jacobian" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"tensor_contravariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    var"tensor_covariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__grid_subset__metric(var"jacobian"=nothing, var"tensor_contravariant"=nothing, var"tensor_covariant"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__grid_subset__identifier <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__grid_subset__identifier(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__grid_subset__element__object <: FDS
+    var"dimension" :: Union{Nothing, Int} = nothing
+    var"space" :: Union{Nothing, Int} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__grid_subset__element__object(var"dimension"=nothing, var"space"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"dimension", var"space", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__grid_subset__element <: FDS
+    var"object" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__grid_subset__element__object} = FDSvector(wall__description_ggd__grid_ggd__grid_subset__element__object[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__grid_subset__element(var"object"=FDSvector(wall__description_ggd__grid_ggd__grid_subset__element__object[]), _parent=WeakRef(nothing))
+        obj = new(var"object", _parent)
+        obj.object._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__grid_subset__base <: FDS
+    var"jacobian" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"tensor_contravariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    var"tensor_covariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__grid_subset__base(var"jacobian"=nothing, var"tensor_contravariant"=nothing, var"tensor_covariant"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd__grid_subset <: FDS
+    var"base" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__grid_subset__base} = FDSvector(wall__description_ggd__grid_ggd__grid_subset__base[])
+    var"metric" :: wall__description_ggd__grid_ggd__grid_subset__metric = wall__description_ggd__grid_ggd__grid_subset__metric()
+    var"dimension" :: Union{Nothing, Int} = nothing
+    var"identifier" :: wall__description_ggd__grid_ggd__grid_subset__identifier = wall__description_ggd__grid_ggd__grid_subset__identifier()
+    var"element" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__grid_subset__element} = FDSvector(wall__description_ggd__grid_ggd__grid_subset__element[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd__grid_subset(var"base"=FDSvector(wall__description_ggd__grid_ggd__grid_subset__base[]), var"metric"=wall__description_ggd__grid_ggd__grid_subset__metric(), var"dimension"=nothing, var"identifier"=wall__description_ggd__grid_ggd__grid_subset__identifier(), var"element"=FDSvector(wall__description_ggd__grid_ggd__grid_subset__element[]), _parent=WeakRef(nothing))
+        obj = new(var"base", var"metric", var"dimension", var"identifier", var"element", _parent)
+        obj.base._parent = WeakRef(obj)
+        obj.metric._parent = WeakRef(obj)
+        obj.identifier._parent = WeakRef(obj)
+        obj.element._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__grid_ggd <: FDS
+    var"time" :: Union{Nothing, Float64} = nothing
+    var"grid_subset" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__grid_subset} = FDSvector(wall__description_ggd__grid_ggd__grid_subset[])
+    var"space" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd__space} = FDSvector(wall__description_ggd__grid_ggd__space[])
+    var"identifier" :: wall__description_ggd__grid_ggd__identifier = wall__description_ggd__grid_ggd__identifier()
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__grid_ggd(var"time"=nothing, var"grid_subset"=FDSvector(wall__description_ggd__grid_ggd__grid_subset[]), var"space"=FDSvector(wall__description_ggd__grid_ggd__space[]), var"identifier"=wall__description_ggd__grid_ggd__identifier(), _parent=WeakRef(nothing))
+        obj = new(var"time", var"grid_subset", var"space", var"identifier", _parent)
+        obj.grid_subset._parent = WeakRef(obj)
+        obj.space._parent = WeakRef(obj)
+        obj.identifier._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__ggd__temperature <: FDS
+    var"grid_index" :: Union{Nothing, Int} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"grid_subset_index" :: Union{Nothing, Int} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__ggd__temperature(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__ggd__power_density <: FDS
+    var"grid_index" :: Union{Nothing, Int} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"grid_subset_index" :: Union{Nothing, Int} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__ggd__power_density(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd__ggd <: FDS
+    var"temperature" :: FDSvector{T} where {T<:wall__description_ggd__ggd__temperature} = FDSvector(wall__description_ggd__ggd__temperature[])
+    var"time" :: Union{Nothing, Float64} = nothing
+    var"power_density" :: FDSvector{T} where {T<:wall__description_ggd__ggd__power_density} = FDSvector(wall__description_ggd__ggd__power_density[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd__ggd(var"temperature"=FDSvector(wall__description_ggd__ggd__temperature[]), var"time"=nothing, var"power_density"=FDSvector(wall__description_ggd__ggd__power_density[]), _parent=WeakRef(nothing))
+        obj = new(var"temperature", var"time", var"power_density", _parent)
+        obj.temperature._parent = WeakRef(obj)
+        obj.power_density._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_ggd <: FDS
+    var"grid_ggd" :: FDSvector{T} where {T<:wall__description_ggd__grid_ggd} = FDSvector(wall__description_ggd__grid_ggd[])
+    var"type" :: wall__description_ggd__type = wall__description_ggd__type()
+    var"ggd" :: FDSvector{T} where {T<:wall__description_ggd__ggd} = FDSvector(wall__description_ggd__ggd[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_ggd(var"grid_ggd"=FDSvector(wall__description_ggd__grid_ggd[]), var"type"=wall__description_ggd__type(), var"ggd"=FDSvector(wall__description_ggd__ggd[]), _parent=WeakRef(nothing))
+        obj = new(var"grid_ggd", var"type", var"ggd", _parent)
+        obj.grid_ggd._parent = WeakRef(obj)
+        obj.type._parent = WeakRef(obj)
+        obj.ggd._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit__element__outline <: FDS
+    var"closed" :: Union{Nothing, Int} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit__element__outline(var"closed"=nothing, var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"closed", var"r", var"z", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit__element__j_tor <: FDS
+    var"time" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"data" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit__element__j_tor(var"time"=nothing, var"data"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"time", var"data", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit__element <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"j_tor" :: wall__description_2d__vessel__unit__element__j_tor = wall__description_2d__vessel__unit__element__j_tor()
+    var"resistivity" :: Union{Nothing, Float64} = nothing
+    var"outline" :: wall__description_2d__vessel__unit__element__outline = wall__description_2d__vessel__unit__element__outline()
+    var"resistance" :: Union{Nothing, Float64} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit__element(var"name"=nothing, var"j_tor"=wall__description_2d__vessel__unit__element__j_tor(), var"resistivity"=nothing, var"outline"=wall__description_2d__vessel__unit__element__outline(), var"resistance"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"j_tor", var"resistivity", var"outline", var"resistance", _parent)
+        obj.j_tor._parent = WeakRef(obj)
+        obj.outline._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit__annular__outline_outer <: FDS
+    var"closed" :: Union{Nothing, Int} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit__annular__outline_outer(var"closed"=nothing, var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"closed", var"r", var"z", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit__annular__outline_inner <: FDS
+    var"closed" :: Union{Nothing, Int} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit__annular__outline_inner(var"closed"=nothing, var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"closed", var"r", var"z", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit__annular__centreline <: FDS
+    var"closed" :: Union{Nothing, Int} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit__annular__centreline(var"closed"=nothing, var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"closed", var"r", var"z", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit__annular <: FDS
+    var"outline_inner" :: wall__description_2d__vessel__unit__annular__outline_inner = wall__description_2d__vessel__unit__annular__outline_inner()
+    var"centreline" :: wall__description_2d__vessel__unit__annular__centreline = wall__description_2d__vessel__unit__annular__centreline()
+    var"thickness" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"resistivity" :: Union{Nothing, Float64} = nothing
+    var"outline_outer" :: wall__description_2d__vessel__unit__annular__outline_outer = wall__description_2d__vessel__unit__annular__outline_outer()
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit__annular(var"outline_inner"=wall__description_2d__vessel__unit__annular__outline_inner(), var"centreline"=wall__description_2d__vessel__unit__annular__centreline(), var"thickness"=nothing, var"resistivity"=nothing, var"outline_outer"=wall__description_2d__vessel__unit__annular__outline_outer(), _parent=WeakRef(nothing))
+        obj = new(var"outline_inner", var"centreline", var"thickness", var"resistivity", var"outline_outer", _parent)
+        obj.outline_inner._parent = WeakRef(obj)
+        obj.centreline._parent = WeakRef(obj)
+        obj.outline_outer._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__unit <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"annular" :: wall__description_2d__vessel__unit__annular = wall__description_2d__vessel__unit__annular()
+    var"identifier" :: Union{Nothing, String} = nothing
+    var"element" :: FDSvector{T} where {T<:wall__description_2d__vessel__unit__element} = FDSvector(wall__description_2d__vessel__unit__element[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__unit(var"name"=nothing, var"annular"=wall__description_2d__vessel__unit__annular(), var"identifier"=nothing, var"element"=FDSvector(wall__description_2d__vessel__unit__element[]), _parent=WeakRef(nothing))
+        obj = new(var"name", var"annular", var"identifier", var"element", _parent)
+        obj.annular._parent = WeakRef(obj)
+        obj.element._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel__type <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel__type(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__vessel <: FDS
+    var"type" :: wall__description_2d__vessel__type = wall__description_2d__vessel__type()
+    var"unit" :: FDSvector{T} where {T<:wall__description_2d__vessel__unit} = FDSvector(wall__description_2d__vessel__unit[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__vessel(var"type"=wall__description_2d__vessel__type(), var"unit"=FDSvector(wall__description_2d__vessel__unit[]), _parent=WeakRef(nothing))
+        obj = new(var"type", var"unit", _parent)
+        obj.type._parent = WeakRef(obj)
+        obj.unit._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__type <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__type(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__mobile__unit__outline <: FDS
+    var"time" :: Union{Nothing, Float64} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__mobile__unit__outline(var"time"=nothing, var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"time", var"r", var"z", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__mobile__unit <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"resistivity" :: Union{Nothing, Float64} = nothing
+    var"closed" :: Union{Nothing, Int} = nothing
+    var"phi_extensions" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"outline" :: FDSvector{T} where {T<:wall__description_2d__mobile__unit__outline} = FDSvector(wall__description_2d__mobile__unit__outline[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__mobile__unit(var"name"=nothing, var"resistivity"=nothing, var"closed"=nothing, var"phi_extensions"=nothing, var"outline"=FDSvector(wall__description_2d__mobile__unit__outline[]), _parent=WeakRef(nothing))
+        obj = new(var"name", var"resistivity", var"closed", var"phi_extensions", var"outline", _parent)
+        obj.outline._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__mobile__type <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__mobile__type(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__mobile <: FDS
+    var"type" :: wall__description_2d__mobile__type = wall__description_2d__mobile__type()
+    var"unit" :: FDSvector{T} where {T<:wall__description_2d__mobile__unit} = FDSvector(wall__description_2d__mobile__unit[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__mobile(var"type"=wall__description_2d__mobile__type(), var"unit"=FDSvector(wall__description_2d__mobile__unit[]), _parent=WeakRef(nothing))
+        obj = new(var"type", var"unit", _parent)
+        obj.type._parent = WeakRef(obj)
+        obj.unit._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__limiter__unit__outline <: FDS
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__limiter__unit__outline(var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"r", var"z", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__limiter__unit <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"resistivity" :: Union{Nothing, Float64} = nothing
+    var"closed" :: Union{Nothing, Int} = nothing
+    var"outline" :: wall__description_2d__limiter__unit__outline = wall__description_2d__limiter__unit__outline()
+    var"phi_extensions" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__limiter__unit(var"name"=nothing, var"resistivity"=nothing, var"closed"=nothing, var"outline"=wall__description_2d__limiter__unit__outline(), var"phi_extensions"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"resistivity", var"closed", var"outline", var"phi_extensions", _parent)
+        obj.outline._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__limiter__type <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"description" :: Union{Nothing, String} = nothing
+    var"index" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__limiter__type(var"name"=nothing, var"description"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"description", var"index", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d__limiter <: FDS
+    var"type" :: wall__description_2d__limiter__type = wall__description_2d__limiter__type()
+    var"unit" :: FDSvector{T} where {T<:wall__description_2d__limiter__unit} = FDSvector(wall__description_2d__limiter__unit[])
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d__limiter(var"type"=wall__description_2d__limiter__type(), var"unit"=FDSvector(wall__description_2d__limiter__unit[]), _parent=WeakRef(nothing))
+        obj = new(var"type", var"unit", _parent)
+        obj.type._parent = WeakRef(obj)
+        obj.unit._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__description_2d <: FDS
+    var"mobile" :: wall__description_2d__mobile = wall__description_2d__mobile()
+    var"limiter" :: wall__description_2d__limiter = wall__description_2d__limiter()
+    var"type" :: wall__description_2d__type = wall__description_2d__type()
+    var"vessel" :: wall__description_2d__vessel = wall__description_2d__vessel()
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__description_2d(var"mobile"=wall__description_2d__mobile(), var"limiter"=wall__description_2d__limiter(), var"type"=wall__description_2d__type(), var"vessel"=wall__description_2d__vessel(), _parent=WeakRef(nothing))
+        obj = new(var"mobile", var"limiter", var"type", var"vessel", _parent)
+        obj.mobile._parent = WeakRef(obj)
+        obj.limiter._parent = WeakRef(obj)
+        obj.type._parent = WeakRef(obj)
+        obj.vessel._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__code__library <: FDS
+    var"name" :: Union{Nothing, String} = nothing
+    var"parameters" :: Union{Nothing, String} = nothing
+    var"commit" :: Union{Nothing, String} = nothing
+    var"repository" :: Union{Nothing, String} = nothing
+    var"version" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__code__library(var"name"=nothing, var"parameters"=nothing, var"commit"=nothing, var"repository"=nothing, var"version"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"name", var"parameters", var"commit", var"repository", var"version", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall__code <: FDS
+    var"library" :: FDSvector{T} where {T<:wall__code__library} = FDSvector(wall__code__library[])
+    var"name" :: Union{Nothing, String} = nothing
+    var"parameters" :: Union{Nothing, String} = nothing
+    var"commit" :: Union{Nothing, String} = nothing
+    var"repository" :: Union{Nothing, String} = nothing
+    var"output_flag" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"version" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall__code(var"library"=FDSvector(wall__code__library[]), var"name"=nothing, var"parameters"=nothing, var"commit"=nothing, var"repository"=nothing, var"output_flag"=nothing, var"version"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"library", var"name", var"parameters", var"commit", var"repository", var"output_flag", var"version", _parent)
+        obj.library._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct wall <: FDS
+    var"time" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"ids_properties" :: wall__ids_properties = wall__ids_properties()
+    var"description_ggd" :: FDSvector{T} where {T<:wall__description_ggd} = FDSvector(wall__description_ggd[])
+    var"description_2d" :: FDSvector{T} where {T<:wall__description_2d} = FDSvector(wall__description_2d[])
+    var"first_wall_surface_area" :: Union{Nothing, Float64} = nothing
+    var"code" :: wall__code = wall__code()
+    var"global_quantities" :: wall__global_quantities = wall__global_quantities()
+    var"temperature_reference" :: wall__temperature_reference = wall__temperature_reference()
+    var"first_wall_power_flux_peak" :: wall__first_wall_power_flux_peak = wall__first_wall_power_flux_peak()
+    _parent :: WeakRef = WeakRef(nothing)
+    function wall(var"time"=nothing, var"ids_properties"=wall__ids_properties(), var"description_ggd"=FDSvector(wall__description_ggd[]), var"description_2d"=FDSvector(wall__description_2d[]), var"first_wall_surface_area"=nothing, var"code"=wall__code(), var"global_quantities"=wall__global_quantities(), var"temperature_reference"=wall__temperature_reference(), var"first_wall_power_flux_peak"=wall__first_wall_power_flux_peak(), _parent=WeakRef(nothing))
+        obj = new(var"time", var"ids_properties", var"description_ggd", var"description_2d", var"first_wall_surface_area", var"code", var"global_quantities", var"temperature_reference", var"first_wall_power_flux_peak", _parent)
+        obj.ids_properties._parent = WeakRef(obj)
+        obj.description_ggd._parent = WeakRef(obj)
+        obj.description_2d._parent = WeakRef(obj)
+        obj.code._parent = WeakRef(obj)
+        obj.global_quantities._parent = WeakRef(obj)
+        obj.temperature_reference._parent = WeakRef(obj)
+        obj.first_wall_power_flux_peak._parent = WeakRef(obj)
+        return obj
+    end
+end
 
 Base.@kwdef mutable struct equilibrium__vacuum_toroidal_field <: FDS
-    var"b0" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"b0" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"r0" :: Union{Nothing, Float64} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__vacuum_toroidal_field(var"b0"=nothing, var"r0"=nothing, _parent=WeakRef(nothing))
@@ -28,9 +702,9 @@ Base.@kwdef mutable struct equilibrium__time_slice__profiles_2d__grid_type <: FD
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__profiles_2d__grid <: FDS
-    var"volume_element" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"dim2" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"dim1" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"volume_element" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"dim2" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"dim1" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__profiles_2d__grid(var"volume_element"=nothing, var"dim2"=nothing, var"dim1"=nothing, _parent=WeakRef(nothing))
         obj = new(var"volume_element", var"dim2", var"dim1", _parent)
@@ -40,21 +714,21 @@ Base.@kwdef mutable struct equilibrium__time_slice__profiles_2d__grid <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__profiles_2d <: FDS
-    var"psi" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"b_field_r" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"r" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"b_r" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"theta" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"b_field_z" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"j_tor" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"phi" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"z" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"b_field_tor" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"b_z" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"psi" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"b_field_r" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"b_r" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"theta" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"b_field_z" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"j_tor" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"phi" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"b_field_tor" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"b_z" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     var"grid" :: equilibrium__time_slice__profiles_2d__grid = equilibrium__time_slice__profiles_2d__grid()
     var"grid_type" :: equilibrium__time_slice__profiles_2d__grid_type = equilibrium__time_slice__profiles_2d__grid_type()
-    var"j_parallel" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"b_tor" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"j_parallel" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"b_tor" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__profiles_2d(var"psi"=nothing, var"b_field_r"=nothing, var"r"=nothing, var"b_r"=nothing, var"theta"=nothing, var"b_field_z"=nothing, var"j_tor"=nothing, var"phi"=nothing, var"z"=nothing, var"b_field_tor"=nothing, var"b_z"=nothing, var"grid"=equilibrium__time_slice__profiles_2d__grid(), var"grid_type"=equilibrium__time_slice__profiles_2d__grid_type(), var"j_parallel"=nothing, var"b_tor"=nothing, _parent=WeakRef(nothing))
         obj = new(var"psi", var"b_field_r", var"r", var"b_r", var"theta", var"b_field_z", var"j_tor", var"phi", var"z", var"b_field_tor", var"b_z", var"grid", var"grid_type", var"j_parallel", var"b_tor", _parent)
@@ -65,8 +739,8 @@ Base.@kwdef mutable struct equilibrium__time_slice__profiles_2d <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__profiles_1d__geometric_axis <: FDS
-    var"r" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__profiles_1d__geometric_axis(var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
         obj = new(var"r", var"z", _parent)
@@ -76,54 +750,54 @@ Base.@kwdef mutable struct equilibrium__time_slice__profiles_1d__geometric_axis 
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__profiles_1d <: FDS
-    var"b_field_max" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"dvolume_drho_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm9" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"dpsi_drho_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"surface" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"magnetic_shear" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"b_average" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"b_field_min" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"darea_dpsi" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm3" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"squareness_upper_inner" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"squareness_lower_inner" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"elongation" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"beta_pol" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"b_field_average" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"j_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm6" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"psi" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm8" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"dpressure_dpsi" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"triangularity_upper" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"darea_drho_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"area" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"trapped_fraction" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"volume" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"dvolume_dpsi" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"b_min" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"f" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"mass_density" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"r_outboard" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm4" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"phi" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"squareness_lower_outer" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"triangularity_lower" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm2" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_volume_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm1" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm5" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"b_max" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"f_df_dpsi" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"j_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"r_inboard" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"q" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"gm7" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"squareness_upper_outer" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"b_field_max" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"dvolume_drho_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm9" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"dpsi_drho_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"surface" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"magnetic_shear" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"b_average" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"b_field_min" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"darea_dpsi" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm3" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"squareness_upper_inner" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"squareness_lower_inner" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"elongation" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"beta_pol" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"b_field_average" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"j_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm6" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"psi" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm8" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"dpressure_dpsi" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"triangularity_upper" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"darea_drho_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"area" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"trapped_fraction" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"volume" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"dvolume_dpsi" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"b_min" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"f" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"mass_density" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"r_outboard" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm4" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"phi" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"squareness_lower_outer" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"triangularity_lower" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm2" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_volume_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm1" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm5" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"b_max" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"f_df_dpsi" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"j_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"r_inboard" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"q" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"gm7" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"squareness_upper_outer" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"geometric_axis" :: equilibrium__time_slice__profiles_1d__geometric_axis = equilibrium__time_slice__profiles_1d__geometric_axis()
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__profiles_1d(var"b_field_max"=nothing, var"dvolume_drho_tor"=nothing, var"gm9"=nothing, var"dpsi_drho_tor"=nothing, var"surface"=nothing, var"rho_tor"=nothing, var"magnetic_shear"=nothing, var"b_average"=nothing, var"b_field_min"=nothing, var"darea_dpsi"=nothing, var"gm3"=nothing, var"squareness_upper_inner"=nothing, var"squareness_lower_inner"=nothing, var"rho_tor_norm"=nothing, var"elongation"=nothing, var"beta_pol"=nothing, var"b_field_average"=nothing, var"j_parallel"=nothing, var"gm6"=nothing, var"psi"=nothing, var"gm8"=nothing, var"dpressure_dpsi"=nothing, var"triangularity_upper"=nothing, var"darea_drho_tor"=nothing, var"area"=nothing, var"trapped_fraction"=nothing, var"volume"=nothing, var"dvolume_dpsi"=nothing, var"b_min"=nothing, var"f"=nothing, var"mass_density"=nothing, var"r_outboard"=nothing, var"gm4"=nothing, var"phi"=nothing, var"squareness_lower_outer"=nothing, var"triangularity_lower"=nothing, var"gm2"=nothing, var"rho_volume_norm"=nothing, var"gm1"=nothing, var"gm5"=nothing, var"b_max"=nothing, var"f_df_dpsi"=nothing, var"j_tor"=nothing, var"r_inboard"=nothing, var"q"=nothing, var"gm7"=nothing, var"pressure"=nothing, var"squareness_upper_outer"=nothing, var"geometric_axis"=equilibrium__time_slice__profiles_1d__geometric_axis(), _parent=WeakRef(nothing))
@@ -202,9 +876,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__z <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__z(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -215,9 +889,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__theta <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__theta(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -228,9 +902,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__r <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__r(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -241,9 +915,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__psi <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__psi(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -254,9 +928,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__phi <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__phi(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -267,9 +941,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__j_tor <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__j_tor(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -280,9 +954,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__j_parallel <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__j_parallel(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -292,7 +966,7 @@ Base.@kwdef mutable struct equilibrium__time_slice__ggd__j_parallel <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__space__objects_per_dimension__object__boundary <: FDS
-    var"neighbours" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"neighbours" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"index" :: Union{Nothing, Int} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__grid__space__objects_per_dimension__object__boundary(var"neighbours"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
@@ -303,9 +977,9 @@ Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__space__objects_pe
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__space__objects_per_dimension__object <: FDS
-    var"nodes" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"nodes" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"measure" :: Union{Nothing, Float64} = nothing
-    var"geometry" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"geometry" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"boundary" :: FDSvector{T} where {T<:equilibrium__time_slice__ggd__grid__space__objects_per_dimension__object__boundary} = FDSvector(equilibrium__time_slice__ggd__grid__space__objects_per_dimension__object__boundary[])
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__grid__space__objects_per_dimension__object(var"nodes"=nothing, var"measure"=nothing, var"geometry"=nothing, var"boundary"=FDSvector(equilibrium__time_slice__ggd__grid__space__objects_per_dimension__object__boundary[]), _parent=WeakRef(nothing))
@@ -350,7 +1024,7 @@ Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__space__geometry_t
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__space <: FDS
-    var"coordinates_type" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"coordinates_type" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"geometry_type" :: equilibrium__time_slice__ggd__grid__space__geometry_type = equilibrium__time_slice__ggd__grid__space__geometry_type()
     var"identifier" :: equilibrium__time_slice__ggd__grid__space__identifier = equilibrium__time_slice__ggd__grid__space__identifier()
     var"objects_per_dimension" :: FDSvector{T} where {T<:equilibrium__time_slice__ggd__grid__space__objects_per_dimension} = FDSvector(equilibrium__time_slice__ggd__grid__space__objects_per_dimension[])
@@ -377,9 +1051,9 @@ Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__identifier <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__grid_subset__metric <: FDS
-    var"jacobian" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"tensor_contravariant" :: Union{Nothing, Array{Float64, 3}} = nothing
-    var"tensor_covariant" :: Union{Nothing, Array{Float64, 3}} = nothing
+    var"jacobian" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"tensor_contravariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    var"tensor_covariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__grid__grid_subset__metric(var"jacobian"=nothing, var"tensor_contravariant"=nothing, var"tensor_covariant"=nothing, _parent=WeakRef(nothing))
         obj = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -423,9 +1097,9 @@ Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__grid_subset__elem
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__grid__grid_subset__base <: FDS
-    var"jacobian" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"tensor_contravariant" :: Union{Nothing, Array{Float64, 3}} = nothing
-    var"tensor_covariant" :: Union{Nothing, Array{Float64, 3}} = nothing
+    var"jacobian" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"tensor_contravariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    var"tensor_covariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__grid__grid_subset__base(var"jacobian"=nothing, var"tensor_contravariant"=nothing, var"tensor_covariant"=nothing, _parent=WeakRef(nothing))
         obj = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -467,9 +1141,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__b_field_z <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__b_field_z(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -480,9 +1154,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__b_field_tor <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__b_field_tor(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -493,9 +1167,9 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice__ggd__b_field_r <: FDS
     var"grid_index" :: Union{Nothing, Int} = nothing
-    var"values" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"values" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid_subset_index" :: Union{Nothing, Int} = nothing
-    var"coefficients" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"coefficients" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__ggd__b_field_r(var"grid_index"=nothing, var"values"=nothing, var"grid_subset_index"=nothing, var"coefficients"=nothing, _parent=WeakRef(nothing))
         obj = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -547,9 +1221,9 @@ Base.@kwdef mutable struct equilibrium__time_slice__coordinate_system__grid_type
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__coordinate_system__grid <: FDS
-    var"volume_element" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"dim2" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"dim1" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"volume_element" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"dim2" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"dim1" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__coordinate_system__grid(var"volume_element"=nothing, var"dim2"=nothing, var"dim1"=nothing, _parent=WeakRef(nothing))
         obj = new(var"volume_element", var"dim2", var"dim1", _parent)
@@ -559,24 +1233,24 @@ Base.@kwdef mutable struct equilibrium__time_slice__coordinate_system__grid <: F
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__coordinate_system <: FDS
-    var"jacobian" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g13_covariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g11_contravariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g13_contravariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"r" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g12_contravariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g22_contravariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"z" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g33_contravariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g22_covariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"tensor_contravariant" :: Union{Nothing, Array{Float64, 4}} = nothing
-    var"g12_covariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g33_covariant" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"jacobian" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g13_covariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g11_contravariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g13_contravariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g12_contravariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g22_contravariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g33_contravariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g22_covariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"tensor_contravariant" :: Union{Nothing, AbstractArray{Float64, 4}} = nothing
+    var"g12_covariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g33_covariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     var"grid" :: equilibrium__time_slice__coordinate_system__grid = equilibrium__time_slice__coordinate_system__grid()
-    var"g23_covariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"g11_covariant" :: Union{Nothing, Array{Float64, 2}} = nothing
-    var"tensor_covariant" :: Union{Nothing, Array{Float64, 4}} = nothing
-    var"g23_contravariant" :: Union{Nothing, Array{Float64, 2}} = nothing
+    var"g23_covariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"g11_covariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
+    var"tensor_covariant" :: Union{Nothing, AbstractArray{Float64, 4}} = nothing
+    var"g23_contravariant" :: Union{Nothing, AbstractArray{Float64, 2}} = nothing
     var"grid_type" :: equilibrium__time_slice__coordinate_system__grid_type = equilibrium__time_slice__coordinate_system__grid_type()
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__coordinate_system(var"jacobian"=nothing, var"g13_covariant"=nothing, var"g11_contravariant"=nothing, var"g13_contravariant"=nothing, var"r"=nothing, var"g12_contravariant"=nothing, var"g22_contravariant"=nothing, var"z"=nothing, var"g33_contravariant"=nothing, var"g22_covariant"=nothing, var"tensor_contravariant"=nothing, var"g12_covariant"=nothing, var"g33_covariant"=nothing, var"grid"=equilibrium__time_slice__coordinate_system__grid(), var"g23_covariant"=nothing, var"g11_covariant"=nothing, var"tensor_covariant"=nothing, var"g23_contravariant"=nothing, var"grid_type"=equilibrium__time_slice__coordinate_system__grid_type(), _parent=WeakRef(nothing))
@@ -1005,8 +1679,8 @@ Base.@kwdef mutable struct equilibrium__time_slice__boundary_separatrix__strike_
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__boundary_separatrix__outline <: FDS
-    var"r" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__boundary_separatrix__outline(var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
         obj = new(var"r", var"z", _parent)
@@ -1135,8 +1809,8 @@ Base.@kwdef mutable struct equilibrium__time_slice__boundary_secondary_separatri
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__boundary_secondary_separatrix__outline <: FDS
-    var"r" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__boundary_secondary_separatrix__outline(var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
         obj = new(var"r", var"z", _parent)
@@ -1184,8 +1858,8 @@ Base.@kwdef mutable struct equilibrium__time_slice__boundary__strike_point <: FD
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__boundary__outline <: FDS
-    var"r" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__boundary__outline(var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
         obj = new(var"r", var"z", _parent)
@@ -1195,8 +1869,8 @@ Base.@kwdef mutable struct equilibrium__time_slice__boundary__outline <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice__boundary__lcfs <: FDS
-    var"r" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"r" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__time_slice__boundary__lcfs(var"r"=nothing, var"z"=nothing, _parent=WeakRef(nothing))
         obj = new(var"r", var"z", _parent)
@@ -1320,7 +1994,7 @@ Base.@kwdef mutable struct equilibrium__ids_properties <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd__grid__space__objects_per_dimension__object__boundary <: FDS
-    var"neighbours" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"neighbours" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"index" :: Union{Nothing, Int} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__grids_ggd__grid__space__objects_per_dimension__object__boundary(var"neighbours"=nothing, var"index"=nothing, _parent=WeakRef(nothing))
@@ -1331,9 +2005,9 @@ Base.@kwdef mutable struct equilibrium__grids_ggd__grid__space__objects_per_dime
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd__grid__space__objects_per_dimension__object <: FDS
-    var"nodes" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"nodes" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"measure" :: Union{Nothing, Float64} = nothing
-    var"geometry" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"geometry" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"boundary" :: FDSvector{T} where {T<:equilibrium__grids_ggd__grid__space__objects_per_dimension__object__boundary} = FDSvector(equilibrium__grids_ggd__grid__space__objects_per_dimension__object__boundary[])
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__grids_ggd__grid__space__objects_per_dimension__object(var"nodes"=nothing, var"measure"=nothing, var"geometry"=nothing, var"boundary"=FDSvector(equilibrium__grids_ggd__grid__space__objects_per_dimension__object__boundary[]), _parent=WeakRef(nothing))
@@ -1378,7 +2052,7 @@ Base.@kwdef mutable struct equilibrium__grids_ggd__grid__space__geometry_type <:
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd__grid__space <: FDS
-    var"coordinates_type" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"coordinates_type" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"geometry_type" :: equilibrium__grids_ggd__grid__space__geometry_type = equilibrium__grids_ggd__grid__space__geometry_type()
     var"identifier" :: equilibrium__grids_ggd__grid__space__identifier = equilibrium__grids_ggd__grid__space__identifier()
     var"objects_per_dimension" :: FDSvector{T} where {T<:equilibrium__grids_ggd__grid__space__objects_per_dimension} = FDSvector(equilibrium__grids_ggd__grid__space__objects_per_dimension[])
@@ -1405,9 +2079,9 @@ Base.@kwdef mutable struct equilibrium__grids_ggd__grid__identifier <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd__grid__grid_subset__metric <: FDS
-    var"jacobian" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"tensor_contravariant" :: Union{Nothing, Array{Float64, 3}} = nothing
-    var"tensor_covariant" :: Union{Nothing, Array{Float64, 3}} = nothing
+    var"jacobian" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"tensor_contravariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    var"tensor_covariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__grids_ggd__grid__grid_subset__metric(var"jacobian"=nothing, var"tensor_contravariant"=nothing, var"tensor_covariant"=nothing, _parent=WeakRef(nothing))
         obj = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -1451,9 +2125,9 @@ Base.@kwdef mutable struct equilibrium__grids_ggd__grid__grid_subset__element <:
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd__grid__grid_subset__base <: FDS
-    var"jacobian" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"tensor_contravariant" :: Union{Nothing, Array{Float64, 3}} = nothing
-    var"tensor_covariant" :: Union{Nothing, Array{Float64, 3}} = nothing
+    var"jacobian" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"tensor_contravariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
+    var"tensor_covariant" :: Union{Nothing, AbstractArray{Float64, 3}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__grids_ggd__grid__grid_subset__base(var"jacobian"=nothing, var"tensor_contravariant"=nothing, var"tensor_covariant"=nothing, _parent=WeakRef(nothing))
         obj = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -1524,7 +2198,7 @@ Base.@kwdef mutable struct equilibrium__code <: FDS
     var"parameters" :: Union{Nothing, String} = nothing
     var"commit" :: Union{Nothing, String} = nothing
     var"repository" :: Union{Nothing, String} = nothing
-    var"output_flag" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"output_flag" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"version" :: Union{Nothing, String} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function equilibrium__code(var"library"=FDSvector(equilibrium__code__library[]), var"name"=nothing, var"parameters"=nothing, var"commit"=nothing, var"repository"=nothing, var"output_flag"=nothing, var"version"=nothing, _parent=WeakRef(nothing))
@@ -1536,7 +2210,7 @@ end
 
 Base.@kwdef mutable struct equilibrium <: FDS
     var"time_slice" :: FDSvector{T} where {T<:equilibrium__time_slice} = FDSvector(equilibrium__time_slice[])
-    var"time" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"ids_properties" :: equilibrium__ids_properties = equilibrium__ids_properties()
     var"grids_ggd" :: FDSvector{T} where {T<:equilibrium__grids_ggd} = FDSvector(equilibrium__grids_ggd[])
     var"vacuum_toroidal_field" :: equilibrium__vacuum_toroidal_field = equilibrium__vacuum_toroidal_field()
@@ -1553,8 +2227,129 @@ Base.@kwdef mutable struct equilibrium <: FDS
     end
 end
 
+Base.@kwdef mutable struct dataset_description__simulation <: FDS
+    var"time_ended" :: Union{Nothing, String} = nothing
+    var"time_begun" :: Union{Nothing, String} = nothing
+    var"time_current" :: Union{Nothing, Float64} = nothing
+    var"time_restart" :: Union{Nothing, Float64} = nothing
+    var"workflow" :: Union{Nothing, String} = nothing
+    var"comment_after" :: Union{Nothing, String} = nothing
+    var"time_begin" :: Union{Nothing, Float64} = nothing
+    var"time_end" :: Union{Nothing, Float64} = nothing
+    var"comment_before" :: Union{Nothing, String} = nothing
+    var"time_step" :: Union{Nothing, Float64} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description__simulation(var"time_ended"=nothing, var"time_begun"=nothing, var"time_current"=nothing, var"time_restart"=nothing, var"workflow"=nothing, var"comment_after"=nothing, var"time_begin"=nothing, var"time_end"=nothing, var"comment_before"=nothing, var"time_step"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"time_ended", var"time_begun", var"time_current", var"time_restart", var"workflow", var"comment_after", var"time_begin", var"time_end", var"comment_before", var"time_step", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct dataset_description__pulse_time_end_epoch <: FDS
+    var"nanoseconds" :: Union{Nothing, Int} = nothing
+    var"seconds" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description__pulse_time_end_epoch(var"nanoseconds"=nothing, var"seconds"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"nanoseconds", var"seconds", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct dataset_description__pulse_time_begin_epoch <: FDS
+    var"nanoseconds" :: Union{Nothing, Int} = nothing
+    var"seconds" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description__pulse_time_begin_epoch(var"nanoseconds"=nothing, var"seconds"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"nanoseconds", var"seconds", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct dataset_description__parent_entry <: FDS
+    var"pulse_type" :: Union{Nothing, String} = nothing
+    var"run" :: Union{Nothing, Int} = nothing
+    var"machine" :: Union{Nothing, String} = nothing
+    var"pulse" :: Union{Nothing, Int} = nothing
+    var"user" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description__parent_entry(var"pulse_type"=nothing, var"run"=nothing, var"machine"=nothing, var"pulse"=nothing, var"user"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"pulse_type", var"run", var"machine", var"pulse", var"user", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct dataset_description__ids_properties__version_put <: FDS
+    var"access_layer_language" :: Union{Nothing, String} = nothing
+    var"data_dictionary" :: Union{Nothing, String} = nothing
+    var"access_layer" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description__ids_properties__version_put(var"access_layer_language"=nothing, var"data_dictionary"=nothing, var"access_layer"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"access_layer_language", var"data_dictionary", var"access_layer", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct dataset_description__ids_properties <: FDS
+    var"provider" :: Union{Nothing, String} = nothing
+    var"version_put" :: dataset_description__ids_properties__version_put = dataset_description__ids_properties__version_put()
+    var"homogeneous_time" :: Union{Nothing, Int} = nothing
+    var"source" :: Union{Nothing, String} = nothing
+    var"creation_date" :: Union{Nothing, String} = nothing
+    var"comment" :: Union{Nothing, String} = nothing
+    var"occurrence" :: Union{Nothing, Int} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description__ids_properties(var"provider"=nothing, var"version_put"=dataset_description__ids_properties__version_put(), var"homogeneous_time"=nothing, var"source"=nothing, var"creation_date"=nothing, var"comment"=nothing, var"occurrence"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
+        obj.version_put._parent = WeakRef(obj)
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct dataset_description__data_entry <: FDS
+    var"pulse_type" :: Union{Nothing, String} = nothing
+    var"run" :: Union{Nothing, Int} = nothing
+    var"machine" :: Union{Nothing, String} = nothing
+    var"pulse" :: Union{Nothing, Int} = nothing
+    var"user" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description__data_entry(var"pulse_type"=nothing, var"run"=nothing, var"machine"=nothing, var"pulse"=nothing, var"user"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"pulse_type", var"run", var"machine", var"pulse", var"user", _parent)
+
+        return obj
+    end
+end
+
+Base.@kwdef mutable struct dataset_description <: FDS
+    var"pulse_time_begin_epoch" :: dataset_description__pulse_time_begin_epoch = dataset_description__pulse_time_begin_epoch()
+    var"imas_version" :: Union{Nothing, String} = nothing
+    var"ids_properties" :: dataset_description__ids_properties = dataset_description__ids_properties()
+    var"time" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"dd_version" :: Union{Nothing, String} = nothing
+    var"parent_entry" :: dataset_description__parent_entry = dataset_description__parent_entry()
+    var"simulation" :: dataset_description__simulation = dataset_description__simulation()
+    var"pulse_time_end_epoch" :: dataset_description__pulse_time_end_epoch = dataset_description__pulse_time_end_epoch()
+    var"data_entry" :: dataset_description__data_entry = dataset_description__data_entry()
+    var"pulse_time_begin" :: Union{Nothing, String} = nothing
+    _parent :: WeakRef = WeakRef(nothing)
+    function dataset_description(var"pulse_time_begin_epoch"=dataset_description__pulse_time_begin_epoch(), var"imas_version"=nothing, var"ids_properties"=dataset_description__ids_properties(), var"time"=nothing, var"dd_version"=nothing, var"parent_entry"=dataset_description__parent_entry(), var"simulation"=dataset_description__simulation(), var"pulse_time_end_epoch"=dataset_description__pulse_time_end_epoch(), var"data_entry"=dataset_description__data_entry(), var"pulse_time_begin"=nothing, _parent=WeakRef(nothing))
+        obj = new(var"pulse_time_begin_epoch", var"imas_version", var"ids_properties", var"time", var"dd_version", var"parent_entry", var"simulation", var"pulse_time_end_epoch", var"data_entry", var"pulse_time_begin", _parent)
+        obj.pulse_time_begin_epoch._parent = WeakRef(obj)
+        obj.ids_properties._parent = WeakRef(obj)
+        obj.parent_entry._parent = WeakRef(obj)
+        obj.simulation._parent = WeakRef(obj)
+        obj.pulse_time_end_epoch._parent = WeakRef(obj)
+        obj.data_entry._parent = WeakRef(obj)
+        return obj
+    end
+end
+
 Base.@kwdef mutable struct core_profiles__vacuum_toroidal_field <: FDS
-    var"b0" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"b0" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"r0" :: Union{Nothing, Float64} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__vacuum_toroidal_field(var"b0"=nothing, var"r0"=nothing, _parent=WeakRef(nothing))
@@ -1577,17 +2372,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__zeff_fit__time_measuremen
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__zeff_fit <: FDS
-    var"local" :: Union{Nothing, Array{Int, 1}} = nothing
-    var"chi_squared" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"local" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"chi_squared" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"parameters" :: Union{Nothing, String} = nothing
-    var"reconstructed" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"time_measurement_width" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"weight" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"source" :: Union{Nothing, Array{String, 1}} = nothing
-    var"measured" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"reconstructed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"time_measurement_width" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"weight" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"source" :: Union{Nothing, AbstractArray{String, 1}} = nothing
+    var"measured" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d__zeff_fit__time_measurement_slice_method = core_profiles__profiles_1d__zeff_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time_measurement" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__zeff_fit(var"local"=nothing, var"chi_squared"=nothing, var"parameters"=nothing, var"reconstructed"=nothing, var"time_measurement_width"=nothing, var"rho_tor_norm"=nothing, var"weight"=nothing, var"source"=nothing, var"measured"=nothing, var"time_measurement_slice_method"=core_profiles__profiles_1d__zeff_fit__time_measurement_slice_method(), var"time_measurement"=nothing, _parent=WeakRef(nothing))
         obj = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -1609,17 +2404,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__t_i_average_fit__time_mea
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__t_i_average_fit <: FDS
-    var"local" :: Union{Nothing, Array{Int, 1}} = nothing
-    var"chi_squared" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"local" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"chi_squared" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"parameters" :: Union{Nothing, String} = nothing
-    var"reconstructed" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"time_measurement_width" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"weight" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"source" :: Union{Nothing, Array{String, 1}} = nothing
-    var"measured" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"reconstructed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"time_measurement_width" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"weight" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"source" :: Union{Nothing, AbstractArray{String, 1}} = nothing
+    var"measured" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d__t_i_average_fit__time_measurement_slice_method = core_profiles__profiles_1d__t_i_average_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time_measurement" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__t_i_average_fit(var"local"=nothing, var"chi_squared"=nothing, var"parameters"=nothing, var"reconstructed"=nothing, var"time_measurement_width"=nothing, var"rho_tor_norm"=nothing, var"weight"=nothing, var"source"=nothing, var"measured"=nothing, var"time_measurement_slice_method"=core_profiles__profiles_1d__t_i_average_fit__time_measurement_slice_method(), var"time_measurement"=nothing, _parent=WeakRef(nothing))
         obj = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -1629,11 +2424,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__t_i_average_fit <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__neutral__velocity <: FDS
-    var"parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"toroidal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"diamagnetic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"radial" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"poloidal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"toroidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"diamagnetic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"radial" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"poloidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__neutral__velocity(var"parallel"=nothing, var"toroidal"=nothing, var"diamagnetic"=nothing, var"radial"=nothing, var"poloidal"=nothing, _parent=WeakRef(nothing))
         obj = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -1643,11 +2438,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__neutral__velocity <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__neutral__state__velocity <: FDS
-    var"parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"toroidal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"diamagnetic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"radial" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"poloidal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"toroidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"diamagnetic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"radial" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"poloidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__neutral__state__velocity(var"parallel"=nothing, var"toroidal"=nothing, var"diamagnetic"=nothing, var"radial"=nothing, var"poloidal"=nothing, _parent=WeakRef(nothing))
         obj = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -1671,17 +2466,17 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d__neutral__state <: FDS
     var"label" :: Union{Nothing, String} = nothing
     var"vibrational_level" :: Union{Nothing, Float64} = nothing
-    var"temperature" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_fast_perpendicular" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"temperature" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_fast_perpendicular" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"electron_configuration" :: Union{Nothing, String} = nothing
-    var"pressure" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"vibrational_mode" :: Union{Nothing, String} = nothing
-    var"pressure_fast_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_fast_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"velocity" :: core_profiles__profiles_1d__neutral__state__velocity = core_profiles__profiles_1d__neutral__state__velocity()
-    var"density" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_fast" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"density" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_fast" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"neutral_type" :: core_profiles__profiles_1d__neutral__state__neutral_type = core_profiles__profiles_1d__neutral__state__neutral_type()
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__neutral__state(var"label"=nothing, var"vibrational_level"=nothing, var"temperature"=nothing, var"pressure_thermal"=nothing, var"pressure_fast_perpendicular"=nothing, var"electron_configuration"=nothing, var"pressure"=nothing, var"density_thermal"=nothing, var"vibrational_mode"=nothing, var"pressure_fast_parallel"=nothing, var"velocity"=core_profiles__profiles_1d__neutral__state__velocity(), var"density"=nothing, var"density_fast"=nothing, var"neutral_type"=core_profiles__profiles_1d__neutral__state__neutral_type(), _parent=WeakRef(nothing))
@@ -1707,18 +2502,18 @@ end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__neutral <: FDS
     var"label" :: Union{Nothing, String} = nothing
-    var"temperature" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"temperature" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"ion_index" :: Union{Nothing, Int} = nothing
     var"multiple_states_flag" :: Union{Nothing, Int} = nothing
-    var"pressure_fast_perpendicular" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_fast_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_fast_perpendicular" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_fast_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"state" :: FDSvector{T} where {T<:core_profiles__profiles_1d__neutral__state} = FDSvector(core_profiles__profiles_1d__neutral__state[])
     var"velocity" :: core_profiles__profiles_1d__neutral__velocity = core_profiles__profiles_1d__neutral__velocity()
-    var"density" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_fast" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"density" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_fast" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"element" :: FDSvector{T} where {T<:core_profiles__profiles_1d__neutral__element} = FDSvector(core_profiles__profiles_1d__neutral__element[])
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__neutral(var"label"=nothing, var"temperature"=nothing, var"pressure_thermal"=nothing, var"ion_index"=nothing, var"multiple_states_flag"=nothing, var"pressure_fast_perpendicular"=nothing, var"pressure"=nothing, var"density_thermal"=nothing, var"pressure_fast_parallel"=nothing, var"state"=FDSvector(core_profiles__profiles_1d__neutral__state[]), var"velocity"=core_profiles__profiles_1d__neutral__velocity(), var"density"=nothing, var"density_fast"=nothing, var"element"=FDSvector(core_profiles__profiles_1d__neutral__element[]), _parent=WeakRef(nothing))
@@ -1731,11 +2526,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__neutral <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__ion__velocity <: FDS
-    var"parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"toroidal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"diamagnetic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"radial" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"poloidal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"toroidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"diamagnetic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"radial" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"poloidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__ion__velocity(var"parallel"=nothing, var"toroidal"=nothing, var"diamagnetic"=nothing, var"radial"=nothing, var"poloidal"=nothing, _parent=WeakRef(nothing))
         obj = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -1757,17 +2552,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__ion__temperature_fit__tim
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__ion__temperature_fit <: FDS
-    var"local" :: Union{Nothing, Array{Int, 1}} = nothing
-    var"chi_squared" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"local" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"chi_squared" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"parameters" :: Union{Nothing, String} = nothing
-    var"reconstructed" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"time_measurement_width" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"weight" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"source" :: Union{Nothing, Array{String, 1}} = nothing
-    var"measured" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"reconstructed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"time_measurement_width" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"weight" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"source" :: Union{Nothing, AbstractArray{String, 1}} = nothing
+    var"measured" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d__ion__temperature_fit__time_measurement_slice_method = core_profiles__profiles_1d__ion__temperature_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time_measurement" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__ion__temperature_fit(var"local"=nothing, var"chi_squared"=nothing, var"parameters"=nothing, var"reconstructed"=nothing, var"time_measurement_width"=nothing, var"rho_tor_norm"=nothing, var"weight"=nothing, var"source"=nothing, var"measured"=nothing, var"time_measurement_slice_method"=core_profiles__profiles_1d__ion__temperature_fit__time_measurement_slice_method(), var"time_measurement"=nothing, _parent=WeakRef(nothing))
         obj = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -1777,11 +2572,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__ion__temperature_fit <: F
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__ion__state__velocity <: FDS
-    var"parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"toroidal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"diamagnetic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"radial" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"poloidal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"toroidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"diamagnetic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"radial" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"poloidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__ion__state__velocity(var"parallel"=nothing, var"toroidal"=nothing, var"diamagnetic"=nothing, var"radial"=nothing, var"poloidal"=nothing, _parent=WeakRef(nothing))
         obj = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -1803,17 +2598,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__ion__state__density_fit__
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__ion__state__density_fit <: FDS
-    var"local" :: Union{Nothing, Array{Int, 1}} = nothing
-    var"chi_squared" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"local" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"chi_squared" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"parameters" :: Union{Nothing, String} = nothing
-    var"reconstructed" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"time_measurement_width" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"weight" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"source" :: Union{Nothing, Array{String, 1}} = nothing
-    var"measured" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"reconstructed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"time_measurement_width" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"weight" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"source" :: Union{Nothing, AbstractArray{String, 1}} = nothing
+    var"measured" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d__ion__state__density_fit__time_measurement_slice_method = core_profiles__profiles_1d__ion__state__density_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time_measurement" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__ion__state__density_fit(var"local"=nothing, var"chi_squared"=nothing, var"parameters"=nothing, var"reconstructed"=nothing, var"time_measurement_width"=nothing, var"rho_tor_norm"=nothing, var"weight"=nothing, var"source"=nothing, var"measured"=nothing, var"time_measurement_slice_method"=core_profiles__profiles_1d__ion__state__density_fit__time_measurement_slice_method(), var"time_measurement"=nothing, _parent=WeakRef(nothing))
         obj = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -1825,25 +2620,25 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d__ion__state <: FDS
     var"label" :: Union{Nothing, String} = nothing
     var"vibrational_level" :: Union{Nothing, Float64} = nothing
-    var"rotation_frequency_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"temperature" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_fast_perpendicular" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"rotation_frequency_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"temperature" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_fast_perpendicular" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"z_min" :: Union{Nothing, Float64} = nothing
     var"electron_configuration" :: Union{Nothing, String} = nothing
-    var"pressure" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"vibrational_mode" :: Union{Nothing, String} = nothing
-    var"pressure_fast_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z_average_square_1d" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_fast_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z_average_square_1d" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"velocity" :: core_profiles__profiles_1d__ion__state__velocity = core_profiles__profiles_1d__ion__state__velocity()
     var"z_average" :: Union{Nothing, Float64} = nothing
     var"z_max" :: Union{Nothing, Float64} = nothing
     var"z_square_average" :: Union{Nothing, Float64} = nothing
     var"ionisation_potential" :: Union{Nothing, Float64} = nothing
-    var"density" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_fast" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z_average_1d" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"density" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_fast" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z_average_1d" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"density_fit" :: core_profiles__profiles_1d__ion__state__density_fit = core_profiles__profiles_1d__ion__state__density_fit()
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__ion__state(var"label"=nothing, var"vibrational_level"=nothing, var"rotation_frequency_tor"=nothing, var"temperature"=nothing, var"pressure_thermal"=nothing, var"pressure_fast_perpendicular"=nothing, var"z_min"=nothing, var"electron_configuration"=nothing, var"pressure"=nothing, var"density_thermal"=nothing, var"vibrational_mode"=nothing, var"pressure_fast_parallel"=nothing, var"z_average_square_1d"=nothing, var"velocity"=core_profiles__profiles_1d__ion__state__velocity(), var"z_average"=nothing, var"z_max"=nothing, var"z_square_average"=nothing, var"ionisation_potential"=nothing, var"density"=nothing, var"density_fast"=nothing, var"z_average_1d"=nothing, var"density_fit"=core_profiles__profiles_1d__ion__state__density_fit(), _parent=WeakRef(nothing))
@@ -1880,17 +2675,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__ion__density_fit__time_me
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__ion__density_fit <: FDS
-    var"local" :: Union{Nothing, Array{Int, 1}} = nothing
-    var"chi_squared" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"local" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"chi_squared" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"parameters" :: Union{Nothing, String} = nothing
-    var"reconstructed" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"time_measurement_width" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"weight" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"source" :: Union{Nothing, Array{String, 1}} = nothing
-    var"measured" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"reconstructed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"time_measurement_width" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"weight" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"source" :: Union{Nothing, AbstractArray{String, 1}} = nothing
+    var"measured" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d__ion__density_fit__time_measurement_slice_method = core_profiles__profiles_1d__ion__density_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time_measurement" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__ion__density_fit(var"local"=nothing, var"chi_squared"=nothing, var"parameters"=nothing, var"reconstructed"=nothing, var"time_measurement_width"=nothing, var"rho_tor_norm"=nothing, var"weight"=nothing, var"source"=nothing, var"measured"=nothing, var"time_measurement_slice_method"=core_profiles__profiles_1d__ion__density_fit__time_measurement_slice_method(), var"time_measurement"=nothing, _parent=WeakRef(nothing))
         obj = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -1901,28 +2696,28 @@ end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__ion <: FDS
     var"label" :: Union{Nothing, String} = nothing
-    var"rotation_frequency_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"rotation_frequency_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"temperature_validity" :: Union{Nothing, Int} = nothing
-    var"velocity_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"temperature" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z_ion_1d" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"velocity_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"temperature" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z_ion_1d" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"multiple_states_flag" :: Union{Nothing, Int} = nothing
-    var"pressure_fast_perpendicular" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_fast_perpendicular" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"neutral_index" :: Union{Nothing, Int} = nothing
-    var"pressure" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"density_validity" :: Union{Nothing, Int} = nothing
-    var"pressure_fast_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_fast_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"state" :: FDSvector{T} where {T<:core_profiles__profiles_1d__ion__state} = FDSvector(core_profiles__profiles_1d__ion__state[])
     var"velocity" :: core_profiles__profiles_1d__ion__velocity = core_profiles__profiles_1d__ion__velocity()
     var"z_ion" :: Union{Nothing, Float64} = nothing
     var"temperature_fit" :: core_profiles__profiles_1d__ion__temperature_fit = core_profiles__profiles_1d__ion__temperature_fit()
-    var"density" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"velocity_pol" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_fast" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"density" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"velocity_pol" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_fast" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"density_fit" :: core_profiles__profiles_1d__ion__density_fit = core_profiles__profiles_1d__ion__density_fit()
-    var"z_ion_square_1d" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"z_ion_square_1d" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"element" :: FDSvector{T} where {T<:core_profiles__profiles_1d__ion__element} = FDSvector(core_profiles__profiles_1d__ion__element[])
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__ion(var"label"=nothing, var"rotation_frequency_tor"=nothing, var"temperature_validity"=nothing, var"velocity_tor"=nothing, var"temperature"=nothing, var"z_ion_1d"=nothing, var"pressure_thermal"=nothing, var"multiple_states_flag"=nothing, var"pressure_fast_perpendicular"=nothing, var"neutral_index"=nothing, var"pressure"=nothing, var"density_thermal"=nothing, var"density_validity"=nothing, var"pressure_fast_parallel"=nothing, var"state"=FDSvector(core_profiles__profiles_1d__ion__state[]), var"velocity"=core_profiles__profiles_1d__ion__velocity(), var"z_ion"=nothing, var"temperature_fit"=core_profiles__profiles_1d__ion__temperature_fit(), var"density"=nothing, var"velocity_pol"=nothing, var"density_fast"=nothing, var"density_fit"=core_profiles__profiles_1d__ion__density_fit(), var"z_ion_square_1d"=nothing, var"element"=FDSvector(core_profiles__profiles_1d__ion__element[]), _parent=WeakRef(nothing))
@@ -1937,14 +2732,14 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__ion <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__grid <: FDS
-    var"psi" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"psi" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"psi_boundary" :: Union{Nothing, Float64} = nothing
-    var"volume" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"area" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_pol_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"surface" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"volume" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"area" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_pol_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"surface" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"psi_magnetic_axis" :: Union{Nothing, Float64} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__grid(var"psi"=nothing, var"psi_boundary"=nothing, var"volume"=nothing, var"area"=nothing, var"rho_pol_norm"=nothing, var"rho_tor_norm"=nothing, var"surface"=nothing, var"rho_tor"=nothing, var"psi_magnetic_axis"=nothing, _parent=WeakRef(nothing))
@@ -1955,11 +2750,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__grid <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__electrons__velocity <: FDS
-    var"parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"toroidal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"diamagnetic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"radial" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"poloidal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"toroidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"diamagnetic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"radial" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"poloidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__electrons__velocity(var"parallel"=nothing, var"toroidal"=nothing, var"diamagnetic"=nothing, var"radial"=nothing, var"poloidal"=nothing, _parent=WeakRef(nothing))
         obj = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -1981,17 +2776,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__electrons__temperature_fi
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__electrons__temperature_fit <: FDS
-    var"local" :: Union{Nothing, Array{Int, 1}} = nothing
-    var"chi_squared" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"local" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"chi_squared" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"parameters" :: Union{Nothing, String} = nothing
-    var"reconstructed" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"time_measurement_width" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"weight" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"source" :: Union{Nothing, Array{String, 1}} = nothing
-    var"measured" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"reconstructed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"time_measurement_width" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"weight" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"source" :: Union{Nothing, AbstractArray{String, 1}} = nothing
+    var"measured" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d__electrons__temperature_fit__time_measurement_slice_method = core_profiles__profiles_1d__electrons__temperature_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time_measurement" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__electrons__temperature_fit(var"local"=nothing, var"chi_squared"=nothing, var"parameters"=nothing, var"reconstructed"=nothing, var"time_measurement_width"=nothing, var"rho_tor_norm"=nothing, var"weight"=nothing, var"source"=nothing, var"measured"=nothing, var"time_measurement_slice_method"=core_profiles__profiles_1d__electrons__temperature_fit__time_measurement_slice_method(), var"time_measurement"=nothing, _parent=WeakRef(nothing))
         obj = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -2013,17 +2808,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__electrons__density_fit__t
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__electrons__density_fit <: FDS
-    var"local" :: Union{Nothing, Array{Int, 1}} = nothing
-    var"chi_squared" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"local" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
+    var"chi_squared" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"parameters" :: Union{Nothing, String} = nothing
-    var"reconstructed" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"time_measurement_width" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rho_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"weight" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"source" :: Union{Nothing, Array{String, 1}} = nothing
-    var"measured" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"reconstructed" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"time_measurement_width" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rho_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"weight" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"source" :: Union{Nothing, AbstractArray{String, 1}} = nothing
+    var"measured" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d__electrons__density_fit__time_measurement_slice_method = core_profiles__profiles_1d__electrons__density_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time_measurement" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__electrons__density_fit(var"local"=nothing, var"chi_squared"=nothing, var"parameters"=nothing, var"reconstructed"=nothing, var"time_measurement_width"=nothing, var"rho_tor_norm"=nothing, var"weight"=nothing, var"source"=nothing, var"measured"=nothing, var"time_measurement_slice_method"=core_profiles__profiles_1d__electrons__density_fit__time_measurement_slice_method(), var"time_measurement"=nothing, _parent=WeakRef(nothing))
         obj = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -2034,20 +2829,20 @@ end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__electrons <: FDS
     var"temperature_validity" :: Union{Nothing, Int} = nothing
-    var"velocity_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"temperature" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_fast_perpendicular" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"velocity_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"temperature" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_fast_perpendicular" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"density_validity" :: Union{Nothing, Int} = nothing
-    var"pressure_fast_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_fast_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"velocity" :: core_profiles__profiles_1d__electrons__velocity = core_profiles__profiles_1d__electrons__velocity()
     var"temperature_fit" :: core_profiles__profiles_1d__electrons__temperature_fit = core_profiles__profiles_1d__electrons__temperature_fit()
-    var"density" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"velocity_pol" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"collisionality_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"density_fast" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"density" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"velocity_pol" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"collisionality_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"density_fast" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"density_fit" :: core_profiles__profiles_1d__electrons__density_fit = core_profiles__profiles_1d__electrons__density_fit()
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__electrons(var"temperature_validity"=nothing, var"velocity_tor"=nothing, var"temperature"=nothing, var"pressure_thermal"=nothing, var"pressure_fast_perpendicular"=nothing, var"pressure"=nothing, var"density_thermal"=nothing, var"density_validity"=nothing, var"pressure_fast_parallel"=nothing, var"velocity"=core_profiles__profiles_1d__electrons__velocity(), var"temperature_fit"=core_profiles__profiles_1d__electrons__temperature_fit(), var"density"=nothing, var"velocity_pol"=nothing, var"collisionality_norm"=nothing, var"density_fast"=nothing, var"density_fit"=core_profiles__profiles_1d__electrons__density_fit(), _parent=WeakRef(nothing))
@@ -2060,11 +2855,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__electrons <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d__e_field <: FDS
-    var"parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"toroidal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"diamagnetic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"radial" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"poloidal" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"toroidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"diamagnetic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"radial" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"poloidal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d__e_field(var"parallel"=nothing, var"toroidal"=nothing, var"diamagnetic"=nothing, var"radial"=nothing, var"poloidal"=nothing, _parent=WeakRef(nothing))
         obj = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -2074,35 +2869,35 @@ Base.@kwdef mutable struct core_profiles__profiles_1d__e_field <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d <: FDS
-    var"pressure_ion_total" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_ion_total" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"time" :: Union{Nothing, Float64} = nothing
     var"t_i_average_fit" :: core_profiles__profiles_1d__t_i_average_fit = core_profiles__profiles_1d__t_i_average_fit()
     var"neutral" :: FDSvector{T} where {T<:core_profiles__profiles_1d__neutral} = FDSvector(core_profiles__profiles_1d__neutral[])
-    var"n_i_thermal_total" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"magnetic_shear" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"n_i_thermal_total" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"magnetic_shear" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"ion" :: FDSvector{T} where {T<:core_profiles__profiles_1d__ion} = FDSvector(core_profiles__profiles_1d__ion[])
-    var"j_total" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"rotation_frequency_tor_sonic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"pressure_thermal" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"j_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"current_parallel_inside" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"j_non_inductive" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"e_field_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"momentum_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"conductivity_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"j_total" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"rotation_frequency_tor_sonic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"pressure_thermal" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"j_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"current_parallel_inside" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"j_non_inductive" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"e_field_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"momentum_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"conductivity_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"electrons" :: core_profiles__profiles_1d__electrons = core_profiles__profiles_1d__electrons()
-    var"pressure_perpendicular" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"q" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"t_i_average" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"j_ohmic" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_perpendicular" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"q" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"t_i_average" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"j_ohmic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"grid" :: core_profiles__profiles_1d__grid = core_profiles__profiles_1d__grid()
-    var"phi_potential" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"j_bootstrap" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"phi_potential" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"j_bootstrap" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"zeff_fit" :: core_profiles__profiles_1d__zeff_fit = core_profiles__profiles_1d__zeff_fit()
-    var"pressure_parallel" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"pressure_parallel" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"e_field" :: core_profiles__profiles_1d__e_field = core_profiles__profiles_1d__e_field()
-    var"zeff" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"n_i_total_over_n_e" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"zeff" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"n_i_total_over_n_e" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__profiles_1d(var"pressure_ion_total"=nothing, var"time"=nothing, var"t_i_average_fit"=core_profiles__profiles_1d__t_i_average_fit(), var"neutral"=FDSvector(core_profiles__profiles_1d__neutral[]), var"n_i_thermal_total"=nothing, var"magnetic_shear"=nothing, var"ion"=FDSvector(core_profiles__profiles_1d__ion[]), var"j_total"=nothing, var"rotation_frequency_tor_sonic"=nothing, var"pressure_thermal"=nothing, var"j_tor"=nothing, var"current_parallel_inside"=nothing, var"j_non_inductive"=nothing, var"e_field_parallel"=nothing, var"momentum_tor"=nothing, var"conductivity_parallel"=nothing, var"electrons"=core_profiles__profiles_1d__electrons(), var"pressure_perpendicular"=nothing, var"q"=nothing, var"t_i_average"=nothing, var"j_ohmic"=nothing, var"grid"=core_profiles__profiles_1d__grid(), var"phi_potential"=nothing, var"j_bootstrap"=nothing, var"zeff_fit"=core_profiles__profiles_1d__zeff_fit(), var"pressure_parallel"=nothing, var"e_field"=core_profiles__profiles_1d__e_field(), var"zeff"=nothing, var"n_i_total_over_n_e"=nothing, _parent=WeakRef(nothing))
         obj = new(var"pressure_ion_total", var"time", var"t_i_average_fit", var"neutral", var"n_i_thermal_total", var"magnetic_shear", var"ion", var"j_total", var"rotation_frequency_tor_sonic", var"pressure_thermal", var"j_tor", var"current_parallel_inside", var"j_non_inductive", var"e_field_parallel", var"momentum_tor", var"conductivity_parallel", var"electrons", var"pressure_perpendicular", var"q", var"t_i_average", var"j_ohmic", var"grid", var"phi_potential", var"j_bootstrap", var"zeff_fit", var"pressure_parallel", var"e_field", var"zeff", var"n_i_total_over_n_e", _parent)
@@ -2146,21 +2941,21 @@ Base.@kwdef mutable struct core_profiles__ids_properties <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__global_quantities <: FDS
-    var"beta_tor_norm" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"resistive_psi_losses" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"ip" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"li_3" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"t_i_average_peaking" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"t_e_peaking" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"beta_tor" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"z_eff_resistive" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"ejima" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"energy_diamagnetic" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"li" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"current_non_inductive" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"v_loop" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"beta_pol" :: Union{Nothing, Array{Float64, 1}} = nothing
-    var"current_bootstrap" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"beta_tor_norm" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"resistive_psi_losses" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"ip" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"li_3" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"t_i_average_peaking" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"t_e_peaking" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"beta_tor" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"z_eff_resistive" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"ejima" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"energy_diamagnetic" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"li" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"current_non_inductive" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"v_loop" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"beta_pol" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
+    var"current_bootstrap" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__global_quantities(var"beta_tor_norm"=nothing, var"resistive_psi_losses"=nothing, var"ip"=nothing, var"li_3"=nothing, var"t_i_average_peaking"=nothing, var"t_e_peaking"=nothing, var"beta_tor"=nothing, var"z_eff_resistive"=nothing, var"ejima"=nothing, var"energy_diamagnetic"=nothing, var"li"=nothing, var"current_non_inductive"=nothing, var"v_loop"=nothing, var"beta_pol"=nothing, var"current_bootstrap"=nothing, _parent=WeakRef(nothing))
         obj = new(var"beta_tor_norm", var"resistive_psi_losses", var"ip", var"li_3", var"t_i_average_peaking", var"t_e_peaking", var"beta_tor", var"z_eff_resistive", var"ejima", var"energy_diamagnetic", var"li", var"current_non_inductive", var"v_loop", var"beta_pol", var"current_bootstrap", _parent)
@@ -2189,7 +2984,7 @@ Base.@kwdef mutable struct core_profiles__code <: FDS
     var"parameters" :: Union{Nothing, String} = nothing
     var"commit" :: Union{Nothing, String} = nothing
     var"repository" :: Union{Nothing, String} = nothing
-    var"output_flag" :: Union{Nothing, Array{Int, 1}} = nothing
+    var"output_flag" :: Union{Nothing, AbstractArray{Int, 1}} = nothing
     var"version" :: Union{Nothing, String} = nothing
     _parent :: WeakRef = WeakRef(nothing)
     function core_profiles__code(var"library"=FDSvector(core_profiles__code__library[]), var"name"=nothing, var"parameters"=nothing, var"commit"=nothing, var"repository"=nothing, var"output_flag"=nothing, var"version"=nothing, _parent=WeakRef(nothing))
@@ -2200,7 +2995,7 @@ Base.@kwdef mutable struct core_profiles__code <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles <: FDS
-    var"time" :: Union{Nothing, Array{Float64, 1}} = nothing
+    var"time" :: Union{Nothing, AbstractArray{Float64, 1}} = nothing
     var"ids_properties" :: core_profiles__ids_properties = core_profiles__ids_properties()
     var"vacuum_toroidal_field" :: core_profiles__vacuum_toroidal_field = core_profiles__vacuum_toroidal_field()
     var"code" :: core_profiles__code = core_profiles__code()
@@ -2221,11 +3016,15 @@ end
 Base.@kwdef mutable struct dd <: FDS
     var"equilibrium" :: Union{Nothing, equilibrium} = equilibrium()
     var"core_profiles" :: Union{Nothing, core_profiles} = core_profiles()
+    var"wall" :: Union{Nothing, wall} = wall()
+    var"dataset_description" :: Union{Nothing, dataset_description} = dataset_description()
     _parent :: WeakRef = WeakRef(nothing)
-    function dd(var"equilibrium"=equilibrium(), var"core_profiles"=core_profiles(), _parent=WeakRef(nothing))
-        obj = new(var"equilibrium", var"core_profiles", _parent)
+    function dd(var"equilibrium"=equilibrium(), var"core_profiles"=core_profiles(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(nothing))
+        obj = new(var"equilibrium", var"core_profiles", var"wall", var"dataset_description", _parent)
         obj.equilibrium._parent = WeakRef(obj)
         obj.core_profiles._parent = WeakRef(obj)
+        obj.wall._parent = WeakRef(obj)
+        obj.dataset_description._parent = WeakRef(obj)
         return obj
     end
 end
