@@ -1,9 +1,3 @@
-using Pkg
-Pkg.activate("..")
-Pkg.develop("FUSE")
-using FUSE
-using Test
-
 @testset "parameters_set_get" begin
     # begin adding parameters to simple dictionary
     run_parameters = Dict()
@@ -52,7 +46,7 @@ end
 
 @testset "parameters_access" begin
     # test the fuse_parameters
-    @test typeof(FUSE.fuse_parameters[:bootstrapModel]) <: FUSE.CBSGi
-    FUSE.fuse_parameters[:bootstrapModel] = :user => 0.5
-    @test FUSE.fuse_parameters[:bootstrapModel] == 0.5
+    @test typeof(FUSE.fuse_parameters[:PHYSICS_MODELS][:bootstrapModel]) <: FUSE.CBSGi
+    FUSE.fuse_parameters[:PHYSICS_MODELS][:bootstrapModel] = :user => 0.5
+    @test FUSE.fuse_parameters[:PHYSICS_MODELS][:bootstrapModel] == 0.5
 end

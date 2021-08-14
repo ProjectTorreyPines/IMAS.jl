@@ -1,9 +1,3 @@
-using Pkg
-Pkg.activate("..")
-Pkg.develop("FUSE")
-using FUSE
-using Test
-
 @testset "basic_dd_IO" begin
     # instantiate and populate top-level FDS
     data = FUSE.dd();
@@ -48,6 +42,6 @@ end
 
 @testset "JSON_IO" begin
     filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "sample_equilibrium_ods.json")
-    data  = FUSE.json2fuse(filename; verbose=true)
+    data  = FUSE.json2fuse(filename; verbose=false)
     @test length(data.wall.description_2d[1].limiter.unit[1].outline.r) > 0
 end
