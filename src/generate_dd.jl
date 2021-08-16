@@ -1,19 +1,10 @@
 using Pkg
 Pkg.activate(dirname(dirname(@__FILE__)))
 
-const imas_version = "3_33_0"
-ENV["OMAS_ROOT"] = "/Users/meneghini/Coding/atom/omas"
-const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
-
-import JSON
-using Memoize
-
-"""
-Function used to read the IMAS data structures in the OMAS JSON format
-"""
-@memoize function load_imasdd(ids;imas_version=imas_version)
-    JSON.parsefile("$omas_imas_structure_folder/$imas_version/$ids.json")  # parse and transform data
-end
+#= ==================================== =#
+# Header
+#= ==================================== =#
+include("functionarrays.jl")
 
 #= ==================================== =#
 # FUSE data structure
@@ -32,11 +23,6 @@ for filename in filenames
         push!(desired_structure, item)
     end
 end
-
-#= ==================================== =#
-# Header
-#= ==================================== =#
-include("functionarrays.jl")
 
 #= ================================================= =#
 #  Implementing selected IMAS DD as Julia structures

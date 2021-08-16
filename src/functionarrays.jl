@@ -1,3 +1,16 @@
+const imas_version = "3_33_0"
+const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
+
+import JSON
+using Memoize
+
+"""
+Function used to read the IMAS data structures in the OMAS JSON format
+"""
+@memoize function load_imasdd(ids; imas_version=imas_version)
+    JSON.parsefile("$omas_imas_structure_folder/$imas_version/$ids.json")  # parse and transform data
+end
+
 """
     struct_field_type(structure::DataType, field::Symbol)
 
