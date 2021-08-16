@@ -3,9 +3,9 @@ abstract type FDS end
 
 mutable struct FDSvector{T} <: AbstractVector{T}
     value::Vector{T}
-    _parent::Union{Nothing,WeakRef}
+    _parent::WeakRef
     function FDSvector(x::Vector{T}) where {T <: FDS}
-        return new{T}(x, nothing)
+        return new{T}(x, WeakRef(nothing))
     end
 end
 
