@@ -27,17 +27,6 @@ function resize!(collection::FDSvector{T}, n::Int) where {T<:FDS}
 end
 
 """
-    struct_field_type(structure::DataType, field::Symbol)
-
-Return the typeof of a given `field` witin a `structure`
-"""
-function struct_field_type(structure::DataType, field::Symbol)
-    names = fieldnames(structure)
-    index = findfirst(isequal(field), names)
-    return structure.types[index]
-end
-
-"""
     dict2fuse(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::FDS
 
 Populate FUSE data structure `fds` based on data contained in Julia dictionary `dct`.
