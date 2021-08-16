@@ -94,16 +94,16 @@ Load from a file with give `filename` the OMAS data structure saved in JSON form
 function json2fuse(filename::String; verbose::Bool=false)::FDS
     fds_data = dd()
     json_data = JSON.parsefile(filename)
-    FUSE.dict2fuse(json_data, fds_data; verbose=verbose)
+    dict2fuse(json_data, fds_data; verbose=verbose)
     return fds_data
 end
 
 """
-    top(x::Union{FUSE.FDS, FUSE.FDSvector})
+    top(x::Union{FDS, FDSvector})
 
 Return top-level FDS in the DD hierarchy
 """
-function top(x::Union{FUSE.FDS, FUSE.FDSvector})
+function top(x::Union{FDS, FDSvector})
     if x._parent.value === nothing
         return x
     else
