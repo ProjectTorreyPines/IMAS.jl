@@ -77,7 +77,7 @@ function coordinates(fds::FDS, field::Symbol)
                     # println('-',k)
                 end
             end
-            if (h === fds) | (h === nothing)
+            if (h === fds) | (h === missing)
                 push!(coord_values, missing)
             else
                 push!(coord_values, h)
@@ -123,7 +123,7 @@ mutable struct FDSvector{T} <: AbstractVector{T}
     value::Vector{T}
     _parent::WeakRef
     function FDSvector(x::Vector{T}) where {T <: FDS}
-        return new{T}(x, WeakRef(nothing))
+        return new{T}(x, WeakRef(missing))
     end
 end
 
@@ -244,7 +244,7 @@ function Base.keys(fds::FDS)
         end
         v = getfield(fds, k)
         # empty entries
-        if v === nothing
+        if v === missing
             continue
         # empty structures/arrays of structures (recursive)
         elseif typeof(v) <: Union{FDS,FDSvector}

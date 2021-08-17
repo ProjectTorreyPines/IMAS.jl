@@ -93,7 +93,7 @@ end
 Return top-level FDS in the DD hierarchy
 """
 function top(x::Union{FDS,FDSvector})
-    if x._parent.value === nothing
+    if x._parent.value === missing
         return x
     else
         return top(x._parent.value)
