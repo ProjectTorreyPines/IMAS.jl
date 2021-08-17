@@ -44,25 +44,46 @@
 
     # test fail of adding data without coordinate in FDS
     data = FUSE.dd();
-    resize!(data.core_profiles.profiles_1d,1)
+    resize!(data.core_profiles.profiles_1d, 1)
     @test_throws Exception data.core_profiles.profiles_1d[1].electrons.temperature = Vector{Float64}(collect(1:10))
 end
 
 @testset "FDS_IMAS" begin
     data = FUSE.dd();
     resize!(data.core_profiles.profiles_1d, 1)
-    data.core_profiles.profiles_1d[1].grid
-    data.core_profiles.profiles_1d[1].grid.rho_tor_norm = Vector{Float64}(collect(1:10))
 
     # test f2i
-    println(FUSE.f2i(data.core_profiles.profiles_1d[1].grid))
     @test FUSE.f2i(data.core_profiles.profiles_1d[1].grid) == "core_profiles.profiles_1d[:].grid"
+
+    # test i2p
+    @test FUSE.i2p("core_profiles.profiles_1d[1].grid") == [:core_profiles, :profiles_1d, 1, :grid]
+    @test FUSE.i2p("core_profiles.profiles_1d[:].grid") == [:core_profiles, :profiles_1d, ":", :grid]
+
+    # test p2i
+    @test FUSE.p2i([:core_profiles, :profiles_1d, 1, :grid]) == "core_profiles.profiles_1d[1].grid"
+    @test FUSE.p2i([:core_profiles, :profiles_1d, ":", :grid]) == "core_profiles.profiles_1d[:].grid"
 
     # test imas_info
     @test FUSE.imas_info("core_profiles.profiles_1d[1]") == FUSE.imas_info("core_profiles.profiles_1d[:]")
     @test FUSE.imas_info("core_profiles.profiles_1d") == FUSE.imas_info("core_profiles.profiles_1d[:]")
     @test all([haskey(FUSE.imas_info("core_profiles.profiles_1d"), k) for k in ["coordinates","data_type","full_path","documentation"]])
     @test_throws Exception FUSE.imas_info("core_profiles.does_not_exist")
+
+    # test coordinate of a coordinate
+    coord_names, coord_values = FUSE.coordinates(data.core_profiles.profiles_1d[1].grid, :rho_tor_norm)
+    @test coord_names[1] == "1...N"
+    @test coord_values[1] === nothing
+
+    # test coordinate of a 1D array (with uninitialized coordinate)
+    coord_names, coord_values = FUSE.coordinates(data.core_profiles.profiles_1d[1].electrons, :temperature)
+    @test coord_names[1] == "core_profiles.profiles_1d[:].grid.rho_tor_norm"
+    @test coord_values[1] === missing
+
+    # test coordinate of a 1D array (with initialized coordinate)
+    data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0, 1, length=10)
+    coord_names, coord_values = FUSE.coordinates(data.core_profiles.profiles_1d[1].electrons, :temperature)
+    @test coord_names[1] == "core_profiles.profiles_1d[:].grid.rho_tor_norm"
+    @test coord_values[1] === data.core_profiles.profiles_1d[1].grid.rho_tor_norm
 end
 
 

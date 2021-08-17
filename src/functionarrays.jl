@@ -207,6 +207,27 @@ function i2p(imas_location::String)
     return path
 end
 
+"""
+    p2i(path::Any[])
+
+Combine list of IMAS location elements into a string
+"""
+function p2i(path::Vector{Any})
+    str = String[]
+    for k in path
+        if typeof(k) <: Symbol
+            push!(str, string(k))
+        elseif typeof(k) <: Int
+            push!(str, "[$(string(k))]")
+        elseif (k == ":") | (k == ':') | (typeof(k) === Colon) 
+            push!(str, "[:]")
+        elseif typeof(k) <: String
+            push!(str, k)
+        end
+    end
+    return replace(join(str, "."), ".[" => "[")
+end
+
 import Base:keys
 
 """
