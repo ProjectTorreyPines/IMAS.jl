@@ -42,6 +42,51 @@ function Base.getproperty(fds::FDS, field::Symbol)
     return getfield(fds, field)
 end
 
+"""
+    coordinates(fds::FDS, field::Symbol)
+
+Returns two lists, one of coordinate names and the other with their values in the data structure
+Coordinate value is `nothing` when the data does not have a coordinate
+Coordinate value is `missing` if the coordinate is missing in the data structure
+"""
+function coordinates(fds::FDS, field::Symbol)
+    coord_names = deepcopy(imas_info("$(f2i(fds)).$(field)")["coordinates"])
+    coord_values = []
+    for (k, coord) in enumerate(coord_names)
+        if contains(coord, "...")
+            push!(coord_values, nothing)
+        else
+            h = top(fds)
+            coord = replace(coord, ":" => "1")
+            for k in i2p(coord)
+                if (typeof(k) <: Int) & (typeof(h) <: FDSvector)
+                    if length(keys(h)) <= k
+                        h = h[k]
+                        # println('*',k)
+                    else
+                        # println('-',k)
+                    end
+                elseif (typeof(k) <: Symbol) & (typeof(h) <: FDS)
+                    if hasfield(typeof(h), k)
+                        h = getfield(h, k)
+                        # println('*',k)
+                    else
+                        # println('-',k)
+                    end
+                else
+                    # println('-',k)
+                end
+            end
+            if (h === fds) | (h === nothing)
+                push!(coord_values, missing)
+            else
+                push!(coord_values, h)
+            end
+        end
+    end
+    return coord_names, coord_values
+end
+
 function Base.setproperty!(fds::FDS, field::Symbol, v)
     if typeof(v) <: WeakRef
         return setfield!(fds, field, v)
@@ -51,37 +96,10 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
         v._parent = WeakRef(fds)
     end
 
-    coordinates = deepcopy(imas_info("$(f2i(fds)).$(field)")["coordinates"])
-    for (k, coordinate) in enumerate(coordinates)
-        if contains(coordinate, "...")
-            coordinates[k] = nothing
-        else
-            h = top(fds)
-            coordinate = replace(coordinate, ":"=>"1")
-            for k in i2p(coordinate)
-                if (typeof(k)<:Int) & (typeof(h) <: FDSvector)# & (length(keys(h))<=k)
-                    if length(keys(h))<=k
-                        h = h[k]
-                        #println('*',k)
-                    else
-                        #println('-',k)
-                    end
-                elseif (typeof(k)<:Symbol) & (typeof(h) <: FDS)# & (hasfield(typeof(h),k))
-                    if hasfield(typeof(h),k)
-                        h = getfield(h,k)
-                        #println('*',k)
-                    else
-                        #println('-',k)
-                    end
-                else
-                    #println('-',k)
-                end
-            end
-            if (h === fds) | (h === nothing)
-                error("Assign data to `$coordinate` before assigning `$(f2i(fds)).$(field)`")
-            else
-                coordinates[k] = h
-            end
+    coords_names, coord_values = coordinates(fds, field)
+    for (c_name, c_value) in zip(coords_names, coord_values)
+        if c_value === missing
+            error("Assign data to `$c_name` before assigning `$(f2i(fds)).$(field)`")
         end
     end
 
@@ -192,9 +210,9 @@ end
 import Base:keys
 
 """
-    keys(fds::FDS)
+    keys(fds::Union{FDS, FDSvector})
 
-returns list of fields with data in a FDS
+Returns list of fields with data in a FDS/FDSvector
 """
 function Base.keys(fds::FDS)
     kkk = Symbol[]
@@ -220,11 +238,6 @@ function Base.keys(fds::FDS)
     return kkk
 end
 
-"""
-    keys(fds::FDSvector)
-
-returns list of structures in a FDSvector
-"""
 function Base.keys(fds::FDSvector)
     return collect(1:length(fds))
 end
