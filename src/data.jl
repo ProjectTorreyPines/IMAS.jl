@@ -2,14 +2,14 @@ import JSON
 
 include("dd.jl")
 
-import Base: resize!
+import Base:resize!
 
 """
     resize!(collection::FDSvector{T}, n::Int) where {T<:FDS}
 
 Change size of a FDS array of structures
 """
-function resize!(collection::FDSvector{T}, n::Int) where {T<:FDS}
+function resize!(collection::FDSvector{T}, n::Int) where {T <: FDS}
     if n > length(collection)
         for k in length(collection):n - 1
             obj = eltype(collection)()
@@ -34,7 +34,7 @@ Populate FUSE data structure `fds` based on data contained in Julia dictionary `
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 """
-function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[]) where {T<:FDS}
+function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[]) where {T <: FDS}
     # recursively traverse `dtc` structure
     level = length(path)
     for (k, v) in dct
@@ -48,7 +48,7 @@ function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String
         elseif (typeof(v) <: Array) && (length(v) > 0) && (typeof(v[1]) <: Dict)
             ff = getfield(fds, Symbol(k))
             if verbose println(("｜"^level) * string(k)) end
-            resize!(ff,length(v))
+            resize!(ff, length(v))
             for i in 1:length(v)
                 if verbose println(("｜"^(level + 1)) * string(i)) end
                 dict2fuse(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose)
@@ -60,7 +60,7 @@ function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String
             target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), Symbol(k)))
             if target_type <: Array
                 if ndims(target_type) == 2
-                    v = reduce(hcat,v)
+                    v = reduce(hcat, v)
                 end
             end
             v = convert(target_type, v)
@@ -92,7 +92,7 @@ end
 
 Return top-level FDS in the DD hierarchy
 """
-function top(x::Union{FDS, FDSvector})
+function top(x::Union{FDS,FDSvector})
     if x._parent.value === nothing
         return x
     else

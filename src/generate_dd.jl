@@ -24,7 +24,7 @@ for filename in filenames
         continue
     end
     filename = replace(filename, ".json" => "")
-    for item in keys(load_imasdd(filename))
+    for item in keys(imas_load_dd(filename))
         push!(desired_structure, item)
     end
 end
@@ -53,7 +53,7 @@ function imas_julia_struct(desired_structure::Vector)
         end
         path = split(sel, ".")
         
-        imasdd = load_imasdd(path[1])
+        imasdd = imas_load_dd(path[1])
 
         h = ddict
         for (k, item) in enumerate(path)
@@ -182,7 +182,7 @@ function imas_julia_struct(desired_structure::Vector)
                 elseif occursin("[:]", item)
                     item_ = replace(item, "[:]" => "_")
                     item = replace(item, "[:]" => "")
-                    item_=item
+                    item_ = item
                     push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)} = FDSvector($(struct_name_)$(sep)$(item_)[])")
                     push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
                     push!(inits, "var\"$(item)\"=FDSvector($(struct_name_)$(sep)$(item_)[])")

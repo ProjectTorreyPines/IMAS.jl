@@ -1,25 +1,24 @@
-const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
 import JSON
 using Memoize
 
 """
-    load_imasdd(ids; imas_version=imas_version)
+    imas_load_dd(ids; imas_version=imas_version)
 
 Read the IMAS data structures in the OMAS JSON format
 """
-@memoize function load_imasdd(ids; imas_version=imas_version)
+@memoize function imas_load_dd(ids)
     JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
 end
 
 """
-    info_imas(location::String)
+    imas_info(location::String)
 
 Return information of a node in the IMAS data structure
 """
-function info_imas(location::String)
+function imas_info(location::String)
     location = replace(location, r"\[[0-9]+\]$" => "[:]")
     location = replace(location, r"\[:\]$" => "")
-    return load_imasdd(split(location, ".")[1])[location]
+    return imas_load_dd(split(location, ".")[1])[location]
 end
 
 """
@@ -108,7 +107,7 @@ end
 
 Returns IMAS location of a given FDS
 """
-function f2i(fds::Union{FDS, FDSvector})
+function f2i(fds::Union{FDS,FDSvector})
     return f2i(typeof(fds))
 end
 
@@ -127,7 +126,7 @@ function f2i(fds::String)
     return imas
 end
 
-import Base: keys
+import Base:keys
 
 """
     keys(fds::FDS)
@@ -167,36 +166,36 @@ function Base.keys(fds::FDSvector)
     return collect(1:length(fds))
 end
 
-import Base: show
+import Base:show
 
 function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
     items = keys(fds)
-    for (k,item) in enumerate(items)
+    for (k, item) in enumerate(items)
         # arrays of structurs
         if typeof(fds) <: FDSvector
-            printstyled("$(' '^depth)[$(item)]\n"; bold = true, color = :green)
+            printstyled("$(' '^depth)[$(item)]\n"; bold=true, color=:green)
             show(io, fds[item], depth + 1)
         # structures
         elseif typeof(getfield(fds, item)) <: Union{FDS,FDSvector}
             if (typeof(fds) <: dd)
-                printstyled("$(' '^depth)$(uppercase(string(item)))\n"; bold = true)
+                printstyled("$(' '^depth)$(uppercase(string(item)))\n"; bold=true)
             else
-                printstyled("$(' '^depth)$(string(item))\n"; bold = true)
+                printstyled("$(' '^depth)$(string(item))\n"; bold=true)
             end
             show(io, getfield(fds, item), depth + 1)
         # field
         else
             printstyled("$(' '^depth)$(item)")
-            printstyled(" ➡ "; color = :red)
-            printstyled("$(Base.summary(getfield(fds, item)))\n"; color = :blue)
+            printstyled(" ➡ "; color=:red)
+            printstyled("$(Base.summary(getfield(fds, item)))\n"; color=:blue)
         end
-        if (typeof(fds) <: dd) & (k<length(items))
+        if (typeof(fds) <: dd) & (k < length(items))
             println()
         end
     end
 end
 
-function Base.show(io::IO, fds::Union{FDS, FDSvector})
+function Base.show(io::IO, fds::Union{FDS,FDSvector})
     return show(io, fds, 0)
 end
 
