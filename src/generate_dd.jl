@@ -15,7 +15,7 @@ include("functionarrays.jl")
 # FUSE data structure
 #= ==================================== =#
 filenames = readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures"))
-desired_structure = []
+desired_structure = String[]
 for filename in filenames
     if startswith(filename, "_") || ! endswith(filename, ".json")
         continue
@@ -33,12 +33,18 @@ end
 #  Implementing selected IMAS DD as Julia structures
 #= ================================================= =#
 
+const type_translator = Dict("STR" => String,
+                             "INT" => Int64,
+                             "FLT" => Float64,
+                             "CPX" => Complex{Float64})
+
 """
-    desired_structure::Vector{String}
+    imas_julia_struct(desired_structure::Vector{String})
 
 Translate the IMAS `desired_structure` entries into Julia structs
+Note that `desired_structure` are fully qualified IMAS locations
 """
-function imas_julia_struct(desired_structure::Vector)
+function imas_julia_struct(desired_structure::Vector{String})
     convertsion_types = Union{}
     struct_commands = String[]
 
@@ -48,11 +54,15 @@ function imas_julia_struct(desired_structure::Vector)
     # generate hierarchy of dicts
     ddict = Dict()
     for sel in sort(desired_structure)
+        # ignore error fields
         if endswith(sel, "error_upper") | endswith(sel, "error_lower") | endswith(sel, "error_index")
             continue
         end
+
+        # split IMAS path in 
         path = split(sel, ".")
         
+        # load imas data structure
         imasdd = imas_load_dd(path[1])
 
         h = ddict
@@ -62,48 +72,31 @@ function imas_julia_struct(desired_structure::Vector)
                     continue
                 end
 
+                # fix some issues in IMAS DD type definitions
                 if imasdd[sel]["data_type"] == "INT_TYPE"
                     imasdd[sel]["data_type"] = "INT_0D"
                 elseif imasdd[sel]["data_type"] == "FLT_1D_TYPE"
                     imasdd[sel]["data_type"] = "FLT_1D"
                 end
 
+                # find data type and dimension
                 (tp, dim) = split(imasdd[sel]["data_type"], "_")
                 dim = parse(Int, replace(dim, "D" => ""))
 
-                if (tp == "STR") & (dim == 0)
-                    h[item] = ":: Union{Missing, String} = missing"
-                    convertsion_types = Union{convertsion_types,String}
-                elseif tp == "STR"
-                    h[item] = ":: Union{Missing, AbstractArray{String, $dim}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{String}}
-
-                elseif (tp == "INT") & (dim == 0)
-                    h[item] = ":: Union{Missing, Int} = missing"
-                    convertsion_types = Union{convertsion_types,Int}
-                elseif tp == "INT"
-                    h[item] = ":: Union{Missing, AbstractArray{Int, $dim}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Int}}
-
-                elseif (tp == "FLT") & (dim == 0)
-                    h[item] = ":: Union{Missing, Float64} = missing"
-                    convertsion_types = Union{convertsion_types,Float64}
-                elseif tp == "FLT"
-                    if false
-                        h[item] = ":: Union{Missing, AbstractFunctionArray{Float64,$dim}} = missing"
-                        convertsion_types = Union{convertsion_types,AbstractFunctionArray{Float64}}
+                # translate from IMAS data type to Julia types
+                if tp in keys(type_translator)
+                    if dim == 0
+                        h[item] = ":: Union{Missing, $(type_translator[tp])} = missing"
+                        convertsion_types = Union{convertsion_types,type_translator[tp]}
                     else
-                        h[item] = ":: Union{Missing, AbstractArray{Float64, $dim}} = missing"
-                        convertsion_types = Union{convertsion_types,Array{Float64}}
+                        if false
+                            h[item] = ":: Union{Missing, AbstractFunctionArray{$(type_translator[tp]), $dim}} = missing"
+                            convertsion_types = Union{convertsion_types,AbstractFunctionArray{type_translator[tp]}}
+                        else
+                            h[item] = ":: Union{Missing, AbstractArray{$(type_translator[tp]), $dim}} = missing"
+                            convertsion_types = Union{convertsion_types,Array{type_translator[tp]}}
+                        end
                     end
-
-                elseif (tp == "CPX") & (dim == 0)
-                    h[item] = ":: Union{Missing, Complex{Float64} = missing"
-                    convertsion_types = Union{convertsion_types,Complex{Float64}}
-                elseif tp == "CPX"
-                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, $dim}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Complex{Float64}}}
-
                 else
                     throw(ArgumentError("$(sel) IMAS $(imasdd[sel]["data_type"]) has not been mapped to Julia data type"))
                 end
@@ -116,7 +109,7 @@ function imas_julia_struct(desired_structure::Vector)
         end
     end
 
-    # generate Julia data structures
+    # generate source code of Julia structures
     is_structarray = false
     for branch in reverse(branches)
         h = ddict
