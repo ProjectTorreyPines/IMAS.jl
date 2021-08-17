@@ -60,83 +60,48 @@ function imas_julia_struct(desired_structure::Vector)
             if (k > 1) & (k == length(path))
                 if imasdd[sel]["data_type"] in ["STRUCTURE", "STRUCT_ARRAY"]
                     continue
+                end
 
-                elseif imasdd[sel]["data_type"] == "STR_0D"
+                if imasdd[sel]["data_type"] == "INT_TYPE"
+                    imasdd[sel]["data_type"] = "INT_0D"
+                elseif imasdd[sel]["data_type"] == "FLT_1D_TYPE"
+                    imasdd[sel]["data_type"] = "FLT_1D"
+                end
+
+                (tp, dim) = split(imasdd[sel]["data_type"], "_")
+                dim = parse(Int, replace(dim, "D" => ""))
+
+                if (tp == "STR") & (dim == 0)
                     h[item] = ":: Union{Missing, String} = missing"
                     convertsion_types = Union{convertsion_types,String}
-                elseif imasdd[sel]["data_type"] == "STR_1D"
-                    h[item] = ":: Union{Missing, AbstractArray{String, 1}} = missing"
+                elseif tp == "STR"
+                    h[item] = ":: Union{Missing, AbstractArray{String, $dim}} = missing"
                     convertsion_types = Union{convertsion_types,Array{String}}
 
-                elseif imasdd[sel]["data_type"] in ["INT_0D", "INT_TYPE"]
+                elseif (tp == "INT") & (dim == 0)
                     h[item] = ":: Union{Missing, Int} = missing"
                     convertsion_types = Union{convertsion_types,Int}
-                elseif imasdd[sel]["data_type"] == "INT_1D"
-                    h[item] = ":: Union{Missing, AbstractArray{Int, 1}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Int}}
-                elseif imasdd[sel]["data_type"] == "INT_2D"
-                    h[item] = ":: Union{Missing, AbstractArray{Int, 2}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Int}}
-                elseif imasdd[sel]["data_type"] == "INT_3D"
-                    h[item] = ":: Union{Missing, AbstractArray{Int, 3}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Int}}
-                elseif imasdd[sel]["data_type"] == "INT_4D"
-                    h[item] = ":: Union{Missing, AbstractArray{Int, 4}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Int}}
-                elseif imasdd[sel]["data_type"] == "INT_5D"
-                    h[item] = ":: Union{Missing, AbstractArray{Int, 5}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Int}}
-                elseif imasdd[sel]["data_type"] == "INT_6D"
-                    h[item] = ":: Union{Missing, AbstractArray{Int, 6}} = missing"
+                elseif tp == "INT"
+                    h[item] = ":: Union{Missing, AbstractArray{Int, $dim}} = missing"
                     convertsion_types = Union{convertsion_types,Array{Int}}
 
-                elseif imasdd[sel]["data_type"] == "FLT_0D"
+                elseif (tp == "FLT") & (dim == 0)
                     h[item] = ":: Union{Missing, Float64} = missing"
                     convertsion_types = Union{convertsion_types,Float64}
-                elseif imasdd[sel]["data_type"] in ["FLT_1D", "FLT_1D_TYPE"]
+                elseif tp == "FLT"
                     if false
-                        h[item] = ":: Union{Missing, AbstractFunctionArray{Float64,1}} = missing"
+                        h[item] = ":: Union{Missing, AbstractFunctionArray{Float64,$dim}} = missing"
                         convertsion_types = Union{convertsion_types,AbstractFunctionArray{Float64}}
                     else
-                        h[item] = ":: Union{Missing, AbstractArray{Float64, 1}} = missing"
+                        h[item] = ":: Union{Missing, AbstractArray{Float64, $dim}} = missing"
                         convertsion_types = Union{convertsion_types,Array{Float64}}
                     end
-                elseif imasdd[sel]["data_type"] == "FLT_2D"
-                    h[item] = ":: Union{Missing, AbstractArray{Float64, 2}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Float64}}
-                elseif imasdd[sel]["data_type"] == "FLT_3D"
-                    h[item] = ":: Union{Missing, AbstractArray{Float64, 3}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Float64}}
-                elseif imasdd[sel]["data_type"] == "FLT_4D"
-                    h[item] = ":: Union{Missing, AbstractArray{Float64, 4}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Float64}}
-                elseif imasdd[sel]["data_type"] == "FLT_5D"
-                    h[item] = ":: Union{Missing, AbstractArray{Float64, 5}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Float64}}
-                elseif imasdd[sel]["data_type"] == "FLT_6D"
-                    h[item] = ":: Union{Missing, AbstractArray{Float64, 6}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Float64}}
 
-                elseif imasdd[sel]["data_type"] == "CPX_0D"
+                elseif (tp == "CPX") & (dim == 0)
                     h[item] = ":: Union{Missing, Complex{Float64} = missing"
                     convertsion_types = Union{convertsion_types,Complex{Float64}}
-                elseif imasdd[sel]["data_type"] == "CPX_1D"
-                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, 1}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Complex{Float64}}}
-                elseif imasdd[sel]["data_type"] == "CPX_2D"
-                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, 2}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Complex{Float64}}}
-                elseif imasdd[sel]["data_type"] == "CPX_3D"
-                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, 3}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Complex{Float64}}}
-                elseif imasdd[sel]["data_type"] == "CPX_4D"
-                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, 4}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Complex{Float64}}}
-                elseif imasdd[sel]["data_type"] == "CPX_5D"
-                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, 5}} = missing"
-                    convertsion_types = Union{convertsion_types,Array{Complex{Float64}}}
-                elseif imasdd[sel]["data_type"] == "CPX_6D"
-                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, 6}} = missing"
+                elseif tp == "CPX"
+                    h[item] = ":: Union{Missing, AbstractArray{Complex{Float64}, $dim}} = missing"
                     convertsion_types = Union{convertsion_types,Array{Complex{Float64}}}
 
                 else
