@@ -1,14 +1,25 @@
-const imas_version = "3_33_0"
 const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
-
 import JSON
 using Memoize
 
 """
-Function used to read the IMAS data structures in the OMAS JSON format
+    load_imasdd(ids; imas_version=imas_version)
+
+Read the IMAS data structures in the OMAS JSON format
 """
 @memoize function load_imasdd(ids; imas_version=imas_version)
-    JSON.parsefile("$omas_imas_structure_folder/$imas_version/$ids.json")  # parse and transform data
+    JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
+end
+
+"""
+    info_imas(location::String)
+
+Return information of a node in the IMAS data structure
+"""
+function info_imas(location::String)
+    location = replace(location, r"\[[0-9]+\]$" => "[:]")
+    location = replace(location, r"\[:\]$" => "")
+    return load_imasdd(split(location, ".")[1])[location]
 end
 
 """
@@ -111,6 +122,7 @@ end
 
 function f2i(fds::String)
     tmp = replace(fds, "___" => "[:].")
+    tmp = replace(tmp, "__" => ".")
     imas = replace(tmp, r"_$" => "")
     return imas
 end

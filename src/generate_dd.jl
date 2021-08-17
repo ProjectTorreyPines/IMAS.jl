@@ -1,6 +1,11 @@
 using Pkg
 Pkg.activate(dirname(dirname(@__FILE__)))
 
+const imas_version = "3_33_0"
+ENV["OMAS_ROOT"] = "/Users/meneghini/Coding/atom/omas"
+const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
+run(`sh -c "cp -rf $(omas_imas_structure_folder)/$(imas_version)/*.json $(dirname(dirname(@__FILE__)))/data_structures"`)
+
 #= ==================================== =#
 # Header
 #= ==================================== =#
@@ -9,7 +14,7 @@ include("functionarrays.jl")
 #= ==================================== =#
 # FUSE data structure
 #= ==================================== =#
-filenames = readdir("$omas_imas_structure_folder/$imas_version")
+filenames = readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures"))
 desired_structure = []
 for filename in filenames
     if startswith(filename, "_") || ! endswith(filename, ".json")
@@ -48,7 +53,7 @@ function imas_julia_struct(desired_structure::Vector)
         end
         path = split(sel, ".")
         
-        imasdd = load_imasdd(String(path[1]))
+        imasdd = load_imasdd(path[1])
 
         h = ddict
         for (k, item) in enumerate(path)
