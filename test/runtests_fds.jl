@@ -1,4 +1,4 @@
-@testset "basic_dd_IO" begin
+@testset "FDS" begin
     # instantiate and populate top-level FDS
     data = FUSE.dd();
     resize!(data.core_profiles.profiles_1d,1)
@@ -28,7 +28,7 @@
     crp1d.electrons.density = (1.0 .- crp1d.grid.rho_tor_norm).^2
     @test length(crp1d.grid.rho_tor_norm) == 10
 
-    # reach top FDS in different situations
+    # reach top FDS starting at different depths
     @test data === FUSE.top(data)
     @test data === FUSE.top(data.core_profiles.profiles_1d)
     @test data === FUSE.top(data.core_profiles.profiles_1d[1])
@@ -38,6 +38,20 @@
     @test crp1d === FUSE.top(crp1d.grid)
 #    @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm) # this does not work yet
 
+    # add structure to an array of structures
+    push!(data.core_profiles.profiles_1d, crp1d)
+    @test data === FUSE.top(crp1d)
+end
+
+@testset "FDS_IMAS" begin
+    data = FUSE.dd();
+    resize!(data.core_profiles.profiles_1d,1)
+    data.core_profiles.profiles_1d[1].grid
+    data.core_profiles.profiles_1d[1].grid.rho_tor_norm = Vector{Float64}(collect(1:10))
+
+    # test f2i
+    println(FUSE.f2i(data.core_profiles.profiles_1d[1].grid))
+    @test FUSE.f2i(data.core_profiles.profiles_1d[1].grid) == "core_profiles.profiles_1d[:].grid"
 end
 
 @testset "JSON_IO" begin

@@ -156,7 +156,8 @@ function imas_julia_struct(desired_structure::Vector)
 
         sep = "__"
         is_structarray = length(branch) > 0 && occursin("[", branch[end])
-        struct_name = replace(join(branch, sep), "[:]" => "")
+        struct_name_ = replace(join(branch, sep), "[:]" => "_")
+        struct_name = replace(struct_name_, r"_$" => "")
         txt = String[]
         txt_parent = String[]
         inits = String[]
@@ -168,21 +169,23 @@ function imas_julia_struct(desired_structure::Vector)
             # branch
             else
                 # top level
-                if length(struct_name) == 0
+                if length(struct_name_) == 0
                     push!(txt, "    var\"$(item)\" :: Union{Nothing, $(item)} = $(item)()")
                     push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
                     push!(inits, "var\"$(item)\"=$(item)()")
-                    # arrays of structs
+                # arrays of structs
                 elseif occursin("[:]", item)
+                    item_ = replace(item, "[:]" => "_")
                     item = replace(item, "[:]" => "")
-                    push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name)$(sep)$(item)} = FDSvector($(struct_name)$(sep)$(item)[])")
+                    item_=item
+                    push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)} = FDSvector($(struct_name_)$(sep)$(item_)[])")
                     push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
-                    push!(inits, "var\"$(item)\"=FDSvector($(struct_name)$(sep)$(item)[])")
-                    # structs
+                    push!(inits, "var\"$(item)\"=FDSvector($(struct_name_)$(sep)$(item_)[])")
+                # structs
                 else
-                    push!(txt, "    var\"$(item)\" :: $(struct_name)$(sep)$(item) = $(struct_name)$(sep)$(item)()")
+                    push!(txt, "    var\"$(item)\" :: $(struct_name_)$(sep)$(item) = $(struct_name_)$(sep)$(item)()")
                     push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
-                    push!(inits, "var\"$(item)\"=$(struct_name)$(sep)$(item)()")
+                    push!(inits, "var\"$(item)\"=$(struct_name_)$(sep)$(item)()")
                 end
             end
         end
@@ -210,6 +213,10 @@ end
 """
 
         push!(struct_commands, txt)
+
+#       uncomment to debug data structure
+#        println(txt)
+#        eval(Meta.parse(txt))
     end
 
     return struct_commands, convertsion_types

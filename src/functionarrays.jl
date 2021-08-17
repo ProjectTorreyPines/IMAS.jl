@@ -23,7 +23,7 @@ function struct_field_type(structure::DataType, field::Symbol)
 end
 
 #= === =#
-#  FDS  # 
+#  FDS  #
 #= === =#
 
 abstract type FDS end
@@ -37,18 +37,23 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
         return setfield!(fds, field, v)
     end
 
-    if ! (typeof(v) <: AbstractFunctionArray)
-        target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
-        if target_type <: AbstractFunctionArray
-            v = NumericalFunctionVector(1:length(v), v)
-        end
+    if typeof(v) <: FDS
+        v._parent = WeakRef(fds)
     end
+
+#     if ! (typeof(v) <: AbstractFunctionArray)
+#         target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
+#         if target_type <: AbstractFunctionArray
+# #            domain = top(fds)
+#             v = NumericalFunctionVector(1:length(v), v)
+#         end
+#     end
 
     return setfield!(fds, field, v)
 end
 
 #= ========= =#
-#  FDSvector  # 
+#  FDSvector  #
 #= ========= =#
 
 mutable struct FDSvector{T} <: AbstractVector{T}
@@ -69,17 +74,118 @@ end
 
 function Base.setindex!(x::FDSvector{T}, v, i::Int64) where {T <: FDS}
     x.value[i] = v
-    v._parent = x._parent
+    v._parent = WeakRef(x)
 end
 
 import Base: push!, pop!
 
 function push!(x::FDSvector{T}, v) where {T <: FDS}
+    v._parent = WeakRef(x)
     push!(x.value, v)
 end
 
 function pop!(x::Vector{T}) where {T <: FDS}
     pop!(x.value)
+end
+
+#= ============ =#
+#  FDSfunctions  #
+#= ============ =#
+
+"""
+    f2i(fds::Union{FDS, FDSvector, DataType, Symbol, String})
+
+Returns IMAS location of a given FDS
+"""
+function f2i(fds::Union{FDS, FDSvector})
+    return f2i(typeof(fds))
+end
+
+function f2i(fds::DataType)
+    return f2i(Base.typename(fds).name)
+end
+
+function f2i(fds::Symbol)
+    return f2i(string(fds))
+end
+
+function f2i(fds::String)
+    tmp = replace(fds, "___" => "[:].")
+    imas = replace(tmp, r"_$" => "")
+    return imas
+end
+
+import Base: keys
+
+"""
+    keys(fds::FDS)
+
+returns list of fields with data in a FDS
+"""
+function Base.keys(fds::FDS)
+    kkk = Symbol[]
+    for k in fieldnames(typeof(fds))
+        # hide the _parent field
+        if k === :_parent
+            continue
+        end
+        v = getfield(fds, k)
+        # empty entries
+        if v === nothing
+            continue
+        # empty structures/arrays of structures (recursive)
+        elseif typeof(v) <: Union{FDS,FDSvector}
+            if length(keys(v)) > 0
+                push!(kkk, k)
+            end
+        # entries with data
+        else
+            push!(kkk, k)
+        end
+    end
+    return kkk
+end
+
+"""
+    keys(fds::FDSvector)
+
+returns list of structures in a FDSvector
+"""
+function Base.keys(fds::FDSvector)
+    return collect(1:length(fds))
+end
+
+import Base: show
+
+function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
+    items = keys(fds)
+    for (k,item) in enumerate(items)
+        # arrays of structurs
+        if typeof(fds) <: FDSvector
+            printstyled("$(' '^depth)[$(item)]\n"; bold = true, color = :green)
+            show(io, fds[item], depth + 1)
+        # structures
+        elseif typeof(getfield(fds, item)) <: Union{FDS,FDSvector}
+            if (typeof(fds) <: dd)
+                printstyled("$(' '^depth)$(uppercase(string(item)))\n"; bold = true)
+            else
+                printstyled("$(' '^depth)$(string(item))\n"; bold = true)
+            end
+            show(io, getfield(fds, item), depth + 1)
+        # field
+        else
+            printstyled("$(' '^depth)$(item)")
+            printstyled(" ➡ "; color = :red)
+            printstyled("$(Base.summary(getfield(fds, item)))\n"; color = :blue)
+        end
+        if (typeof(fds) <: dd) & (k<length(items))
+            println()
+        end
+    end
+end
+
+function Base.show(io::IO, fds::Union{FDS, FDSvector})
+    return show(io, fds, 0)
 end
 
 #= ===================== =#
