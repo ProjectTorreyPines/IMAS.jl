@@ -41,6 +41,11 @@
     # add structure to an array of structures
     push!(data.core_profiles.profiles_1d, crp1d)
     @test data === FUSE.top(crp1d)
+
+    # test fail of adding data without coordinate in FDS
+    data = FUSE.dd();
+    resize!(data.core_profiles.profiles_1d,1)
+    @test_throws Exception data.core_profiles.profiles_1d[1].electrons.temperature = Vector{Float64}(collect(1:10))
 end
 
 @testset "FDS_IMAS" begin

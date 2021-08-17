@@ -51,13 +51,48 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
         v._parent = WeakRef(fds)
     end
 
-#     if ! (typeof(v) <: AbstractFunctionArray)
-#         target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
-#         if target_type <: AbstractFunctionArray
-# #            domain = top(fds)
-#             v = NumericalFunctionVector(1:length(v), v)
-#         end
-#     end
+    coordinates = deepcopy(imas_info("$(f2i(fds)).$(field)")["coordinates"])
+    for (k, coordinate) in enumerate(coordinates)
+        if contains(coordinate, "...")
+            coordinates[k] = nothing
+        else
+            h = top(fds)
+            coordinate = replace(coordinate, ":"=>"1")
+            for k in i2p(coordinate)
+                if (typeof(k)<:Int) & (typeof(h) <: FDSvector)# & (length(keys(h))<=k)
+                    if length(keys(h))<=k
+                        h = h[k]
+                        #println('*',k)
+                    else
+                        #println('-',k)
+                    end
+                elseif (typeof(k)<:Symbol) & (typeof(h) <: FDS)# & (hasfield(typeof(h),k))
+                    if hasfield(typeof(h),k)
+                        h = getfield(h,k)
+                        #println('*',k)
+                    else
+                        #println('-',k)
+                    end
+                else
+                    #println('-',k)
+                end
+            end
+            if (h === fds) | (h === nothing)
+                error("Assign data to `$coordinate` before assigning `$(f2i(fds)).$(field)`")
+            else
+                coordinates[k] = h
+            end
+        end
+    end
+
+    # if ! (typeof(v) <: AbstractFunctionArray)
+    #     target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
+    #     if target_type <: AbstractFunctionArray
+    #         imas_info("$(f2i(fds)).$(field)")["coordinates"]
+    #         domain = top(fds)
+    #         v = NumericalFunctionVector(1:length(v), v)
+    #     end
+    # end
 
     return setfield!(fds, field, v)
 end
@@ -80,6 +115,10 @@ end
 
 function Base.size(x::FDSvector{T}) where {T <: FDS}
     size(x.value)
+end
+
+function Base.length(x::FDSvector{T}) where {T <: FDS}
+    length(x.value)
 end
 
 function Base.setindex!(x::FDSvector{T}, v, i::Int64) where {T <: FDS}
@@ -122,8 +161,32 @@ end
 function f2i(fds::String)
     tmp = replace(fds, "___" => "[:].")
     tmp = replace(tmp, "__" => ".")
-    imas = replace(tmp, r"_$" => "")
-    return imas
+    imas_location = replace(tmp, r"_$" => "")
+    return imas_location
+end
+
+"""
+    i2p(imas_location::String)
+
+Split IMAS location in its elements
+"""
+function i2p(imas_location::String)
+    path = Any[]
+    for s in split(imas_location, '.')
+        if contains(s, '[')
+            s, n = split(s, '[')
+            n = strip(n, ']')
+            push!(path, Symbol(s))
+            if n == ":"
+                push!(path, n)
+            else
+                push!(path, parse(Int, n))
+            end
+        else
+            push!(path, Symbol(s))
+        end
+    end
+    return path
 end
 
 import Base:keys
