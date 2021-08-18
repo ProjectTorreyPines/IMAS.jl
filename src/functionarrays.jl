@@ -103,14 +103,20 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
         end
     end
 
-    # if ! (typeof(v) <: AbstractFunctionArray)
-    #     target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
-    #     if target_type <: AbstractFunctionArray
-    #         imas_info("$(f2i(fds)).$(field)")["coordinates"]
-    #         domain = top(fds)
-    #         v = NumericalFunctionVector(1:length(v), v)
-    #     end
-    # end
+    if ! (typeof(v) <: AbstractFDArray)
+        target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
+        if target_type <: AbstractFDArray
+            if coord_values[1] === nothing
+                coord_values = [collect(1.0:float(length(v)))]
+            end
+            coord_values = Vector{Vector{Float64}}(coord_values)
+            if typeof(v) <: Function
+                v = AnalyticalFDVector(coord_values, v)
+            else
+                v = NumericalFDVector(coord_values, v)
+            end
+        end
+    end
 
     return setfield!(fds, field, v)
 end
@@ -155,9 +161,9 @@ function pop!(x::Vector{T}) where {T <: FDS}
     pop!(x.value)
 end
 
-#= ============ =#
-#  FDSfunctions  #
-#= ============ =#
+#= ===================== =#
+#  FDS related functions  #
+#= ===================== =#
 
 """
     f2i(fds::Union{FDS, FDSvector, DataType, Symbol, String})
@@ -296,62 +302,62 @@ function Base.show(io::IO, fds::Union{FDS,FDSvector})
     return show(io, fds, 0)
 end
 
-#= ===================== =#
-#  AbstractFunctionArray  #
-#= ===================== =#
+#= ======= =#
+#  FDArray  #
+#= ======= =#
 
 using Interpolations
 
-abstract type AbstractFunctionArray{T,N} <: AbstractArray{T,N} end
-const AFA = AbstractFunctionArray{T,N} where {T,N}
+abstract type AbstractFDArray{T,N} <: AbstractArray{T,N} end
+const AbstractFDVector = AbstractFDArray{T,1} where T
 
-#= ====================== =#
-#  NumericalFunctionArray  #
-#= ====================== =#
+#= ================= =#
+#  NumericalFDVector  #
+#= ================= =#
 
-struct NumericalFunctionVector{T} <: AbstractFunctionArray{T,1}
-    domain::AbstractVector
-    value::AbstractVector{T}
+struct NumericalFDVector <: AbstractFDVector{Float64}
+    domain::Vector{Vector{Float64}}
+    value::Vector{Float64}
 end
 
-Base.broadcastable(x::NumericalFunctionVector) = Base.broadcastable(x.value)
+Base.broadcastable(x::NumericalFDVector) = Base.broadcastable(x.value)
 
-function Base.getindex(x::NumericalFunctionVector, i::Int64)
+function Base.getindex(x::NumericalFDVector, i::Int64)
     x.value[i]
 end
 
-Base.size(p::NumericalFunctionVector) = size(p.domain)
+Base.size(p::NumericalFDVector) = size(p.value)
 
-function Base.setindex!(x::NumericalFunctionVector, v, i::Int64)
+function Base.setindex!(x::NumericalFDVector, v, i::Int64)
     x.value[i] = v
 end
 
-function (x::NumericalFunctionVector)(y)
-    LinearInterpolation(x.domain, x.value, )(y)
+function (x::NumericalFDVector)(y)
+    LinearInterpolation(x.domain[1], x.value)(y)
 end
 
-#= ======================= =#
-#  AnalyticalFunctionArray  #
-#= ======================= =#
+#= ================== =#
+#  AnalyticalFDVector  #
+#= ================== =#
 
-struct AnalyticalFunctionVector <: AbstractFunctionArray{Float64,1}
-    domain::AbstractVector
+struct AnalyticalFDVector{T} <: AbstractFDArray{T,1}
+    domain::Vector{AbstractVector}
     func::Function
 end
 
-Base.broadcastable(x::AnalyticalFunctionVector) = Base.broadcastable(x.func(x.domain))
+Base.broadcastable(x::AnalyticalFDVector) = Base.broadcastable(x.func(x.domain[1]))
 
-function Base.getindex(x::AnalyticalFunctionVector, i::Int64)
-    x.func(x.domain[i])
+function Base.getindex(x::AnalyticalFDVector, i::Int64)
+    x.func(x.domain[1][i])
 end
 
-Base.size(p::AnalyticalFunctionVector) = size(p.domain)
+Base.size(p::AnalyticalFDVector) = size(p.domain[1])
 
-function Base.setindex!(x::AnalyticalFunctionVector, v, i::Int64)
-    error("Cannot setindex! of a AnalyticalFunctionVector")
+function Base.setindex!(x::AnalyticalFDVector, v, i::Int64)
+    error("Cannot setindex! of a AnalyticalFDVector")
 end
 
-function (x::AnalyticalFunctionVector)(y)
+function (x::AnalyticalFDVector)(y)
     x.func(y)
 end
 

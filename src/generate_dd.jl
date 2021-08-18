@@ -88,14 +88,12 @@ function imas_julia_struct(desired_structure::Vector{String})
                     if dim == 0
                         h[item] = ":: Union{Missing, $(type_translator[tp])} = missing"
                         convertsion_types = Union{convertsion_types,type_translator[tp]}
+                    elseif dim == 1
+                        h[item] = ":: Union{Missing, AbstractFDVector{$(type_translator[tp])}} = missing"
+                        convertsion_types = Union{convertsion_types,AbstractFDVector{type_translator[tp]}}
                     else
-                        if false
-                            h[item] = ":: Union{Missing, AbstractFunctionArray{$(type_translator[tp]), $dim}} = missing"
-                            convertsion_types = Union{convertsion_types,AbstractFunctionArray{type_translator[tp]}}
-                        else
-                            h[item] = ":: Union{Missing, AbstractArray{$(type_translator[tp]), $dim}} = missing"
-                            convertsion_types = Union{convertsion_types,Array{type_translator[tp]}}
-                        end
+                        h[item] = ":: Union{Missing, AbstractArray{$(type_translator[tp]), $dim}} = missing"
+                        convertsion_types = Union{convertsion_types,Array{type_translator[tp]}}
                     end
                 else
                     throw(ArgumentError("$(sel) IMAS $(imasdd[sel]["data_type"]) has not been mapped to Julia data type"))
@@ -202,7 +200,6 @@ for txt in struct_commands
 end
 
 open("$(dirname(@__FILE__))/dd.jl","w") do io
-    println(io, "abstract type FDS end\n")
     println(io, "include(\"functionarrays.jl\")\n")
     println(io, "convertsion_types = $(string(convertsion_types))\n")
     println(io, join(struct_commands, "\n"))
