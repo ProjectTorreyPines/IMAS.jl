@@ -38,10 +38,6 @@ end
 
 abstract type FDS end
 
-function Base.getproperty(fds::FDS, field::Symbol)
-    return getfield(fds, field)
-end
-
 """
     coordinates(fds::FDS, field::Symbol)
 
@@ -85,6 +81,10 @@ function coordinates(fds::FDS, field::Symbol)
         end
     end
     return coord_names, coord_values
+end
+
+function Base.getproperty(fds::FDS, field::Symbol)
+    return getfield(fds, field)
 end
 
 function Base.setproperty!(fds::FDS, field::Symbol, v)
@@ -340,8 +340,8 @@ end
 #  AnalyticalFDVector  #
 #= ================== =#
 
-struct AnalyticalFDVector{T} <: AbstractFDArray{T,1}
-    domain::Vector{AbstractVector}
+struct AnalyticalFDVector <: AbstractFDVector{Float64}
+    domain::Vector{Vector{Float64}}
     func::Function
 end
 
