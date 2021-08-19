@@ -132,7 +132,6 @@ function imas_julia_struct(desired_structure::Vector{String})
                 # top level
                 if length(struct_name_) == 0
                     push!(txt, "    var\"$(item)\" :: Union{Missing, $(item)} = $(item)()")
-                    push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
                     push!(inits, "var\"$(item)\"=$(item)()")
                 # arrays of structs
                 elseif occursin("[:]", item)
@@ -140,14 +139,13 @@ function imas_julia_struct(desired_structure::Vector{String})
                     item = replace(item, "[:]" => "")
                     item_ = item
                     push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)} = FDSvector($(struct_name_)$(sep)$(item_)[])")
-                    push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
                     push!(inits, "var\"$(item)\"=FDSvector($(struct_name_)$(sep)$(item_)[])")
                 # structs
                 else
                     push!(txt, "    var\"$(item)\" :: $(struct_name_)$(sep)$(item) = $(struct_name_)$(sep)$(item)()")
-                    push!(txt_parent, "        obj.$(item)._parent = WeakRef(obj)")
                     push!(inits, "var\"$(item)\"=$(struct_name_)$(sep)$(item)()")
                 end
+                push!(txt_parent, "        setfield!(obj.$(item), :_parent, WeakRef(obj))")
             end
         end
 
@@ -157,7 +155,8 @@ function imas_julia_struct(desired_structure::Vector{String})
         if length(struct_name) == 0
             struct_name = "dd"
         end
-        txt_parent = """
+        if length(txt_parent) > 0
+            txt_parent = """
     _parent :: WeakRef = WeakRef(missing)
     function $(struct_name)($(inits), _parent=WeakRef(missing))
         obj = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
@@ -165,7 +164,11 @@ $(txt_parent)
         return obj
     end
 """
-
+        else
+            txt_parent = """
+    _parent :: WeakRef = WeakRef(missing)
+"""
+        end
         txt = """
 Base.@kwdef mutable struct $(struct_name) <: FDS
 $(txt)
