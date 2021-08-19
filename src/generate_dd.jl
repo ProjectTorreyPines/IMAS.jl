@@ -45,7 +45,7 @@ Translate the IMAS `desired_structure` entries into Julia structs
 Note that `desired_structure` are fully qualified IMAS locations
 """
 function imas_julia_struct(desired_structure::Vector{String})
-    convertsion_types = Union{}
+    conversion_types = Union{}
     struct_commands = String[]
 
     branches = Vector()
@@ -87,13 +87,13 @@ function imas_julia_struct(desired_structure::Vector{String})
                 if tp in keys(type_translator)
                     if dim == 0
                         h[item] = ":: Union{Missing, $(type_translator[tp])} = missing"
-                        convertsion_types = Union{convertsion_types,type_translator[tp]}
+                        conversion_types = Union{conversion_types,type_translator[tp]}
                     elseif dim == 1
                         h[item] = ":: Union{Missing, AbstractFDVector{$(type_translator[tp])}} = missing"
-                        convertsion_types = Union{convertsion_types,AbstractFDVector{type_translator[tp]}}
+                        conversion_types = Union{conversion_types,AbstractFDVector{type_translator[tp]}}
                     else
                         h[item] = ":: Union{Missing, AbstractArray{$(type_translator[tp]), $dim}} = missing"
-                        convertsion_types = Union{convertsion_types,Array{type_translator[tp]}}
+                        conversion_types = Union{conversion_types,Array{type_translator[tp]}}
                     end
                 else
                     throw(ArgumentError("$(sel) IMAS $(imasdd[sel]["data_type"]) has not been mapped to Julia data type"))
@@ -183,10 +183,10 @@ end
 #        eval(Meta.parse(txt))
     end
 
-    return struct_commands, convertsion_types
+    return struct_commands, conversion_types
 end
 
-struct_commands, convertsion_types = imas_julia_struct(desired_structure)
+struct_commands, conversion_types = imas_julia_struct(desired_structure)
 
 # Parse the Julia structs to make sure there are no issues
 using ProgressMeter
@@ -204,6 +204,6 @@ end
 
 open("$(dirname(@__FILE__))/dd.jl","w") do io
     println(io, "include(\"functionarrays.jl\")\n")
-    println(io, "convertsion_types = $(string(convertsion_types))\n")
+    println(io, "conversion_types = $(string(conversion_types))\n")
     println(io, join(struct_commands, "\n"))
 end

@@ -1,6 +1,6 @@
 include("functionarrays.jl")
 
-convertsion_types = Union{Float64, Int64, String, AbstractFDVector{Float64}, AbstractFDVector{Int64}, AbstractFDVector{String}, Array{Float64, N} where N}
+conversion_types = Union{Float64, Int64, String, AbstractFDVector{Float64}, AbstractFDVector{Int64}, AbstractFDVector{String}, Array{Float64, N} where N}
 
 Base.@kwdef mutable struct wall__temperature_reference <: FDS
     var"data" :: Union{Missing, Float64} = missing

@@ -57,14 +57,14 @@ function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String
         # Leaf
         else
             if verbose print(("｜"^level) * string(k) * " → ") end
-            target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), Symbol(k)))
-            if target_type <: Array
+            target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), Symbol(k)))
+            if target_type <: AbstractArray
                 if ndims(target_type) == 2
                     v = reduce(hcat, v)
                 end
+                v = convert(Array{eltype(target_type),ndims(target_type)}, v)
             end
-            v = convert(target_type, v)
-            setfield!(fds, Symbol(k), v)
+            setproperty!(fds, Symbol(k), v)
             if verbose println(typeof(v)) end
         end
     end

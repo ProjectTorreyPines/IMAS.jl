@@ -56,15 +56,15 @@ function coordinates(fds::FDS, field::Symbol)
             coord = replace(coord, ":" => "1")
             for k in i2p(coord)
                 if (typeof(k) <: Int) & (typeof(h) <: FDSvector)
-                    if length(keys(h)) <= k
+                    if k <= length(keys(h))
                         h = h[k]
                         # println('*',k)
                     else
                         # println('-',k)
                     end
-                elseif (typeof(k) <: Symbol) & (typeof(h) <: FDS)
-                    if hasfield(typeof(h), k)
-                        h = getfield(h, k)
+                elseif (typeof(k) <: String) & (typeof(h) <: FDS)
+                    if hasfield(typeof(h), Symbol(k))
+                        h = getfield(h, Symbol(k))
                         # println('*',k)
                     else
                         # println('-',k)
@@ -96,7 +96,7 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
 
     # if the value is not an AbstractFDArray...
     if ! (typeof(v) <: AbstractFDArray)
-        target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
+        target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), field))
         # ...but the target should be one
         if target_type <: AbstractFDArray
             # figure out the coordinates
@@ -150,13 +150,13 @@ end
 
 function Base.setindex!(x::FDSvector{T}, v, i::Int64) where {T <: FDS}
     x.value[i] = v
-    v._parent = WeakRef(x)
+    setfield!(v,:_parent, WeakRef(x))
 end
 
 import Base: push!, pop!
 
 function push!(x::FDSvector{T}, v) where {T <: FDS}
-    v._parent = WeakRef(x)
+    setfield!(v,:_parent, WeakRef(x))
     push!(x.value, v)
 end
 
@@ -267,6 +267,9 @@ function f2u(fds::Symbol)
 end
 
 function f2u(fds::String)
+    if in(':', fds) | in('.', fds)
+        error("`$fds` is not a qualified FDS type")
+    end
     tmp = replace(fds, "___" => "[:].")
     tmp = replace(tmp, "__" => ".")
     imas_location = replace(tmp, r"_$" => "")
@@ -274,87 +277,112 @@ function f2u(fds::String)
 end
 
 """
-    function f2i(fds::Union{FDS,FDSvector})
+    f2p(fds::Union{FDS,FDSvector};stop_at_top::Bool=true)::Vector{Union{String,Int}}
 
 Returns IMAS location of a given FDS
+
+Paremeter `stop_at_top` true returns path up to the top level FDS
+
+NOTE: if `stop_at_top=false` then indexes of arrays of structures that cannot be determined are set to 0
 """
-function f2i(fds::Union{FDS,FDSvector})
-    return f2i(fds, missing, nothing, Int)
+function f2p(fds::Union{FDS,FDSvector};stop_at_top::Bool=true)::Vector{Union{String,Int}}
+    return f2p(fds, missing, nothing, 0;stop_at_top=stop_at_top)
 end
 
-function f2i(fds::Union{FDS,FDSvector}, child::Union{Missing,FDS,FDSvector}, path::Union{Nothing,Vector}, index::Int)
-    if typeof(fds) <: FDS
-        if typeof(fds._parent.value) <: FDSvector
-            name = string(Base.typename(typeof(fds)).name) * "___"
-        else
-            name = string(Base.typename(typeof(fds)).name)
-        end
-    elseif typeof(fds) <: FDSvector
-        name = string(Base.typename(eltype(fds)).name) * "___"
-    end
+function f2p(fds::Union{FDS,FDSvector},
+             child::Union{Missing,FDS,FDSvector},
+             path::Union{Nothing,Vector},
+             index::Int;
+             stop_at_top::Bool=true)
+    # initialize path and index
     if path === nothing
+        if typeof(fds) <: FDS
+            if typeof(fds._parent.value) <: FDSvector
+                name = string(Base.typename(typeof(fds)).name) * "___"
+            else
+                name = string(Base.typename(typeof(fds)).name)
+            end
+        elseif typeof(fds) <: FDSvector
+            name = string(Base.typename(eltype(fds)).name) * "___"
+        end
         path = replace(name, "___" => "__:__")
         path = Vector{Any}(Vector{String}(split(path, "__")))
-        path = [k == ":" ? 0 : k for k in path]
         index = length(path)
+        path = [k == ":" ? 0 : k for k in path if length(k) > 0]
     end
+
+    # substitute integers for arrays of structures
     if typeof(fds) <: FDSvector
         ix = findfirst([k === child for k in fds.value])
         if ix !== nothing
             path[index] = ix
         end
     end
+
+    # traverse FDSs upstream or return result if got to the top
     if fds._parent.value === missing
-        return p2i(path)
+        if stop_at_top
+            if typeof(path[index - 1]) <: Int
+                return vcat(path[index - 2], path[index:end])
+            else
+                return path[index - 1:end]
+            end
+        else
+            return path
+        end
     else
-        return f2i(fds._parent.value, fds, path, index - 1)
+        return f2p(fds._parent.value, fds, path, index - 1; stop_at_top=stop_at_top)
     end
 end
 
-
 """
-    i2p(imas_location::String)
+    i2p(imas_location::String)::Vector{Union{String,Int}}
 
 Split IMAS location in its elements
 """
-function i2p(imas_location::String)
-    path = Any[]
+function i2p(imas_location::String)::Vector{Union{String,Int}}
+    path = []
     for s in split(imas_location, '.')
         if contains(s, '[')
             s, n = split(s, '[')
             n = strip(n, ']')
-            push!(path, Symbol(s))
+            s = string(s)
+            push!(path, s)
             if n == ":"
-                push!(path, n)
+                push!(path, ":")
             else
                 push!(path, parse(Int, n))
             end
         else
-            push!(path, Symbol(s))
+            s = string(s)
+            push!(path, s)
         end
     end
     return path
 end
 
+
 """
-    p2i(path::Any[])
+    p2i(path::Vector{Union{String,Int}})::String
 
 Combine list of IMAS location elements into a string
 """
-function p2i(path::Vector{Any})
+function p2i(path::Vector{Union{String,Int}})::String
     str = String[]
-    for k in path
-        if typeof(k) <: Symbol
-            push!(str, string(k))
-        elseif typeof(k) <: Int
-            push!(str, "[$(string(k))]")
-        elseif (k == ":") | (k == ':') | (typeof(k) === Colon) 
+    for item in path
+        if item == ":"
             push!(str, "[:]")
-        elseif typeof(k) <: String
-            push!(str, k)
+        elseif typeof(item) <: Int
+            push!(str, "[$(string(item))]")
+        else
+            push!(str, item)
         end
     end
     return replace(join(str, "."), ".[" => "[")
+end
+
+function p2i(path::Vector)::String
+    return p2i(Vector{Union{String,Int}}(path))
 end
 
 import Base:keys
@@ -397,21 +425,22 @@ import Base:show
 function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
     items = keys(fds)
     for (k, item) in enumerate(items)
+        printstyled("$('｜'^depth)"; color=:yellow)
         # arrays of structurs
         if typeof(fds) <: FDSvector
-            printstyled("$(' '^depth)[$(item)]\n"; bold=true, color=:green)
+            printstyled("[$(item)]\n"; bold=true, color=:green)
             show(io, fds[item], depth + 1)
         # structures
         elseif typeof(getfield(fds, item)) <: Union{FDS,FDSvector}
             if (typeof(fds) <: dd)
-                printstyled("$(' '^depth)$(uppercase(string(item)))\n"; bold=true)
+                printstyled("$(uppercase(string(item)))\n"; bold=true)
             else
-                printstyled("$(' '^depth)$(string(item))\n"; bold=true)
+                printstyled("$(string(item))\n"; bold=true)
             end
             show(io, getfield(fds, item), depth + 1)
         # field
         else
-            printstyled("$(' '^depth)$(item)")
+            printstyled("$(item)")
             printstyled(" ➡ "; color=:red)
             printstyled("$(Base.summary(getfield(fds, item)))\n"; color=:blue)
         end
