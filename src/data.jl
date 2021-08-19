@@ -13,7 +13,7 @@ function resize!(collection::FDSvector{T}, n::Int) where {T <: FDS}
     if n > length(collection)
         for k in length(collection):n - 1
             obj = eltype(collection)()
-            obj._parent = collection._parent
+            setfield!(obj, :_parent, WeakRef(collection))
             push!(collection.value, obj)
             # println("push $(length(collection))")
         end
@@ -88,14 +88,14 @@ function json2fuse(filename::String; verbose::Bool=false)::FDS
 end
 
 """
-    top(x::Union{FDS, FDSvector})
+    top(fds::Union{FDS, FDSvector})
 
 Return top-level FDS in the DD hierarchy
 """
-function top(x::Union{FDS,FDSvector})
-    if x._parent.value === missing
-        return x
+function top(fds::Union{FDS,FDSvector})
+    if fds._parent.value === missing
+        return fds
     else
-        return top(x._parent.value)
+        return top(fds._parent.value)
     end
 end

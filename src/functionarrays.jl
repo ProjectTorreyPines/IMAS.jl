@@ -46,7 +46,7 @@ Coordinate value is `nothing` when the data does not have a coordinate
 Coordinate value is `missing` if the coordinate is missing in the data structure
 """
 function coordinates(fds::FDS, field::Symbol)
-    coord_names = deepcopy(imas_info("$(f2i(fds)).$(field)")["coordinates"])
+    coord_names = deepcopy(imas_info("$(f2u(fds)).$(field)")["coordinates"])
     coord_values = []
     for (k, coord) in enumerate(coord_names)
         if contains(coord, "...")
@@ -80,7 +80,7 @@ function coordinates(fds::FDS, field::Symbol)
             end
         end
     end
-    return coord_names, coord_values
+    return Dict(:names => coord_names, :values => coord_values)
 end
 
 function Base.getproperty(fds::FDS, field::Symbol)
@@ -88,32 +88,35 @@ function Base.getproperty(fds::FDS, field::Symbol)
 end
 
 function Base.setproperty!(fds::FDS, field::Symbol, v)
-    if typeof(v) <: WeakRef
-        return setfield!(fds, field, v)
-    end
-
     if typeof(v) <: FDS
-        v._parent = WeakRef(fds)
+        setfield!(v, :_parent, WeakRef(fds))
+    elseif typeof(v) <: AbstractFDArray
+        setfield!(v, :_field, field)
     end
 
-    coords_names, coord_values = coordinates(fds, field)
-    for (c_name, c_value) in zip(coords_names, coord_values)
-        if c_value === missing
-            error("Assign data to `$c_name` before assigning `$(f2i(fds)).$(field)`")
-        end
-    end
-
+    # if the value is not an AbstractFDArray...
     if ! (typeof(v) <: AbstractFDArray)
         target_type = typeintersect(convertsion_types, struct_field_type(typeof(fds), field))
+        # ...but the target should be one
         if target_type <: AbstractFDArray
-            if coord_values[1] === nothing
-                coord_values = [collect(1.0:float(length(v)))]
+            # figure out the coordinates
+            coords = coordinates(fds, field)
+            for (k, (c_name, c_value)) in enumerate(zip(coords[:names], coords[:values]))
+                # do not allow assigning data before coordinates
+                if c_value === missing
+                    error("Assign data to `$c_name` before assigning `$(f2(fds)).$(field)`")
+                end
+                # generate indexes for data that does not have coordinates
+                if c_value === nothing
+                    coords[:values][k] = Vector{Float64}(collect(1.0:float(size(v)[k])))
+                end
             end
-            coord_values = Vector{Vector{Float64}}(coord_values)
+            coords[:values] = Vector{Vector{Float64}}(coords[:values])
+            # convert value to AbstractFDArray type
             if typeof(v) <: Function
-                v = AnalyticalFDVector(coord_values, v)
+                v = AnalyticalFDVector(WeakRef(fds), field, v)
             else
-                v = NumericalFDVector(coord_values, v)
+                v = NumericalFDVector(WeakRef(fds), field, coords[:values], v)
             end
         end
     end
@@ -161,33 +164,153 @@ function pop!(x::Vector{T}) where {T <: FDS}
     pop!(x.value)
 end
 
+function iterate(fds::FDSvector{T}) where {T <: FDS}
+    return fds[1], 2
+end
+
+function iterate(fds::FDSvector{T}, state) where {T <: FDS}
+    if isempty(state)
+        nothing
+    else
+        fds[state], state + 1
+    end
+end
+
+#= ======= =#
+#  FDArray  #
+#= ======= =#
+
+using Interpolations
+
+abstract type AbstractFDArray{T,N} <: AbstractArray{T,N} end
+const AbstractFDVector = AbstractFDArray{T,1} where T
+
+#= ================= =#
+#  NumericalFDVector  #
+#= ================= =#
+
+struct NumericalFDVector <: AbstractFDVector{Float64}
+    _parent::WeakRef
+    _field::Symbol
+    coord_values::Vector{Vector{Float64}}
+    value::Vector{Float64}
+end
+
+Base.broadcastable(fdv::NumericalFDVector) = Base.broadcastable(fdv.value)
+
+function Base.getindex(fdv::NumericalFDVector, i::Int64)
+    fdv.value[i]
+end
+
+Base.size(p::NumericalFDVector) = size(p.value)
+
+function Base.setindex!(fdv::NumericalFDVector, v, i::Int64)
+    fdv.value[i] = v
+end
+
+function (fdv::NumericalFDVector)(y)
+    LinearInterpolation(fdv.coord_values[1], fdv.value)(y)
+end
+
+#= ================== =#
+#  AnalyticalFDVector  #
+#= ================== =#
+
+struct AnalyticalFDVector <: AbstractFDVector{Float64}
+    _parent::WeakRef
+    _field::Symbol
+    func::Function
+end
+
+function coordinates(fdv::AbstractFDVector)
+    return coordinates(fdv._parent.value, fdv._field)
+end
+
+function Base.broadcastable(fdv::AnalyticalFDVector)
+    y = fdv.func(coordinates(fdv)[:values][1])
+    Base.broadcastable(y)
+end
+
+function Base.getindex(fdv::AnalyticalFDVector, i::Int64)
+    fdv.func(coordinates(fdv)[:values][1][i])
+end
+
+Base.size(fdv::AnalyticalFDVector) = size(coordinates(fdv)[:values][1])
+
+function Base.setindex!(fdv::AnalyticalFDVector, v, i::Int64)
+    error("Cannot setindex! of a AnalyticalFDVector")
+end
+
+function (fdv::AnalyticalFDVector)(y)
+    fdv.func(y)
+end
+
 #= ===================== =#
 #  FDS related functions  #
 #= ===================== =#
 
 """
-    f2i(fds::Union{FDS, FDSvector, DataType, Symbol, String})
+    f2u(fds::Union{FDS, FDSvector, DataType, Symbol, String})
 
-Returns IMAS location of a given FDS
+Returns universal IMAS location of a given FDS
 """
-function f2i(fds::Union{FDS,FDSvector})
-    return f2i(typeof(fds))
+function f2u(fds::Union{FDS,FDSvector})
+    return f2u(typeof(fds))
 end
 
-function f2i(fds::DataType)
-    return f2i(Base.typename(fds).name)
+function f2u(fds::DataType)
+    return f2u(Base.typename(fds).name)
 end
 
-function f2i(fds::Symbol)
-    return f2i(string(fds))
+function f2u(fds::Symbol)
+    return f2u(string(fds))
 end
 
-function f2i(fds::String)
+function f2u(fds::String)
     tmp = replace(fds, "___" => "[:].")
     tmp = replace(tmp, "__" => ".")
     imas_location = replace(tmp, r"_$" => "")
     return imas_location
 end
+
+"""
+    function f2i(fds::Union{FDS,FDSvector})
+
+Returns IMAS location of a given FDS
+"""
+function f2i(fds::Union{FDS,FDSvector})
+    return f2i(fds, missing, nothing, Int)
+end
+
+function f2i(fds::Union{FDS,FDSvector}, child::Union{Missing,FDS,FDSvector}, path::Union{Nothing,Vector}, index::Int)
+    if typeof(fds) <: FDS
+        if typeof(fds._parent.value) <: FDSvector
+            name = string(Base.typename(typeof(fds)).name) * "___"
+        else
+            name = string(Base.typename(typeof(fds)).name)
+        end
+    elseif typeof(fds) <: FDSvector
+        name = string(Base.typename(eltype(fds)).name) * "___"
+    end
+    if path === nothing
+        path = replace(name, "___" => "__:__")
+        path = Vector{Any}(Vector{String}(split(path, "__")))
+        path = [k == ":" ? 0 : k for k in path]
+        index = length(path)
+    end
+    if typeof(fds) <: FDSvector
+        ix = findfirst([k === child for k in fds.value])
+        if ix !== nothing
+            path[index] = ix
+        end
+    end
+    if fds._parent.value === missing
+        return p2i(path)
+    else
+        return f2i(fds._parent.value, fds, path, index - 1)
+    end
+end
+
 
 """
     i2p(imas_location::String)
@@ -301,64 +424,3 @@ end
 function Base.show(io::IO, fds::Union{FDS,FDSvector})
     return show(io, fds, 0)
 end
-
-#= ======= =#
-#  FDArray  #
-#= ======= =#
-
-using Interpolations
-
-abstract type AbstractFDArray{T,N} <: AbstractArray{T,N} end
-const AbstractFDVector = AbstractFDArray{T,1} where T
-
-#= ================= =#
-#  NumericalFDVector  #
-#= ================= =#
-
-struct NumericalFDVector <: AbstractFDVector{Float64}
-    domain::Vector{Vector{Float64}}
-    value::Vector{Float64}
-end
-
-Base.broadcastable(x::NumericalFDVector) = Base.broadcastable(x.value)
-
-function Base.getindex(x::NumericalFDVector, i::Int64)
-    x.value[i]
-end
-
-Base.size(p::NumericalFDVector) = size(p.value)
-
-function Base.setindex!(x::NumericalFDVector, v, i::Int64)
-    x.value[i] = v
-end
-
-function (x::NumericalFDVector)(y)
-    LinearInterpolation(x.domain[1], x.value)(y)
-end
-
-#= ================== =#
-#  AnalyticalFDVector  #
-#= ================== =#
-
-struct AnalyticalFDVector <: AbstractFDVector{Float64}
-    domain::Vector{Vector{Float64}}
-    func::Function
-end
-
-Base.broadcastable(x::AnalyticalFDVector) = Base.broadcastable(x.func(x.domain[1]))
-
-function Base.getindex(x::AnalyticalFDVector, i::Int64)
-    x.func(x.domain[1][i])
-end
-
-Base.size(p::AnalyticalFDVector) = size(p.domain[1])
-
-function Base.setindex!(x::AnalyticalFDVector, v, i::Int64)
-    error("Cannot setindex! of a AnalyticalFDVector")
-end
-
-function (x::AnalyticalFDVector)(y)
-    x.func(y)
-end
-
-#= ======== =#
