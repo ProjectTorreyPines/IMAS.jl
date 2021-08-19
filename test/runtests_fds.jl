@@ -29,18 +29,28 @@
     @test length(crp1d.grid.rho_tor_norm) == 10
 
     # reach top FDS starting at different depths
-    @test data === FUSE.top(data)
-    @test data === FUSE.top(data.core_profiles.profiles_1d)
-    @test data === FUSE.top(data.core_profiles.profiles_1d[1])
-    @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid)
-#    data === FUSE.top(data.core_profiles.profiles_1d[1].grid.rho_tor_norm) # this does not work yet
+    @test data === FUSE.top(data; stop_at_ids=false)
+    @test data === FUSE.top(data.core_profiles.profiles_1d; stop_at_ids=false)
+    @test data === FUSE.top(data.core_profiles.profiles_1d[1]; stop_at_ids=false)
+    @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid; stop_at_ids=false)
+    # @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid.rho_tor_norm; stop_at_ids=false) # this does not work yet
+
+    @test_throws Exception FUSE.top(data)
+    @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d)
+    @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d[1])
+    @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d[1].grid)
+    # @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d[1].grid.rho_tor_norm) # this does not work yet
+
+    @test crp1d === FUSE.top(crp1d; stop_at_ids=false)
+    @test crp1d === FUSE.top(crp1d.grid; stop_at_ids=false)
+    # @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm; stop_at_ids=false) # this does not work yet
     @test crp1d === FUSE.top(crp1d)
     @test crp1d === FUSE.top(crp1d.grid)
-#    @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm) # this does not work yet
+    # @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm) # this does not work yet
 
     # add structure to an array of structures
     push!(data.core_profiles.profiles_1d, crp1d)
-    @test data === FUSE.top(crp1d)
+    @test data.core_profiles === FUSE.top(crp1d)
 
     # test fail of adding data without coordinate in FDS
     data = FUSE.dd();
@@ -50,7 +60,7 @@ end
 
 @testset "FDS_IMAS" begin
     data = FUSE.dd();
-    resize!(data.core_profiles.profiles_1d, 1)
+    resize!(data.core_profiles.profiles_1d, 2)
 
     # test f2u
     @test FUSE.f2u(data.core_profiles.profiles_1d[1].grid) == "core_profiles.profiles_1d[:].grid"
@@ -77,12 +87,8 @@ end
     resize!(wall__description_2d.mobile.unit[2].outline, 2)
 
     # test f2p
-    @test FUSE.f2p(wall.description_2d[1].mobile.unit[2].outline[1];stop_at_top=false) == ["wall","description_2d",1,"mobile","unit",2,"outline",1]
-    @test FUSE.f2p(wall.description_2d[1].mobile.unit[2].outline[1];stop_at_top=true) == ["wall","description_2d",1,"mobile","unit",2,"outline",1]
     @test FUSE.f2p(wall.description_2d[1].mobile.unit[2].outline[1]) == ["wall","description_2d",1,"mobile","unit",2,"outline",1]
-    @test FUSE.f2p(wall__description_2d.mobile.unit[2].outline[1];stop_at_top=false) == ["wall","description_2d",0,"mobile","unit",2,"outline",1]
-    @test FUSE.f2p(wall__description_2d.mobile.unit[2].outline[1];stop_at_top=true) == ["description_2d","mobile","unit",2,"outline",1]
-    @test FUSE.f2p(wall__description_2d.mobile.unit[2].outline[1]) == ["description_2d","mobile","unit",2,"outline",1]
+    @test FUSE.f2p(wall__description_2d.mobile.unit[2].outline[1]) == ["wall","description_2d",0,"mobile","unit",2,"outline",1]
 
     # test imas_info
     @test FUSE.imas_info("core_profiles.profiles_1d[1]") == FUSE.imas_info("core_profiles.profiles_1d[:]")
@@ -102,14 +108,23 @@ end
 
     # test coordinate of a 1D array (with initialized coordinate)
     data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0, 1, length=10)
+    data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0, 1, length=3)
+
     coords = FUSE.coordinates(data.core_profiles.profiles_1d[1].electrons, :temperature)
     @test coords[:names][1] == "core_profiles.profiles_1d[:].grid.rho_tor_norm"
     @test coords[:values][1] === data.core_profiles.profiles_1d[1].grid.rho_tor_norm
+    @test length(coords[:values][1]) == 10
+
+    coords = FUSE.coordinates(data.core_profiles.profiles_1d[2].electrons, :temperature)
+    @test coords[:names][1] == "core_profiles.profiles_1d[:].grid.rho_tor_norm"
+    @test coords[:values][1] === data.core_profiles.profiles_1d[2].grid.rho_tor_norm
+    @test length(coords[:values][1]) == 3
+
 end
 
 
-@testset "JSON_IO" begin
+# @testset "JSON_IO" begin
     filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "sample_equilibrium_ods.json")
     data  = FUSE.json2fuse(filename; verbose=false)
-    @test length(data.wall.description_2d[1].limiter.unit[1].outline.r) > 0
-end
+    #@test length(data.wall.description_2d[1].limiter.unit[1].outline.r) > 0
+# end
