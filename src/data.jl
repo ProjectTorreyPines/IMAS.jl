@@ -106,6 +106,33 @@ function top(fds::Union{FDS,FDSvector}; stop_at_ids::Bool=true)
     end
 end
 
+#= ============ =#
+#  IMAS DD read  #
+#= ============ =#
+
+import JSON
+using Memoize
+
+"""
+    imas_load_dd(ids; imas_version=imas_version)
+
+Read the IMAS data structures in the OMAS JSON format
+"""
+@memoize function imas_load_dd(ids)
+    JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
+end
+
+"""
+    imas_info(location::String)
+
+Return information of a node in the IMAS data structure
+"""
+function imas_info(location::String)
+    location = replace(location, r"\[[0-9]+\]$" => "[:]")
+    location = replace(location, r"\[:\]$" => "")
+    return imas_load_dd(split(location, ".")[1])[location]
+end
+
 #= ===================== =#
 #  FDS related functions  #
 #= ===================== =#
@@ -285,7 +312,9 @@ end
 
 
 """
-    return FDS type as a string from IMAS location string
+    u2fs(imas_location::String)::String
+
+return FDS/FDSvector type as a string starting from a universal IMAS location string
 """
 function u2fs(imas_location::String)::String
     tmp = replace(imas_location, "." => "__")
@@ -293,14 +322,16 @@ function u2fs(imas_location::String)::String
 end
 
 """
-    return FDS/FDSvector from IMAS location string
+    return FDS/FDSvector type starting from a universal IMAS location string
+
+u2f(imas_location::String)
 """
 function u2f(imas_location::String)
     return eval(Meta.parse(u2fs(imas_location)))
 end
 
 """
-    return FDS type as a string
+    return FDS/FDSvector type as a string
 """
 function f2fs(fds::Union{FDS,FDSvector})::String
     if typeof(fds) <: FDS
@@ -317,9 +348,9 @@ end
 import Base:keys
 
 """
-    keys(fds::Union{FDS, FDSvector})
+    Base.keys(fds::FDS)
 
-Returns list of fields with data in a FDS/FDSvector
+Returns list of fields with data in a FDS
 """
 function Base.keys(fds::FDS)
     kkk = Symbol[]
@@ -375,7 +406,7 @@ function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
         end
         if (typeof(fds) <: dd) & (k < length(items))
             println()
-end
+        end
     end
 end
 

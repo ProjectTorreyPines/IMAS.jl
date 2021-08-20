@@ -1,26 +1,3 @@
-import JSON
-using Memoize
-
-"""
-    imas_load_dd(ids; imas_version=imas_version)
-
-Read the IMAS data structures in the OMAS JSON format
-"""
-@memoize function imas_load_dd(ids)
-    JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
-end
-
-"""
-    imas_info(location::String)
-
-Return information of a node in the IMAS data structure
-"""
-function imas_info(location::String)
-    location = replace(location, r"\[[0-9]+\]$" => "[:]")
-    location = replace(location, r"\[:\]$" => "")
-    return imas_load_dd(split(location, ".")[1])[location]
-end
-
 """
     struct_field_type(structure::DataType, field::Symbol)
 
@@ -175,10 +152,6 @@ struct AnalyticalFDVector <: AbstractFDVector{Float64}
     _parent::WeakRef
     _field::Symbol
     func::Function
-end
-
-function coordinates(fdv::AbstractFDVector)
-    return coordinates(fdv._parent.value, fdv._field)
 end
 
 function Base.broadcastable(fdv::AnalyticalFDVector)
