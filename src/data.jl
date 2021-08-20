@@ -148,7 +148,7 @@ function coordinates(fds::FDS, field::Symbol)
     coord_names = deepcopy(imas_info("$(f2u(fds)).$(field)")["coordinates"])
     coord_values = []
     for (k, coord) in enumerate(coord_names)
-        if contains(coord, "...")
+        if occursin("...", coord)
             push!(coord_values, nothing)
         else
             # find common ancestor
@@ -268,7 +268,7 @@ function i2p(imas_location::String)::Vector{Union{String,Int}}
         return path
     end
     for s in split(imas_location, '.')
-        if contains(s, '[')
+        if in('[', s)
             s, n = split(s, '[')
             n = strip(n, ']')
             s = string(s)

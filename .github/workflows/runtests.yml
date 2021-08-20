@@ -17,11 +17,11 @@ jobs:
         version:
           - "1.4"
           - "1.6"
-          - "1.7.0-beta3"
+          #- "nightly" # this may fail
         os:
           - ubuntu-latest
-          #- macos-latest #avoid buring github actions hours
-          #- windows-latest #avoid buring github actions hours
+          #- macos-latest # avoid buring github actions hours
+          #- windows-latest # avoid buring github actions hours
         arch:
           - x64
 
