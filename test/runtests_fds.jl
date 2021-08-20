@@ -123,8 +123,8 @@ end
 end
 
 
-# @testset "JSON_IO" begin
+@testset "JSON_IO" begin
     filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "sample_equilibrium_ods.json")
     data  = FUSE.json2fuse(filename; verbose=false)
-    #@test length(data.wall.description_2d[1].limiter.unit[1].outline.r) > 0
-# end
+    @test length(data.wall.description_2d[1].limiter.unit[1].outline.r) > 0
+end
