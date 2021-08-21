@@ -39,17 +39,19 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
                     error("Assign data to `$c_name` before assigning `$(f2(fds)).$(field)`")
                 end
                 # generate indexes for data that does not have coordinates
-                if c_value === nothing
-                    coords[:values][k] = Vector{Float64}(collect(1.0:float(size(v)[k])))
-                end
+                # if c_value === nothing
+                #    coords[:values][k] = Vector{Float64}(collect(1.0:float(size(v)[k])))
+                # end
             end
-            coords[:values] = Vector{Vector{Float64}}(coords[:values])
-            # convert value to AbstractFDArray type
-            if typeof(v) <: Function
-                v = AnalyticalFDVector(WeakRef(fds), field, v)
-            else
-                v = NumericalFDVector(WeakRef(fds), field, coords[:values], v)
-            end
+            # coords[:values] = Vector{Vector{Float64}}(coords[:values])
+            # # convert value to AbstractFDArray type
+            # sc = Tuple{Int}([size(c)[1] for c in coords[:values]])
+            # if (typeof(v) <: AbstractArray)
+            #     if (size(v)!=sc)
+            #         error("Value size $(size(v)) does not match coordinates sizes $(sc)")
+            #     end
+            # end
+            v = FDVector(coords[:values], v, WeakRef(fds), field)
         end
     end
 
@@ -125,72 +127,60 @@ function Base.setindex!(fdv::AbstractFDVector, v, i::Int64)
     error("Cannot setindex! of a $(typeof(fdv))")
 end
 
-#= ================= =#
-#  NumericalFDVector  #
-#= ================= =#
+#= ======== =#
+#  FDVector  #
+#= ======== =#
 
-struct NumericalFDVector <: AbstractFDVector{Float64}
+struct FDVector <: AbstractFDVector{Float64}
+    func_or_value::Any
     _parent::WeakRef
     _field::Symbol
-    coord_values::Vector{Vector{Float64}}
-    value::Vector{Float64}
+    _raw::Bool
 end
 
-function Base.broadcastable(fdv::NumericalFDVector)
-    coords = coordinates(fdv)
-    if coords[:values][1] === nothing
-        value = fdv.value
+function FDVector(coord_values, value, _parent::WeakRef, _field::Symbol)
+    if coord_values[1] === nothing
+        func_or_value = value
+        raw = true
+    elseif iscallable(value)
+        func_or_value = value
+        raw = false
     else
-        value = LinearInterpolation(fdv.coord_values[1], fdv.value)(coords[:values][1])
+        func_or_value = LinearInterpolation(coord_values[1], value)
+        raw = false
     end
-    return Base.broadcastable(value)
+    return FDVector(func_or_value, _parent, _field, raw)
 end
 
-function Base.getindex(fdv::NumericalFDVector, i::Int64)
-    coords = coordinates(fdv)
-    if coords[:values][1] === nothing
-        value = fdv.value
+function Base.broadcastable(fdv::FDVector)
+    if fdv._raw
+        value = fdv.func_or_value
     else
-        value = LinearInterpolation(fdv.coord_values[1], fdv.value)(coords[:values][1])
+        value = fdv.func_or_value(coordinates(fdv)[:values][1])
     end
-    return value[i]
+    Base.broadcastable(value)
 end
 
-function Base.size(fdv::NumericalFDVector)
-    coords = coordinates(fdv)
-    if coords[:values][1] === nothing
-        value = fdv.value
+function Base.getindex(fdv::FDVector, i::Int64)
+    if fdv._raw
+        return fdv.func_or_value[i]
     else
-        value = LinearInterpolation(fdv.coord_values[1], fdv.value)(coords[:values][1])
+        return fdv.func_or_value(coordinates(fdv)[:values][1])[i]
     end
-    return size(value)
 end
 
-function (fdv::NumericalFDVector)(y)
-    LinearInterpolation(fdv.coord_values[1], fdv.value)(y)
+function Base.size(fdv::FDVector)
+    if fdv._raw
+        return size(fdv.func_or_value)
+    else
+        return Tuple{Int}([size(c)[1] for c in coordinates(fdv)[:values]])
+    end
 end
 
-#= ================== =#
-#  AnalyticalFDVector  #
-#= ================== =#
-
-struct AnalyticalFDVector <: AbstractFDVector{Float64}
-    _parent::WeakRef
-    _field::Symbol
-    func::Function
-end
-
-function Base.broadcastable(fdv::AnalyticalFDVector)
-    y = fdv.func(coordinates(fdv)[:values][1])
-    Base.broadcastable(y)
-end
-
-function Base.getindex(fdv::AnalyticalFDVector, i::Int64)
-    fdv.func(coordinates(fdv)[:values][1][i])
-end
-
-Base.size(fdv::AnalyticalFDVector) = size(coordinates(fdv)[:values][1])
-
-function (fdv::AnalyticalFDVector)(y)
-    fdv.func(y)
+function (fdv::FDVector)(x)
+    if fdv._raw
+        return LinearInterpolation(range(0.0, 1.0, length=length(fdv.func_or_value)), fdv.func_or_value)(x)
+    else
+        return fdv.func_or_value(x)
+    end
 end

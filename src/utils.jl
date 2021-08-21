@@ -17,3 +17,7 @@ function common_base_string(s1::String, s2::String)::Tuple{String, String, Strin
         return string(SubString(s1, 1, index)), string(SubString(s1, index + 1, length(s1))), string(SubString(s2, index + 1, length(s2)))
     end
 end
+
+function iscallable(f)
+    return !isempty(methods(f))
+end
