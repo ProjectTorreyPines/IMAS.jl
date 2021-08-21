@@ -117,6 +117,14 @@ using Interpolations
 abstract type AbstractFDArray{T,N} <: AbstractArray{T,N} end
 const AbstractFDVector = AbstractFDArray{T,1} where T
 
+function coordinates(fdv::AbstractFDVector)
+    return coordinates(fdv._parent.value, fdv._field)
+end
+
+function Base.setindex!(fdv::AbstractFDVector, v, i::Int64)
+    error("Cannot setindex! of a $(typeof(fdv))")
+end
+
 #= ================= =#
 #  NumericalFDVector  #
 #= ================= =#
@@ -128,16 +136,34 @@ struct NumericalFDVector <: AbstractFDVector{Float64}
     value::Vector{Float64}
 end
 
-Base.broadcastable(fdv::NumericalFDVector) = Base.broadcastable(fdv.value)
-
-function Base.getindex(fdv::NumericalFDVector, i::Int64)
-    fdv.value[i]
+function Base.broadcastable(fdv::NumericalFDVector)
+    coords = coordinates(fdv)
+    if coords[:values][1] === nothing
+        value = fdv.value
+    else
+        value = LinearInterpolation(fdv.coord_values[1], fdv.value)(coords[:values][1])
+    end
+    return Base.broadcastable(value)
 end
 
-Base.size(p::NumericalFDVector) = size(p.value)
+function Base.getindex(fdv::NumericalFDVector, i::Int64)
+    coords = coordinates(fdv)
+    if coords[:values][1] === nothing
+        value = fdv.value
+    else
+        value = LinearInterpolation(fdv.coord_values[1], fdv.value)(coords[:values][1])
+    end
+    return value[i]
+end
 
-function Base.setindex!(fdv::NumericalFDVector, v, i::Int64)
-    fdv.value[i] = v
+function Base.size(fdv::NumericalFDVector)
+    coords = coordinates(fdv)
+    if coords[:values][1] === nothing
+        value = fdv.value
+    else
+        value = LinearInterpolation(fdv.coord_values[1], fdv.value)(coords[:values][1])
+    end
+    return size(value)
 end
 
 function (fdv::NumericalFDVector)(y)
@@ -164,10 +190,6 @@ function Base.getindex(fdv::AnalyticalFDVector, i::Int64)
 end
 
 Base.size(fdv::AnalyticalFDVector) = size(coordinates(fdv)[:values][1])
-
-function Base.setindex!(fdv::AnalyticalFDVector, v, i::Int64)
-    error("Cannot setindex! of a AnalyticalFDVector")
-end
 
 function (fdv::AnalyticalFDVector)(y)
     fdv.func(y)
