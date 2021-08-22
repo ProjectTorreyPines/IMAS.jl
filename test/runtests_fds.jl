@@ -18,7 +18,7 @@
 
     # deepcopy of one arrray structure element to another
     crp.profiles_1d[2] = deepcopy(crp.profiles_1d[1])
-    crp.profiles_1d[2].electrons.density .*= 2.0
+    crp.profiles_1d[2].electrons.density = crp.profiles_1d[2].electrons.density .* 2.0
     @test all(crp.profiles_1d[2].grid.rho_tor_norm .== crp.profiles_1d[1].grid.rho_tor_norm)
     @test all(crp.profiles_1d[2].electrons.density .== (crp.profiles_1d[1].electrons.density * 2.0))
 

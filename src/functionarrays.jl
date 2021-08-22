@@ -139,14 +139,25 @@ struct FDVector <: AbstractFDVector{Float64}
 end
 
 function FDVector(coord_values, value, _parent::WeakRef, _field::Symbol)
+    # coordinate arrays
     if coord_values[1] === nothing
         func_or_value = value
         raw = true
+    # arrays that have non-sorted coordinates (eg. Z limiter Vs R limiter)
+    elseif ! issorted(coord_values[1]) | ! allunique(coord_values[1])
+        func_or_value = value
+        raw = true
+    # user defined functions
     elseif iscallable(value)
         func_or_value = value
         raw = false
+    # vector that have a coordinate
     else
-        func_or_value = LinearInterpolation(coord_values[1], value)
+        if length(coord_values[1]) == 1
+            func_or_value = x -> value[1]
+        else
+            func_or_value = LinearInterpolation(coord_values[1], value)
+        end
         raw = false
     end
     return FDVector(func_or_value, _parent, _field, raw)
