@@ -149,6 +149,7 @@ function imas_julia_struct(desired_structure::Vector{String})
             end
         end
 
+        struct_type = is_structarray ? "FDSvectorElement" : "FDS"
         txt = join(txt, "\n")
         txt_parent = join(txt_parent, "\n")
         inits = join(inits, ", ")
@@ -170,7 +171,7 @@ $(txt_parent)
 """
         end
         txt = """
-Base.@kwdef mutable struct $(struct_name) <: FDS
+Base.@kwdef mutable struct $(struct_name) <: $(struct_type)
 $(txt)
 $(rstrip(txt_parent))
 end

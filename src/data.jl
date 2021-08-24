@@ -106,33 +106,6 @@ function top(fds::Union{FDS,FDSvector}; stop_at_ids::Bool=true)
     end
 end
 
-#= ============ =#
-#  IMAS DD read  #
-#= ============ =#
-
-import JSON
-using Memoize
-
-"""
-    imas_load_dd(ids; imas_version=imas_version)
-
-Read the IMAS data structures in the OMAS JSON format
-"""
-@memoize function imas_load_dd(ids)
-    JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
-end
-
-"""
-    imas_info(location::String)
-
-Return information of a node in the IMAS data structure
-"""
-function imas_info(location::String)
-    location = replace(location, r"\[[0-9]+\]$" => "[:]")
-    location = replace(location, r"\[:\]$" => "")
-    return imas_load_dd(split(location, ".")[1])[location]
-end
-
 #= ===================== =#
 #  FDS related functions  #
 #= ===================== =#
@@ -155,11 +128,9 @@ function coordinates(fds::FDS, field::Symbol)
             s1 = f2fs(fds)
             s2 = u2fs(p2i(i2p(coord)[1:end - 1]))
             cs, s1, s2 = FUSE.common_base_string(s1, s2)
-            common_fds = replace(string(cs), r"___$" => "")
-            
             # go upstream until common acestor
             h = fds
-            while f2fs(h) != common_fds
+            while f2fs(h) != cs
                 h = h._parent.value
             end
             # then dive into the coordinates branch
@@ -168,12 +139,8 @@ function coordinates(fds::FDS, field::Symbol)
             end
             coord_leaf = i2p(coord)[end]
             h = getproperty(h, Symbol(coord_leaf))
-
-            if h === missing
-                push!(coord_values, missing)
-            else
-                push!(coord_values, h)
-            end
+            # add value to the coord_values
+            push!(coord_values, h)
         end
     end
     return Dict(:names => coord_names, :values => coord_values)
@@ -184,19 +151,27 @@ end
 
 Returns universal IMAS location of a given FDS
 """
-function f2u(fds::Union{FDS,FDSvector})
-    return f2u(typeof(fds))
+function f2u(fds::FDS)
+    return _f2u(typeof(fds))
 end
 
-function f2u(fds::DataType)
-    return f2u(Base.typename(fds).name)
+function f2u(fds::FDSvector)
+    return _f2u(eltype(fds)) * "[:]"
 end
 
-function f2u(fds::Symbol)
-    return f2u(string(fds))
+function f2u(fds::FDSvectorElement)
+    return _f2u(typeof(fds)) * "[:]"
 end
 
-function f2u(fds::String)
+function _f2u(fds::DataType)
+    return _f2u(Base.typename(fds).name)
+end
+
+function _f2u(fds::Symbol)
+    return _f2u(string(fds))
+end
+
+function _f2u(fds::String)
     if in(':', fds) | in('.', fds)
         error("`$fds` is not a qualified FDS type")
     end
@@ -205,6 +180,26 @@ function f2u(fds::String)
     imas_location = replace(tmp, r"\.$" => "")
     return imas_location
 end
+
+"""
+    return FDS type as a string
+"""
+function f2fs(fds::FDS)::String
+    return _f2fs(typeof(fds))
+end
+
+function f2fs(fds::FDSvector)::String
+    return _f2fs(eltype(fds))
+end
+
+function f2fs(fds::FDSvectorElement)::String
+    return _f2fs(typeof(fds)) * "___"
+end
+
+function _f2fs(fds::DataType)::String
+    return string(Base.typename(fds).name)
+end
+
 
 """
     f2p(fds::Union{FDS,FDSvector})::Vector{Union{String,Int}}
@@ -330,21 +325,6 @@ function u2f(imas_location::String)
     return eval(Meta.parse(u2fs(imas_location)))
 end
 
-"""
-    return FDS/FDSvector type as a string
-"""
-function f2fs(fds::Union{FDS,FDSvector})::String
-    if typeof(fds) <: FDS
-        if typeof(fds._parent.value) <: FDSvector
-            return string(Base.typename(typeof(fds)).name)
-        else
-            return string(Base.typename(typeof(fds)).name)
-        end
-    elseif typeof(fds) <: FDSvector
-        return string(Base.typename(eltype(fds)).name)
-    end
-end
-
 import Base:keys
 
 """
@@ -406,7 +386,7 @@ function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
         end
         if (typeof(fds) <: dd) & (k < length(items))
             println()
-        end
+end
     end
 end
 

@@ -64,9 +64,8 @@ end
 
     # test f2u
     @test FUSE.f2u(data.core_profiles.profiles_1d[1].grid) == "core_profiles.profiles_1d[:].grid"
-    @test FUSE.f2u(:core_profiles__profiles_1d___grid) == "core_profiles.profiles_1d[:].grid"
-    @test FUSE.f2u("core_profiles__profiles_1d___grid") == "core_profiles.profiles_1d[:].grid"
-    @test_throws Exception FUSE.f2u("core_profiles.profiles_1d[:].grid")
+    @test_throws MethodError FUSE.f2u(:core_profiles__profiles_1d___grid)
+    @test_throws MethodError FUSE.f2u("core_profiles__profiles_1d___grid")
 
     # test i2p
     @test FUSE.i2p("core_profiles.profiles_1d[1].grid") == ["core_profiles", "profiles_1d", 1, "grid"]
@@ -77,7 +76,7 @@ end
     @test FUSE.p2i(["core_profiles", "profiles_1d", ":", "grid"]) == "core_profiles.profiles_1d[:].grid"
     @test_throws Exception FUSE.p2i([:core_profiles, :profiles_1d, ":", :grid])
 
-
+    # test nested resizing
     wall = FUSE.wall()
     resize!(wall.description_2d, 1)
     resize!(wall.description_2d[1].mobile.unit, 2)
@@ -109,17 +108,36 @@ end
     # test coordinate of a 1D array (with initialized coordinate)
     data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0, 1, length=10)
     data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0, 1, length=3)
-
     coords = FUSE.coordinates(data.core_profiles.profiles_1d[1].electrons, :temperature)
     @test coords[:names][1] == "core_profiles.profiles_1d[:].grid.rho_tor_norm"
     @test coords[:values][1] === data.core_profiles.profiles_1d[1].grid.rho_tor_norm
     @test length(coords[:values][1]) == 10
-
     coords = FUSE.coordinates(data.core_profiles.profiles_1d[2].electrons, :temperature)
     @test coords[:names][1] == "core_profiles.profiles_1d[:].grid.rho_tor_norm"
     @test coords[:values][1] === data.core_profiles.profiles_1d[2].grid.rho_tor_norm
     @test length(coords[:values][1]) == 3
 
+    # test change of grid on numerical array data and function data
+    data = FUSE.dd();
+    resize!(data.core_profiles.profiles_1d, 3)
+    data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=10)
+    data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
+    data.core_profiles.profiles_1d[1].electrons.temperature = 1.0 .- (data.core_profiles.profiles_1d[1].grid.rho_tor_norm).^2
+    data.core_profiles.profiles_1d[2].electrons.temperature = x -> 1.0 .- x.^2
+    data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
+    @test length(data.core_profiles.profiles_1d[1].electrons.temperature) == 3
+    data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=4)
+    @test length(data.core_profiles.profiles_1d[2].electrons.temperature) == 4
+
+    # test working with FDSvectorElement standalone or in a FDSvector
+    dd = FUSE.dd()
+    resize!(dd.core_profiles.profiles_1d, 1)
+    for profiles_1d in [dd.core_profiles.profiles_1d[1], FUSE.core_profiles__profiles_1d()]
+        profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length=101)
+        profiles_1d.electrons.density = x -> (1.0 .- x.^2).^2.0
+        profiles_1d.j_total = x -> (1.0 .- x.^2).^2.0
+        @test length(profiles_1d.electrons.density) == length(profiles_1d.j_total)
+    end
 end
 
 

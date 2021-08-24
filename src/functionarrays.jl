@@ -1,3 +1,30 @@
+#= ============ =#
+#  IMAS DD read  #
+#= ============ =#
+
+import JSON
+using Memoize
+
+"""
+    imas_load_dd(ids; imas_version=imas_version)
+
+Read the IMAS data structures in the OMAS JSON format
+"""
+@memoize function imas_load_dd(ids)
+    JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
+end
+
+"""
+    imas_info(location::String)
+
+Return information of a node in the IMAS data structure
+"""
+function imas_info(location::String)
+    location = replace(location, r"\[[0-9]+\]$" => "[:]")
+    location = replace(location, r"\[:\]$" => "")
+    return imas_load_dd(split(location, ".")[1])[location]
+end
+
 """
     struct_field_type(structure::DataType, field::Symbol)
 
@@ -14,6 +41,7 @@ end
 #= === =#
 
 abstract type FDS end
+abstract type FDSvectorElement <: FDS end
 
 function Base.getproperty(fds::FDS, field::Symbol)
     return getfield(fds, field)
@@ -36,7 +64,7 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
             for (k, (c_name, c_value)) in enumerate(zip(coords[:names], coords[:values]))
                 # do not allow assigning data before coordinates
                 if c_value === missing
-                    error("Assign data to `$c_name` before assigning `$(f2(fds)).$(field)`")
+                    error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
                 end
                 # generate indexes for data that does not have coordinates
                 # if c_value === nothing
@@ -65,44 +93,42 @@ end
 mutable struct FDSvector{T} <: AbstractVector{T}
     value::Vector{T}
     _parent::WeakRef
-    function FDSvector(x::Vector{T}) where {T <: FDS}
+    function FDSvector(x::Vector{T}) where {T <: FDSvectorElement}
         return new{T}(x, WeakRef(missing))
     end
 end
 
-function Base.getindex(x::FDSvector{T}, i::Int64) where {T <: FDS}
+function Base.getindex(x::FDSvector{T}, i::Int64) where {T <: FDSvectorElement}
     x.value[i]
 end
 
-function Base.size(x::FDSvector{T}) where {T <: FDS}
+function Base.size(x::FDSvector{T}) where {T <: FDSvectorElement}
     size(x.value)
 end
 
-function Base.length(x::FDSvector{T}) where {T <: FDS}
+function Base.length(x::FDSvector{T}) where {T <: FDSvectorElement}
     length(x.value)
 end
 
-function Base.setindex!(x::FDSvector{T}, v, i::Int64) where {T <: FDS}
+function Base.setindex!(x::FDSvector{T}, v, i::Int64) where {T <: FDSvectorElement}
     x.value[i] = v
     setfield!(v, :_parent, WeakRef(x))
 end
 
-import Base: push!, pop!
-
-function push!(x::FDSvector{T}, v) where {T <: FDS}
+function Base.push!(x::FDSvector{T}, v) where {T <: FDSvectorElement}
     setfield!(v, :_parent, WeakRef(x))
     push!(x.value, v)
 end
 
-function pop!(x::Vector{T}) where {T <: FDS}
+function Base.pop!(x::FDSvector{T}) where {T <: FDSvectorElement}
     pop!(x.value)
 end
 
-function iterate(fds::FDSvector{T}) where {T <: FDS}
+function iterate(fds::FDSvector{T}) where {T <: FDSvectorElement}
     return fds[1], 2
 end
 
-function iterate(fds::FDSvector{T}, state) where {T <: FDS}
+function iterate(fds::FDSvector{T}, state) where {T <: FDSvectorElement}
     if isempty(state)
         nothing
     else

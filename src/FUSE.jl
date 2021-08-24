@@ -23,10 +23,10 @@ include("parameters.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export f2p,f2u,p2i,i2p,u2f,f2f,f2fs,u2fs
-export coordinates,top
-export FDS,FDSvector
+export f2p, f2u, p2i, i2p, u2f, f2f, f2fs, u2fs
+export coordinates
+export FDS, FDSvector, FDSvectorElement
 export dd
-export NumericalFDVector,AnalyticalFDVector
+export FDVector
 
 end # module
