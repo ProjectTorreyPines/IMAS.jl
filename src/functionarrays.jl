@@ -112,15 +112,18 @@ function fds_ancestors(fds::FDS)::Dict{Symbol,Union{Missing,FDS}}
     return ancestors
 end
 
+const function2_call_stack = Symbol[]
+
 """
-    exec_function_in_fds_namespace(fds::FDS, func::Function, func_args)
+    exec_function_with_fds_ancestors(fds::FDS, field::Symbol, func::Function, func_args)
 
 Execute a function passing the FDS stack as arguments to the function
 
 # Arguments
 - `fds::FDS`: FDS structure
-- `func::Function`: function to be executed should accept in inputs the list of symbols that are traversed to get to the `fds`
-- `func_args`: arguments passed to func, in addition to the list of symbols that are traversed to get to the `fds`
+- `field::Symbol`: Field in the `fds` that is being called 
+- `func::Function`: Function to be executed should accept in inputs the list of symbols that are traversed to get to the `fds`
+- `func_args`: Arguments passed to func, in addition to the list of symbols that are traversed to get to the `fds`
 
 # Example `func`
 
@@ -134,9 +137,20 @@ Execute a function passing the FDS stack as arguments to the function
         return electrons.temperature.*electrons.density * 1.60218e-19
     end
 """
-function exec_function_with_fds_ancestors(fds::FDS, func::Function, func_args)
+function exec_function_with_fds_ancestors(fds::FDS, field::Symbol, func::Function, func_args)
+    if ! (field in function2_call_stack)
+        push!(function2_call_stack, field)
+    else
+        structure_name = f2u(fds)
+        culprits=join(map(x->"$(structure_name).$(x)",function2_call_stack), "\n    * ")
+        error("\nThese functions are calling themselves recursively:\n    * $(culprits)")
+    end
     ancestors = fds_ancestors(fds)
-    func(func_args...;ancestors...)
+    try
+        func(func_args...;ancestors...)
+    finally
+        pop!(function2_call_stack)
+    end
 end
 
 #= ========= =#
@@ -246,7 +260,7 @@ function Base.broadcastable(fdv::FDVector)
     if fdv._raw
         value = fdv.func_or_value
     elseif typeof(fdv.func_or_value) <: Function # user defined function
-        value = exec_function_with_fds_ancestors(fdv._parent.value, fdv.func_or_value, coordinates(fdv)[:values])
+        value = exec_function_with_fds_ancestors(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])
     else # interpolation
         value = fdv.func_or_value(coordinates(fdv)[:values][1])
     end
@@ -257,7 +271,7 @@ function Base.getindex(fdv::FDVector, i::Int64)
     if fdv._raw
         return fdv.func_or_value[i]
     elseif typeof(fdv.func_or_value) <: Function # user defined function
-        return exec_function_with_fds_ancestors(fdv._parent.value, fdv.func_or_value, coordinates(fdv)[:values])[i]
+        return exec_function_with_fds_ancestors(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])[i]
     else # interpolation
         return fdv.func_or_value(coordinates(fdv)[:values][1])[i]
     end
@@ -275,7 +289,7 @@ function (fdv::FDVector)(x)
     if fdv._raw
         return LinearInterpolation(range(0.0, 1.0, length=length(fdv.func_or_value)), fdv.func_or_value)(x)
     elseif typeof(fdv.func_or_value) <: Function # user defined function
-        return exec_function_with_fds_ancestors(fdv._parent.value, fdv.func_or_value, [x])
+        return exec_function_with_fds_ancestors(fdv._parent.value, fdv._field, fdv.func_or_value, [x])
     else # interpolation
         return fdv.func_or_value(x)
     end

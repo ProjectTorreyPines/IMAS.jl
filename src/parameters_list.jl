@@ -21,16 +21,27 @@ fuse_parameters[:PHYSICS_MODELS][:bootstrapModel] = SwitchParameter(options, :gi
 
 fuse_parameters[:PLASMA_PARAMETERS] = Dict()
 
-# Sn
+# profiles shapes
 fuse_parameters[:PLASMA_PARAMETERS][:Sn] = ScalarParameter(1.0, "", "Shape of density profile (1-x^2)^Sn")
-
-# St
 fuse_parameters[:PLASMA_PARAMETERS][:St] = ScalarParameter(1.0, "", "Shape of temperature profile (1-x^2)^St")
-
-# Sj
 fuse_parameters[:PLASMA_PARAMETERS][:Sj] = ScalarParameter(1.0, "", "Shape of current density profile (1-x^2)^Sj")
+
+# profiles scales
+fuse_parameters[:PLASMA_PARAMETERS][:Te0] = ScalarParameter(1.0E3, "eV", "electron temperature on axis")
+fuse_parameters[:PLASMA_PARAMETERS][:ne0] = ScalarParameter(1E19, "m^-3", "electron density on axis")
+
+# plasma composition
+fuse_parameters[:PLASMA_PARAMETERS][:Zeff] = ScalarParameter(2, "", "plasma effective charge")
+
+# plasma geometry
+fuse_parameters[:PLASMA_PARAMETERS][:κ] = ScalarParameter(1.9, "", "plasma elongation")
+
+#= ================= =#
 
 # define FuseParameters for rapid access of .value property
 for (k, v) in fuse_parameters
     fuse_parameters[k] = FuseParameters(v)
 end
+
+plasma_parameters = fuse_parameters[:PLASMA_PARAMETERS]
+physics_models = fuse_parameters[:PHYSICS_MODELS]

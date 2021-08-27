@@ -29,5 +29,6 @@ export FDS, FDSvector, FDSvectorElement
 export dd
 export FDVector
 export top, parent, children, derived_quantities
+export fuse_parameters, plasma_parameters, physics_models
 
 end # module
