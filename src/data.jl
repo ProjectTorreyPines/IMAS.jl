@@ -123,6 +123,32 @@ function parent(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
     end
 end
 
+"""
+    children(fds::Union{FDS,FDSvector})::Vector{Symbol}
+
+Return children of a FDS/FDSvector
+"""
+function children(fds::Union{FDS,FDSvector})::Vector{Symbol}
+    return [k for k in fieldnames(typeof(fds)) if k != :_parent]
+end
+
+
+"""
+    assign_derived_quantities(fds::Union{FDS,FDSvector})
+
+Assign derived quantities to a FDS/FDSvector
+"""
+function assign_derived_quantities(fds::Union{FDS,FDSvector})
+    struct_name = f2u(fds)
+    for item in children(fds)
+        if typeof(getfield(fds, item)) <: Union{FDS,FDSvector}
+            continue
+        elseif "$(struct_name).$(item)" in keys(derived_quantities)
+            setproperty!(fds, item, derived_quantities["$(struct_name).$(item)"])
+        end
+    end
+end
+
 #= ===================== =#
 #  FDS related functions  #
 #= ===================== =#

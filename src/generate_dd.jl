@@ -12,6 +12,7 @@ run(`sh -c "cp -rf $(omas_imas_structure_folder)/$(imas_version)/*.json $(dirnam
 # Header
 #= ==================================== =#
 include("functionarrays.jl")
+assign_derived_quantities = x -> x
 
 #= ==================================== =#
 # FUSE data structure
@@ -129,9 +130,6 @@ function imas_julia_struct(desired_structure::Vector{String})
             if typeof(info) <: String
                 push!(txt, "    var\"$(item)\" $(info)")
                 push!(inits, "var\"$(item)\"=missing")
-                if "$(struct_name_)$(sep)$(item)" in keys(derived_quantities)
-                    push!(txt_parent, "        obj.$(item) = derived_quantities[\"$(struct_name_)$(sep)$(item)\"]")
-                end
             # branch
             else
                 # top level
@@ -150,31 +148,30 @@ function imas_julia_struct(desired_structure::Vector{String})
                     push!(txt, "    var\"$(item)\" :: $(struct_name_)$(sep)$(item) = $(struct_name_)$(sep)$(item)()")
                     push!(inits, "var\"$(item)\"=$(struct_name_)$(sep)$(item)()")
                 end
-                push!(txt_parent, "        setfield!(obj.$(item), :_parent, WeakRef(obj))")
+                push!(txt_parent, "        setfield!(fds.$(item), :_parent, WeakRef(fds))")
             end
         end
 
         struct_type = is_structarray ? "FDSvectorElement" : "FDS"
-        txt = join(txt, "\n")
+
         txt_parent = join(txt_parent, "\n")
+        if length(txt_parent) > 0
+            txt_parent = "\n$(txt_parent)"
+        end
         inits = join(inits, ", ")
         if length(struct_name) == 0
             struct_name = "dd"
         end
-        if length(txt_parent) > 0
-            txt_parent = """
+        txt_parent = """
     _parent :: WeakRef = WeakRef(missing)
     function $(struct_name)($(inits), _parent=WeakRef(missing))
-        obj = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
-$(txt_parent)
-        return obj
+        fds = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
+        assign_derived_quantities(fds)$(txt_parent)
+        return fds
     end
 """
-        else
-            txt_parent = """
-    _parent :: WeakRef = WeakRef(missing)
-"""
-        end
+
+        txt = join(txt, "\n")
         txt = """
 Base.@kwdef mutable struct $(struct_name) <: $(struct_type)
 $(txt)
