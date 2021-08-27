@@ -29,21 +29,23 @@
     @test length(crp1d.grid.rho_tor_norm) == 10
 
     # reach top FDS starting at different depths
-    @test data === FUSE.top(data; stop_at_ids=false)
-    @test data === FUSE.top(data.core_profiles.profiles_1d; stop_at_ids=false)
-    @test data === FUSE.top(data.core_profiles.profiles_1d[1]; stop_at_ids=false)
-    @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid; stop_at_ids=false)
-    # @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid.rho_tor_norm; stop_at_ids=false) # this does not work yet
+    @test data === FUSE.top(data; IDS_is_absolute_top=false)
+    @test data === FUSE.top(data.core_profiles.profiles_1d; IDS_is_absolute_top=false)
+    @test data === FUSE.top(data.core_profiles.profiles_1d[1]; IDS_is_absolute_top=false)
+    @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid; IDS_is_absolute_top=false)
+    # @test data === FUSE.top(data.core_profiles.profiles_1d[1].grid.rho_tor_norm; IDS_is_absolute_top=false) # this does not work yet
 
+    # test that the top() function stops at the IDS level by default
     @test_throws Exception FUSE.top(data)
     @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d)
     @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d[1])
     @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d[1].grid)
     # @test data.core_profiles === FUSE.top(data.core_profiles.profiles_1d[1].grid.rho_tor_norm) # this does not work yet
 
-    @test crp1d === FUSE.top(crp1d; stop_at_ids=false)
-    @test crp1d === FUSE.top(crp1d.grid; stop_at_ids=false)
-    # @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm; stop_at_ids=false) # this does not work yet
+    # test top() working on a sub structure
+    @test crp1d === FUSE.top(crp1d; IDS_is_absolute_top=false)
+    @test crp1d === FUSE.top(crp1d.grid; IDS_is_absolute_top=false)
+    # @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm; IDS_is_absolute_top=false) # this does not work yet
     @test crp1d === FUSE.top(crp1d)
     @test crp1d === FUSE.top(crp1d.grid)
     # @test crp1d === FUSE.top(crp1d.grid.rho_tor_norm) # this does not work yet

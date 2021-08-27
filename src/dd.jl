@@ -2220,6 +2220,7 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___electrons <: FDS
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___electrons(var"temperature_validity"=missing, var"velocity_tor"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"pressure_fast_perpendicular"=missing, var"pressure"=missing, var"density_thermal"=missing, var"density_validity"=missing, var"pressure_fast_parallel"=missing, var"velocity"=core_profiles__profiles_1d___electrons__velocity(), var"temperature_fit"=core_profiles__profiles_1d___electrons__temperature_fit(), var"density"=missing, var"velocity_pol"=missing, var"collisionality_norm"=missing, var"density_fast"=missing, var"density_fit"=core_profiles__profiles_1d___electrons__density_fit(), _parent=WeakRef(missing))
         obj = new(var"temperature_validity", var"velocity_tor", var"temperature", var"pressure_thermal", var"pressure_fast_perpendicular", var"pressure", var"density_thermal", var"density_validity", var"pressure_fast_parallel", var"velocity", var"temperature_fit", var"density", var"velocity_pol", var"collisionality_norm", var"density_fast", var"density_fit", _parent)
+        obj.pressure=derived_quantities["core_profiles__profiles_1d___electrons__pressure"]
         setfield!(obj.velocity, :_parent, WeakRef(obj))
         setfield!(obj.temperature_fit, :_parent, WeakRef(obj))
         setfield!(obj.density_fit, :_parent, WeakRef(obj))

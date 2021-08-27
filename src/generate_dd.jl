@@ -129,6 +129,9 @@ function imas_julia_struct(desired_structure::Vector{String})
             if typeof(info) <: String
                 push!(txt, "    var\"$(item)\" $(info)")
                 push!(inits, "var\"$(item)\"=missing")
+                if "$(struct_name_)$(sep)$(item)" in keys(derived_quantities)
+                    push!(txt_parent, "        obj.$(item) = derived_quantities[\"$(struct_name_)$(sep)$(item)\"]")
+                end
             # branch
             else
                 # top level

@@ -1,3 +1,5 @@
+include("derived_quantities.jl")
+
 #= ============ =#
 #  IMAS DD read  #
 #= ============ =#
@@ -60,35 +62,81 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
     end
 
     # if the value is not an AbstractFDArray...
-    if ! (typeof(v) <: AbstractFDArray)
+    if typeof(v) <: Function
+        v = FDVector(v, WeakRef(fds), field, false)
+    elseif ! (typeof(v) <: AbstractFDArray)
         target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), field))
         # ...but the target should be one
         if target_type <: AbstractFDArray
             # figure out the coordinates
             coords = coordinates(fds, field)
-            for (k, (c_name, c_value)) in enumerate(zip(coords[:names], coords[:values]))
-                # do not allow assigning data before coordinates
+            # do not allow assigning data before coordinates
+            for (c_name, c_value) in zip(coords[:names], coords[:values])
                 if c_value === missing
                     error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
                 end
-                # generate indexes for data that does not have coordinates
-                # if c_value === nothing
-                #    coords[:values][k] = Vector{Float64}(collect(1.0:float(size(v)[k])))
-                # end
             end
-            # coords[:values] = Vector{Vector{Float64}}(coords[:values])
-            # # convert value to AbstractFDArray type
-            # sc = Tuple{Int}([size(c)[1] for c in coords[:values]])
-            # if (typeof(v) <: AbstractArray)
-            #     if (size(v)!=sc)
-            #         error("Value size $(size(v)) does not match coordinates sizes $(sc)")
-            #     end
-            # end
+            # convert value to FDVector
             v = FDVector(coords[:values], v, WeakRef(fds), field)
         end
     end
 
     return setfield!(fds, field, v)
+end
+
+"""
+    fds_ancestors(fds::FDS)::Dict{Symbol,Union{Missing,FDS}}
+
+Return dictionary with pointers to ancestors to an FDS
+"""
+function fds_ancestors(fds::FDS)::Dict{Symbol,Union{Missing,FDS}}
+    ancestors = Dict()
+    # initialize ancestors to missing
+    path = f2p(fds)
+    for p in path
+        if typeof(p) <: String
+            ancestors[Symbol(p)] = missing
+        end
+    end
+    # traverse ancestors and assign pointers
+    h = fds
+    while h !== missing
+        path = f2p(h)
+        if typeof(path[end]) <: String
+            ancestors[Symbol(path[end])] = h
+        elseif path[end] != 0
+            ancestors[Symbol(path[end - 1])] = h
+        end
+        h = h._parent.value
+    end
+    return ancestors
+end
+
+"""
+    exec_function_in_fds_namespace(fds::FDS, func::Function, func_args)
+
+Execute a function passing the FDS stack as arguments to the function
+
+# Arguments
+- `fds::FDS`: FDS structure
+- `func::Function`: function to be executed should accept in inputs the list of symbols that are traversed to get to the `fds`
+- `func_args`: arguments passed to func, in addition to the list of symbols that are traversed to get to the `fds`
+
+# Example `func`
+
+    function pressure(x; core_profiles, electrons, profiles_1d)
+        return electrons.temperature.*electrons.density * 1.60218e-19
+    end
+
+# Other example of valid `func`, now using argument splatting
+
+    function pressure(x; electrons, _...)
+        return electrons.temperature.*electrons.density * 1.60218e-19
+    end
+"""
+function exec_function_with_fds_ancestors(fds::FDS, func::Function, func_args)
+    ancestors = fds_ancestors(fds)
+    func(func_args...;ancestors...)
 end
 
 #= ========= =#
@@ -197,7 +245,9 @@ end
 function Base.broadcastable(fdv::FDVector)
     if fdv._raw
         value = fdv.func_or_value
-    else
+    elseif typeof(fdv.func_or_value) <: Function # user defined function
+        value = exec_function_with_fds_ancestors(fdv._parent.value, fdv.func_or_value, coordinates(fdv)[:values])
+    else # interpolation
         value = fdv.func_or_value(coordinates(fdv)[:values][1])
     end
     Base.broadcastable(value)
@@ -206,7 +256,9 @@ end
 function Base.getindex(fdv::FDVector, i::Int64)
     if fdv._raw
         return fdv.func_or_value[i]
-    else
+    elseif typeof(fdv.func_or_value) <: Function # user defined function
+        return exec_function_with_fds_ancestors(fdv._parent.value, fdv.func_or_value, coordinates(fdv)[:values])[i]
+    else # interpolation
         return fdv.func_or_value(coordinates(fdv)[:values][1])[i]
     end
 end
@@ -222,7 +274,9 @@ end
 function (fdv::FDVector)(x)
     if fdv._raw
         return LinearInterpolation(range(0.0, 1.0, length=length(fdv.func_or_value)), fdv.func_or_value)(x)
-    else
+    elseif typeof(fdv.func_or_value) <: Function # user defined function
+        return exec_function_with_fds_ancestors(fdv._parent.value, fdv.func_or_value, [x])
+    else # interpolation
         return fdv.func_or_value(x)
     end
 end

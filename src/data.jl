@@ -90,19 +90,36 @@ function json2fuse(filename::String; verbose::Bool=false)::FDS
 end
 
 """
-    top(fds::Union{FDS, FDSvector})
+    top(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
 
-Return top-level FDS in the DD hierarchy
+Return top-level FDS in the DD hierarchy.
+Considers IDS as maximum top level if IDS_is_absolute_top=true
 """
-function top(fds::Union{FDS,FDSvector}; stop_at_ids::Bool=true)
-    if stop_at_ids & (typeof(fds) <: dd)
-        error("Cannot call top(x::FUSE.dd,stop_at_ids=true). Use `stop_at_ids=false`.")
+function top(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
+    if IDS_is_absolute_top & (typeof(fds) <: dd)
+        error("Cannot call top(x::FUSE.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
     elseif fds._parent.value === missing
         return fds
-    elseif stop_at_ids & (typeof(fds._parent.value) <: dd)
+    elseif IDS_is_absolute_top & (typeof(fds._parent.value) <: dd)
         return fds
     else
-        return top(fds._parent.value;stop_at_ids=stop_at_ids)
+        return top(fds._parent.value;IDS_is_absolute_top=IDS_is_absolute_top)
+    end
+end
+
+"""
+    parent(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
+
+Return parent FDS/FDSvector in the hierarchy
+If IDS_is_absolute_top then returns `missing` instead of FUSE.dd()
+"""
+function parent(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
+    if fds._parent.value === missing
+        return missing
+    elseif IDS_is_absolute_top & (typeof(fds._parent.value) <: dd)
+        return missing
+    else
+        return fds._parent.value
     end
 end
 

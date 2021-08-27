@@ -28,5 +28,6 @@ export coordinates
 export FDS, FDSvector, FDSvectorElement
 export dd
 export FDVector
+export top, parent
 
 end # module
