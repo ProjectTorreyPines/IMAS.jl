@@ -44,7 +44,12 @@ abstract type FDS end
 abstract type FDSvectorElement <: FDS end
 
 function Base.getproperty(fds::FDS, field::Symbol)
-    return getfield(fds, field)
+    value = getfield(fds, field)
+    if value === missing
+        error("$(f2fs(fds)).$(field) is missing")
+    else
+        return value
+    end
 end
 
 function Base.setproperty!(fds::FDS, field::Symbol, v)

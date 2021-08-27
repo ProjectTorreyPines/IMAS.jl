@@ -56,6 +56,9 @@
     data = FUSE.dd();
     resize!(data.core_profiles.profiles_1d, 1)
     @test_throws Exception data.core_profiles.profiles_1d[1].electrons.temperature = Vector{Float64}(collect(1:10))
+
+    # make sure an error is raised when trying to access missing data
+    @test_throws Exception data.core_profiles.profiles_1d[1].j_total
 end
 
 @testset "FDS_IMAS" begin

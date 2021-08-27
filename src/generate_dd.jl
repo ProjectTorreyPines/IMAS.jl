@@ -4,6 +4,8 @@ Pkg.activate(dirname(dirname(@__FILE__)))
 const imas_version = "3_33_0"
 ENV["OMAS_ROOT"] = "/Users/meneghini/Coding/atom/omas"
 const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
+run(`sh -c "rm -rf $(dirname(dirname(@__FILE__)))/data_structures"`)
+run(`sh -c "mkdir $(dirname(dirname(@__FILE__)))/data_structures"`)
 run(`sh -c "cp -rf $(omas_imas_structure_folder)/$(imas_version)/*.json $(dirname(dirname(@__FILE__)))/data_structures"`)
 
 #= ==================================== =#

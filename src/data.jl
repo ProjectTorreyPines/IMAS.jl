@@ -135,10 +135,10 @@ function coordinates(fds::FDS, field::Symbol)
             end
             # then dive into the coordinates branch
             for k in i2p(s2)
-                h = getproperty(h, Symbol(k))
+                h = getfield(h, Symbol(k))
             end
             coord_leaf = i2p(coord)[end]
-            h = getproperty(h, Symbol(coord_leaf))
+            h = getfield(h, Symbol(coord_leaf))
             # add value to the coord_values
             push!(coord_values, h)
         end
