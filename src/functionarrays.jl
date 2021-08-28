@@ -61,24 +61,32 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
         setfield!(v, :_field, field)
     end
 
-    # if the value is not an AbstractFDArray...
+    target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), field))
+
+    # if it's a function
     if typeof(v) <: Function
-        v = FDVector(v, WeakRef(fds), field, false)
-    elseif ! (typeof(v) <: AbstractFDArray)
-        target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), field))
-        # ...but the target should be one
-        if target_type <: AbstractFDArray
-            # figure out the coordinates
-            coords = coordinates(fds, field)
-            # do not allow assigning data before coordinates
-            for (c_name, c_value) in zip(coords[:names], coords[:values])
-                if c_value === missing
-                    error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
-                end
-            end
-            # convert value to FDVector
-            v = FDVector(coords[:values], v, WeakRef(fds), field)
+        if target_type <: AbstractFDNumber
+            v = FDNumber(v, WeakRef(fds), field, false)
+        elseif target_type <: AbstractFDArray
+            v = FDVector(v, WeakRef(fds), field, false)
         end
+
+    # if the value is not an AbstractFDNumber, but it should be
+    elseif (target_type <: AbstractFDNumber) & (! (typeof(v) <: AbstractFDNumber))
+        v = FDNumber(v, WeakRef(fds), field, true)
+
+    # if the value is not an AbstractFDArray, but it should be
+    elseif (target_type <: AbstractFDArray) & (! (typeof(v) <: AbstractFDArray))
+        # figure out the coordinates
+        coords = coordinates(fds, field)
+        # do not allow assigning data before coordinates
+        for (c_name, c_value) in zip(coords[:names], coords[:values])
+            if c_value === missing
+                error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
+            end
+        end
+        # convert value to FDVector
+        v = FDVector(coords[:values], v, WeakRef(fds), field)
     end
 
     return setfield!(fds, field, v)
@@ -112,10 +120,10 @@ function fds_ancestors(fds::FDS)::Dict{Symbol,Union{Missing,FDS}}
     return ancestors
 end
 
-const function2_call_stack = Symbol[]
+const expression_call_stack = Symbol[]
 
 """
-    exec_function_with_fds_ancestors(fds::FDS, field::Symbol, func::Function, func_args)
+    exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Function, func_args)
 
 Execute a function passing the FDS stack as arguments to the function
 
@@ -137,19 +145,22 @@ Execute a function passing the FDS stack as arguments to the function
         return electrons.temperature.*electrons.density * 1.60218e-19
     end
 """
-function exec_function_with_fds_ancestors(fds::FDS, field::Symbol, func::Function, func_args)
-    if ! (field in function2_call_stack)
-        push!(function2_call_stack, field)
+function exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Function, func_args)
+    # keep track of recursion
+    if ! (field in expression_call_stack)
+        push!(expression_call_stack, field)
     else
         structure_name = f2u(fds)
-        culprits=join(map(x->"$(structure_name).$(x)",function2_call_stack), "\n    * ")
-        error("\nThese functions are calling themselves recursively:\n    * $(culprits)")
+        culprits = join(map(x -> "$(structure_name).$(x)", expression_call_stack), "\n    * ")
+        error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
     end
+    # find ancestors to this fds
     ancestors = fds_ancestors(fds)
+    # execute and in all cases pop the call_stack
     try
         func(func_args...;ancestors...)
     finally
-        pop!(function2_call_stack)
+        pop!(expression_call_stack)
     end
 end
 
@@ -210,19 +221,11 @@ end
 using Interpolations
 
 abstract type AbstractFDArray{T,N} <: AbstractArray{T,N} end
-const AbstractFDVector = AbstractFDArray{T,1} where T
-
-function coordinates(fdv::AbstractFDVector)
-    return coordinates(fdv._parent.value, fdv._field)
-end
-
-function Base.setindex!(fdv::AbstractFDVector, v, i::Int64)
-    error("Cannot setindex! of a $(typeof(fdv))")
-end
 
 #= ======== =#
 #  FDVector  #
 #= ======== =#
+const AbstractFDVector = AbstractFDArray{T,1} where T
 
 struct FDVector <: AbstractFDVector{Float64}
     func_or_value::Any
@@ -256,28 +259,32 @@ function FDVector(coord_values, value, _parent::WeakRef, _field::Symbol)
     return FDVector(func_or_value, _parent, _field, raw)
 end
 
-function Base.broadcastable(fdv::FDVector)
+function Base.broadcastable(fdv::AbstractFDVector)
     if fdv._raw
         value = fdv.func_or_value
     elseif typeof(fdv.func_or_value) <: Function # user defined function
-        value = exec_function_with_fds_ancestors(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])
+        value = exec_expression_with_ancestor_args(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])
     else # interpolation
         value = fdv.func_or_value(coordinates(fdv)[:values][1])
     end
     Base.broadcastable(value)
 end
 
-function Base.getindex(fdv::FDVector, i::Int64)
+function Base.getindex(fdv::AbstractFDVector, i::Int64)
     if fdv._raw
         return fdv.func_or_value[i]
     elseif typeof(fdv.func_or_value) <: Function # user defined function
-        return exec_function_with_fds_ancestors(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])[i]
+        return exec_expression_with_ancestor_args(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])[i]
     else # interpolation
         return fdv.func_or_value(coordinates(fdv)[:values][1])[i]
     end
 end
 
-function Base.size(fdv::FDVector)
+function Base.setindex!(fdv::AbstractFDVector, v, i::Int64)
+    error("Cannot setindex! of a $(typeof(fdv))")
+end
+
+function Base.size(fdv::AbstractFDVector)
     if fdv._raw
         return size(fdv.func_or_value)
     else
@@ -285,12 +292,52 @@ function Base.size(fdv::FDVector)
     end
 end
 
-function (fdv::FDVector)(x)
+function (fdv::AbstractFDVector)(x)
     if fdv._raw
         return LinearInterpolation(range(0.0, 1.0, length=length(fdv.func_or_value)), fdv.func_or_value)(x)
     elseif typeof(fdv.func_or_value) <: Function # user defined function
-        return exec_function_with_fds_ancestors(fdv._parent.value, fdv._field, fdv.func_or_value, [x])
+        return exec_expression_with_ancestor_args(fdv._parent.value, fdv._field, fdv.func_or_value, [x])
     else # interpolation
         return fdv.func_or_value(x)
     end
 end
+
+function coordinates(fdv::AbstractFDVector)
+    return coordinates(fdv._parent.value, fdv._field)
+end
+
+#= ======== =#
+#  FDNumber  #
+#= ======== =#
+abstract type AbstractFDNumber <: Number end
+
+struct FDNumber <: AbstractFDNumber
+    func_or_value::Any
+    _parent::WeakRef
+    _field::Symbol
+    _raw::Bool
+end
+
+function FDNumber(func_or_value)
+    return FDNumber(func_or_value, WeakRef(nothing), :x, true)
+end
+    
+function coordinates(fdv::AbstractFDNumber)
+    return []
+end
+
+function Base.convert(::Type{Number}, fdn::FDNumber)
+    if fdn._raw
+        value = fdn.func_or_value
+    else
+        value = exec_expression_with_ancestor_args(fdn._parent.value, fdn._field, fdn.func_or_value, [])
+    end
+    return value
+end
+
+Base.promote_rule(::Type{FDNumber}, ::Type{Number} ) = Number
+
+Base.show(io::IO, fdn::FDNumber) = print(convert(Number,fdn))
+
+Base.real(fdn::FDNumber) = Base.real(convert(Number,fdn))
+Base.imag(fdn::FDNumber) = Base.imag(convert(Number,fdn))

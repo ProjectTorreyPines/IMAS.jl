@@ -368,8 +368,6 @@ function u2f(imas_location::String)
     return eval(Meta.parse(u2fs(imas_location)))
 end
 
-import Base:keys
-
 """
     Base.keys(fds::FDS)
 
@@ -403,8 +401,6 @@ function Base.keys(fds::FDSvector)
     return collect(1:length(fds))
 end
 
-import Base:show
-
 function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
     items = keys(fds)
     for (k, item) in enumerate(items)
@@ -423,8 +419,20 @@ function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
             show(io, getfield(fds, item), depth + 1)
         # field
         else
+            value = getfield(fds,item)
             printstyled("$(item)")
-            printstyled(" ➡ "; color=:red)
+            if (typeof(value) <: Union{FDNumber,FDVector})
+                if typeof(value.func_or_value) <: Function
+                    color = :purple
+                elseif value._raw
+                    color = :red
+                else
+                    color = :blue
+                end
+            else
+                color = :red
+            end
+            printstyled(" ➡ "; color=color)
             printstyled("$(Base.summary(getfield(fds, item)))\n"; color=:blue)
         end
         if (typeof(fds) <: dd) & (k < length(items))

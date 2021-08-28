@@ -88,9 +88,12 @@ function imas_julia_struct(desired_structure::Vector{String})
 
                 # translate from IMAS data type to Julia types
                 if tp in keys(type_translator)
-                    if dim == 0
+                    if (dim == 0) & (tp == "STR")
                         h[item] = ":: Union{Missing, $(type_translator[tp])} = missing"
                         conversion_types = Union{conversion_types,type_translator[tp]}
+                    elseif dim == 0
+                        h[item] = ":: Union{Missing, AbstractFDNumber} = missing"
+                        conversion_types = Union{conversion_types,AbstractFDNumber}
                     elseif dim == 1
                         h[item] = ":: Union{Missing, AbstractFDVector{$(type_translator[tp])}} = missing"
                         conversion_types = Union{conversion_types,AbstractFDVector{type_translator[tp]}}
