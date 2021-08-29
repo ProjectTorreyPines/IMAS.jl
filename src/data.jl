@@ -134,17 +134,18 @@ end
 
 
 """
-    assign_derived_quantities(fds::Union{FDS,FDSvector})
+    assign_expressions(fds::Union{FDS,FDSvector})
 
-Assign derived quantities to a FDS/FDSvector
+Assign expressions to a FDS/FDSvector
+NOTE: This is done not recursively
 """
-function assign_derived_quantities(fds::Union{FDS,FDSvector})
+function assign_expressions(fds::Union{FDS,FDSvector})
     struct_name = f2u(fds)
     for item in children(fds)
         if typeof(getfield(fds, item)) <: Union{FDS,FDSvector}
             continue
-        elseif "$(struct_name).$(item)" in keys(derived_quantities)
-            setproperty!(fds, item, derived_quantities["$(struct_name).$(item)"])
+        elseif "$(struct_name).$(item)" in keys(expressions)
+            setproperty!(fds, item, expressions["$(struct_name).$(item)"])
         end
     end
 end

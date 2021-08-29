@@ -28,7 +28,7 @@ export coordinates
 export FDS, FDSvector, FDSvectorElement
 export dd
 export FDVector, FDNumber
-export top, parent, children, derived_quantities
+export top, parent, children, expressions
 export fuse_parameters, plasma_parameters, physics_models
 
 end # module

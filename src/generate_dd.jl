@@ -12,7 +12,7 @@ run(`sh -c "cp -rf $(omas_imas_structure_folder)/$(imas_version)/*.json $(dirnam
 # Header
 #= ==================================== =#
 include("functionarrays.jl")
-assign_derived_quantities = x -> x
+assign_expressions = x -> x
 
 #= ==================================== =#
 # FUSE data structure
@@ -169,7 +169,7 @@ function imas_julia_struct(desired_structure::Vector{String})
     _parent :: WeakRef = WeakRef(missing)
     function $(struct_name)($(inits), _parent=WeakRef(missing))
         fds = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
-        assign_derived_quantities(fds)$(txt_parent)
+        assign_expressions(fds)$(txt_parent)
         return fds
     end
 """
