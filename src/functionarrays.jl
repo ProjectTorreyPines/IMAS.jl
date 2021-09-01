@@ -259,6 +259,10 @@ function FDVector(coord_values, value, _parent::WeakRef, _field::Symbol)
     return FDVector(func_or_value, _parent, _field, raw)
 end
 
+function coordinates(fdv::AbstractFDVector)
+    return coordinates(fdv._parent.value, fdv._field)
+end
+
 function Base.broadcastable(fdv::AbstractFDVector)
     if fdv._raw
         value = fdv.func_or_value
@@ -292,6 +296,11 @@ function Base.size(fdv::AbstractFDVector)
     end
 end
 
+"""
+    (fdv::AbstractFDVector)(x)
+
+Interpolate the data at the `x` coordinate value
+"""
 function (fdv::AbstractFDVector)(x)
     if fdv._raw
         return LinearInterpolation(range(0.0, 1.0, length=length(fdv.func_or_value)), fdv.func_or_value)(x)
@@ -302,8 +311,14 @@ function (fdv::AbstractFDVector)(x)
     end
 end
 
-function coordinates(fdv::AbstractFDVector)
-    return coordinates(fdv._parent.value, fdv._field)
+"""
+    (fdv::AbstractFDVector)()
+
+Calling a FDVector without argument returns the data evaluated on its current FDS coordinate
+"""
+function (fdv::AbstractFDVector)()
+    x = coordinates(fdv)[:values][1]
+    return fdv(x)
 end
 
 #= ======== =#
