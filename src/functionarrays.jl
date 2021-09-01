@@ -120,7 +120,7 @@ function fds_ancestors(fds::FDS)::Dict{Symbol,Union{Missing,FDS}}
     return ancestors
 end
 
-const expression_call_stack = Symbol[]
+const expression_call_stack = String[]
 
 """
     exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Function, func_args)
@@ -146,12 +146,12 @@ Execute a function passing the FDS stack as arguments to the function
     end
 """
 function exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Function, func_args)
+    structure_name = f2u(fds)
     # keep track of recursion
-    if ! (field in expression_call_stack)
-        push!(expression_call_stack, field)
+    if ! (structure_name in expression_call_stack)
+        push!(expression_call_stack, "$(structure_name).$(field)")
     else
-        structure_name = f2u(fds)
-        culprits = join(map(x -> "$(structure_name).$(x)", expression_call_stack), "\n    * ")
+        culprits = join(expression_call_stack, "\n    * ")
         error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
     end
     # find ancestors to this fds
