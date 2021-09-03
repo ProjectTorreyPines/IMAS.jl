@@ -92,13 +92,13 @@ function imas_julia_struct(desired_structure::Vector{String})
                         h[item] = ":: Union{Missing, $(type_translator[tp])} = missing"
                         conversion_types = Union{conversion_types,type_translator[tp]}
                     elseif dim == 0
-                        h[item] = ":: Union{Missing, AbstractFDNumber} = missing"
-                        conversion_types = Union{conversion_types,AbstractFDNumber}
+                        h[item] = ":: Union{Missing, $(type_translator[tp]), AbstractFDNumber} = missing"
+                        conversion_types = Union{conversion_types,type_translator[tp],AbstractFDNumber}
                     elseif dim == 1
-                        h[item] = ":: Union{Missing, AbstractFDVector{$(type_translator[tp])}} = missing"
-                        conversion_types = Union{conversion_types,AbstractFDVector{type_translator[tp]}}
+                        h[item] = ":: Union{Missing, Vector{$(type_translator[tp])}, AbstractFDVector{$(type_translator[tp])}} = missing"
+                        conversion_types = Union{conversion_types,Array{type_translator[tp]},AbstractFDVector{type_translator[tp]}}
                     else
-                        h[item] = ":: Union{Missing, AbstractArray{$(type_translator[tp]), $dim}} = missing"
+                        h[item] = ":: Union{Missing, Array{$(type_translator[tp])}, AbstractArray{$(type_translator[tp]), $dim}} = missing"
                         conversion_types = Union{conversion_types,Array{type_translator[tp]}}
                     end
                 else

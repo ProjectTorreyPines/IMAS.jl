@@ -1,9 +1,9 @@
 include("functionarrays.jl")
 
-conversion_types = Union{String, AbstractFDVector{Float64}, AbstractFDVector{Int64}, AbstractFDVector{String}, AbstractFDNumber, Array{Float64, N} where N}
+conversion_types = Union{Float64, Int64, String, AbstractFDVector{Float64}, AbstractFDVector{Int64}, AbstractFDVector{String}, AbstractFDNumber, Array{Float64, N} where N, Array{Int64, N} where N, Array{String, N} where N}
 
 Base.@kwdef mutable struct wall__temperature_reference <: FDS
-    var"data" :: Union{Missing, AbstractFDNumber} = missing
+    var"data" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"description" :: Union{Missing, String} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__temperature_reference(var"data"=missing, var"description"=missing, _parent=WeakRef(missing))
@@ -28,11 +28,11 @@ end
 Base.@kwdef mutable struct wall__ids_properties <: FDS
     var"provider" :: Union{Missing, String} = missing
     var"version_put" :: wall__ids_properties__version_put = wall__ids_properties__version_put()
-    var"homogeneous_time" :: Union{Missing, AbstractFDNumber} = missing
+    var"homogeneous_time" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
     var"creation_date" :: Union{Missing, String} = missing
     var"comment" :: Union{Missing, String} = missing
-    var"occurrence" :: Union{Missing, AbstractFDNumber} = missing
+    var"occurrence" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__ids_properties(var"provider"=missing, var"version_put"=wall__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
         fds = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
@@ -43,10 +43,10 @@ Base.@kwdef mutable struct wall__ids_properties <: FDS
 end
 
 Base.@kwdef mutable struct wall__global_quantities__neutral___element <: FDSvectorElement
-    var"atoms_n" :: Union{Missing, AbstractFDNumber} = missing
-    var"z_n" :: Union{Missing, AbstractFDNumber} = missing
-    var"multiplicity" :: Union{Missing, AbstractFDNumber} = missing
-    var"a" :: Union{Missing, AbstractFDNumber} = missing
+    var"atoms_n" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"z_n" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"multiplicity" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"a" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__global_quantities__neutral___element(var"atoms_n"=missing, var"z_n"=missing, var"multiplicity"=missing, var"a"=missing, _parent=WeakRef(missing))
         fds = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
@@ -57,15 +57,15 @@ end
 
 Base.@kwdef mutable struct wall__global_quantities__neutral <: FDSvectorElement
     var"label" :: Union{Missing, String} = missing
-    var"sputtering_chemical_coefficient" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"gas_puff" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"recycling_particles_coefficient" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"pumping_speed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"particle_flux_from_wall" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"recycling_energy_coefficient" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"wall_inventory" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"particle_flux_from_plasma" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"sputtering_physical_coefficient" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"sputtering_chemical_coefficient" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"gas_puff" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"recycling_particles_coefficient" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"pumping_speed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"particle_flux_from_wall" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"recycling_energy_coefficient" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"wall_inventory" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"particle_flux_from_plasma" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"sputtering_physical_coefficient" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     var"element" :: FDSvector{T} where {T<:wall__global_quantities__neutral___element} = FDSvector(wall__global_quantities__neutral___element[])
     _parent :: WeakRef = WeakRef(missing)
     function wall__global_quantities__neutral(var"label"=missing, var"sputtering_chemical_coefficient"=missing, var"gas_puff"=missing, var"recycling_particles_coefficient"=missing, var"pumping_speed"=missing, var"particle_flux_from_wall"=missing, var"recycling_energy_coefficient"=missing, var"wall_inventory"=missing, var"particle_flux_from_plasma"=missing, var"sputtering_physical_coefficient"=missing, var"element"=FDSvector(wall__global_quantities__neutral___element[]), _parent=WeakRef(missing))
@@ -77,12 +77,12 @@ Base.@kwdef mutable struct wall__global_quantities__neutral <: FDSvectorElement
 end
 
 Base.@kwdef mutable struct wall__global_quantities__electrons <: FDS
-    var"particle_flux_from_plasma" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gas_puff" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_outer_target" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pumping_speed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"particle_flux_from_wall" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"power_inner_target" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"particle_flux_from_plasma" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gas_puff" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_outer_target" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pumping_speed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"particle_flux_from_wall" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"power_inner_target" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__global_quantities__electrons(var"particle_flux_from_plasma"=missing, var"gas_puff"=missing, var"power_outer_target"=missing, var"pumping_speed"=missing, var"particle_flux_from_wall"=missing, var"power_inner_target"=missing, _parent=WeakRef(missing))
         fds = new(var"particle_flux_from_plasma", var"gas_puff", var"power_outer_target", var"pumping_speed", var"particle_flux_from_wall", var"power_inner_target", _parent)
@@ -93,22 +93,22 @@ end
 
 Base.@kwdef mutable struct wall__global_quantities <: FDS
     var"neutral" :: FDSvector{T} where {T<:wall__global_quantities__neutral} = FDSvector(wall__global_quantities__neutral[])
-    var"power_incident" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_radiated" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_inner_target_ion_total" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"temperature" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_conducted" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_convected" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"current_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"power_incident" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_radiated" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_inner_target_ion_total" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"temperature" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_conducted" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_convected" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"current_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"electrons" :: wall__global_quantities__electrons = wall__global_quantities__electrons()
-    var"power_density_inner_target_max" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_black_body" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_recombination_neutrals" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_to_cooling" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_density_outer_target_max" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_recombination_plasma" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_currents" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"power_neutrals" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"power_density_inner_target_max" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_black_body" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_recombination_neutrals" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_to_cooling" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_density_outer_target_max" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_recombination_plasma" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_currents" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"power_neutrals" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__global_quantities(var"neutral"=FDSvector(wall__global_quantities__neutral[]), var"power_incident"=missing, var"power_radiated"=missing, var"power_inner_target_ion_total"=missing, var"temperature"=missing, var"power_conducted"=missing, var"power_convected"=missing, var"current_tor"=missing, var"electrons"=wall__global_quantities__electrons(), var"power_density_inner_target_max"=missing, var"power_black_body"=missing, var"power_recombination_neutrals"=missing, var"power_to_cooling"=missing, var"power_density_outer_target_max"=missing, var"power_recombination_plasma"=missing, var"power_currents"=missing, var"power_neutrals"=missing, _parent=WeakRef(missing))
         fds = new(var"neutral", var"power_incident", var"power_radiated", var"power_inner_target_ion_total", var"temperature", var"power_conducted", var"power_convected", var"current_tor", var"electrons", var"power_density_inner_target_max", var"power_black_body", var"power_recombination_neutrals", var"power_to_cooling", var"power_density_outer_target_max", var"power_recombination_plasma", var"power_currents", var"power_neutrals", _parent)
@@ -120,8 +120,8 @@ Base.@kwdef mutable struct wall__global_quantities <: FDS
 end
 
 Base.@kwdef mutable struct wall__first_wall_power_flux_peak <: FDS
-    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"data" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"data" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__first_wall_power_flux_peak(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
         fds = new(var"time", var"data", _parent)
@@ -133,7 +133,7 @@ end
 Base.@kwdef mutable struct wall__description_ggd___type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -143,8 +143,8 @@ Base.@kwdef mutable struct wall__description_ggd___type <: FDS
 end
 
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary <: FDSvectorElement
-    var"neighbours" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"neighbours" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary(var"neighbours"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"neighbours", var"index", _parent)
@@ -154,9 +154,9 @@ Base.@kwdef mutable struct wall__description_ggd___grid_ggd___space___objects_pe
 end
 
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object <: FDSvectorElement
-    var"nodes" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"measure" :: Union{Missing, AbstractFDNumber} = missing
-    var"geometry" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"nodes" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"measure" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"geometry" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"boundary" :: FDSvector{T} where {T<:wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary} = FDSvector(wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary[])
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___space___objects_per_dimension___object(var"nodes"=missing, var"measure"=missing, var"geometry"=missing, var"boundary"=FDSvector(wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary[]), _parent=WeakRef(missing))
@@ -181,7 +181,7 @@ end
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___space___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___space___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -193,7 +193,7 @@ end
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___space___geometry_type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___space___geometry_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -203,7 +203,7 @@ Base.@kwdef mutable struct wall__description_ggd___grid_ggd___space___geometry_t
 end
 
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___space <: FDSvectorElement
-    var"coordinates_type" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"coordinates_type" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     var"geometry_type" :: wall__description_ggd___grid_ggd___space___geometry_type = wall__description_ggd___grid_ggd___space___geometry_type()
     var"identifier" :: wall__description_ggd___grid_ggd___space___identifier = wall__description_ggd___grid_ggd___space___identifier()
     var"objects_per_dimension" :: FDSvector{T} where {T<:wall__description_ggd___grid_ggd___space___objects_per_dimension} = FDSvector(wall__description_ggd___grid_ggd___space___objects_per_dimension[])
@@ -221,7 +221,7 @@ end
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -231,9 +231,9 @@ Base.@kwdef mutable struct wall__description_ggd___grid_ggd___identifier <: FDS
 end
 
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset___metric <: FDS
-    var"jacobian" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"tensor_contravariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
-    var"tensor_covariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
+    var"jacobian" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"tensor_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
+    var"tensor_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___grid_subset___metric(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         fds = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -245,7 +245,7 @@ end
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___grid_subset___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -255,9 +255,9 @@ Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset___iden
 end
 
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset___element___object <: FDSvectorElement
-    var"dimension" :: Union{Missing, AbstractFDNumber} = missing
-    var"space" :: Union{Missing, AbstractFDNumber} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"dimension" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"space" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___grid_subset___element___object(var"dimension"=missing, var"space"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"dimension", var"space", var"index", _parent)
@@ -278,9 +278,9 @@ Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset___elem
 end
 
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset___base <: FDSvectorElement
-    var"jacobian" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"tensor_contravariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
-    var"tensor_covariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
+    var"jacobian" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"tensor_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
+    var"tensor_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___grid_ggd___grid_subset___base(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         fds = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -292,7 +292,7 @@ end
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset <: FDSvectorElement
     var"base" :: FDSvector{T} where {T<:wall__description_ggd___grid_ggd___grid_subset___base} = FDSvector(wall__description_ggd___grid_ggd___grid_subset___base[])
     var"metric" :: wall__description_ggd___grid_ggd___grid_subset___metric = wall__description_ggd___grid_ggd___grid_subset___metric()
-    var"dimension" :: Union{Missing, AbstractFDNumber} = missing
+    var"dimension" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"identifier" :: wall__description_ggd___grid_ggd___grid_subset___identifier = wall__description_ggd___grid_ggd___grid_subset___identifier()
     var"element" :: FDSvector{T} where {T<:wall__description_ggd___grid_ggd___grid_subset___element} = FDSvector(wall__description_ggd___grid_ggd___grid_subset___element[])
     _parent :: WeakRef = WeakRef(missing)
@@ -308,7 +308,7 @@ Base.@kwdef mutable struct wall__description_ggd___grid_ggd___grid_subset <: FDS
 end
 
 Base.@kwdef mutable struct wall__description_ggd___grid_ggd <: FDSvectorElement
-    var"time" :: Union{Missing, AbstractFDNumber} = missing
+    var"time" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"grid_subset" :: FDSvector{T} where {T<:wall__description_ggd___grid_ggd___grid_subset} = FDSvector(wall__description_ggd___grid_ggd___grid_subset[])
     var"space" :: FDSvector{T} where {T<:wall__description_ggd___grid_ggd___space} = FDSvector(wall__description_ggd___grid_ggd___space[])
     var"identifier" :: wall__description_ggd___grid_ggd___identifier = wall__description_ggd___grid_ggd___identifier()
@@ -324,10 +324,10 @@ Base.@kwdef mutable struct wall__description_ggd___grid_ggd <: FDSvectorElement
 end
 
 Base.@kwdef mutable struct wall__description_ggd___ggd___temperature <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___ggd___temperature(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -337,10 +337,10 @@ Base.@kwdef mutable struct wall__description_ggd___ggd___temperature <: FDSvecto
 end
 
 Base.@kwdef mutable struct wall__description_ggd___ggd___power_density <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___ggd___power_density(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -351,7 +351,7 @@ end
 
 Base.@kwdef mutable struct wall__description_ggd___ggd <: FDSvectorElement
     var"temperature" :: FDSvector{T} where {T<:wall__description_ggd___ggd___temperature} = FDSvector(wall__description_ggd___ggd___temperature[])
-    var"time" :: Union{Missing, AbstractFDNumber} = missing
+    var"time" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"power_density" :: FDSvector{T} where {T<:wall__description_ggd___ggd___power_density} = FDSvector(wall__description_ggd___ggd___power_density[])
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_ggd___ggd(var"temperature"=FDSvector(wall__description_ggd___ggd___temperature[]), var"time"=missing, var"power_density"=FDSvector(wall__description_ggd___ggd___power_density[]), _parent=WeakRef(missing))
@@ -379,9 +379,9 @@ Base.@kwdef mutable struct wall__description_ggd <: FDSvectorElement
 end
 
 Base.@kwdef mutable struct wall__description_2d___vessel__unit___element___outline <: FDS
-    var"closed" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"closed" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__unit___element___outline(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"closed", var"r", var"z", _parent)
@@ -391,8 +391,8 @@ Base.@kwdef mutable struct wall__description_2d___vessel__unit___element___outli
 end
 
 Base.@kwdef mutable struct wall__description_2d___vessel__unit___element___j_tor <: FDS
-    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"data" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"data" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__unit___element___j_tor(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
         fds = new(var"time", var"data", _parent)
@@ -404,9 +404,9 @@ end
 Base.@kwdef mutable struct wall__description_2d___vessel__unit___element <: FDSvectorElement
     var"name" :: Union{Missing, String} = missing
     var"j_tor" :: wall__description_2d___vessel__unit___element___j_tor = wall__description_2d___vessel__unit___element___j_tor()
-    var"resistivity" :: Union{Missing, AbstractFDNumber} = missing
+    var"resistivity" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"outline" :: wall__description_2d___vessel__unit___element___outline = wall__description_2d___vessel__unit___element___outline()
-    var"resistance" :: Union{Missing, AbstractFDNumber} = missing
+    var"resistance" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__unit___element(var"name"=missing, var"j_tor"=wall__description_2d___vessel__unit___element___j_tor(), var"resistivity"=missing, var"outline"=wall__description_2d___vessel__unit___element___outline(), var"resistance"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"j_tor", var"resistivity", var"outline", var"resistance", _parent)
@@ -418,9 +418,9 @@ Base.@kwdef mutable struct wall__description_2d___vessel__unit___element <: FDSv
 end
 
 Base.@kwdef mutable struct wall__description_2d___vessel__unit___annular__outline_outer <: FDS
-    var"closed" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"closed" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__unit___annular__outline_outer(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"closed", var"r", var"z", _parent)
@@ -430,9 +430,9 @@ Base.@kwdef mutable struct wall__description_2d___vessel__unit___annular__outlin
 end
 
 Base.@kwdef mutable struct wall__description_2d___vessel__unit___annular__outline_inner <: FDS
-    var"closed" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"closed" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__unit___annular__outline_inner(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"closed", var"r", var"z", _parent)
@@ -442,9 +442,9 @@ Base.@kwdef mutable struct wall__description_2d___vessel__unit___annular__outlin
 end
 
 Base.@kwdef mutable struct wall__description_2d___vessel__unit___annular__centreline <: FDS
-    var"closed" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"closed" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__unit___annular__centreline(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"closed", var"r", var"z", _parent)
@@ -456,8 +456,8 @@ end
 Base.@kwdef mutable struct wall__description_2d___vessel__unit___annular <: FDS
     var"outline_inner" :: wall__description_2d___vessel__unit___annular__outline_inner = wall__description_2d___vessel__unit___annular__outline_inner()
     var"centreline" :: wall__description_2d___vessel__unit___annular__centreline = wall__description_2d___vessel__unit___annular__centreline()
-    var"thickness" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"resistivity" :: Union{Missing, AbstractFDNumber} = missing
+    var"thickness" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"resistivity" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"outline_outer" :: wall__description_2d___vessel__unit___annular__outline_outer = wall__description_2d___vessel__unit___annular__outline_outer()
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__unit___annular(var"outline_inner"=wall__description_2d___vessel__unit___annular__outline_inner(), var"centreline"=wall__description_2d___vessel__unit___annular__centreline(), var"thickness"=missing, var"resistivity"=missing, var"outline_outer"=wall__description_2d___vessel__unit___annular__outline_outer(), _parent=WeakRef(missing))
@@ -488,7 +488,7 @@ end
 Base.@kwdef mutable struct wall__description_2d___vessel__type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___vessel__type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -513,7 +513,7 @@ end
 Base.@kwdef mutable struct wall__description_2d___type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -523,9 +523,9 @@ Base.@kwdef mutable struct wall__description_2d___type <: FDS
 end
 
 Base.@kwdef mutable struct wall__description_2d___mobile__unit___outline <: FDSvectorElement
-    var"time" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___mobile__unit___outline(var"time"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"time", var"r", var"z", _parent)
@@ -536,9 +536,9 @@ end
 
 Base.@kwdef mutable struct wall__description_2d___mobile__unit <: FDSvectorElement
     var"name" :: Union{Missing, String} = missing
-    var"resistivity" :: Union{Missing, AbstractFDNumber} = missing
-    var"closed" :: Union{Missing, AbstractFDNumber} = missing
-    var"phi_extensions" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"resistivity" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"closed" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"phi_extensions" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     var"outline" :: FDSvector{T} where {T<:wall__description_2d___mobile__unit___outline} = FDSvector(wall__description_2d___mobile__unit___outline[])
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___mobile__unit(var"name"=missing, var"resistivity"=missing, var"closed"=missing, var"phi_extensions"=missing, var"outline"=FDSvector(wall__description_2d___mobile__unit___outline[]), _parent=WeakRef(missing))
@@ -552,7 +552,7 @@ end
 Base.@kwdef mutable struct wall__description_2d___mobile__type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___mobile__type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -575,8 +575,8 @@ Base.@kwdef mutable struct wall__description_2d___mobile <: FDS
 end
 
 Base.@kwdef mutable struct wall__description_2d___limiter__unit___outline <: FDS
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___limiter__unit___outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -587,10 +587,10 @@ end
 
 Base.@kwdef mutable struct wall__description_2d___limiter__unit <: FDSvectorElement
     var"name" :: Union{Missing, String} = missing
-    var"resistivity" :: Union{Missing, AbstractFDNumber} = missing
-    var"closed" :: Union{Missing, AbstractFDNumber} = missing
+    var"resistivity" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"closed" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"outline" :: wall__description_2d___limiter__unit___outline = wall__description_2d___limiter__unit___outline()
-    var"phi_extensions" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"phi_extensions" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___limiter__unit(var"name"=missing, var"resistivity"=missing, var"closed"=missing, var"outline"=wall__description_2d___limiter__unit___outline(), var"phi_extensions"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"resistivity", var"closed", var"outline", var"phi_extensions", _parent)
@@ -603,7 +603,7 @@ end
 Base.@kwdef mutable struct wall__description_2d___limiter__type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__description_2d___limiter__type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -662,7 +662,7 @@ Base.@kwdef mutable struct wall__code <: FDS
     var"parameters" :: Union{Missing, String} = missing
     var"commit" :: Union{Missing, String} = missing
     var"repository" :: Union{Missing, String} = missing
-    var"output_flag" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"output_flag" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     var"version" :: Union{Missing, String} = missing
     _parent :: WeakRef = WeakRef(missing)
     function wall__code(var"library"=FDSvector(wall__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -674,11 +674,11 @@ Base.@kwdef mutable struct wall__code <: FDS
 end
 
 Base.@kwdef mutable struct wall <: FDS
-    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"ids_properties" :: wall__ids_properties = wall__ids_properties()
     var"description_ggd" :: FDSvector{T} where {T<:wall__description_ggd} = FDSvector(wall__description_ggd[])
     var"description_2d" :: FDSvector{T} where {T<:wall__description_2d} = FDSvector(wall__description_2d[])
-    var"first_wall_surface_area" :: Union{Missing, AbstractFDNumber} = missing
+    var"first_wall_surface_area" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"code" :: wall__code = wall__code()
     var"global_quantities" :: wall__global_quantities = wall__global_quantities()
     var"temperature_reference" :: wall__temperature_reference = wall__temperature_reference()
@@ -701,7 +701,7 @@ end
 Base.@kwdef mutable struct summary__wall__material <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__wall__material(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -736,7 +736,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -747,7 +747,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -758,7 +758,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -769,7 +769,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -780,7 +780,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -791,7 +791,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -802,7 +802,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -813,7 +813,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -824,7 +824,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -835,7 +835,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -846,7 +846,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -857,7 +857,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -868,7 +868,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -879,7 +879,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -890,7 +890,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -901,7 +901,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -912,7 +912,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -923,7 +923,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -934,7 +934,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -945,7 +945,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -997,7 +997,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1008,7 +1008,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__meff_hydrogenic <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__meff_hydrogenic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1019,7 +1019,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__isotope_fraction_hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__isotope_fraction_hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1030,7 +1030,7 @@ end
 
 Base.@kwdef mutable struct summary__volume_average__dn_e_dt <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__volume_average__dn_e_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1079,7 +1079,7 @@ end
 
 Base.@kwdef mutable struct summary__stationary_phase_flag <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__stationary_phase_flag(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1090,7 +1090,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__t_i_average_decay_length <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__t_i_average_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1101,7 +1101,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__t_e_decay_length <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__t_e_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1112,7 +1112,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__pressure_neutral <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__pressure_neutral(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1123,7 +1123,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__power_radiated <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__power_radiated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1134,7 +1134,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__n_i_total_decay_length <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__n_i_total_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1145,7 +1145,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__n_e_decay_length <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__n_e_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1156,7 +1156,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__heat_flux_i_decay_length <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__heat_flux_i_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1167,7 +1167,7 @@ end
 
 Base.@kwdef mutable struct summary__scrape_off_layer__heat_flux_e_decay_length <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__scrape_off_layer__heat_flux_e_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1203,7 +1203,7 @@ end
 
 Base.@kwdef mutable struct summary__runaways__particles <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__runaways__particles(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1214,7 +1214,7 @@ end
 
 Base.@kwdef mutable struct summary__runaways__current <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__runaways__current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1238,7 +1238,7 @@ end
 
 Base.@kwdef mutable struct summary__rmps__occurrence <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__rmps__occurrence(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1260,7 +1260,7 @@ end
 
 Base.@kwdef mutable struct summary__pellets__occurrence <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pellets__occurrence(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1282,7 +1282,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__volume_inside_pedestal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__volume_inside_pedestal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1293,7 +1293,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__t_e__pedestal_width <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__t_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1304,7 +1304,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__t_e__pedestal_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__t_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1315,7 +1315,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__t_e__pedestal_height <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__t_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1326,7 +1326,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__t_e__offset <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__t_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1337,7 +1337,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1348,7 +1348,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1359,7 +1359,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__t_e__d_dpsi_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__t_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1393,7 +1393,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__t_e_pedestal_top_critical <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__t_e_pedestal_top_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1404,7 +1404,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_ratio <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1415,7 +1415,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_critical <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1441,7 +1441,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__t_e_pedestal_top_critical <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__t_e_pedestal_top_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1452,7 +1452,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_ratio <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1463,7 +1463,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_critical <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1489,7 +1489,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__stability__alpha_experimental <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__stability__alpha_experimental(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1515,7 +1515,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_magnetic_axis <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_magnetic_axis(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1526,7 +1526,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1537,7 +1537,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1548,7 +1548,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__separatrix <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1559,7 +1559,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__pedestal_width <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1570,7 +1570,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__pedestal_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1581,7 +1581,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__pedestal_height <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1592,7 +1592,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__offset <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1603,7 +1603,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1614,7 +1614,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1625,7 +1625,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1661,7 +1661,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__nustar_pedestal_top_electron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__nustar_pedestal_top_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1672,7 +1672,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__separatrix <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1683,7 +1683,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__pedestal_width <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1694,7 +1694,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__pedestal_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1705,7 +1705,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__pedestal_height <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1716,7 +1716,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__offset <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1727,7 +1727,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1738,7 +1738,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1749,7 +1749,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__n_e__d_dpsi_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__n_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1785,7 +1785,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__energy_thermal_pedestal_ion <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__energy_thermal_pedestal_ion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1796,7 +1796,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__energy_thermal_pedestal_electron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__energy_thermal_pedestal_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1807,7 +1807,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__coulomb_factor_pedestal_top <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__coulomb_factor_pedestal_top(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1818,7 +1818,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1829,7 +1829,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1840,7 +1840,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1851,7 +1851,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1862,7 +1862,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1873,7 +1873,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1884,7 +1884,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1895,7 +1895,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1906,7 +1906,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__b_field_pedestal_top_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__b_field_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1917,7 +1917,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__b_field_pedestal_top_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__b_field_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1928,7 +1928,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__alpha_electron_pedestal_max_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__alpha_electron_pedestal_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1939,7 +1939,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__mtanh__alpha_electron_pedestal_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__mtanh__alpha_electron_pedestal_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -1955,7 +1955,7 @@ Base.@kwdef mutable struct summary__pedestal_fits__mtanh <: FDS
     var"rhostar_pedestal_top_electron_hfs" :: summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_hfs = summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_hfs()
     var"beta_pol_pedestal_top_electron_hfs" :: summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_hfs = summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_hfs()
     var"energy_thermal_pedestal_electron" :: summary__pedestal_fits__mtanh__energy_thermal_pedestal_electron = summary__pedestal_fits__mtanh__energy_thermal_pedestal_electron()
-    var"parameters" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parameters" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"t_e" :: summary__pedestal_fits__mtanh__t_e = summary__pedestal_fits__mtanh__t_e()
     var"rhostar_pedestal_top_electron_lfs" :: summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_lfs = summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_lfs()
     var"beta_pol_pedestal_top_electron_lfs" :: summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_lfs = summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_lfs()
@@ -2008,7 +2008,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__volume_inside_pedestal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__volume_inside_pedestal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2019,7 +2019,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__t_e__pedestal_width <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__t_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2030,7 +2030,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__t_e__pedestal_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__t_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2041,7 +2041,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__t_e__pedestal_height <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__t_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2052,7 +2052,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__t_e__offset <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__t_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2063,7 +2063,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__t_e__d_dpsi_norm_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__t_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2074,7 +2074,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__t_e__d_dpsi_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__t_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2106,7 +2106,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__rhostar_pedestal_top_electron_magnetic_axis <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__rhostar_pedestal_top_electron_magnetic_axis(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2117,7 +2117,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__rhostar_pedestal_top_electron_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__rhostar_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2128,7 +2128,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__rhostar_pedestal_top_electron_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__rhostar_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2139,7 +2139,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__separatrix <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2150,7 +2150,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__pedestal_width <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2161,7 +2161,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__pedestal_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2172,7 +2172,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__pedestal_height <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2183,7 +2183,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__offset <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2194,7 +2194,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2205,7 +2205,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2216,7 +2216,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2252,7 +2252,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__nustar_pedestal_top_electron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__nustar_pedestal_top_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2263,7 +2263,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__n_e__separatrix <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__n_e__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2274,7 +2274,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__n_e__pedestal_width <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__n_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2285,7 +2285,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__n_e__pedestal_position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__n_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2296,7 +2296,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__n_e__pedestal_height <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__n_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2307,7 +2307,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__n_e__offset <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__n_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2318,7 +2318,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__n_e__d_dpsi_norm_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__n_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2329,7 +2329,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__n_e__d_dpsi_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__n_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2363,7 +2363,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__energy_thermal_pedestal_ion <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__energy_thermal_pedestal_ion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2374,7 +2374,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__energy_thermal_pedestal_electron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__energy_thermal_pedestal_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2385,7 +2385,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__coulomb_factor_pedestal_top <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__coulomb_factor_pedestal_top(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2396,7 +2396,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2407,7 +2407,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2418,7 +2418,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2429,7 +2429,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__b_field_tor_pedestal_top_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__b_field_tor_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2440,7 +2440,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__b_field_tor_pedestal_top_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__b_field_tor_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2451,7 +2451,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__b_field_pol_pedestal_top_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__b_field_pol_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2462,7 +2462,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__b_field_pol_pedestal_top_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__b_field_pol_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2473,7 +2473,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__b_field_pol_pedestal_top_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__b_field_pol_pedestal_top_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2484,7 +2484,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__b_field_pedestal_top_lfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__b_field_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2495,7 +2495,7 @@ end
 
 Base.@kwdef mutable struct summary__pedestal_fits__linear__b_field_pedestal_top_hfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__pedestal_fits__linear__b_field_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2510,7 +2510,7 @@ Base.@kwdef mutable struct summary__pedestal_fits__linear <: FDS
     var"rhostar_pedestal_top_electron_hfs" :: summary__pedestal_fits__linear__rhostar_pedestal_top_electron_hfs = summary__pedestal_fits__linear__rhostar_pedestal_top_electron_hfs()
     var"beta_pol_pedestal_top_electron_hfs" :: summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_hfs = summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_hfs()
     var"energy_thermal_pedestal_electron" :: summary__pedestal_fits__linear__energy_thermal_pedestal_electron = summary__pedestal_fits__linear__energy_thermal_pedestal_electron()
-    var"parameters" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parameters" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"t_e" :: summary__pedestal_fits__linear__t_e = summary__pedestal_fits__linear__t_e()
     var"rhostar_pedestal_top_electron_lfs" :: summary__pedestal_fits__linear__rhostar_pedestal_top_electron_lfs = summary__pedestal_fits__linear__rhostar_pedestal_top_electron_lfs()
     var"beta_pol_pedestal_top_electron_lfs" :: summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_lfs = summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_lfs()
@@ -2572,7 +2572,7 @@ end
 Base.@kwdef mutable struct summary__midplane <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__midplane(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -2583,7 +2583,7 @@ end
 
 Base.@kwdef mutable struct summary__magnetic_shear_flag <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__magnetic_shear_flag(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2594,7 +2594,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2605,7 +2605,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2616,7 +2616,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2627,7 +2627,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2638,7 +2638,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2649,7 +2649,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2660,7 +2660,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2671,7 +2671,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2682,7 +2682,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2693,7 +2693,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2704,7 +2704,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2715,7 +2715,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2726,7 +2726,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2737,7 +2737,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2748,7 +2748,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2759,7 +2759,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2770,7 +2770,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__velocity_tor__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2822,7 +2822,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2833,7 +2833,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2844,7 +2844,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__q <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2854,9 +2854,9 @@ Base.@kwdef mutable struct summary__local__separatrix__q <: FDS
 end
 
 Base.@kwdef mutable struct summary__local__separatrix__position <: FDS
-    var"psi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"psi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__position(var"psi"=missing, var"rho_tor_norm"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"rho_tor_norm", var"rho_tor", _parent)
@@ -2867,7 +2867,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2878,7 +2878,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2889,7 +2889,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2900,7 +2900,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2911,7 +2911,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2922,7 +2922,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2933,7 +2933,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2944,7 +2944,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2955,7 +2955,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2966,7 +2966,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2977,7 +2977,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2988,7 +2988,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -2999,7 +2999,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3010,7 +3010,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3021,7 +3021,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3032,7 +3032,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3043,7 +3043,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3095,7 +3095,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3106,7 +3106,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__momentum_tor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3117,7 +3117,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__magnetic_shear <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3128,7 +3128,7 @@ end
 
 Base.@kwdef mutable struct summary__local__separatrix__e_field_parallel <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__separatrix__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3172,7 +3172,7 @@ end
 
 Base.@kwdef mutable struct summary__local__r_eff_norm_2_3__plateau_factor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__r_eff_norm_2_3__plateau_factor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3183,7 +3183,7 @@ end
 
 Base.@kwdef mutable struct summary__local__r_eff_norm_2_3__iota <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__r_eff_norm_2_3__iota(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3194,7 +3194,7 @@ end
 
 Base.@kwdef mutable struct summary__local__r_eff_norm_2_3__effective_helical_ripple <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__r_eff_norm_2_3__effective_helical_ripple(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3220,7 +3220,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3231,7 +3231,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3242,7 +3242,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3253,7 +3253,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3264,7 +3264,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3275,7 +3275,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3286,7 +3286,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3297,7 +3297,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3308,7 +3308,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3319,7 +3319,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3330,7 +3330,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3341,7 +3341,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3352,7 +3352,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3363,7 +3363,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3374,7 +3374,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3385,7 +3385,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3396,7 +3396,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__velocity_tor__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3448,7 +3448,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3459,7 +3459,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3470,7 +3470,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__q <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3480,9 +3480,9 @@ Base.@kwdef mutable struct summary__local__pedestal__q <: FDS
 end
 
 Base.@kwdef mutable struct summary__local__pedestal__position <: FDS
-    var"psi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"psi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__position(var"psi"=missing, var"rho_tor_norm"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"rho_tor_norm", var"rho_tor", _parent)
@@ -3493,7 +3493,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3504,7 +3504,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3515,7 +3515,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3526,7 +3526,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3537,7 +3537,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3548,7 +3548,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3559,7 +3559,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3570,7 +3570,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3581,7 +3581,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3592,7 +3592,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3603,7 +3603,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3614,7 +3614,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3625,7 +3625,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3636,7 +3636,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3647,7 +3647,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3658,7 +3658,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3669,7 +3669,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3721,7 +3721,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3732,7 +3732,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__momentum_tor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3743,7 +3743,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__magnetic_shear <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3754,7 +3754,7 @@ end
 
 Base.@kwdef mutable struct summary__local__pedestal__e_field_parallel <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__pedestal__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3798,7 +3798,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3809,7 +3809,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3820,7 +3820,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3831,7 +3831,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3842,7 +3842,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3853,7 +3853,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3864,7 +3864,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3875,7 +3875,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3886,7 +3886,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3897,7 +3897,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3908,7 +3908,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3919,7 +3919,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3930,7 +3930,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3941,7 +3941,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3952,7 +3952,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3963,7 +3963,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -3974,7 +3974,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__velocity_tor__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4026,7 +4026,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4037,7 +4037,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4048,7 +4048,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__q <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4058,11 +4058,11 @@ Base.@kwdef mutable struct summary__local__magnetic_axis__q <: FDS
 end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__position <: FDS
-    var"psi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"psi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__position(var"psi"=missing, var"r"=missing, var"rho_tor_norm"=missing, var"z"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"r", var"rho_tor_norm", var"z", var"rho_tor", _parent)
@@ -4073,7 +4073,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4084,7 +4084,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4095,7 +4095,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4106,7 +4106,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4117,7 +4117,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4128,7 +4128,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4139,7 +4139,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4150,7 +4150,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4161,7 +4161,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4172,7 +4172,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4183,7 +4183,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4194,7 +4194,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4205,7 +4205,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4216,7 +4216,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4227,7 +4227,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4238,7 +4238,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4249,7 +4249,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4301,7 +4301,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4312,7 +4312,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__momentum_tor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4323,7 +4323,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__magnetic_shear <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4334,7 +4334,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__e_field_parallel <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4345,7 +4345,7 @@ end
 
 Base.@kwdef mutable struct summary__local__magnetic_axis__b_field <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__magnetic_axis__b_field(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4391,7 +4391,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4402,7 +4402,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4413,7 +4413,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4424,7 +4424,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__power_flux_peak <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__power_flux_peak(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4446,7 +4446,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4457,7 +4457,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4468,7 +4468,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4479,7 +4479,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4490,7 +4490,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4501,7 +4501,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4512,7 +4512,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4523,7 +4523,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4534,7 +4534,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4545,7 +4545,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4556,7 +4556,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4567,7 +4567,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4578,7 +4578,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4589,7 +4589,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4600,7 +4600,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4611,7 +4611,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4622,7 +4622,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4674,7 +4674,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4685,7 +4685,7 @@ end
 
 Base.@kwdef mutable struct summary__local__limiter__flux_expansion <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__limiter__flux_expansion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4723,7 +4723,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4734,7 +4734,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4745,7 +4745,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4756,7 +4756,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4767,7 +4767,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4778,7 +4778,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4789,7 +4789,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4800,7 +4800,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4811,7 +4811,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4822,7 +4822,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4833,7 +4833,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4844,7 +4844,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4855,7 +4855,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4866,7 +4866,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4877,7 +4877,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4888,7 +4888,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4899,7 +4899,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__velocity_tor__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4951,7 +4951,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4962,7 +4962,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4973,7 +4973,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__q <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -4983,9 +4983,9 @@ Base.@kwdef mutable struct summary__local__itb__q <: FDS
 end
 
 Base.@kwdef mutable struct summary__local__itb__position <: FDS
-    var"psi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"psi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__position(var"psi"=missing, var"rho_tor_norm"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"rho_tor_norm", var"rho_tor", _parent)
@@ -4996,7 +4996,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5007,7 +5007,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5018,7 +5018,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5029,7 +5029,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5040,7 +5040,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5051,7 +5051,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5062,7 +5062,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5073,7 +5073,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5084,7 +5084,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5095,7 +5095,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5106,7 +5106,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5117,7 +5117,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5128,7 +5128,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5139,7 +5139,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5150,7 +5150,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5161,7 +5161,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5172,7 +5172,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5224,7 +5224,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5235,7 +5235,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__momentum_tor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5246,7 +5246,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__magnetic_shear <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5257,7 +5257,7 @@ end
 
 Base.@kwdef mutable struct summary__local__itb__e_field_parallel <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__itb__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5301,7 +5301,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5312,7 +5312,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5323,7 +5323,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5334,7 +5334,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___power_flux_peak <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___power_flux_peak(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5356,7 +5356,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5367,7 +5367,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5378,7 +5378,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5389,7 +5389,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5400,7 +5400,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5411,7 +5411,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5422,7 +5422,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5433,7 +5433,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5444,7 +5444,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5455,7 +5455,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5466,7 +5466,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5477,7 +5477,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5488,7 +5488,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5499,7 +5499,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5510,7 +5510,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5521,7 +5521,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5532,7 +5532,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5584,7 +5584,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5595,7 +5595,7 @@ end
 
 Base.@kwdef mutable struct summary__local__divertor_plate___flux_expansion <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__local__divertor_plate___flux_expansion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5656,7 +5656,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__zeff <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5667,7 +5667,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__t_i_average <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5678,7 +5678,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__t_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5689,7 +5689,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5700,7 +5700,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5711,7 +5711,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__tungsten <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5722,7 +5722,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5733,7 +5733,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5744,7 +5744,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5755,7 +5755,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5766,7 +5766,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5777,7 +5777,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5788,7 +5788,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__iron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5799,7 +5799,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5810,7 +5810,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5821,7 +5821,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5832,7 +5832,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5843,7 +5843,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5854,7 +5854,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5865,7 +5865,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_i__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5917,7 +5917,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__n_e <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5928,7 +5928,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__meff_hydrogenic <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__meff_hydrogenic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5939,7 +5939,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__isotope_fraction_hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__isotope_fraction_hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5950,7 +5950,7 @@ end
 
 Base.@kwdef mutable struct summary__line_average__dn_e_dt <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__line_average__dn_e_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -5989,7 +5989,7 @@ end
 Base.@kwdef mutable struct summary__limiter__material <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__limiter__material(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -6011,7 +6011,7 @@ end
 
 Base.@kwdef mutable struct summary__kicks__occurrence <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__kicks__occurrence(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6046,11 +6046,11 @@ end
 Base.@kwdef mutable struct summary__ids_properties <: FDS
     var"provider" :: Union{Missing, String} = missing
     var"version_put" :: summary__ids_properties__version_put = summary__ids_properties__version_put()
-    var"homogeneous_time" :: Union{Missing, AbstractFDNumber} = missing
+    var"homogeneous_time" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
     var"creation_date" :: Union{Missing, String} = missing
     var"comment" :: Union{Missing, String} = missing
-    var"occurrence" :: Union{Missing, AbstractFDNumber} = missing
+    var"occurrence" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__ids_properties(var"provider"=missing, var"version_put"=summary__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
         fds = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
@@ -6062,7 +6062,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_nbi <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_nbi(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6073,7 +6073,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_lh <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_lh(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6084,7 +6084,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_launched_nbi_co_injected_ratio <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_launched_nbi_co_injected_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6095,7 +6095,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_launched_nbi <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_launched_nbi(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6106,7 +6106,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_launched_lh <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_launched_lh(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6117,7 +6117,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_launched_ic <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_launched_ic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6128,7 +6128,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_launched_ec <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_launched_ec(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6139,7 +6139,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_ic <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_ic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6150,7 +6150,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_ec <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_ec(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6161,7 +6161,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__power_additional <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__power_additional(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6172,7 +6172,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___tangency_radius <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___tangency_radius(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6183,7 +6183,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___species__z_n <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___species__z_n(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6205,7 +6205,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___species__a <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___species__a(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6231,7 +6231,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___power_launched <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6242,7 +6242,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___power <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6253,7 +6253,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___position__z <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___position__z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6264,7 +6264,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___position__r <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___position__r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6275,7 +6275,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___position__phi <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___position__phi(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6301,7 +6301,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___energy <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___energy(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6312,7 +6312,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___direction <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___direction(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6323,7 +6323,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___current <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6334,7 +6334,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___beam_power_fraction <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"value" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___beam_power_fraction(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6345,7 +6345,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___beam_current_fraction <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"value" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___beam_current_fraction(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6356,7 +6356,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__nbi___angle <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__nbi___angle(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6398,7 +6398,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__lh___power_launched <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__lh___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6409,7 +6409,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__lh___power <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__lh___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6420,7 +6420,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__lh___position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__lh___position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6431,7 +6431,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__lh___n_parallel <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__lh___n_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6442,7 +6442,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__lh___frequency <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__lh___frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6453,7 +6453,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__lh___energy_fast <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__lh___energy_fast(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6464,7 +6464,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__lh___current <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__lh___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6498,7 +6498,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___power_launched <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6509,7 +6509,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___power <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6520,7 +6520,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6531,7 +6531,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___phase <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___phase(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6542,7 +6542,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___n_tor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___n_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6553,7 +6553,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___k_perpendicular <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___k_perpendicular(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6564,7 +6564,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___harmonic <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___harmonic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6575,7 +6575,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___frequency <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6586,7 +6586,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___energy_fast <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___energy_fast(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6597,7 +6597,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___e_field_plus_minus_ratio <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___e_field_plus_minus_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6608,7 +6608,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ic___current <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ic___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6650,7 +6650,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___power_launched <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6661,7 +6661,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___power <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6672,7 +6672,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___position <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6683,7 +6683,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___polarisation <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___polarisation(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6694,7 +6694,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___harmonic <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___harmonic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6705,7 +6705,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___frequency <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6716,7 +6716,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___energy_fast <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___energy_fast(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6727,7 +6727,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___current <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6738,7 +6738,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___angle_tor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___angle_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6749,7 +6749,7 @@ end
 
 Base.@kwdef mutable struct summary__heating_current_drive__ec___angle_pol <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__heating_current_drive__ec___angle_pol(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6826,7 +6826,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__volume <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__volume(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6837,7 +6837,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__v_loop <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__v_loop(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6848,7 +6848,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__tau_resistive <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__tau_resistive(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6859,7 +6859,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__tau_helium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__tau_helium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6870,7 +6870,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__tau_energy_98 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__tau_energy_98(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6881,7 +6881,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__tau_energy <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__tau_energy(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6892,7 +6892,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__resistance <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__resistance(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6903,7 +6903,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__ratio_tau_helium_fuel <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__ratio_tau_helium_fuel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6914,7 +6914,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__r0 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__r0(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6925,7 +6925,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__q_95 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__q_95(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6936,7 +6936,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_synchrotron <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_synchrotron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6947,7 +6947,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_steady <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_steady(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6958,7 +6958,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_radiated_outside_lcfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_radiated_outside_lcfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6969,7 +6969,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_radiated_inside_lcfs <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_radiated_inside_lcfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6980,7 +6980,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_radiated <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_radiated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -6991,7 +6991,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_ohm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_ohm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7002,7 +7002,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_loss <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_loss(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7013,7 +7013,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_line <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_line(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7024,7 +7024,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__power_bremsstrahlung <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__power_bremsstrahlung(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7035,7 +7035,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__li_mhd <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__li_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7046,7 +7046,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__li <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__li(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7057,7 +7057,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__ip <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__ip(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7068,7 +7068,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__h_mode <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__h_mode(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7079,7 +7079,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__h_98 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__h_98(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7090,7 +7090,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__greenwald_fraction <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__greenwald_fraction(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7101,7 +7101,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__fusion_gain <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__fusion_gain(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7112,7 +7112,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__fusion_fluence <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__fusion_fluence(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7123,7 +7123,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7134,7 +7134,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7145,7 +7145,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_mhd <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7156,7 +7156,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_ion_total_thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_ion_total_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7167,7 +7167,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_fast_perpendicular <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_fast_perpendicular(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7178,7 +7178,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_fast_parallel <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_fast_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7189,7 +7189,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_electrons_thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_electrons_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7200,7 +7200,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_diamagnetic <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_diamagnetic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7211,7 +7211,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__energy_b_field_pol <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__energy_b_field_pol(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7222,7 +7222,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__denergy_thermal_dt <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__denergy_thermal_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7233,7 +7233,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__denergy_diamagnetic_dt <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__denergy_diamagnetic_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7244,7 +7244,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__current_ohm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__current_ohm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7255,7 +7255,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__current_non_inductive <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__current_non_inductive(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7266,7 +7266,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__current_bootstrap <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__current_bootstrap(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7277,7 +7277,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__current_alignment <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__current_alignment(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7288,7 +7288,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__beta_tor_thermal_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__beta_tor_thermal_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7299,7 +7299,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__beta_tor_norm_mhd <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__beta_tor_norm_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7310,7 +7310,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__beta_tor_norm <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__beta_tor_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7321,7 +7321,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__beta_tor_mhd <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__beta_tor_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7332,7 +7332,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__beta_tor <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__beta_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7343,7 +7343,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__beta_pol_mhd <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__beta_pol_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7354,7 +7354,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__beta_pol <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__beta_pol(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7365,7 +7365,7 @@ end
 
 Base.@kwdef mutable struct summary__global_quantities__b0 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__global_quantities__b0(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7485,7 +7485,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__xenon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7496,7 +7496,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__tritium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7507,7 +7507,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7518,7 +7518,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__top <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__top(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7529,7 +7529,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__silane <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__silane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7540,7 +7540,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__propane <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__propane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7551,7 +7551,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__oxygen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7562,7 +7562,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__nitrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7573,7 +7573,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__neon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7584,7 +7584,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__midplane <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__midplane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7595,7 +7595,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__methane_deuterated <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__methane_deuterated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7606,7 +7606,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__methane_carbon_13 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__methane_carbon_13(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7617,7 +7617,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__methane <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__methane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7628,7 +7628,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__lithium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7639,7 +7639,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__krypton <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7650,7 +7650,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__impurity_seeding <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__impurity_seeding(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7661,7 +7661,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__hydrogen <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7672,7 +7672,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__helium_4 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7683,7 +7683,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__helium_3 <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7694,7 +7694,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__ethylene <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__ethylene(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7705,7 +7705,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__ethane <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__ethane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7716,7 +7716,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__deuterium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7727,7 +7727,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__carbon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7738,7 +7738,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__bottom <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__bottom(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7749,7 +7749,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__beryllium <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7760,7 +7760,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__argon <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7771,7 +7771,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__ammonia_deuterated <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__ammonia_deuterated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7782,7 +7782,7 @@ end
 
 Base.@kwdef mutable struct summary__gas_injection_rates__ammonia <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__gas_injection_rates__ammonia(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7858,7 +7858,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__power <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7869,7 +7869,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_power_total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_power_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7880,7 +7880,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__tt__total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__tt__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7891,7 +7891,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__tt__thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__tt__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7902,7 +7902,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__tt__beam_thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__tt__beam_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7913,7 +7913,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__tt__beam_beam <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__tt__beam_beam(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7941,7 +7941,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7952,7 +7952,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7963,7 +7963,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dt__total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dt__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7974,7 +7974,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dt__thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dt__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7985,7 +7985,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dt__beam_thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dt__beam_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -7996,7 +7996,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dt__beam_beam <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dt__beam_beam(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8024,7 +8024,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dd__total <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dd__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8035,7 +8035,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dd__thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dd__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8046,7 +8046,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dd__beam_thermal <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dd__beam_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8057,7 +8057,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__neutron_fluxes__dd__beam_beam <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__neutron_fluxes__dd__beam_beam(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8104,7 +8104,7 @@ end
 
 Base.@kwdef mutable struct summary__fusion__current <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__fusion__current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8132,7 +8132,7 @@ end
 
 Base.@kwdef mutable struct summary__elms__type <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__elms__type(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8143,7 +8143,7 @@ end
 
 Base.@kwdef mutable struct summary__elms__frequency <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__elms__frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8167,7 +8167,7 @@ end
 
 Base.@kwdef mutable struct summary__disruption__vertical_displacement <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__disruption__vertical_displacement(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8178,7 +8178,7 @@ end
 
 Base.@kwdef mutable struct summary__disruption__time_radiated_power_max <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__disruption__time_radiated_power_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8189,7 +8189,7 @@ end
 
 Base.@kwdef mutable struct summary__disruption__time_half_ip <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__disruption__time_half_ip(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8200,7 +8200,7 @@ end
 
 Base.@kwdef mutable struct summary__disruption__time <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__disruption__time(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8211,7 +8211,7 @@ end
 
 Base.@kwdef mutable struct summary__disruption__mitigation_valve <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__disruption__mitigation_valve(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8270,7 +8270,7 @@ Base.@kwdef mutable struct summary__code <: FDS
     var"parameters" :: Union{Missing, String} = missing
     var"commit" :: Union{Missing, String} = missing
     var"repository" :: Union{Missing, String} = missing
-    var"output_flag" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"output_flag" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     var"version" :: Union{Missing, String} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__code(var"library"=FDSvector(summary__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -8283,7 +8283,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__type <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"value" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__type(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8294,7 +8294,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__triangularity_upper <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__triangularity_upper(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8305,7 +8305,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__triangularity_lower <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__triangularity_lower(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8316,7 +8316,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__strike_point_outer_z <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__strike_point_outer_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8327,7 +8327,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__strike_point_outer_r <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__strike_point_outer_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8338,7 +8338,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__strike_point_inner_z <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__strike_point_inner_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8349,7 +8349,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__strike_point_inner_r <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__strike_point_inner_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8371,7 +8371,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__minor_radius <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__minor_radius(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8382,7 +8382,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__magnetic_axis_z <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__magnetic_axis_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8393,7 +8393,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__magnetic_axis_r <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__magnetic_axis_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8404,7 +8404,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__geometric_axis_z <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__geometric_axis_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8415,7 +8415,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__geometric_axis_r <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__geometric_axis_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8426,7 +8426,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__gap_limiter_wall <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__gap_limiter_wall(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8437,7 +8437,7 @@ end
 
 Base.@kwdef mutable struct summary__boundary__elongation <: FDS
     var"source" :: Union{Missing, String} = missing
-    var"value" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"value" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function summary__boundary__elongation(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         fds = new(var"source", var"value", _parent)
@@ -8488,7 +8488,7 @@ end
 Base.@kwdef mutable struct summary <: FDS
     var"local" :: summary__local = summary__local()
     var"wall" :: summary__wall = summary__wall()
-    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"code" :: summary__code = summary__code()
     var"stationary_phase_flag" :: summary__stationary_phase_flag = summary__stationary_phase_flag()
     var"gas_injection_rates" :: summary__gas_injection_rates = summary__gas_injection_rates()
@@ -8510,7 +8510,7 @@ Base.@kwdef mutable struct summary <: FDS
     var"scrape_off_layer" :: summary__scrape_off_layer = summary__scrape_off_layer()
     var"limiter" :: summary__limiter = summary__limiter()
     var"runaways" :: summary__runaways = summary__runaways()
-    var"time_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"magnetic_shear_flag" :: summary__magnetic_shear_flag = summary__magnetic_shear_flag()
     var"volume_average" :: summary__volume_average = summary__volume_average()
     _parent :: WeakRef = WeakRef(missing)
@@ -8547,8 +8547,8 @@ Base.@kwdef mutable struct summary <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__vacuum_toroidal_field <: FDS
-    var"b0" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"r0" :: Union{Missing, AbstractFDNumber} = missing
+    var"b0" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"r0" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__vacuum_toroidal_field(var"b0"=missing, var"r0"=missing, _parent=WeakRef(missing))
         fds = new(var"b0", var"r0", _parent)
@@ -8560,7 +8560,7 @@ end
 Base.@kwdef mutable struct equilibrium__time_slice___profiles_2d___grid_type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___profiles_2d___grid_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -8570,9 +8570,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___profiles_2d___grid_type <: 
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___profiles_2d___grid <: FDS
-    var"volume_element" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"dim2" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"dim1" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"volume_element" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"dim2" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"dim1" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___profiles_2d___grid(var"volume_element"=missing, var"dim2"=missing, var"dim1"=missing, _parent=WeakRef(missing))
         fds = new(var"volume_element", var"dim2", var"dim1", _parent)
@@ -8582,21 +8582,21 @@ Base.@kwdef mutable struct equilibrium__time_slice___profiles_2d___grid <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___profiles_2d <: FDSvectorElement
-    var"psi" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"b_field_r" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"r" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"b_r" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"theta" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"b_field_z" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"j_tor" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"phi" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"z" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"b_field_tor" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"b_z" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"psi" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"b_field_r" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"r" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"b_r" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"theta" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"b_field_z" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"j_tor" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"phi" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"z" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"b_field_tor" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"b_z" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     var"grid" :: equilibrium__time_slice___profiles_2d___grid = equilibrium__time_slice___profiles_2d___grid()
     var"grid_type" :: equilibrium__time_slice___profiles_2d___grid_type = equilibrium__time_slice___profiles_2d___grid_type()
-    var"j_parallel" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"b_tor" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"j_parallel" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"b_tor" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___profiles_2d(var"psi"=missing, var"b_field_r"=missing, var"r"=missing, var"b_r"=missing, var"theta"=missing, var"b_field_z"=missing, var"j_tor"=missing, var"phi"=missing, var"z"=missing, var"b_field_tor"=missing, var"b_z"=missing, var"grid"=equilibrium__time_slice___profiles_2d___grid(), var"grid_type"=equilibrium__time_slice___profiles_2d___grid_type(), var"j_parallel"=missing, var"b_tor"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"b_field_r", var"r", var"b_r", var"theta", var"b_field_z", var"j_tor", var"phi", var"z", var"b_field_tor", var"b_z", var"grid", var"grid_type", var"j_parallel", var"b_tor", _parent)
@@ -8608,8 +8608,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___profiles_2d <: FDSvectorEle
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___profiles_1d__geometric_axis <: FDS
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___profiles_1d__geometric_axis(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -8619,54 +8619,54 @@ Base.@kwdef mutable struct equilibrium__time_slice___profiles_1d__geometric_axis
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___profiles_1d <: FDS
-    var"b_field_max" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"dvolume_drho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm9" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"dpsi_drho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"surface" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"magnetic_shear" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"b_average" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"b_field_min" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"darea_dpsi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm3" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"squareness_upper_inner" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"squareness_lower_inner" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"elongation" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"beta_pol" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"b_field_average" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"j_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm6" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"psi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm8" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"dpressure_dpsi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"triangularity_upper" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"darea_drho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"area" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"trapped_fraction" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"volume" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"dvolume_dpsi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"b_min" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"f" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"mass_density" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"r_outboard" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm4" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"phi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"squareness_lower_outer" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"triangularity_lower" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm2" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_volume_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm1" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm5" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"b_max" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"f_df_dpsi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"j_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"r_inboard" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"q" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"gm7" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"squareness_upper_outer" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"b_field_max" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"dvolume_drho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm9" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"dpsi_drho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"surface" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"magnetic_shear" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"b_average" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"b_field_min" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"darea_dpsi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm3" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"squareness_upper_inner" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"squareness_lower_inner" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"elongation" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"beta_pol" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"b_field_average" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"j_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm6" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"psi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm8" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"dpressure_dpsi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"triangularity_upper" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"darea_drho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"area" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"trapped_fraction" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"volume" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"dvolume_dpsi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"b_min" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"f" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"mass_density" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"r_outboard" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm4" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"phi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"squareness_lower_outer" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"triangularity_lower" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm2" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_volume_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm1" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm5" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"b_max" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"f_df_dpsi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"j_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"r_inboard" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"q" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"gm7" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"squareness_upper_outer" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"geometric_axis" :: equilibrium__time_slice___profiles_1d__geometric_axis = equilibrium__time_slice___profiles_1d__geometric_axis()
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___profiles_1d(var"b_field_max"=missing, var"dvolume_drho_tor"=missing, var"gm9"=missing, var"dpsi_drho_tor"=missing, var"surface"=missing, var"rho_tor"=missing, var"magnetic_shear"=missing, var"b_average"=missing, var"b_field_min"=missing, var"darea_dpsi"=missing, var"gm3"=missing, var"squareness_upper_inner"=missing, var"squareness_lower_inner"=missing, var"rho_tor_norm"=missing, var"elongation"=missing, var"beta_pol"=missing, var"b_field_average"=missing, var"j_parallel"=missing, var"gm6"=missing, var"psi"=missing, var"gm8"=missing, var"dpressure_dpsi"=missing, var"triangularity_upper"=missing, var"darea_drho_tor"=missing, var"area"=missing, var"trapped_fraction"=missing, var"volume"=missing, var"dvolume_dpsi"=missing, var"b_min"=missing, var"f"=missing, var"mass_density"=missing, var"r_outboard"=missing, var"gm4"=missing, var"phi"=missing, var"squareness_lower_outer"=missing, var"triangularity_lower"=missing, var"gm2"=missing, var"rho_volume_norm"=missing, var"gm1"=missing, var"gm5"=missing, var"b_max"=missing, var"f_df_dpsi"=missing, var"j_tor"=missing, var"r_inboard"=missing, var"q"=missing, var"gm7"=missing, var"pressure"=missing, var"squareness_upper_outer"=missing, var"geometric_axis"=equilibrium__time_slice___profiles_1d__geometric_axis(), _parent=WeakRef(missing))
@@ -8678,8 +8678,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___profiles_1d <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___global_quantities__q_min <: FDS
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"rho_tor_norm" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___global_quantities__q_min(var"value"=missing, var"rho_tor_norm"=missing, _parent=WeakRef(missing))
         fds = new(var"value", var"rho_tor_norm", _parent)
@@ -8689,10 +8689,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___global_quantities__q_min <:
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___global_quantities__magnetic_axis <: FDS
-    var"b_field_tor" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
-    var"b_tor" :: Union{Missing, AbstractFDNumber} = missing
+    var"b_field_tor" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"b_tor" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___global_quantities__magnetic_axis(var"b_field_tor"=missing, var"r"=missing, var"z"=missing, var"b_tor"=missing, _parent=WeakRef(missing))
         fds = new(var"b_field_tor", var"r", var"z", var"b_tor", _parent)
@@ -8702,9 +8702,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___global_quantities__magnetic
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___global_quantities__current_centre <: FDS
-    var"velocity_z" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"velocity_z" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___global_quantities__current_centre(var"velocity_z"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"velocity_z", var"r", var"z", _parent)
@@ -8714,24 +8714,24 @@ Base.@kwdef mutable struct equilibrium__time_slice___global_quantities__current_
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___global_quantities <: FDS
-    var"ip" :: Union{Missing, AbstractFDNumber} = missing
-    var"li_3" :: Union{Missing, AbstractFDNumber} = missing
-    var"beta_tor" :: Union{Missing, AbstractFDNumber} = missing
-    var"surface" :: Union{Missing, AbstractFDNumber} = missing
+    var"ip" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"li_3" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"beta_tor" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"surface" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"magnetic_axis" :: equilibrium__time_slice___global_quantities__magnetic_axis = equilibrium__time_slice___global_quantities__magnetic_axis()
-    var"energy_mhd" :: Union{Missing, AbstractFDNumber} = missing
-    var"psi_boundary" :: Union{Missing, AbstractFDNumber} = missing
-    var"length_pol" :: Union{Missing, AbstractFDNumber} = missing
-    var"area" :: Union{Missing, AbstractFDNumber} = missing
-    var"psi_external_average" :: Union{Missing, AbstractFDNumber} = missing
-    var"q_95" :: Union{Missing, AbstractFDNumber} = missing
-    var"q_axis" :: Union{Missing, AbstractFDNumber} = missing
-    var"psi_axis" :: Union{Missing, AbstractFDNumber} = missing
-    var"w_mhd" :: Union{Missing, AbstractFDNumber} = missing
-    var"volume" :: Union{Missing, AbstractFDNumber} = missing
-    var"plasma_inductance" :: Union{Missing, AbstractFDNumber} = missing
-    var"beta_pol" :: Union{Missing, AbstractFDNumber} = missing
-    var"beta_normal" :: Union{Missing, AbstractFDNumber} = missing
+    var"energy_mhd" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"psi_boundary" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"length_pol" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"area" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"psi_external_average" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"q_95" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"q_axis" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"psi_axis" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"w_mhd" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"volume" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"plasma_inductance" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"beta_pol" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"beta_normal" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"current_centre" :: equilibrium__time_slice___global_quantities__current_centre = equilibrium__time_slice___global_quantities__current_centre()
     var"q_min" :: equilibrium__time_slice___global_quantities__q_min = equilibrium__time_slice___global_quantities__q_min()
     _parent :: WeakRef = WeakRef(missing)
@@ -8746,10 +8746,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___global_quantities <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___z <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___z(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8759,10 +8759,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___z <: FDSvectorElement
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___theta <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___theta(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8772,10 +8772,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___theta <: FDSvectorEle
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___r <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___r(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8785,10 +8785,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___r <: FDSvectorElement
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___psi <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___psi(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8798,10 +8798,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___psi <: FDSvectorEleme
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___phi <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___phi(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8811,10 +8811,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___phi <: FDSvectorEleme
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___j_tor <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___j_tor(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8824,10 +8824,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___j_tor <: FDSvectorEle
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___j_parallel <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___j_parallel(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8837,8 +8837,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___j_parallel <: FDSvect
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary <: FDSvectorElement
-    var"neighbours" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"neighbours" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary(var"neighbours"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"neighbours", var"index", _parent)
@@ -8848,9 +8848,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__space___objects
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object <: FDSvectorElement
-    var"nodes" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"measure" :: Union{Missing, AbstractFDNumber} = missing
-    var"geometry" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"nodes" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"measure" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"geometry" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"boundary" :: FDSvector{T} where {T<:equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary} = FDSvector(equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary[])
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object(var"nodes"=missing, var"measure"=missing, var"geometry"=missing, var"boundary"=FDSvector(equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary[]), _parent=WeakRef(missing))
@@ -8875,7 +8875,7 @@ end
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__space___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__space___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -8887,7 +8887,7 @@ end
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__space___geometry_type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__space___geometry_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -8897,7 +8897,7 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__space___geometr
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__space <: FDSvectorElement
-    var"coordinates_type" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"coordinates_type" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     var"geometry_type" :: equilibrium__time_slice___ggd___grid__space___geometry_type = equilibrium__time_slice___ggd___grid__space___geometry_type()
     var"identifier" :: equilibrium__time_slice___ggd___grid__space___identifier = equilibrium__time_slice___ggd___grid__space___identifier()
     var"objects_per_dimension" :: FDSvector{T} where {T<:equilibrium__time_slice___ggd___grid__space___objects_per_dimension} = FDSvector(equilibrium__time_slice___ggd___grid__space___objects_per_dimension[])
@@ -8915,7 +8915,7 @@ end
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -8925,9 +8925,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__identifier <: F
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__grid_subset___metric <: FDS
-    var"jacobian" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"tensor_contravariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
-    var"tensor_covariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
+    var"jacobian" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"tensor_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
+    var"tensor_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__grid_subset___metric(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         fds = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -8939,7 +8939,7 @@ end
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__grid_subset___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__grid_subset___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -8949,9 +8949,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__grid_subset___i
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__grid_subset___element___object <: FDSvectorElement
-    var"dimension" :: Union{Missing, AbstractFDNumber} = missing
-    var"space" :: Union{Missing, AbstractFDNumber} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"dimension" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"space" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__grid_subset___element___object(var"dimension"=missing, var"space"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"dimension", var"space", var"index", _parent)
@@ -8972,9 +8972,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__grid_subset___e
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__grid_subset___base <: FDSvectorElement
-    var"jacobian" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"tensor_contravariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
-    var"tensor_covariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
+    var"jacobian" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"tensor_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
+    var"tensor_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___grid__grid_subset___base(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         fds = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -8986,7 +8986,7 @@ end
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid__grid_subset <: FDSvectorElement
     var"base" :: FDSvector{T} where {T<:equilibrium__time_slice___ggd___grid__grid_subset___base} = FDSvector(equilibrium__time_slice___ggd___grid__grid_subset___base[])
     var"metric" :: equilibrium__time_slice___ggd___grid__grid_subset___metric = equilibrium__time_slice___ggd___grid__grid_subset___metric()
-    var"dimension" :: Union{Missing, AbstractFDNumber} = missing
+    var"dimension" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"identifier" :: equilibrium__time_slice___ggd___grid__grid_subset___identifier = equilibrium__time_slice___ggd___grid__grid_subset___identifier()
     var"element" :: FDSvector{T} where {T<:equilibrium__time_slice___ggd___grid__grid_subset___element} = FDSvector(equilibrium__time_slice___ggd___grid__grid_subset___element[])
     _parent :: WeakRef = WeakRef(missing)
@@ -9017,10 +9017,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___grid <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___b_field_z <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___b_field_z(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -9030,10 +9030,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___b_field_z <: FDSvecto
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___b_field_tor <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___b_field_tor(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -9043,10 +9043,10 @@ Base.@kwdef mutable struct equilibrium__time_slice___ggd___b_field_tor <: FDSvec
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___ggd___b_field_r <: FDSvectorElement
-    var"grid_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"values" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"grid_subset_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"coefficients" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"grid_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"values" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"grid_subset_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"coefficients" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___ggd___b_field_r(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         fds = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -9089,7 +9089,7 @@ end
 Base.@kwdef mutable struct equilibrium__time_slice___coordinate_system__grid_type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___coordinate_system__grid_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -9099,9 +9099,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___coordinate_system__grid_typ
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___coordinate_system__grid <: FDS
-    var"volume_element" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"dim2" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"dim1" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"volume_element" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"dim2" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"dim1" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___coordinate_system__grid(var"volume_element"=missing, var"dim2"=missing, var"dim1"=missing, _parent=WeakRef(missing))
         fds = new(var"volume_element", var"dim2", var"dim1", _parent)
@@ -9111,24 +9111,24 @@ Base.@kwdef mutable struct equilibrium__time_slice___coordinate_system__grid <: 
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___coordinate_system <: FDS
-    var"jacobian" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g13_covariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g11_contravariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g13_contravariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"r" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g12_contravariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g22_contravariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"z" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g33_contravariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g22_covariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"tensor_contravariant" :: Union{Missing, AbstractArray{Float64, 4}} = missing
-    var"g12_covariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g33_covariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"jacobian" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g13_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g11_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g13_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"r" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g12_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g22_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"z" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g33_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g22_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"tensor_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 4}} = missing
+    var"g12_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g33_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     var"grid" :: equilibrium__time_slice___coordinate_system__grid = equilibrium__time_slice___coordinate_system__grid()
-    var"g23_covariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"g11_covariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
-    var"tensor_covariant" :: Union{Missing, AbstractArray{Float64, 4}} = missing
-    var"g23_contravariant" :: Union{Missing, AbstractArray{Float64, 2}} = missing
+    var"g23_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"g11_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
+    var"tensor_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 4}} = missing
+    var"g23_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 2}} = missing
     var"grid_type" :: equilibrium__time_slice___coordinate_system__grid_type = equilibrium__time_slice___coordinate_system__grid_type()
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___coordinate_system(var"jacobian"=missing, var"g13_covariant"=missing, var"g11_contravariant"=missing, var"g13_contravariant"=missing, var"r"=missing, var"g12_contravariant"=missing, var"g22_contravariant"=missing, var"z"=missing, var"g33_contravariant"=missing, var"g22_covariant"=missing, var"tensor_contravariant"=missing, var"g12_covariant"=missing, var"g33_covariant"=missing, var"grid"=equilibrium__time_slice___coordinate_system__grid(), var"g23_covariant"=missing, var"g11_covariant"=missing, var"tensor_covariant"=missing, var"g23_contravariant"=missing, var"grid_type"=equilibrium__time_slice___coordinate_system__grid_type(), _parent=WeakRef(missing))
@@ -9141,7 +9141,7 @@ Base.@kwdef mutable struct equilibrium__time_slice___coordinate_system <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___convergence <: FDS
-    var"iterations_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"iterations_n" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___convergence(var"iterations_n"=missing, _parent=WeakRef(missing))
         fds = new(var"iterations_n", _parent)
@@ -9151,8 +9151,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___convergence <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__x_point___position_reconstructed <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__x_point___position_reconstructed(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9162,8 +9162,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__x_point___posi
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__x_point___position_measured <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__x_point___position_measured(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9173,13 +9173,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__x_point___posi
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__x_point <: FDSvectorElement
-    var"chi_squared_z" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared_z" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
     var"position_measured" :: equilibrium__time_slice___constraints__x_point___position_measured = equilibrium__time_slice___constraints__x_point___position_measured()
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
-    var"chi_squared_r" :: Union{Missing, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"chi_squared_r" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"position_reconstructed" :: equilibrium__time_slice___constraints__x_point___position_reconstructed = equilibrium__time_slice___constraints__x_point___position_reconstructed()
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__x_point(var"chi_squared_z"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"position_measured"=equilibrium__time_slice___constraints__x_point___position_measured(), var"time_measurement"=missing, var"chi_squared_r"=missing, var"position_reconstructed"=equilibrium__time_slice___constraints__x_point___position_reconstructed(), _parent=WeakRef(missing))
@@ -9192,8 +9192,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__x_point <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__strike_point___position_reconstructed <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__strike_point___position_reconstructed(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9203,8 +9203,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__strike_point__
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__strike_point___position_measured <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__strike_point___position_measured(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9214,13 +9214,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__strike_point__
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__strike_point <: FDSvectorElement
-    var"chi_squared_z" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared_z" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
     var"position_measured" :: equilibrium__time_slice___constraints__strike_point___position_measured = equilibrium__time_slice___constraints__strike_point___position_measured()
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
-    var"chi_squared_r" :: Union{Missing, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"chi_squared_r" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"position_reconstructed" :: equilibrium__time_slice___constraints__strike_point___position_reconstructed = equilibrium__time_slice___constraints__strike_point___position_reconstructed()
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__strike_point(var"chi_squared_z"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"position_measured"=equilibrium__time_slice___constraints__strike_point___position_measured(), var"time_measurement"=missing, var"chi_squared_r"=missing, var"position_reconstructed"=equilibrium__time_slice___constraints__strike_point___position_reconstructed(), _parent=WeakRef(missing))
@@ -9233,9 +9233,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__strike_point <
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__q___position <: FDS
-    var"phi" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"phi" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__q___position(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"phi", var"r", var"z", _parent)
@@ -9245,14 +9245,14 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__q___position <
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__q <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"position" :: equilibrium__time_slice___constraints__q___position = equilibrium__time_slice___constraints__q___position()
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__q(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"position"=equilibrium__time_slice___constraints__q___position(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"position", var"time_measurement", _parent)
@@ -9263,13 +9263,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__q <: FDSvector
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__pressure <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__pressure(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9279,13 +9279,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__pressure <: FD
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__pf_passive_current <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__pf_passive_current(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9295,13 +9295,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__pf_passive_cur
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__pf_current <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__pf_current(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9311,13 +9311,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__pf_current <: 
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__n_e_line <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__n_e_line(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9327,13 +9327,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__n_e_line <: FD
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__n_e <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__n_e(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9343,13 +9343,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__n_e <: FDSvect
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__mse_polarisation_angle <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__mse_polarisation_angle(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9359,13 +9359,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__mse_polarisati
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__iron_core_segment___magnetisation_z <: FDS
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__iron_core_segment___magnetisation_z(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9375,13 +9375,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__iron_core_segm
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__iron_core_segment___magnetisation_r <: FDS
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__iron_core_segment___magnetisation_r(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9404,13 +9404,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__iron_core_segm
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__ip <: FDS
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__ip(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9420,13 +9420,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__ip <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__flux_loop <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__flux_loop(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9436,13 +9436,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__flux_loop <: F
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__faraday_angle <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__faraday_angle(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9452,13 +9452,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__faraday_angle 
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__diamagnetic_flux <: FDS
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__diamagnetic_flux(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9468,13 +9468,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__diamagnetic_fl
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__bpol_probe <: FDSvectorElement
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__bpol_probe(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9484,13 +9484,13 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints__bpol_probe <: 
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___constraints__b_field_tor_vacuum_r <: FDS
-    var"chi_squared" :: Union{Missing, AbstractFDNumber} = missing
-    var"exact" :: Union{Missing, AbstractFDNumber} = missing
-    var"weight" :: Union{Missing, AbstractFDNumber} = missing
+    var"chi_squared" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"exact" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"weight" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
-    var"measured" :: Union{Missing, AbstractFDNumber} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_measurement" :: Union{Missing, AbstractFDNumber} = missing
+    var"measured" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"reconstructed" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_measurement" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___constraints__b_field_tor_vacuum_r(var"chi_squared"=missing, var"exact"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"reconstructed"=missing, var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"chi_squared", var"exact", var"weight", var"source", var"measured", var"reconstructed", var"time_measurement", _parent)
@@ -9541,8 +9541,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___constraints <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__x_point <: FDSvectorElement
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__x_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9552,8 +9552,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__x_poin
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__strike_point <: FDSvectorElement
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__strike_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9563,8 +9563,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__strike
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__outline <: FDS
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9574,8 +9574,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__outlin
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__geometric_axis <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__geometric_axis(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9586,11 +9586,11 @@ end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__gap <: FDSvectorElement
     var"name" :: Union{Missing, String} = missing
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"value" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"value" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"identifier" :: Union{Missing, String} = missing
-    var"angle" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"angle" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__gap(var"name"=missing, var"r"=missing, var"value"=missing, var"identifier"=missing, var"angle"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"r", var"value", var"identifier", var"angle", var"z", _parent)
@@ -9600,8 +9600,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__gap <:
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__dr_dz_zero_point <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__dr_dz_zero_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9611,9 +9611,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__dr_dz_
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__closest_wall_point <: FDS
-    var"distance" :: Union{Missing, AbstractFDNumber} = missing
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"distance" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__closest_wall_point(var"distance"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"distance", var"r", var"z", _parent)
@@ -9623,8 +9623,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__closes
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__active_limiter_point <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix__active_limiter_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9634,27 +9634,27 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix__active
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix <: FDS
-    var"psi" :: Union{Missing, AbstractFDNumber} = missing
-    var"elongation_lower" :: Union{Missing, AbstractFDNumber} = missing
+    var"psi" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"elongation_lower" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"strike_point" :: FDSvector{T} where {T<:equilibrium__time_slice___boundary_separatrix__strike_point} = FDSvector(equilibrium__time_slice___boundary_separatrix__strike_point[])
     var"x_point" :: FDSvector{T} where {T<:equilibrium__time_slice___boundary_separatrix__x_point} = FDSvector(equilibrium__time_slice___boundary_separatrix__x_point[])
     var"gap" :: FDSvector{T} where {T<:equilibrium__time_slice___boundary_separatrix__gap} = FDSvector(equilibrium__time_slice___boundary_separatrix__gap[])
-    var"triangularity" :: Union{Missing, AbstractFDNumber} = missing
-    var"elongation_upper" :: Union{Missing, AbstractFDNumber} = missing
-    var"triangularity_upper" :: Union{Missing, AbstractFDNumber} = missing
+    var"triangularity" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"elongation_upper" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"triangularity_upper" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"outline" :: equilibrium__time_slice___boundary_separatrix__outline = equilibrium__time_slice___boundary_separatrix__outline()
     var"dr_dz_zero_point" :: equilibrium__time_slice___boundary_separatrix__dr_dz_zero_point = equilibrium__time_slice___boundary_separatrix__dr_dz_zero_point()
-    var"squareness_lower_outer" :: Union{Missing, AbstractFDNumber} = missing
-    var"triangularity_lower" :: Union{Missing, AbstractFDNumber} = missing
-    var"minor_radius" :: Union{Missing, AbstractFDNumber} = missing
-    var"squareness_upper_inner" :: Union{Missing, AbstractFDNumber} = missing
-    var"squareness_upper_outer" :: Union{Missing, AbstractFDNumber} = missing
-    var"squareness_lower_inner" :: Union{Missing, AbstractFDNumber} = missing
+    var"squareness_lower_outer" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"triangularity_lower" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"minor_radius" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"squareness_upper_inner" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"squareness_upper_outer" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"squareness_lower_inner" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"geometric_axis" :: equilibrium__time_slice___boundary_separatrix__geometric_axis = equilibrium__time_slice___boundary_separatrix__geometric_axis()
-    var"elongation" :: Union{Missing, AbstractFDNumber} = missing
+    var"elongation" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"active_limiter_point" :: equilibrium__time_slice___boundary_separatrix__active_limiter_point = equilibrium__time_slice___boundary_separatrix__active_limiter_point()
     var"closest_wall_point" :: equilibrium__time_slice___boundary_separatrix__closest_wall_point = equilibrium__time_slice___boundary_separatrix__closest_wall_point()
-    var"type" :: Union{Missing, AbstractFDNumber} = missing
+    var"type" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_separatrix(var"psi"=missing, var"elongation_lower"=missing, var"strike_point"=FDSvector(equilibrium__time_slice___boundary_separatrix__strike_point[]), var"x_point"=FDSvector(equilibrium__time_slice___boundary_separatrix__x_point[]), var"gap"=FDSvector(equilibrium__time_slice___boundary_separatrix__gap[]), var"triangularity"=missing, var"elongation_upper"=missing, var"triangularity_upper"=missing, var"outline"=equilibrium__time_slice___boundary_separatrix__outline(), var"dr_dz_zero_point"=equilibrium__time_slice___boundary_separatrix__dr_dz_zero_point(), var"squareness_lower_outer"=missing, var"triangularity_lower"=missing, var"minor_radius"=missing, var"squareness_upper_inner"=missing, var"squareness_upper_outer"=missing, var"squareness_lower_inner"=missing, var"geometric_axis"=equilibrium__time_slice___boundary_separatrix__geometric_axis(), var"elongation"=missing, var"active_limiter_point"=equilibrium__time_slice___boundary_separatrix__active_limiter_point(), var"closest_wall_point"=equilibrium__time_slice___boundary_separatrix__closest_wall_point(), var"type"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"elongation_lower", var"strike_point", var"x_point", var"gap", var"triangularity", var"elongation_upper", var"triangularity_upper", var"outline", var"dr_dz_zero_point", var"squareness_lower_outer", var"triangularity_lower", var"minor_radius", var"squareness_upper_inner", var"squareness_upper_outer", var"squareness_lower_inner", var"geometric_axis", var"elongation", var"active_limiter_point", var"closest_wall_point", var"type", _parent)
@@ -9672,8 +9672,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_separatrix <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatrix__x_point <: FDSvectorElement
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_secondary_separatrix__x_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9683,8 +9683,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatr
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatrix__strike_point <: FDSvectorElement
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_secondary_separatrix__strike_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9694,8 +9694,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatr
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatrix__outline <: FDS
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary_secondary_separatrix__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9705,9 +9705,9 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatr
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatrix <: FDS
-    var"psi" :: Union{Missing, AbstractFDNumber} = missing
+    var"psi" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"x_point" :: FDSvector{T} where {T<:equilibrium__time_slice___boundary_secondary_separatrix__x_point} = FDSvector(equilibrium__time_slice___boundary_secondary_separatrix__x_point[])
-    var"distance_inner_outer" :: Union{Missing, AbstractFDNumber} = missing
+    var"distance_inner_outer" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"outline" :: equilibrium__time_slice___boundary_secondary_separatrix__outline = equilibrium__time_slice___boundary_secondary_separatrix__outline()
     var"strike_point" :: FDSvector{T} where {T<:equilibrium__time_slice___boundary_secondary_separatrix__strike_point} = FDSvector(equilibrium__time_slice___boundary_secondary_separatrix__strike_point[])
     _parent :: WeakRef = WeakRef(missing)
@@ -9722,8 +9722,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary_secondary_separatr
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary__x_point <: FDSvectorElement
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary__x_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9733,8 +9733,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary__x_point <: FDSvec
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary__strike_point <: FDSvectorElement
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary__strike_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9744,8 +9744,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary__strike_point <: F
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary__outline <: FDS
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9755,8 +9755,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary__outline <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary__lcfs <: FDS
-    var"r" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"r" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary__lcfs(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9766,8 +9766,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary__lcfs <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary__geometric_axis <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary__geometric_axis(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9777,8 +9777,8 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary__geometric_axis <:
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary__active_limiter_point <: FDS
-    var"r" :: Union{Missing, AbstractFDNumber} = missing
-    var"z" :: Union{Missing, AbstractFDNumber} = missing
+    var"r" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary__active_limiter_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         fds = new(var"r", var"z", _parent)
@@ -9788,27 +9788,27 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary__active_limiter_po
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice___boundary <: FDS
-    var"psi" :: Union{Missing, AbstractFDNumber} = missing
+    var"psi" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"lcfs" :: equilibrium__time_slice___boundary__lcfs = equilibrium__time_slice___boundary__lcfs()
-    var"elongation_lower" :: Union{Missing, AbstractFDNumber} = missing
+    var"elongation_lower" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"strike_point" :: FDSvector{T} where {T<:equilibrium__time_slice___boundary__strike_point} = FDSvector(equilibrium__time_slice___boundary__strike_point[])
     var"x_point" :: FDSvector{T} where {T<:equilibrium__time_slice___boundary__x_point} = FDSvector(equilibrium__time_slice___boundary__x_point[])
-    var"triangularity" :: Union{Missing, AbstractFDNumber} = missing
-    var"elongation_upper" :: Union{Missing, AbstractFDNumber} = missing
-    var"triangularity_upper" :: Union{Missing, AbstractFDNumber} = missing
+    var"triangularity" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"elongation_upper" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"triangularity_upper" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"outline" :: equilibrium__time_slice___boundary__outline = equilibrium__time_slice___boundary__outline()
-    var"squareness_lower_outer" :: Union{Missing, AbstractFDNumber} = missing
-    var"triangularity_lower" :: Union{Missing, AbstractFDNumber} = missing
-    var"psi_norm" :: Union{Missing, AbstractFDNumber} = missing
-    var"minor_radius" :: Union{Missing, AbstractFDNumber} = missing
-    var"squareness_upper_inner" :: Union{Missing, AbstractFDNumber} = missing
-    var"squareness_upper_outer" :: Union{Missing, AbstractFDNumber} = missing
-    var"squareness_lower_inner" :: Union{Missing, AbstractFDNumber} = missing
+    var"squareness_lower_outer" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"triangularity_lower" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"psi_norm" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"minor_radius" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"squareness_upper_inner" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"squareness_upper_outer" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"squareness_lower_inner" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"geometric_axis" :: equilibrium__time_slice___boundary__geometric_axis = equilibrium__time_slice___boundary__geometric_axis()
-    var"elongation" :: Union{Missing, AbstractFDNumber} = missing
+    var"elongation" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"active_limiter_point" :: equilibrium__time_slice___boundary__active_limiter_point = equilibrium__time_slice___boundary__active_limiter_point()
-    var"b_flux_pol_norm" :: Union{Missing, AbstractFDNumber} = missing
-    var"type" :: Union{Missing, AbstractFDNumber} = missing
+    var"b_flux_pol_norm" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"type" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__time_slice___boundary(var"psi"=missing, var"lcfs"=equilibrium__time_slice___boundary__lcfs(), var"elongation_lower"=missing, var"strike_point"=FDSvector(equilibrium__time_slice___boundary__strike_point[]), var"x_point"=FDSvector(equilibrium__time_slice___boundary__x_point[]), var"triangularity"=missing, var"elongation_upper"=missing, var"triangularity_upper"=missing, var"outline"=equilibrium__time_slice___boundary__outline(), var"squareness_lower_outer"=missing, var"triangularity_lower"=missing, var"psi_norm"=missing, var"minor_radius"=missing, var"squareness_upper_inner"=missing, var"squareness_upper_outer"=missing, var"squareness_lower_inner"=missing, var"geometric_axis"=equilibrium__time_slice___boundary__geometric_axis(), var"elongation"=missing, var"active_limiter_point"=equilibrium__time_slice___boundary__active_limiter_point(), var"b_flux_pol_norm"=missing, var"type"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"lcfs", var"elongation_lower", var"strike_point", var"x_point", var"triangularity", var"elongation_upper", var"triangularity_upper", var"outline", var"squareness_lower_outer", var"triangularity_lower", var"psi_norm", var"minor_radius", var"squareness_upper_inner", var"squareness_upper_outer", var"squareness_lower_inner", var"geometric_axis", var"elongation", var"active_limiter_point", var"b_flux_pol_norm", var"type", _parent)
@@ -9824,7 +9824,7 @@ Base.@kwdef mutable struct equilibrium__time_slice___boundary <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__time_slice <: FDSvectorElement
-    var"time" :: Union{Missing, AbstractFDNumber} = missing
+    var"time" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"ggd" :: FDSvector{T} where {T<:equilibrium__time_slice___ggd} = FDSvector(equilibrium__time_slice___ggd[])
     var"profiles_1d" :: equilibrium__time_slice___profiles_1d = equilibrium__time_slice___profiles_1d()
     var"boundary" :: equilibrium__time_slice___boundary = equilibrium__time_slice___boundary()
@@ -9868,11 +9868,11 @@ end
 Base.@kwdef mutable struct equilibrium__ids_properties <: FDS
     var"provider" :: Union{Missing, String} = missing
     var"version_put" :: equilibrium__ids_properties__version_put = equilibrium__ids_properties__version_put()
-    var"homogeneous_time" :: Union{Missing, AbstractFDNumber} = missing
+    var"homogeneous_time" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
     var"creation_date" :: Union{Missing, String} = missing
     var"comment" :: Union{Missing, String} = missing
-    var"occurrence" :: Union{Missing, AbstractFDNumber} = missing
+    var"occurrence" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__ids_properties(var"provider"=missing, var"version_put"=equilibrium__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
         fds = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
@@ -9883,8 +9883,8 @@ Base.@kwdef mutable struct equilibrium__ids_properties <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary <: FDSvectorElement
-    var"neighbours" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"neighbours" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary(var"neighbours"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"neighbours", var"index", _parent)
@@ -9894,9 +9894,9 @@ Base.@kwdef mutable struct equilibrium__grids_ggd___grid___space___objects_per_d
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___space___objects_per_dimension___object <: FDSvectorElement
-    var"nodes" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"measure" :: Union{Missing, AbstractFDNumber} = missing
-    var"geometry" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"nodes" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"measure" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"geometry" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"boundary" :: FDSvector{T} where {T<:equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary} = FDSvector(equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary[])
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___space___objects_per_dimension___object(var"nodes"=missing, var"measure"=missing, var"geometry"=missing, var"boundary"=FDSvector(equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary[]), _parent=WeakRef(missing))
@@ -9921,7 +9921,7 @@ end
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___space___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___space___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -9933,7 +9933,7 @@ end
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___space___geometry_type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___space___geometry_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -9943,7 +9943,7 @@ Base.@kwdef mutable struct equilibrium__grids_ggd___grid___space___geometry_type
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___space <: FDSvectorElement
-    var"coordinates_type" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"coordinates_type" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     var"geometry_type" :: equilibrium__grids_ggd___grid___space___geometry_type = equilibrium__grids_ggd___grid___space___geometry_type()
     var"identifier" :: equilibrium__grids_ggd___grid___space___identifier = equilibrium__grids_ggd___grid___space___identifier()
     var"objects_per_dimension" :: FDSvector{T} where {T<:equilibrium__grids_ggd___grid___space___objects_per_dimension} = FDSvector(equilibrium__grids_ggd___grid___space___objects_per_dimension[])
@@ -9961,7 +9961,7 @@ end
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -9971,9 +9971,9 @@ Base.@kwdef mutable struct equilibrium__grids_ggd___grid___identifier <: FDS
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___grid_subset___metric <: FDS
-    var"jacobian" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"tensor_contravariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
-    var"tensor_covariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
+    var"jacobian" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"tensor_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
+    var"tensor_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___grid_subset___metric(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         fds = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -9985,7 +9985,7 @@ end
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___grid_subset___identifier <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___grid_subset___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -9995,9 +9995,9 @@ Base.@kwdef mutable struct equilibrium__grids_ggd___grid___grid_subset___identif
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___grid_subset___element___object <: FDSvectorElement
-    var"dimension" :: Union{Missing, AbstractFDNumber} = missing
-    var"space" :: Union{Missing, AbstractFDNumber} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"dimension" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"space" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___grid_subset___element___object(var"dimension"=missing, var"space"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"dimension", var"space", var"index", _parent)
@@ -10018,9 +10018,9 @@ Base.@kwdef mutable struct equilibrium__grids_ggd___grid___grid_subset___element
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___grid_subset___base <: FDSvectorElement
-    var"jacobian" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"tensor_contravariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
-    var"tensor_covariant" :: Union{Missing, AbstractArray{Float64, 3}} = missing
+    var"jacobian" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"tensor_contravariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
+    var"tensor_covariant" :: Union{Missing, Array{Float64}, AbstractArray{Float64, 3}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd___grid___grid_subset___base(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         fds = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -10032,7 +10032,7 @@ end
 Base.@kwdef mutable struct equilibrium__grids_ggd___grid___grid_subset <: FDSvectorElement
     var"base" :: FDSvector{T} where {T<:equilibrium__grids_ggd___grid___grid_subset___base} = FDSvector(equilibrium__grids_ggd___grid___grid_subset___base[])
     var"metric" :: equilibrium__grids_ggd___grid___grid_subset___metric = equilibrium__grids_ggd___grid___grid_subset___metric()
-    var"dimension" :: Union{Missing, AbstractFDNumber} = missing
+    var"dimension" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"identifier" :: equilibrium__grids_ggd___grid___grid_subset___identifier = equilibrium__grids_ggd___grid___grid_subset___identifier()
     var"element" :: FDSvector{T} where {T<:equilibrium__grids_ggd___grid___grid_subset___element} = FDSvector(equilibrium__grids_ggd___grid___grid_subset___element[])
     _parent :: WeakRef = WeakRef(missing)
@@ -10063,7 +10063,7 @@ Base.@kwdef mutable struct equilibrium__grids_ggd___grid <: FDSvectorElement
 end
 
 Base.@kwdef mutable struct equilibrium__grids_ggd <: FDSvectorElement
-    var"time" :: Union{Missing, AbstractFDNumber} = missing
+    var"time" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"grid" :: FDSvector{T} where {T<:equilibrium__grids_ggd___grid} = FDSvector(equilibrium__grids_ggd___grid[])
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__grids_ggd(var"time"=missing, var"grid"=FDSvector(equilibrium__grids_ggd___grid[]), _parent=WeakRef(missing))
@@ -10094,7 +10094,7 @@ Base.@kwdef mutable struct equilibrium__code <: FDS
     var"parameters" :: Union{Missing, String} = missing
     var"commit" :: Union{Missing, String} = missing
     var"repository" :: Union{Missing, String} = missing
-    var"output_flag" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"output_flag" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     var"version" :: Union{Missing, String} = missing
     _parent :: WeakRef = WeakRef(missing)
     function equilibrium__code(var"library"=FDSvector(equilibrium__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -10107,7 +10107,7 @@ end
 
 Base.@kwdef mutable struct equilibrium <: FDS
     var"time_slice" :: FDSvector{T} where {T<:equilibrium__time_slice} = FDSvector(equilibrium__time_slice[])
-    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"ids_properties" :: equilibrium__ids_properties = equilibrium__ids_properties()
     var"grids_ggd" :: FDSvector{T} where {T<:equilibrium__grids_ggd} = FDSvector(equilibrium__grids_ggd[])
     var"vacuum_toroidal_field" :: equilibrium__vacuum_toroidal_field = equilibrium__vacuum_toroidal_field()
@@ -10128,14 +10128,14 @@ end
 Base.@kwdef mutable struct dataset_description__simulation <: FDS
     var"time_ended" :: Union{Missing, String} = missing
     var"time_begun" :: Union{Missing, String} = missing
-    var"time_current" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_restart" :: Union{Missing, AbstractFDNumber} = missing
+    var"time_current" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_restart" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"workflow" :: Union{Missing, String} = missing
     var"comment_after" :: Union{Missing, String} = missing
-    var"time_begin" :: Union{Missing, AbstractFDNumber} = missing
-    var"time_end" :: Union{Missing, AbstractFDNumber} = missing
+    var"time_begin" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"time_end" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"comment_before" :: Union{Missing, String} = missing
-    var"time_step" :: Union{Missing, AbstractFDNumber} = missing
+    var"time_step" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function dataset_description__simulation(var"time_ended"=missing, var"time_begun"=missing, var"time_current"=missing, var"time_restart"=missing, var"workflow"=missing, var"comment_after"=missing, var"time_begin"=missing, var"time_end"=missing, var"comment_before"=missing, var"time_step"=missing, _parent=WeakRef(missing))
         fds = new(var"time_ended", var"time_begun", var"time_current", var"time_restart", var"workflow", var"comment_after", var"time_begin", var"time_end", var"comment_before", var"time_step", _parent)
@@ -10145,8 +10145,8 @@ Base.@kwdef mutable struct dataset_description__simulation <: FDS
 end
 
 Base.@kwdef mutable struct dataset_description__pulse_time_end_epoch <: FDS
-    var"nanoseconds" :: Union{Missing, AbstractFDNumber} = missing
-    var"seconds" :: Union{Missing, AbstractFDNumber} = missing
+    var"nanoseconds" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"seconds" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function dataset_description__pulse_time_end_epoch(var"nanoseconds"=missing, var"seconds"=missing, _parent=WeakRef(missing))
         fds = new(var"nanoseconds", var"seconds", _parent)
@@ -10156,8 +10156,8 @@ Base.@kwdef mutable struct dataset_description__pulse_time_end_epoch <: FDS
 end
 
 Base.@kwdef mutable struct dataset_description__pulse_time_begin_epoch <: FDS
-    var"nanoseconds" :: Union{Missing, AbstractFDNumber} = missing
-    var"seconds" :: Union{Missing, AbstractFDNumber} = missing
+    var"nanoseconds" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"seconds" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function dataset_description__pulse_time_begin_epoch(var"nanoseconds"=missing, var"seconds"=missing, _parent=WeakRef(missing))
         fds = new(var"nanoseconds", var"seconds", _parent)
@@ -10168,9 +10168,9 @@ end
 
 Base.@kwdef mutable struct dataset_description__parent_entry <: FDS
     var"pulse_type" :: Union{Missing, String} = missing
-    var"run" :: Union{Missing, AbstractFDNumber} = missing
+    var"run" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"machine" :: Union{Missing, String} = missing
-    var"pulse" :: Union{Missing, AbstractFDNumber} = missing
+    var"pulse" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"user" :: Union{Missing, String} = missing
     _parent :: WeakRef = WeakRef(missing)
     function dataset_description__parent_entry(var"pulse_type"=missing, var"run"=missing, var"machine"=missing, var"pulse"=missing, var"user"=missing, _parent=WeakRef(missing))
@@ -10195,11 +10195,11 @@ end
 Base.@kwdef mutable struct dataset_description__ids_properties <: FDS
     var"provider" :: Union{Missing, String} = missing
     var"version_put" :: dataset_description__ids_properties__version_put = dataset_description__ids_properties__version_put()
-    var"homogeneous_time" :: Union{Missing, AbstractFDNumber} = missing
+    var"homogeneous_time" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
     var"creation_date" :: Union{Missing, String} = missing
     var"comment" :: Union{Missing, String} = missing
-    var"occurrence" :: Union{Missing, AbstractFDNumber} = missing
+    var"occurrence" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function dataset_description__ids_properties(var"provider"=missing, var"version_put"=dataset_description__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
         fds = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
@@ -10211,9 +10211,9 @@ end
 
 Base.@kwdef mutable struct dataset_description__data_entry <: FDS
     var"pulse_type" :: Union{Missing, String} = missing
-    var"run" :: Union{Missing, AbstractFDNumber} = missing
+    var"run" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"machine" :: Union{Missing, String} = missing
-    var"pulse" :: Union{Missing, AbstractFDNumber} = missing
+    var"pulse" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"user" :: Union{Missing, String} = missing
     _parent :: WeakRef = WeakRef(missing)
     function dataset_description__data_entry(var"pulse_type"=missing, var"run"=missing, var"machine"=missing, var"pulse"=missing, var"user"=missing, _parent=WeakRef(missing))
@@ -10227,7 +10227,7 @@ Base.@kwdef mutable struct dataset_description <: FDS
     var"pulse_time_begin_epoch" :: dataset_description__pulse_time_begin_epoch = dataset_description__pulse_time_begin_epoch()
     var"imas_version" :: Union{Missing, String} = missing
     var"ids_properties" :: dataset_description__ids_properties = dataset_description__ids_properties()
-    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"dd_version" :: Union{Missing, String} = missing
     var"parent_entry" :: dataset_description__parent_entry = dataset_description__parent_entry()
     var"simulation" :: dataset_description__simulation = dataset_description__simulation()
@@ -10249,8 +10249,8 @@ Base.@kwdef mutable struct dataset_description <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__vacuum_toroidal_field <: FDS
-    var"b0" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"r0" :: Union{Missing, AbstractFDNumber} = missing
+    var"b0" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"r0" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__vacuum_toroidal_field(var"b0"=missing, var"r0"=missing, _parent=WeakRef(missing))
         fds = new(var"b0", var"r0", _parent)
@@ -10262,7 +10262,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___zeff_fit__time_measurement_slice_method <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___zeff_fit__time_measurement_slice_method(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10272,17 +10272,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___zeff_fit__time_measureme
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___zeff_fit <: FDS
-    var"local" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"chi_squared" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"local" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"chi_squared" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"parameters" :: Union{Missing, String} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time_measurement_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"weight" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"source" :: Union{Missing, AbstractFDVector{String}} = missing
-    var"measured" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"reconstructed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time_measurement_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"weight" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"source" :: Union{Missing, Vector{String}, AbstractFDVector{String}} = missing
+    var"measured" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___zeff_fit__time_measurement_slice_method = core_profiles__profiles_1d___zeff_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_measurement" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___zeff_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___zeff_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10295,7 +10295,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___t_i_average_fit__time_measurement_slice_method <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___t_i_average_fit__time_measurement_slice_method(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10305,17 +10305,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___t_i_average_fit__time_me
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___t_i_average_fit <: FDS
-    var"local" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"chi_squared" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"local" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"chi_squared" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"parameters" :: Union{Missing, String} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time_measurement_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"weight" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"source" :: Union{Missing, AbstractFDVector{String}} = missing
-    var"measured" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"reconstructed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time_measurement_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"weight" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"source" :: Union{Missing, Vector{String}, AbstractFDVector{String}} = missing
+    var"measured" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___t_i_average_fit__time_measurement_slice_method = core_profiles__profiles_1d___t_i_average_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_measurement" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___t_i_average_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___t_i_average_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10326,11 +10326,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___t_i_average_fit <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___neutral___velocity <: FDS
-    var"parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"toroidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"radial" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"poloidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"toroidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"diamagnetic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"radial" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"poloidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___neutral___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         fds = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10340,11 +10340,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___neutral___velocity <: FD
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___neutral___state___velocity <: FDS
-    var"parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"toroidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"radial" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"poloidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"toroidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"diamagnetic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"radial" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"poloidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___neutral___state___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         fds = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10356,7 +10356,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___neutral___state___neutral_type <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___neutral___state___neutral_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10367,18 +10367,18 @@ end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___neutral___state <: FDSvectorElement
     var"label" :: Union{Missing, String} = missing
-    var"vibrational_level" :: Union{Missing, AbstractFDNumber} = missing
-    var"temperature" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_fast_perpendicular" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"vibrational_level" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"temperature" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_fast_perpendicular" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"electron_configuration" :: Union{Missing, String} = missing
-    var"pressure" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"pressure" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"vibrational_mode" :: Union{Missing, String} = missing
-    var"pressure_fast_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"pressure_fast_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"velocity" :: core_profiles__profiles_1d___neutral___state___velocity = core_profiles__profiles_1d___neutral___state___velocity()
-    var"density" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_fast" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"density" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_fast" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"neutral_type" :: core_profiles__profiles_1d___neutral___state___neutral_type = core_profiles__profiles_1d___neutral___state___neutral_type()
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___neutral___state(var"label"=missing, var"vibrational_level"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"pressure_fast_perpendicular"=missing, var"electron_configuration"=missing, var"pressure"=missing, var"density_thermal"=missing, var"vibrational_mode"=missing, var"pressure_fast_parallel"=missing, var"velocity"=core_profiles__profiles_1d___neutral___state___velocity(), var"density"=missing, var"density_fast"=missing, var"neutral_type"=core_profiles__profiles_1d___neutral___state___neutral_type(), _parent=WeakRef(missing))
@@ -10391,10 +10391,10 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___neutral___state <: FDSve
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___neutral___element <: FDSvectorElement
-    var"atoms_n" :: Union{Missing, AbstractFDNumber} = missing
-    var"z_n" :: Union{Missing, AbstractFDNumber} = missing
-    var"multiplicity" :: Union{Missing, AbstractFDNumber} = missing
-    var"a" :: Union{Missing, AbstractFDNumber} = missing
+    var"atoms_n" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"z_n" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"multiplicity" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"a" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___neutral___element(var"atoms_n"=missing, var"z_n"=missing, var"multiplicity"=missing, var"a"=missing, _parent=WeakRef(missing))
         fds = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
@@ -10405,18 +10405,18 @@ end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___neutral <: FDSvectorElement
     var"label" :: Union{Missing, String} = missing
-    var"temperature" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"ion_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"multiple_states_flag" :: Union{Missing, AbstractFDNumber} = missing
-    var"pressure_fast_perpendicular" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_fast_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"temperature" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"ion_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"multiple_states_flag" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"pressure_fast_perpendicular" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_fast_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"state" :: FDSvector{T} where {T<:core_profiles__profiles_1d___neutral___state} = FDSvector(core_profiles__profiles_1d___neutral___state[])
     var"velocity" :: core_profiles__profiles_1d___neutral___velocity = core_profiles__profiles_1d___neutral___velocity()
-    var"density" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_fast" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"density" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_fast" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"element" :: FDSvector{T} where {T<:core_profiles__profiles_1d___neutral___element} = FDSvector(core_profiles__profiles_1d___neutral___element[])
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___neutral(var"label"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"ion_index"=missing, var"multiple_states_flag"=missing, var"pressure_fast_perpendicular"=missing, var"pressure"=missing, var"density_thermal"=missing, var"pressure_fast_parallel"=missing, var"state"=FDSvector(core_profiles__profiles_1d___neutral___state[]), var"velocity"=core_profiles__profiles_1d___neutral___velocity(), var"density"=missing, var"density_fast"=missing, var"element"=FDSvector(core_profiles__profiles_1d___neutral___element[]), _parent=WeakRef(missing))
@@ -10430,11 +10430,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___neutral <: FDSvectorElem
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___velocity <: FDS
-    var"parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"toroidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"radial" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"poloidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"toroidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"diamagnetic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"radial" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"poloidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         fds = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10446,7 +10446,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___temperature_fit__time_measurement_slice_method <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___temperature_fit__time_measurement_slice_method(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10456,17 +10456,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___ion___temperature_fit__t
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___temperature_fit <: FDS
-    var"local" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"chi_squared" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"local" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"chi_squared" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"parameters" :: Union{Missing, String} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time_measurement_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"weight" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"source" :: Union{Missing, AbstractFDVector{String}} = missing
-    var"measured" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"reconstructed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time_measurement_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"weight" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"source" :: Union{Missing, Vector{String}, AbstractFDVector{String}} = missing
+    var"measured" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___ion___temperature_fit__time_measurement_slice_method = core_profiles__profiles_1d___ion___temperature_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_measurement" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___temperature_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___ion___temperature_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10477,11 +10477,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___ion___temperature_fit <:
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___state___velocity <: FDS
-    var"parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"toroidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"radial" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"poloidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"toroidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"diamagnetic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"radial" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"poloidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___state___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         fds = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10493,7 +10493,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___state___density_fit__time_measurement_slice_method <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___state___density_fit__time_measurement_slice_method(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10503,17 +10503,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___ion___state___density_fi
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___state___density_fit <: FDS
-    var"local" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"chi_squared" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"local" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"chi_squared" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"parameters" :: Union{Missing, String} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time_measurement_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"weight" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"source" :: Union{Missing, AbstractFDVector{String}} = missing
-    var"measured" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"reconstructed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time_measurement_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"weight" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"source" :: Union{Missing, Vector{String}, AbstractFDVector{String}} = missing
+    var"measured" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___ion___state___density_fit__time_measurement_slice_method = core_profiles__profiles_1d___ion___state___density_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_measurement" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___state___density_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___ion___state___density_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10525,26 +10525,26 @@ end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___state <: FDSvectorElement
     var"label" :: Union{Missing, String} = missing
-    var"vibrational_level" :: Union{Missing, AbstractFDNumber} = missing
-    var"rotation_frequency_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"temperature" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_fast_perpendicular" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z_min" :: Union{Missing, AbstractFDNumber} = missing
+    var"vibrational_level" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"rotation_frequency_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"temperature" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_fast_perpendicular" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z_min" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"electron_configuration" :: Union{Missing, String} = missing
-    var"pressure" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"pressure" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"vibrational_mode" :: Union{Missing, String} = missing
-    var"pressure_fast_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z_average_square_1d" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"pressure_fast_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z_average_square_1d" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"velocity" :: core_profiles__profiles_1d___ion___state___velocity = core_profiles__profiles_1d___ion___state___velocity()
-    var"z_average" :: Union{Missing, AbstractFDNumber} = missing
-    var"z_max" :: Union{Missing, AbstractFDNumber} = missing
-    var"z_square_average" :: Union{Missing, AbstractFDNumber} = missing
-    var"ionisation_potential" :: Union{Missing, AbstractFDNumber} = missing
-    var"density" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_fast" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z_average_1d" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"z_average" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z_max" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"z_square_average" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"ionisation_potential" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"density" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_fast" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z_average_1d" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"density_fit" :: core_profiles__profiles_1d___ion___state___density_fit = core_profiles__profiles_1d___ion___state___density_fit()
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___state(var"label"=missing, var"vibrational_level"=missing, var"rotation_frequency_tor"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"pressure_fast_perpendicular"=missing, var"z_min"=missing, var"electron_configuration"=missing, var"pressure"=missing, var"density_thermal"=missing, var"vibrational_mode"=missing, var"pressure_fast_parallel"=missing, var"z_average_square_1d"=missing, var"velocity"=core_profiles__profiles_1d___ion___state___velocity(), var"z_average"=missing, var"z_max"=missing, var"z_square_average"=missing, var"ionisation_potential"=missing, var"density"=missing, var"density_fast"=missing, var"z_average_1d"=missing, var"density_fit"=core_profiles__profiles_1d___ion___state___density_fit(), _parent=WeakRef(missing))
@@ -10557,10 +10557,10 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___ion___state <: FDSvector
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___element <: FDSvectorElement
-    var"atoms_n" :: Union{Missing, AbstractFDNumber} = missing
-    var"z_n" :: Union{Missing, AbstractFDNumber} = missing
-    var"multiplicity" :: Union{Missing, AbstractFDNumber} = missing
-    var"a" :: Union{Missing, AbstractFDNumber} = missing
+    var"atoms_n" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"z_n" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"multiplicity" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"a" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___element(var"atoms_n"=missing, var"z_n"=missing, var"multiplicity"=missing, var"a"=missing, _parent=WeakRef(missing))
         fds = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
@@ -10572,7 +10572,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___density_fit__time_measurement_slice_method <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___density_fit__time_measurement_slice_method(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10582,17 +10582,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___ion___density_fit__time_
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion___density_fit <: FDS
-    var"local" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"chi_squared" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"local" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"chi_squared" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"parameters" :: Union{Missing, String} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time_measurement_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"weight" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"source" :: Union{Missing, AbstractFDVector{String}} = missing
-    var"measured" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"reconstructed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time_measurement_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"weight" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"source" :: Union{Missing, Vector{String}, AbstractFDVector{String}} = missing
+    var"measured" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___ion___density_fit__time_measurement_slice_method = core_profiles__profiles_1d___ion___density_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_measurement" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion___density_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___ion___density_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10604,28 +10604,28 @@ end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___ion <: FDSvectorElement
     var"label" :: Union{Missing, String} = missing
-    var"rotation_frequency_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"temperature_validity" :: Union{Missing, AbstractFDNumber} = missing
-    var"velocity_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"temperature" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z_ion_1d" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"multiple_states_flag" :: Union{Missing, AbstractFDNumber} = missing
-    var"pressure_fast_perpendicular" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"neutral_index" :: Union{Missing, AbstractFDNumber} = missing
-    var"pressure" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_validity" :: Union{Missing, AbstractFDNumber} = missing
-    var"pressure_fast_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"rotation_frequency_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"temperature_validity" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"velocity_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"temperature" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z_ion_1d" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"multiple_states_flag" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"pressure_fast_perpendicular" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"neutral_index" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"pressure" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_validity" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"pressure_fast_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"state" :: FDSvector{T} where {T<:core_profiles__profiles_1d___ion___state} = FDSvector(core_profiles__profiles_1d___ion___state[])
     var"velocity" :: core_profiles__profiles_1d___ion___velocity = core_profiles__profiles_1d___ion___velocity()
-    var"z_ion" :: Union{Missing, AbstractFDNumber} = missing
+    var"z_ion" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"temperature_fit" :: core_profiles__profiles_1d___ion___temperature_fit = core_profiles__profiles_1d___ion___temperature_fit()
-    var"density" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"velocity_pol" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_fast" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"density" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"velocity_pol" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_fast" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"density_fit" :: core_profiles__profiles_1d___ion___density_fit = core_profiles__profiles_1d___ion___density_fit()
-    var"z_ion_square_1d" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"z_ion_square_1d" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"element" :: FDSvector{T} where {T<:core_profiles__profiles_1d___ion___element} = FDSvector(core_profiles__profiles_1d___ion___element[])
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___ion(var"label"=missing, var"rotation_frequency_tor"=missing, var"temperature_validity"=missing, var"velocity_tor"=missing, var"temperature"=missing, var"z_ion_1d"=missing, var"pressure_thermal"=missing, var"multiple_states_flag"=missing, var"pressure_fast_perpendicular"=missing, var"neutral_index"=missing, var"pressure"=missing, var"density_thermal"=missing, var"density_validity"=missing, var"pressure_fast_parallel"=missing, var"state"=FDSvector(core_profiles__profiles_1d___ion___state[]), var"velocity"=core_profiles__profiles_1d___ion___velocity(), var"z_ion"=missing, var"temperature_fit"=core_profiles__profiles_1d___ion___temperature_fit(), var"density"=missing, var"velocity_pol"=missing, var"density_fast"=missing, var"density_fit"=core_profiles__profiles_1d___ion___density_fit(), var"z_ion_square_1d"=missing, var"element"=FDSvector(core_profiles__profiles_1d___ion___element[]), _parent=WeakRef(missing))
@@ -10641,15 +10641,15 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___ion <: FDSvectorElement
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___grid <: FDS
-    var"psi" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"psi_boundary" :: Union{Missing, AbstractFDNumber} = missing
-    var"volume" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"area" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_pol_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"surface" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"psi_magnetic_axis" :: Union{Missing, AbstractFDNumber} = missing
+    var"psi" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"psi_boundary" :: Union{Missing, Float64, AbstractFDNumber} = missing
+    var"volume" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"area" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_pol_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"surface" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"psi_magnetic_axis" :: Union{Missing, Float64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___grid(var"psi"=missing, var"psi_boundary"=missing, var"volume"=missing, var"area"=missing, var"rho_pol_norm"=missing, var"rho_tor_norm"=missing, var"surface"=missing, var"rho_tor"=missing, var"psi_magnetic_axis"=missing, _parent=WeakRef(missing))
         fds = new(var"psi", var"psi_boundary", var"volume", var"area", var"rho_pol_norm", var"rho_tor_norm", var"surface", var"rho_tor", var"psi_magnetic_axis", _parent)
@@ -10659,11 +10659,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___grid <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__velocity <: FDS
-    var"parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"toroidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"radial" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"poloidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"toroidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"diamagnetic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"radial" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"poloidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___electrons__velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         fds = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10675,7 +10675,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__temperature_fit__time_measurement_slice_method <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___electrons__temperature_fit__time_measurement_slice_method(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10685,17 +10685,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__temperature_f
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__temperature_fit <: FDS
-    var"local" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"chi_squared" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"local" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"chi_squared" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"parameters" :: Union{Missing, String} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time_measurement_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"weight" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"source" :: Union{Missing, AbstractFDVector{String}} = missing
-    var"measured" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"reconstructed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time_measurement_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"weight" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"source" :: Union{Missing, Vector{String}, AbstractFDVector{String}} = missing
+    var"measured" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___electrons__temperature_fit__time_measurement_slice_method = core_profiles__profiles_1d___electrons__temperature_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_measurement" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___electrons__temperature_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___electrons__temperature_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10708,7 +10708,7 @@ end
 Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__density_fit__time_measurement_slice_method <: FDS
     var"name" :: Union{Missing, String} = missing
     var"description" :: Union{Missing, String} = missing
-    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    var"index" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___electrons__density_fit__time_measurement_slice_method(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
         fds = new(var"name", var"description", var"index", _parent)
@@ -10718,17 +10718,17 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__density_fit__
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__density_fit <: FDS
-    var"local" :: Union{Missing, AbstractFDVector{Int64}} = missing
-    var"chi_squared" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"local" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
+    var"chi_squared" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"parameters" :: Union{Missing, String} = missing
-    var"reconstructed" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time_measurement_width" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"weight" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"source" :: Union{Missing, AbstractFDVector{String}} = missing
-    var"measured" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"reconstructed" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time_measurement_width" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"weight" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"source" :: Union{Missing, Vector{String}, AbstractFDVector{String}} = missing
+    var"measured" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___electrons__density_fit__time_measurement_slice_method = core_profiles__profiles_1d___electrons__density_fit__time_measurement_slice_method()
-    var"time_measurement" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time_measurement" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___electrons__density_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___electrons__density_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         fds = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10739,21 +10739,21 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___electrons__density_fit <
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___electrons <: FDS
-    var"temperature_validity" :: Union{Missing, AbstractFDNumber} = missing
-    var"velocity_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"temperature" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_fast_perpendicular" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_validity" :: Union{Missing, AbstractFDNumber} = missing
-    var"pressure_fast_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"temperature_validity" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"velocity_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"temperature" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_fast_perpendicular" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_validity" :: Union{Missing, Int64, AbstractFDNumber} = missing
+    var"pressure_fast_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"velocity" :: core_profiles__profiles_1d___electrons__velocity = core_profiles__profiles_1d___electrons__velocity()
     var"temperature_fit" :: core_profiles__profiles_1d___electrons__temperature_fit = core_profiles__profiles_1d___electrons__temperature_fit()
-    var"density" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"velocity_pol" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"collisionality_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"density_fast" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"density" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"velocity_pol" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"collisionality_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"density_fast" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"density_fit" :: core_profiles__profiles_1d___electrons__density_fit = core_profiles__profiles_1d___electrons__density_fit()
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___electrons(var"temperature_validity"=missing, var"velocity_tor"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"pressure_fast_perpendicular"=missing, var"pressure"=missing, var"density_thermal"=missing, var"density_validity"=missing, var"pressure_fast_parallel"=missing, var"velocity"=core_profiles__profiles_1d___electrons__velocity(), var"temperature_fit"=core_profiles__profiles_1d___electrons__temperature_fit(), var"density"=missing, var"velocity_pol"=missing, var"collisionality_norm"=missing, var"density_fast"=missing, var"density_fit"=core_profiles__profiles_1d___electrons__density_fit(), _parent=WeakRef(missing))
@@ -10767,11 +10767,11 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___electrons <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d___e_field <: FDS
-    var"parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"toroidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"radial" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"poloidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"toroidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"diamagnetic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"radial" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"poloidal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d___e_field(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         fds = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10781,35 +10781,35 @@ Base.@kwdef mutable struct core_profiles__profiles_1d___e_field <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__profiles_1d <: FDSvectorElement
-    var"pressure_ion_total" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"time" :: Union{Missing, AbstractFDNumber} = missing
+    var"pressure_ion_total" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Float64, AbstractFDNumber} = missing
     var"t_i_average_fit" :: core_profiles__profiles_1d___t_i_average_fit = core_profiles__profiles_1d___t_i_average_fit()
     var"neutral" :: FDSvector{T} where {T<:core_profiles__profiles_1d___neutral} = FDSvector(core_profiles__profiles_1d___neutral[])
-    var"n_i_thermal_total" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"magnetic_shear" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"n_i_thermal_total" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"magnetic_shear" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"ion" :: FDSvector{T} where {T<:core_profiles__profiles_1d___ion} = FDSvector(core_profiles__profiles_1d___ion[])
-    var"j_total" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"rotation_frequency_tor_sonic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"pressure_thermal" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"j_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"current_parallel_inside" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"j_non_inductive" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"e_field_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"momentum_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"conductivity_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"j_total" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"rotation_frequency_tor_sonic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"pressure_thermal" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"j_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"current_parallel_inside" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"j_non_inductive" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"e_field_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"momentum_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"conductivity_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"electrons" :: core_profiles__profiles_1d___electrons = core_profiles__profiles_1d___electrons()
-    var"pressure_perpendicular" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"q" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"t_i_average" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"j_ohmic" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"pressure_perpendicular" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"q" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"t_i_average" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"j_ohmic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"grid" :: core_profiles__profiles_1d___grid = core_profiles__profiles_1d___grid()
-    var"phi_potential" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"j_bootstrap" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"phi_potential" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"j_bootstrap" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"zeff_fit" :: core_profiles__profiles_1d___zeff_fit = core_profiles__profiles_1d___zeff_fit()
-    var"pressure_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"pressure_parallel" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"e_field" :: core_profiles__profiles_1d___e_field = core_profiles__profiles_1d___e_field()
-    var"zeff" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"n_i_total_over_n_e" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"zeff" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"n_i_total_over_n_e" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__profiles_1d(var"pressure_ion_total"=missing, var"time"=missing, var"t_i_average_fit"=core_profiles__profiles_1d___t_i_average_fit(), var"neutral"=FDSvector(core_profiles__profiles_1d___neutral[]), var"n_i_thermal_total"=missing, var"magnetic_shear"=missing, var"ion"=FDSvector(core_profiles__profiles_1d___ion[]), var"j_total"=missing, var"rotation_frequency_tor_sonic"=missing, var"pressure_thermal"=missing, var"j_tor"=missing, var"current_parallel_inside"=missing, var"j_non_inductive"=missing, var"e_field_parallel"=missing, var"momentum_tor"=missing, var"conductivity_parallel"=missing, var"electrons"=core_profiles__profiles_1d___electrons(), var"pressure_perpendicular"=missing, var"q"=missing, var"t_i_average"=missing, var"j_ohmic"=missing, var"grid"=core_profiles__profiles_1d___grid(), var"phi_potential"=missing, var"j_bootstrap"=missing, var"zeff_fit"=core_profiles__profiles_1d___zeff_fit(), var"pressure_parallel"=missing, var"e_field"=core_profiles__profiles_1d___e_field(), var"zeff"=missing, var"n_i_total_over_n_e"=missing, _parent=WeakRef(missing))
         fds = new(var"pressure_ion_total", var"time", var"t_i_average_fit", var"neutral", var"n_i_thermal_total", var"magnetic_shear", var"ion", var"j_total", var"rotation_frequency_tor_sonic", var"pressure_thermal", var"j_tor", var"current_parallel_inside", var"j_non_inductive", var"e_field_parallel", var"momentum_tor", var"conductivity_parallel", var"electrons", var"pressure_perpendicular", var"q", var"t_i_average", var"j_ohmic", var"grid", var"phi_potential", var"j_bootstrap", var"zeff_fit", var"pressure_parallel", var"e_field", var"zeff", var"n_i_total_over_n_e", _parent)
@@ -10840,11 +10840,11 @@ end
 Base.@kwdef mutable struct core_profiles__ids_properties <: FDS
     var"provider" :: Union{Missing, String} = missing
     var"version_put" :: core_profiles__ids_properties__version_put = core_profiles__ids_properties__version_put()
-    var"homogeneous_time" :: Union{Missing, AbstractFDNumber} = missing
+    var"homogeneous_time" :: Union{Missing, Int64, AbstractFDNumber} = missing
     var"source" :: Union{Missing, String} = missing
     var"creation_date" :: Union{Missing, String} = missing
     var"comment" :: Union{Missing, String} = missing
-    var"occurrence" :: Union{Missing, AbstractFDNumber} = missing
+    var"occurrence" :: Union{Missing, Int64, AbstractFDNumber} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__ids_properties(var"provider"=missing, var"version_put"=core_profiles__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
         fds = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
@@ -10855,21 +10855,21 @@ Base.@kwdef mutable struct core_profiles__ids_properties <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles__global_quantities <: FDS
-    var"beta_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"resistive_psi_losses" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"ip" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"li_3" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"t_i_average_peaking" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"t_e_peaking" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"beta_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"z_eff_resistive" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"ejima" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"energy_diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"li" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"current_non_inductive" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"v_loop" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"beta_pol" :: Union{Missing, AbstractFDVector{Float64}} = missing
-    var"current_bootstrap" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"beta_tor_norm" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"resistive_psi_losses" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"ip" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"li_3" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"t_i_average_peaking" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"t_e_peaking" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"beta_tor" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"z_eff_resistive" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"ejima" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"energy_diamagnetic" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"li" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"current_non_inductive" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"v_loop" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"beta_pol" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
+    var"current_bootstrap" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__global_quantities(var"beta_tor_norm"=missing, var"resistive_psi_losses"=missing, var"ip"=missing, var"li_3"=missing, var"t_i_average_peaking"=missing, var"t_e_peaking"=missing, var"beta_tor"=missing, var"z_eff_resistive"=missing, var"ejima"=missing, var"energy_diamagnetic"=missing, var"li"=missing, var"current_non_inductive"=missing, var"v_loop"=missing, var"beta_pol"=missing, var"current_bootstrap"=missing, _parent=WeakRef(missing))
         fds = new(var"beta_tor_norm", var"resistive_psi_losses", var"ip", var"li_3", var"t_i_average_peaking", var"t_e_peaking", var"beta_tor", var"z_eff_resistive", var"ejima", var"energy_diamagnetic", var"li", var"current_non_inductive", var"v_loop", var"beta_pol", var"current_bootstrap", _parent)
@@ -10898,7 +10898,7 @@ Base.@kwdef mutable struct core_profiles__code <: FDS
     var"parameters" :: Union{Missing, String} = missing
     var"commit" :: Union{Missing, String} = missing
     var"repository" :: Union{Missing, String} = missing
-    var"output_flag" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"output_flag" :: Union{Missing, Vector{Int64}, AbstractFDVector{Int64}} = missing
     var"version" :: Union{Missing, String} = missing
     _parent :: WeakRef = WeakRef(missing)
     function core_profiles__code(var"library"=FDSvector(core_profiles__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -10910,7 +10910,7 @@ Base.@kwdef mutable struct core_profiles__code <: FDS
 end
 
 Base.@kwdef mutable struct core_profiles <: FDS
-    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"time" :: Union{Missing, Vector{Float64}, AbstractFDVector{Float64}} = missing
     var"ids_properties" :: core_profiles__ids_properties = core_profiles__ids_properties()
     var"vacuum_toroidal_field" :: core_profiles__vacuum_toroidal_field = core_profiles__vacuum_toroidal_field()
     var"code" :: core_profiles__code = core_profiles__code()

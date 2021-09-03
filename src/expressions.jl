@@ -13,3 +13,9 @@ expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
 expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (;time_slice, _...) -> 3 / 2 * trapz(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
+# expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
+#     (;_...) -> 0.0
+
+# expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
+#     (psi; time_slice, _...) -> psi .* 0.0 .+ time_slice.global_quantities.magnetic_axis.z
+

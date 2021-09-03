@@ -33,9 +33,11 @@ end
 Return the typeof of a given `field` witin a `structure`
 """
 function struct_field_type(structure::DataType, field::Symbol)
-    names = fieldnames(structure)
-    index = findfirst(isequal(field), names)
-    return structure.types[index]
+    Zygote.ignore() do
+        names = fieldnames(structure)
+        index = findfirst(isequal(field), names)
+        return structure.types[index]
+    end
 end
 
 #= === =#
@@ -61,7 +63,7 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
         setfield!(v, :_field, field)
     end
 
-    target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), field))
+    target_type = typeintersect(typeintersect(conversion_types, struct_field_type(typeof(fds), field)), AbstractFDVector)
 
     # if it's a function
     if typeof(v) <: Function
@@ -73,20 +75,26 @@ function Base.setproperty!(fds::FDS, field::Symbol, v)
 
     # if the value is not an AbstractFDNumber, but it should be
     elseif (target_type <: AbstractFDNumber) & (! (typeof(v) <: AbstractFDNumber))
-        v = FDNumber(v, WeakRef(fds), field, true)
+        Zygote.ignore() do
+            v = FDNumber(v, WeakRef(fds), field, true)
+            return setfield!(fds, field, v)
+        end
 
     # if the value is not an AbstractFDArray, but it should be
     elseif (target_type <: AbstractFDArray) & (! (typeof(v) <: AbstractFDArray))
-        # figure out the coordinates
-        coords = coordinates(fds, field)
-        # do not allow assigning data before coordinates
-        for (c_name, c_value) in zip(coords[:names], coords[:values])
-            if c_value === missing
-                error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
+        Zygote.ignore() do
+            # figure out the coordinates
+            coords = coordinates(fds, field)
+            # do not allow assigning data before coordinates
+            for (c_name, c_value) in zip(coords[:names], coords[:values])
+                if c_value === missing
+                    error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
+                end
             end
+            # convert value to FDVector
+            v = FDVector(coords[:values], v, WeakRef(fds), field)
+            return setfield!(fds, field, v)
         end
-        # convert value to FDVector
-        v = FDVector(coords[:values], v, WeakRef(fds), field)
     end
 
     return setfield!(fds, field, v)
@@ -356,3 +364,4 @@ Base.show(io::IO, fdn::FDNumber) = print(convert(Number,fdn))
 
 Base.real(fdn::FDNumber) = Base.real(convert(Number,fdn))
 Base.imag(fdn::FDNumber) = Base.imag(convert(Number,fdn))
+Base.conj(fdn::FDNumber) = Base.conj(convert(Number,fdn))
