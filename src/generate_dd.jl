@@ -23,7 +23,7 @@ for filename in filenames
     if startswith(filename, "_") || ! endswith(filename, ".json")
         continue
     end
-    if ! (filename in ["core_profiles.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"])
+    if ! (filename in ["core_profiles.json", "core_sources.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"])
         continue
     end
     filename = replace(filename, ".json" => "")
