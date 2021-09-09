@@ -10248,6 +10248,577 @@ Base.@kwdef mutable struct dataset_description <: FDS
     end
 end
 
+Base.@kwdef mutable struct core_sources__vacuum_toroidal_field <: FDS
+    var"b0" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"r0" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__vacuum_toroidal_field(var"b0"=missing, var"r0"=missing, _parent=WeakRef(missing))
+        fds = new(var"b0", var"r0", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__type <: FDS
+    var"name" :: Union{Missing, String} = missing
+    var"description" :: Union{Missing, String} = missing
+    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        fds = new(var"name", var"description", var"index", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__neutral__state__neutral_type <: FDS
+    var"name" :: Union{Missing, String} = missing
+    var"description" :: Union{Missing, String} = missing
+    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__neutral__state__neutral_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        fds = new(var"name", var"description", var"index", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__neutral__state <: FDS
+    var"label" :: Union{Missing, String} = missing
+    var"electron_configuration" :: Union{Missing, String} = missing
+    var"vibrational_level" :: Union{Missing, AbstractFDNumber} = missing
+    var"vibrational_mode" :: Union{Missing, String} = missing
+    var"neutral_type" :: core_sources__source___species__neutral__state__neutral_type = core_sources__source___species__neutral__state__neutral_type()
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__neutral__state(var"label"=missing, var"electron_configuration"=missing, var"vibrational_level"=missing, var"vibrational_mode"=missing, var"neutral_type"=core_sources__source___species__neutral__state__neutral_type(), _parent=WeakRef(missing))
+        fds = new(var"label", var"electron_configuration", var"vibrational_level", var"vibrational_mode", var"neutral_type", _parent)
+        assign_expressions(fds)
+        setfield!(fds.neutral_type, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__neutral__element <: FDSvectorElement
+    var"atoms_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"z_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"multiplicity" :: Union{Missing, AbstractFDNumber} = missing
+    var"a" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__neutral__element(var"atoms_n"=missing, var"z_n"=missing, var"multiplicity"=missing, var"a"=missing, _parent=WeakRef(missing))
+        fds = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__neutral <: FDS
+    var"label" :: Union{Missing, String} = missing
+    var"state" :: core_sources__source___species__neutral__state = core_sources__source___species__neutral__state()
+    var"element" :: FDSvector{T} where {T<:core_sources__source___species__neutral__element} = FDSvector(core_sources__source___species__neutral__element[])
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__neutral(var"label"=missing, var"state"=core_sources__source___species__neutral__state(), var"element"=FDSvector(core_sources__source___species__neutral__element[]), _parent=WeakRef(missing))
+        fds = new(var"label", var"state", var"element", _parent)
+        assign_expressions(fds)
+        setfield!(fds.state, :_parent, WeakRef(fds))
+        setfield!(fds.element, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__ion__state <: FDS
+    var"label" :: Union{Missing, String} = missing
+    var"electron_configuration" :: Union{Missing, String} = missing
+    var"vibrational_level" :: Union{Missing, AbstractFDNumber} = missing
+    var"vibrational_mode" :: Union{Missing, String} = missing
+    var"z_min" :: Union{Missing, AbstractFDNumber} = missing
+    var"z_max" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__ion__state(var"label"=missing, var"electron_configuration"=missing, var"vibrational_level"=missing, var"vibrational_mode"=missing, var"z_min"=missing, var"z_max"=missing, _parent=WeakRef(missing))
+        fds = new(var"label", var"electron_configuration", var"vibrational_level", var"vibrational_mode", var"z_min", var"z_max", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__ion__element <: FDSvectorElement
+    var"atoms_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"z_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"multiplicity" :: Union{Missing, AbstractFDNumber} = missing
+    var"a" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__ion__element(var"atoms_n"=missing, var"z_n"=missing, var"multiplicity"=missing, var"a"=missing, _parent=WeakRef(missing))
+        fds = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species__ion <: FDS
+    var"label" :: Union{Missing, String} = missing
+    var"state" :: core_sources__source___species__ion__state = core_sources__source___species__ion__state()
+    var"z_ion" :: Union{Missing, AbstractFDNumber} = missing
+    var"element" :: FDSvector{T} where {T<:core_sources__source___species__ion__element} = FDSvector(core_sources__source___species__ion__element[])
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species__ion(var"label"=missing, var"state"=core_sources__source___species__ion__state(), var"z_ion"=missing, var"element"=FDSvector(core_sources__source___species__ion__element[]), _parent=WeakRef(missing))
+        fds = new(var"label", var"state", var"z_ion", var"element", _parent)
+        assign_expressions(fds)
+        setfield!(fds.state, :_parent, WeakRef(fds))
+        setfield!(fds.element, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___species <: FDS
+    var"ion" :: core_sources__source___species__ion = core_sources__source___species__ion()
+    var"type" :: core_sources__source___species__type = core_sources__source___species__type()
+    var"neutral" :: core_sources__source___species__neutral = core_sources__source___species__neutral()
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___species(var"ion"=core_sources__source___species__ion(), var"type"=core_sources__source___species__type(), var"neutral"=core_sources__source___species__neutral(), _parent=WeakRef(missing))
+        fds = new(var"ion", var"type", var"neutral", _parent)
+        assign_expressions(fds)
+        setfield!(fds.ion, :_parent, WeakRef(fds))
+        setfield!(fds.type, :_parent, WeakRef(fds))
+        setfield!(fds.neutral, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___total_ion_energy_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___total_ion_energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___neutral___state___neutral_type <: FDS
+    var"name" :: Union{Missing, String} = missing
+    var"description" :: Union{Missing, String} = missing
+    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___neutral___state___neutral_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        fds = new(var"name", var"description", var"index", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___neutral___state <: FDSvectorElement
+    var"label" :: Union{Missing, String} = missing
+    var"electron_configuration" :: Union{Missing, String} = missing
+    var"particles" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"vibrational_level" :: Union{Missing, AbstractFDNumber} = missing
+    var"vibrational_mode" :: Union{Missing, String} = missing
+    var"neutral_type" :: core_sources__source___profiles_1d___neutral___state___neutral_type = core_sources__source___profiles_1d___neutral___state___neutral_type()
+    var"energy" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___neutral___state(var"label"=missing, var"electron_configuration"=missing, var"particles"=missing, var"vibrational_level"=missing, var"vibrational_mode"=missing, var"neutral_type"=core_sources__source___profiles_1d___neutral___state___neutral_type(), var"energy"=missing, _parent=WeakRef(missing))
+        fds = new(var"label", var"electron_configuration", var"particles", var"vibrational_level", var"vibrational_mode", var"neutral_type", var"energy", _parent)
+        assign_expressions(fds)
+        setfield!(fds.neutral_type, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___neutral___element <: FDSvectorElement
+    var"atoms_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"z_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"multiplicity" :: Union{Missing, AbstractFDNumber} = missing
+    var"a" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___neutral___element(var"atoms_n"=missing, var"z_n"=missing, var"multiplicity"=missing, var"a"=missing, _parent=WeakRef(missing))
+        fds = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___neutral <: FDSvectorElement
+    var"label" :: Union{Missing, String} = missing
+    var"particles" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"ion_index" :: Union{Missing, AbstractFDNumber} = missing
+    var"multiple_states_flag" :: Union{Missing, AbstractFDNumber} = missing
+    var"energy" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"state" :: FDSvector{T} where {T<:core_sources__source___profiles_1d___neutral___state} = FDSvector(core_sources__source___profiles_1d___neutral___state[])
+    var"element" :: FDSvector{T} where {T<:core_sources__source___profiles_1d___neutral___element} = FDSvector(core_sources__source___profiles_1d___neutral___element[])
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___neutral(var"label"=missing, var"particles"=missing, var"ion_index"=missing, var"multiple_states_flag"=missing, var"energy"=missing, var"state"=FDSvector(core_sources__source___profiles_1d___neutral___state[]), var"element"=FDSvector(core_sources__source___profiles_1d___neutral___element[]), _parent=WeakRef(missing))
+        fds = new(var"label", var"particles", var"ion_index", var"multiple_states_flag", var"energy", var"state", var"element", _parent)
+        assign_expressions(fds)
+        setfield!(fds.state, :_parent, WeakRef(fds))
+        setfield!(fds.element, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___state___particles_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___state___particles_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___state___neutral_type <: FDS
+    var"name" :: Union{Missing, String} = missing
+    var"description" :: Union{Missing, String} = missing
+    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___state___neutral_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        fds = new(var"name", var"description", var"index", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___state___energy_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___state___energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___state <: FDSvectorElement
+    var"label" :: Union{Missing, String} = missing
+    var"particles" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"vibrational_level" :: Union{Missing, AbstractFDNumber} = missing
+    var"is_neutral" :: Union{Missing, AbstractFDNumber} = missing
+    var"energy" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"z_min" :: Union{Missing, AbstractFDNumber} = missing
+    var"electron_configuration" :: Union{Missing, String} = missing
+    var"particles_decomposed" :: core_sources__source___profiles_1d___ion___state___particles_decomposed = core_sources__source___profiles_1d___ion___state___particles_decomposed()
+    var"vibrational_mode" :: Union{Missing, String} = missing
+    var"z_max" :: Union{Missing, AbstractFDNumber} = missing
+    var"energy_decomposed" :: core_sources__source___profiles_1d___ion___state___energy_decomposed = core_sources__source___profiles_1d___ion___state___energy_decomposed()
+    var"neutral_type" :: core_sources__source___profiles_1d___ion___state___neutral_type = core_sources__source___profiles_1d___ion___state___neutral_type()
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___state(var"label"=missing, var"particles"=missing, var"vibrational_level"=missing, var"is_neutral"=missing, var"energy"=missing, var"z_min"=missing, var"electron_configuration"=missing, var"particles_decomposed"=core_sources__source___profiles_1d___ion___state___particles_decomposed(), var"vibrational_mode"=missing, var"z_max"=missing, var"energy_decomposed"=core_sources__source___profiles_1d___ion___state___energy_decomposed(), var"neutral_type"=core_sources__source___profiles_1d___ion___state___neutral_type(), _parent=WeakRef(missing))
+        fds = new(var"label", var"particles", var"vibrational_level", var"is_neutral", var"energy", var"z_min", var"electron_configuration", var"particles_decomposed", var"vibrational_mode", var"z_max", var"energy_decomposed", var"neutral_type", _parent)
+        assign_expressions(fds)
+        setfield!(fds.particles_decomposed, :_parent, WeakRef(fds))
+        setfield!(fds.energy_decomposed, :_parent, WeakRef(fds))
+        setfield!(fds.neutral_type, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___particles_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___particles_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___momentum <: FDS
+    var"toroidal_decomposed" :: core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed = core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed()
+    var"parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"toroidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"diamagnetic" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"radial" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"poloidal" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___momentum(var"toroidal_decomposed"=core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed(), var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
+        fds = new(var"toroidal_decomposed", var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
+        assign_expressions(fds)
+        setfield!(fds.toroidal_decomposed, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___energy_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion___element <: FDSvectorElement
+    var"atoms_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"z_n" :: Union{Missing, AbstractFDNumber} = missing
+    var"multiplicity" :: Union{Missing, AbstractFDNumber} = missing
+    var"a" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion___element(var"atoms_n"=missing, var"z_n"=missing, var"multiplicity"=missing, var"a"=missing, _parent=WeakRef(missing))
+        fds = new(var"atoms_n", var"z_n", var"multiplicity", var"a", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___ion <: FDSvectorElement
+    var"label" :: Union{Missing, String} = missing
+    var"particles" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"momentum" :: core_sources__source___profiles_1d___ion___momentum = core_sources__source___profiles_1d___ion___momentum()
+    var"energy" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"multiple_states_flag" :: Union{Missing, AbstractFDNumber} = missing
+    var"neutral_index" :: Union{Missing, AbstractFDNumber} = missing
+    var"particles_decomposed" :: core_sources__source___profiles_1d___ion___particles_decomposed = core_sources__source___profiles_1d___ion___particles_decomposed()
+    var"state" :: FDSvector{T} where {T<:core_sources__source___profiles_1d___ion___state} = FDSvector(core_sources__source___profiles_1d___ion___state[])
+    var"z_ion" :: Union{Missing, AbstractFDNumber} = missing
+    var"energy_decomposed" :: core_sources__source___profiles_1d___ion___energy_decomposed = core_sources__source___profiles_1d___ion___energy_decomposed()
+    var"element" :: FDSvector{T} where {T<:core_sources__source___profiles_1d___ion___element} = FDSvector(core_sources__source___profiles_1d___ion___element[])
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___ion(var"label"=missing, var"particles"=missing, var"momentum"=core_sources__source___profiles_1d___ion___momentum(), var"energy"=missing, var"multiple_states_flag"=missing, var"neutral_index"=missing, var"particles_decomposed"=core_sources__source___profiles_1d___ion___particles_decomposed(), var"state"=FDSvector(core_sources__source___profiles_1d___ion___state[]), var"z_ion"=missing, var"energy_decomposed"=core_sources__source___profiles_1d___ion___energy_decomposed(), var"element"=FDSvector(core_sources__source___profiles_1d___ion___element[]), _parent=WeakRef(missing))
+        fds = new(var"label", var"particles", var"momentum", var"energy", var"multiple_states_flag", var"neutral_index", var"particles_decomposed", var"state", var"z_ion", var"energy_decomposed", var"element", _parent)
+        assign_expressions(fds)
+        setfield!(fds.momentum, :_parent, WeakRef(fds))
+        setfield!(fds.particles_decomposed, :_parent, WeakRef(fds))
+        setfield!(fds.state, :_parent, WeakRef(fds))
+        setfield!(fds.energy_decomposed, :_parent, WeakRef(fds))
+        setfield!(fds.element, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___grid <: FDS
+    var"psi" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"psi_boundary" :: Union{Missing, AbstractFDNumber} = missing
+    var"volume" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"area" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"rho_pol_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"rho_tor_norm" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"surface" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"rho_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"psi_magnetic_axis" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___grid(var"psi"=missing, var"psi_boundary"=missing, var"volume"=missing, var"area"=missing, var"rho_pol_norm"=missing, var"rho_tor_norm"=missing, var"surface"=missing, var"rho_tor"=missing, var"psi_magnetic_axis"=missing, _parent=WeakRef(missing))
+        fds = new(var"psi", var"psi_boundary", var"volume", var"area", var"rho_pol_norm", var"rho_tor_norm", var"surface", var"rho_tor", var"psi_magnetic_axis", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___electrons__particles_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___electrons__particles_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___electrons__energy_decomposed <: FDS
+    var"explicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"implicit_part" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___electrons__energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
+        fds = new(var"explicit_part", var"implicit_part", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d___electrons <: FDS
+    var"particles_inside" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"particles" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"particles_decomposed" :: core_sources__source___profiles_1d___electrons__particles_decomposed = core_sources__source___profiles_1d___electrons__particles_decomposed()
+    var"energy_decomposed" :: core_sources__source___profiles_1d___electrons__energy_decomposed = core_sources__source___profiles_1d___electrons__energy_decomposed()
+    var"energy" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"power_inside" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d___electrons(var"particles_inside"=missing, var"particles"=missing, var"particles_decomposed"=core_sources__source___profiles_1d___electrons__particles_decomposed(), var"energy_decomposed"=core_sources__source___profiles_1d___electrons__energy_decomposed(), var"energy"=missing, var"power_inside"=missing, _parent=WeakRef(missing))
+        fds = new(var"particles_inside", var"particles", var"particles_decomposed", var"energy_decomposed", var"energy", var"power_inside", _parent)
+        assign_expressions(fds)
+        setfield!(fds.particles_decomposed, :_parent, WeakRef(fds))
+        setfield!(fds.energy_decomposed, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___profiles_1d <: FDSvectorElement
+    var"time" :: Union{Missing, AbstractFDNumber} = missing
+    var"neutral" :: FDSvector{T} where {T<:core_sources__source___profiles_1d___neutral} = FDSvector(core_sources__source___profiles_1d___neutral[])
+    var"torque_tor_inside" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"ion" :: FDSvector{T} where {T<:core_sources__source___profiles_1d___ion} = FDSvector(core_sources__source___profiles_1d___ion[])
+    var"total_ion_energy_decomposed" :: core_sources__source___profiles_1d___total_ion_energy_decomposed = core_sources__source___profiles_1d___total_ion_energy_decomposed()
+    var"current_parallel_inside" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"momentum_tor" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"conductivity_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"electrons" :: core_sources__source___profiles_1d___electrons = core_sources__source___profiles_1d___electrons()
+    var"momentum_tor_j_cross_b_field" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"grid" :: core_sources__source___profiles_1d___grid = core_sources__source___profiles_1d___grid()
+    var"total_ion_energy" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"j_parallel" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"total_ion_power_inside" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___profiles_1d(var"time"=missing, var"neutral"=FDSvector(core_sources__source___profiles_1d___neutral[]), var"torque_tor_inside"=missing, var"ion"=FDSvector(core_sources__source___profiles_1d___ion[]), var"total_ion_energy_decomposed"=core_sources__source___profiles_1d___total_ion_energy_decomposed(), var"current_parallel_inside"=missing, var"momentum_tor"=missing, var"conductivity_parallel"=missing, var"electrons"=core_sources__source___profiles_1d___electrons(), var"momentum_tor_j_cross_b_field"=missing, var"grid"=core_sources__source___profiles_1d___grid(), var"total_ion_energy"=missing, var"j_parallel"=missing, var"total_ion_power_inside"=missing, _parent=WeakRef(missing))
+        fds = new(var"time", var"neutral", var"torque_tor_inside", var"ion", var"total_ion_energy_decomposed", var"current_parallel_inside", var"momentum_tor", var"conductivity_parallel", var"electrons", var"momentum_tor_j_cross_b_field", var"grid", var"total_ion_energy", var"j_parallel", var"total_ion_power_inside", _parent)
+        assign_expressions(fds)
+        setfield!(fds.neutral, :_parent, WeakRef(fds))
+        setfield!(fds.ion, :_parent, WeakRef(fds))
+        setfield!(fds.total_ion_energy_decomposed, :_parent, WeakRef(fds))
+        setfield!(fds.electrons, :_parent, WeakRef(fds))
+        setfield!(fds.grid, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___identifier <: FDS
+    var"name" :: Union{Missing, String} = missing
+    var"description" :: Union{Missing, String} = missing
+    var"index" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        fds = new(var"name", var"description", var"index", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___global_quantities___electrons <: FDS
+    var"particles" :: Union{Missing, AbstractFDNumber} = missing
+    var"power" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___global_quantities___electrons(var"particles"=missing, var"power"=missing, _parent=WeakRef(missing))
+        fds = new(var"particles", var"power", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source___global_quantities <: FDSvectorElement
+    var"time" :: Union{Missing, AbstractFDNumber} = missing
+    var"current_parallel" :: Union{Missing, AbstractFDNumber} = missing
+    var"total_ion_power" :: Union{Missing, AbstractFDNumber} = missing
+    var"torque_tor" :: Union{Missing, AbstractFDNumber} = missing
+    var"power" :: Union{Missing, AbstractFDNumber} = missing
+    var"total_ion_particles" :: Union{Missing, AbstractFDNumber} = missing
+    var"electrons" :: core_sources__source___global_quantities___electrons = core_sources__source___global_quantities___electrons()
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source___global_quantities(var"time"=missing, var"current_parallel"=missing, var"total_ion_power"=missing, var"torque_tor"=missing, var"power"=missing, var"total_ion_particles"=missing, var"electrons"=core_sources__source___global_quantities___electrons(), _parent=WeakRef(missing))
+        fds = new(var"time", var"current_parallel", var"total_ion_power", var"torque_tor", var"power", var"total_ion_particles", var"electrons", _parent)
+        assign_expressions(fds)
+        setfield!(fds.electrons, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__source <: FDSvectorElement
+    var"global_quantities" :: FDSvector{T} where {T<:core_sources__source___global_quantities} = FDSvector(core_sources__source___global_quantities[])
+    var"identifier" :: core_sources__source___identifier = core_sources__source___identifier()
+    var"profiles_1d" :: FDSvector{T} where {T<:core_sources__source___profiles_1d} = FDSvector(core_sources__source___profiles_1d[])
+    var"species" :: core_sources__source___species = core_sources__source___species()
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__source(var"global_quantities"=FDSvector(core_sources__source___global_quantities[]), var"identifier"=core_sources__source___identifier(), var"profiles_1d"=FDSvector(core_sources__source___profiles_1d[]), var"species"=core_sources__source___species(), _parent=WeakRef(missing))
+        fds = new(var"global_quantities", var"identifier", var"profiles_1d", var"species", _parent)
+        assign_expressions(fds)
+        setfield!(fds.global_quantities, :_parent, WeakRef(fds))
+        setfield!(fds.identifier, :_parent, WeakRef(fds))
+        setfield!(fds.profiles_1d, :_parent, WeakRef(fds))
+        setfield!(fds.species, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__ids_properties__version_put <: FDS
+    var"access_layer_language" :: Union{Missing, String} = missing
+    var"data_dictionary" :: Union{Missing, String} = missing
+    var"access_layer" :: Union{Missing, String} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__ids_properties__version_put(var"access_layer_language"=missing, var"data_dictionary"=missing, var"access_layer"=missing, _parent=WeakRef(missing))
+        fds = new(var"access_layer_language", var"data_dictionary", var"access_layer", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__ids_properties <: FDS
+    var"provider" :: Union{Missing, String} = missing
+    var"version_put" :: core_sources__ids_properties__version_put = core_sources__ids_properties__version_put()
+    var"homogeneous_time" :: Union{Missing, AbstractFDNumber} = missing
+    var"source" :: Union{Missing, String} = missing
+    var"creation_date" :: Union{Missing, String} = missing
+    var"comment" :: Union{Missing, String} = missing
+    var"occurrence" :: Union{Missing, AbstractFDNumber} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__ids_properties(var"provider"=missing, var"version_put"=core_sources__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
+        fds = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
+        assign_expressions(fds)
+        setfield!(fds.version_put, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__code__library <: FDSvectorElement
+    var"name" :: Union{Missing, String} = missing
+    var"parameters" :: Union{Missing, String} = missing
+    var"commit" :: Union{Missing, String} = missing
+    var"repository" :: Union{Missing, String} = missing
+    var"version" :: Union{Missing, String} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__code__library(var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"version"=missing, _parent=WeakRef(missing))
+        fds = new(var"name", var"parameters", var"commit", var"repository", var"version", _parent)
+        assign_expressions(fds)
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources__code <: FDS
+    var"library" :: FDSvector{T} where {T<:core_sources__code__library} = FDSvector(core_sources__code__library[])
+    var"name" :: Union{Missing, String} = missing
+    var"parameters" :: Union{Missing, String} = missing
+    var"commit" :: Union{Missing, String} = missing
+    var"repository" :: Union{Missing, String} = missing
+    var"output_flag" :: Union{Missing, AbstractFDVector{Int64}} = missing
+    var"version" :: Union{Missing, String} = missing
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources__code(var"library"=FDSvector(core_sources__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
+        fds = new(var"library", var"name", var"parameters", var"commit", var"repository", var"output_flag", var"version", _parent)
+        assign_expressions(fds)
+        setfield!(fds.library, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
+Base.@kwdef mutable struct core_sources <: FDS
+    var"source" :: FDSvector{T} where {T<:core_sources__source} = FDSvector(core_sources__source[])
+    var"time" :: Union{Missing, AbstractFDVector{Float64}} = missing
+    var"ids_properties" :: core_sources__ids_properties = core_sources__ids_properties()
+    var"vacuum_toroidal_field" :: core_sources__vacuum_toroidal_field = core_sources__vacuum_toroidal_field()
+    var"code" :: core_sources__code = core_sources__code()
+    _parent :: WeakRef = WeakRef(missing)
+    function core_sources(var"source"=FDSvector(core_sources__source[]), var"time"=missing, var"ids_properties"=core_sources__ids_properties(), var"vacuum_toroidal_field"=core_sources__vacuum_toroidal_field(), var"code"=core_sources__code(), _parent=WeakRef(missing))
+        fds = new(var"source", var"time", var"ids_properties", var"vacuum_toroidal_field", var"code", _parent)
+        assign_expressions(fds)
+        setfield!(fds.source, :_parent, WeakRef(fds))
+        setfield!(fds.ids_properties, :_parent, WeakRef(fds))
+        setfield!(fds.vacuum_toroidal_field, :_parent, WeakRef(fds))
+        setfield!(fds.code, :_parent, WeakRef(fds))
+        return fds
+    end
+end
+
 Base.@kwdef mutable struct core_profiles__vacuum_toroidal_field <: FDS
     var"b0" :: Union{Missing, Array{T, 1} where T<:Real, Function} = missing
     var"r0" :: Union{Missing, Real, Function} = missing
@@ -10931,15 +11502,17 @@ end
 
 Base.@kwdef mutable struct dd <: FDS
     var"summary" :: Union{Missing, summary} = summary()
+    var"core_sources" :: Union{Missing, core_sources} = core_sources()
     var"equilibrium" :: Union{Missing, equilibrium} = equilibrium()
     var"core_profiles" :: Union{Missing, core_profiles} = core_profiles()
     var"wall" :: Union{Missing, wall} = wall()
     var"dataset_description" :: Union{Missing, dataset_description} = dataset_description()
     _parent :: WeakRef = WeakRef(missing)
-    function dd(var"summary"=summary(), var"equilibrium"=equilibrium(), var"core_profiles"=core_profiles(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(missing))
-        fds = new(var"summary", var"equilibrium", var"core_profiles", var"wall", var"dataset_description", _parent)
+    function dd(var"summary"=summary(), var"core_sources"=core_sources(), var"equilibrium"=equilibrium(), var"core_profiles"=core_profiles(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(missing))
+        fds = new(var"summary", var"core_sources", var"equilibrium", var"core_profiles", var"wall", var"dataset_description", _parent)
         assign_expressions(fds)
         setfield!(fds.summary, :_parent, WeakRef(fds))
+        setfield!(fds.core_sources, :_parent, WeakRef(fds))
         setfield!(fds.equilibrium, :_parent, WeakRef(fds))
         setfield!(fds.core_profiles, :_parent, WeakRef(fds))
         setfield!(fds.wall, :_parent, WeakRef(fds))

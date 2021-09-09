@@ -18,7 +18,7 @@ assign_expressions = x -> x
 # FUSE data structure
 #= ==================================== =#
 filenames = [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures")) if startswith(filename, "_") || ! endswith(filename, ".json")]
-filenames = ["core_profiles.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"]
+filenames = ["core_profiles.json", "core_sources.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"]
 
 using ProgressMeter
 ProgressMeter.ijulia_behavior(:clear)
