@@ -122,25 +122,25 @@ end
     @test coords[:values][1] === data.core_profiles.profiles_1d[2].grid.rho_tor_norm
     @test length(coords[:values][1]) == 3
 
-    # test change of grid on numerical array data and function data
-    data = FUSE.dd();
-    resize!(data.core_profiles.profiles_1d, 3)
-    data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=10)
-    data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
-    data.core_profiles.profiles_1d[1].electrons.temperature = 1.0 .- (data.core_profiles.profiles_1d[1].grid.rho_tor_norm).^2
-    data.core_profiles.profiles_1d[2].electrons.temperature = x -> 1.0 .- x.^2
-    data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
-    @test length(data.core_profiles.profiles_1d[1].electrons.temperature) == 3
-    data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=4)
-    @test length(data.core_profiles.profiles_1d[2].electrons.temperature) == 4
+    # # test change of grid on numerical array data and function data
+    # data = FUSE.dd();
+    # resize!(data.core_profiles.profiles_1d, 3)
+    # data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=10)
+    # data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
+    # data.core_profiles.profiles_1d[1].electrons.temperature = 1.0 .- (data.core_profiles.profiles_1d[1].grid.rho_tor_norm).^2
+    # data.core_profiles.profiles_1d[2].electrons.temperature = x -> 1.0 .- x.^2
+    # data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
+    # @test length(data.core_profiles.profiles_1d[1].electrons.temperature) == 3
+    # data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=4)
+    # @test length(data.core_profiles.profiles_1d[2].electrons.temperature) == 4
 
     # test working with FDSvectorElement standalone or in a FDSvector
     dd = FUSE.dd()
     resize!(dd.core_profiles.profiles_1d, 1)
     for profiles_1d in [dd.core_profiles.profiles_1d[1], FUSE.core_profiles__profiles_1d()]
         profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length=101)
-        profiles_1d.electrons.density = x -> (1.0 .- x.^2).^2.0
-        profiles_1d.j_total = x -> (1.0 .- x.^2).^2.0
+        profiles_1d.electrons.density = (x; _...) -> (1.0 .- x.^2).^2.0
+        profiles_1d.j_total = (x; _...) -> (1.0 .- x.^2).^2.0
         @test length(profiles_1d.electrons.density) == length(profiles_1d.j_total)
     end
 end

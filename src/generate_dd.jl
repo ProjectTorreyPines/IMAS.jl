@@ -17,15 +17,15 @@ assign_expressions = x -> x
 #= ==================================== =#
 # FUSE data structure
 #= ==================================== =#
-filenames = readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures"))
+filenames = [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures")) if startswith(filename, "_") || ! endswith(filename, ".json")]
+filenames = ["core_profiles.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"]
+
+using ProgressMeter
+ProgressMeter.ijulia_behavior(:clear)
+p = Progress(length(filenames); desc="Parse JSON structs ", showspeed=true)
 desired_structure = String[]
 for filename in filenames
-    if startswith(filename, "_") || ! endswith(filename, ".json")
-        continue
-    end
-    if ! (filename in ["core_profiles.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"])
-        continue
-    end
+    ProgressMeter.next!(p)
     filename = replace(filename, ".json" => "")
     for item in keys(imas_load_dd(filename))
         push!(desired_structure, item)
@@ -37,9 +37,9 @@ end
 #= ================================================= =#
 
 const type_translator = Dict("STR" => String,
-                             "INT" => Int64,
-                             "FLT" => Float64,
-                             "CPX" => Complex{Float64})
+                             "INT" => Integer,
+                             "FLT" => Real,
+                             "CPX" => Complex{Real})
 
 """
     imas_julia_struct(desired_structure::Vector{String})
@@ -88,18 +88,12 @@ function imas_julia_struct(desired_structure::Vector{String})
 
                 # translate from IMAS data type to Julia types
                 if tp in keys(type_translator)
-                    if (dim == 0) & (tp == "STR")
-                        h[item] = ":: Union{Missing, $(type_translator[tp])} = missing"
-                        conversion_types = Union{conversion_types,type_translator[tp]}
-                    elseif dim == 0
-                        h[item] = ":: Union{Missing, $(type_translator[tp]), AbstractFDNumber} = missing"
-                        conversion_types = Union{conversion_types,type_translator[tp],AbstractFDNumber}
-                    elseif dim == 1
-                        h[item] = ":: Union{Missing, Vector{$(type_translator[tp])}, AbstractFDVector{$(type_translator[tp])}} = missing"
-                        conversion_types = Union{conversion_types,Array{type_translator[tp]},AbstractFDVector{type_translator[tp]}}
+                    if (dim == 0)
+                        h[item] = ":: Union{Missing, $(type_translator[tp]), Function} = missing"
+                        conversion_types = Union{conversion_types, type_translator[tp]}
                     else
-                        h[item] = ":: Union{Missing, Array{$(type_translator[tp])}, AbstractArray{$(type_translator[tp]), $dim}} = missing"
-                        conversion_types = Union{conversion_types,Array{type_translator[tp]}}
+                        h[item] = ":: Union{Missing, Array{T, $dim} where T<:$(type_translator[tp]), Function} = missing"
+                        conversion_types = Union{conversion_types, Array{type_translator[tp]}}
                     end
                 else
                     throw(ArgumentError("$(sel) IMAS $(imasdd[sel]["data_type"]) has not been mapped to Julia data type"))
@@ -197,7 +191,7 @@ struct_commands, conversion_types = imas_julia_struct(desired_structure)
 # Parse the Julia structs to make sure there are no issues
 using ProgressMeter
 ProgressMeter.ijulia_behavior(:clear)
-p = Progress(length(struct_commands); desc="Compile IMAS structs", showspeed=true)
+p = Progress(length(struct_commands); desc="Compile FUSE.jl structs ", showspeed=true)
 for txt in struct_commands
     ProgressMeter.next!(p)
     try

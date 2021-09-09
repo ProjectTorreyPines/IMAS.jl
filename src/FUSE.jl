@@ -27,7 +27,6 @@ export f2p, f2u, p2i, i2p, u2f, f2f, f2fs, u2fs
 export coordinates
 export FDS, FDSvector, FDSvectorElement
 export dd
-export FDVector, FDNumber
 export top, parent, children, expressions
 export fuse_parameters, plasma_parameters, physics_models
 
