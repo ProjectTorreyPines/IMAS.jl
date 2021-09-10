@@ -34,7 +34,9 @@ fuse_parameters[:PLASMA_PARAMETERS][:ne0] = ScalarParameter(1E19, "m^-3", "elect
 fuse_parameters[:PLASMA_PARAMETERS][:Zeff] = ScalarParameter(2, "", "plasma effective charge")
 
 # plasma geometry
-fuse_parameters[:PLASMA_PARAMETERS][:κ] = ScalarParameter(1.9, "", "plasma elongation")
+fuse_parameters[:PLASMA_PARAMETERS][:R0] = ScalarParameter(1.7, "m", "Major radius")
+fuse_parameters[:PLASMA_PARAMETERS][:aspect_ratio] = ScalarParameter(2.7, "", "plasma aspect ratio")
+fuse_parameters[:PLASMA_PARAMETERS][:elongation] = ScalarParameter(1.9, "", "plasma elongation")
 
 #= ================= =#
 

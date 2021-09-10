@@ -5,14 +5,14 @@ include("expressions.jl")
 #= ============ =#
 
 import JSON
-using Memoize
+import Memoize
 
 """
     imas_load_dd(ids; imas_version=imas_version)
 
 Read the IMAS data structures in the OMAS JSON format
 """
-@memoize function imas_load_dd(ids)
+@Memoize.memoize function imas_load_dd(ids)
     JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
 end
 
@@ -47,49 +47,46 @@ abstract type FDSvectorElement <: FDS end
 
 function Base.getproperty(fds::FDS, field::Symbol)
     value = getfield(fds, field)
+    # raise a nice error for missing values
     if value === missing
         error("$(f2fs(fds)).$(field) is missing")
+    # interpolate functions on given coordinates
+    elseif typeof(value) <: Function
+        x = coordinates(fds,field)[:values]
+        return exec_expression_with_ancestor_args(fds, field, value, x)
     else
         return value
     end
 end
 
-function Base.setproperty!(fds::FDS, field::Symbol, v)
+"""
+    Base.setproperty!(fds::FDS, field::Symbol, v; skip_non_coordinates=false)
+
+# Arguments
+- `skip_non_coordinates::Bool=false`: don't do anything for fields that not a IMAS coordinate
+"""
+function Base.setproperty!(fds::FDS, field::Symbol, v; skip_non_coordinates=false)
     if typeof(v) <: FDS
         setfield!(v, :_parent, WeakRef(fds))
-    elseif typeof(v) <: AbstractFDArray
-        setfield!(v, :_field, field)
     end
-
-    target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), field))
-
-    # if it's a function
-    if typeof(v) <: Function
-        if target_type <: AbstractFDNumber
-            v = FDNumber(v, WeakRef(fds), field, false)
-        elseif target_type <: AbstractFDArray
-            v = FDVector(v, WeakRef(fds), field, false)
-        end
-
-    # if the value is not an AbstractFDNumber, but it should be
-    elseif (target_type <: AbstractFDNumber) & (! (typeof(v) <: AbstractFDNumber))
-        v = FDNumber(v, WeakRef(fds), field, true)
-
-    # if the value is not an AbstractFDArray, but it should be
-    elseif (target_type <: AbstractFDArray) & (! (typeof(v) <: AbstractFDArray))
+    if typeof(v) <: StepRangeLen
+        v = collect(v)
+    end
+    if typeof(v) <: AbstractArray
         # figure out the coordinates
         coords = coordinates(fds, field)
         # do not allow assigning data before coordinates
         for (c_name, c_value) in zip(coords[:names], coords[:values])
             if c_value === missing
-                error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
+                if skip_non_coordinates
+                    return
+                else
+                    error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
+                end
             end
         end
-        # convert value to FDVector
-        v = FDVector(coords[:values], v, WeakRef(fds), field)
     end
-
-    return setfield!(fds, field, v)
+    setfield!(fds, field, v)
 end
 
 """
@@ -213,146 +210,3 @@ function iterate(fds::FDSvector{T}, state) where {T <: FDSvectorElement}
         fds[state], state + 1
     end
 end
-
-#= ======= =#
-#  FDArray  #
-#= ======= =#
-
-using Interpolations
-
-abstract type AbstractFDArray{T,N} <: AbstractArray{T,N} end
-
-#= ======== =#
-#  FDVector  #
-#= ======== =#
-const AbstractFDVector = AbstractFDArray{T,1} where T
-
-struct FDVector <: AbstractFDVector{Float64}
-    func_or_value::Any
-    _parent::WeakRef
-    _field::Symbol
-    _raw::Bool
-end
-
-function FDVector(coord_values, value, _parent::WeakRef, _field::Symbol)
-    # coordinate arrays
-    if coord_values[1] === nothing
-        func_or_value = value
-        raw = true
-    # arrays that have non-sorted coordinates (eg. Z limiter Vs R limiter)
-    elseif ! issorted(coord_values[1]) | ! allunique(coord_values[1])
-        func_or_value = value
-        raw = true
-    # user defined functions
-    elseif iscallable(value)
-        func_or_value = value
-        raw = false
-    # vector that have a coordinate
-    else
-        if length(coord_values[1]) == 1
-            func_or_value = x -> value[1]
-        else
-            func_or_value = LinearInterpolation(coord_values[1], value)
-        end
-        raw = false
-    end
-    return FDVector(func_or_value, _parent, _field, raw)
-end
-
-function coordinates(fdv::AbstractFDVector)
-    return coordinates(fdv._parent.value, fdv._field)
-end
-
-function Base.broadcastable(fdv::AbstractFDVector)
-    if fdv._raw
-        value = fdv.func_or_value
-    elseif typeof(fdv.func_or_value) <: Function # user defined function
-        value = exec_expression_with_ancestor_args(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])
-    else # interpolation
-        value = fdv.func_or_value(coordinates(fdv)[:values][1])
-    end
-    Base.broadcastable(value)
-end
-
-function Base.getindex(fdv::AbstractFDVector, i::Int64)
-    if fdv._raw
-        return fdv.func_or_value[i]
-    elseif typeof(fdv.func_or_value) <: Function # user defined function
-        return exec_expression_with_ancestor_args(fdv._parent.value, fdv._field, fdv.func_or_value, coordinates(fdv)[:values])[i]
-    else # interpolation
-        return fdv.func_or_value(coordinates(fdv)[:values][1])[i]
-    end
-end
-
-function Base.setindex!(fdv::AbstractFDVector, v, i::Int64)
-    error("Cannot setindex! of a $(typeof(fdv))")
-end
-
-function Base.size(fdv::AbstractFDVector)
-    if fdv._raw
-        return size(fdv.func_or_value)
-    else
-        return Tuple{Int}([size(c)[1] for c in coordinates(fdv)[:values]])
-    end
-end
-
-"""
-    (fdv::AbstractFDVector)(x)
-
-Interpolate the data at the `x` coordinate value
-"""
-function (fdv::AbstractFDVector)(x)
-    if fdv._raw
-        return LinearInterpolation(range(0.0, 1.0, length=length(fdv.func_or_value)), fdv.func_or_value)(x)
-    elseif typeof(fdv.func_or_value) <: Function # user defined function
-        return exec_expression_with_ancestor_args(fdv._parent.value, fdv._field, fdv.func_or_value, [x])
-    else # interpolation
-        return fdv.func_or_value(x)
-    end
-end
-
-"""
-    (fdv::AbstractFDVector)()
-
-Calling a FDVector without argument returns the data evaluated on its current FDS coordinate
-"""
-function (fdv::AbstractFDVector)()
-    x = coordinates(fdv)[:values][1]
-    return fdv(x)
-end
-
-#= ======== =#
-#  FDNumber  #
-#= ======== =#
-abstract type AbstractFDNumber <: Number end
-
-struct FDNumber <: AbstractFDNumber
-    func_or_value::Any
-    _parent::WeakRef
-    _field::Symbol
-    _raw::Bool
-end
-
-function FDNumber(func_or_value)
-    return FDNumber(func_or_value, WeakRef(nothing), :x, true)
-end
-    
-function coordinates(fdv::AbstractFDNumber)
-    return []
-end
-
-function Base.convert(::Type{Number}, fdn::FDNumber)
-    if fdn._raw
-        value = fdn.func_or_value
-    else
-        value = exec_expression_with_ancestor_args(fdn._parent.value, fdn._field, fdn.func_or_value, [])
-    end
-    return value
-end
-
-Base.promote_rule(::Type{FDNumber}, ::Type{Number} ) = Number
-
-Base.show(io::IO, fdn::FDNumber) = print(convert(Number,fdn))
-
-Base.real(fdn::FDNumber) = Base.real(convert(Number,fdn))
-Base.imag(fdn::FDNumber) = Base.imag(convert(Number,fdn))

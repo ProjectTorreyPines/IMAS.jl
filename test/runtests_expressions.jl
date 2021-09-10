@@ -5,7 +5,7 @@
 
     # here we test expressions starting from different heights in the data dictionary
     # also, we are mixing data, user-defined functions, and expressions and using
-    # expressions that return FDVector and FDNumber
+    # expressions that return vectors and scalars
 
     #= ========= =#
 
@@ -52,7 +52,7 @@
     @test_throws Exception profiles_1d.electrons.density[1]
 
     #= ========= =#
-    # test expressions using scalar quantities (FDNumber)
+    # test expressions using scalar quantities
     time_slice = FUSE.equilibrium__time_slice()
     time_slice.profiles_1d.psi = range(0.0, 1.0, length=11)
     time_slice.profiles_1d.volume = range(0.0, 1.0, length=11)

@@ -35,8 +35,9 @@ Populate FUSE data structure `fds` based on data contained in Julia dictionary `
 
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
+- `skip_non_coordinates::Bool=false`: only assign coordinates to the data structure
 """
-function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[]) where {T <: FDS}
+function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[], skip_non_coordinates::Bool=false) where {T <: FDS}
     # recursively traverse `dtc` structure
     level = length(path)
     for (k, v) in dct
@@ -44,7 +45,7 @@ function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String
         if typeof(v) <: Dict
             if verbose println(("｜"^level) * string(k)) end
             ff = getfield(fds, Symbol(k))
-            dict2fuse(v, ff; path=vcat(path, [string(k)]), verbose=verbose)
+            dict2fuse(v, ff; path=vcat(path, [string(k)]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
 
         # Array of struct
         elseif (typeof(v) <: Array) && (length(v) > 0) && (typeof(v[1]) <: Dict)
@@ -53,26 +54,31 @@ function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String
             resize!(ff, length(v))
             for i in 1:length(v)
                 if verbose println(("｜"^(level + 1)) * string(i)) end
-                dict2fuse(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose)
+                dict2fuse(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
             end
 
         # Leaf
         else
             if verbose print(("｜"^level) * string(k) * " → ") end
-            target_type = typeintersect(conversion_types, struct_field_type(typeof(fds), Symbol(k)))
+            target_type = Core.Compiler.typesubtract(struct_field_type(typeof(fds), Symbol(k)), Union{Missing,Function}, 1)
             if target_type <: AbstractArray
                 if ndims(target_type) == 2
                     v = reduce(hcat, v)
                 end
                 v = convert(Array{eltype(target_type),ndims(target_type)}, v)
             end
-            setproperty!(fds, Symbol(k), v)
+            setproperty!(fds, Symbol(k), v; skip_non_coordinates=skip_non_coordinates)
             if verbose println(typeof(v)) end
         end
     end
 
     return fds
 end
+
+Base.ndims(::Type{Vector{T} where T <: Real}) = 1
+Base.ndims(::Type{Matrix{T} where T <: Real}) = 2
+Base.eltype(::Type{Vector{T} where T <: Real}) = Real
+Base.eltype(::Type{Matrix{T} where T <: Real}) = Real
 
 """
     json2fuse(filename::String; verbose::Bool=false)::FDS
@@ -85,7 +91,8 @@ Load from a file with give `filename` the OMAS data structure saved in JSON form
 function json2fuse(filename::String; verbose::Bool=false)::FDS
     fds_data = dd()
     json_data = JSON.parsefile(filename)
-    dict2fuse(json_data, fds_data; verbose=verbose)
+    dict2fuse(json_data, fds_data; verbose=verbose, skip_non_coordinates=true)
+    dict2fuse(json_data, fds_data; verbose=verbose, skip_non_coordinates=false)
     return fds_data
 end
 
@@ -162,7 +169,12 @@ Coordinate value is `nothing` when the data does not have a coordinate
 Coordinate value is `missing` if the coordinate is missing in the data structure
 """
 function coordinates(fds::FDS, field::Symbol)
-    coord_names = deepcopy(imas_info("$(f2u(fds)).$(field)")["coordinates"])
+    info = imas_info("$(f2u(fds)).$(field)")
+    # handle scalar quantities (which do not have coordinate)
+    if ! ("coordinates" in keys(info))
+        return Dict(:names => [], :values => [])
+    end
+    coord_names = deepcopy(info["coordinates"])
     coord_values = []
     for (k, coord) in enumerate(coord_names)
         if occursin("...", coord)
@@ -221,8 +233,7 @@ function _f2u(fds::String)
     end
     tmp = replace(fds, "___" => "[:].")
     tmp = replace(tmp, "__" => ".")
-    imas_location = replace(tmp, r"\.$" => "")
-    return imas_location
+    return replace(tmp, r"\.$" => "")
 end
 
 """
@@ -316,13 +327,13 @@ function i2p(imas_location::String)::Vector{Union{String,Int}}
                 push!(path, ":")
             else
                 push!(path, parse(Int, n))
-            end
+        end
         else
             s = string(s)
             push!(path, s)
         end
     end
-    return path
+return path
 end
 
 
@@ -420,19 +431,9 @@ function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
             show(io, getfield(fds, item), depth + 1)
         # field
         else
-            value = getfield(fds,item)
+            value = getfield(fds, item)
             printstyled("$(item)")
-            if (typeof(value) <: Union{FDNumber,FDVector})
-                if typeof(value.func_or_value) <: Function
-                    color = :purple
-                elseif value._raw
-                    color = :red
-                else
-                    color = :blue
-                end
-            else
-                color = :red
-            end
+            color = :red
             printstyled(" ➡ "; color=color)
             printstyled("$(Base.summary(getfield(fds, item)))\n"; color=:blue)
         end
