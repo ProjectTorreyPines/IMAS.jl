@@ -1,6 +1,9 @@
 using Pkg
 Pkg.activate(dirname(dirname(@__FILE__)))
 
+using ProgressMeter
+ProgressMeter.ijulia_behavior(:clear)
+
 const imas_version = "3_33_0"
 ENV["OMAS_ROOT"] = "/Users/meneghini/Coding/atom/omas"
 const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
@@ -20,8 +23,6 @@ assign_expressions = x -> x
 filenames = [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures")) if startswith(filename, "_") || ! endswith(filename, ".json")]
 filenames = ["core_profiles.json", "core_sources.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"]
 
-using ProgressMeter
-ProgressMeter.ijulia_behavior(:clear)
 p = Progress(length(filenames); desc="Parse JSON structs ", showspeed=true)
 desired_structure = String[]
 for filename in filenames
@@ -55,8 +56,11 @@ function imas_julia_struct(desired_structure::Vector{String})
     push!(branches, "")
 
     # generate hierarchy of dicts
+    p = Progress(length(desired_structure); desc="Generate hierarchy of dicts ", showspeed=true)
     ddict = Dict()
     for sel in sort(desired_structure)
+        ProgressMeter.next!(p)
+
         # ignore error fields
         if endswith(sel, "error_upper") | endswith(sel, "error_lower") | endswith(sel, "error_index")
             continue
@@ -89,10 +93,10 @@ function imas_julia_struct(desired_structure::Vector{String})
                 # translate from IMAS data type to Julia types
                 if tp in keys(type_translator)
                     if (dim == 0)
-                        h[item] = ":: Union{Missing, $(type_translator[tp]), Function} = missing"
+                        h[item] = ":: Union{Missing, $(type_translator[tp]), Function}"
                         conversion_types = Union{conversion_types, type_translator[tp]}
                     else
-                        h[item] = ":: Union{Missing, Array{T, $dim} where T<:$(type_translator[tp]), Function} = missing"
+                        h[item] = ":: Union{Missing, Array{T, $dim} where T<:$(type_translator[tp]), Function}"
                         conversion_types = Union{conversion_types, Array{type_translator[tp]}}
                     end
                 else
@@ -109,7 +113,10 @@ function imas_julia_struct(desired_structure::Vector{String})
 
     # generate source code of Julia structures
     is_structarray = false
+    p = Progress(length(branches); desc="Generate source code of Julia structures ", showspeed=true)
     for branch in reverse(branches)
+        ProgressMeter.next!(p)
+
         h = ddict
         for item in branch
             h = h[item]
@@ -131,18 +138,18 @@ function imas_julia_struct(desired_structure::Vector{String})
             else
                 # top level
                 if length(struct_name_) == 0
-                    push!(txt, "    var\"$(item)\" :: Union{Missing, $(item)} = $(item)()")
+                    push!(txt, "    var\"$(item)\" :: Union{Missing, $(item)}")
                     push!(inits, "var\"$(item)\"=$(item)()")
                 # arrays of structs
                 elseif occursin("[:]", item)
                     item_ = replace(item, "[:]" => "_")
                     item = replace(item, "[:]" => "")
                     item_ = item
-                    push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)} = FDSvector($(struct_name_)$(sep)$(item_)[])")
+                    push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)}")
                     push!(inits, "var\"$(item)\"=FDSvector($(struct_name_)$(sep)$(item_)[])")
                 # structs
                 else
-                    push!(txt, "    var\"$(item)\" :: $(struct_name_)$(sep)$(item) = $(struct_name_)$(sep)$(item)()")
+                    push!(txt, "    var\"$(item)\" :: $(struct_name_)$(sep)$(item)")
                     push!(inits, "var\"$(item)\"=$(struct_name_)$(sep)$(item)()")
                 end
                 push!(txt_parent, "        setfield!(fds.$(item), :_parent, WeakRef(fds))")
@@ -160,7 +167,7 @@ function imas_julia_struct(desired_structure::Vector{String})
             struct_name = "dd"
         end
         txt_parent = """
-    _parent :: WeakRef = WeakRef(missing)
+    _parent :: WeakRef
     function $(struct_name)($(inits), _parent=WeakRef(missing))
         fds = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
         assign_expressions(fds)$(txt_parent)
@@ -170,7 +177,7 @@ function imas_julia_struct(desired_structure::Vector{String})
 
         txt = join(txt, "\n")
         txt = """
-Base.@kwdef mutable struct $(struct_name) <: $(struct_type)
+mutable struct $(struct_name) <: $(struct_type)
 $(txt)
 $(rstrip(txt_parent))
 end
@@ -189,8 +196,6 @@ end
 struct_commands, conversion_types = imas_julia_struct(desired_structure)
 
 # Parse the Julia structs to make sure there are no issues
-using ProgressMeter
-ProgressMeter.ijulia_behavior(:clear)
 p = Progress(length(struct_commands); desc="Compile FUSE.jl structs ", showspeed=true)
 for txt in struct_commands
     ProgressMeter.next!(p)
