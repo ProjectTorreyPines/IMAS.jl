@@ -7,11 +7,11 @@ include("utils.jl")
 import Base:resize!
 
 """
-    resize!(collection::FDSvector{T}, n::Int) where {T<:FDS}
+    resize!(collection::IDSvector{T}, n::Int) where {T<:IDS}
 
-Change size of a FDS array of structures
+Change size of a IDS array of structures
 """
-function resize!(collection::FDSvector{T}, n::Int) where {T <: FDS}
+function resize!(collection::IDSvector{T}, n::Int) where {T <: IDS}
     if n > length(collection)
         for k in length(collection):n - 1
             obj = eltype(collection)()
@@ -29,50 +29,50 @@ function resize!(collection::FDSvector{T}, n::Int) where {T <: FDS}
 end
 
 """
-    dict2fuse(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::FDS
+    dict2imas(dct, ids::IDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::IDS
 
-Populate FUSE data structure `fds` based on data contained in Julia dictionary `dct`.
+Populate IMAS data structure `ids` based on data contained in Julia dictionary `dct`.
 
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 - `skip_non_coordinates::Bool=false`: only assign coordinates to the data structure
 """
-function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[], skip_non_coordinates::Bool=false) where {T <: FDS}
+function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String[], skip_non_coordinates::Bool=false) where {T <: IDS}
     # recursively traverse `dtc` structure
     level = length(path)
     for (k, v) in dct
         # Struct
         if typeof(v) <: Dict
             if verbose println(("｜"^level) * string(k)) end
-            ff = getfield(fds, Symbol(k))
-            dict2fuse(v, ff; path=vcat(path, [string(k)]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
+            ff = getfield(ids, Symbol(k))
+            dict2imas(v, ff; path=vcat(path, [string(k)]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
 
         # Array of struct
         elseif (typeof(v) <: Array) && (length(v) > 0) && (typeof(v[1]) <: Dict)
-            ff = getfield(fds, Symbol(k))
+            ff = getfield(ids, Symbol(k))
             if verbose println(("｜"^level) * string(k)) end
             resize!(ff, length(v))
             for i in 1:length(v)
                 if verbose println(("｜"^(level + 1)) * string(i)) end
-                dict2fuse(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
+                dict2imas(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
             end
 
         # Leaf
         else
             if verbose print(("｜"^level) * string(k) * " → ") end
-            target_type = Core.Compiler.typesubtract(struct_field_type(typeof(fds), Symbol(k)), Union{Missing,Function}, 1)
+            target_type = Core.Compiler.typesubtract(struct_field_type(typeof(ids), Symbol(k)), Union{Missing,Function}, 1)
             if target_type <: AbstractArray
                 if ndims(target_type) == 2
                     v = reduce(hcat, v)
                 end
                 v = convert(Array{eltype(target_type),ndims(target_type)}, v)
             end
-            setproperty!(fds, Symbol(k), v; skip_non_coordinates=skip_non_coordinates)
+            setproperty!(ids, Symbol(k), v; skip_non_coordinates=skip_non_coordinates)
             if verbose println(typeof(v)) end
         end
     end
 
-    return fds
+    return ids
 end
 
 Base.ndims(::Type{Vector{T} where T <: Real}) = 1
@@ -81,95 +81,95 @@ Base.eltype(::Type{Vector{T} where T <: Real}) = Real
 Base.eltype(::Type{Matrix{T} where T <: Real}) = Real
 
 """
-    json2fuse(filename::String; verbose::Bool=false)::FDS
+    json2imas(filename::String; verbose::Bool=false)::IDS
 
 Load from a file with give `filename` the OMAS data structure saved in JSON format 
 
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 """
-function json2fuse(filename::String; verbose::Bool=false)::FDS
-    fds_data = dd()
+function json2imas(filename::String; verbose::Bool=false)::IDS
+    ids_data = dd()
     json_data = JSON.parsefile(filename)
-    dict2fuse(json_data, fds_data; verbose=verbose, skip_non_coordinates=true)
-    dict2fuse(json_data, fds_data; verbose=verbose, skip_non_coordinates=false)
-    return fds_data
+    dict2imas(json_data, ids_data; verbose=verbose, skip_non_coordinates=true)
+    dict2imas(json_data, ids_data; verbose=verbose, skip_non_coordinates=false)
+    return ids_data
 end
 
 """
-    top(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
+    top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
 
-Return top-level FDS in the DD hierarchy.
+Return top-level IDS in the DD hierarchy.
 Considers IDS as maximum top level if IDS_is_absolute_top=true
 """
-function top(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
-    if IDS_is_absolute_top & (typeof(fds) <: dd)
-        error("Cannot call top(x::FUSE.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
-    elseif fds._parent.value === missing
-        return fds
-    elseif IDS_is_absolute_top & (typeof(fds._parent.value) <: dd)
-        return fds
+function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
+    if IDS_is_absolute_top & (typeof(ids) <: dd)
+        error("Cannot call top(x::IMAS.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
+    elseif ids._parent.value === missing
+        return ids
+    elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
+        return ids
     else
-        return top(fds._parent.value;IDS_is_absolute_top=IDS_is_absolute_top)
+        return top(ids._parent.value;IDS_is_absolute_top=IDS_is_absolute_top)
     end
 end
 
 """
-    parent(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
+    parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
 
-Return parent FDS/FDSvector in the hierarchy
-If IDS_is_absolute_top then returns `missing` instead of FUSE.dd()
+Return parent IDS/IDSvector in the hierarchy
+If IDS_is_absolute_top then returns `missing` instead of IMAS.dd()
 """
-function parent(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
-    if fds._parent.value === missing
+function parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
+    if ids._parent.value === missing
         return missing
-    elseif IDS_is_absolute_top & (typeof(fds._parent.value) <: dd)
+    elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return missing
     else
-        return fds._parent.value
+        return ids._parent.value
     end
 end
 
 """
-    children(fds::Union{FDS,FDSvector})::Vector{Symbol}
+    children(ids::Union{IDS,IDSvector})::Vector{Symbol}
 
-Return children of a FDS/FDSvector
+Return children of a IDS/IDSvector
 """
-function children(fds::Union{FDS,FDSvector})::Vector{Symbol}
-    return [k for k in fieldnames(typeof(fds)) if k != :_parent]
+function children(ids::Union{IDS,IDSvector})::Vector{Symbol}
+    return [k for k in fieldnames(typeof(ids)) if k != :_parent]
 end
 
 
 """
-    assign_expressions(fds::Union{FDS,FDSvector})
+    assign_expressions(ids::Union{IDS,IDSvector})
 
-Assign expressions to a FDS/FDSvector
+Assign expressions to a IDS/IDSvector
 NOTE: This is done not recursively
 """
-function assign_expressions(fds::Union{FDS,FDSvector})
-    struct_name = f2u(fds)
-    for item in children(fds)
-        if typeof(getfield(fds, item)) <: Union{FDS,FDSvector}
+function assign_expressions(ids::Union{IDS,IDSvector})
+    struct_name = f2u(ids)
+    for item in children(ids)
+        if typeof(getfield(ids, item)) <: Union{IDS,IDSvector}
             continue
         elseif "$(struct_name).$(item)" in keys(expressions)
-            setproperty!(fds, item, expressions["$(struct_name).$(item)"])
+            setproperty!(ids, item, expressions["$(struct_name).$(item)"])
         end
     end
 end
 
 #= ===================== =#
-#  FDS related functions  #
+#  IDS related functions  #
 #= ===================== =#
 
 """
-    coordinates(fds::FDS, field::Symbol)
+    coordinates(ids::IDS, field::Symbol)
 
 Returns two lists, one of coordinate names and the other with their values in the data structure
 Coordinate value is `nothing` when the data does not have a coordinate
 Coordinate value is `missing` if the coordinate is missing in the data structure
 """
-function coordinates(fds::FDS, field::Symbol)
-    info = imas_info("$(f2u(fds)).$(field)")
+function coordinates(ids::IDS, field::Symbol)
+    info = imas_info("$(f2u(ids)).$(field)")
     # handle scalar quantities (which do not have coordinate)
     if ! ("coordinates" in keys(info))
         return Dict(:names => [], :values => [])
@@ -181,11 +181,11 @@ function coordinates(fds::FDS, field::Symbol)
             push!(coord_values, nothing)
         else
             # find common ancestor
-            s1 = f2fs(fds)
+            s1 = f2fs(ids)
             s2 = u2fs(p2i(i2p(coord)[1:end - 1]))
-            cs, s1, s2 = FUSE.common_base_string(s1, s2)
+            cs, s1, s2 = IMAS.common_base_string(s1, s2)
             # go upstream until common acestor
-            h = fds
+            h = ids
             while f2fs(h) != cs
                 h = h._parent.value
             end
@@ -203,84 +203,84 @@ function coordinates(fds::FDS, field::Symbol)
 end
 
 """
-    f2u(fds::Union{FDS, FDSvector, DataType, Symbol, String})
+    f2u(ids::Union{IDS, IDSvector, DataType, Symbol, String})
 
-Returns universal IMAS location of a given FDS
+Returns universal IMAS location of a given IDS
 """
-function f2u(fds::FDS)
-    return _f2u(typeof(fds))
+function f2u(ids::IDS)
+    return _f2u(typeof(ids))
 end
 
-function f2u(fds::FDSvector)
-    return _f2u(eltype(fds)) * "[:]"
+function f2u(ids::IDSvector)
+    return _f2u(eltype(ids)) * "[:]"
 end
 
-function f2u(fds::FDSvectorElement)
-    return _f2u(typeof(fds)) * "[:]"
+function f2u(ids::IDSvectorElement)
+    return _f2u(typeof(ids)) * "[:]"
 end
 
-function _f2u(fds::DataType)
-    return _f2u(Base.typename(fds).name)
+function _f2u(ids::DataType)
+    return _f2u(Base.typename(ids).name)
 end
 
-function _f2u(fds::Symbol)
-    return _f2u(string(fds))
+function _f2u(ids::Symbol)
+    return _f2u(string(ids))
 end
 
-function _f2u(fds::String)
-    if in(':', fds) | in('.', fds)
-        error("`$fds` is not a qualified FDS type")
+function _f2u(ids::String)
+    if in(':', ids) | in('.', ids)
+        error("`$ids` is not a qualified IDS type")
     end
-    tmp = replace(fds, "___" => "[:].")
+    tmp = replace(ids, "___" => "[:].")
     tmp = replace(tmp, "__" => ".")
     return replace(tmp, r"\.$" => "")
 end
 
 """
-    return FDS type as a string
+    return IDS type as a string
 """
-function f2fs(fds::FDS)::String
-    return _f2fs(typeof(fds))
+function f2fs(ids::IDS)::String
+    return _f2fs(typeof(ids))
 end
 
-function f2fs(fds::FDSvector)::String
-    return _f2fs(eltype(fds))
+function f2fs(ids::IDSvector)::String
+    return _f2fs(eltype(ids))
 end
 
-function f2fs(fds::FDSvectorElement)::String
-    return _f2fs(typeof(fds)) * "___"
+function f2fs(ids::IDSvectorElement)::String
+    return _f2fs(typeof(ids)) * "___"
 end
 
-function _f2fs(fds::DataType)::String
-    return string(Base.typename(fds).name)
+function _f2fs(ids::DataType)::String
+    return string(Base.typename(ids).name)
 end
 
 
 """
-    f2p(fds::Union{FDS,FDSvector})::Vector{Union{String,Int}}
+    f2p(ids::Union{IDS,IDSvector})::Vector{Union{String,Int}}
 
-Returns IMAS location of a given FDS
+Returns IMAS location of a given IDS
 
 NOTE: indexes of arrays of structures that cannot be determined are set to 0
 """
-function f2p(fds::Union{FDS,FDSvector})::Vector{Union{String,Int}}
-    return f2p(fds, missing, nothing, Int[])
+function f2p(ids::Union{IDS,IDSvector})::Vector{Union{String,Int}}
+    return f2p(ids, missing, nothing, Int[])
 end
 
-function f2p(fds::Union{FDS,FDSvector},
-             child::Union{Missing,FDS,FDSvector},
+function f2p(ids::Union{IDS,IDSvector},
+             child::Union{Missing,IDS,IDSvector},
              path::Union{Nothing,Vector},
              index::Vector{Int})
     # initialize path and index
     if path === nothing
-        if typeof(fds) <: FDS
-            if typeof(fds._parent.value) <: FDSvector
-                name = string(Base.typename(typeof(fds)).name) * "___"
+        if typeof(ids) <: IDS
+            if typeof(ids._parent.value) <: IDSvector
+                name = string(Base.typename(typeof(ids)).name) * "___"
             else
-                name = string(Base.typename(typeof(fds)).name)
+                name = string(Base.typename(typeof(ids)).name)
             end
-        elseif typeof(fds) <: FDSvector
-            name = string(Base.typename(eltype(fds)).name) * "___"
+        elseif typeof(ids) <: IDSvector
+            name = string(Base.typename(eltype(ids)).name) * "___"
         end
         path = replace(name, "___" => "__:__")
         path = Vector{Any}(Vector{String}(split(path, "__")))
@@ -288,8 +288,8 @@ function f2p(fds::Union{FDS,FDSvector},
     end
 
     # collect integers for arrays of structures
-    if typeof(fds) <: FDSvector
-        ix = findfirst([k === child for k in fds.value])
+    if typeof(ids) <: IDSvector
+        ix = findfirst([k === child for k in ids.value])
         if ix === nothing
             push!(index, 0)
         else
@@ -297,13 +297,13 @@ function f2p(fds::Union{FDS,FDSvector},
         end
     end
 
-    # traverse FDSs upstream or return result once top is reached
-    if fds._parent.value === missing
+    # traverse IDSs upstream or return result once top is reached
+    if ids._parent.value === missing
         index = reverse(index)
         path = reverse([(typeof(k) <: Int) & (length(index) > 0) ? pop!(index) : k for k in reverse(path)])
         return path
     else
-        return f2p(fds._parent.value, fds, path, index)
+        return f2p(ids._parent.value, ids, path, index)
     end
 end
 
@@ -364,7 +364,7 @@ end
 """
     u2fs(imas_location::String)::String
 
-return FDS/FDSvector type as a string starting from a universal IMAS location string
+return IDS/IDSvector type as a string starting from a universal IMAS location string
 """
 function u2fs(imas_location::String)::String
     tmp = replace(imas_location, "." => "__")
@@ -372,7 +372,7 @@ function u2fs(imas_location::String)::String
 end
 
 """
-    return FDS/FDSvector type starting from a universal IMAS location string
+    return IDS/IDSvector type starting from a universal IMAS location string
 
 u2f(imas_location::String)
 """
@@ -381,23 +381,23 @@ function u2f(imas_location::String)
 end
 
 """
-    Base.keys(fds::FDS)
+    Base.keys(ids::IDS)
 
-Returns list of fields with data in a FDS
+Returns list of fields with data in a IDS
 """
-function Base.keys(fds::FDS)
+function Base.keys(ids::IDS)
     kkk = Symbol[]
-    for k in fieldnames(typeof(fds))
+    for k in fieldnames(typeof(ids))
         # hide the _parent field
         if k === :_parent
             continue
         end
-        v = getfield(fds, k)
+        v = getfield(ids, k)
         # empty entries
         if v === missing
             continue
         # empty structures/arrays of structures (recursive)
-        elseif typeof(v) <: Union{FDS,FDSvector}
+        elseif typeof(v) <: Union{IDS,IDSvector}
             if length(keys(v)) > 0
                 push!(kkk, k)
             end
@@ -409,40 +409,40 @@ function Base.keys(fds::FDS)
     return kkk
 end
 
-function Base.keys(fds::FDSvector)
-    return collect(1:length(fds))
+function Base.keys(ids::IDSvector)
+    return collect(1:length(ids))
 end
 
-function Base.show(io::IO, fds::Union{FDS,FDSvector}, depth::Int)
-    items = keys(fds)
+function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
+    items = keys(ids)
     for (k, item) in enumerate(items)
         printstyled("$('｜'^depth)"; color=:yellow)
         # arrays of structurs
-        if typeof(fds) <: FDSvector
+        if typeof(ids) <: IDSvector
             printstyled("[$(item)]\n"; bold=true, color=:green)
-            show(io, fds[item], depth + 1)
+            show(io, ids[item], depth + 1)
         # structures
-        elseif typeof(getfield(fds, item)) <: Union{FDS,FDSvector}
-            if (typeof(fds) <: dd)
+        elseif typeof(getfield(ids, item)) <: Union{IDS,IDSvector}
+            if (typeof(ids) <: dd)
                 printstyled("$(uppercase(string(item)))\n"; bold=true)
             else
                 printstyled("$(string(item))\n"; bold=true)
             end
-            show(io, getfield(fds, item), depth + 1)
+            show(io, getfield(ids, item), depth + 1)
         # field
         else
-            value = getfield(fds, item)
+            value = getfield(ids, item)
             printstyled("$(item)")
             color = :red
             printstyled(" ➡ "; color=color)
-            printstyled("$(Base.summary(getfield(fds, item)))\n"; color=:blue)
+            printstyled("$(Base.summary(getfield(ids, item)))\n"; color=:blue)
         end
-        if (typeof(fds) <: dd) & (k < length(items))
+        if (typeof(ids) <: dd) & (k < length(items))
             println()
 end
     end
 end
 
-function Base.show(io::IO, fds::Union{FDS,FDSvector})
-    return show(io, fds, 0)
+function Base.show(io::IO, ids::Union{IDS,IDSvector})
+    return show(io, ids, 0)
 end

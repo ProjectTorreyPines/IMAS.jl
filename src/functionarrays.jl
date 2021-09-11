@@ -39,72 +39,72 @@ function struct_field_type(structure::DataType, field::Symbol)
 end
 
 #= === =#
-#  FDS  #
+#  IDS  #
 #= === =#
 
-abstract type FDS end
-abstract type FDSvectorElement <: FDS end
+abstract type IDS end
+abstract type IDSvectorElement <: IDS end
 
-function Base.getproperty(fds::FDS, field::Symbol)
-    value = getfield(fds, field)
+function Base.getproperty(ids::IDS, field::Symbol)
+    value = getfield(ids, field)
     # raise a nice error for missing values
     if value === missing
-        error("$(f2fs(fds)).$(field) is missing")
+        error("$(f2fs(ids)).$(field) is missing")
     # interpolate functions on given coordinates
     elseif typeof(value) <: Function
-        x = coordinates(fds,field)[:values]
-        return exec_expression_with_ancestor_args(fds, field, value, x)
+        x = coordinates(ids,field)[:values]
+        return exec_expression_with_ancestor_args(ids, field, value, x)
     else
         return value
     end
 end
 
 """
-    Base.setproperty!(fds::FDS, field::Symbol, v; skip_non_coordinates=false)
+    Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=false)
 
 # Arguments
 - `skip_non_coordinates::Bool=false`: don't do anything for fields that not a IMAS coordinate
 """
-function Base.setproperty!(fds::FDS, field::Symbol, v; skip_non_coordinates=false)
-    if typeof(v) <: FDS
-        setfield!(v, :_parent, WeakRef(fds))
+function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=false)
+    if typeof(v) <: IDS
+        setfield!(v, :_parent, WeakRef(ids))
     end
     if typeof(v) <: StepRangeLen
         v = collect(v)
     end
     if typeof(v) <: AbstractArray
         # figure out the coordinates
-        coords = coordinates(fds, field)
+        coords = coordinates(ids, field)
         # do not allow assigning data before coordinates
         for (c_name, c_value) in zip(coords[:names], coords[:values])
             if c_value === missing
                 if skip_non_coordinates
                     return
                 else
-                    error("Assign data to `$c_name` before assigning `$(f2u(fds)).$(field)`")
+                    error("Assign data to `$c_name` before assigning `$(f2u(ids)).$(field)`")
                 end
             end
         end
     end
-    setfield!(fds, field, v)
+    setfield!(ids, field, v)
 end
 
 """
-    fds_ancestors(fds::FDS)::Dict{Symbol,Union{Missing,FDS}}
+    ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS}}
 
-Return dictionary with pointers to ancestors to an FDS
+Return dictionary with pointers to ancestors to an IDS
 """
-function fds_ancestors(fds::FDS)::Dict{Symbol,Union{Missing,FDS}}
+function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS}}
     ancestors = Dict()
     # initialize ancestors to missing
-    path = f2p(fds)
+    path = f2p(ids)
     for p in path
         if typeof(p) <: String
             ancestors[Symbol(p)] = missing
         end
     end
     # traverse ancestors and assign pointers
-    h = fds
+    h = ids
     while h !== missing
         path = f2p(h)
         if typeof(path[end]) <: String
@@ -120,15 +120,15 @@ end
 const expression_call_stack = String[]
 
 """
-    exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Function, func_args)
+    exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Function, func_args)
 
-Execute a function passing the FDS stack as arguments to the function
+Execute a function passing the IDS stack as arguments to the function
 
 # Arguments
-- `fds::FDS`: FDS structure
-- `field::Symbol`: Field in the `fds` that is being called 
-- `func::Function`: Function to be executed should accept in inputs the list of symbols that are traversed to get to the `fds`
-- `func_args`: Arguments passed to func, in addition to the list of symbols that are traversed to get to the `fds`
+- `ids::IDS`: IDS structure
+- `field::Symbol`: Field in the `ids` that is being called 
+- `func::Function`: Function to be executed should accept in inputs the list of symbols that are traversed to get to the `ids`
+- `func_args`: Arguments passed to func, in addition to the list of symbols that are traversed to get to the `ids`
 
 # Example `func`
 
@@ -142,8 +142,8 @@ Execute a function passing the FDS stack as arguments to the function
         return electrons.temperature.*electrons.density * 1.60218e-19
     end
 """
-function exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Function, func_args)
-    structure_name = f2u(fds)
+function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Function, func_args)
+    structure_name = f2u(ids)
     # keep track of recursion
     if ! (structure_name in expression_call_stack)
         push!(expression_call_stack, "$(structure_name).$(field)")
@@ -151,8 +151,8 @@ function exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Funct
         culprits = join(expression_call_stack, "\n    * ")
         error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
     end
-    # find ancestors to this fds
-    ancestors = fds_ancestors(fds)
+    # find ancestors to this ids
+    ancestors = ids_ancestors(ids)
     # execute and in all cases pop the call_stack
     try
         func(func_args...;ancestors...)
@@ -162,51 +162,51 @@ function exec_expression_with_ancestor_args(fds::FDS, field::Symbol, func::Funct
 end
 
 #= ========= =#
-#  FDSvector  #
+#  IDSvector  #
 #= ========= =#
 
-mutable struct FDSvector{T} <: AbstractVector{T}
+mutable struct IDSvector{T} <: AbstractVector{T}
     value::Vector{T}
     _parent::WeakRef
-    function FDSvector(x::Vector{T}) where {T <: FDSvectorElement}
+    function IDSvector(x::Vector{T}) where {T <: IDSvectorElement}
         return new{T}(x, WeakRef(missing))
     end
 end
 
-function Base.getindex(x::FDSvector{T}, i::Int64) where {T <: FDSvectorElement}
+function Base.getindex(x::IDSvector{T}, i::Int64) where {T <: IDSvectorElement}
     x.value[i]
 end
 
-function Base.size(x::FDSvector{T}) where {T <: FDSvectorElement}
+function Base.size(x::IDSvector{T}) where {T <: IDSvectorElement}
     size(x.value)
 end
 
-function Base.length(x::FDSvector{T}) where {T <: FDSvectorElement}
+function Base.length(x::IDSvector{T}) where {T <: IDSvectorElement}
     length(x.value)
 end
 
-function Base.setindex!(x::FDSvector{T}, v, i::Int64) where {T <: FDSvectorElement}
+function Base.setindex!(x::IDSvector{T}, v, i::Int64) where {T <: IDSvectorElement}
     x.value[i] = v
     setfield!(v, :_parent, WeakRef(x))
 end
 
-function Base.push!(x::FDSvector{T}, v) where {T <: FDSvectorElement}
+function Base.push!(x::IDSvector{T}, v) where {T <: IDSvectorElement}
     setfield!(v, :_parent, WeakRef(x))
     push!(x.value, v)
 end
 
-function Base.pop!(x::FDSvector{T}) where {T <: FDSvectorElement}
+function Base.pop!(x::IDSvector{T}) where {T <: IDSvectorElement}
     pop!(x.value)
 end
 
-function iterate(fds::FDSvector{T}) where {T <: FDSvectorElement}
-    return fds[1], 2
+function iterate(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    return ids[1], 2
 end
 
-function iterate(fds::FDSvector{T}, state) where {T <: FDSvectorElement}
+function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
     if isempty(state)
         nothing
     else
-        fds[state], state + 1
+        ids[state], state + 1
     end
 end

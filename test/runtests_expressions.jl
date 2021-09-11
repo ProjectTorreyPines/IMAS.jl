@@ -9,7 +9,7 @@
 
     #= ========= =#
 
-    dd = FUSE.dd()
+    dd = IMAS.dd()
     resize!(dd.core_profiles.profiles_1d, 1)
     profiles_1d = dd.core_profiles.profiles_1d[1]
     
@@ -21,7 +21,7 @@
     
     #= ========= =#
 
-    core_profiles = FUSE.core_profiles();
+    core_profiles = IMAS.core_profiles();
     resize!(core_profiles.profiles_1d, 1)
     profiles_1d = core_profiles.profiles_1d[1]
 
@@ -33,7 +33,7 @@
 
     #= ========= =#
 
-    profiles_1d = FUSE.core_profiles__profiles_1d()
+    profiles_1d = IMAS.core_profiles__profiles_1d()
 
     profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length=21)
     profiles_1d.electrons.temperature = (x;_...) -> Te0 .* (1.0 .- x.^2);
@@ -44,7 +44,7 @@
     #= ========= =#
     # test infinite recursion
 
-    profiles_1d = FUSE.core_profiles__profiles_1d()
+    profiles_1d = IMAS.core_profiles__profiles_1d()
 
     profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length=21)
     profiles_1d.electrons.pressure = (x;_...) -> pe0 .* (1.0 .- x.^2);
@@ -53,7 +53,7 @@
 
     #= ========= =#
     # test expressions using scalar quantities
-    time_slice = FUSE.equilibrium__time_slice()
+    time_slice = IMAS.equilibrium__time_slice()
     time_slice.profiles_1d.psi = range(0.0, 1.0, length=11)
     time_slice.profiles_1d.volume = range(0.0, 1.0, length=11)
     time_slice.profiles_1d.pressure = 1.0 .- range(0.0, 1.0, length=11)
