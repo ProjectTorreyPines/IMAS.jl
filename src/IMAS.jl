@@ -8,18 +8,6 @@ module IMAS
 
 include("data.jl")
 
-#= ========= =#
-#= BOOTSTRAP =#
-#= ========= =#
-
-include("bootstrap.jl")
-
-#= ========== =#
-#= PARAMETERS =#
-#= ========== =#
-
-include("parameters.jl")
-
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
@@ -28,6 +16,5 @@ export coordinates
 export IDS, IDSvector, IDSvectorElement
 export dd
 export top, parent, children, expressions
-export imas_parameters, plasma_parameters, physics_models
 
 end # module
