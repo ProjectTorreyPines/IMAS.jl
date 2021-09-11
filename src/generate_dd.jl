@@ -18,7 +18,7 @@ include("functionarrays.jl")
 assign_expressions = x -> x
 
 #= ==================================== =#
-# FUSE data structure
+# IMAS data structure
 #= ==================================== =#
 filenames = [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures")) if startswith(filename, "_") || ! endswith(filename, ".json")]
 filenames = ["core_profiles.json", "core_sources.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"]
@@ -196,7 +196,7 @@ end
 struct_commands, conversion_types = imas_julia_struct(desired_structure)
 
 # Parse the Julia structs to make sure there are no issues
-p = Progress(length(struct_commands); desc="Compile FUSE.jl structs ", showspeed=true)
+p = Progress(length(struct_commands); desc="Compile IMAS.jl structs ", showspeed=true)
 for txt in struct_commands
     ProgressMeter.next!(p)
     try

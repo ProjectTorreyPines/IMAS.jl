@@ -1,6 +1,6 @@
 __precompile__()
 
-module FUSE
+module IMAS
 
 #= ============== =#
 #= DATA STRUCTURE =#
@@ -28,6 +28,6 @@ export coordinates
 export FDS, FDSvector, FDSvectorElement
 export dd
 export top, parent, children, expressions
-export fuse_parameters, plasma_parameters, physics_models
+export imas_parameters, plasma_parameters, physics_models
 
 end # module

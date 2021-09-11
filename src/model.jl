@@ -1,14 +1,14 @@
-using FUSE
+using IMAS
 
 
 #= ============== =#
 # initialization #
 #= ============== =#
 
-PP = FUSE.fuse_parameters[:PLASMA_PARAMETERS]
-PM = FUSE.fuse_parameters[:PHYSICS_MODELS]
+PP = IMAS.imas_parameters[:PLASMA_PARAMETERS]
+PM = IMAS.imas_parameters[:PHYSICS_MODELS]
 
-core1D = FUSE.core_profiles__profiles_1d()
+core1D = IMAS.core_profiles__profiles_1d()
 
 n = 11
 
@@ -18,7 +18,7 @@ core1D.electrons.temperature = (rho_tor_norm;_...) -> PP[:Te0] .* (1.0 .- rho_to
 
 core1D.j_total = (x;_...) -> (1.0 .- x.^2).^PP[:Sj]
 
-equil = FUSE.equilibrium__time_slice()
+equil = IMAS.equilibrium__time_slice()
 equil.profiles_1d.psi = range(0.0, 1.0, length=n)
 equil.profiles_1d.elongation = (psi;_...) -> psi .* 0.0 .+ PP[:elongation]
 equil.profiles_1d.geometric_axis.r = (psi;_...) -> psi .* 0.0 .+ PP[:R0]
@@ -31,7 +31,7 @@ function aspect_ratio(fds::FDS)
     aspect_ratio(R,a)
 end
 
-bootstrapCoefficient = FUSE.collisionless_bootstrap(PM[:bootstrapModel], PP[:elongation], PP[:St], PP[:Sn], PP[:Sj], PP[:Zeff])
+bootstrapCoefficient = IMAS.collisionless_bootstrap(PM[:bootstrapModel], PP[:elongation], PP[:St], PP[:Sn], PP[:Sj], PP[:Zeff])
 println(bootstrapCoefficient)
 
 # maxStableElongation(aspectRatio) = 2.43 + 65.0 * exp(-aspectRatio / 0.376)

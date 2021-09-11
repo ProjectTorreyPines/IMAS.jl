@@ -29,15 +29,15 @@ function resize!(collection::FDSvector{T}, n::Int) where {T <: FDS}
 end
 
 """
-    dict2fuse(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::FDS
+    dict2imas(dct, fds::FDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::FDS
 
-Populate FUSE data structure `fds` based on data contained in Julia dictionary `dct`.
+Populate IMAS data structure `fds` based on data contained in Julia dictionary `dct`.
 
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 - `skip_non_coordinates::Bool=false`: only assign coordinates to the data structure
 """
-function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[], skip_non_coordinates::Bool=false) where {T <: FDS}
+function dict2imas(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String[], skip_non_coordinates::Bool=false) where {T <: FDS}
     # recursively traverse `dtc` structure
     level = length(path)
     for (k, v) in dct
@@ -45,7 +45,7 @@ function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String
         if typeof(v) <: Dict
             if verbose println(("｜"^level) * string(k)) end
             ff = getfield(fds, Symbol(k))
-            dict2fuse(v, ff; path=vcat(path, [string(k)]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
+            dict2imas(v, ff; path=vcat(path, [string(k)]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
 
         # Array of struct
         elseif (typeof(v) <: Array) && (length(v) > 0) && (typeof(v[1]) <: Dict)
@@ -54,7 +54,7 @@ function dict2fuse(dct, fds::T ;verbose::Bool=false, path::Vector{String}=String
             resize!(ff, length(v))
             for i in 1:length(v)
                 if verbose println(("｜"^(level + 1)) * string(i)) end
-                dict2fuse(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
+                dict2imas(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
             end
 
         # Leaf
@@ -81,18 +81,18 @@ Base.eltype(::Type{Vector{T} where T <: Real}) = Real
 Base.eltype(::Type{Matrix{T} where T <: Real}) = Real
 
 """
-    json2fuse(filename::String; verbose::Bool=false)::FDS
+    json2imas(filename::String; verbose::Bool=false)::FDS
 
 Load from a file with give `filename` the OMAS data structure saved in JSON format 
 
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 """
-function json2fuse(filename::String; verbose::Bool=false)::FDS
+function json2imas(filename::String; verbose::Bool=false)::FDS
     fds_data = dd()
     json_data = JSON.parsefile(filename)
-    dict2fuse(json_data, fds_data; verbose=verbose, skip_non_coordinates=true)
-    dict2fuse(json_data, fds_data; verbose=verbose, skip_non_coordinates=false)
+    dict2imas(json_data, fds_data; verbose=verbose, skip_non_coordinates=true)
+    dict2imas(json_data, fds_data; verbose=verbose, skip_non_coordinates=false)
     return fds_data
 end
 
@@ -104,7 +104,7 @@ Considers IDS as maximum top level if IDS_is_absolute_top=true
 """
 function top(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
     if IDS_is_absolute_top & (typeof(fds) <: dd)
-        error("Cannot call top(x::FUSE.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
+        error("Cannot call top(x::IMAS.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
     elseif fds._parent.value === missing
         return fds
     elseif IDS_is_absolute_top & (typeof(fds._parent.value) <: dd)
@@ -118,7 +118,7 @@ end
     parent(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
 
 Return parent FDS/FDSvector in the hierarchy
-If IDS_is_absolute_top then returns `missing` instead of FUSE.dd()
+If IDS_is_absolute_top then returns `missing` instead of IMAS.dd()
 """
 function parent(fds::Union{FDS,FDSvector}; IDS_is_absolute_top::Bool=true)
     if fds._parent.value === missing
@@ -183,7 +183,7 @@ function coordinates(fds::FDS, field::Symbol)
             # find common ancestor
             s1 = f2fs(fds)
             s2 = u2fs(p2i(i2p(coord)[1:end - 1]))
-            cs, s1, s2 = FUSE.common_base_string(s1, s2)
+            cs, s1, s2 = IMAS.common_base_string(s1, s2)
             # go upstream until common acestor
             h = fds
             while f2fs(h) != cs

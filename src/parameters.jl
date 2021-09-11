@@ -49,15 +49,15 @@ function SwitchParameter(options, default, description)
 end
 
 #= ================= =#
-#   Fuse Parameters   #
+#   Imas Parameters   #
 #= ================= =#
 
-mutable struct FuseParameters
+mutable struct ImasParameters
     parameters::Dict{Symbol,AbstractParameter}
 end
 
 
-function Base.getindex(p::FuseParameters, key)
+function Base.getindex(p::ImasParameters, key)
     parameter = p.parameters[key]
     if typeof(parameter) <: ScalarParameter
         return parameter.value
@@ -69,7 +69,7 @@ function Base.getindex(p::FuseParameters, key)
 end
 
 
-function Base.setindex!(p::FuseParameters, value, key)
+function Base.setindex!(p::ImasParameters, value, key)
     parameter = p.parameters[key]
     if typeof(parameter) <: ScalarParameter
         return parameter.value = value

@@ -1,4 +1,4 @@
-using FUSE
+using IMAS
 using Test
 
 include("runtests_fds.jl")

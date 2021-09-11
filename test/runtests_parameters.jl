@@ -3,20 +3,20 @@
     run_parameters = Dict()
 
     # scalar parameter
-    run_parameters[:testScalar] = FUSE.ScalarParameter(0.5, "m/s", "scalar test")
+    run_parameters[:testScalar] = IMAS.ScalarParameter(0.5, "m/s", "scalar test")
     
     # switch parameter
     options = Dict()
-    options[:bla] = FUSE.SwitchOption(:bla, "m/s", "bla")
-    options[:ta] = FUSE.SwitchOption(:ta, "1/s", "ta")
-    options[:user] = FUSE.ScalarParameter(1.2, "1/s", "user defined")
-    run_parameters[:testSwitch] = FUSE.SwitchParameter(options, :ta, "switch test")
+    options[:bla] = IMAS.SwitchOption(:bla, "m/s", "bla")
+    options[:ta] = IMAS.SwitchOption(:ta, "1/s", "ta")
+    options[:user] = IMAS.ScalarParameter(1.2, "1/s", "user defined")
+    run_parameters[:testSwitch] = IMAS.SwitchParameter(options, :ta, "switch test")
 
     # test that defining a default that is not an option throws an error 
-    @test_throws Exception FUSE.SwitchParameter(options, :does_not_exist, "failing switch test")
+    @test_throws Exception IMAS.SwitchParameter(options, :does_not_exist, "failing switch test")
     
-    # define FuseParameters for rapid access of .value property
-    local_parameters = FUSE.FuseParameters(run_parameters)
+    # define ImasParameters for rapid access of .value property
+    local_parameters = IMAS.ImasParameters(run_parameters)
     
     @test local_parameters[:testScalar] == 0.5
     # test mutability
@@ -45,8 +45,8 @@
 end
 
 @testset "parameters_access" begin
-    # test the fuse_parameters
-    @test typeof(FUSE.fuse_parameters[:PHYSICS_MODELS][:bootstrapModel]) <: FUSE.CBSGi
-    FUSE.fuse_parameters[:PHYSICS_MODELS][:bootstrapModel] = :user => 0.5
-    @test FUSE.fuse_parameters[:PHYSICS_MODELS][:bootstrapModel] == 0.5
+    # test the imas_parameters
+    @test typeof(IMAS.imas_parameters[:PHYSICS_MODELS][:bootstrapModel]) <: IMAS.CBSGi
+    IMAS.imas_parameters[:PHYSICS_MODELS][:bootstrapModel] = :user => 0.5
+    @test IMAS.imas_parameters[:PHYSICS_MODELS][:bootstrapModel] == 0.5
 end
