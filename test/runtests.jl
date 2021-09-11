@@ -1,7 +1,7 @@
 using IMAS
 using Test
 
-include("runtests_fds.jl")
+include("runtests_ids.jl")
 
 include("runtests_expressions.jl")
 

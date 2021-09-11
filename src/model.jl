@@ -25,9 +25,9 @@ equil.profiles_1d.geometric_axis.r = (psi;_...) -> psi .* 0.0 .+ PP[:R0]
 
 aspect_ratio(R, a) = R./a
 
-function aspect_ratio(fds::FDS)
-    R = fds["equilibirum.time_slice[:].profiles_1d.geometric_axis.r"]
-    a = fds["equilibirum.time_slice[:].profiles_1d.a"]
+function aspect_ratio(ids::IDS)
+    R = ids["equilibirum.time_slice[:].profiles_1d.geometric_axis.r"]
+    a = ids["equilibirum.time_slice[:].profiles_1d.a"]
     aspect_ratio(R,a)
 end
 

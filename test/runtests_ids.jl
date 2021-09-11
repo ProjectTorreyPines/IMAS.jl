@@ -1,11 +1,11 @@
-@testset "FDS" begin
-    # instantiate and populate top-level FDS
+@testset "IDS" begin
+    # instantiate and populate top-level IDS
     data = IMAS.dd();
     resize!(data.core_profiles.profiles_1d, 1)
     data.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0, 1, length=10)
     @test length(data.core_profiles.profiles_1d[1].grid.rho_tor_norm) == 10
 
-    # try adding some data to separate core_profiles FDS
+    # try adding some data to separate core_profiles IDS
     crp = IMAS.core_profiles()
     resize!(crp.profiles_1d, 1)
     crp.profiles_1d[1].grid.rho_tor_norm = range(0, 1, length=10)
@@ -28,7 +28,7 @@
     crp1d.electrons.density = (1.0 .- crp1d.grid.rho_tor_norm).^2
     @test length(crp1d.grid.rho_tor_norm) == 10
 
-    # reach top FDS starting at different depths
+    # reach top IDS starting at different depths
     @test data === IMAS.top(data; IDS_is_absolute_top=false)
     @test data === IMAS.top(data.core_profiles.profiles_1d; IDS_is_absolute_top=false)
     @test data === IMAS.top(data.core_profiles.profiles_1d[1]; IDS_is_absolute_top=false)
@@ -54,7 +54,7 @@
     push!(data.core_profiles.profiles_1d, crp1d)
     @test data.core_profiles === IMAS.top(crp1d)
 
-    # test fail of adding data without coordinate in FDS
+    # test fail of adding data without coordinate in IDS
     data = IMAS.dd();
     resize!(data.core_profiles.profiles_1d, 1)
     @test_throws Exception data.core_profiles.profiles_1d[1].electrons.temperature = Vector{Float64}(collect(1:10))
@@ -63,7 +63,7 @@
     @test_throws Exception data.core_profiles.profiles_1d[1].j_total
 end
 
-@testset "FDS_IMAS" begin
+@testset "IDS_IMAS" begin
     data = IMAS.dd();
     resize!(data.core_profiles.profiles_1d, 2)
 
@@ -134,7 +134,7 @@ end
     # data.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=4)
     # @test length(data.core_profiles.profiles_1d[2].electrons.temperature) == 4
 
-    # test working with FDSvectorElement standalone or in a FDSvector
+    # test working with IDSvectorElement standalone or in a IDSvector
     dd = IMAS.dd()
     resize!(dd.core_profiles.profiles_1d, 1)
     for profiles_1d in [dd.core_profiles.profiles_1d[1], IMAS.core_profiles__profiles_1d()]

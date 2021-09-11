@@ -145,18 +145,18 @@ function imas_julia_struct(desired_structure::Vector{String})
                     item_ = replace(item, "[:]" => "_")
                     item = replace(item, "[:]" => "")
                     item_ = item
-                    push!(txt, "    var\"$(item)\" :: FDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)}")
-                    push!(inits, "var\"$(item)\"=FDSvector($(struct_name_)$(sep)$(item_)[])")
+                    push!(txt, "    var\"$(item)\" :: IDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)}")
+                    push!(inits, "var\"$(item)\"=IDSvector($(struct_name_)$(sep)$(item_)[])")
                 # structs
                 else
                     push!(txt, "    var\"$(item)\" :: $(struct_name_)$(sep)$(item)")
                     push!(inits, "var\"$(item)\"=$(struct_name_)$(sep)$(item)()")
                 end
-                push!(txt_parent, "        setfield!(fds.$(item), :_parent, WeakRef(fds))")
+                push!(txt_parent, "        setfield!(ids.$(item), :_parent, WeakRef(ids))")
             end
         end
 
-        struct_type = is_structarray ? "FDSvectorElement" : "FDS"
+        struct_type = is_structarray ? "IDSvectorElement" : "IDS"
 
         txt_parent = join(txt_parent, "\n")
         if length(txt_parent) > 0
@@ -169,9 +169,9 @@ function imas_julia_struct(desired_structure::Vector{String})
         txt_parent = """
     _parent :: WeakRef
     function $(struct_name)($(inits), _parent=WeakRef(missing))
-        fds = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
-        assign_expressions(fds)$(txt_parent)
-        return fds
+        ids = new($(join(map(x -> split(x, "=")[1], split(inits, ", ")), ", ")), _parent)
+        assign_expressions(ids)$(txt_parent)
+        return ids
     end
 """
 
