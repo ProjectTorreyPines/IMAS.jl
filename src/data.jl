@@ -162,6 +162,33 @@ end
 #= ===================== =#
 
 """
+    goto(ids::IDS, location::String)
+
+Reach location in a given IDS
+
+# Arguments
+- `f2::Function=f2i`: function used to process the IDS path to be compared to `location`
+"""
+function goto(ids::IDS, location::String; f2::Function=f2i)
+    # find common ancestor
+    cs, s1, s2 = IMAS.common_base_string(f2(ids), location)
+    cs0 = replace(cs, r"\.$" => "")
+    # go upstream until common acestor
+    h = ids
+    while f2(h) != cs0
+        h = h._parent.value
+        if h === missing
+            error("Could not reach `$(location)` from `$(f2(ids))`")
+        end
+    end
+    # then dive into the location branch
+    for k in i2p(s2)
+        h = getfield(h, Symbol(k))
+    end
+    return h
+end
+
+"""
     coordinates(ids::IDS, field::Symbol)
 
 Returns two lists, one of coordinate names and the other with their values in the data structure
@@ -180,21 +207,9 @@ function coordinates(ids::IDS, field::Symbol)
         if occursin("...", coord)
             push!(coord_values, nothing)
         else
-            # find common ancestor
-            s1 = f2fs(ids)
-            s2 = u2fs(p2i(i2p(coord)[1:end - 1]))
-            cs, s1, s2 = IMAS.common_base_string(s1, s2)
-            # go upstream until common acestor
-            h = ids
-            while f2fs(h) != cs
-                h = h._parent.value
-            end
-            # then dive into the coordinates branch
-            for k in i2p(s2)
-                h = getfield(h, Symbol(k))
-            end
-            coord_leaf = i2p(coord)[end]
-            h = getfield(h, Symbol(coord_leaf))
+            h = goto(ids, u2fs(p2i(i2p(coord)[1:end - 1])); f2=f2fs)
+            coord_leaf = Symbol(i2p(coord)[end])
+            h = getfield(h, coord_leaf)
             # add value to the coord_values
             push!(coord_values, h)
         end
@@ -237,7 +252,9 @@ function _f2u(ids::String)
 end
 
 """
-    return IDS type as a string
+    f2fs(ids::IDS)::String
+
+return IDS type as a string
 """
 function f2fs(ids::IDS)::String
     return _f2fs(typeof(ids))
@@ -308,6 +325,15 @@ function f2p(ids::Union{IDS,IDSvector},
 end
 
 """
+    f2i(ids::Union{IDS,IDSvector})::String
+
+return IMAS location of a given IDS
+"""
+function f2i(ids::Union{IDS,IDSvector})::String
+    return p2i(f2p(ids))
+end
+
+"""
     i2p(imas_location::String)::Vector{Union{String,Int}}
 
 Split IMAS location in its elements
@@ -360,6 +386,15 @@ function p2i(path::Vector)::String
     return p2i(Vector{Union{String,Int}}(path))
 end
 
+"""
+    i2u(imas_location::String)::String
+
+return universal IMAS location from IMAS location
+ie. replaces indexes of arrays of structures with [:]
+"""
+function i2u(imas_location::String)::String
+    return replace(imas_location, r"\[[0-9]+\]" => "[:]")
+end
 
 """
     u2fs(imas_location::String)::String
