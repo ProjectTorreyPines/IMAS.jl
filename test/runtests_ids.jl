@@ -61,6 +61,8 @@
 
     # make sure an error is raised when trying to access missing data
     @test_throws Exception data.core_profiles.profiles_1d[1].j_total
+
+#    goto(profiles_1d.electrons,"core_profiles.profiles_1d[].grid.rho_tor_norm")
 end
 
 @testset "IDS_IMAS" begin
