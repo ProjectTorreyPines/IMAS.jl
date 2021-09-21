@@ -8,6 +8,13 @@ module IMAS
 
 include("data.jl")
 
+
+#= ================= =#
+#= PHYSICS FUNCTIONS =#
+#= ================= =#
+
+include("physics.jl")
+
 #= ====== =#
 #= EXPORT =#
 #= ====== =#

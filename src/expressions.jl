@@ -1,6 +1,9 @@
 using Trapz
 expressions = Dict{String,Function}()
 
+#= =========== =#
+# Core Profiles #
+#= =========== =#
 expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
     (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
 
@@ -10,8 +13,19 @@ expressions["core_profiles.profiles_1d[:].electrons.density"] =
 expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
     (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * 1.60218e-19)
 
+#= ========= =#
+# Equilibrium #
+#= ========= =#
 expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (;time_slice, _...) -> 3 / 2 * trapz(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
+
+
+expressions["equilibrium.time_slice[:].boundary.geometric_axis"] =
+    (;time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] + time_slice.profiles_1d.r_inboard[end]) * 0.5
+
+    
+expressions["equilibrium.time_slice[:].boundary.minor_radius"] =
+    (;time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] - time_slice.profiles_1d.r_inboard[end]) * 0.5
 
 
 expressions["equilibrium.time_slice[:].boundary.elongation"] =
@@ -45,11 +59,4 @@ expressions["equilibrium.time_slice[:].boundary.squareness_lower_outer"] =
 
 expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
     (;time_slice, _...) -> time_slice.profiles_1d.squareness_upper_outer[end]
-
-
-# expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
-#     (;_...) -> 0.0
-
-# expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
-#     (psi; time_slice, _...) -> psi .* 0.0 .+ time_slice.global_quantities.magnetic_axis.z
 
