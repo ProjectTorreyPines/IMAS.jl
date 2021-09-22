@@ -1,15 +1,22 @@
-import Equilibrium: cocos
+import Equilibrium:cocos
 import Interpolations
 import Contour
 import StaticArrays
 import PolygonOps
 import Optim
+using Statistics
+using ForwardDiff
+
+using PyPlot
 
 function flux_surfaces(eqt::equilibrium__time_slice)
     cc = cocos(3) # for now hardcoded to 3 because testing for 
 
-    Br_interpolant = Interpolations.interpolate((eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2), eqt.profiles_2d[1].b_field_r, Interpolations.Gridded(Interpolations.Linear()))
-    Bz_interpolant = Interpolations.interpolate((eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2), eqt.profiles_2d[1].b_field_z, Interpolations.Gridded(Interpolations.Linear()))
+    r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
+    z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
+    Br_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].b_field_r)
+    Bz_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].b_field_z)
+    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
 
     eqt.profiles_1d.elongation = zero(eqt.profiles_1d.psi)
     eqt.profiles_1d.triangularity_lower = zero(eqt.profiles_1d.psi)
@@ -18,67 +25,150 @@ function flux_surfaces(eqt::equilibrium__time_slice)
     eqt.profiles_1d.r_outboard = zero(eqt.profiles_1d.psi)
     eqt.profiles_1d.q = zero(eqt.profiles_1d.psi)
     eqt.profiles_1d.dvolume_dpsi = zero(eqt.profiles_1d.psi)
-    for (k, psi_level) in enumerate(eqt.profiles_1d.psi)
-        # trace flux surface
-        pr, pz = flux_surface(eqt, psi_level)
+    eqt.profiles_1d.j_tor = zero(eqt.profiles_1d.psi)
+    eqt.profiles_1d.j_parallel = zero(eqt.profiles_1d.psi)
+    eqt.profiles_1d.volume = zero(eqt.profiles_1d.psi)
+    eqt.profiles_1d.gm1 = zero(eqt.profiles_1d.psi)
+    eqt.profiles_1d.gm9 = zero(eqt.profiles_1d.psi)
 
-        # geometry
-        tmp = flux_geo(pr, pz)
-        eqt.profiles_1d.elongation[k] = tmp["elongation"]
-        eqt.profiles_1d.triangularity_upper[k] = tmp["triangularity_upper"]
-        eqt.profiles_1d.triangularity_lower[k] = tmp["triangularity_lower"]
-        eqt.profiles_1d.r_outboard[k] = tmp["r_outboard"]
-        eqt.profiles_1d.r_inboard[k] = tmp["r_inboard"]
-        eqt.boundary.elongation_upper = tmp["elongation_upper"]
-        eqt.boundary.elongation_lower = tmp["elongation_lower"]
+    for (k, psi_level0) in reverse(collect(enumerate(eqt.profiles_1d.psi)))
 
-        dl = tmp["dl"]
+        # on axis flux surface is a synthetic one
+        if k==1
+            eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2]-(eqt.profiles_1d.elongation[3]-eqt.profiles_1d.elongation[2])
+            eqt.profiles_1d.triangularity_upper[1] = 0.0
+            eqt.profiles_1d.triangularity_lower[1] = 0.0
+            
+            t=range(0,2*pi,length=17)
+            a=1E-3
+            b=eqt.profiles_1d.elongation[1]*a
+            pr=cos.(t).*a.+eqt.global_quantities.magnetic_axis.r
+            pz=sin.(t).*b.+eqt.global_quantities.magnetic_axis.z
+            
+            # Extrema on array indices
+            _, imaxr = findmax(pr)
+            _, iminr = findmin(pr)
+            _, imaxz = findmax(pz)
+            _, iminz = findmin(pz)
+            r_at_max_z, max_z = pr[imaxz], pz[imaxz]
+            r_at_min_z, min_z = pr[iminz], pz[iminz]
+            z_at_max_r, max_r = pz[imaxr], pr[imaxr]
+            z_at_min_r, min_r = pz[iminr], pr[iminr]
+        
+        # other flux surfaces
+        else
+            # trace flux surface
+            pr, pz,psi_level = flux_surface(eqt, psi_level0)
 
-        Br = Br_interpolant(pr, pz)
-        Bz = Bz_interpolant(pr, pz)
+            # Extrema on array indices
+            _, imaxr = findmax(pr)
+            _, iminr = findmin(pr)
+            _, imaxz = findmax(pz)
+            _, iminz = findmin(pz)
+            r_at_max_z, max_z = pr[imaxz], pz[imaxz]
+            r_at_min_z, min_z = pr[iminz], pz[iminz]
+            z_at_max_r, max_r = pz[imaxr], pr[imaxr]
+            z_at_min_r, min_r = pz[iminr], pr[iminr]
 
-        Bp_abs = sqrt.(Br.^2.0+Bz.^2.0)
+            w = 1E-6
 
+            fx(x, psi_level) = (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
+            res = Optim.optimize(x -> fx(x, psi_level), x -> ForwardDiff.gradient(xx -> fx(xx, psi_level), x), [max_r, z_at_max_r], inplace=false)
+            (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
+            eqt.profiles_1d.r_outboard[k] = max_r
+            res = Optim.optimize(x -> fx(x, psi_level), x -> ForwardDiff.gradient(xx -> fx(xx, psi_level), x), [min_r, z_at_min_r], inplace=false)
+            (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
+            eqt.profiles_1d.r_inboard[k] = min_r
+
+            fz(x, psi_level) = (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - eqt.global_quantities.magnetic_axis.z)^2 * w
+            res = Optim.optimize(x -> fz(x, psi_level), x -> ForwardDiff.gradient(xx -> fz(xx, psi_level), x), [r_at_max_z, max_z], inplace=false)
+            (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(x -> fz(x, psi_level), x -> ForwardDiff.gradient(xx -> fz(xx, psi_level), x), [r_at_min_z, min_z], inplace=false)
+            (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+        end
+
+        # geometric
+        a = 0.5 * (max_r - min_r)
+        b = 0.5 * (max_z - min_z)
+        R = 0.5 * (max_r + min_r)
+        eqt.profiles_1d.r_outboard[k] = max_r
+        eqt.profiles_1d.r_inboard[k] = min_r
+        eqt.profiles_1d.elongation[k] = b / a
+        eqt.profiles_1d.triangularity_upper[k] = (R - r_at_max_z) / a
+        eqt.profiles_1d.triangularity_lower[k] = (R - r_at_min_z) / a
+
+        # poloidal magnetic field (with sign)
+        Br = Br_interpolant.(pr, pz)
+        Bz = Bz_interpolant.(pr, pz)
+        Bp_abs = sqrt.(Br.^2.0 .+ Bz.^2.0)
         Bp = (Bp_abs
         .* cc.sigma_rhotp * cc.sigma_RpZ
         .* sign.((pz .- eqt.global_quantities.magnetic_axis.z) .* Br
               .- (pr .- eqt.global_quantities.magnetic_axis.r) .* Bz))
 
-        fluxexpansion_dl = dl ./ Bp_abs
-        int_fluxexpansion_dl = sum(fluxexpansion_dl)
+        # flux expansion
+        ll = cumsum(vcat([0], sqrt.(diff(pr).^2 + diff(pz).^2)))
+        fluxexpansion = 1.0./ Bp_abs
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
         # flux-surface averaging function
         function flxAvg(input)
-            return sum(fluxexpansion_dl * input) / int_fluxexpansion_dl
+            return trapz(ll, input .* fluxexpansion) / int_fluxexpansion_dl
         end
 
-        avg=Dict()
-        avg["1/R^2"] = flxAvg(1.0./pr.^2)
-        avg["Bp"] = flxAvg(Bp)
+        # gm1 = <1/R^2>
+        eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr.^2)
 
+        # gm9 = <1/R>
+        eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr)
+
+        # j_tor = <j_tor/R> / <1/R>
+        if false
+            # brute force
+            Jt = zero(pr)
+            for i in 1:length(pr)
+                dBrdR, dBrdZ = Interpolations.gradient(Br_interpolant, pr[i], pz[i])
+                dBzdR, dBzdZ = Interpolations.gradient(Bz_interpolant, pr[i], pz[i])
+                Jt[i] = cc.sigma_RpZ .* (dBrdZ .- dBzdR) ./ (4.0 * pi * 1e-7)
+            end
+            eqt.profiles_1d.j_tor[k] = flxAvg(Jt / pr) / eqt.profiles_1d.gm9[k]
+        else
+            eqt.profiles_1d.j_tor[k] = (
+                -cc.sigma_Bp
+                .* (eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm9[k] / (4 * pi * 1e-7))
+                * (2.0 * pi)^cc.exp_Bp
+            )
+        end
+
+        # dvolume_dpsi
         eqt.profiles_1d.dvolume_dpsi[k] = (
             cc.sigma_rhotp
             * cc.sigma_Bp
-            * sign(avg["Bp"])
+            * sign(flxAvg(Bp))
             * int_fluxexpansion_dl
-            * (2.0 * pi) ^ (1.0 - cc.exp_Bp)
+            * (2.0 * pi)^(1.0 - cc.exp_Bp)
         )
 
-        # eqt.profiles_1d.q[k]=(
-        #     cc.sigma_rhotp
-        #     *cc.sigma_Bp
-        #     *eqt.profiles_1d.dvolume_dpsi[k]
-        #     *eqt.profiles_1d.f[k]
-        #     *avg["1/R^2"]
-        #     / ((2 * pi) ^ (2.0 - cc.exp_Bp))
+        # q
+        eqt.profiles_1d.q[k] = (
+            cc.sigma_rhotp
+            .* cc.sigma_Bp
+            .* eqt.profiles_1d.dvolume_dpsi[k]
+            .* eqt.profiles_1d.f[k]
+            .* eqt.profiles_1d.gm1[k]
+            ./ ((2 * pi)^(2.0 - cc.exp_Bp)))
 
-        eqt.profiles_1d.q[k] = eqt.global_quantities.ip = cc.sigma_rhotp * sum(dl .* Bp) / (4e-7 * pi)
-
+        # quantities calculated on the last closed flux surface
+        if k==length(eqt.profiles_1d.psi)
+            # ip
+            eqt.global_quantities.ip = cc.sigma_rhotp * trapz(ll, Bp) / (4e-7 * pi)
+        end
     end
-    # special handling of on-axis
-    eqt.profiles_1d.triangularity_upper[1] = 0.0
-    eqt.profiles_1d.triangularity_lower[1] = 0.0
-    eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2]
+
+    # integral quantities are defined later
+    for (k, psi_level0) in enumerate(eqt.profiles_1d.psi)
+        eqt.profiles_1d.volume[k] = trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
+    end
 end
 
 """
@@ -88,7 +178,7 @@ returns r,z coordiates of flux surface at given psi_level
 """
 function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
     if psi_level == eqt.profiles_1d.psi[1]
-        psi_level = eqt.profiles_1d.psi[1] * 0.9 + eqt.profiles_1d.psi[2] * 0.1
+        psi_level = eqt.profiles_1d.psi[2]
     end
     cl = Contour.contour(eqt.profiles_2d[1].grid.dim1,
                          eqt.profiles_2d[1].grid.dim2,
@@ -101,79 +191,7 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
         end
         polygon = StaticArrays.SVector.(pr, pz)
         if PolygonOps.inpolygon((eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z), polygon) == 1
-            return pr, pz
+            return pr, pz, psi_level
         end
     end
-end
-
-
-"""
-    fluxGeo(inputR::Vector{Real}, inputZ::Vector{Real})::Dict
-
-Recturns dictionary with geometric properties of a given flux surface
-"""
-function flux_geo(inputR::Vector{T} where T <: Real, inputZ::Vector{T} where T <: Real)::Dict
-
-    # concatenate inputs 3 times to avoid bound errors in minimization
-    if inputR[1] == inputR[2]
-        inputR = inputR[1:end - 1]
-        inputR = inputZ[1:end - 1]
-    end
-    inputRclose = vcat(inputR, inputR, inputR)
-    inputZclose = vcat(inputZ, inputZ, inputZ)
-
-    # These are the extrema indices
-    _, imaxr = findmax(inputR)
-    _, iminr = findmin(inputR)
-    _, imaxz = findmax(inputZ)
-    _, iminz = findmin(inputZ)
-
-    t = 1:length(inputRclose)
-    
-    interpR = Interpolations.CubicSplineInterpolation(t, inputRclose)
-    optR = Optim.optimize(x -> -interpR(x), length(inputR) + imaxr - 1, length(inputR) + imaxr + 1)
-    tmaxr = Optim.minimizer(optR)
-    optR = Optim.optimize(x -> interpR(x), length(inputR) + iminr - 1, length(inputR) + iminr + 1)
-    tminr = Optim.minimizer(optR)
-
-    interpZ = Interpolations.CubicSplineInterpolation(t, inputZclose)
-    optZ = Optim.optimize(x -> -interpZ(x), length(inputZ) + imaxz - 1, length(inputZ) + imaxz + 1)
-    tmaxz = Optim.minimizer(optZ)
-    optZ = Optim.optimize(x -> interpZ(x), length(inputZ) + iminz - 1, length(inputZ) + iminz + 1)
-    tminz = Optim.minimizer(optZ)
-
-    r_at_max_z, max_z = interpR(tmaxz), interpZ(tmaxz)
-    r_at_min_z, min_z = interpR(tminz), interpZ(tminz)
-    z_at_max_r, max_r = interpZ(tmaxr), interpR(tmaxr)
-    z_at_min_r, min_r = interpZ(tminr), interpR(tminr)
-
-    dl = vcat([0], sqrt.(diff(inputR).^2 + diff(inputZ).^2))
-
-    geo = Dict()
-    geo["dl"] = dl
-    geo["r_at_max_z"] = r_at_max_z
-    geo["r_at_min_z"] = r_at_min_z
-    geo["z_at_max_r"] = z_at_max_r
-    geo["z_at_min_r"] = z_at_min_r
-    geo["max_z"] = max_z
-    geo["min_z"] = min_z
-    geo["r_outboard"] = max_r
-    geo["r_inboard"] = min_r
-    geo["R"] = 0.5 * (max_r + min_r)
-    geo["Z"] = 0.5 * (max_z + min_z)
-    geo["a"] = 0.5 * (max_r - min_r)
-    geo["eps"] = geo["a"] / geo["R"]
-    geo["per"] = sum(dl)
-    geo["surfArea"] = 2 * pi * sum(inputR .* dl)
-    geo["elongation"] = 0.5 * ((max_z - min_z) / geo["a"])
-    geo["elongation_upper"] = (max_z - z_at_max_r) / geo["a"]
-    geo["elongation_lower"] = (z_at_max_r - min_z) / geo["a"]
-    geo["triangularity_upper"] = (geo["R"] - r_at_max_z) / geo["a"]
-    geo["triangularity_lower"] = (geo["R"] - r_at_min_z) / geo["a"]
-    geo["triangularity"] = 0.5 * (geo["triangularity_upper"] + geo["triangularity_lower"])
-    geo["zoffset"] = z_at_max_r
-
-    # NOTE: lonull, upnull, squareness, centroid, zeta have not been translated from OMFIT fluxGeo
-
-    return geo
 end
