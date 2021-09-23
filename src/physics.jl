@@ -6,7 +6,7 @@ import PolygonOps
 import Optim
 using ForwardDiff
 
-function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, r0::Real)
+function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
     cc = cocos(3) # for now hardcoded to 3 because testing for 
 
     r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
@@ -165,7 +165,19 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, r0::Real)
             * trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
             * (2.0 * pi)^(1.0 - cc.exp_Bp)
         )
+
     end
+
+    # need to investigate possible different defintion between EFIT/OMFIT and IMAS
+    Btvac = B0 # * R0 / (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.
+
+    # beta_tor
+    eqt.global_quantities.beta_tor = trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure ./ (Btvac^2 / 2.0 / 4.0 / pi / 1e-7)) / eqt.profiles_1d.volume[end]
+
+    # beta_normal
+    ip = eqt.global_quantities.ip / 1e6
+    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.
+    eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # rho_tor_norm
     rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (pi * B0)))

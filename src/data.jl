@@ -450,7 +450,7 @@ end
 
 function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
     items = keys(ids)
-    for (k, item) in enumerate(items)
+    for (k, item) in enumerate(sort(items))
         value = getfield(ids, item)
         printstyled(io, "$('｜'^depth)"; color=:yellow)
         # arrays of structurs
@@ -468,16 +468,13 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
         # field
         else
             printstyled(io, "$(item)")
-            if typeof(value) <: Function
-                color = :green
-            else
-                color = :blue
-            end
             printstyled(io, " ➡ "; color=:red)
             if typeof(value) <: Function
-                printstyled(io, "Function\n"; color=color)
+                printstyled(io, "Function\n"; color=:green)
+            elseif typeof(value) <: Number
+                printstyled(io, "$(value)\n"; color=:blue)
             else
-                printstyled(io, "$(Base.summary(value))\n"; color=color)
+                printstyled(io, "$(Base.summary(value))\n"; color=:blue)
             end
         end
         if (typeof(ids) <: dd) & (k < length(items))
