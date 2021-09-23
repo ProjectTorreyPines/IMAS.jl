@@ -451,30 +451,38 @@ end
 function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
     items = keys(ids)
     for (k, item) in enumerate(items)
-        printstyled("$('｜'^depth)"; color=:yellow)
+        value = getfield(ids, item)
+        printstyled(io, "$('｜'^depth)"; color=:yellow)
         # arrays of structurs
         if typeof(ids) <: IDSvector
-            printstyled("[$(item)]\n"; bold=true, color=:green)
+            printstyled(io, "[$(item)]\n"; bold=true, color=:green)
             show(io, ids[item], depth + 1)
         # structures
-        elseif typeof(getfield(ids, item)) <: Union{IDS,IDSvector}
+        elseif typeof(value) <: Union{IDS,IDSvector}
             if (typeof(ids) <: dd)
-                printstyled("$(uppercase(string(item)))\n"; bold=true)
+                printstyled(io, "$(uppercase(string(item)))\n"; bold=true)
             else
-                printstyled("$(string(item))\n"; bold=true)
+                printstyled(io, "$(string(item))\n"; bold=true)
             end
-            show(io, getfield(ids, item), depth + 1)
+            show(io, value, depth + 1)
         # field
         else
-            value = getfield(ids, item)
-            printstyled("$(item)")
-            color = :red
-            printstyled(" ➡ "; color=color)
-            printstyled("$(Base.summary(getfield(ids, item)))\n"; color=:blue)
+            printstyled(io, "$(item)")
+            if typeof(value) <: Function
+                color = :green
+            else
+                color = :blue
+            end
+            printstyled(io, " ➡ "; color=:red)
+            if typeof(value) <: Function
+                printstyled(io, "Function\n"; color=color)
+            else
+                printstyled(io, "$(Base.summary(value))\n"; color=color)
+            end
         end
         if (typeof(ids) <: dd) & (k < length(items))
-            println()
-end
+            println(io,"")
+        end
     end
 end
 
