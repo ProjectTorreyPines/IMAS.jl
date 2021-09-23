@@ -93,3 +93,13 @@ returns true if argument is callable
 function iscallable(f)
     return !isempty(methods(f))
 end
+
+"""
+    norm(x::Vector{T} where T<:Real)::Vector{Real}
+
+Normalize a vector so that the first item in the array is 0 and the last one is 1
+This is handy where psi_norm should be used (and IMAS does not define a psi_norm array)
+"""
+function norm(x::Vector{T} where T<:Real)::Vector{Real}
+    return (x-x[1])/(x[end]-x[1])
+end

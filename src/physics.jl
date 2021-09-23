@@ -4,12 +4,9 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
-using Statistics
 using ForwardDiff
 
-using PyPlot
-
-function flux_surfaces(eqt::equilibrium__time_slice)
+function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, r0::Real)
     cc = cocos(3) # for now hardcoded to 3 because testing for 
 
     r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
@@ -30,20 +27,21 @@ function flux_surfaces(eqt::equilibrium__time_slice)
     eqt.profiles_1d.volume = zero(eqt.profiles_1d.psi)
     eqt.profiles_1d.gm1 = zero(eqt.profiles_1d.psi)
     eqt.profiles_1d.gm9 = zero(eqt.profiles_1d.psi)
+    eqt.profiles_1d.phi = zero(eqt.profiles_1d.psi)
 
     for (k, psi_level0) in reverse(collect(enumerate(eqt.profiles_1d.psi)))
 
         # on axis flux surface is a synthetic one
-        if k==1
-            eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2]-(eqt.profiles_1d.elongation[3]-eqt.profiles_1d.elongation[2])
+        if k == 1
+            eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2] - (eqt.profiles_1d.elongation[3] - eqt.profiles_1d.elongation[2])
             eqt.profiles_1d.triangularity_upper[1] = 0.0
             eqt.profiles_1d.triangularity_lower[1] = 0.0
             
-            t=range(0,2*pi,length=17)
-            a=1E-3
-            b=eqt.profiles_1d.elongation[1]*a
-            pr=cos.(t).*a.+eqt.global_quantities.magnetic_axis.r
-            pz=sin.(t).*b.+eqt.global_quantities.magnetic_axis.z
+            t = range(0, 2 * pi, length=17)
+            a = 1E-3
+            b = eqt.profiles_1d.elongation[1] * a
+            pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
+            pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
             
             # Extrema on array indices
             _, imaxr = findmax(pr)
@@ -58,7 +56,10 @@ function flux_surfaces(eqt::equilibrium__time_slice)
         # other flux surfaces
         else
             # trace flux surface
-            pr, pz,psi_level = flux_surface(eqt, psi_level0)
+            pr, pz, psi_level = flux_surface(eqt, psi_level0)
+            if length(pr) == 0
+                error("Could not trace a closed flux surface at ψₙ of $(k / length(eqt.profiles_1d.psi))")
+            end
 
             # Extrema on array indices
             _, imaxr = findmax(pr)
@@ -72,14 +73,12 @@ function flux_surfaces(eqt::equilibrium__time_slice)
 
             w = 1E-6
 
+            # find extrema as optimization problem
             fx(x, psi_level) = (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
             res = Optim.optimize(x -> fx(x, psi_level), x -> ForwardDiff.gradient(xx -> fx(xx, psi_level), x), [max_r, z_at_max_r], inplace=false)
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            eqt.profiles_1d.r_outboard[k] = max_r
             res = Optim.optimize(x -> fx(x, psi_level), x -> ForwardDiff.gradient(xx -> fx(xx, psi_level), x), [min_r, z_at_min_r], inplace=false)
             (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-            eqt.profiles_1d.r_inboard[k] = min_r
-
             fz(x, psi_level) = (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - eqt.global_quantities.magnetic_axis.z)^2 * w
             res = Optim.optimize(x -> fz(x, psi_level), x -> ForwardDiff.gradient(xx -> fz(xx, psi_level), x), [r_at_max_z, max_z], inplace=false)
             (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
@@ -108,7 +107,7 @@ function flux_surfaces(eqt::equilibrium__time_slice)
 
         # flux expansion
         ll = cumsum(vcat([0], sqrt.(diff(pr).^2 + diff(pz).^2)))
-        fluxexpansion = 1.0./ Bp_abs
+        fluxexpansion = 1.0 ./ Bp_abs
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
         # flux-surface averaging function
@@ -123,22 +122,11 @@ function flux_surfaces(eqt::equilibrium__time_slice)
         eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr)
 
         # j_tor = <j_tor/R> / <1/R>
-        if false
-            # brute force
-            Jt = zero(pr)
-            for i in 1:length(pr)
-                dBrdR, dBrdZ = Interpolations.gradient(Br_interpolant, pr[i], pz[i])
-                dBzdR, dBzdZ = Interpolations.gradient(Bz_interpolant, pr[i], pz[i])
-                Jt[i] = cc.sigma_RpZ .* (dBrdZ .- dBzdR) ./ (4.0 * pi * 1e-7)
-            end
-            eqt.profiles_1d.j_tor[k] = flxAvg(Jt / pr) / eqt.profiles_1d.gm9[k]
-        else
-            eqt.profiles_1d.j_tor[k] = (
+        eqt.profiles_1d.j_tor[k] = (
                 -cc.sigma_Bp
                 .* (eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm9[k] / (4 * pi * 1e-7))
                 * (2.0 * pi)^cc.exp_Bp
             )
-        end
 
         # dvolume_dpsi
         eqt.profiles_1d.dvolume_dpsi[k] = (
@@ -159,16 +147,29 @@ function flux_surfaces(eqt::equilibrium__time_slice)
             ./ ((2 * pi)^(2.0 - cc.exp_Bp)))
 
         # quantities calculated on the last closed flux surface
-        if k==length(eqt.profiles_1d.psi)
+        if k == length(eqt.profiles_1d.psi)
             # ip
             eqt.global_quantities.ip = cc.sigma_rhotp * trapz(ll, Bp) / (4e-7 * pi)
         end
     end
 
     # integral quantities are defined later
-    for (k, psi_level0) in enumerate(eqt.profiles_1d.psi)
+    for (k, psi_level) in enumerate(eqt.profiles_1d.psi)
+        # volume
         eqt.profiles_1d.volume[k] = trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
+
+        # phi
+        eqt.profiles_1d.phi[k] = (
+            cc.sigma_Bp
+            * cc.sigma_rhotp
+            * trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
+            * (2.0 * pi)^(1.0 - cc.exp_Bp)
+        )
     end
+
+    # rho_tor_norm
+    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (pi * B0)))
+    eqt.profiles_1d.rho_tor_norm = rho / rho[end]
 end
 
 """
@@ -194,4 +195,5 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
             return pr, pz, psi_level
         end
     end
+    return [], [], psi_level
 end
