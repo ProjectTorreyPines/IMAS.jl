@@ -471,8 +471,10 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
             printstyled(io, " ➡ "; color=:red)
             if typeof(value) <: Function
                 printstyled(io, "Function\n"; color=:green)
+            elseif typeof(value) <: String
+                printstyled(io, "\"$(value)\"\n"; color=:magenta)
             elseif typeof(value) <: Number
-                printstyled(io, "$(value)\n"; color=:blue)
+                printstyled(io, "$(value)\n"; color=:magenta)
             else
                 printstyled(io, "$(Base.summary(value))\n"; color=:blue)
             end
