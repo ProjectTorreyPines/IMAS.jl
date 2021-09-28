@@ -7,7 +7,7 @@ import Optim
 using ForwardDiff
 
 function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
-    cc = cocos(3) # for now hardcoded to 3 because testing for 
+    cc = cocos(3) # for now hardcoded to 3 because testing with Solovev
 
     r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
     z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
@@ -71,19 +71,32 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
             z_at_max_r, max_r = pz[imaxr], pr[imaxr]
             z_at_min_r, min_r = pz[iminr], pr[iminr]
 
-            w = 1E-6
-
-            # find extrema as optimization problem
-            fx(x, psi_level) = (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
-            res = Optim.optimize(x -> fx(x, psi_level), x -> ForwardDiff.gradient(xx -> fx(xx, psi_level), x), [max_r, z_at_max_r], inplace=false)
-            (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fx(x, psi_level), x -> ForwardDiff.gradient(xx -> fx(xx, psi_level), x), [min_r, z_at_min_r], inplace=false)
-            (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-            fz(x, psi_level) = (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - eqt.global_quantities.magnetic_axis.z)^2 * w
-            res = Optim.optimize(x -> fz(x, psi_level), x -> ForwardDiff.gradient(xx -> fz(xx, psi_level), x), [r_at_max_z, max_z], inplace=false)
-            (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fz(x, psi_level), x -> ForwardDiff.gradient(xx -> fz(xx, psi_level), x), [r_at_min_z, min_z], inplace=false)
-            (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            # accurate geometric quantities by finding geometric extrema as optimization problem
+            if true
+                w = 1E-6
+                function fx(x, psi_level)
+                    try
+                        (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
+                    catch
+                        return 100
+                    end
+                end
+                function fz(x, psi_level)
+                    try
+                        (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - eqt.global_quantities.magnetic_axis.z)^2 * w
+                    catch
+                        return 100
+                    end
+                end
+                res = Optim.optimize(x -> fx(x, psi_level), [max_r, z_at_max_r], Optim.Newton(); autodiff=:forward)
+                (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
+                res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(); autodiff=:forward)
+                (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(); autodiff=:forward)
+                (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(); autodiff=:forward)
+                (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            end
         end
 
         # geometric
@@ -101,9 +114,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
         Bz = Bz_interpolant.(pr, pz)
         Bp_abs = sqrt.(Br.^2.0 .+ Bz.^2.0)
         Bp = (Bp_abs
-        .* cc.sigma_rhotp * cc.sigma_RpZ
-        .* sign.((pz .- eqt.global_quantities.magnetic_axis.z) .* Br
-              .- (pr .- eqt.global_quantities.magnetic_axis.r) .* Bz))
+            .* cc.sigma_rhotp * cc.sigma_RpZ
+            .* sign.((pz .- eqt.global_quantities.magnetic_axis.z) .* Br
+                  .- (pr .- eqt.global_quantities.magnetic_axis.r) .* Bz))
 
         # flux expansion
         ll = cumsum(vcat([0], sqrt.(diff(pr).^2 + diff(pz).^2)))
@@ -150,7 +163,11 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
         if k == length(eqt.profiles_1d.psi)
             # ip
             eqt.global_quantities.ip = cc.sigma_rhotp * trapz(ll, Bp) / (4e-7 * pi)
+
+            # perimeter
+            eqt.global_quantities.length_pol = ll[end]
         end
+
     end
 
     # integral quantities are defined later
@@ -168,15 +185,23 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
 
     end
 
-    # need to investigate possible different defintion between EFIT/OMFIT and IMAS
-    Btvac = B0 # * R0 / (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.
+    R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
+    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
+
+    # vacuum magnetic field at the geometric center
+    Btvac = B0 * R0 / R
+
+    # average poloidal magnetic field
+    Bpave = eqt.global_quantities.ip * (4.0 * pi * 1e-7) / eqt.global_quantities.length_pol
 
     # beta_tor
-    eqt.global_quantities.beta_tor = trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure ./ (Btvac^2 / 2.0 / 4.0 / pi / 1e-7)) / eqt.profiles_1d.volume[end]
+    eqt.global_quantities.beta_tor = trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end]
+
+    # beta_pol
+    eqt.global_quantities.beta_pol = trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end]
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
-    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.
     eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # rho_tor_norm
