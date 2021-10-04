@@ -86,7 +86,12 @@ function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=fals
             end
         end
     end
-    setfield!(ids, field, v)
+    try
+        setfield!(ids, field, v)
+    catch e
+        typeof(e) <: TypeError && error("$(typeof(v)) is the wrong type for $(f2u(ids)).$(field), it should be $(typeof(getfield(ids, field)))")
+        rethrow()
+    end
 end
 
 """
