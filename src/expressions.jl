@@ -30,8 +30,17 @@ expressions["equilibrium.time_slice[:].global_quantities.q_min"] =
     (;time_slice, _...) -> minimum(time_slice.profiles_1d.q)
 
 
-expressions["equilibrium.time_slice[:].boundary.geometric_axis"] =
+expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
     (;time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] + time_slice.profiles_1d.r_inboard[end]) * 0.5
+
+expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
+    (;time_slice, _...) -> 0.0
+
+expressions["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
+    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r
+
+expressions["equilibrium.time_slice[:].boundary.geometric_axis.z"] =
+    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z
 
 expressions["equilibrium.time_slice[:].boundary.minor_radius"] =
     (;time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] - time_slice.profiles_1d.r_inboard[end]) * 0.5
