@@ -451,32 +451,34 @@ end
 function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
     items = keys(ids)
     for (k, item) in enumerate(sort(items))
-        value = getfield(ids, item)
         printstyled(io, "$('｜'^depth)"; color=:yellow)
         # arrays of structurs
         if typeof(ids) <: IDSvector
             printstyled(io, "[$(item)]\n"; bold=true, color=:green)
             show(io, ids[item], depth + 1)
-        # structures
-        elseif typeof(value) <: Union{IDS,IDSvector}
-            if (typeof(ids) <: dd)
-                printstyled(io, "$(uppercase(string(item)))\n"; bold=true)
-            else
-                printstyled(io, "$(string(item))\n"; bold=true)
-            end
-            show(io, value, depth + 1)
-        # field
         else
-            printstyled(io, "$(item)")
-            printstyled(io, " ➡ "; color=:red)
-            if typeof(value) <: Function
-                printstyled(io, "Function\n"; color=:green)
-            elseif typeof(value) <: String
-                printstyled(io, "\"$(value)\"\n"; color=:magenta)
-            elseif typeof(value) <: Number
-                printstyled(io, "$(value)\n"; color=:magenta)
+            value = getfield(ids, item)
+            # structures
+            if typeof(value) <: Union{IDS,IDSvector}
+                if (typeof(ids) <: dd)
+                    printstyled(io, "$(uppercase(string(item)))\n"; bold=true)
+                else
+                    printstyled(io, "$(string(item))\n"; bold=true)
+                end
+                show(io, value, depth + 1)
+            # field
             else
-                printstyled(io, "$(Base.summary(value))\n"; color=:blue)
+                printstyled(io, "$(item)")
+                printstyled(io, " ➡ "; color=:red)
+                if typeof(value) <: Function
+                    printstyled(io, "Function\n"; color=:green)
+                elseif typeof(value) <: String
+                    printstyled(io, "\"$(value)\"\n"; color=:magenta)
+                elseif typeof(value) <: Number
+                    printstyled(io, "$(value)\n"; color=:magenta)
+                else
+                    printstyled(io, "$(Base.summary(value))\n"; color=:blue)
+                end
             end
         end
         if (typeof(ids) <: dd) & (k < length(items))
