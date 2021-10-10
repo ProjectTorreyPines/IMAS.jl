@@ -21,7 +21,7 @@ assign_expressions = x -> x
 # IMAS data structure
 #= ==================================== =#
 filenames = [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures")) if startswith(filename, "_") || ! endswith(filename, ".json")]
-filenames = ["core_profiles.json", "core_sources.json", "dataset_description.json", "equilibrium.json", "summary.json", "wall.json"]
+filenames = ["core_profiles.json", "core_sources.json", "dataset_description.json", "equilibrium.json", "pf_active", "summary.json", "wall.json"]
 
 p = Progress(length(filenames); desc="Parse JSON structs ", showspeed=true)
 desired_structure = String[]
@@ -92,11 +92,14 @@ function imas_julia_struct(desired_structure::Vector{String})
 
                 # translate from IMAS data type to Julia types
                 if tp in keys(type_translator)
-                    if (dim == 0)
+                    if dim == 0
                         h[item] = ":: Union{Missing, $(type_translator[tp]), Function}"
                         conversion_types = Union{conversion_types, type_translator[tp]}
+                    elseif dim == 1
+                        h[item] = ":: Union{Missing, AbstractArray{T, $dim} where T<:$(type_translator[tp]), AbstractRange{T} where T<:$(type_translator[tp]), Function}"
+                        conversion_types = Union{conversion_types, Array{type_translator[tp]}}
                     else
-                        h[item] = ":: Union{Missing, Array{T, $dim} where T<:$(type_translator[tp]), Function}"
+                        h[item] = ":: Union{Missing, AbstractArray{T, $dim} where T<:$(type_translator[tp]), Function}"
                         conversion_types = Union{conversion_types, Array{type_translator[tp]}}
                     end
                 else

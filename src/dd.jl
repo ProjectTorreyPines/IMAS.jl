@@ -57,15 +57,15 @@ end
 
 mutable struct wall__global_quantities__neutral <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
-    var"sputtering_chemical_coefficient" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"gas_puff" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"recycling_particles_coefficient" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"pumping_speed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"particle_flux_from_wall" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"recycling_energy_coefficient" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"wall_inventory" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"particle_flux_from_plasma" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"sputtering_physical_coefficient" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"sputtering_chemical_coefficient" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"gas_puff" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"recycling_particles_coefficient" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"pumping_speed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"particle_flux_from_wall" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"recycling_energy_coefficient" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"wall_inventory" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"particle_flux_from_plasma" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"sputtering_physical_coefficient" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"element" :: IDSvector{T} where {T<:wall__global_quantities__neutral___element}
     _parent :: WeakRef
     function wall__global_quantities__neutral(var"label"=missing, var"sputtering_chemical_coefficient"=missing, var"gas_puff"=missing, var"recycling_particles_coefficient"=missing, var"pumping_speed"=missing, var"particle_flux_from_wall"=missing, var"recycling_energy_coefficient"=missing, var"wall_inventory"=missing, var"particle_flux_from_plasma"=missing, var"sputtering_physical_coefficient"=missing, var"element"=IDSvector(wall__global_quantities__neutral___element[]), _parent=WeakRef(missing))
@@ -77,12 +77,12 @@ mutable struct wall__global_quantities__neutral <: IDSvectorElement
 end
 
 mutable struct wall__global_quantities__electrons <: IDS
-    var"particle_flux_from_plasma" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gas_puff" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_outer_target" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pumping_speed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"particle_flux_from_wall" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"power_inner_target" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"particle_flux_from_plasma" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gas_puff" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_outer_target" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pumping_speed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"particle_flux_from_wall" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"power_inner_target" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__global_quantities__electrons(var"particle_flux_from_plasma"=missing, var"gas_puff"=missing, var"power_outer_target"=missing, var"pumping_speed"=missing, var"particle_flux_from_wall"=missing, var"power_inner_target"=missing, _parent=WeakRef(missing))
         ids = new(var"particle_flux_from_plasma", var"gas_puff", var"power_outer_target", var"pumping_speed", var"particle_flux_from_wall", var"power_inner_target", _parent)
@@ -93,22 +93,22 @@ end
 
 mutable struct wall__global_quantities <: IDS
     var"neutral" :: IDSvector{T} where {T<:wall__global_quantities__neutral}
-    var"power_incident" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_radiated" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_inner_target_ion_total" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"temperature" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_conducted" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_convected" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"current_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"power_incident" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_radiated" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_inner_target_ion_total" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"temperature" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_conducted" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_convected" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"current_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"electrons" :: wall__global_quantities__electrons
-    var"power_density_inner_target_max" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_black_body" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_recombination_neutrals" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_to_cooling" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_density_outer_target_max" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_recombination_plasma" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_currents" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_neutrals" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"power_density_inner_target_max" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_black_body" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_recombination_neutrals" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_to_cooling" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_density_outer_target_max" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_recombination_plasma" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_currents" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_neutrals" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__global_quantities(var"neutral"=IDSvector(wall__global_quantities__neutral[]), var"power_incident"=missing, var"power_radiated"=missing, var"power_inner_target_ion_total"=missing, var"temperature"=missing, var"power_conducted"=missing, var"power_convected"=missing, var"current_tor"=missing, var"electrons"=wall__global_quantities__electrons(), var"power_density_inner_target_max"=missing, var"power_black_body"=missing, var"power_recombination_neutrals"=missing, var"power_to_cooling"=missing, var"power_density_outer_target_max"=missing, var"power_recombination_plasma"=missing, var"power_currents"=missing, var"power_neutrals"=missing, _parent=WeakRef(missing))
         ids = new(var"neutral", var"power_incident", var"power_radiated", var"power_inner_target_ion_total", var"temperature", var"power_conducted", var"power_convected", var"current_tor", var"electrons", var"power_density_inner_target_max", var"power_black_body", var"power_recombination_neutrals", var"power_to_cooling", var"power_density_outer_target_max", var"power_recombination_plasma", var"power_currents", var"power_neutrals", _parent)
@@ -120,8 +120,8 @@ mutable struct wall__global_quantities <: IDS
 end
 
 mutable struct wall__first_wall_power_flux_peak <: IDS
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"data" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__first_wall_power_flux_peak(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
         ids = new(var"time", var"data", _parent)
@@ -143,7 +143,7 @@ mutable struct wall__description_ggd___type <: IDS
 end
 
 mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary <: IDSvectorElement
-    var"neighbours" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"neighbours" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"index" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
     function wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary(var"neighbours"=missing, var"index"=missing, _parent=WeakRef(missing))
@@ -154,9 +154,9 @@ mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension_
 end
 
 mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object <: IDSvectorElement
-    var"nodes" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"nodes" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"measure" :: Union{Missing, Real, Function}
-    var"geometry" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"geometry" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"boundary" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary}
     _parent :: WeakRef
     function wall__description_ggd___grid_ggd___space___objects_per_dimension___object(var"nodes"=missing, var"measure"=missing, var"geometry"=missing, var"boundary"=IDSvector(wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary[]), _parent=WeakRef(missing))
@@ -203,7 +203,7 @@ mutable struct wall__description_ggd___grid_ggd___space___geometry_type <: IDS
 end
 
 mutable struct wall__description_ggd___grid_ggd___space <: IDSvectorElement
-    var"coordinates_type" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"coordinates_type" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"geometry_type" :: wall__description_ggd___grid_ggd___space___geometry_type
     var"identifier" :: wall__description_ggd___grid_ggd___space___identifier
     var"objects_per_dimension" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___space___objects_per_dimension}
@@ -231,9 +231,9 @@ mutable struct wall__description_ggd___grid_ggd___identifier <: IDS
 end
 
 mutable struct wall__description_ggd___grid_ggd___grid_subset___metric <: IDS
-    var"jacobian" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"tensor_contravariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
-    var"tensor_covariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_ggd___grid_ggd___grid_subset___metric(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -278,9 +278,9 @@ mutable struct wall__description_ggd___grid_ggd___grid_subset___element <: IDSve
 end
 
 mutable struct wall__description_ggd___grid_ggd___grid_subset___base <: IDSvectorElement
-    var"jacobian" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"tensor_contravariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
-    var"tensor_covariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_ggd___grid_ggd___grid_subset___base(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -325,9 +325,9 @@ end
 
 mutable struct wall__description_ggd___ggd___temperature <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_ggd___ggd___temperature(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -338,9 +338,9 @@ end
 
 mutable struct wall__description_ggd___ggd___power_density <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_ggd___ggd___power_density(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -380,8 +380,8 @@ end
 
 mutable struct wall__description_2d___vessel__unit___element___outline <: IDS
     var"closed" :: Union{Missing, Integer, Function}
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___vessel__unit___element___outline(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"closed", var"r", var"z", _parent)
@@ -391,8 +391,8 @@ mutable struct wall__description_2d___vessel__unit___element___outline <: IDS
 end
 
 mutable struct wall__description_2d___vessel__unit___element___j_tor <: IDS
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"data" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___vessel__unit___element___j_tor(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
         ids = new(var"time", var"data", _parent)
@@ -419,8 +419,8 @@ end
 
 mutable struct wall__description_2d___vessel__unit___annular__outline_outer <: IDS
     var"closed" :: Union{Missing, Integer, Function}
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___vessel__unit___annular__outline_outer(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"closed", var"r", var"z", _parent)
@@ -431,8 +431,8 @@ end
 
 mutable struct wall__description_2d___vessel__unit___annular__outline_inner <: IDS
     var"closed" :: Union{Missing, Integer, Function}
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___vessel__unit___annular__outline_inner(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"closed", var"r", var"z", _parent)
@@ -443,8 +443,8 @@ end
 
 mutable struct wall__description_2d___vessel__unit___annular__centreline <: IDS
     var"closed" :: Union{Missing, Integer, Function}
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___vessel__unit___annular__centreline(var"closed"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"closed", var"r", var"z", _parent)
@@ -456,7 +456,7 @@ end
 mutable struct wall__description_2d___vessel__unit___annular <: IDS
     var"outline_inner" :: wall__description_2d___vessel__unit___annular__outline_inner
     var"centreline" :: wall__description_2d___vessel__unit___annular__centreline
-    var"thickness" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"thickness" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"resistivity" :: Union{Missing, Real, Function}
     var"outline_outer" :: wall__description_2d___vessel__unit___annular__outline_outer
     _parent :: WeakRef
@@ -524,8 +524,8 @@ end
 
 mutable struct wall__description_2d___mobile__unit___outline <: IDSvectorElement
     var"time" :: Union{Missing, Real, Function}
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___mobile__unit___outline(var"time"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"time", var"r", var"z", _parent)
@@ -538,7 +538,7 @@ mutable struct wall__description_2d___mobile__unit <: IDSvectorElement
     var"name" :: Union{Missing, String, Function}
     var"resistivity" :: Union{Missing, Real, Function}
     var"closed" :: Union{Missing, Integer, Function}
-    var"phi_extensions" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"phi_extensions" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"outline" :: IDSvector{T} where {T<:wall__description_2d___mobile__unit___outline}
     _parent :: WeakRef
     function wall__description_2d___mobile__unit(var"name"=missing, var"resistivity"=missing, var"closed"=missing, var"phi_extensions"=missing, var"outline"=IDSvector(wall__description_2d___mobile__unit___outline[]), _parent=WeakRef(missing))
@@ -575,8 +575,8 @@ mutable struct wall__description_2d___mobile <: IDS
 end
 
 mutable struct wall__description_2d___limiter__unit___outline <: IDS
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___limiter__unit___outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"r", var"z", _parent)
@@ -590,7 +590,7 @@ mutable struct wall__description_2d___limiter__unit <: IDSvectorElement
     var"resistivity" :: Union{Missing, Real, Function}
     var"closed" :: Union{Missing, Integer, Function}
     var"outline" :: wall__description_2d___limiter__unit___outline
-    var"phi_extensions" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"phi_extensions" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function wall__description_2d___limiter__unit(var"name"=missing, var"resistivity"=missing, var"closed"=missing, var"outline"=wall__description_2d___limiter__unit___outline(), var"phi_extensions"=missing, _parent=WeakRef(missing))
         ids = new(var"name", var"resistivity", var"closed", var"outline", var"phi_extensions", _parent)
@@ -662,7 +662,7 @@ mutable struct wall__code <: IDS
     var"parameters" :: Union{Missing, String, Function}
     var"commit" :: Union{Missing, String, Function}
     var"repository" :: Union{Missing, String, Function}
-    var"output_flag" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"version" :: Union{Missing, String, Function}
     _parent :: WeakRef
     function wall__code(var"library"=IDSvector(wall__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -674,7 +674,7 @@ mutable struct wall__code <: IDS
 end
 
 mutable struct wall <: IDS
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ids_properties" :: wall__ids_properties
     var"description_ggd" :: IDSvector{T} where {T<:wall__description_ggd}
     var"description_2d" :: IDSvector{T} where {T<:wall__description_2d}
@@ -736,7 +736,7 @@ end
 
 mutable struct summary__volume_average__zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -747,7 +747,7 @@ end
 
 mutable struct summary__volume_average__t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -758,7 +758,7 @@ end
 
 mutable struct summary__volume_average__t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -769,7 +769,7 @@ end
 
 mutable struct summary__volume_average__n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -780,7 +780,7 @@ end
 
 mutable struct summary__volume_average__n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -791,7 +791,7 @@ end
 
 mutable struct summary__volume_average__n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -802,7 +802,7 @@ end
 
 mutable struct summary__volume_average__n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -813,7 +813,7 @@ end
 
 mutable struct summary__volume_average__n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -824,7 +824,7 @@ end
 
 mutable struct summary__volume_average__n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -835,7 +835,7 @@ end
 
 mutable struct summary__volume_average__n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -846,7 +846,7 @@ end
 
 mutable struct summary__volume_average__n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -857,7 +857,7 @@ end
 
 mutable struct summary__volume_average__n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -868,7 +868,7 @@ end
 
 mutable struct summary__volume_average__n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -879,7 +879,7 @@ end
 
 mutable struct summary__volume_average__n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -890,7 +890,7 @@ end
 
 mutable struct summary__volume_average__n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -901,7 +901,7 @@ end
 
 mutable struct summary__volume_average__n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -912,7 +912,7 @@ end
 
 mutable struct summary__volume_average__n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -923,7 +923,7 @@ end
 
 mutable struct summary__volume_average__n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -934,7 +934,7 @@ end
 
 mutable struct summary__volume_average__n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -945,7 +945,7 @@ end
 
 mutable struct summary__volume_average__n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -997,7 +997,7 @@ end
 
 mutable struct summary__volume_average__n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1008,7 +1008,7 @@ end
 
 mutable struct summary__volume_average__meff_hydrogenic <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__meff_hydrogenic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1019,7 +1019,7 @@ end
 
 mutable struct summary__volume_average__isotope_fraction_hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__isotope_fraction_hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1030,7 +1030,7 @@ end
 
 mutable struct summary__volume_average__dn_e_dt <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__volume_average__dn_e_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1079,7 +1079,7 @@ end
 
 mutable struct summary__stationary_phase_flag <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__stationary_phase_flag(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1090,7 +1090,7 @@ end
 
 mutable struct summary__scrape_off_layer__t_i_average_decay_length <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__t_i_average_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1101,7 +1101,7 @@ end
 
 mutable struct summary__scrape_off_layer__t_e_decay_length <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__t_e_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1112,7 +1112,7 @@ end
 
 mutable struct summary__scrape_off_layer__pressure_neutral <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__pressure_neutral(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1123,7 +1123,7 @@ end
 
 mutable struct summary__scrape_off_layer__power_radiated <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__power_radiated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1134,7 +1134,7 @@ end
 
 mutable struct summary__scrape_off_layer__n_i_total_decay_length <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__n_i_total_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1145,7 +1145,7 @@ end
 
 mutable struct summary__scrape_off_layer__n_e_decay_length <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__n_e_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1156,7 +1156,7 @@ end
 
 mutable struct summary__scrape_off_layer__heat_flux_i_decay_length <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__heat_flux_i_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1167,7 +1167,7 @@ end
 
 mutable struct summary__scrape_off_layer__heat_flux_e_decay_length <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__scrape_off_layer__heat_flux_e_decay_length(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1203,7 +1203,7 @@ end
 
 mutable struct summary__runaways__particles <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__runaways__particles(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1214,7 +1214,7 @@ end
 
 mutable struct summary__runaways__current <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__runaways__current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1282,7 +1282,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__volume_inside_pedestal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__volume_inside_pedestal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1293,7 +1293,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__t_e__pedestal_width <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__t_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1304,7 +1304,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__t_e__pedestal_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__t_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1315,7 +1315,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__t_e__pedestal_height <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__t_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1326,7 +1326,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__t_e__offset <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__t_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1337,7 +1337,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1348,7 +1348,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__t_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1359,7 +1359,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__t_e__d_dpsi_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__t_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1393,7 +1393,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__t_e_pedestal_top_critical <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__t_e_pedestal_top_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1404,7 +1404,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_ratio <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1415,7 +1415,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_critical <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_sauter__alpha_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1441,7 +1441,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__t_e_pedestal_top_critical <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__t_e_pedestal_top_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1452,7 +1452,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_ratio <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1463,7 +1463,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_critical <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__stability__bootstrap_current_hager__alpha_critical(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1489,7 +1489,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__stability__alpha_experimental <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__stability__alpha_experimental(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1515,7 +1515,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_magnetic_axis <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_magnetic_axis(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1526,7 +1526,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1537,7 +1537,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1548,7 +1548,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__separatrix <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1559,7 +1559,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__pedestal_width <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1570,7 +1570,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__pedestal_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1581,7 +1581,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__pedestal_height <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1592,7 +1592,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__offset <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1603,7 +1603,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1614,7 +1614,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1625,7 +1625,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__pressure_electron__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1661,7 +1661,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__nustar_pedestal_top_electron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__nustar_pedestal_top_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1672,7 +1672,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__separatrix <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1683,7 +1683,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__pedestal_width <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1694,7 +1694,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__pedestal_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1705,7 +1705,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__pedestal_height <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1716,7 +1716,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__offset <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1727,7 +1727,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1738,7 +1738,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1749,7 +1749,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__n_e__d_dpsi_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__n_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1785,7 +1785,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__energy_thermal_pedestal_ion <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__energy_thermal_pedestal_ion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1796,7 +1796,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__energy_thermal_pedestal_electron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__energy_thermal_pedestal_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1807,7 +1807,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__coulomb_factor_pedestal_top <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__coulomb_factor_pedestal_top(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1818,7 +1818,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1829,7 +1829,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1840,7 +1840,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1851,7 +1851,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1862,7 +1862,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__b_field_tor_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1873,7 +1873,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1884,7 +1884,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1895,7 +1895,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__b_field_pol_pedestal_top_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1906,7 +1906,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__b_field_pedestal_top_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__b_field_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1917,7 +1917,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__b_field_pedestal_top_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__b_field_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1928,7 +1928,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__alpha_electron_pedestal_max_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__alpha_electron_pedestal_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1939,7 +1939,7 @@ end
 
 mutable struct summary__pedestal_fits__mtanh__alpha_electron_pedestal_max <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__mtanh__alpha_electron_pedestal_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -1955,7 +1955,7 @@ mutable struct summary__pedestal_fits__mtanh <: IDS
     var"rhostar_pedestal_top_electron_hfs" :: summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_hfs
     var"beta_pol_pedestal_top_electron_hfs" :: summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_hfs
     var"energy_thermal_pedestal_electron" :: summary__pedestal_fits__mtanh__energy_thermal_pedestal_electron
-    var"parameters" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parameters" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"t_e" :: summary__pedestal_fits__mtanh__t_e
     var"rhostar_pedestal_top_electron_lfs" :: summary__pedestal_fits__mtanh__rhostar_pedestal_top_electron_lfs
     var"beta_pol_pedestal_top_electron_lfs" :: summary__pedestal_fits__mtanh__beta_pol_pedestal_top_electron_lfs
@@ -2008,7 +2008,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__volume_inside_pedestal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__volume_inside_pedestal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2019,7 +2019,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__t_e__pedestal_width <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__t_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2030,7 +2030,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__t_e__pedestal_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__t_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2041,7 +2041,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__t_e__pedestal_height <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__t_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2052,7 +2052,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__t_e__offset <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__t_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2063,7 +2063,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__t_e__d_dpsi_norm_max <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__t_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2074,7 +2074,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__t_e__d_dpsi_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__t_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2106,7 +2106,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__rhostar_pedestal_top_electron_magnetic_axis <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__rhostar_pedestal_top_electron_magnetic_axis(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2117,7 +2117,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__rhostar_pedestal_top_electron_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__rhostar_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2128,7 +2128,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__rhostar_pedestal_top_electron_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__rhostar_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2139,7 +2139,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__separatrix <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2150,7 +2150,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__pedestal_width <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2161,7 +2161,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__pedestal_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2172,7 +2172,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__pedestal_height <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2183,7 +2183,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__offset <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2194,7 +2194,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2205,7 +2205,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2216,7 +2216,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__pressure_electron__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2252,7 +2252,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__nustar_pedestal_top_electron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__nustar_pedestal_top_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2263,7 +2263,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__n_e__separatrix <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__n_e__separatrix(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2274,7 +2274,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__n_e__pedestal_width <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__n_e__pedestal_width(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2285,7 +2285,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__n_e__pedestal_position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__n_e__pedestal_position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2296,7 +2296,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__n_e__pedestal_height <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__n_e__pedestal_height(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2307,7 +2307,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__n_e__offset <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__n_e__offset(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2318,7 +2318,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__n_e__d_dpsi_norm_max <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__n_e__d_dpsi_norm_max(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2329,7 +2329,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__n_e__d_dpsi_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__n_e__d_dpsi_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2363,7 +2363,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__energy_thermal_pedestal_ion <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__energy_thermal_pedestal_ion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2374,7 +2374,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__energy_thermal_pedestal_electron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__energy_thermal_pedestal_electron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2385,7 +2385,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__coulomb_factor_pedestal_top <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__coulomb_factor_pedestal_top(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2396,7 +2396,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2407,7 +2407,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2418,7 +2418,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2429,7 +2429,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__b_field_tor_pedestal_top_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__b_field_tor_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2440,7 +2440,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__b_field_tor_pedestal_top_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__b_field_tor_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2451,7 +2451,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__b_field_pol_pedestal_top_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__b_field_pol_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2462,7 +2462,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__b_field_pol_pedestal_top_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__b_field_pol_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2473,7 +2473,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__b_field_pol_pedestal_top_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__b_field_pol_pedestal_top_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2484,7 +2484,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__b_field_pedestal_top_lfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__b_field_pedestal_top_lfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2495,7 +2495,7 @@ end
 
 mutable struct summary__pedestal_fits__linear__b_field_pedestal_top_hfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__pedestal_fits__linear__b_field_pedestal_top_hfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2510,7 +2510,7 @@ mutable struct summary__pedestal_fits__linear <: IDS
     var"rhostar_pedestal_top_electron_hfs" :: summary__pedestal_fits__linear__rhostar_pedestal_top_electron_hfs
     var"beta_pol_pedestal_top_electron_hfs" :: summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_hfs
     var"energy_thermal_pedestal_electron" :: summary__pedestal_fits__linear__energy_thermal_pedestal_electron
-    var"parameters" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parameters" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"t_e" :: summary__pedestal_fits__linear__t_e
     var"rhostar_pedestal_top_electron_lfs" :: summary__pedestal_fits__linear__rhostar_pedestal_top_electron_lfs
     var"beta_pol_pedestal_top_electron_lfs" :: summary__pedestal_fits__linear__beta_pol_pedestal_top_electron_lfs
@@ -2594,7 +2594,7 @@ end
 
 mutable struct summary__local__separatrix__zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2605,7 +2605,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2616,7 +2616,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2627,7 +2627,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2638,7 +2638,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2649,7 +2649,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2660,7 +2660,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2671,7 +2671,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2682,7 +2682,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2693,7 +2693,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2704,7 +2704,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2715,7 +2715,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2726,7 +2726,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2737,7 +2737,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2748,7 +2748,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2759,7 +2759,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2770,7 +2770,7 @@ end
 
 mutable struct summary__local__separatrix__velocity_tor__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2822,7 +2822,7 @@ end
 
 mutable struct summary__local__separatrix__t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2833,7 +2833,7 @@ end
 
 mutable struct summary__local__separatrix__t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2844,7 +2844,7 @@ end
 
 mutable struct summary__local__separatrix__q <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2854,9 +2854,9 @@ mutable struct summary__local__separatrix__q <: IDS
 end
 
 mutable struct summary__local__separatrix__position <: IDS
-    var"psi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__position(var"psi"=missing, var"rho_tor_norm"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         ids = new(var"psi", var"rho_tor_norm", var"rho_tor", _parent)
@@ -2867,7 +2867,7 @@ end
 
 mutable struct summary__local__separatrix__n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2878,7 +2878,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2889,7 +2889,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2900,7 +2900,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2911,7 +2911,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2922,7 +2922,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2933,7 +2933,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2944,7 +2944,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2955,7 +2955,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2966,7 +2966,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2977,7 +2977,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2988,7 +2988,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -2999,7 +2999,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3010,7 +3010,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3021,7 +3021,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3032,7 +3032,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3043,7 +3043,7 @@ end
 
 mutable struct summary__local__separatrix__n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3095,7 +3095,7 @@ end
 
 mutable struct summary__local__separatrix__n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3106,7 +3106,7 @@ end
 
 mutable struct summary__local__separatrix__momentum_tor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3117,7 +3117,7 @@ end
 
 mutable struct summary__local__separatrix__magnetic_shear <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3128,7 +3128,7 @@ end
 
 mutable struct summary__local__separatrix__e_field_parallel <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__separatrix__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3172,7 +3172,7 @@ end
 
 mutable struct summary__local__r_eff_norm_2_3__plateau_factor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__r_eff_norm_2_3__plateau_factor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3183,7 +3183,7 @@ end
 
 mutable struct summary__local__r_eff_norm_2_3__iota <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__r_eff_norm_2_3__iota(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3194,7 +3194,7 @@ end
 
 mutable struct summary__local__r_eff_norm_2_3__effective_helical_ripple <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__r_eff_norm_2_3__effective_helical_ripple(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3220,7 +3220,7 @@ end
 
 mutable struct summary__local__pedestal__zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3231,7 +3231,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3242,7 +3242,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3253,7 +3253,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3264,7 +3264,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3275,7 +3275,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3286,7 +3286,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3297,7 +3297,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3308,7 +3308,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3319,7 +3319,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3330,7 +3330,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3341,7 +3341,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3352,7 +3352,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3363,7 +3363,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3374,7 +3374,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3385,7 +3385,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3396,7 +3396,7 @@ end
 
 mutable struct summary__local__pedestal__velocity_tor__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3448,7 +3448,7 @@ end
 
 mutable struct summary__local__pedestal__t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3459,7 +3459,7 @@ end
 
 mutable struct summary__local__pedestal__t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3470,7 +3470,7 @@ end
 
 mutable struct summary__local__pedestal__q <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3480,9 +3480,9 @@ mutable struct summary__local__pedestal__q <: IDS
 end
 
 mutable struct summary__local__pedestal__position <: IDS
-    var"psi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__position(var"psi"=missing, var"rho_tor_norm"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         ids = new(var"psi", var"rho_tor_norm", var"rho_tor", _parent)
@@ -3493,7 +3493,7 @@ end
 
 mutable struct summary__local__pedestal__n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3504,7 +3504,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3515,7 +3515,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3526,7 +3526,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3537,7 +3537,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3548,7 +3548,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3559,7 +3559,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3570,7 +3570,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3581,7 +3581,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3592,7 +3592,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3603,7 +3603,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3614,7 +3614,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3625,7 +3625,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3636,7 +3636,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3647,7 +3647,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3658,7 +3658,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3669,7 +3669,7 @@ end
 
 mutable struct summary__local__pedestal__n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3721,7 +3721,7 @@ end
 
 mutable struct summary__local__pedestal__n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3732,7 +3732,7 @@ end
 
 mutable struct summary__local__pedestal__momentum_tor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3743,7 +3743,7 @@ end
 
 mutable struct summary__local__pedestal__magnetic_shear <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3754,7 +3754,7 @@ end
 
 mutable struct summary__local__pedestal__e_field_parallel <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__pedestal__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3798,7 +3798,7 @@ end
 
 mutable struct summary__local__magnetic_axis__zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3809,7 +3809,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3820,7 +3820,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3831,7 +3831,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3842,7 +3842,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3853,7 +3853,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3864,7 +3864,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3875,7 +3875,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3886,7 +3886,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3897,7 +3897,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3908,7 +3908,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3919,7 +3919,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3930,7 +3930,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3941,7 +3941,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3952,7 +3952,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3963,7 +3963,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -3974,7 +3974,7 @@ end
 
 mutable struct summary__local__magnetic_axis__velocity_tor__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4026,7 +4026,7 @@ end
 
 mutable struct summary__local__magnetic_axis__t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4037,7 +4037,7 @@ end
 
 mutable struct summary__local__magnetic_axis__t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4048,7 +4048,7 @@ end
 
 mutable struct summary__local__magnetic_axis__q <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4058,11 +4058,11 @@ mutable struct summary__local__magnetic_axis__q <: IDS
 end
 
 mutable struct summary__local__magnetic_axis__position <: IDS
-    var"psi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__position(var"psi"=missing, var"r"=missing, var"rho_tor_norm"=missing, var"z"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         ids = new(var"psi", var"r", var"rho_tor_norm", var"z", var"rho_tor", _parent)
@@ -4073,7 +4073,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4084,7 +4084,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4095,7 +4095,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4106,7 +4106,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4117,7 +4117,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4128,7 +4128,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4139,7 +4139,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4150,7 +4150,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4161,7 +4161,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4172,7 +4172,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4183,7 +4183,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4194,7 +4194,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4205,7 +4205,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4216,7 +4216,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4227,7 +4227,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4238,7 +4238,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4249,7 +4249,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4301,7 +4301,7 @@ end
 
 mutable struct summary__local__magnetic_axis__n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4312,7 +4312,7 @@ end
 
 mutable struct summary__local__magnetic_axis__momentum_tor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4323,7 +4323,7 @@ end
 
 mutable struct summary__local__magnetic_axis__magnetic_shear <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4334,7 +4334,7 @@ end
 
 mutable struct summary__local__magnetic_axis__e_field_parallel <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4345,7 +4345,7 @@ end
 
 mutable struct summary__local__magnetic_axis__b_field <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__magnetic_axis__b_field(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4391,7 +4391,7 @@ end
 
 mutable struct summary__local__limiter__zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4402,7 +4402,7 @@ end
 
 mutable struct summary__local__limiter__t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4413,7 +4413,7 @@ end
 
 mutable struct summary__local__limiter__t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4424,7 +4424,7 @@ end
 
 mutable struct summary__local__limiter__power_flux_peak <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__power_flux_peak(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4446,7 +4446,7 @@ end
 
 mutable struct summary__local__limiter__n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4457,7 +4457,7 @@ end
 
 mutable struct summary__local__limiter__n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4468,7 +4468,7 @@ end
 
 mutable struct summary__local__limiter__n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4479,7 +4479,7 @@ end
 
 mutable struct summary__local__limiter__n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4490,7 +4490,7 @@ end
 
 mutable struct summary__local__limiter__n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4501,7 +4501,7 @@ end
 
 mutable struct summary__local__limiter__n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4512,7 +4512,7 @@ end
 
 mutable struct summary__local__limiter__n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4523,7 +4523,7 @@ end
 
 mutable struct summary__local__limiter__n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4534,7 +4534,7 @@ end
 
 mutable struct summary__local__limiter__n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4545,7 +4545,7 @@ end
 
 mutable struct summary__local__limiter__n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4556,7 +4556,7 @@ end
 
 mutable struct summary__local__limiter__n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4567,7 +4567,7 @@ end
 
 mutable struct summary__local__limiter__n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4578,7 +4578,7 @@ end
 
 mutable struct summary__local__limiter__n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4589,7 +4589,7 @@ end
 
 mutable struct summary__local__limiter__n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4600,7 +4600,7 @@ end
 
 mutable struct summary__local__limiter__n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4611,7 +4611,7 @@ end
 
 mutable struct summary__local__limiter__n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4622,7 +4622,7 @@ end
 
 mutable struct summary__local__limiter__n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4674,7 +4674,7 @@ end
 
 mutable struct summary__local__limiter__n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4685,7 +4685,7 @@ end
 
 mutable struct summary__local__limiter__flux_expansion <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__limiter__flux_expansion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4723,7 +4723,7 @@ end
 
 mutable struct summary__local__itb__zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4734,7 +4734,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4745,7 +4745,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4756,7 +4756,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4767,7 +4767,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4778,7 +4778,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4789,7 +4789,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4800,7 +4800,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4811,7 +4811,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4822,7 +4822,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4833,7 +4833,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4844,7 +4844,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4855,7 +4855,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4866,7 +4866,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4877,7 +4877,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4888,7 +4888,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4899,7 +4899,7 @@ end
 
 mutable struct summary__local__itb__velocity_tor__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__velocity_tor__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4951,7 +4951,7 @@ end
 
 mutable struct summary__local__itb__t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4962,7 +4962,7 @@ end
 
 mutable struct summary__local__itb__t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4973,7 +4973,7 @@ end
 
 mutable struct summary__local__itb__q <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__q(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -4983,9 +4983,9 @@ mutable struct summary__local__itb__q <: IDS
 end
 
 mutable struct summary__local__itb__position <: IDS
-    var"psi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__position(var"psi"=missing, var"rho_tor_norm"=missing, var"rho_tor"=missing, _parent=WeakRef(missing))
         ids = new(var"psi", var"rho_tor_norm", var"rho_tor", _parent)
@@ -4996,7 +4996,7 @@ end
 
 mutable struct summary__local__itb__n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5007,7 +5007,7 @@ end
 
 mutable struct summary__local__itb__n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5018,7 +5018,7 @@ end
 
 mutable struct summary__local__itb__n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5029,7 +5029,7 @@ end
 
 mutable struct summary__local__itb__n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5040,7 +5040,7 @@ end
 
 mutable struct summary__local__itb__n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5051,7 +5051,7 @@ end
 
 mutable struct summary__local__itb__n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5062,7 +5062,7 @@ end
 
 mutable struct summary__local__itb__n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5073,7 +5073,7 @@ end
 
 mutable struct summary__local__itb__n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5084,7 +5084,7 @@ end
 
 mutable struct summary__local__itb__n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5095,7 +5095,7 @@ end
 
 mutable struct summary__local__itb__n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5106,7 +5106,7 @@ end
 
 mutable struct summary__local__itb__n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5117,7 +5117,7 @@ end
 
 mutable struct summary__local__itb__n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5128,7 +5128,7 @@ end
 
 mutable struct summary__local__itb__n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5139,7 +5139,7 @@ end
 
 mutable struct summary__local__itb__n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5150,7 +5150,7 @@ end
 
 mutable struct summary__local__itb__n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5161,7 +5161,7 @@ end
 
 mutable struct summary__local__itb__n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5172,7 +5172,7 @@ end
 
 mutable struct summary__local__itb__n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5224,7 +5224,7 @@ end
 
 mutable struct summary__local__itb__n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5235,7 +5235,7 @@ end
 
 mutable struct summary__local__itb__momentum_tor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__momentum_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5246,7 +5246,7 @@ end
 
 mutable struct summary__local__itb__magnetic_shear <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__magnetic_shear(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5257,7 +5257,7 @@ end
 
 mutable struct summary__local__itb__e_field_parallel <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__itb__e_field_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5301,7 +5301,7 @@ end
 
 mutable struct summary__local__divertor_plate___zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5312,7 +5312,7 @@ end
 
 mutable struct summary__local__divertor_plate___t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5323,7 +5323,7 @@ end
 
 mutable struct summary__local__divertor_plate___t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5334,7 +5334,7 @@ end
 
 mutable struct summary__local__divertor_plate___power_flux_peak <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___power_flux_peak(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5356,7 +5356,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5367,7 +5367,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5378,7 +5378,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5389,7 +5389,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5400,7 +5400,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5411,7 +5411,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5422,7 +5422,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5433,7 +5433,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5444,7 +5444,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5455,7 +5455,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5466,7 +5466,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5477,7 +5477,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5488,7 +5488,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5499,7 +5499,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5510,7 +5510,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5521,7 +5521,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5532,7 +5532,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5584,7 +5584,7 @@ end
 
 mutable struct summary__local__divertor_plate___n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5595,7 +5595,7 @@ end
 
 mutable struct summary__local__divertor_plate___flux_expansion <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__local__divertor_plate___flux_expansion(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5656,7 +5656,7 @@ end
 
 mutable struct summary__line_average__zeff <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__zeff(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5667,7 +5667,7 @@ end
 
 mutable struct summary__line_average__t_i_average <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__t_i_average(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5678,7 +5678,7 @@ end
 
 mutable struct summary__line_average__t_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__t_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5689,7 +5689,7 @@ end
 
 mutable struct summary__line_average__n_i_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5700,7 +5700,7 @@ end
 
 mutable struct summary__line_average__n_i__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5711,7 +5711,7 @@ end
 
 mutable struct summary__line_average__n_i__tungsten <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__tungsten(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5722,7 +5722,7 @@ end
 
 mutable struct summary__line_average__n_i__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5733,7 +5733,7 @@ end
 
 mutable struct summary__line_average__n_i__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5744,7 +5744,7 @@ end
 
 mutable struct summary__line_average__n_i__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5755,7 +5755,7 @@ end
 
 mutable struct summary__line_average__n_i__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5766,7 +5766,7 @@ end
 
 mutable struct summary__line_average__n_i__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5777,7 +5777,7 @@ end
 
 mutable struct summary__line_average__n_i__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5788,7 +5788,7 @@ end
 
 mutable struct summary__line_average__n_i__iron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__iron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5799,7 +5799,7 @@ end
 
 mutable struct summary__line_average__n_i__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5810,7 +5810,7 @@ end
 
 mutable struct summary__line_average__n_i__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5821,7 +5821,7 @@ end
 
 mutable struct summary__line_average__n_i__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5832,7 +5832,7 @@ end
 
 mutable struct summary__line_average__n_i__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5843,7 +5843,7 @@ end
 
 mutable struct summary__line_average__n_i__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5854,7 +5854,7 @@ end
 
 mutable struct summary__line_average__n_i__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5865,7 +5865,7 @@ end
 
 mutable struct summary__line_average__n_i__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_i__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5917,7 +5917,7 @@ end
 
 mutable struct summary__line_average__n_e <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__n_e(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5928,7 +5928,7 @@ end
 
 mutable struct summary__line_average__meff_hydrogenic <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__meff_hydrogenic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5939,7 +5939,7 @@ end
 
 mutable struct summary__line_average__isotope_fraction_hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__isotope_fraction_hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -5950,7 +5950,7 @@ end
 
 mutable struct summary__line_average__dn_e_dt <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__line_average__dn_e_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6062,7 +6062,7 @@ end
 
 mutable struct summary__heating_current_drive__power_nbi <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_nbi(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6073,7 +6073,7 @@ end
 
 mutable struct summary__heating_current_drive__power_lh <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_lh(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6084,7 +6084,7 @@ end
 
 mutable struct summary__heating_current_drive__power_launched_nbi_co_injected_ratio <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_launched_nbi_co_injected_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6095,7 +6095,7 @@ end
 
 mutable struct summary__heating_current_drive__power_launched_nbi <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_launched_nbi(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6106,7 +6106,7 @@ end
 
 mutable struct summary__heating_current_drive__power_launched_lh <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_launched_lh(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6117,7 +6117,7 @@ end
 
 mutable struct summary__heating_current_drive__power_launched_ic <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_launched_ic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6128,7 +6128,7 @@ end
 
 mutable struct summary__heating_current_drive__power_launched_ec <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_launched_ec(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6139,7 +6139,7 @@ end
 
 mutable struct summary__heating_current_drive__power_ic <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_ic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6150,7 +6150,7 @@ end
 
 mutable struct summary__heating_current_drive__power_ec <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_ec(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6161,7 +6161,7 @@ end
 
 mutable struct summary__heating_current_drive__power_additional <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__power_additional(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6231,7 +6231,7 @@ end
 
 mutable struct summary__heating_current_drive__nbi___power_launched <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__nbi___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6242,7 +6242,7 @@ end
 
 mutable struct summary__heating_current_drive__nbi___power <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__nbi___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6301,7 +6301,7 @@ end
 
 mutable struct summary__heating_current_drive__nbi___energy <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__nbi___energy(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6323,7 +6323,7 @@ end
 
 mutable struct summary__heating_current_drive__nbi___current <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__nbi___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6334,7 +6334,7 @@ end
 
 mutable struct summary__heating_current_drive__nbi___beam_power_fraction <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__nbi___beam_power_fraction(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6345,7 +6345,7 @@ end
 
 mutable struct summary__heating_current_drive__nbi___beam_current_fraction <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__nbi___beam_current_fraction(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6398,7 +6398,7 @@ end
 
 mutable struct summary__heating_current_drive__lh___power_launched <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__lh___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6409,7 +6409,7 @@ end
 
 mutable struct summary__heating_current_drive__lh___power <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__lh___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6420,7 +6420,7 @@ end
 
 mutable struct summary__heating_current_drive__lh___position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__lh___position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6431,7 +6431,7 @@ end
 
 mutable struct summary__heating_current_drive__lh___n_parallel <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__lh___n_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6442,7 +6442,7 @@ end
 
 mutable struct summary__heating_current_drive__lh___frequency <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__lh___frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6453,7 +6453,7 @@ end
 
 mutable struct summary__heating_current_drive__lh___energy_fast <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__lh___energy_fast(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6464,7 +6464,7 @@ end
 
 mutable struct summary__heating_current_drive__lh___current <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__lh___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6498,7 +6498,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___power_launched <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6509,7 +6509,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___power <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6520,7 +6520,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6531,7 +6531,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___phase <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___phase(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6542,7 +6542,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___n_tor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___n_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6553,7 +6553,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___k_perpendicular <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___k_perpendicular(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6564,7 +6564,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___harmonic <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___harmonic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6575,7 +6575,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___frequency <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6586,7 +6586,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___energy_fast <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___energy_fast(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6597,7 +6597,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___e_field_plus_minus_ratio <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___e_field_plus_minus_ratio(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6608,7 +6608,7 @@ end
 
 mutable struct summary__heating_current_drive__ic___current <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ic___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6650,7 +6650,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___power_launched <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___power_launched(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6661,7 +6661,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___power <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6672,7 +6672,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___position <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___position(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6683,7 +6683,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___polarisation <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___polarisation(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6694,7 +6694,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___harmonic <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___harmonic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6705,7 +6705,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___frequency <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6716,7 +6716,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___energy_fast <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___energy_fast(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6727,7 +6727,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___current <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6738,7 +6738,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___angle_tor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___angle_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6749,7 +6749,7 @@ end
 
 mutable struct summary__heating_current_drive__ec___angle_pol <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__heating_current_drive__ec___angle_pol(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6826,7 +6826,7 @@ end
 
 mutable struct summary__global_quantities__volume <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__volume(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6837,7 +6837,7 @@ end
 
 mutable struct summary__global_quantities__v_loop <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__v_loop(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6848,7 +6848,7 @@ end
 
 mutable struct summary__global_quantities__tau_resistive <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__tau_resistive(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6859,7 +6859,7 @@ end
 
 mutable struct summary__global_quantities__tau_helium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__tau_helium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6870,7 +6870,7 @@ end
 
 mutable struct summary__global_quantities__tau_energy_98 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__tau_energy_98(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6881,7 +6881,7 @@ end
 
 mutable struct summary__global_quantities__tau_energy <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__tau_energy(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6892,7 +6892,7 @@ end
 
 mutable struct summary__global_quantities__resistance <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__resistance(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6903,7 +6903,7 @@ end
 
 mutable struct summary__global_quantities__ratio_tau_helium_fuel <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__ratio_tau_helium_fuel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6925,7 +6925,7 @@ end
 
 mutable struct summary__global_quantities__q_95 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__q_95(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6936,7 +6936,7 @@ end
 
 mutable struct summary__global_quantities__power_synchrotron <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_synchrotron(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6947,7 +6947,7 @@ end
 
 mutable struct summary__global_quantities__power_steady <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_steady(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6958,7 +6958,7 @@ end
 
 mutable struct summary__global_quantities__power_radiated_outside_lcfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_radiated_outside_lcfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6969,7 +6969,7 @@ end
 
 mutable struct summary__global_quantities__power_radiated_inside_lcfs <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_radiated_inside_lcfs(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6980,7 +6980,7 @@ end
 
 mutable struct summary__global_quantities__power_radiated <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_radiated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -6991,7 +6991,7 @@ end
 
 mutable struct summary__global_quantities__power_ohm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_ohm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7002,7 +7002,7 @@ end
 
 mutable struct summary__global_quantities__power_loss <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_loss(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7013,7 +7013,7 @@ end
 
 mutable struct summary__global_quantities__power_line <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_line(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7024,7 +7024,7 @@ end
 
 mutable struct summary__global_quantities__power_bremsstrahlung <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__power_bremsstrahlung(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7035,7 +7035,7 @@ end
 
 mutable struct summary__global_quantities__li_mhd <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__li_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7046,7 +7046,7 @@ end
 
 mutable struct summary__global_quantities__li <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__li(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7057,7 +7057,7 @@ end
 
 mutable struct summary__global_quantities__ip <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__ip(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7068,7 +7068,7 @@ end
 
 mutable struct summary__global_quantities__h_mode <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__global_quantities__h_mode(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7079,7 +7079,7 @@ end
 
 mutable struct summary__global_quantities__h_98 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__h_98(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7090,7 +7090,7 @@ end
 
 mutable struct summary__global_quantities__greenwald_fraction <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__greenwald_fraction(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7101,7 +7101,7 @@ end
 
 mutable struct summary__global_quantities__fusion_gain <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__fusion_gain(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7112,7 +7112,7 @@ end
 
 mutable struct summary__global_quantities__fusion_fluence <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__fusion_fluence(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7123,7 +7123,7 @@ end
 
 mutable struct summary__global_quantities__energy_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7134,7 +7134,7 @@ end
 
 mutable struct summary__global_quantities__energy_thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7145,7 +7145,7 @@ end
 
 mutable struct summary__global_quantities__energy_mhd <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7156,7 +7156,7 @@ end
 
 mutable struct summary__global_quantities__energy_ion_total_thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_ion_total_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7167,7 +7167,7 @@ end
 
 mutable struct summary__global_quantities__energy_fast_perpendicular <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_fast_perpendicular(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7178,7 +7178,7 @@ end
 
 mutable struct summary__global_quantities__energy_fast_parallel <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_fast_parallel(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7189,7 +7189,7 @@ end
 
 mutable struct summary__global_quantities__energy_electrons_thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_electrons_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7200,7 +7200,7 @@ end
 
 mutable struct summary__global_quantities__energy_diamagnetic <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_diamagnetic(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7211,7 +7211,7 @@ end
 
 mutable struct summary__global_quantities__energy_b_field_pol <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__energy_b_field_pol(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7222,7 +7222,7 @@ end
 
 mutable struct summary__global_quantities__denergy_thermal_dt <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__denergy_thermal_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7233,7 +7233,7 @@ end
 
 mutable struct summary__global_quantities__denergy_diamagnetic_dt <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__denergy_diamagnetic_dt(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7244,7 +7244,7 @@ end
 
 mutable struct summary__global_quantities__current_ohm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__current_ohm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7255,7 +7255,7 @@ end
 
 mutable struct summary__global_quantities__current_non_inductive <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__current_non_inductive(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7266,7 +7266,7 @@ end
 
 mutable struct summary__global_quantities__current_bootstrap <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__current_bootstrap(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7277,7 +7277,7 @@ end
 
 mutable struct summary__global_quantities__current_alignment <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__current_alignment(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7288,7 +7288,7 @@ end
 
 mutable struct summary__global_quantities__beta_tor_thermal_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__beta_tor_thermal_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7299,7 +7299,7 @@ end
 
 mutable struct summary__global_quantities__beta_tor_norm_mhd <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__beta_tor_norm_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7310,7 +7310,7 @@ end
 
 mutable struct summary__global_quantities__beta_tor_norm <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__beta_tor_norm(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7321,7 +7321,7 @@ end
 
 mutable struct summary__global_quantities__beta_tor_mhd <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__beta_tor_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7332,7 +7332,7 @@ end
 
 mutable struct summary__global_quantities__beta_tor <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__beta_tor(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7343,7 +7343,7 @@ end
 
 mutable struct summary__global_quantities__beta_pol_mhd <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__beta_pol_mhd(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7354,7 +7354,7 @@ end
 
 mutable struct summary__global_quantities__beta_pol <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__beta_pol(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7365,7 +7365,7 @@ end
 
 mutable struct summary__global_quantities__b0 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__global_quantities__b0(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7485,7 +7485,7 @@ end
 
 mutable struct summary__gas_injection_rates__xenon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__xenon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7496,7 +7496,7 @@ end
 
 mutable struct summary__gas_injection_rates__tritium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__tritium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7507,7 +7507,7 @@ end
 
 mutable struct summary__gas_injection_rates__total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7518,7 +7518,7 @@ end
 
 mutable struct summary__gas_injection_rates__top <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__top(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7529,7 +7529,7 @@ end
 
 mutable struct summary__gas_injection_rates__silane <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__silane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7540,7 +7540,7 @@ end
 
 mutable struct summary__gas_injection_rates__propane <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__propane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7551,7 +7551,7 @@ end
 
 mutable struct summary__gas_injection_rates__oxygen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__oxygen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7562,7 +7562,7 @@ end
 
 mutable struct summary__gas_injection_rates__nitrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__nitrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7573,7 +7573,7 @@ end
 
 mutable struct summary__gas_injection_rates__neon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__neon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7584,7 +7584,7 @@ end
 
 mutable struct summary__gas_injection_rates__midplane <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__midplane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7595,7 +7595,7 @@ end
 
 mutable struct summary__gas_injection_rates__methane_deuterated <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__methane_deuterated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7606,7 +7606,7 @@ end
 
 mutable struct summary__gas_injection_rates__methane_carbon_13 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__methane_carbon_13(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7617,7 +7617,7 @@ end
 
 mutable struct summary__gas_injection_rates__methane <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__methane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7628,7 +7628,7 @@ end
 
 mutable struct summary__gas_injection_rates__lithium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__lithium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7639,7 +7639,7 @@ end
 
 mutable struct summary__gas_injection_rates__krypton <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__krypton(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7661,7 +7661,7 @@ end
 
 mutable struct summary__gas_injection_rates__hydrogen <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__hydrogen(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7672,7 +7672,7 @@ end
 
 mutable struct summary__gas_injection_rates__helium_4 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__helium_4(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7683,7 +7683,7 @@ end
 
 mutable struct summary__gas_injection_rates__helium_3 <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__helium_3(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7694,7 +7694,7 @@ end
 
 mutable struct summary__gas_injection_rates__ethylene <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__ethylene(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7705,7 +7705,7 @@ end
 
 mutable struct summary__gas_injection_rates__ethane <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__ethane(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7716,7 +7716,7 @@ end
 
 mutable struct summary__gas_injection_rates__deuterium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__deuterium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7727,7 +7727,7 @@ end
 
 mutable struct summary__gas_injection_rates__carbon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__carbon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7738,7 +7738,7 @@ end
 
 mutable struct summary__gas_injection_rates__bottom <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__bottom(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7749,7 +7749,7 @@ end
 
 mutable struct summary__gas_injection_rates__beryllium <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__beryllium(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7760,7 +7760,7 @@ end
 
 mutable struct summary__gas_injection_rates__argon <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__argon(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7771,7 +7771,7 @@ end
 
 mutable struct summary__gas_injection_rates__ammonia_deuterated <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__ammonia_deuterated(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7782,7 +7782,7 @@ end
 
 mutable struct summary__gas_injection_rates__ammonia <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__gas_injection_rates__ammonia(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7858,7 +7858,7 @@ end
 
 mutable struct summary__fusion__power <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__power(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7869,7 +7869,7 @@ end
 
 mutable struct summary__fusion__neutron_power_total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_power_total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7880,7 +7880,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__tt__total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__tt__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7891,7 +7891,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__tt__thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__tt__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7902,7 +7902,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__tt__beam_thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__tt__beam_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7913,7 +7913,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__tt__beam_beam <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__tt__beam_beam(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7941,7 +7941,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7952,7 +7952,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7963,7 +7963,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dt__total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dt__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7974,7 +7974,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dt__thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dt__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7985,7 +7985,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dt__beam_thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dt__beam_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -7996,7 +7996,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dt__beam_beam <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dt__beam_beam(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8024,7 +8024,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dd__total <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dd__total(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8035,7 +8035,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dd__thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dd__thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8046,7 +8046,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dd__beam_thermal <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dd__beam_thermal(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8057,7 +8057,7 @@ end
 
 mutable struct summary__fusion__neutron_fluxes__dd__beam_beam <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__neutron_fluxes__dd__beam_beam(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8104,7 +8104,7 @@ end
 
 mutable struct summary__fusion__current <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__fusion__current(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8132,7 +8132,7 @@ end
 
 mutable struct summary__elms__type <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__elms__type(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8143,7 +8143,7 @@ end
 
 mutable struct summary__elms__frequency <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__elms__frequency(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8270,7 +8270,7 @@ mutable struct summary__code <: IDS
     var"parameters" :: Union{Missing, String, Function}
     var"commit" :: Union{Missing, String, Function}
     var"repository" :: Union{Missing, String, Function}
-    var"output_flag" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"version" :: Union{Missing, String, Function}
     _parent :: WeakRef
     function summary__code(var"library"=IDSvector(summary__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -8283,7 +8283,7 @@ end
 
 mutable struct summary__boundary__type <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
     function summary__boundary__type(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8294,7 +8294,7 @@ end
 
 mutable struct summary__boundary__triangularity_upper <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__triangularity_upper(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8305,7 +8305,7 @@ end
 
 mutable struct summary__boundary__triangularity_lower <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__triangularity_lower(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8316,7 +8316,7 @@ end
 
 mutable struct summary__boundary__strike_point_outer_z <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__strike_point_outer_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8327,7 +8327,7 @@ end
 
 mutable struct summary__boundary__strike_point_outer_r <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__strike_point_outer_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8338,7 +8338,7 @@ end
 
 mutable struct summary__boundary__strike_point_inner_z <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__strike_point_inner_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8349,7 +8349,7 @@ end
 
 mutable struct summary__boundary__strike_point_inner_r <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__strike_point_inner_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8371,7 +8371,7 @@ end
 
 mutable struct summary__boundary__minor_radius <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__minor_radius(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8382,7 +8382,7 @@ end
 
 mutable struct summary__boundary__magnetic_axis_z <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__magnetic_axis_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8393,7 +8393,7 @@ end
 
 mutable struct summary__boundary__magnetic_axis_r <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__magnetic_axis_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8404,7 +8404,7 @@ end
 
 mutable struct summary__boundary__geometric_axis_z <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__geometric_axis_z(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8415,7 +8415,7 @@ end
 
 mutable struct summary__boundary__geometric_axis_r <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__geometric_axis_r(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8426,7 +8426,7 @@ end
 
 mutable struct summary__boundary__gap_limiter_wall <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__gap_limiter_wall(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8437,7 +8437,7 @@ end
 
 mutable struct summary__boundary__elongation <: IDS
     var"source" :: Union{Missing, String, Function}
-    var"value" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function summary__boundary__elongation(var"source"=missing, var"value"=missing, _parent=WeakRef(missing))
         ids = new(var"source", var"value", _parent)
@@ -8488,7 +8488,7 @@ end
 mutable struct summary <: IDS
     var"local" :: summary__local
     var"wall" :: summary__wall
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"code" :: summary__code
     var"stationary_phase_flag" :: summary__stationary_phase_flag
     var"gas_injection_rates" :: summary__gas_injection_rates
@@ -8510,7 +8510,7 @@ mutable struct summary <: IDS
     var"scrape_off_layer" :: summary__scrape_off_layer
     var"limiter" :: summary__limiter
     var"runaways" :: summary__runaways
-    var"time_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"magnetic_shear_flag" :: summary__magnetic_shear_flag
     var"volume_average" :: summary__volume_average
     _parent :: WeakRef
@@ -8546,8 +8546,388 @@ mutable struct summary <: IDS
     end
 end
 
+mutable struct pf_active__vertical_force___force <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__vertical_force___force(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__vertical_force <: IDSvectorElement
+    var"limit_min" :: Union{Missing, Real, Function}
+    var"combination" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"force" :: pf_active__vertical_force___force
+    var"limit_max" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function pf_active__vertical_force(var"limit_min"=missing, var"combination"=missing, var"name"=missing, var"force"=pf_active__vertical_force___force(), var"limit_max"=missing, _parent=WeakRef(missing))
+        ids = new(var"limit_min", var"combination", var"name", var"force", var"limit_max", _parent)
+        assign_expressions(ids)
+        setfield!(ids.force, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__supply___voltage <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__supply___voltage(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__supply___current <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__supply___current(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__supply <: IDSvectorElement
+    var"voltage_limit_min" :: Union{Missing, Real, Function}
+    var"energy_limit_max" :: Union{Missing, Real, Function}
+    var"filter_denominator" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"current" :: pf_active__supply___current
+    var"voltage_limit_max" :: Union{Missing, Real, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"filter_numerator" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"nonlinear_model" :: Union{Missing, String, Function}
+    var"current_limit_min" :: Union{Missing, Real, Function}
+    var"delay" :: Union{Missing, Real, Function}
+    var"resistance" :: Union{Missing, Real, Function}
+    var"voltage" :: pf_active__supply___voltage
+    var"current_limiter_gain" :: Union{Missing, Real, Function}
+    var"identifier" :: Union{Missing, String, Function}
+    var"current_limit_max" :: Union{Missing, Real, Function}
+    var"type" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function pf_active__supply(var"voltage_limit_min"=missing, var"energy_limit_max"=missing, var"filter_denominator"=missing, var"current"=pf_active__supply___current(), var"voltage_limit_max"=missing, var"name"=missing, var"filter_numerator"=missing, var"nonlinear_model"=missing, var"current_limit_min"=missing, var"delay"=missing, var"resistance"=missing, var"voltage"=pf_active__supply___voltage(), var"current_limiter_gain"=missing, var"identifier"=missing, var"current_limit_max"=missing, var"type"=missing, _parent=WeakRef(missing))
+        ids = new(var"voltage_limit_min", var"energy_limit_max", var"filter_denominator", var"current", var"voltage_limit_max", var"name", var"filter_numerator", var"nonlinear_model", var"current_limit_min", var"delay", var"resistance", var"voltage", var"current_limiter_gain", var"identifier", var"current_limit_max", var"type", _parent)
+        assign_expressions(ids)
+        setfield!(ids.current, :_parent, WeakRef(ids))
+        setfield!(ids.voltage, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__radial_force___force <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__radial_force___force(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__radial_force <: IDSvectorElement
+    var"limit_min" :: Union{Missing, Real, Function}
+    var"combination" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"force" :: pf_active__radial_force___force
+    var"limit_max" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function pf_active__radial_force(var"limit_min"=missing, var"combination"=missing, var"name"=missing, var"force"=pf_active__radial_force___force(), var"limit_max"=missing, _parent=WeakRef(missing))
+        ids = new(var"limit_min", var"combination", var"name", var"force", var"limit_max", _parent)
+        assign_expressions(ids)
+        setfield!(ids.force, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__ids_properties__version_put <: IDS
+    var"access_layer_language" :: Union{Missing, String, Function}
+    var"data_dictionary" :: Union{Missing, String, Function}
+    var"access_layer" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function pf_active__ids_properties__version_put(var"access_layer_language"=missing, var"data_dictionary"=missing, var"access_layer"=missing, _parent=WeakRef(missing))
+        ids = new(var"access_layer_language", var"data_dictionary", var"access_layer", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__ids_properties <: IDS
+    var"provider" :: Union{Missing, String, Function}
+    var"version_put" :: pf_active__ids_properties__version_put
+    var"homogeneous_time" :: Union{Missing, Integer, Function}
+    var"source" :: Union{Missing, String, Function}
+    var"creation_date" :: Union{Missing, String, Function}
+    var"comment" :: Union{Missing, String, Function}
+    var"occurrence" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function pf_active__ids_properties(var"provider"=missing, var"version_put"=pf_active__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
+        ids = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
+        assign_expressions(ids)
+        setfield!(ids.version_put, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__global_quantities <: IDS
+    var"psi_coils_list" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"psi_coils_average" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__global_quantities(var"psi_coils_list"=missing, var"psi_coils_average"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"psi_coils_list", var"psi_coils_average", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___voltage <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__coil___voltage(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___element___geometry__rectangle <: IDS
+    var"height" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"width" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function pf_active__coil___element___geometry__rectangle(var"height"=missing, var"r"=missing, var"width"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"height", var"r", var"width", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___element___geometry__outline <: IDS
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__coil___element___geometry__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___element___geometry__oblique <: IDS
+    var"alpha" :: Union{Missing, Real, Function}
+    var"length_alpha" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"length_beta" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    var"beta" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function pf_active__coil___element___geometry__oblique(var"alpha"=missing, var"length_alpha"=missing, var"r"=missing, var"length_beta"=missing, var"z"=missing, var"beta"=missing, _parent=WeakRef(missing))
+        ids = new(var"alpha", var"length_alpha", var"r", var"length_beta", var"z", var"beta", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___element___geometry__arcs_of_circle <: IDS
+    var"curvature_radii" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__coil___element___geometry__arcs_of_circle(var"curvature_radii"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"curvature_radii", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___element___geometry <: IDS
+    var"arcs_of_circle" :: pf_active__coil___element___geometry__arcs_of_circle
+    var"rectangle" :: pf_active__coil___element___geometry__rectangle
+    var"outline" :: pf_active__coil___element___geometry__outline
+    var"geometry_type" :: Union{Missing, Integer, Function}
+    var"oblique" :: pf_active__coil___element___geometry__oblique
+    _parent :: WeakRef
+    function pf_active__coil___element___geometry(var"arcs_of_circle"=pf_active__coil___element___geometry__arcs_of_circle(), var"rectangle"=pf_active__coil___element___geometry__rectangle(), var"outline"=pf_active__coil___element___geometry__outline(), var"geometry_type"=missing, var"oblique"=pf_active__coil___element___geometry__oblique(), _parent=WeakRef(missing))
+        ids = new(var"arcs_of_circle", var"rectangle", var"outline", var"geometry_type", var"oblique", _parent)
+        assign_expressions(ids)
+        setfield!(ids.arcs_of_circle, :_parent, WeakRef(ids))
+        setfield!(ids.rectangle, :_parent, WeakRef(ids))
+        setfield!(ids.outline, :_parent, WeakRef(ids))
+        setfield!(ids.oblique, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___element <: IDSvectorElement
+    var"name" :: Union{Missing, String, Function}
+    var"turns_with_sign" :: Union{Missing, Real, Function}
+    var"area" :: Union{Missing, Real, Function}
+    var"geometry" :: pf_active__coil___element___geometry
+    var"identifier" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function pf_active__coil___element(var"name"=missing, var"turns_with_sign"=missing, var"area"=missing, var"geometry"=pf_active__coil___element___geometry(), var"identifier"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"turns_with_sign", var"area", var"geometry", var"identifier", _parent)
+        assign_expressions(ids)
+        setfield!(ids.geometry, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___current <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__coil___current(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil___b_field_max_timed <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__coil___b_field_max_timed(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__coil <: IDSvectorElement
+    var"b_field_max" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"energy_limit_max" :: Union{Missing, Real, Function}
+    var"temperature" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"current" :: pf_active__coil___current
+    var"name" :: Union{Missing, String, Function}
+    var"b_field_max_timed" :: pf_active__coil___b_field_max_timed
+    var"resistance" :: Union{Missing, Real, Function}
+    var"voltage" :: pf_active__coil___voltage
+    var"identifier" :: Union{Missing, String, Function}
+    var"current_limit_max" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"element" :: IDSvector{T} where {T<:pf_active__coil___element}
+    _parent :: WeakRef
+    function pf_active__coil(var"b_field_max"=missing, var"energy_limit_max"=missing, var"temperature"=missing, var"current"=pf_active__coil___current(), var"name"=missing, var"b_field_max_timed"=pf_active__coil___b_field_max_timed(), var"resistance"=missing, var"voltage"=pf_active__coil___voltage(), var"identifier"=missing, var"current_limit_max"=missing, var"element"=IDSvector(pf_active__coil___element[]), _parent=WeakRef(missing))
+        ids = new(var"b_field_max", var"energy_limit_max", var"temperature", var"current", var"name", var"b_field_max_timed", var"resistance", var"voltage", var"identifier", var"current_limit_max", var"element", _parent)
+        assign_expressions(ids)
+        setfield!(ids.current, :_parent, WeakRef(ids))
+        setfield!(ids.b_field_max_timed, :_parent, WeakRef(ids))
+        setfield!(ids.voltage, :_parent, WeakRef(ids))
+        setfield!(ids.element, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__code__library <: IDSvectorElement
+    var"name" :: Union{Missing, String, Function}
+    var"parameters" :: Union{Missing, String, Function}
+    var"commit" :: Union{Missing, String, Function}
+    var"repository" :: Union{Missing, String, Function}
+    var"version" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function pf_active__code__library(var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"version"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"parameters", var"commit", var"repository", var"version", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__code <: IDS
+    var"library" :: IDSvector{T} where {T<:pf_active__code__library}
+    var"name" :: Union{Missing, String, Function}
+    var"parameters" :: Union{Missing, String, Function}
+    var"commit" :: Union{Missing, String, Function}
+    var"repository" :: Union{Missing, String, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"version" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function pf_active__code(var"library"=IDSvector(pf_active__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
+        ids = new(var"library", var"name", var"parameters", var"commit", var"repository", var"output_flag", var"version", _parent)
+        assign_expressions(ids)
+        setfield!(ids.library, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active__circuit___voltage <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__circuit___voltage(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__circuit___current <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function pf_active__circuit___current(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct pf_active__circuit <: IDSvectorElement
+    var"voltage" :: pf_active__circuit___voltage
+    var"name" :: Union{Missing, String, Function}
+    var"connections" :: Union{Missing, AbstractArray{T, 2} where T<:Integer, Function}
+    var"identifier" :: Union{Missing, String, Function}
+    var"type" :: Union{Missing, String, Function}
+    var"current" :: pf_active__circuit___current
+    _parent :: WeakRef
+    function pf_active__circuit(var"voltage"=pf_active__circuit___voltage(), var"name"=missing, var"connections"=missing, var"identifier"=missing, var"type"=missing, var"current"=pf_active__circuit___current(), _parent=WeakRef(missing))
+        ids = new(var"voltage", var"name", var"connections", var"identifier", var"type", var"current", _parent)
+        assign_expressions(ids)
+        setfield!(ids.voltage, :_parent, WeakRef(ids))
+        setfield!(ids.current, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct pf_active <: IDS
+    var"vertical_force" :: IDSvector{T} where {T<:pf_active__vertical_force}
+    var"latency" :: Union{Missing, Real, Function}
+    var"ids_properties" :: pf_active__ids_properties
+    var"coil" :: IDSvector{T} where {T<:pf_active__coil}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"code" :: pf_active__code
+    var"global_quantities" :: pf_active__global_quantities
+    var"radial_force" :: IDSvector{T} where {T<:pf_active__radial_force}
+    var"circuit" :: IDSvector{T} where {T<:pf_active__circuit}
+    var"supply" :: IDSvector{T} where {T<:pf_active__supply}
+    _parent :: WeakRef
+    function pf_active(var"vertical_force"=IDSvector(pf_active__vertical_force[]), var"latency"=missing, var"ids_properties"=pf_active__ids_properties(), var"coil"=IDSvector(pf_active__coil[]), var"time"=missing, var"code"=pf_active__code(), var"global_quantities"=pf_active__global_quantities(), var"radial_force"=IDSvector(pf_active__radial_force[]), var"circuit"=IDSvector(pf_active__circuit[]), var"supply"=IDSvector(pf_active__supply[]), _parent=WeakRef(missing))
+        ids = new(var"vertical_force", var"latency", var"ids_properties", var"coil", var"time", var"code", var"global_quantities", var"radial_force", var"circuit", var"supply", _parent)
+        assign_expressions(ids)
+        setfield!(ids.vertical_force, :_parent, WeakRef(ids))
+        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
+        setfield!(ids.coil, :_parent, WeakRef(ids))
+        setfield!(ids.code, :_parent, WeakRef(ids))
+        setfield!(ids.global_quantities, :_parent, WeakRef(ids))
+        setfield!(ids.radial_force, :_parent, WeakRef(ids))
+        setfield!(ids.circuit, :_parent, WeakRef(ids))
+        setfield!(ids.supply, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct equilibrium__vacuum_toroidal_field <: IDS
-    var"b0" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"b0" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"r0" :: Union{Missing, Real, Function}
     _parent :: WeakRef
     function equilibrium__vacuum_toroidal_field(var"b0"=missing, var"r0"=missing, _parent=WeakRef(missing))
@@ -8570,9 +8950,9 @@ mutable struct equilibrium__time_slice___profiles_2d___grid_type <: IDS
 end
 
 mutable struct equilibrium__time_slice___profiles_2d___grid <: IDS
-    var"volume_element" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"dim2" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"dim1" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"volume_element" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"dim2" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"dim1" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___profiles_2d___grid(var"volume_element"=missing, var"dim2"=missing, var"dim1"=missing, _parent=WeakRef(missing))
         ids = new(var"volume_element", var"dim2", var"dim1", _parent)
@@ -8582,21 +8962,21 @@ mutable struct equilibrium__time_slice___profiles_2d___grid <: IDS
 end
 
 mutable struct equilibrium__time_slice___profiles_2d <: IDSvectorElement
-    var"psi" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"b_field_r" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"r" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"b_r" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"theta" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"b_field_z" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"j_tor" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"phi" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"b_field_tor" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"b_z" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"b_field_r" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"b_r" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"theta" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"b_field_z" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"j_tor" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"phi" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"b_field_tor" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"b_z" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid" :: equilibrium__time_slice___profiles_2d___grid
     var"grid_type" :: equilibrium__time_slice___profiles_2d___grid_type
-    var"j_parallel" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"b_tor" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"j_parallel" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"b_tor" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___profiles_2d(var"psi"=missing, var"b_field_r"=missing, var"r"=missing, var"b_r"=missing, var"theta"=missing, var"b_field_z"=missing, var"j_tor"=missing, var"phi"=missing, var"z"=missing, var"b_field_tor"=missing, var"b_z"=missing, var"grid"=equilibrium__time_slice___profiles_2d___grid(), var"grid_type"=equilibrium__time_slice___profiles_2d___grid_type(), var"j_parallel"=missing, var"b_tor"=missing, _parent=WeakRef(missing))
         ids = new(var"psi", var"b_field_r", var"r", var"b_r", var"theta", var"b_field_z", var"j_tor", var"phi", var"z", var"b_field_tor", var"b_z", var"grid", var"grid_type", var"j_parallel", var"b_tor", _parent)
@@ -8608,8 +8988,8 @@ mutable struct equilibrium__time_slice___profiles_2d <: IDSvectorElement
 end
 
 mutable struct equilibrium__time_slice___profiles_1d__geometric_axis <: IDS
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___profiles_1d__geometric_axis(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"r", var"z", _parent)
@@ -8619,54 +8999,54 @@ mutable struct equilibrium__time_slice___profiles_1d__geometric_axis <: IDS
 end
 
 mutable struct equilibrium__time_slice___profiles_1d <: IDS
-    var"b_field_max" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"dvolume_drho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm9" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"dpsi_drho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"surface" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"magnetic_shear" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"b_average" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"b_field_min" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"darea_dpsi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm3" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"squareness_upper_inner" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"squareness_lower_inner" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"elongation" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"beta_pol" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"b_field_average" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"j_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm6" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"psi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm8" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"dpressure_dpsi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"triangularity_upper" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"darea_drho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"area" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"trapped_fraction" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"volume" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"dvolume_dpsi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"b_min" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"f" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"mass_density" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"r_outboard" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm4" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"phi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"squareness_lower_outer" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"triangularity_lower" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm2" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_volume_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm1" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm5" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"b_max" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"f_df_dpsi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"j_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"r_inboard" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"q" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"gm7" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"squareness_upper_outer" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"b_field_max" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"dvolume_drho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm9" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"dpsi_drho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"surface" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"magnetic_shear" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"b_average" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"b_field_min" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"darea_dpsi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm3" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"squareness_upper_inner" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"squareness_lower_inner" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"elongation" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"beta_pol" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"b_field_average" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"j_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm6" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm8" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"dpressure_dpsi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"triangularity_upper" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"darea_drho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"area" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"trapped_fraction" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"volume" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"dvolume_dpsi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"b_min" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"f" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"mass_density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r_outboard" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm4" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"squareness_lower_outer" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"triangularity_lower" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm2" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_volume_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm1" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm5" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"b_max" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"f_df_dpsi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"j_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r_inboard" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"q" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"gm7" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"squareness_upper_outer" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"geometric_axis" :: equilibrium__time_slice___profiles_1d__geometric_axis
     _parent :: WeakRef
     function equilibrium__time_slice___profiles_1d(var"b_field_max"=missing, var"dvolume_drho_tor"=missing, var"gm9"=missing, var"dpsi_drho_tor"=missing, var"surface"=missing, var"rho_tor"=missing, var"magnetic_shear"=missing, var"b_average"=missing, var"b_field_min"=missing, var"darea_dpsi"=missing, var"gm3"=missing, var"squareness_upper_inner"=missing, var"squareness_lower_inner"=missing, var"rho_tor_norm"=missing, var"elongation"=missing, var"beta_pol"=missing, var"b_field_average"=missing, var"j_parallel"=missing, var"gm6"=missing, var"psi"=missing, var"gm8"=missing, var"dpressure_dpsi"=missing, var"triangularity_upper"=missing, var"darea_drho_tor"=missing, var"area"=missing, var"trapped_fraction"=missing, var"volume"=missing, var"dvolume_dpsi"=missing, var"b_min"=missing, var"f"=missing, var"mass_density"=missing, var"r_outboard"=missing, var"gm4"=missing, var"phi"=missing, var"squareness_lower_outer"=missing, var"triangularity_lower"=missing, var"gm2"=missing, var"rho_volume_norm"=missing, var"gm1"=missing, var"gm5"=missing, var"b_max"=missing, var"f_df_dpsi"=missing, var"j_tor"=missing, var"r_inboard"=missing, var"q"=missing, var"gm7"=missing, var"pressure"=missing, var"squareness_upper_outer"=missing, var"geometric_axis"=equilibrium__time_slice___profiles_1d__geometric_axis(), _parent=WeakRef(missing))
@@ -8747,9 +9127,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___z <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___z(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8760,9 +9140,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___theta <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___theta(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8773,9 +9153,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___r <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___r(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8786,9 +9166,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___psi <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___psi(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8799,9 +9179,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___phi <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___phi(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8812,9 +9192,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___j_tor <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___j_tor(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8825,9 +9205,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___j_parallel <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___j_parallel(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -8837,7 +9217,7 @@ mutable struct equilibrium__time_slice___ggd___j_parallel <: IDSvectorElement
 end
 
 mutable struct equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary <: IDSvectorElement
-    var"neighbours" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"neighbours" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"index" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary(var"neighbours"=missing, var"index"=missing, _parent=WeakRef(missing))
@@ -8848,9 +9228,9 @@ mutable struct equilibrium__time_slice___ggd___grid__space___objects_per_dimensi
 end
 
 mutable struct equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object <: IDSvectorElement
-    var"nodes" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"nodes" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"measure" :: Union{Missing, Real, Function}
-    var"geometry" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"geometry" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"boundary" :: IDSvector{T} where {T<:equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object(var"nodes"=missing, var"measure"=missing, var"geometry"=missing, var"boundary"=IDSvector(equilibrium__time_slice___ggd___grid__space___objects_per_dimension___object___boundary[]), _parent=WeakRef(missing))
@@ -8897,7 +9277,7 @@ mutable struct equilibrium__time_slice___ggd___grid__space___geometry_type <: ID
 end
 
 mutable struct equilibrium__time_slice___ggd___grid__space <: IDSvectorElement
-    var"coordinates_type" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"coordinates_type" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"geometry_type" :: equilibrium__time_slice___ggd___grid__space___geometry_type
     var"identifier" :: equilibrium__time_slice___ggd___grid__space___identifier
     var"objects_per_dimension" :: IDSvector{T} where {T<:equilibrium__time_slice___ggd___grid__space___objects_per_dimension}
@@ -8925,9 +9305,9 @@ mutable struct equilibrium__time_slice___ggd___grid__identifier <: IDS
 end
 
 mutable struct equilibrium__time_slice___ggd___grid__grid_subset___metric <: IDS
-    var"jacobian" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"tensor_contravariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
-    var"tensor_covariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___grid__grid_subset___metric(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -8972,9 +9352,9 @@ mutable struct equilibrium__time_slice___ggd___grid__grid_subset___element <: ID
 end
 
 mutable struct equilibrium__time_slice___ggd___grid__grid_subset___base <: IDSvectorElement
-    var"jacobian" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"tensor_contravariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
-    var"tensor_covariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___grid__grid_subset___base(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -9018,9 +9398,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___b_field_z <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___b_field_z(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -9031,9 +9411,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___b_field_tor <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___b_field_tor(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -9044,9 +9424,9 @@ end
 
 mutable struct equilibrium__time_slice___ggd___b_field_r <: IDSvectorElement
     var"grid_index" :: Union{Missing, Integer, Function}
-    var"values" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
-    var"coefficients" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___ggd___b_field_r(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
         ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
@@ -9099,9 +9479,9 @@ mutable struct equilibrium__time_slice___coordinate_system__grid_type <: IDS
 end
 
 mutable struct equilibrium__time_slice___coordinate_system__grid <: IDS
-    var"volume_element" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"dim2" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"dim1" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"volume_element" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"dim2" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"dim1" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___coordinate_system__grid(var"volume_element"=missing, var"dim2"=missing, var"dim1"=missing, _parent=WeakRef(missing))
         ids = new(var"volume_element", var"dim2", var"dim1", _parent)
@@ -9111,24 +9491,24 @@ mutable struct equilibrium__time_slice___coordinate_system__grid <: IDS
 end
 
 mutable struct equilibrium__time_slice___coordinate_system <: IDS
-    var"jacobian" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g13_covariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g11_contravariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g13_contravariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"r" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g12_contravariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g22_contravariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g33_contravariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g22_covariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"tensor_contravariant" :: Union{Missing, Array{T, 4} where T<:Real, Function}
-    var"g12_covariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g33_covariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"jacobian" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g13_covariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g11_contravariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g13_contravariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g12_contravariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g22_contravariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g33_contravariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g22_covariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 4} where T<:Real, Function}
+    var"g12_covariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g33_covariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid" :: equilibrium__time_slice___coordinate_system__grid
-    var"g23_covariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"g11_covariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
-    var"tensor_covariant" :: Union{Missing, Array{T, 4} where T<:Real, Function}
-    var"g23_contravariant" :: Union{Missing, Array{T, 2} where T<:Real, Function}
+    var"g23_covariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"g11_covariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 4} where T<:Real, Function}
+    var"g23_contravariant" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid_type" :: equilibrium__time_slice___coordinate_system__grid_type
     _parent :: WeakRef
     function equilibrium__time_slice___coordinate_system(var"jacobian"=missing, var"g13_covariant"=missing, var"g11_contravariant"=missing, var"g13_contravariant"=missing, var"r"=missing, var"g12_contravariant"=missing, var"g22_contravariant"=missing, var"z"=missing, var"g33_contravariant"=missing, var"g22_covariant"=missing, var"tensor_contravariant"=missing, var"g12_covariant"=missing, var"g33_covariant"=missing, var"grid"=equilibrium__time_slice___coordinate_system__grid(), var"g23_covariant"=missing, var"g11_covariant"=missing, var"tensor_covariant"=missing, var"g23_contravariant"=missing, var"grid_type"=equilibrium__time_slice___coordinate_system__grid_type(), _parent=WeakRef(missing))
@@ -9563,8 +9943,8 @@ mutable struct equilibrium__time_slice___boundary_separatrix__strike_point <: ID
 end
 
 mutable struct equilibrium__time_slice___boundary_separatrix__outline <: IDS
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___boundary_separatrix__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"r", var"z", _parent)
@@ -9694,8 +10074,8 @@ mutable struct equilibrium__time_slice___boundary_secondary_separatrix__strike_p
 end
 
 mutable struct equilibrium__time_slice___boundary_secondary_separatrix__outline <: IDS
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___boundary_secondary_separatrix__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"r", var"z", _parent)
@@ -9744,8 +10124,8 @@ mutable struct equilibrium__time_slice___boundary__strike_point <: IDSvectorElem
 end
 
 mutable struct equilibrium__time_slice___boundary__outline <: IDS
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___boundary__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"r", var"z", _parent)
@@ -9755,8 +10135,8 @@ mutable struct equilibrium__time_slice___boundary__outline <: IDS
 end
 
 mutable struct equilibrium__time_slice___boundary__lcfs <: IDS
-    var"r" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__time_slice___boundary__lcfs(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"r", var"z", _parent)
@@ -9883,7 +10263,7 @@ mutable struct equilibrium__ids_properties <: IDS
 end
 
 mutable struct equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary <: IDSvectorElement
-    var"neighbours" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"neighbours" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"index" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
     function equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary(var"neighbours"=missing, var"index"=missing, _parent=WeakRef(missing))
@@ -9894,9 +10274,9 @@ mutable struct equilibrium__grids_ggd___grid___space___objects_per_dimension___o
 end
 
 mutable struct equilibrium__grids_ggd___grid___space___objects_per_dimension___object <: IDSvectorElement
-    var"nodes" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"nodes" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"measure" :: Union{Missing, Real, Function}
-    var"geometry" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"geometry" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"boundary" :: IDSvector{T} where {T<:equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary}
     _parent :: WeakRef
     function equilibrium__grids_ggd___grid___space___objects_per_dimension___object(var"nodes"=missing, var"measure"=missing, var"geometry"=missing, var"boundary"=IDSvector(equilibrium__grids_ggd___grid___space___objects_per_dimension___object___boundary[]), _parent=WeakRef(missing))
@@ -9943,7 +10323,7 @@ mutable struct equilibrium__grids_ggd___grid___space___geometry_type <: IDS
 end
 
 mutable struct equilibrium__grids_ggd___grid___space <: IDSvectorElement
-    var"coordinates_type" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"coordinates_type" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"geometry_type" :: equilibrium__grids_ggd___grid___space___geometry_type
     var"identifier" :: equilibrium__grids_ggd___grid___space___identifier
     var"objects_per_dimension" :: IDSvector{T} where {T<:equilibrium__grids_ggd___grid___space___objects_per_dimension}
@@ -9971,9 +10351,9 @@ mutable struct equilibrium__grids_ggd___grid___identifier <: IDS
 end
 
 mutable struct equilibrium__grids_ggd___grid___grid_subset___metric <: IDS
-    var"jacobian" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"tensor_contravariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
-    var"tensor_covariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__grids_ggd___grid___grid_subset___metric(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -10018,9 +10398,9 @@ mutable struct equilibrium__grids_ggd___grid___grid_subset___element <: IDSvecto
 end
 
 mutable struct equilibrium__grids_ggd___grid___grid_subset___base <: IDSvectorElement
-    var"jacobian" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"tensor_contravariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
-    var"tensor_covariant" :: Union{Missing, Array{T, 3} where T<:Real, Function}
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     _parent :: WeakRef
     function equilibrium__grids_ggd___grid___grid_subset___base(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
         ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
@@ -10094,7 +10474,7 @@ mutable struct equilibrium__code <: IDS
     var"parameters" :: Union{Missing, String, Function}
     var"commit" :: Union{Missing, String, Function}
     var"repository" :: Union{Missing, String, Function}
-    var"output_flag" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"version" :: Union{Missing, String, Function}
     _parent :: WeakRef
     function equilibrium__code(var"library"=IDSvector(equilibrium__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -10107,7 +10487,7 @@ end
 
 mutable struct equilibrium <: IDS
     var"time_slice" :: IDSvector{T} where {T<:equilibrium__time_slice}
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ids_properties" :: equilibrium__ids_properties
     var"grids_ggd" :: IDSvector{T} where {T<:equilibrium__grids_ggd}
     var"vacuum_toroidal_field" :: equilibrium__vacuum_toroidal_field
@@ -10227,7 +10607,7 @@ mutable struct dataset_description <: IDS
     var"pulse_time_begin_epoch" :: dataset_description__pulse_time_begin_epoch
     var"imas_version" :: Union{Missing, String, Function}
     var"ids_properties" :: dataset_description__ids_properties
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"dd_version" :: Union{Missing, String, Function}
     var"parent_entry" :: dataset_description__parent_entry
     var"simulation" :: dataset_description__simulation
@@ -10249,7 +10629,7 @@ mutable struct dataset_description <: IDS
 end
 
 mutable struct core_sources__vacuum_toroidal_field <: IDS
-    var"b0" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"b0" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"r0" :: Union{Missing, Real, Function}
     _parent :: WeakRef
     function core_sources__vacuum_toroidal_field(var"b0"=missing, var"r0"=missing, _parent=WeakRef(missing))
@@ -10384,8 +10764,8 @@ mutable struct core_sources__source___species <: IDS
 end
 
 mutable struct core_sources__source___profiles_1d___total_ion_energy_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___total_ion_energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10409,11 +10789,11 @@ end
 mutable struct core_sources__source___profiles_1d___neutral___state <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
     var"electron_configuration" :: Union{Missing, String, Function}
-    var"particles" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"particles" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"vibrational_level" :: Union{Missing, Real, Function}
     var"vibrational_mode" :: Union{Missing, String, Function}
     var"neutral_type" :: core_sources__source___profiles_1d___neutral___state___neutral_type
-    var"energy" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___neutral___state(var"label"=missing, var"electron_configuration"=missing, var"particles"=missing, var"vibrational_level"=missing, var"vibrational_mode"=missing, var"neutral_type"=core_sources__source___profiles_1d___neutral___state___neutral_type(), var"energy"=missing, _parent=WeakRef(missing))
         ids = new(var"label", var"electron_configuration", var"particles", var"vibrational_level", var"vibrational_mode", var"neutral_type", var"energy", _parent)
@@ -10438,10 +10818,10 @@ end
 
 mutable struct core_sources__source___profiles_1d___neutral <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
-    var"particles" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"particles" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ion_index" :: Union{Missing, Integer, Function}
     var"multiple_states_flag" :: Union{Missing, Integer, Function}
-    var"energy" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"state" :: IDSvector{T} where {T<:core_sources__source___profiles_1d___neutral___state}
     var"element" :: IDSvector{T} where {T<:core_sources__source___profiles_1d___neutral___element}
     _parent :: WeakRef
@@ -10455,8 +10835,8 @@ mutable struct core_sources__source___profiles_1d___neutral <: IDSvectorElement
 end
 
 mutable struct core_sources__source___profiles_1d___ion___state___particles_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___ion___state___particles_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10478,8 +10858,8 @@ mutable struct core_sources__source___profiles_1d___ion___state___neutral_type <
 end
 
 mutable struct core_sources__source___profiles_1d___ion___state___energy_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___ion___state___energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10490,10 +10870,10 @@ end
 
 mutable struct core_sources__source___profiles_1d___ion___state <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
-    var"particles" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"particles" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"vibrational_level" :: Union{Missing, Real, Function}
     var"is_neutral" :: Union{Missing, Integer, Function}
-    var"energy" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"z_min" :: Union{Missing, Real, Function}
     var"electron_configuration" :: Union{Missing, String, Function}
     var"particles_decomposed" :: core_sources__source___profiles_1d___ion___state___particles_decomposed
@@ -10513,8 +10893,8 @@ mutable struct core_sources__source___profiles_1d___ion___state <: IDSvectorElem
 end
 
 mutable struct core_sources__source___profiles_1d___ion___particles_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___ion___particles_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10524,8 +10904,8 @@ mutable struct core_sources__source___profiles_1d___ion___particles_decomposed <
 end
 
 mutable struct core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10536,11 +10916,11 @@ end
 
 mutable struct core_sources__source___profiles_1d___ion___momentum <: IDS
     var"toroidal_decomposed" :: core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed
-    var"parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"toroidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"radial" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"poloidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"toroidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"radial" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"poloidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___ion___momentum(var"toroidal_decomposed"=core_sources__source___profiles_1d___ion___momentum__toroidal_decomposed(), var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         ids = new(var"toroidal_decomposed", var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10551,8 +10931,8 @@ mutable struct core_sources__source___profiles_1d___ion___momentum <: IDS
 end
 
 mutable struct core_sources__source___profiles_1d___ion___energy_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___ion___energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10576,9 +10956,9 @@ end
 
 mutable struct core_sources__source___profiles_1d___ion <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
-    var"particles" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"particles" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"momentum" :: core_sources__source___profiles_1d___ion___momentum
-    var"energy" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"multiple_states_flag" :: Union{Missing, Integer, Function}
     var"neutral_index" :: Union{Missing, Integer, Function}
     var"particles_decomposed" :: core_sources__source___profiles_1d___ion___particles_decomposed
@@ -10600,14 +10980,14 @@ mutable struct core_sources__source___profiles_1d___ion <: IDSvectorElement
 end
 
 mutable struct core_sources__source___profiles_1d___grid <: IDS
-    var"psi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"psi_boundary" :: Union{Missing, Real, Function}
-    var"volume" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"area" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_pol_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"surface" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"volume" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"area" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_pol_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"surface" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"psi_magnetic_axis" :: Union{Missing, Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___grid(var"psi"=missing, var"psi_boundary"=missing, var"volume"=missing, var"area"=missing, var"rho_pol_norm"=missing, var"rho_tor_norm"=missing, var"surface"=missing, var"rho_tor"=missing, var"psi_magnetic_axis"=missing, _parent=WeakRef(missing))
@@ -10618,8 +10998,8 @@ mutable struct core_sources__source___profiles_1d___grid <: IDS
 end
 
 mutable struct core_sources__source___profiles_1d___electrons__particles_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___electrons__particles_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10629,8 +11009,8 @@ mutable struct core_sources__source___profiles_1d___electrons__particles_decompo
 end
 
 mutable struct core_sources__source___profiles_1d___electrons__energy_decomposed <: IDS
-    var"explicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"implicit_part" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"explicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"implicit_part" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___electrons__energy_decomposed(var"explicit_part"=missing, var"implicit_part"=missing, _parent=WeakRef(missing))
         ids = new(var"explicit_part", var"implicit_part", _parent)
@@ -10640,12 +11020,12 @@ mutable struct core_sources__source___profiles_1d___electrons__energy_decomposed
 end
 
 mutable struct core_sources__source___profiles_1d___electrons <: IDS
-    var"particles_inside" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"particles" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"particles_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"particles" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"particles_decomposed" :: core_sources__source___profiles_1d___electrons__particles_decomposed
     var"energy_decomposed" :: core_sources__source___profiles_1d___electrons__energy_decomposed
-    var"energy" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"power_inside" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"power_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d___electrons(var"particles_inside"=missing, var"particles"=missing, var"particles_decomposed"=core_sources__source___profiles_1d___electrons__particles_decomposed(), var"energy_decomposed"=core_sources__source___profiles_1d___electrons__energy_decomposed(), var"energy"=missing, var"power_inside"=missing, _parent=WeakRef(missing))
         ids = new(var"particles_inside", var"particles", var"particles_decomposed", var"energy_decomposed", var"energy", var"power_inside", _parent)
@@ -10659,18 +11039,18 @@ end
 mutable struct core_sources__source___profiles_1d <: IDSvectorElement
     var"time" :: Union{Missing, Real, Function}
     var"neutral" :: IDSvector{T} where {T<:core_sources__source___profiles_1d___neutral}
-    var"torque_tor_inside" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"torque_tor_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ion" :: IDSvector{T} where {T<:core_sources__source___profiles_1d___ion}
     var"total_ion_energy_decomposed" :: core_sources__source___profiles_1d___total_ion_energy_decomposed
-    var"current_parallel_inside" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"momentum_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"conductivity_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"current_parallel_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"momentum_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"conductivity_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"electrons" :: core_sources__source___profiles_1d___electrons
-    var"momentum_tor_j_cross_b_field" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"momentum_tor_j_cross_b_field" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid" :: core_sources__source___profiles_1d___grid
-    var"total_ion_energy" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"j_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"total_ion_power_inside" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"total_ion_energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"j_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"total_ion_power_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_sources__source___profiles_1d(var"time"=missing, var"neutral"=IDSvector(core_sources__source___profiles_1d___neutral[]), var"torque_tor_inside"=missing, var"ion"=IDSvector(core_sources__source___profiles_1d___ion[]), var"total_ion_energy_decomposed"=core_sources__source___profiles_1d___total_ion_energy_decomposed(), var"current_parallel_inside"=missing, var"momentum_tor"=missing, var"conductivity_parallel"=missing, var"electrons"=core_sources__source___profiles_1d___electrons(), var"momentum_tor_j_cross_b_field"=missing, var"grid"=core_sources__source___profiles_1d___grid(), var"total_ion_energy"=missing, var"j_parallel"=missing, var"total_ion_power_inside"=missing, _parent=WeakRef(missing))
         ids = new(var"time", var"neutral", var"torque_tor_inside", var"ion", var"total_ion_energy_decomposed", var"current_parallel_inside", var"momentum_tor", var"conductivity_parallel", var"electrons", var"momentum_tor_j_cross_b_field", var"grid", var"total_ion_energy", var"j_parallel", var"total_ion_power_inside", _parent)
@@ -10790,7 +11170,7 @@ mutable struct core_sources__code <: IDS
     var"parameters" :: Union{Missing, String, Function}
     var"commit" :: Union{Missing, String, Function}
     var"repository" :: Union{Missing, String, Function}
-    var"output_flag" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"version" :: Union{Missing, String, Function}
     _parent :: WeakRef
     function core_sources__code(var"library"=IDSvector(core_sources__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -10803,7 +11183,7 @@ end
 
 mutable struct core_sources <: IDS
     var"source" :: IDSvector{T} where {T<:core_sources__source}
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ids_properties" :: core_sources__ids_properties
     var"vacuum_toroidal_field" :: core_sources__vacuum_toroidal_field
     var"code" :: core_sources__code
@@ -10820,7 +11200,7 @@ mutable struct core_sources <: IDS
 end
 
 mutable struct core_profiles__vacuum_toroidal_field <: IDS
-    var"b0" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"b0" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"r0" :: Union{Missing, Real, Function}
     _parent :: WeakRef
     function core_profiles__vacuum_toroidal_field(var"b0"=missing, var"r0"=missing, _parent=WeakRef(missing))
@@ -10843,17 +11223,17 @@ mutable struct core_profiles__profiles_1d___zeff_fit__time_measurement_slice_met
 end
 
 mutable struct core_profiles__profiles_1d___zeff_fit <: IDS
-    var"local" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
-    var"chi_squared" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"local" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"chi_squared" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"parameters" :: Union{Missing, String, Function}
-    var"reconstructed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"time_measurement_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"weight" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"source" :: Union{Missing, Array{T, 1} where T<:String, Function}
-    var"measured" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"reconstructed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time_measurement_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"weight" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"source" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"measured" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___zeff_fit__time_measurement_slice_method
-    var"time_measurement" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_measurement" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___zeff_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___zeff_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         ids = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10876,17 +11256,17 @@ mutable struct core_profiles__profiles_1d___t_i_average_fit__time_measurement_sl
 end
 
 mutable struct core_profiles__profiles_1d___t_i_average_fit <: IDS
-    var"local" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
-    var"chi_squared" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"local" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"chi_squared" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"parameters" :: Union{Missing, String, Function}
-    var"reconstructed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"time_measurement_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"weight" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"source" :: Union{Missing, Array{T, 1} where T<:String, Function}
-    var"measured" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"reconstructed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time_measurement_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"weight" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"source" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"measured" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___t_i_average_fit__time_measurement_slice_method
-    var"time_measurement" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_measurement" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___t_i_average_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___t_i_average_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         ids = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -10897,11 +11277,11 @@ mutable struct core_profiles__profiles_1d___t_i_average_fit <: IDS
 end
 
 mutable struct core_profiles__profiles_1d___neutral___velocity <: IDS
-    var"parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"toroidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"radial" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"poloidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"toroidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"radial" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"poloidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___neutral___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         ids = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10911,11 +11291,11 @@ mutable struct core_profiles__profiles_1d___neutral___velocity <: IDS
 end
 
 mutable struct core_profiles__profiles_1d___neutral___state___velocity <: IDS
-    var"parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"toroidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"radial" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"poloidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"toroidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"radial" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"poloidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___neutral___state___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         ids = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -10939,17 +11319,17 @@ end
 mutable struct core_profiles__profiles_1d___neutral___state <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
     var"vibrational_level" :: Union{Missing, Real, Function}
-    var"temperature" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_fast_perpendicular" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"temperature" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_fast_perpendicular" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"electron_configuration" :: Union{Missing, String, Function}
-    var"pressure" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"vibrational_mode" :: Union{Missing, String, Function}
-    var"pressure_fast_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_fast_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"velocity" :: core_profiles__profiles_1d___neutral___state___velocity
-    var"density" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_fast" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"neutral_type" :: core_profiles__profiles_1d___neutral___state___neutral_type
     _parent :: WeakRef
     function core_profiles__profiles_1d___neutral___state(var"label"=missing, var"vibrational_level"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"pressure_fast_perpendicular"=missing, var"electron_configuration"=missing, var"pressure"=missing, var"density_thermal"=missing, var"vibrational_mode"=missing, var"pressure_fast_parallel"=missing, var"velocity"=core_profiles__profiles_1d___neutral___state___velocity(), var"density"=missing, var"density_fast"=missing, var"neutral_type"=core_profiles__profiles_1d___neutral___state___neutral_type(), _parent=WeakRef(missing))
@@ -10976,18 +11356,18 @@ end
 
 mutable struct core_profiles__profiles_1d___neutral <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
-    var"temperature" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"temperature" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ion_index" :: Union{Missing, Integer, Function}
     var"multiple_states_flag" :: Union{Missing, Integer, Function}
-    var"pressure_fast_perpendicular" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_fast_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_fast_perpendicular" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_fast_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"state" :: IDSvector{T} where {T<:core_profiles__profiles_1d___neutral___state}
     var"velocity" :: core_profiles__profiles_1d___neutral___velocity
-    var"density" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_fast" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"element" :: IDSvector{T} where {T<:core_profiles__profiles_1d___neutral___element}
     _parent :: WeakRef
     function core_profiles__profiles_1d___neutral(var"label"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"ion_index"=missing, var"multiple_states_flag"=missing, var"pressure_fast_perpendicular"=missing, var"pressure"=missing, var"density_thermal"=missing, var"pressure_fast_parallel"=missing, var"state"=IDSvector(core_profiles__profiles_1d___neutral___state[]), var"velocity"=core_profiles__profiles_1d___neutral___velocity(), var"density"=missing, var"density_fast"=missing, var"element"=IDSvector(core_profiles__profiles_1d___neutral___element[]), _parent=WeakRef(missing))
@@ -11001,11 +11381,11 @@ mutable struct core_profiles__profiles_1d___neutral <: IDSvectorElement
 end
 
 mutable struct core_profiles__profiles_1d___ion___velocity <: IDS
-    var"parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"toroidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"radial" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"poloidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"toroidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"radial" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"poloidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___ion___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         ids = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -11027,17 +11407,17 @@ mutable struct core_profiles__profiles_1d___ion___temperature_fit__time_measurem
 end
 
 mutable struct core_profiles__profiles_1d___ion___temperature_fit <: IDS
-    var"local" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
-    var"chi_squared" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"local" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"chi_squared" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"parameters" :: Union{Missing, String, Function}
-    var"reconstructed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"time_measurement_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"weight" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"source" :: Union{Missing, Array{T, 1} where T<:String, Function}
-    var"measured" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"reconstructed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time_measurement_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"weight" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"source" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"measured" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___ion___temperature_fit__time_measurement_slice_method
-    var"time_measurement" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_measurement" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___ion___temperature_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___ion___temperature_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         ids = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -11048,11 +11428,11 @@ mutable struct core_profiles__profiles_1d___ion___temperature_fit <: IDS
 end
 
 mutable struct core_profiles__profiles_1d___ion___state___velocity <: IDS
-    var"parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"toroidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"radial" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"poloidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"toroidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"radial" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"poloidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___ion___state___velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         ids = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -11074,17 +11454,17 @@ mutable struct core_profiles__profiles_1d___ion___state___density_fit__time_meas
 end
 
 mutable struct core_profiles__profiles_1d___ion___state___density_fit <: IDS
-    var"local" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
-    var"chi_squared" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"local" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"chi_squared" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"parameters" :: Union{Missing, String, Function}
-    var"reconstructed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"time_measurement_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"weight" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"source" :: Union{Missing, Array{T, 1} where T<:String, Function}
-    var"measured" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"reconstructed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time_measurement_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"weight" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"source" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"measured" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___ion___state___density_fit__time_measurement_slice_method
-    var"time_measurement" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_measurement" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___ion___state___density_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___ion___state___density_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         ids = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -11097,25 +11477,25 @@ end
 mutable struct core_profiles__profiles_1d___ion___state <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
     var"vibrational_level" :: Union{Missing, Real, Function}
-    var"rotation_frequency_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"temperature" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_fast_perpendicular" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"rotation_frequency_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"temperature" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_fast_perpendicular" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"z_min" :: Union{Missing, Real, Function}
     var"electron_configuration" :: Union{Missing, String, Function}
-    var"pressure" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"vibrational_mode" :: Union{Missing, String, Function}
-    var"pressure_fast_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z_average_square_1d" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_fast_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z_average_square_1d" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"velocity" :: core_profiles__profiles_1d___ion___state___velocity
     var"z_average" :: Union{Missing, Real, Function}
     var"z_max" :: Union{Missing, Real, Function}
     var"z_square_average" :: Union{Missing, Real, Function}
     var"ionisation_potential" :: Union{Missing, Real, Function}
-    var"density" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_fast" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z_average_1d" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z_average_1d" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fit" :: core_profiles__profiles_1d___ion___state___density_fit
     _parent :: WeakRef
     function core_profiles__profiles_1d___ion___state(var"label"=missing, var"vibrational_level"=missing, var"rotation_frequency_tor"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"pressure_fast_perpendicular"=missing, var"z_min"=missing, var"electron_configuration"=missing, var"pressure"=missing, var"density_thermal"=missing, var"vibrational_mode"=missing, var"pressure_fast_parallel"=missing, var"z_average_square_1d"=missing, var"velocity"=core_profiles__profiles_1d___ion___state___velocity(), var"z_average"=missing, var"z_max"=missing, var"z_square_average"=missing, var"ionisation_potential"=missing, var"density"=missing, var"density_fast"=missing, var"z_average_1d"=missing, var"density_fit"=core_profiles__profiles_1d___ion___state___density_fit(), _parent=WeakRef(missing))
@@ -11153,17 +11533,17 @@ mutable struct core_profiles__profiles_1d___ion___density_fit__time_measurement_
 end
 
 mutable struct core_profiles__profiles_1d___ion___density_fit <: IDS
-    var"local" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
-    var"chi_squared" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"local" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"chi_squared" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"parameters" :: Union{Missing, String, Function}
-    var"reconstructed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"time_measurement_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"weight" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"source" :: Union{Missing, Array{T, 1} where T<:String, Function}
-    var"measured" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"reconstructed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time_measurement_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"weight" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"source" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"measured" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___ion___density_fit__time_measurement_slice_method
-    var"time_measurement" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_measurement" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___ion___density_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___ion___density_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         ids = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -11175,28 +11555,28 @@ end
 
 mutable struct core_profiles__profiles_1d___ion <: IDSvectorElement
     var"label" :: Union{Missing, String, Function}
-    var"rotation_frequency_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"rotation_frequency_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"temperature_validity" :: Union{Missing, Integer, Function}
-    var"velocity_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"temperature" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z_ion_1d" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"velocity_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"temperature" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z_ion_1d" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"multiple_states_flag" :: Union{Missing, Integer, Function}
-    var"pressure_fast_perpendicular" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_fast_perpendicular" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"neutral_index" :: Union{Missing, Integer, Function}
-    var"pressure" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_validity" :: Union{Missing, Integer, Function}
-    var"pressure_fast_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_fast_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"state" :: IDSvector{T} where {T<:core_profiles__profiles_1d___ion___state}
     var"velocity" :: core_profiles__profiles_1d___ion___velocity
     var"z_ion" :: Union{Missing, Real, Function}
     var"temperature_fit" :: core_profiles__profiles_1d___ion___temperature_fit
-    var"density" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"velocity_pol" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_fast" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"velocity_pol" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fit" :: core_profiles__profiles_1d___ion___density_fit
-    var"z_ion_square_1d" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"z_ion_square_1d" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"element" :: IDSvector{T} where {T<:core_profiles__profiles_1d___ion___element}
     _parent :: WeakRef
     function core_profiles__profiles_1d___ion(var"label"=missing, var"rotation_frequency_tor"=missing, var"temperature_validity"=missing, var"velocity_tor"=missing, var"temperature"=missing, var"z_ion_1d"=missing, var"pressure_thermal"=missing, var"multiple_states_flag"=missing, var"pressure_fast_perpendicular"=missing, var"neutral_index"=missing, var"pressure"=missing, var"density_thermal"=missing, var"density_validity"=missing, var"pressure_fast_parallel"=missing, var"state"=IDSvector(core_profiles__profiles_1d___ion___state[]), var"velocity"=core_profiles__profiles_1d___ion___velocity(), var"z_ion"=missing, var"temperature_fit"=core_profiles__profiles_1d___ion___temperature_fit(), var"density"=missing, var"velocity_pol"=missing, var"density_fast"=missing, var"density_fit"=core_profiles__profiles_1d___ion___density_fit(), var"z_ion_square_1d"=missing, var"element"=IDSvector(core_profiles__profiles_1d___ion___element[]), _parent=WeakRef(missing))
@@ -11212,14 +11592,14 @@ mutable struct core_profiles__profiles_1d___ion <: IDSvectorElement
 end
 
 mutable struct core_profiles__profiles_1d___grid <: IDS
-    var"psi" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"psi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"psi_boundary" :: Union{Missing, Real, Function}
-    var"volume" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"area" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_pol_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"surface" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"volume" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"area" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_pol_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"surface" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"psi_magnetic_axis" :: Union{Missing, Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___grid(var"psi"=missing, var"psi_boundary"=missing, var"volume"=missing, var"area"=missing, var"rho_pol_norm"=missing, var"rho_tor_norm"=missing, var"surface"=missing, var"rho_tor"=missing, var"psi_magnetic_axis"=missing, _parent=WeakRef(missing))
@@ -11230,11 +11610,11 @@ mutable struct core_profiles__profiles_1d___grid <: IDS
 end
 
 mutable struct core_profiles__profiles_1d___electrons__velocity <: IDS
-    var"parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"toroidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"radial" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"poloidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"toroidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"radial" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"poloidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___electrons__velocity(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         ids = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -11256,17 +11636,17 @@ mutable struct core_profiles__profiles_1d___electrons__temperature_fit__time_mea
 end
 
 mutable struct core_profiles__profiles_1d___electrons__temperature_fit <: IDS
-    var"local" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
-    var"chi_squared" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"local" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"chi_squared" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"parameters" :: Union{Missing, String, Function}
-    var"reconstructed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"time_measurement_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"weight" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"source" :: Union{Missing, Array{T, 1} where T<:String, Function}
-    var"measured" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"reconstructed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time_measurement_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"weight" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"source" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"measured" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___electrons__temperature_fit__time_measurement_slice_method
-    var"time_measurement" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_measurement" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___electrons__temperature_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___electrons__temperature_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         ids = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -11289,17 +11669,17 @@ mutable struct core_profiles__profiles_1d___electrons__density_fit__time_measure
 end
 
 mutable struct core_profiles__profiles_1d___electrons__density_fit <: IDS
-    var"local" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
-    var"chi_squared" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"local" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"chi_squared" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"parameters" :: Union{Missing, String, Function}
-    var"reconstructed" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"time_measurement_width" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rho_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"weight" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"source" :: Union{Missing, Array{T, 1} where T<:String, Function}
-    var"measured" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"reconstructed" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time_measurement_width" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rho_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"weight" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"source" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"measured" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_measurement_slice_method" :: core_profiles__profiles_1d___electrons__density_fit__time_measurement_slice_method
-    var"time_measurement" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time_measurement" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___electrons__density_fit(var"local"=missing, var"chi_squared"=missing, var"parameters"=missing, var"reconstructed"=missing, var"time_measurement_width"=missing, var"rho_tor_norm"=missing, var"weight"=missing, var"source"=missing, var"measured"=missing, var"time_measurement_slice_method"=core_profiles__profiles_1d___electrons__density_fit__time_measurement_slice_method(), var"time_measurement"=missing, _parent=WeakRef(missing))
         ids = new(var"local", var"chi_squared", var"parameters", var"reconstructed", var"time_measurement_width", var"rho_tor_norm", var"weight", var"source", var"measured", var"time_measurement_slice_method", var"time_measurement", _parent)
@@ -11311,20 +11691,20 @@ end
 
 mutable struct core_profiles__profiles_1d___electrons <: IDS
     var"temperature_validity" :: Union{Missing, Integer, Function}
-    var"velocity_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"temperature" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_fast_perpendicular" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"velocity_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"temperature" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_fast_perpendicular" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_validity" :: Union{Missing, Integer, Function}
-    var"pressure_fast_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_fast_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"velocity" :: core_profiles__profiles_1d___electrons__velocity
     var"temperature_fit" :: core_profiles__profiles_1d___electrons__temperature_fit
-    var"density" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"velocity_pol" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"collisionality_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"density_fast" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"velocity_pol" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"collisionality_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fit" :: core_profiles__profiles_1d___electrons__density_fit
     _parent :: WeakRef
     function core_profiles__profiles_1d___electrons(var"temperature_validity"=missing, var"velocity_tor"=missing, var"temperature"=missing, var"pressure_thermal"=missing, var"pressure_fast_perpendicular"=missing, var"pressure"=missing, var"density_thermal"=missing, var"density_validity"=missing, var"pressure_fast_parallel"=missing, var"velocity"=core_profiles__profiles_1d___electrons__velocity(), var"temperature_fit"=core_profiles__profiles_1d___electrons__temperature_fit(), var"density"=missing, var"velocity_pol"=missing, var"collisionality_norm"=missing, var"density_fast"=missing, var"density_fit"=core_profiles__profiles_1d___electrons__density_fit(), _parent=WeakRef(missing))
@@ -11338,11 +11718,11 @@ mutable struct core_profiles__profiles_1d___electrons <: IDS
 end
 
 mutable struct core_profiles__profiles_1d___e_field <: IDS
-    var"parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"toroidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"radial" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"poloidal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"toroidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"radial" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"poloidal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d___e_field(var"parallel"=missing, var"toroidal"=missing, var"diamagnetic"=missing, var"radial"=missing, var"poloidal"=missing, _parent=WeakRef(missing))
         ids = new(var"parallel", var"toroidal", var"diamagnetic", var"radial", var"poloidal", _parent)
@@ -11352,35 +11732,35 @@ mutable struct core_profiles__profiles_1d___e_field <: IDS
 end
 
 mutable struct core_profiles__profiles_1d <: IDSvectorElement
-    var"pressure_ion_total" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_ion_total" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time" :: Union{Missing, Real, Function}
     var"t_i_average_fit" :: core_profiles__profiles_1d___t_i_average_fit
     var"neutral" :: IDSvector{T} where {T<:core_profiles__profiles_1d___neutral}
-    var"n_i_thermal_total" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"magnetic_shear" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"n_i_thermal_total" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"magnetic_shear" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ion" :: IDSvector{T} where {T<:core_profiles__profiles_1d___ion}
-    var"j_total" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"rotation_frequency_tor_sonic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"pressure_thermal" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"j_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"current_parallel_inside" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"j_non_inductive" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"e_field_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"momentum_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"conductivity_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"j_total" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"rotation_frequency_tor_sonic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"pressure_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"j_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"current_parallel_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"j_non_inductive" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"e_field_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"momentum_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"conductivity_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"electrons" :: core_profiles__profiles_1d___electrons
-    var"pressure_perpendicular" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"q" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"t_i_average" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"j_ohmic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_perpendicular" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"q" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"t_i_average" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"j_ohmic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"grid" :: core_profiles__profiles_1d___grid
-    var"phi_potential" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"j_bootstrap" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"phi_potential" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"j_bootstrap" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"zeff_fit" :: core_profiles__profiles_1d___zeff_fit
-    var"pressure_parallel" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"pressure_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"e_field" :: core_profiles__profiles_1d___e_field
-    var"zeff" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"n_i_total_over_n_e" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"zeff" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"n_i_total_over_n_e" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__profiles_1d(var"pressure_ion_total"=missing, var"time"=missing, var"t_i_average_fit"=core_profiles__profiles_1d___t_i_average_fit(), var"neutral"=IDSvector(core_profiles__profiles_1d___neutral[]), var"n_i_thermal_total"=missing, var"magnetic_shear"=missing, var"ion"=IDSvector(core_profiles__profiles_1d___ion[]), var"j_total"=missing, var"rotation_frequency_tor_sonic"=missing, var"pressure_thermal"=missing, var"j_tor"=missing, var"current_parallel_inside"=missing, var"j_non_inductive"=missing, var"e_field_parallel"=missing, var"momentum_tor"=missing, var"conductivity_parallel"=missing, var"electrons"=core_profiles__profiles_1d___electrons(), var"pressure_perpendicular"=missing, var"q"=missing, var"t_i_average"=missing, var"j_ohmic"=missing, var"grid"=core_profiles__profiles_1d___grid(), var"phi_potential"=missing, var"j_bootstrap"=missing, var"zeff_fit"=core_profiles__profiles_1d___zeff_fit(), var"pressure_parallel"=missing, var"e_field"=core_profiles__profiles_1d___e_field(), var"zeff"=missing, var"n_i_total_over_n_e"=missing, _parent=WeakRef(missing))
         ids = new(var"pressure_ion_total", var"time", var"t_i_average_fit", var"neutral", var"n_i_thermal_total", var"magnetic_shear", var"ion", var"j_total", var"rotation_frequency_tor_sonic", var"pressure_thermal", var"j_tor", var"current_parallel_inside", var"j_non_inductive", var"e_field_parallel", var"momentum_tor", var"conductivity_parallel", var"electrons", var"pressure_perpendicular", var"q", var"t_i_average", var"j_ohmic", var"grid", var"phi_potential", var"j_bootstrap", var"zeff_fit", var"pressure_parallel", var"e_field", var"zeff", var"n_i_total_over_n_e", _parent)
@@ -11426,21 +11806,21 @@ mutable struct core_profiles__ids_properties <: IDS
 end
 
 mutable struct core_profiles__global_quantities <: IDS
-    var"beta_tor_norm" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"resistive_psi_losses" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"ip" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"li_3" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"t_i_average_peaking" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"t_e_peaking" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"beta_tor" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"z_eff_resistive" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"ejima" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"energy_diamagnetic" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"li" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"current_non_inductive" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"v_loop" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"beta_pol" :: Union{Missing, Array{T, 1} where T<:Real, Function}
-    var"current_bootstrap" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"beta_tor_norm" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"resistive_psi_losses" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"ip" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"li_3" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"t_i_average_peaking" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"t_e_peaking" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"beta_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z_eff_resistive" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"ejima" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"energy_diamagnetic" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"li" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"current_non_inductive" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"v_loop" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"beta_pol" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"current_bootstrap" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
     function core_profiles__global_quantities(var"beta_tor_norm"=missing, var"resistive_psi_losses"=missing, var"ip"=missing, var"li_3"=missing, var"t_i_average_peaking"=missing, var"t_e_peaking"=missing, var"beta_tor"=missing, var"z_eff_resistive"=missing, var"ejima"=missing, var"energy_diamagnetic"=missing, var"li"=missing, var"current_non_inductive"=missing, var"v_loop"=missing, var"beta_pol"=missing, var"current_bootstrap"=missing, _parent=WeakRef(missing))
         ids = new(var"beta_tor_norm", var"resistive_psi_losses", var"ip", var"li_3", var"t_i_average_peaking", var"t_e_peaking", var"beta_tor", var"z_eff_resistive", var"ejima", var"energy_diamagnetic", var"li", var"current_non_inductive", var"v_loop", var"beta_pol", var"current_bootstrap", _parent)
@@ -11469,7 +11849,7 @@ mutable struct core_profiles__code <: IDS
     var"parameters" :: Union{Missing, String, Function}
     var"commit" :: Union{Missing, String, Function}
     var"repository" :: Union{Missing, String, Function}
-    var"output_flag" :: Union{Missing, Array{T, 1} where T<:Integer, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"version" :: Union{Missing, String, Function}
     _parent :: WeakRef
     function core_profiles__code(var"library"=IDSvector(core_profiles__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
@@ -11481,7 +11861,7 @@ mutable struct core_profiles__code <: IDS
 end
 
 mutable struct core_profiles <: IDS
-    var"time" :: Union{Missing, Array{T, 1} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ids_properties" :: core_profiles__ids_properties
     var"vacuum_toroidal_field" :: core_profiles__vacuum_toroidal_field
     var"code" :: core_profiles__code
@@ -11504,16 +11884,18 @@ mutable struct dd <: IDS
     var"summary" :: Union{Missing, summary}
     var"core_sources" :: Union{Missing, core_sources}
     var"equilibrium" :: Union{Missing, equilibrium}
+    var"pf_active" :: Union{Missing, pf_active}
     var"core_profiles" :: Union{Missing, core_profiles}
     var"wall" :: Union{Missing, wall}
     var"dataset_description" :: Union{Missing, dataset_description}
     _parent :: WeakRef
-    function dd(var"summary"=summary(), var"core_sources"=core_sources(), var"equilibrium"=equilibrium(), var"core_profiles"=core_profiles(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(missing))
-        ids = new(var"summary", var"core_sources", var"equilibrium", var"core_profiles", var"wall", var"dataset_description", _parent)
+    function dd(var"summary"=summary(), var"core_sources"=core_sources(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"core_profiles"=core_profiles(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(missing))
+        ids = new(var"summary", var"core_sources", var"equilibrium", var"pf_active", var"core_profiles", var"wall", var"dataset_description", _parent)
         assign_expressions(ids)
         setfield!(ids.summary, :_parent, WeakRef(ids))
         setfield!(ids.core_sources, :_parent, WeakRef(ids))
         setfield!(ids.equilibrium, :_parent, WeakRef(ids))
+        setfield!(ids.pf_active, :_parent, WeakRef(ids))
         setfield!(ids.core_profiles, :_parent, WeakRef(ids))
         setfield!(ids.wall, :_parent, WeakRef(ids))
         setfield!(ids.dataset_description, :_parent, WeakRef(ids))
