@@ -1,6 +1,17 @@
 using Trapz
 expressions = Dict{String,Function}()
 
+# NOTE: make sure that expressions accept as argument (not keyword argument)
+# the coordinates of the quantitiy you are writing the expression of
+# 
+# For example, this will FAIL:
+#    expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
+#               (; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#
+# This is GOOD:
+#    expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
+#               (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+
 #= =========== =#
 # Core Profiles #
 #= =========== =#
@@ -30,11 +41,18 @@ expressions["equilibrium.time_slice[:].global_quantities.q_min"] =
     (;time_slice, _...) -> minimum(time_slice.profiles_1d.q)
 
 
+expressions["equilibrium.time_slice[:].global_quantities.psi_axis"] =
+    (;time_slice, _...) -> time_slice.profiles_1d.psi[1]
+
+expressions["equilibrium.time_slice[:].global_quantities.psi_boundary"] =
+    (;time_slice, _...) -> time_slice.profiles_1d.psi[end]
+
+
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
-    (;time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] + time_slice.profiles_1d.r_inboard[end]) * 0.5
+    (psi; time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] + time_slice.profiles_1d.r_inboard[end]) * 0.5
 
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
-    (;time_slice, _...) -> 0.0
+    (psi; time_slice, _...) -> 0.0
 
 expressions["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r
