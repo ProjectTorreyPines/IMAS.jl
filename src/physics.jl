@@ -72,31 +72,29 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
             z_at_min_r, min_r = pz[iminr], pr[iminr]
 
             # accurate geometric quantities by finding geometric extrema as optimization problem
-            if true
-                w = 1E-6
-                function fx(x, psi_level)
-                    try
-                        (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
-                    catch
-                        return 100
-                    end
+            w = 1E-6
+            function fx(x, psi_level)
+                try
+                    (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
+                catch
+                    return 100
                 end
-                function fz(x, psi_level)
-                    try
-                        (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - eqt.global_quantities.magnetic_axis.z)^2 * w
-                    catch
-                        return 100
-                    end
-                end
-                res = Optim.optimize(x -> fx(x, psi_level), [max_r, z_at_max_r], Optim.Newton(); autodiff=:forward)
-                (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(); autodiff=:forward)
-                (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(); autodiff=:forward)
-                (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(); autodiff=:forward)
-                (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
             end
+            function fz(x, psi_level)
+                try
+                    (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - eqt.global_quantities.magnetic_axis.z)^2 * w
+                catch
+                    return 100
+                end
+            end
+            res = Optim.optimize(x -> fx(x, psi_level), [max_r, z_at_max_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+            (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+            (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+            (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+            (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
         end
 
         # geometric
@@ -225,6 +223,7 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
     for line in Contour.lines(cl)
         pr, pz = Contour.coordinates(line)
         if !((pr[1] == pr[end]) & (pz[1] == pz[end]))
+            if debug PyPlot.plot(pr, pz, "r", ls=ls) end
             continue
         end
         polygon = StaticArrays.SVector.(pr, pz)
