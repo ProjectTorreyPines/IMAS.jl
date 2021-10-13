@@ -4,8 +4,25 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
-using ForwardDiff
 
+"""
+    flux_surfaces(eq::equilibrium)
+
+update flux surface averaged and geometric quantities in the equilibrium IDS
+"""
+function flux_surfaces(eq::equilibrium)
+    for time_index in eq.time_slice
+        flux_surfaces(eq.time_slice[time_index],
+                      eq.vacuum_toroidal_field.b0[time_index],
+                      eq.vacuum_toroidal_field.r0)
+    end
+end
+
+"""
+    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
+
+update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
+"""
 function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
     cc = cocos(3) # for now hardcoded to 3 because testing with Solovev
 
@@ -56,7 +73,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
         # other flux surfaces
         else
             # trace flux surface
-            pr, pz, psi_level = flux_surface(eqt, psi_level0)
+            pr, pz, psi_level = flux_surface(eqt, psi_level0, true)
             if length(pr) == 0
                 error("Could not trace a closed flux surface at ψₙ of $(k / length(eqt.profiles_1d.psi))")
             end
@@ -213,23 +230,64 @@ end
 returns r,z coordiates of flux surface at given psi_level
 """
 function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
+    return flux_surface(eqt, psi_level, true)
+end
+
+function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool)
+
+    # handle on axis value as the first flux surface
     if psi_level == eqt.profiles_1d.psi[1]
         psi_level = eqt.profiles_1d.psi[2]
+    # handle boundary by finding accurate lcfs psi
+    elseif psi_level == eqt.profiles_1d.psi[end]
+        psi_level = find_psi_boundary(eqt)
     end
+
     cl = Contour.contour(eqt.profiles_2d[1].grid.dim1,
                          eqt.profiles_2d[1].grid.dim2,
                          eqt.profiles_2d[1].psi,
                          psi_level)
+
+    if ! closed
+        prpz = []
+        for line in Contour.lines(cl)
+            push!(prpz, Contour.coordinates(line))
+        end
+        return prpz
+    end
+
     for line in Contour.lines(cl)
         pr, pz = Contour.coordinates(line)
-        if !((pr[1] == pr[end]) & (pz[1] == pz[end]))
-            if debug PyPlot.plot(pr, pz, "r", ls=ls) end
+        # ignore flux surfaces that do not close
+        if closed && ((pr[1] != pr[end]) || (pz[1] != pz[end]))
             continue
-        end
-        polygon = StaticArrays.SVector.(pr, pz)
-        if PolygonOps.inpolygon((eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z), polygon) == 1
+        end 
+        # only consider flux surfaces that contain magnetic axis
+        if (! closed) || (PolygonOps.inpolygon((eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z), StaticArrays.SVector.(pr, pz)) == 1)
             return pr, pz, psi_level
         end
     end
     return [], [], psi_level
+end
+
+"""
+    function find_psi_boundary(eqt; precision=1e-3)
+
+Find psi value of the last closed flux surface
+"""
+function find_psi_boundary(eqt; precision=1e-3)
+    psirange = [eqt.global_quantities.psi_axis, eqt.global_quantities.psi_boundary + 0.5*(eqt.global_quantities.psi_boundary - eqt.global_quantities.psi_axis)]
+    for k in 1:100
+        psimid = (psirange[1] + psirange[end]) / 2.0
+        pr, pz = IMAS.flux_surface(eqt, psimid, true)
+        if length(pr) > 0
+            psirange[1] = psimid
+            if abs(psirange[end] - psirange[1]) < precision
+                return psimid
+            end
+        else
+            psirange[end] = psimid
+        end
+    end
+    return (psirange[1] + psirange[end]) / 2.0
 end
