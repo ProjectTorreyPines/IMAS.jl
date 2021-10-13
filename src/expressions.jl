@@ -32,7 +32,7 @@ expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
 
 
 expressions["equilibrium.time_slice[:].global_quantities.q_95"] =
-    (;time_slice, _...) -> Interpolations.LinearInterpolation(time_slice.profiles_1d.rho_tor_norm,time_slice.profiles_1d.q)(0.95)
+    (;time_slice, _...) -> Interpolations.LinearInterpolation(time_slice.profiles_1d.rho_tor_norm, time_slice.profiles_1d.q)(0.95)
 
 expressions["equilibrium.time_slice[:].global_quantities.q_axis"] =
     (;time_slice, _...) -> time_slice.profiles_1d.q[1]
@@ -48,11 +48,19 @@ expressions["equilibrium.time_slice[:].global_quantities.psi_boundary"] =
     (;time_slice, _...) -> time_slice.profiles_1d.psi[end]
 
 
+expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.r"] =
+    (;time_slice, _...) -> (time_slice.profiles_1d.r_inboard[1] + time_slice.profiles_1d.r_outboard[1]) * 0.5
+
+expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
+    (;time_slice, _...) -> 0.0
+
+
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
-    (psi; time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] + time_slice.profiles_1d.r_inboard[end]) * 0.5
+    (psi; time_slice, _...) -> (time_slice.profiles_1d.r_outboard .+ time_slice.profiles_1d.r_inboard) .* 0.5
 
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
-    (psi; time_slice, _...) -> 0.0
+    (psi; time_slice, _...) -> psi .* 0.0 .+ time_slice.global_quantities.magnetic_axis.z
+
 
 expressions["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r
@@ -60,8 +68,10 @@ expressions["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
 expressions["equilibrium.time_slice[:].boundary.geometric_axis.z"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z
 
+
 expressions["equilibrium.time_slice[:].boundary.minor_radius"] =
     (;time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] - time_slice.profiles_1d.r_inboard[end]) * 0.5
+
 
 expressions["equilibrium.time_slice[:].boundary.elongation"] =
     (;time_slice, _...) -> (time_slice.boundary.elongation_lower + time_slice.boundary.elongation_upper) * 0.5
