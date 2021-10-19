@@ -289,5 +289,4 @@ function find_psi_boundary(eqt; precision=1e-3)
             psirange[end] = psimid
         end
     end
-    return (psirange[1] + psirange[end]) / 2.0
 end

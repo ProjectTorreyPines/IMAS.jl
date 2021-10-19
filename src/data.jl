@@ -75,10 +75,10 @@ function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String
     return ids
 end
 
-Base.ndims(::Type{Vector{T} where T <: Real}) = 1
-Base.ndims(::Type{Matrix{T} where T <: Real}) = 2
-Base.eltype(::Type{Vector{T} where T <: Real}) = Real
-Base.eltype(::Type{Matrix{T} where T <: Real}) = Real
+Base.ndims(::Type{AbstractArray{T,N} where {T,N}}) = N
+Base.ndims(v::UnionAll) = ndims(v.body)
+Base.eltype(::Type{AbstractArray{T,N} where {T,N}}) = T
+Base.eltype(v::UnionAll) = v.var.ub
 
 """
     json2imas(filename::String; verbose::Bool=false)::IDS
