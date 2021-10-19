@@ -40,7 +40,7 @@ function get_time_index(ids_time_slice::IDSvector, time::Real)::Integer
         resize!(ids_time_slice, time_index)
     elseif time in ids.time
         time_index = findall(x -> x == time, ids.time)[1]
-    elseif max(ids.time) < time
+    elseif maximum(ids.time) < time
         time_index = length(ids.time) + 1
         set_field_time_array(ids, :time, time_index, time)
         resize!(ids_time_slice, time_index)

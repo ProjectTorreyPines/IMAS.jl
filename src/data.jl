@@ -63,9 +63,13 @@ function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String
             target_type = Core.Compiler.typesubtract(struct_field_type(typeof(ids), Symbol(k)), Union{Missing,Function}, 1)
             if target_type <: AbstractArray
                 if ndims(target_type) == 2
-                    v = reduce(hcat, v)
+                    v = transpose(reduce(hcat, v))
                 end
-                v = convert(Array{eltype(target_type),ndims(target_type)}, v)
+                if eltype(target_type) <: Real
+                    v = convert(Array{Float64, ndims(target_type)}, v)
+                else
+                    v = convert(Array{eltype(target_type), ndims(target_type)}, v)
+                end
             end
             setproperty!(ids, Symbol(k), v; skip_non_coordinates=skip_non_coordinates)
             if verbose println(typeof(v)) end
