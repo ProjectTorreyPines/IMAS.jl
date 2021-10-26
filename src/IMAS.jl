@@ -15,6 +15,12 @@ include("data.jl")
 
 include("physics.jl")
 
+#= ================== =#
+#= PLOTTING FUNCTIONS =#
+#= ================== =#
+
+include("plot.jl")
+
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
