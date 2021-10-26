@@ -17,11 +17,11 @@ end
 
 
 """
-    function plot_eqcx(eqt::IMAS.equilibrium__time_slice___profiles_2d; lcfs::Bool=false)
+    function plot_eqcx(eqt::IMAS.equilibrium__time_slice; lcfs=false)
 
 Plots equilibrium cross-section
 """
-@recipe function plot_eqcx(eqt::IMAS.equilibrium__time_slice___profiles_2d; lcfs::Bool=false)
+@recipe function plot_eqcx(eqt::IMAS.equilibrium__time_slice; lcfs=false)
     if lcfs
         psi_levels = [eqt.global_quantities.psi_boundary, eqt.global_quantities.psi_boundary]
         psi_levels_out = []
