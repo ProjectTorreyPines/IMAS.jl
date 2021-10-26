@@ -32,15 +32,10 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
           show-versioninfo: true
-      - uses: actions/cache@v1
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
+      - run: |
+          julia -e '
+            using Pkg
+            Pkg.activate(".")
+            Pkg.add(url="https://github.com/ProjectTorreyPines/Equilibrium.jl.git")'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
