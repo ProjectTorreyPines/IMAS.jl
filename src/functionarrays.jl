@@ -8,12 +8,32 @@ import JSON
 import Memoize
 
 """
-    imas_load_dd(ids; imas_version=imas_version)
+    imas_dd_ids_names(dirs::Vector{String}=["data_structures", "data_structures_extra"])
+
+Return list of IDS names
+"""
+function imas_dd_ids_names(dirs::Vector{String}=["data_structures", "data_structures_extra"])
+    filenames = String[]
+    for dir in dirs
+        append!(filenames, [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), dir)) if ! startswith(filename, "_") && endswith(filename, ".json")])
+    end
+    filenames = [replace(filename, ".json" => "") for filename in sort(filenames)]
+end
+
+"""
+    imas_dd_ids(ids; imas_version=imas_version)
 
 Read the IMAS data structures in the OMAS JSON format
 """
-@Memoize.memoize function imas_load_dd(ids)
-    JSON.parsefile(joinpath(dirname(dirname(@__FILE__)), "data_structures", "$ids.json"))  # parse and transform data
+@Memoize.memoize function imas_dd_ids(ids)
+    tmp = Dict()
+    for dir in ["data_structures", "data_structures_extra"]
+        filename = joinpath(dirname(dirname(@__FILE__)), dir, "$ids.json")
+        if ispath(filename)
+            tmp = merge(tmp, JSON.parsefile(filename))
+        end
+    end
+    return tmp
 end
 
 """
@@ -24,7 +44,7 @@ Return information of a node in the IMAS data structure
 function imas_info(location::String)
     location = replace(location, r"\[[0-9]+\]$" => "[:]")
     location = replace(location, r"\[:\]$" => "")
-    return imas_load_dd(split(location, ".")[1])[location]
+    return imas_dd_ids(split(location, ".")[1])[location]
 end
 
 """
@@ -52,7 +72,7 @@ function Base.getproperty(ids::IDS, field::Symbol)
         error("$(f2fs(ids)).$(field) is missing")
     # interpolate functions on given coordinates
     elseif typeof(value) <: Function
-        x = coordinates(ids,field)[:values]
+        x = coordinates(ids, field)[:values]
         return exec_expression_with_ancestor_args(ids, field, value, x)
     else
         return value

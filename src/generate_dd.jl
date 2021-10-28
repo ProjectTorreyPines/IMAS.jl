@@ -20,15 +20,14 @@ assign_expressions = x -> x
 #= ==================================== =#
 # IMAS data structure
 #= ==================================== =#
-filenames = [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), "data_structures")) if startswith(filename, "_") || ! endswith(filename, ".json")]
-filenames = ["core_profiles.json", "core_sources.json", "dataset_description.json", "equilibrium.json", "pf_active", "summary.json", "wall.json"]
+ids_names = imas_dd_ids_names()
+ids_names = ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "wall", "radial_build"]
 
-p = Progress(length(filenames); desc="Parse JSON structs ", showspeed=true)
+p = Progress(length(ids_names); desc="Parse JSON structs ", showspeed=true)
 desired_structure = String[]
-for filename in filenames
+for ids_name in ids_names
     ProgressMeter.next!(p)
-    filename = replace(filename, ".json" => "")
-    for item in keys(imas_load_dd(filename))
+    for item in sort(collect(keys(imas_dd_ids(ids_name))))
         push!(desired_structure, item)
     end
 end
@@ -70,24 +69,24 @@ function imas_julia_struct(desired_structure::Vector{String})
         path = split(sel, ".")
         
         # load imas data structure
-        imasdd = imas_load_dd(path[1])
+        ddids = imas_dd_ids(path[1])
 
         h = ddict
         for (k, item) in enumerate(path)
             if (k > 1) & (k == length(path))
-                if imasdd[sel]["data_type"] in ["STRUCTURE", "STRUCT_ARRAY"]
+                if ddids[sel]["data_type"] in ["STRUCTURE", "STRUCT_ARRAY"]
                     continue
                 end
 
                 # fix some issues in IMAS DD type definitions
-                if imasdd[sel]["data_type"] == "INT_TYPE"
-                    imasdd[sel]["data_type"] = "INT_0D"
-                elseif imasdd[sel]["data_type"] == "FLT_1D_TYPE"
-                    imasdd[sel]["data_type"] = "FLT_1D"
+                if ddids[sel]["data_type"] == "INT_TYPE"
+                    ddids[sel]["data_type"] = "INT_0D"
+                elseif ddids[sel]["data_type"] == "FLT_1D_TYPE"
+                    ddids[sel]["data_type"] = "FLT_1D"
                 end
 
                 # find data type and dimension
-                (tp, dim) = split(imasdd[sel]["data_type"], "_")
+                (tp, dim) = split(ddids[sel]["data_type"], "_")
                 dim = parse(Int, replace(dim, "D" => ""))
 
                 # translate from IMAS data type to Julia types
@@ -103,7 +102,7 @@ function imas_julia_struct(desired_structure::Vector{String})
                         conversion_types = Union{conversion_types, Array{type_translator[tp]}}
                     end
                 else
-                    throw(ArgumentError("$(sel) IMAS $(imasdd[sel]["data_type"]) has not been mapped to Julia data type"))
+                    throw(ArgumentError("$(sel) IMAS $(ddids[sel]["data_type"]) has not been mapped to Julia data type"))
                 end
             end
             if ! (item in keys(h))

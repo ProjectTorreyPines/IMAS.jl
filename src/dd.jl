@@ -8546,6 +8546,96 @@ mutable struct summary <: IDS
     end
 end
 
+mutable struct radial_build__ids_properties__version_put <: IDS
+    var"access_layer_language" :: Union{Missing, String, Function}
+    var"data_dictionary" :: Union{Missing, String, Function}
+    var"access_layer" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function radial_build__ids_properties__version_put(var"access_layer_language"=missing, var"data_dictionary"=missing, var"access_layer"=missing, _parent=WeakRef(missing))
+        ids = new(var"access_layer_language", var"data_dictionary", var"access_layer", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct radial_build__ids_properties <: IDS
+    var"provider" :: Union{Missing, String, Function}
+    var"version_put" :: radial_build__ids_properties__version_put
+    var"homogeneous_time" :: Union{Missing, Integer, Function}
+    var"source" :: Union{Missing, String, Function}
+    var"creation_date" :: Union{Missing, String, Function}
+    var"comment" :: Union{Missing, String, Function}
+    var"occurrence" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function radial_build__ids_properties(var"provider"=missing, var"version_put"=radial_build__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
+        ids = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
+        assign_expressions(ids)
+        setfield!(ids.version_put, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct radial_build__code__library <: IDSvectorElement
+    var"name" :: Union{Missing, String, Function}
+    var"parameters" :: Union{Missing, String, Function}
+    var"commit" :: Union{Missing, String, Function}
+    var"repository" :: Union{Missing, String, Function}
+    var"version" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function radial_build__code__library(var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"version"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"parameters", var"commit", var"repository", var"version", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct radial_build__code <: IDS
+    var"library" :: IDSvector{T} where {T<:radial_build__code__library}
+    var"name" :: Union{Missing, String, Function}
+    var"parameters" :: Union{Missing, String, Function}
+    var"commit" :: Union{Missing, String, Function}
+    var"repository" :: Union{Missing, String, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"version" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function radial_build__code(var"library"=IDSvector(radial_build__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
+        ids = new(var"library", var"name", var"parameters", var"commit", var"repository", var"output_flag", var"version", _parent)
+        assign_expressions(ids)
+        setfield!(ids.library, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct radial_build__center_stack <: IDSvectorElement
+    var"name" :: Union{Missing, String, Function}
+    var"material" :: Union{Missing, String, Function}
+    var"start" :: Union{Missing, Real, Function}
+    var"end" :: Union{Missing, Real, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"start"=missing, var"end"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"material", var"start", var"end", var"index", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct radial_build <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"center_stack" :: IDSvector{T} where {T<:radial_build__center_stack}
+    var"ids_properties" :: radial_build__ids_properties
+    var"code" :: radial_build__code
+    _parent :: WeakRef
+    function radial_build(var"time"=missing, var"center_stack"=IDSvector(radial_build__center_stack[]), var"ids_properties"=radial_build__ids_properties(), var"code"=radial_build__code(), _parent=WeakRef(missing))
+        ids = new(var"time", var"center_stack", var"ids_properties", var"code", _parent)
+        assign_expressions(ids)
+        setfield!(ids.center_stack, :_parent, WeakRef(ids))
+        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
+        setfield!(ids.code, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct pf_active__vertical_force___force <: IDS
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
@@ -11886,17 +11976,19 @@ mutable struct dd <: IDS
     var"equilibrium" :: Union{Missing, equilibrium}
     var"pf_active" :: Union{Missing, pf_active}
     var"core_profiles" :: Union{Missing, core_profiles}
+    var"radial_build" :: Union{Missing, radial_build}
     var"wall" :: Union{Missing, wall}
     var"dataset_description" :: Union{Missing, dataset_description}
     _parent :: WeakRef
-    function dd(var"summary"=summary(), var"core_sources"=core_sources(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"core_profiles"=core_profiles(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(missing))
-        ids = new(var"summary", var"core_sources", var"equilibrium", var"pf_active", var"core_profiles", var"wall", var"dataset_description", _parent)
+    function dd(var"summary"=summary(), var"core_sources"=core_sources(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"core_profiles"=core_profiles(), var"radial_build"=radial_build(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(missing))
+        ids = new(var"summary", var"core_sources", var"equilibrium", var"pf_active", var"core_profiles", var"radial_build", var"wall", var"dataset_description", _parent)
         assign_expressions(ids)
         setfield!(ids.summary, :_parent, WeakRef(ids))
         setfield!(ids.core_sources, :_parent, WeakRef(ids))
         setfield!(ids.equilibrium, :_parent, WeakRef(ids))
         setfield!(ids.pf_active, :_parent, WeakRef(ids))
         setfield!(ids.core_profiles, :_parent, WeakRef(ids))
+        setfield!(ids.radial_build, :_parent, WeakRef(ids))
         setfield!(ids.wall, :_parent, WeakRef(ids))
         setfield!(ids.dataset_description, :_parent, WeakRef(ids))
         return ids
