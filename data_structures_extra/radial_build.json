@@ -108,15 +108,9 @@
   "data_type": "STRUCT_ARRAY",
   "documentation": "List of layers in the center stack"
  },
- "radial_build.center_stack[:].start": {
+ "radial_build.center_stack[:].thickness": {
   "data_type": "FLT_0D",
-  "documentation": "Starting radius of center-stack layer",
-  "type": "static",
-  "units": "m"
- },
- "radial_build.center_stack[:].end": {
-  "data_type": "FLT_0D",
-  "documentation": "Ending radius of center-stack layer",
+  "documentation": "Radial thickness of center-stack layer",
   "type": "static",
   "units": "m"
  },
@@ -132,7 +126,7 @@
  },
  "radial_build.center_stack[:].index": {
   "data_type": "INT_0D",
-  "documentation": "Center-stack type identifier\n0) unspecified : unspecified\n1) OH\n2) TF\n3) BL\n4) Shielding",
+  "documentation": "Center-stack type identifier\n0) empty (use this to set mimimum radius for OH)\n1) OH\n2) TF\n3) BL\n4) Shielding",
   "type": "static"
  },
  "radial_build.ids_properties": {
