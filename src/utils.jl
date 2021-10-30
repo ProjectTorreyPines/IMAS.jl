@@ -1,3 +1,5 @@
+import Interpolations
+
 """
     set_field_time_array(ids::IDS, field::Symbol, time_index::Integer, value::Real)
 
@@ -100,6 +102,28 @@ end
 Normalize a vector so that the first item in the array is 0 and the last one is 1
 This is handy where psi_norm should be used (and IMAS does not define a psi_norm array)
 """
-function norm(x::Vector{T} where T<:Real)::Vector{Real}
-    return (x-x[1])/(x[end]-x[1])
+function norm(x::AbstractVector{T} where T <: Real)::Vector{Real}
+    return (x - x[1]) / (x[end] - x[1])
+end
+
+"""
+    to_range(vector::AbstractVector)
+
+Turn a vector into a range (if possible)
+"""
+function to_range(vector::AbstractVector{T} where T <: Real)
+    tmp = diff(vector)
+    if ! (1 - sum(abs.(tmp .- tmp[1])) / length(vector) ≈ 1.0)
+        error("to_range requires vector data to be equally spaced")
+    end
+    return range(vector[1], vector[end], length=length(vector))
+end
+
+"""
+    Interpolations.CubicSplineInterpolation(x::AbstractVector{T} where T<:Real, args...; kw...)
+
+Attempt to convert x::Vector to Range to feed to Interpolations.CubicSplineInterpolation
+"""
+function Interpolations.CubicSplineInterpolation(x::AbstractVector{T} where T <: Real, args...; kw...)
+    Interpolations.CubicSplineInterpolation(to_range(x), args...; kw...)
 end
