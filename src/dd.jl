@@ -698,6 +698,556 @@ mutable struct wall <: IDS
     end
 end
 
+mutable struct tf__ids_properties__version_put <: IDS
+    var"access_layer_language" :: Union{Missing, String, Function}
+    var"data_dictionary" :: Union{Missing, String, Function}
+    var"access_layer" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function tf__ids_properties__version_put(var"access_layer_language"=missing, var"data_dictionary"=missing, var"access_layer"=missing, _parent=WeakRef(missing))
+        ids = new(var"access_layer_language", var"data_dictionary", var"access_layer", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__ids_properties <: IDS
+    var"provider" :: Union{Missing, String, Function}
+    var"version_put" :: tf__ids_properties__version_put
+    var"homogeneous_time" :: Union{Missing, Integer, Function}
+    var"source" :: Union{Missing, String, Function}
+    var"creation_date" :: Union{Missing, String, Function}
+    var"comment" :: Union{Missing, String, Function}
+    var"occurrence" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function tf__ids_properties(var"provider"=missing, var"version_put"=tf__ids_properties__version_put(), var"homogeneous_time"=missing, var"source"=missing, var"creation_date"=missing, var"comment"=missing, var"occurrence"=missing, _parent=WeakRef(missing))
+        ids = new(var"provider", var"version_put", var"homogeneous_time", var"source", var"creation_date", var"comment", var"occurrence", _parent)
+        assign_expressions(ids)
+        setfield!(ids.version_put, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__space___objects_per_dimension___object___boundary <: IDSvectorElement
+    var"neighbours" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__space___objects_per_dimension___object___boundary(var"neighbours"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"neighbours", var"index", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__space___objects_per_dimension___object <: IDSvectorElement
+    var"nodes" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"measure" :: Union{Missing, Real, Function}
+    var"geometry" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"boundary" :: IDSvector{T} where {T<:tf__field_map___grid__space___objects_per_dimension___object___boundary}
+    _parent :: WeakRef
+    function tf__field_map___grid__space___objects_per_dimension___object(var"nodes"=missing, var"measure"=missing, var"geometry"=missing, var"boundary"=IDSvector(tf__field_map___grid__space___objects_per_dimension___object___boundary[]), _parent=WeakRef(missing))
+        ids = new(var"nodes", var"measure", var"geometry", var"boundary", _parent)
+        assign_expressions(ids)
+        setfield!(ids.boundary, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__space___objects_per_dimension <: IDSvectorElement
+    var"object" :: IDSvector{T} where {T<:tf__field_map___grid__space___objects_per_dimension___object}
+    _parent :: WeakRef
+    function tf__field_map___grid__space___objects_per_dimension(var"object"=IDSvector(tf__field_map___grid__space___objects_per_dimension___object[]), _parent=WeakRef(missing))
+        ids = new(var"object", _parent)
+        assign_expressions(ids)
+        setfield!(ids.object, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__space___identifier <: IDS
+    var"name" :: Union{Missing, String, Function}
+    var"description" :: Union{Missing, String, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__space___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"description", var"index", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__space___geometry_type <: IDS
+    var"name" :: Union{Missing, String, Function}
+    var"description" :: Union{Missing, String, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__space___geometry_type(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"description", var"index", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__space <: IDSvectorElement
+    var"coordinates_type" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"geometry_type" :: tf__field_map___grid__space___geometry_type
+    var"identifier" :: tf__field_map___grid__space___identifier
+    var"objects_per_dimension" :: IDSvector{T} where {T<:tf__field_map___grid__space___objects_per_dimension}
+    _parent :: WeakRef
+    function tf__field_map___grid__space(var"coordinates_type"=missing, var"geometry_type"=tf__field_map___grid__space___geometry_type(), var"identifier"=tf__field_map___grid__space___identifier(), var"objects_per_dimension"=IDSvector(tf__field_map___grid__space___objects_per_dimension[]), _parent=WeakRef(missing))
+        ids = new(var"coordinates_type", var"geometry_type", var"identifier", var"objects_per_dimension", _parent)
+        assign_expressions(ids)
+        setfield!(ids.geometry_type, :_parent, WeakRef(ids))
+        setfield!(ids.identifier, :_parent, WeakRef(ids))
+        setfield!(ids.objects_per_dimension, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__identifier <: IDS
+    var"name" :: Union{Missing, String, Function}
+    var"description" :: Union{Missing, String, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"description", var"index", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__grid_subset___metric <: IDS
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__grid_subset___metric(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
+        ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__grid_subset___identifier <: IDS
+    var"name" :: Union{Missing, String, Function}
+    var"description" :: Union{Missing, String, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__grid_subset___identifier(var"name"=missing, var"description"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"description", var"index", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__grid_subset___element___object <: IDSvectorElement
+    var"dimension" :: Union{Missing, Integer, Function}
+    var"space" :: Union{Missing, Integer, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__grid_subset___element___object(var"dimension"=missing, var"space"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"dimension", var"space", var"index", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__grid_subset___element <: IDSvectorElement
+    var"object" :: IDSvector{T} where {T<:tf__field_map___grid__grid_subset___element___object}
+    _parent :: WeakRef
+    function tf__field_map___grid__grid_subset___element(var"object"=IDSvector(tf__field_map___grid__grid_subset___element___object[]), _parent=WeakRef(missing))
+        ids = new(var"object", _parent)
+        assign_expressions(ids)
+        setfield!(ids.object, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__grid_subset___base <: IDSvectorElement
+    var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___grid__grid_subset___base(var"jacobian"=missing, var"tensor_contravariant"=missing, var"tensor_covariant"=missing, _parent=WeakRef(missing))
+        ids = new(var"jacobian", var"tensor_contravariant", var"tensor_covariant", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid__grid_subset <: IDSvectorElement
+    var"base" :: IDSvector{T} where {T<:tf__field_map___grid__grid_subset___base}
+    var"metric" :: tf__field_map___grid__grid_subset___metric
+    var"dimension" :: Union{Missing, Integer, Function}
+    var"identifier" :: tf__field_map___grid__grid_subset___identifier
+    var"element" :: IDSvector{T} where {T<:tf__field_map___grid__grid_subset___element}
+    _parent :: WeakRef
+    function tf__field_map___grid__grid_subset(var"base"=IDSvector(tf__field_map___grid__grid_subset___base[]), var"metric"=tf__field_map___grid__grid_subset___metric(), var"dimension"=missing, var"identifier"=tf__field_map___grid__grid_subset___identifier(), var"element"=IDSvector(tf__field_map___grid__grid_subset___element[]), _parent=WeakRef(missing))
+        ids = new(var"base", var"metric", var"dimension", var"identifier", var"element", _parent)
+        assign_expressions(ids)
+        setfield!(ids.base, :_parent, WeakRef(ids))
+        setfield!(ids.metric, :_parent, WeakRef(ids))
+        setfield!(ids.identifier, :_parent, WeakRef(ids))
+        setfield!(ids.element, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__field_map___grid <: IDS
+    var"grid_subset" :: IDSvector{T} where {T<:tf__field_map___grid__grid_subset}
+    var"space" :: IDSvector{T} where {T<:tf__field_map___grid__space}
+    var"identifier" :: tf__field_map___grid__identifier
+    _parent :: WeakRef
+    function tf__field_map___grid(var"grid_subset"=IDSvector(tf__field_map___grid__grid_subset[]), var"space"=IDSvector(tf__field_map___grid__space[]), var"identifier"=tf__field_map___grid__identifier(), _parent=WeakRef(missing))
+        ids = new(var"grid_subset", var"space", var"identifier", _parent)
+        assign_expressions(ids)
+        setfield!(ids.grid_subset, :_parent, WeakRef(ids))
+        setfield!(ids.space, :_parent, WeakRef(ids))
+        setfield!(ids.identifier, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__field_map___b_field_z <: IDSvectorElement
+    var"grid_index" :: Union{Missing, Integer, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"grid_subset_index" :: Union{Missing, Integer, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___b_field_z(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
+        ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___b_field_tor <: IDSvectorElement
+    var"grid_index" :: Union{Missing, Integer, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"grid_subset_index" :: Union{Missing, Integer, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___b_field_tor(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
+        ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___b_field_r <: IDSvectorElement
+    var"grid_index" :: Union{Missing, Integer, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"grid_subset_index" :: Union{Missing, Integer, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___b_field_r(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
+        ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___a_field_z <: IDSvectorElement
+    var"grid_index" :: Union{Missing, Integer, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"grid_subset_index" :: Union{Missing, Integer, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___a_field_z(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
+        ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___a_field_tor <: IDSvectorElement
+    var"grid_index" :: Union{Missing, Integer, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"grid_subset_index" :: Union{Missing, Integer, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___a_field_tor(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
+        ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map___a_field_r <: IDSvectorElement
+    var"grid_index" :: Union{Missing, Integer, Function}
+    var"values" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"grid_subset_index" :: Union{Missing, Integer, Function}
+    var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__field_map___a_field_r(var"grid_index"=missing, var"values"=missing, var"grid_subset_index"=missing, var"coefficients"=missing, _parent=WeakRef(missing))
+        ids = new(var"grid_index", var"values", var"grid_subset_index", var"coefficients", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__field_map <: IDSvectorElement
+    var"b_field_z" :: IDSvector{T} where {T<:tf__field_map___b_field_z}
+    var"time" :: Union{Missing, Real, Function}
+    var"a_field_z" :: IDSvector{T} where {T<:tf__field_map___a_field_z}
+    var"a_field_r" :: IDSvector{T} where {T<:tf__field_map___a_field_r}
+    var"a_field_tor" :: IDSvector{T} where {T<:tf__field_map___a_field_tor}
+    var"grid" :: tf__field_map___grid
+    var"b_field_tor" :: IDSvector{T} where {T<:tf__field_map___b_field_tor}
+    var"b_field_r" :: IDSvector{T} where {T<:tf__field_map___b_field_r}
+    _parent :: WeakRef
+    function tf__field_map(var"b_field_z"=IDSvector(tf__field_map___b_field_z[]), var"time"=missing, var"a_field_z"=IDSvector(tf__field_map___a_field_z[]), var"a_field_r"=IDSvector(tf__field_map___a_field_r[]), var"a_field_tor"=IDSvector(tf__field_map___a_field_tor[]), var"grid"=tf__field_map___grid(), var"b_field_tor"=IDSvector(tf__field_map___b_field_tor[]), var"b_field_r"=IDSvector(tf__field_map___b_field_r[]), _parent=WeakRef(missing))
+        ids = new(var"b_field_z", var"time", var"a_field_z", var"a_field_r", var"a_field_tor", var"grid", var"b_field_tor", var"b_field_r", _parent)
+        assign_expressions(ids)
+        setfield!(ids.b_field_z, :_parent, WeakRef(ids))
+        setfield!(ids.a_field_z, :_parent, WeakRef(ids))
+        setfield!(ids.a_field_r, :_parent, WeakRef(ids))
+        setfield!(ids.a_field_tor, :_parent, WeakRef(ids))
+        setfield!(ids.grid, :_parent, WeakRef(ids))
+        setfield!(ids.b_field_tor, :_parent, WeakRef(ids))
+        setfield!(ids.b_field_r, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__delta_b_field_tor_vacuum_r <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__delta_b_field_tor_vacuum_r(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___voltage <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___voltage(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___current <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___current(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___voltage <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___conductor___voltage(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___elements__start_points <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___conductor___elements__start_points(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___elements__intermediate_points <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___conductor___elements__intermediate_points(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___elements__end_points <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___conductor___elements__end_points(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___elements__centres <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___conductor___elements__centres(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___elements <: IDS
+    var"start_points" :: tf__coil___conductor___elements__start_points
+    var"names" :: Union{Missing, AbstractArray{T, 1} where T<:String, AbstractRange{T} where T<:String, Function}
+    var"types" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"end_points" :: tf__coil___conductor___elements__end_points
+    var"intermediate_points" :: tf__coil___conductor___elements__intermediate_points
+    var"centres" :: tf__coil___conductor___elements__centres
+    _parent :: WeakRef
+    function tf__coil___conductor___elements(var"start_points"=tf__coil___conductor___elements__start_points(), var"names"=missing, var"types"=missing, var"end_points"=tf__coil___conductor___elements__end_points(), var"intermediate_points"=tf__coil___conductor___elements__intermediate_points(), var"centres"=tf__coil___conductor___elements__centres(), _parent=WeakRef(missing))
+        ids = new(var"start_points", var"names", var"types", var"end_points", var"intermediate_points", var"centres", _parent)
+        assign_expressions(ids)
+        setfield!(ids.start_points, :_parent, WeakRef(ids))
+        setfield!(ids.end_points, :_parent, WeakRef(ids))
+        setfield!(ids.intermediate_points, :_parent, WeakRef(ids))
+        setfield!(ids.centres, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___current <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___conductor___current(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor___cross_section <: IDS
+    var"delta_r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"delta_z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"delta_phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__coil___conductor___cross_section(var"delta_r"=missing, var"delta_z"=missing, var"delta_phi"=missing, _parent=WeakRef(missing))
+        ids = new(var"delta_r", var"delta_z", var"delta_phi", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__coil___conductor <: IDSvectorElement
+    var"voltage" :: tf__coil___conductor___voltage
+    var"elements" :: tf__coil___conductor___elements
+    var"cross_section" :: tf__coil___conductor___cross_section
+    var"resistance" :: Union{Missing, Real, Function}
+    var"current" :: tf__coil___conductor___current
+    _parent :: WeakRef
+    function tf__coil___conductor(var"voltage"=tf__coil___conductor___voltage(), var"elements"=tf__coil___conductor___elements(), var"cross_section"=tf__coil___conductor___cross_section(), var"resistance"=missing, var"current"=tf__coil___conductor___current(), _parent=WeakRef(missing))
+        ids = new(var"voltage", var"elements", var"cross_section", var"resistance", var"current", _parent)
+        assign_expressions(ids)
+        setfield!(ids.voltage, :_parent, WeakRef(ids))
+        setfield!(ids.elements, :_parent, WeakRef(ids))
+        setfield!(ids.cross_section, :_parent, WeakRef(ids))
+        setfield!(ids.current, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__coil <: IDSvectorElement
+    var"voltage" :: tf__coil___voltage
+    var"name" :: Union{Missing, String, Function}
+    var"conductor" :: IDSvector{T} where {T<:tf__coil___conductor}
+    var"turns" :: Union{Missing, Real, Function}
+    var"resistance" :: Union{Missing, Real, Function}
+    var"identifier" :: Union{Missing, String, Function}
+    var"current" :: tf__coil___current
+    _parent :: WeakRef
+    function tf__coil(var"voltage"=tf__coil___voltage(), var"name"=missing, var"conductor"=IDSvector(tf__coil___conductor[]), var"turns"=missing, var"resistance"=missing, var"identifier"=missing, var"current"=tf__coil___current(), _parent=WeakRef(missing))
+        ids = new(var"voltage", var"name", var"conductor", var"turns", var"resistance", var"identifier", var"current", _parent)
+        assign_expressions(ids)
+        setfield!(ids.voltage, :_parent, WeakRef(ids))
+        setfield!(ids.conductor, :_parent, WeakRef(ids))
+        setfield!(ids.current, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__code__library <: IDSvectorElement
+    var"name" :: Union{Missing, String, Function}
+    var"parameters" :: Union{Missing, String, Function}
+    var"commit" :: Union{Missing, String, Function}
+    var"repository" :: Union{Missing, String, Function}
+    var"version" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function tf__code__library(var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"version"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"parameters", var"commit", var"repository", var"version", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf__code <: IDS
+    var"library" :: IDSvector{T} where {T<:tf__code__library}
+    var"name" :: Union{Missing, String, Function}
+    var"parameters" :: Union{Missing, String, Function}
+    var"commit" :: Union{Missing, String, Function}
+    var"repository" :: Union{Missing, String, Function}
+    var"output_flag" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"version" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function tf__code(var"library"=IDSvector(tf__code__library[]), var"name"=missing, var"parameters"=missing, var"commit"=missing, var"repository"=missing, var"output_flag"=missing, var"version"=missing, _parent=WeakRef(missing))
+        ids = new(var"library", var"name", var"parameters", var"commit", var"repository", var"output_flag", var"version", _parent)
+        assign_expressions(ids)
+        setfield!(ids.library, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct tf__b_field_tor_vacuum_r <: IDS
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function tf__b_field_tor_vacuum_r(var"time"=missing, var"data"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"data", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct tf <: IDS
+    var"coils_n" :: Union{Missing, Integer, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"code" :: tf__code
+    var"is_periodic" :: Union{Missing, Integer, Function}
+    var"latency" :: Union{Missing, Real, Function}
+    var"delta_b_field_tor_vacuum_r" :: tf__delta_b_field_tor_vacuum_r
+    var"field_map" :: IDSvector{T} where {T<:tf__field_map}
+    var"ids_properties" :: tf__ids_properties
+    var"coil" :: IDSvector{T} where {T<:tf__coil}
+    var"r0" :: Union{Missing, Real, Function}
+    var"b_field_tor_vacuum_r" :: tf__b_field_tor_vacuum_r
+    _parent :: WeakRef
+    function tf(var"coils_n"=missing, var"time"=missing, var"code"=tf__code(), var"is_periodic"=missing, var"latency"=missing, var"delta_b_field_tor_vacuum_r"=tf__delta_b_field_tor_vacuum_r(), var"field_map"=IDSvector(tf__field_map[]), var"ids_properties"=tf__ids_properties(), var"coil"=IDSvector(tf__coil[]), var"r0"=missing, var"b_field_tor_vacuum_r"=tf__b_field_tor_vacuum_r(), _parent=WeakRef(missing))
+        ids = new(var"coils_n", var"time", var"code", var"is_periodic", var"latency", var"delta_b_field_tor_vacuum_r", var"field_map", var"ids_properties", var"coil", var"r0", var"b_field_tor_vacuum_r", _parent)
+        assign_expressions(ids)
+        setfield!(ids.code, :_parent, WeakRef(ids))
+        setfield!(ids.delta_b_field_tor_vacuum_r, :_parent, WeakRef(ids))
+        setfield!(ids.field_map, :_parent, WeakRef(ids))
+        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
+        setfield!(ids.coil, :_parent, WeakRef(ids))
+        setfield!(ids.b_field_tor_vacuum_r, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct summary__wall__material <: IDS
     var"name" :: Union{Missing, String, Function}
     var"description" :: Union{Missing, String, Function}
@@ -8623,10 +9173,12 @@ mutable struct radial_build <: IDS
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"center_stack" :: IDSvector{T} where {T<:radial_build__center_stack}
     var"ids_properties" :: radial_build__ids_properties
+    var"oh_b_field_max" :: Union{Missing, Real, Function}
     var"code" :: radial_build__code
+    var"tf_b_field_max" :: Union{Missing, Real, Function}
     _parent :: WeakRef
-    function radial_build(var"time"=missing, var"center_stack"=IDSvector(radial_build__center_stack[]), var"ids_properties"=radial_build__ids_properties(), var"code"=radial_build__code(), _parent=WeakRef(missing))
-        ids = new(var"time", var"center_stack", var"ids_properties", var"code", _parent)
+    function radial_build(var"time"=missing, var"center_stack"=IDSvector(radial_build__center_stack[]), var"ids_properties"=radial_build__ids_properties(), var"oh_b_field_max"=missing, var"code"=radial_build__code(), var"tf_b_field_max"=missing, _parent=WeakRef(missing))
+        ids = new(var"time", var"center_stack", var"ids_properties", var"oh_b_field_max", var"code", var"tf_b_field_max", _parent)
         assign_expressions(ids)
         setfield!(ids.center_stack, :_parent, WeakRef(ids))
         setfield!(ids.ids_properties, :_parent, WeakRef(ids))
@@ -11976,11 +12528,12 @@ mutable struct dd <: IDS
     var"pf_active" :: Union{Missing, pf_active}
     var"core_profiles" :: Union{Missing, core_profiles}
     var"radial_build" :: Union{Missing, radial_build}
-    var"wall" :: Union{Missing, wall}
+    var"tf" :: Union{Missing, tf}
     var"dataset_description" :: Union{Missing, dataset_description}
+    var"wall" :: Union{Missing, wall}
     _parent :: WeakRef
-    function dd(var"summary"=summary(), var"core_sources"=core_sources(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"core_profiles"=core_profiles(), var"radial_build"=radial_build(), var"wall"=wall(), var"dataset_description"=dataset_description(), _parent=WeakRef(missing))
-        ids = new(var"summary", var"core_sources", var"equilibrium", var"pf_active", var"core_profiles", var"radial_build", var"wall", var"dataset_description", _parent)
+    function dd(var"summary"=summary(), var"core_sources"=core_sources(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"core_profiles"=core_profiles(), var"radial_build"=radial_build(), var"tf"=tf(), var"dataset_description"=dataset_description(), var"wall"=wall(), _parent=WeakRef(missing))
+        ids = new(var"summary", var"core_sources", var"equilibrium", var"pf_active", var"core_profiles", var"radial_build", var"tf", var"dataset_description", var"wall", _parent)
         assign_expressions(ids)
         setfield!(ids.summary, :_parent, WeakRef(ids))
         setfield!(ids.core_sources, :_parent, WeakRef(ids))
@@ -11988,8 +12541,9 @@ mutable struct dd <: IDS
         setfield!(ids.pf_active, :_parent, WeakRef(ids))
         setfield!(ids.core_profiles, :_parent, WeakRef(ids))
         setfield!(ids.radial_build, :_parent, WeakRef(ids))
-        setfield!(ids.wall, :_parent, WeakRef(ids))
+        setfield!(ids.tf, :_parent, WeakRef(ids))
         setfield!(ids.dataset_description, :_parent, WeakRef(ids))
+        setfield!(ids.wall, :_parent, WeakRef(ids))
         return ids
     end
 end

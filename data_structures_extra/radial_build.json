@@ -101,6 +101,18 @@
   "lifecycle_status": "alpha",
   "type": "constant"
  },
+ "radial_build.oh_b_field_max": {
+  "data_type": "FLT_0D",
+  "documentation": "Maximum OH magnetic field at the center of the solenoid",
+  "type": "static",
+  "units": "T"
+ },
+ "radial_build.tf_b_field_max": {
+  "data_type": "FLT_0D",
+  "documentation": "Maximum TF magnetic field at the vacuum vessel center",
+  "type": "static",
+  "units": "T"
+ },
  "radial_build.center_stack": {
   "coordinates": [
    "1...N"
