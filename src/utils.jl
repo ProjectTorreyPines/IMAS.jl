@@ -127,3 +127,50 @@ Attempt to convert x::Vector to Range to feed to Interpolations.CubicSplineInter
 function Interpolations.CubicSplineInterpolation(x::AbstractVector{T} where T <: Real, args...; kw...)
     Interpolations.CubicSplineInterpolation(to_range(x), args...; kw...)
 end
+
+"""
+    interp(xs, y, scheme::Symbol=:linear, extrapolate::Symbol=:linear; kw...)
+
+Interface to Interpolations.jl that makes it similar to Scipy.interpolate
+"""
+function interp(xs, y, scheme::Symbol=:linear, extrapolate::Symbol=:linear; kw...)
+
+    if isa(xs, Union{AbstractVector,AbstractRange})
+        xs = (xs,)
+    end
+    
+    if extrapolate == :throw
+        extrapolation_bc = Interpolations.Throw()
+    elseif extrapolate == :linear
+        extrapolation_bc = Interpolations.Line()
+    elseif extrapolate == :flat
+        extrapolation_bc = Interpolations.Flat()
+    elseif extrapolate == :periodic
+        extrapolation_bc = Interpolations.Periodic()
+    elseif isa(extrapolate, Number)
+        extrapolation_bc = extrapolate
+    else
+        error("interp extrapolation_bc can only be :throw, :flat, :linear, :periodic, or a number")
+    end
+    
+    # Interpolate.jl does not handle arrays of length one
+    if length(size(y)) == 1 && size(y)[1] == 1
+        if extrapolate != :throw
+            xs = ([xs[1][1] - 1, xs[1][1] + 1],)
+            y = [y[1],y[1]]
+            scheme = :constant
+        end
+    end
+
+    if scheme == :constant
+        itp = Interpolations.ConstantInterpolation(xs, y; extrapolation_bc=extrapolation_bc)
+    elseif scheme == :linear
+        itp = Interpolations.LinearInterpolation(xs, y; extrapolation_bc=extrapolation_bc)
+    elseif scheme == :cubic
+        itp = Interpolations.CubicSplineInterpolation(xs, y; extrapolation_bc=extrapolation_bc)
+    else
+        error("interp scheme can only be :constant, :linear, or :cubic ")
+    end
+
+    return itp
+end
