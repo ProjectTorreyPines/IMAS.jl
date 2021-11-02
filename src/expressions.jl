@@ -63,10 +63,10 @@ expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
 
 
 expressions["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
-    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r
+    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r[end]
 
 expressions["equilibrium.time_slice[:].boundary.geometric_axis.z"] =
-    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z
+    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[end]
 
 
 expressions["equilibrium.time_slice[:].boundary.minor_radius"] =
