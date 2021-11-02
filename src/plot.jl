@@ -58,3 +58,22 @@ Plots equilibrium cross-section
         [(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)]
     end
 end
+
+"""
+    function plot_radial_build_cx(rb::IMAS.radial_build)
+
+Plots radial build cross-section
+"""
+@recipe function plot_radial_build_cx(rb::IMAS.radial_build)
+    seriestype --> :vline
+    aspect_ratio --> :equal
+    linewidth --> 2
+    at = 0
+    for l in rb.center_stack
+        @series begin
+            label --> l.name
+            at += l.thickness
+            [at]
+        end
+    end
+end
