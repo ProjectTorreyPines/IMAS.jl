@@ -30,9 +30,20 @@ function flux_surfaces(eq::equilibrium, time_index::Int)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
+    flux_surfaces(eqt::equilibrium__time_slice)
 
 update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
+"""
+function flux_surfaces(eqt::equilibrium__time_slice)
+    R0 = eqt.boundary.geometric_axis.r
+    B0 = eqt.profiles_1d.f[end] / R0
+    flux_surfaces(eqt, B0, R0)
+end
+
+"""
+    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
+
+update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
 """
 function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
     cc = cocos(3) # for now hardcoded to 3 because testing with Solovev
