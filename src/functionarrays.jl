@@ -69,7 +69,7 @@ function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
     # raise a nice error for missing values
     if value === missing
-        error("$(f2fs(ids)).$(field) is missing")
+        error("$(f2i(ids)).$(field) is missing")
     # interpolate functions on given coordinates
     elseif typeof(value) <: Function
         x = coordinates(ids, field)[:values]
