@@ -120,12 +120,16 @@ function to_range(vector::AbstractVector{T} where T <: Real)
 end
 
 """
-    Interpolations.CubicSplineInterpolation(x::AbstractVector{T} where T<:Real, args...; kw...)
+    Interpolations.CubicSplineInterpolation(x::AbstractVector{T} where T<:Real, y::AbstractVector where T<:Real, args...; kw...)
 
 Attempt to convert x::Vector to Range to feed to Interpolations.CubicSplineInterpolation
 """
-function Interpolations.CubicSplineInterpolation(x::AbstractVector{T} where T <: Real, args...; kw...)
-    Interpolations.CubicSplineInterpolation(to_range(x), args...; kw...)
+function Interpolations.CubicSplineInterpolation(x::AbstractVector{T} where T <: Real, y::AbstractVector where T<:Real, args...; kw...)
+    if x[end]<x[1]
+        return Interpolations.CubicSplineInterpolation(to_range(x[end:-1:1]), y[end:-1:1], args...; kw...)
+    else
+        return Interpolations.CubicSplineInterpolation(to_range(x), y, args...; kw...)
+    end
 end
 
 """
