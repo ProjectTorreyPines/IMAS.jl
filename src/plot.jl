@@ -68,11 +68,18 @@ Plots radial build cross-section
     seriestype --> :vline
     aspect_ratio --> :equal
     linewidth --> 2
+    @series begin
+        label --> "center"
+        linestyle --> :dash
+        color --> :black
+        [0]
+    end
     at = 0
     for l in rb.center_stack
         @series begin
-            label --> l.name
             at += l.thickness
+            label --> l.name
+            xlim --> [0,at*1.5]
             [at]
         end
     end
