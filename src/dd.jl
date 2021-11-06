@@ -9159,11 +9159,13 @@ end
 mutable struct radial_build__center_stack <: IDSvectorElement
     var"name" :: Union{Missing, String, Function}
     var"material" :: Union{Missing, String, Function}
+    var"end_radius" :: Union{Missing, Real, Function}
     var"thickness" :: Union{Missing, Real, Function}
+    var"start_radius" :: Union{Missing, Real, Function}
     var"index" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
-    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"thickness"=missing, var"index"=missing, _parent=WeakRef(missing))
-        ids = new(var"name", var"material", var"thickness", var"index", _parent)
+    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"end_radius"=missing, var"thickness"=missing, var"start_radius"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"material", var"end_radius", var"thickness", var"start_radius", var"index", _parent)
         assign_expressions(ids)
         return ids
     end

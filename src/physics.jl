@@ -345,26 +345,32 @@ function find_psi_boundary(eqt; precision=1e-3)
 end
 
 """
-    radial_build_start_end_radii(rb::IMAS.radial_build, layer_id::Union{Int,String})
+    radial_build_radii(rb::IMAS.radial_build)
 
-Return start and end radii of center stack layer given its name
+Return list of radii in the radial build
 """
-function radial_build_start_end_radii(rb::IMAS.radial_build, layer_id::Union{Int,String})
+function radial_build_radii(rb::IMAS.radial_build)
+    layers_radii = Real[]
     layer_start = 0
-    layer_end = nothing
     for l in rb.center_stack
-        if isa(layer_id, String) && l.name == layer_id
-            layer_end = layer_start + l.thickness
-            break
-        elseif isa(layer_id, Int) && l.index == layer_id
-            layer_end = layer_start + l.thickness
-            break
-        end
+        push!(layers_radii, layer_start)
         layer_start = layer_start + l.thickness
     end
-    if layer_end === nothing
-        error("Did not find radial_build.center_stack layer $layer_id")
+    push!(layers_radii, layer_start)
+    return layers_radii
+end
+
+"""
+    
+"""
+function get_radial_build(rb::IMAS.radial_build, layer_id::Union{Int,String})
+    for l in rb.center_stack
+        if isa(layer_id, String) && l.name == layer_id
+            return l
+        elseif isa(layer_id, Int) && l.index == layer_id
+            return l
+        end
     end
-    return layer_start, layer_end
+    error("Did not find radial_build.center_stack layer $layer_id")
 end
 

@@ -126,6 +126,18 @@
   "type": "static",
   "units": "m"
  },
+ "radial_build.center_stack[:].start_radius": {
+    "data_type": "FLT_0D",
+    "documentation": "Start radius of the layer layer",
+    "type": "static",
+    "units": "m"
+ },
+ "radial_build.center_stack[:].end_radius": {
+    "data_type": "FLT_0D",
+    "documentation": "End radius of the layer layer",
+    "type": "static",
+    "units": "m"
+ },
  "radial_build.center_stack[:].name": {
   "data_type": "STR_0D",
   "documentation": "Name of the center-stack layer",
