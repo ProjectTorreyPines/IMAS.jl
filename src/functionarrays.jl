@@ -115,17 +115,19 @@ function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=fals
 end
 
 """
-    ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS}}
+    ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
 
 Return dictionary with pointers to ancestors to an IDS
 """
-function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS}}
+function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
     ancestors = Dict()
     # initialize ancestors to missing
     path = f2p(ids)
-    for p in path
+    for (k, p) in enumerate(path)
         if typeof(p) <: String
             ancestors[Symbol(p)] = missing
+        elseif p != 0
+            ancestors[Symbol(path[k - 1] * "_index")] = missing
         end
     end
     # traverse ancestors and assign pointers
@@ -136,6 +138,7 @@ function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS}}
             ancestors[Symbol(path[end])] = h
         elseif path[end] != 0
             ancestors[Symbol(path[end - 1])] = h
+            ancestors[Symbol(path[end - 1] * "_index")] = path[end]
         end
         h = h._parent.value
     end
