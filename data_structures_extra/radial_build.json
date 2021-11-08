@@ -153,6 +153,24 @@
   "documentation": "Center-stack type identifier\n0) empty (use this to set mimimum radius for OH)\n1) OH\n2) TF\n3) BL\n4) Shielding",
   "type": "static"
  },
+ "radial_build.center_stack[:].outline": {
+ "data_type": "STRUCTURE",
+ "documentation": "Irregular outline of the limiting surface. Do NOT repeat the first point for closed contours"
+ },
+ "radial_build.center_stack[:].outline.r": {
+ "coordinates": ["1...N"],
+ "data_type": "FLT_1D",
+ "documentation": "Major radius",
+ "type": "static",
+ "units": "m"
+ },
+ "radial_build.center_stack[:].outline.z": {
+ "coordinates": ["radial_build.center_stack[:].outline.r"],
+ "data_type": "FLT_1D",
+ "documentation": "Height",
+ "type": "static",
+ "units": "m"
+ },
  "radial_build.ids_properties": {
   "data_type": "STRUCTURE",
   "documentation": "Interface Data Structure properties. This element identifies the node above as an IDS",

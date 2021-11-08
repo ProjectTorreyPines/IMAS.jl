@@ -9156,17 +9156,30 @@ mutable struct radial_build__code <: IDS
     end
 end
 
+mutable struct radial_build__center_stack___outline <: IDS
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function radial_build__center_stack___outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
 mutable struct radial_build__center_stack <: IDSvectorElement
     var"name" :: Union{Missing, String, Function}
     var"material" :: Union{Missing, String, Function}
     var"end_radius" :: Union{Missing, Real, Function}
     var"thickness" :: Union{Missing, Real, Function}
+    var"outline" :: radial_build__center_stack___outline
     var"start_radius" :: Union{Missing, Real, Function}
     var"index" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
-    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"end_radius"=missing, var"thickness"=missing, var"start_radius"=missing, var"index"=missing, _parent=WeakRef(missing))
-        ids = new(var"name", var"material", var"end_radius", var"thickness", var"start_radius", var"index", _parent)
+    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"end_radius"=missing, var"thickness"=missing, var"outline"=radial_build__center_stack___outline(), var"start_radius"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"material", var"end_radius", var"thickness", var"outline", var"start_radius", var"index", _parent)
         assign_expressions(ids)
+        setfield!(ids.outline, :_parent, WeakRef(ids))
         return ids
     end
 end
