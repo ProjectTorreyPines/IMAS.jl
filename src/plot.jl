@@ -72,15 +72,22 @@ Plots equilibrium cross-section
     end
 end
 
+function join_outlines(r1, z1, r2, z2)
+        i1 = 1
+    i2 = argmin((r2 .- r1[i1]).^2 + (z2 .- z1[i1]).^2)
+    p(x1, x2) = vcat(x1, x2[i2:end], x2[1:i2], x1[i1])
+    return p(r1, r2), p(z1, z2)
+end
+
 """
     function plot_radial_build_cx(rb::IMAS.radial_build)
 
 Plots radial build cross-section
 """
-
-@recipe function plot_radial_build_cx(rb::IMAS.radial_build)
+@recipe function plot_radial_build_cx(rb::IMAS.radial_build; outline=true)
     aspect_ratio --> :equal
     grid --> :none
+
     @series begin
         seriestype --> :vline
         linewidth --> 2
@@ -89,41 +96,121 @@ Plots radial build cross-section
         color --> :black
         [0]
     end
-    at = 0
-    for l in rb.center_stack
+
+    if outline
+        rmax = maximum(rb.center_stack[end].outline.r) * 2.0
+
+        # Cryostat
         @series begin
-            if ! is_missing(l,:material) && l.material=="vacuum"
-                color --> :white
-            end
-            if occursin("OH",l.name)
-                color --> :blue
-            end
-            if occursin("TF",l.name)
-                color --> :green
-            end
-            if occursin("shield",l.name)
-                color --> :red
-            end
-            if occursin("blanket",l.name)
-                color --> :orange
-            end
-            if occursin("wall",l.name)
-                color --> :yellow
-            end
-            seriestype --> :vspan
-            label --> l.name
-            alpha --> 0.2
-            xlim --> [0,at*2.0]
-            [at,at+l.thickness]
-        end
-        at += l.thickness
-        @series begin
-            seriestype --> :vline
-            linewidth --> 0.5
-            label --> ""
+            seriestype --> :path
+            linewidth --> 1
             color --> :black
-            xlim --> [0,at*2.0]
-            [at]
+            label --> "Cryostat"
+            xlim --> [0,rmax]
+            rb.center_stack[end].outline.r[1:end - 1], rb.center_stack[end].outline.z[1:end - 1]
+        end
+
+        # OH
+        @series begin
+            seriestype --> :shape
+            linewidth --> 0.5
+            color --> :blue
+            label --> IMAS.get_radial_build(rb, 1).name
+            xlim --> [0,rmax]
+            IMAS.get_radial_build(rb, 1).outline.r, IMAS.get_radial_build(rb, 1).outline.z
+        end
+
+        # layers between the TF and the vessel
+        for (k, l) in enumerate(rb.center_stack[1:end - 1])
+            if IMAS.is_missing(l.outline, :r) || l.index > -2
+                continue
+            end
+            l1 = rb.center_stack[k + 1]
+            poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
+                
+            if occursin("TF", l.name)
+                color = :green
+            end
+            if occursin("shield", l.name)
+                color = :red
+            end
+            if occursin("blanket", l.name)
+                color = :orange
+            end
+            if occursin("wall", l.name)
+                color = :yellow
+            end
+
+            name = l.name
+            for nm in ["gap","inner","outer","vacuum"]
+                name = replace(name, "$nm " => "")
+            end
+
+            @series begin
+                seriestype --> :shape
+                linewidth --> 0.0
+                color --> color
+                label --> uppercasefirst(name)
+                xlim --> [0,rmax]
+                poly[1], poly[2]
+            end
+            @series begin
+                seriestype --> :path
+                linewidth --> 0.5
+                color --> :black
+                label --> ""
+                xlim --> [0,rmax]
+                l.outline.r, l.outline.z
+            end
+        end
+
+        @series begin
+            seriestype --> :path
+            linewidth --> 2
+            color --> :black
+            label --> "Vessel"
+            xlim --> [0, rmax]
+            IMAS.get_radial_build(rb, -1).outline.r, IMAS.get_radial_build(rb, -1).outline.z
+        end
+
+    else
+
+        at = 0
+        for l in rb.center_stack
+            @series begin
+                if ! is_missing(l, :material) && l.material == "vacuum"
+                    color --> :white
+                end
+                if occursin("OH", l.name)
+                    color --> :blue
+                end
+                if occursin("TF", l.name)
+                    color --> :green
+                end
+                if occursin("shield", l.name)
+                    color --> :red
+                end
+                if occursin("blanket", l.name)
+                    color --> :orange
+                end
+                if occursin("wall", l.name)
+                    color --> :yellow
+                end
+                seriestype --> :vspan
+                label --> l.name
+                alpha --> 0.2
+                xlim --> [0,at * 2.0]
+                [at,at + l.thickness]
+            end
+            at += l.thickness
+            @series begin
+                seriestype --> :vline
+                linewidth --> 0.5
+                label --> ""
+                color --> :black
+                xlim --> [0, at * 2.0]
+                [at]
+            end
         end
     end
 end
