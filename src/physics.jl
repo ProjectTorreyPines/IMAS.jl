@@ -361,16 +361,38 @@ function radial_build_radii(rb::IMAS.radial_build)
 end
 
 """
-    
+    get_radial_build(rb::IMAS.radial_build;
+                     type::Union{Nothing,Int}=nothing,
+                     name::Union{Nothing,String}=nothing,
+                     index::Union{Nothing,UInt,Int}=nothing,
+                     hfs::Union{Nothing,Int}=nothing,
+                     return_only_one=true )
+
+Select layer(s) in radial build based on a series of selection criteria
 """
-function get_radial_build(rb::IMAS.radial_build, layer_id::Union{Int,String})
+function get_radial_build(rb::IMAS.radial_build;
+                          type::Union{Nothing,Int}=nothing,
+                          name::Union{Nothing,String}=nothing,
+                          index::Union{Nothing,UInt,Int}=nothing,
+                          hfs::Union{Nothing,Int}=nothing,
+                          return_only_one=true
+                          )
+    valid_layers = []
     for l in rb.center_stack
-        if isa(layer_id, String) && l.name == layer_id
-            return l
-        elseif isa(layer_id, Int) && l.index == layer_id
-            return l
+        if (name===nothing || l.name == name!) && (type===nothing || l.type == type) && (index===nothing || l.index == index) && (hfs===nothing || l.hfs == hfs)
+            push!(valid_layers, l)
         end
     end
-    error("Did not find radial_build.center_stack layer $layer_id")
+    if length(valid_layers)==0
+        error("Did not find radial_build.center_stack layer name:$name type:$type index:$index hfs:$hfs")
+    end
+    if return_only_one
+        if length(valid_layers)==1
+            return valid_layers[1]
+        else
+            error("Found multiple layers that satisfy name:$name type:$type index:$index hfs:$hfs")
+        end
+    else
+        return valid_layers
+    end
 end
-

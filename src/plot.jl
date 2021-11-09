@@ -38,7 +38,6 @@ Plots equilibrium cross-section
         end
     end
 
-
     label --> ""
     aspect_ratio --> :equal
     primary --> false
@@ -102,6 +101,15 @@ Plots radial build cross-section
 
         # Cryostat
         @series begin
+            seriestype --> :shape
+            linewidth --> 0.0
+            color --> :white
+            label --> ""
+            xlim --> [0,rmax]
+            join_outlines(rb.center_stack[end].outline.r, rb.center_stack[end].outline.z, IMAS.get_radial_build(rb, type=-1).outline.r, IMAS.get_radial_build(rb, type=-1).outline.z)
+        end
+
+        @series begin
             seriestype --> :path
             linewidth --> 1
             color --> :black
@@ -115,34 +123,43 @@ Plots radial build cross-section
             seriestype --> :shape
             linewidth --> 0.5
             color --> :blue
-            label --> IMAS.get_radial_build(rb, 1).name
+            label --> IMAS.get_radial_build(rb, type=1).name
             xlim --> [0,rmax]
-            IMAS.get_radial_build(rb, 1).outline.r, IMAS.get_radial_build(rb, 1).outline.z
+            IMAS.get_radial_build(rb, type=1).outline.r, IMAS.get_radial_build(rb, type=1).outline.z
         end
 
-        # layers between the TF and the vessel
+        # all layers between the OH and the vessel
+        valid = false
         for (k, l) in enumerate(rb.center_stack[1:end - 1])
-            if IMAS.is_missing(l.outline, :r) || l.index > -2
+            if  (l.type == 2) && (l.hfs == -1)
+                valid=true
+            end
+            if  l.type == -1
+                valid=false
+            end
+            if IMAS.is_missing(l.outline, :r) || ! valid
                 continue
             end
             l1 = rb.center_stack[k + 1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
-                
-            if occursin("TF", l.name)
+
+            name = l.name
+
+            color = :gray
+            if occursin("gap", l.name)
+                color = :white
+                name=""
+            elseif occursin("TF", l.name)
                 color = :green
-            end
-            if occursin("shield", l.name)
+            elseif occursin("shield", l.name)
                 color = :red
-            end
-            if occursin("blanket", l.name)
+            elseif occursin("blanket", l.name)
                 color = :orange
-            end
-            if occursin("wall", l.name)
+            elseif occursin("wall", l.name)
                 color = :yellow
             end
 
-            name = l.name
-            for nm in ["gap","inner","outer","vacuum"]
+            for nm in ["inner","outer","vacuum","hfs","lfs"]
                 name = replace(name, "$nm " => "")
             end
 
@@ -170,7 +187,7 @@ Plots radial build cross-section
             color --> :black
             label --> "Vessel"
             xlim --> [0, rmax]
-            IMAS.get_radial_build(rb, -1).outline.r, IMAS.get_radial_build(rb, -1).outline.z
+            IMAS.get_radial_build(rb, type=-1).outline.r, IMAS.get_radial_build(rb, type=-1).outline.z
         end
 
     else

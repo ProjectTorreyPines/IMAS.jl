@@ -148,9 +148,19 @@
   "documentation": "Material of the center-stack layer",
   "type": "static"
  },
- "radial_build.center_stack[:].index": {
+ "radial_build.center_stack[:].type": {
   "data_type": "INT_0D",
   "documentation": "Center-stack type identifier\n0) empty (use this to set mimimum radius for OH)\n1) OH\n2) TF\n3) BL\n4) Shielding",
+  "type": "static"
+ },
+ "radial_build.center_stack[:].index": {
+  "data_type": "INT_0D",
+  "documentation": "Integer to identify the same layer on the high-field-side and low-field-side",
+  "type": "static"
+ },
+ "radial_build.center_stack[:].hfs": {
+  "data_type": "INT_0D",
+  "documentation": "Integer set to -1 if layer is on the high-field-side and 1 if layer is on the low-field-side. 0 when not applicable (eg. vessel, OH, and cryostat)",
   "type": "static"
  },
  "radial_build.center_stack[:].outline": {

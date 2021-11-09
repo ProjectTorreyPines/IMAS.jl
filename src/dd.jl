@@ -9171,13 +9171,15 @@ mutable struct radial_build__center_stack <: IDSvectorElement
     var"name" :: Union{Missing, String, Function}
     var"material" :: Union{Missing, String, Function}
     var"end_radius" :: Union{Missing, Real, Function}
+    var"hfs" :: Union{Missing, Integer, Function}
     var"thickness" :: Union{Missing, Real, Function}
     var"outline" :: radial_build__center_stack___outline
     var"start_radius" :: Union{Missing, Real, Function}
+    var"type" :: Union{Missing, Integer, Function}
     var"index" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
-    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"end_radius"=missing, var"thickness"=missing, var"outline"=radial_build__center_stack___outline(), var"start_radius"=missing, var"index"=missing, _parent=WeakRef(missing))
-        ids = new(var"name", var"material", var"end_radius", var"thickness", var"outline", var"start_radius", var"index", _parent)
+    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"end_radius"=missing, var"hfs"=missing, var"thickness"=missing, var"outline"=radial_build__center_stack___outline(), var"start_radius"=missing, var"type"=missing, var"index"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"material", var"end_radius", var"hfs", var"thickness", var"outline", var"start_radius", var"type", var"index", _parent)
         assign_expressions(ids)
         setfield!(ids.outline, :_parent, WeakRef(ids))
         return ids
