@@ -108,8 +108,8 @@ expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
 #= ========== =#
 # Radial Build #
 #= ========== =#
-expressions["radial_build.center_stack[:].start_radius"] =
-    (;radial_build, center_stack_index, _...) -> radial_build_radii(radial_build)[1:end-1][center_stack_index]
+expressions["radial_build.layer[:].start_radius"] =
+    (;radial_build, layer_index, _...) -> radial_build_radii(radial_build)[1:end-1][layer_index]
 
-expressions["radial_build.center_stack[:].end_radius"] =
-    (;radial_build, center_stack_index, _...) -> radial_build_radii(radial_build)[2:end][center_stack_index]
+expressions["radial_build.layer[:].end_radius"] =
+    (;radial_build, layer_index, _...) -> radial_build_radii(radial_build)[2:end][layer_index]

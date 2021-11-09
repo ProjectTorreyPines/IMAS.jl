@@ -352,7 +352,7 @@ Return list of radii in the radial build
 function radial_build_radii(rb::IMAS.radial_build)
     layers_radii = Real[]
     layer_start = 0
-    for l in rb.center_stack
+    for l in rb.layer
         push!(layers_radii, layer_start)
         layer_start = layer_start + l.thickness
     end
@@ -364,7 +364,7 @@ end
     get_radial_build(rb::IMAS.radial_build;
                      type::Union{Nothing,Int}=nothing,
                      name::Union{Nothing,String}=nothing,
-                     index::Union{Nothing,UInt,Int}=nothing,
+                     identifier::Union{Nothing,UInt,Int}=nothing,
                      hfs::Union{Nothing,Int}=nothing,
                      return_only_one=true )
 
@@ -373,24 +373,24 @@ Select layer(s) in radial build based on a series of selection criteria
 function get_radial_build(rb::IMAS.radial_build;
                           type::Union{Nothing,Int}=nothing,
                           name::Union{Nothing,String}=nothing,
-                          index::Union{Nothing,UInt,Int}=nothing,
+                          identifier::Union{Nothing,UInt,Int}=nothing,
                           hfs::Union{Nothing,Int}=nothing,
                           return_only_one=true
                           )
     valid_layers = []
-    for l in rb.center_stack
-        if (name===nothing || l.name == name!) && (type===nothing || l.type == type) && (index===nothing || l.index == index) && (hfs===nothing || l.hfs == hfs)
+    for l in rb.layer
+        if (name===nothing || l.name == name!) && (type===nothing || l.type == type) && (identifier===nothing || l.identifier == identifier) && (hfs===nothing || l.hfs == hfs)
             push!(valid_layers, l)
         end
     end
     if length(valid_layers)==0
-        error("Did not find radial_build.center_stack layer name:$name type:$type index:$index hfs:$hfs")
+        error("Did not find radial_build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
     end
     if return_only_one
         if length(valid_layers)==1
             return valid_layers[1]
         else
-            error("Found multiple layers that satisfy name:$name type:$type index:$index hfs:$hfs")
+            error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier hfs:$hfs")
         end
     else
         return valid_layers

@@ -97,7 +97,7 @@ Plots radial build cross-section
     end
 
     if outline
-        rmax = maximum(rb.center_stack[end].outline.r) * 2.0
+        rmax = maximum(rb.layer[end].outline.r) * 2.0
 
         # Cryostat
         @series begin
@@ -106,7 +106,7 @@ Plots radial build cross-section
             color --> :white
             label --> ""
             xlim --> [0,rmax]
-            join_outlines(rb.center_stack[end].outline.r, rb.center_stack[end].outline.z, IMAS.get_radial_build(rb, type=-1).outline.r, IMAS.get_radial_build(rb, type=-1).outline.z)
+            join_outlines(rb.layer[end].outline.r, rb.layer[end].outline.z, IMAS.get_radial_build(rb, type=-1).outline.r, IMAS.get_radial_build(rb, type=-1).outline.z)
         end
 
         @series begin
@@ -115,7 +115,7 @@ Plots radial build cross-section
             color --> :black
             label --> "Cryostat"
             xlim --> [0,rmax]
-            rb.center_stack[end].outline.r[1:end - 1], rb.center_stack[end].outline.z[1:end - 1]
+            rb.layer[end].outline.r[1:end - 1], rb.layer[end].outline.z[1:end - 1]
         end
 
         # OH
@@ -130,7 +130,7 @@ Plots radial build cross-section
 
         # all layers between the OH and the vessel
         valid = false
-        for (k, l) in enumerate(rb.center_stack[1:end - 1])
+        for (k, l) in enumerate(rb.layer[1:end - 1])
             if  (l.type == 2) && (l.hfs == -1)
                 valid=true
             end
@@ -140,7 +140,7 @@ Plots radial build cross-section
             if IMAS.is_missing(l.outline, :r) || ! valid
                 continue
             end
-            l1 = rb.center_stack[k + 1]
+            l1 = rb.layer[k + 1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
 
             name = l.name
@@ -193,7 +193,7 @@ Plots radial build cross-section
     else
 
         at = 0
-        for l in rb.center_stack
+        for l in rb.layer
             @series begin
                 if ! is_missing(l, :material) && l.material == "vacuum"
                     color --> :white

@@ -113,69 +113,69 @@
   "type": "static",
   "units": "T"
  },
- "radial_build.center_stack": {
+ "radial_build.layer": {
   "coordinates": [
    "1...N"
   ],
   "data_type": "STRUCT_ARRAY",
   "documentation": "List of layers in the center stack"
  },
- "radial_build.center_stack[:].thickness": {
+ "radial_build.layer[:].thickness": {
   "data_type": "FLT_0D",
   "documentation": "Radial thickness of center-stack layer",
   "type": "static",
   "units": "m"
  },
- "radial_build.center_stack[:].start_radius": {
+ "radial_build.layer[:].start_radius": {
     "data_type": "FLT_0D",
     "documentation": "Start radius of the layer layer",
     "type": "static",
     "units": "m"
  },
- "radial_build.center_stack[:].end_radius": {
+ "radial_build.layer[:].end_radius": {
     "data_type": "FLT_0D",
     "documentation": "End radius of the layer layer",
     "type": "static",
     "units": "m"
  },
- "radial_build.center_stack[:].name": {
+ "radial_build.layer[:].name": {
   "data_type": "STR_0D",
   "documentation": "Name of the center-stack layer",
   "type": "static"
  },
- "radial_build.center_stack[:].material": {
+ "radial_build.layer[:].material": {
   "data_type": "STR_0D",
   "documentation": "Material of the center-stack layer",
   "type": "static"
  },
- "radial_build.center_stack[:].type": {
+ "radial_build.layer[:].type": {
   "data_type": "INT_0D",
-  "documentation": "Center-stack type identifier\n0) empty (use this to set mimimum radius for OH)\n1) OH\n2) TF\n3) BL\n4) Shielding",
+  "documentation": "Center-stack type code\n0) vacuum (use this to set mimimum radius for OH)\n1) OH\n2) TF\n3) BL\n4) Shielding",
   "type": "static"
  },
- "radial_build.center_stack[:].index": {
+ "radial_build.layer[:].identifier": {
   "data_type": "INT_0D",
   "documentation": "Integer to identify the same layer on the high-field-side and low-field-side",
   "type": "static"
  },
- "radial_build.center_stack[:].hfs": {
+ "radial_build.layer[:].hfs": {
   "data_type": "INT_0D",
   "documentation": "Integer set to -1 if layer is on the high-field-side and 1 if layer is on the low-field-side. 0 when not applicable (eg. vessel, OH, and cryostat)",
   "type": "static"
  },
- "radial_build.center_stack[:].outline": {
+ "radial_build.layer[:].outline": {
  "data_type": "STRUCTURE",
  "documentation": "Irregular outline of the limiting surface. Do NOT repeat the first point for closed contours"
  },
- "radial_build.center_stack[:].outline.r": {
+ "radial_build.layer[:].outline.r": {
  "coordinates": ["1...N"],
  "data_type": "FLT_1D",
  "documentation": "Major radius",
  "type": "static",
  "units": "m"
  },
- "radial_build.center_stack[:].outline.z": {
- "coordinates": ["radial_build.center_stack[:].outline.r"],
+ "radial_build.layer[:].outline.z": {
+ "coordinates": ["radial_build.layer[:].outline.r"],
  "data_type": "FLT_1D",
  "documentation": "Height",
  "type": "static",

@@ -9096,6 +9096,36 @@ mutable struct summary <: IDS
     end
 end
 
+mutable struct radial_build__layer___outline <: IDS
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function radial_build__layer___outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct radial_build__layer <: IDSvectorElement
+    var"name" :: Union{Missing, String, Function}
+    var"material" :: Union{Missing, String, Function}
+    var"end_radius" :: Union{Missing, Real, Function}
+    var"hfs" :: Union{Missing, Integer, Function}
+    var"thickness" :: Union{Missing, Real, Function}
+    var"outline" :: radial_build__layer___outline
+    var"start_radius" :: Union{Missing, Real, Function}
+    var"identifier" :: Union{Missing, Integer, Function}
+    var"type" :: Union{Missing, Integer, Function}
+    _parent :: WeakRef
+    function radial_build__layer(var"name"=missing, var"material"=missing, var"end_radius"=missing, var"hfs"=missing, var"thickness"=missing, var"outline"=radial_build__layer___outline(), var"start_radius"=missing, var"identifier"=missing, var"type"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"material", var"end_radius", var"hfs", var"thickness", var"outline", var"start_radius", var"identifier", var"type", _parent)
+        assign_expressions(ids)
+        setfield!(ids.outline, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct radial_build__ids_properties__version_put <: IDS
     var"access_layer_language" :: Union{Missing, String, Function}
     var"data_dictionary" :: Union{Missing, String, Function}
@@ -9156,50 +9186,20 @@ mutable struct radial_build__code <: IDS
     end
 end
 
-mutable struct radial_build__center_stack___outline <: IDS
-    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
-    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
-    _parent :: WeakRef
-    function radial_build__center_stack___outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
-        ids = new(var"r", var"z", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct radial_build__center_stack <: IDSvectorElement
-    var"name" :: Union{Missing, String, Function}
-    var"material" :: Union{Missing, String, Function}
-    var"end_radius" :: Union{Missing, Real, Function}
-    var"hfs" :: Union{Missing, Integer, Function}
-    var"thickness" :: Union{Missing, Real, Function}
-    var"outline" :: radial_build__center_stack___outline
-    var"start_radius" :: Union{Missing, Real, Function}
-    var"type" :: Union{Missing, Integer, Function}
-    var"index" :: Union{Missing, Integer, Function}
-    _parent :: WeakRef
-    function radial_build__center_stack(var"name"=missing, var"material"=missing, var"end_radius"=missing, var"hfs"=missing, var"thickness"=missing, var"outline"=radial_build__center_stack___outline(), var"start_radius"=missing, var"type"=missing, var"index"=missing, _parent=WeakRef(missing))
-        ids = new(var"name", var"material", var"end_radius", var"hfs", var"thickness", var"outline", var"start_radius", var"type", var"index", _parent)
-        assign_expressions(ids)
-        setfield!(ids.outline, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct radial_build <: IDS
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
-    var"center_stack" :: IDSvector{T} where {T<:radial_build__center_stack}
     var"ids_properties" :: radial_build__ids_properties
     var"oh_b_field_max" :: Union{Missing, Real, Function}
     var"code" :: radial_build__code
     var"tf_b_field_max" :: Union{Missing, Real, Function}
+    var"layer" :: IDSvector{T} where {T<:radial_build__layer}
     _parent :: WeakRef
-    function radial_build(var"time"=missing, var"center_stack"=IDSvector(radial_build__center_stack[]), var"ids_properties"=radial_build__ids_properties(), var"oh_b_field_max"=missing, var"code"=radial_build__code(), var"tf_b_field_max"=missing, _parent=WeakRef(missing))
-        ids = new(var"time", var"center_stack", var"ids_properties", var"oh_b_field_max", var"code", var"tf_b_field_max", _parent)
+    function radial_build(var"time"=missing, var"ids_properties"=radial_build__ids_properties(), var"oh_b_field_max"=missing, var"code"=radial_build__code(), var"tf_b_field_max"=missing, var"layer"=IDSvector(radial_build__layer[]), _parent=WeakRef(missing))
+        ids = new(var"time", var"ids_properties", var"oh_b_field_max", var"code", var"tf_b_field_max", var"layer", _parent)
         assign_expressions(ids)
-        setfield!(ids.center_stack, :_parent, WeakRef(ids))
         setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.code, :_parent, WeakRef(ids))
+        setfield!(ids.layer, :_parent, WeakRef(ids))
         return ids
     end
 end
