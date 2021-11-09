@@ -293,7 +293,10 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Boo
         psi_level = eqt.profiles_1d.psi[2]
     # handle boundary by finding accurate lcfs psi
     elseif psi_level == eqt.profiles_1d.psi[end]
-        psi_level = find_psi_boundary(eqt)
+        psi__boundary_level = find_psi_boundary(eqt)
+        if (abs(psi__boundary_level-psi_level)<abs(eqt.profiles_1d.psi[end]-eqt.profiles_1d.psi[end-1]))
+            psi_level=psi__boundary_level
+        end
     end
 
     cl = Contour.contour(eqt.profiles_2d[1].grid.dim1,
