@@ -27,6 +27,10 @@ expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
 #= ========= =#
 # Equilibrium #
 #= ========= =#
+# IMAS does not hold B0 information in a given time slice, but we can get that info from `B0=f/R0`
+# This trick propagates the B0 information to a time_slice even when that time_slice has not been initialized with profiles_1d data
+expressions["equilibrium.time_slice[:].profiles_1d.f"] = (psi; equilibrium, time_slice_index, _...) -> (psi === missing ? [1] : ones(size(psi))) .* (equilibrium.vacuum_toroidal_field.b0[time_slice_index] * equilibrium.vacuum_toroidal_field.r0)
+
 expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (;time_slice, _...) -> 3 / 2 * trapz(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
@@ -109,7 +113,7 @@ expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
 # Radial Build #
 #= ========== =#
 expressions["radial_build.layer[:].start_radius"] =
-    (;radial_build, layer_index, _...) -> radial_build_radii(radial_build)[1:end-1][layer_index]
+    (;radial_build, layer_index, _...) -> radial_build_radii(radial_build)[1:end - 1][layer_index]
 
 expressions["radial_build.layer[:].end_radius"] =
     (;radial_build, layer_index, _...) -> radial_build_radii(radial_build)[2:end][layer_index]
