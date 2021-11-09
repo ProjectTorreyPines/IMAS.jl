@@ -37,6 +37,7 @@ Plots equilibrium cross-section
             psi_levels_out = (psi_levels[end] - psi_levels[1]) .* collect(range(0, 1, length=psi_levels_out)) .+ psi_levels[end]
         end
     end
+    psi_levels = unique(vcat(psi_levels, psi_levels_out))
 
     label --> ""
     aspect_ratio --> :equal
@@ -47,10 +48,10 @@ Plots equilibrium cross-section
 
     # @series begin
     #     seriestype --> :contour
-    #     levels --> vcat(psi_levels[2:end], psi_levels_out)
+    #     levels --> psi_level
     #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
     # end
-    for psi_level in vcat(psi_levels[2:end], psi_levels_out)
+    for psi_level in psi_levels
         for (pr, pz) in IMAS.flux_surface(eqt, psi_level, false)
             @series begin
                 seriestype --> :path
@@ -102,7 +103,7 @@ Plots radial build cross-section
         # Cryostat
         @series begin
             seriestype --> :shape
-            linewidth --> 0.0
+        linewidth --> 0.0
             color --> :white
             label --> ""
             xlim --> [0,rmax]
@@ -128,14 +129,14 @@ Plots radial build cross-section
             IMAS.get_radial_build(rb, type=1).outline.r, IMAS.get_radial_build(rb, type=1).outline.z
         end
 
-        # all layers between the OH and the vessel
+            # all layers between the OH and the vessel
         valid = false
         for (k, l) in enumerate(rb.layer[1:end - 1])
-            if  (l.type == 2) && (l.hfs == -1)
-                valid=true
+            if (l.type == 2) && (l.hfs == -1)
+                valid = true
             end
-            if  l.type == -1
-                valid=false
+            if l.type == -1
+                valid = false
             end
             if IMAS.is_missing(l.outline, :r) || ! valid
                 continue
@@ -148,9 +149,9 @@ Plots radial build cross-section
             color = :gray
             if occursin("gap", l.name)
                 color = :white
-                name=""
+                name = ""
             elseif occursin("TF", l.name)
-                color = :green
+            color = :green
             elseif occursin("shield", l.name)
                 color = :red
             elseif occursin("blanket", l.name)
@@ -211,7 +212,7 @@ Plots radial build cross-section
                     color --> :orange
                 end
                 if occursin("wall", l.name)
-                    color --> :yellow
+                color --> :yellow
                 end
                 seriestype --> :vspan
                 label --> l.name
