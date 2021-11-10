@@ -73,7 +73,12 @@ function Base.getproperty(ids::IDS, field::Symbol)
     # interpolate functions on given coordinates
     elseif typeof(value) <: Function
         x = coordinates(ids, field)[:values]
-        return exec_expression_with_ancestor_args(ids, field, value, x)
+        try
+            return exec_expression_with_ancestor_args(ids, field, value, x)
+        catch e
+            println("error with expression at $(f2u(ids)).$field")
+            rethrow(e)
+        end
     else
         return value
     end
