@@ -393,12 +393,17 @@ function get_radial_build(rb::IMAS.radial_build;
                           type::Union{Nothing,Int}=nothing,
                           name::Union{Nothing,String}=nothing,
                           identifier::Union{Nothing,UInt,Int}=nothing,
-                          hfs::Union{Nothing,Int}=nothing,
+                          hfs::Union{Nothing,Int,Array}=nothing,
                           return_only_one=true
                           )
+
+    if isa(hfs,Int)
+        hfs=[hfs]
+    end
+    
     valid_layers = []
     for l in rb.layer
-        if (name===nothing || l.name == name!) && (type===nothing || l.type == type) && (identifier===nothing || l.identifier == identifier) && (hfs===nothing || l.hfs == hfs)
+        if (name===nothing || l.name == name!) && (type===nothing || l.type == type) && (identifier===nothing || l.identifier == identifier) && (hfs===nothing || l.hfs in hfs)
             push!(valid_layers, l)
         end
     end
@@ -414,4 +419,5 @@ function get_radial_build(rb::IMAS.radial_build;
     else
         return valid_layers
     end
+end
 end
