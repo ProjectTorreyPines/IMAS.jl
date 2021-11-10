@@ -420,4 +420,52 @@ function get_radial_build(rb::IMAS.radial_build;
         return valid_layers
     end
 end
+
+"""
+    structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Real=10/resolution)
+
+return rmask, zmask, mask of structures that are not vacuum
+"""
+function structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Real=10/resolution)
+    xlim=[0.0,maximum(rb.layer[end].outline.r)+border]
+    ylim=[minimum(rb.layer[end].outline.z)-border,maximum(rb.layer[end].outline.z)+border]
+    rmask = range(xlim[1], xlim[2], length=resolution)
+    zmask = range(ylim[1], ylim[2], length=resolution * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    mask = zeros(length(rmask), length(zmask))
+
+    valid=true
+    for layer in vcat(rb.layer[end],rb.layer)
+        if layer.type==-1
+            valid=false
+        end
+        if valid && ! is_missing(layer.outline,:r)
+            outline = StaticArrays.SVector.(layer.outline.r,layer.outline.z)
+            if ! is_missing(layer,:material) && layer.material == "vacuum"
+                for (kr, rr) in enumerate(rmask)
+                    for (kz, zz) in enumerate(zmask)
+                        if PolygonOps.inpolygon((rr, zz), outline) == 1
+                            mask[kr,kz] = 1.0
+                        end
+                    end
+                end
+            else
+                for (kr, rr) in enumerate(rmask)
+                    for (kz, zz) in enumerate(zmask)
+                        if PolygonOps.inpolygon((rr, zz), outline) == 1
+                            mask[kr,kz] = 0.0
+                        end
+                    end
+                end
+            end
+        end
+    end
+    rlim_oh=IMAS.get_radial_build(rb,type=1).start_radius
+    for (kr, rr) in enumerate(rmask)
+        for (kz, zz) in enumerate(zmask)
+            if rr<rlim_oh
+                mask[kr,kz] = 0.0
+            end
+        end
+    end
+    return rmask, zmask, mask
 end
