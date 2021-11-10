@@ -332,19 +332,35 @@ end
 Find psi value of the last closed flux surface
 """
 function find_psi_boundary(eqt; precision=1e-3)
-    psirange = [eqt.global_quantities.psi_axis, eqt.global_quantities.psi_boundary + 0.5 * (eqt.global_quantities.psi_boundary - eqt.global_quantities.psi_axis)]
+    psirange_init = [eqt.global_quantities.psi_axis*0.9+eqt.global_quantities.psi_boundary*0.1, eqt.global_quantities.psi_boundary + 0.5 * (eqt.global_quantities.psi_boundary - eqt.global_quantities.psi_axis)]
+
+    pr, pz = IMAS.flux_surface(eqt, psirange_init[1], true)
+    if length(pr)==0
+        error("Flux surface at ψ=$(psirange_init[1]) is not closed")
+    end
+
+    pr, pz = IMAS.flux_surface(eqt, psirange_init[end], true)
+    if length(pr)>0
+        error("Flux surface at ψ=$(psirange_init[end]) is not open")
+    end
+
+    psirange = deepcopy(psirange_init)
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
         pr, pz = IMAS.flux_surface(eqt, psimid, true)
+        # closed flux surface
         if length(pr) > 0
             psirange[1] = psimid
-            if abs(psirange[end] - psirange[1]) < precision
+            if (abs(psirange[end] - psirange[1])/abs(psirange[end] + psirange[1])/2.0) < precision
                 return psimid
             end
+        # open flux surface
         else
             psirange[end] = psimid
         end
     end
+
+    error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
 end
 
 """
