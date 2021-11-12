@@ -62,13 +62,13 @@ function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String
             if verbose print(("｜"^level) * string(k) * " → ") end
             target_type = Core.Compiler.typesubtract(struct_field_type(typeof(ids), Symbol(k)), Union{Missing,Function}, 1)
             if target_type <: AbstractArray
-                if ndims(target_type) == 2
+                if tp_ndims(target_type) == 2
                     v = transpose(reduce(hcat, v))
                 end
-                if eltype(target_type) <: Real
-                    v = convert(Array{Float64,ndims(target_type)}, v)
+                if tp_eltype(target_type) <: Real
+                    v = convert(Array{Float64,tp_ndims(target_type)}, v)
                 else
-                    v = convert(Array{eltype(target_type),ndims(target_type)}, v)
+                    v = convert(Array{tp_eltype(target_type),tp_ndims(target_type)}, v)
                 end
             end
             setproperty!(ids, Symbol(k), v; skip_non_coordinates=skip_non_coordinates)
@@ -79,10 +79,10 @@ function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String
     return ids
 end
 
-Base.ndims(::Type{AbstractArray{T,N} where {T,N}}) = N
-Base.ndims(v::UnionAll) = ndims(v.body)
-Base.eltype(::Type{AbstractArray{T,N} where {T,N}}) = T
-Base.eltype(v::UnionAll) = v.var.ub
+tp_ndims(::Type{AbstractArray{T,N} where {T,N}}) = N
+tp_ndims(v::UnionAll) = ndims(v.body)
+tp_eltype(::Type{AbstractArray{T,N} where {T,N}}) = T
+tp_eltype(v::UnionAll) = v.var.ub
 
 """
     json2imas(filename::String; verbose::Bool=false)::IDS
