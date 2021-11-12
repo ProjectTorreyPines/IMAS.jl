@@ -181,6 +181,43 @@
  "type": "static",
  "units": "m"
  },
+ "radial_build.pf_coils_rail": {
+   "coordinates": [
+    "1...N"
+   ],
+   "data_type": "STRUCT_ARRAY",
+   "documentation": "List of rails where the PF coils can slide on"
+ },
+ "radial_build.pf_coils_rail[:].name": {
+   "data_type": "STR_0D",
+   "documentation": "Name of the pf coil rail",
+   "type": "static"
+  },
+ "radial_build.pf_coils_rail[:].outline": {
+   "data_type": "STRUCTURE",
+   "documentation": "Irregular (possibly not-continuous) outline of the rail surface"
+ },
+ "radial_build.pf_coils_rail[:].outline.r": {
+   "coordinates": ["1...N"],
+   "data_type": "FLT_1D",
+   "documentation": "Major radius",
+   "type": "static",
+   "units": "m"
+ },
+ "radial_build.pf_coils_rail[:].outline.z": {
+   "coordinates": ["radial_build.pf_coils_rail[:].outline.r"],
+   "data_type": "FLT_1D",
+   "documentation": "Height",
+   "type": "static",
+   "units": "m"
+   },
+ "radial_build.pf_coils_rail[:].outline.distance": {
+   "coordinates": ["radial_build.pf_coils_rail[:].outline.r"],
+   "data_type": "FLT_1D",
+   "documentation": "Distance along the rail skipping gaps",
+   "type": "static",
+   "units": "m"
+ },
  "radial_build.ids_properties": {
   "data_type": "STRUCTURE",
   "documentation": "Interface Data Structure properties. This element identifies the node above as an IDS",

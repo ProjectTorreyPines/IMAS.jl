@@ -9096,6 +9096,30 @@ mutable struct summary <: IDS
     end
 end
 
+mutable struct radial_build__pf_coils_rail___outline <: IDS
+    var"distance" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function radial_build__pf_coils_rail___outline(var"distance"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"distance", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct radial_build__pf_coils_rail <: IDSvectorElement
+    var"name" :: Union{Missing, String, Function}
+    var"outline" :: radial_build__pf_coils_rail___outline
+    _parent :: WeakRef
+    function radial_build__pf_coils_rail(var"name"=missing, var"outline"=radial_build__pf_coils_rail___outline(), _parent=WeakRef(missing))
+        ids = new(var"name", var"outline", _parent)
+        assign_expressions(ids)
+        setfield!(ids.outline, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct radial_build__layer___outline <: IDS
     var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
@@ -9192,13 +9216,15 @@ mutable struct radial_build <: IDS
     var"oh_b_field_max" :: Union{Missing, Real, Function}
     var"code" :: radial_build__code
     var"tf_b_field_max" :: Union{Missing, Real, Function}
+    var"pf_coils_rail" :: IDSvector{T} where {T<:radial_build__pf_coils_rail}
     var"layer" :: IDSvector{T} where {T<:radial_build__layer}
     _parent :: WeakRef
-    function radial_build(var"time"=missing, var"ids_properties"=radial_build__ids_properties(), var"oh_b_field_max"=missing, var"code"=radial_build__code(), var"tf_b_field_max"=missing, var"layer"=IDSvector(radial_build__layer[]), _parent=WeakRef(missing))
-        ids = new(var"time", var"ids_properties", var"oh_b_field_max", var"code", var"tf_b_field_max", var"layer", _parent)
+    function radial_build(var"time"=missing, var"ids_properties"=radial_build__ids_properties(), var"oh_b_field_max"=missing, var"code"=radial_build__code(), var"tf_b_field_max"=missing, var"pf_coils_rail"=IDSvector(radial_build__pf_coils_rail[]), var"layer"=IDSvector(radial_build__layer[]), _parent=WeakRef(missing))
+        ids = new(var"time", var"ids_properties", var"oh_b_field_max", var"code", var"tf_b_field_max", var"pf_coils_rail", var"layer", _parent)
         assign_expressions(ids)
         setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.code, :_parent, WeakRef(ids))
+        setfield!(ids.pf_coils_rail, :_parent, WeakRef(ids))
         setfield!(ids.layer, :_parent, WeakRef(ids))
         return ids
     end
