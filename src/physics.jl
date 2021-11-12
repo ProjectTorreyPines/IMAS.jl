@@ -332,7 +332,7 @@ end
 Find psi value of the last closed flux surface
 """
 function find_psi_boundary(eqt; precision=1e-3)
-    psirange_init = [eqt.global_quantities.psi_axis*0.9+eqt.global_quantities.psi_boundary*0.1, eqt.global_quantities.psi_boundary + 0.5 * (eqt.global_quantities.psi_boundary - eqt.global_quantities.psi_axis)]
+    psirange_init = [eqt.profiles_1d.psi[1]*0.9+eqt.profiles_1d.psi[end]*0.1, eqt.profiles_1d.psi[end] + 0.5 * (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])]
 
     pr, pz = IMAS.flux_surface(eqt, psirange_init[1], true)
     if length(pr)==0
@@ -394,7 +394,9 @@ function get_radial_build(rb::IMAS.radial_build;
                           name::Union{Nothing,String}=nothing,
                           identifier::Union{Nothing,UInt,Int}=nothing,
                           hfs::Union{Nothing,Int,Array}=nothing,
-                          return_only_one=true
+                          return_only_one=true,
+                          return_index=false,
+                          raise_error_on_missing=true
                           )
 
     if isa(hfs,Int)
@@ -402,13 +404,21 @@ function get_radial_build(rb::IMAS.radial_build;
     end
     
     valid_layers = []
-    for l in rb.layer
+    for (k,l) in enumerate(rb.layer)
         if (name===nothing || l.name == name!) && (type===nothing || l.type == type) && (identifier===nothing || l.identifier == identifier) && (hfs===nothing || l.hfs in hfs)
-            push!(valid_layers, l)
+            if return_index
+                push!(valid_layers, k)
+            else
+                push!(valid_layers, l)
+            end
         end
     end
     if length(valid_layers)==0
-        error("Did not find radial_build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
+        if raise_error_on_missing
+            error("Did not find radial_build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
+        else
+            return nothing
+        end
     end
     if return_only_one
         if length(valid_layers)==1
