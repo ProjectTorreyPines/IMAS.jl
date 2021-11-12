@@ -436,17 +436,18 @@ end
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Real=10/resolution)
-    xlim=[0.0,maximum(rb.layer[end].outline.r)+border]
-    ylim=[minimum(rb.layer[end].outline.z)-border,maximum(rb.layer[end].outline.z)+border]
+function structures_mask(rb::IMAS.radial_build, resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
+    border = maximum(rb.layer[end].outline.r)*border_fraction
+    xlim = [0.0,maximum(rb.layer[end].outline.r)+border]
+    ylim = [minimum(rb.layer[end].outline.z)-border,maximum(rb.layer[end].outline.z)+border]
     rmask = range(xlim[1], xlim[2], length=resolution)
     zmask = range(ylim[1], ylim[2], length=resolution * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
-    mask = zeros(length(rmask), length(zmask))
+    mask = ones(length(rmask), length(zmask))
 
-    valid=true
+    valid = true
     for layer in vcat(rb.layer[end],rb.layer)
-        if layer.type==-1
-            valid=false
+        if layer.type == -1
+            valid = false
         end
         if valid && ! is_missing(layer.outline,:r)
             outline = StaticArrays.SVector.(layer.outline.r,layer.outline.z)
@@ -454,7 +455,7 @@ function structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Rea
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) == 1
-                            mask[kr,kz] = 1.0
+                            mask[kr,kz] = 0.0
                         end
                     end
                 end
@@ -462,20 +463,24 @@ function structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Rea
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) == 1
-                            mask[kr,kz] = 0.0
+                            mask[kr,kz] = 1.0
                         end
                     end
                 end
             end
         end
     end
-    rlim_oh=IMAS.get_radial_build(rb,type=1).start_radius
+    rlim_oh = IMAS.get_radial_build(rb,type=1).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr<rlim_oh
-                mask[kr,kz] = 0.0
+                mask[kr,kz] = 1.0
             end
         end
     end
-    return rmask, zmask, mask
+    if one_is_for_vacuum
+        return rmask, zmask, 1.0 .- mask
+    else
+        return rmask, zmask, mask
+    end
 end
