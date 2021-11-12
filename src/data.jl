@@ -66,9 +66,9 @@ function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String
                     v = transpose(reduce(hcat, v))
                 end
                 if eltype(target_type) <: Real
-                    v = convert(Array{Float64, ndims(target_type)}, v)
+                    v = convert(Array{Float64,ndims(target_type)}, v)
                 else
-                    v = convert(Array{eltype(target_type), ndims(target_type)}, v)
+                    v = convert(Array{eltype(target_type),ndims(target_type)}, v)
                 end
             end
             setproperty!(ids, Symbol(k), v; skip_non_coordinates=skip_non_coordinates)
@@ -87,7 +87,7 @@ Base.eltype(v::UnionAll) = v.var.ub
 """
     json2imas(filename::String; verbose::Bool=false)::IDS
 
-Load from a file with give `filename` the OMAS data structure saved in JSON format 
+Load from a file with give `filename` the IMAS data structure saved in JSON format 
 
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
@@ -99,6 +99,58 @@ function json2imas(filename::String; verbose::Bool=false)::IDS
     dict2imas(json_data, ids_data; verbose=verbose, skip_non_coordinates=false)
     return ids_data
 end
+
+"""
+    imas2dict(ids::Union{IDS,IDSvector})
+
+Populate Julia structure of dictionaries and vectors with data from IMAS data structure `ids`
+"""
+function imas2dict(ids::Union{IDS,IDSvector})
+    if typeof(ids) <: IDSvector
+        dct = Any[]
+    else
+        dct = Dict()
+    end
+    return imas2dict(ids, dct)
+end
+
+function imas2dict(ids::Union{IDS,IDSvector}, dct::Union{Dict,Vector})
+    items = sort(keys(ids))
+    for item in items
+        if typeof(ids) <: IDSvector
+            # arrays of structures
+            push!(dct, Dict())
+            imas2dict(ids[item],dct[item])
+        else
+            value = getproperty(ids, item)
+            # structures
+            if typeof(value) <: Union{IDS,IDSvector}
+                if typeof(value) <: IDS
+                    dct[item] = Dict()
+                else
+                    dct[item] = Any[]
+                end
+                imas2dict(value, dct[item])
+            # field
+            else
+                dct[item] = value
+            end
+        end
+    end
+    return dct
+end
+
+"""
+    imas2json(ids::Union{IDS,IDSvector}, filename::String; kw...)
+
+Save the IMAS data structure to a JSON file with give `filename`
+"""
+function imas2json(ids::Union{IDS,IDSvector}, filename::String; kw...)
+    open(filename, "w") do io
+        JSON.print(io, imas2dict(ids); kw...)
+    end
+end
+
 
 """
     top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
@@ -486,7 +538,7 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
             end
         end
         if (typeof(ids) <: dd) & (k < length(items))
-            println(io,"")
+            println(io, "")
         end
     end
 end
