@@ -436,7 +436,7 @@ end
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(rb::IMAS.radial_build, resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
+function structures_mask(rb::IMAS.radial_build; resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
     border = maximum(rb.layer[end].outline.r)*border_fraction
     xlim = [0.0,maximum(rb.layer[end].outline.r)+border]
     ylim = [minimum(rb.layer[end].outline.z)-border,maximum(rb.layer[end].outline.z)+border]

@@ -192,8 +192,13 @@
    "data_type": "STR_0D",
    "documentation": "Name of the pf coil rail",
    "type": "static"
-  },
- "radial_build.pf_coils_rail[:].outline": {
+ },
+  "radial_build.pf_coils_rail[:].coils_number": {
+    "data_type": "INT_0D",
+    "documentation": "Number of coils on the rail",
+    "type": "static"
+ },
+  "radial_build.pf_coils_rail[:].outline": {
    "data_type": "STRUCTURE",
    "documentation": "Irregular (possibly not-continuous) outline of the rail surface"
  },

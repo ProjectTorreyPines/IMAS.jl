@@ -9111,9 +9111,10 @@ end
 mutable struct radial_build__pf_coils_rail <: IDSvectorElement
     var"name" :: Union{Missing, String, Function}
     var"outline" :: radial_build__pf_coils_rail___outline
+    var"coils_number" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
-    function radial_build__pf_coils_rail(var"name"=missing, var"outline"=radial_build__pf_coils_rail___outline(), _parent=WeakRef(missing))
-        ids = new(var"name", var"outline", _parent)
+    function radial_build__pf_coils_rail(var"name"=missing, var"outline"=radial_build__pf_coils_rail___outline(), var"coils_number"=missing, _parent=WeakRef(missing))
+        ids = new(var"name", var"outline", var"coils_number", _parent)
         assign_expressions(ids)
         setfield!(ids.outline, :_parent, WeakRef(ids))
         return ids
