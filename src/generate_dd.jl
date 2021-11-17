@@ -60,16 +60,26 @@ function imas_julia_struct(desired_structure::Vector{String})
     for sel in sort(desired_structure)
         ProgressMeter.next!(p)
 
-        # ignore error fields
+        # shed some weight (1): ignore error fields
         if endswith(sel, "error_upper") | endswith(sel, "error_lower") | endswith(sel, "error_index")
             continue
         end
 
         # split IMAS path in 
         path = split(sel, ".")
-        
+
+        # shed some weight (2): no ggd or code
+        if ("ggd" in path) || ("ggd[:]" in path) || ("grids_ggd" in path) || ("grids_ggd[:]" in path) || ("code" in path)
+            continue
+        end
+
         # load imas data structure
         ddids = imas_dd_ids(path[1])
+
+        # shed some weight (3): no obsolescent
+        if ("lifecycle_status" in keys(ddids[sel])) && (ddids[sel]["lifecycle_status"] == "obsolescent")
+            continue
+        end
 
         h = ddict
         for (k, item) in enumerate(path)
