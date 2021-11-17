@@ -405,7 +405,7 @@ function get_radial_build(rb::IMAS.radial_build;
     
     valid_layers = []
     for (k,l) in enumerate(rb.layer)
-        if (name===nothing || l.name == name!) && (type===nothing || l.type == type) && (identifier===nothing || l.identifier == identifier) && (hfs===nothing || l.hfs in hfs)
+        if (name===nothing || l.name == name) && (type===nothing || l.type == type) && (identifier===nothing || l.identifier == identifier) && (hfs===nothing || l.hfs in hfs)
             if return_index
                 push!(valid_layers, k)
             else
