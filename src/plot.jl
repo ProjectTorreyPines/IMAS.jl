@@ -12,7 +12,23 @@ Plots pf active cross-section
     seriestype --> :scatter
     r = [c.element[1].geometry.rectangle.r for c in pfa.coil]
     z = [c.element[1].geometry.rectangle.z for c in pfa.coil]
-    [(r, z)]
+    if ! any([is_missing(c.current,:data) for c in pfa.coil])
+        currents = [sum(c.current.data)/length(c.current.data) for c in pfa.coil]
+        color --> :roma
+        clim --> (-maximum(abs.(currents)),maximum(abs.(currents)))
+        @series begin
+            marker_z --> -currents
+            [(r, z)]
+        end
+        @series begin
+            marker_z --> currents
+            [(r, z)]
+        end
+    else
+        @series begin
+            [(r, z)]
+        end
+    end
 end
 
 
