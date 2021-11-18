@@ -316,12 +316,11 @@ end
 
 returns r,z coordiates of flux surface at given psi_level
 """
-function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
-    return flux_surface(eqt, psi_level, true)
+function flux_surface(eqt::equilibrium__time_slice, psi_level::Real; resfac::Int=1)
+    return flux_surface(eqt, psi_level, true, resfac=resfac)
 end
 
-function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool)
-
+function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool; resfac::Int=1)
     # handle on axis value as the first flux surface
     if psi_level == eqt.profiles_1d.psi[1]
         psi_level = eqt.profiles_1d.psi[2]
@@ -335,10 +334,27 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Boo
         end
     end
 
-    cl = Contour.contour(eqt.profiles_2d[1].grid.dim1,
-                         eqt.profiles_2d[1].grid.dim2,
-                         eqt.profiles_2d[1].psi,
-                         psi_level)
+    if resfac==1
+        x = eqt.profiles_2d[1].grid.dim1
+        y = eqt.profiles_2d[1].grid.dim2
+        z = eqt.profiles_2d[1].psi
+    else
+        Lx = length(eqt.profiles_2d[1].grid.dim1)
+        Ly = length(eqt.profiles_2d[1].grid.dim2)
+        Rx = range(0.0,1.0,length=Lx)
+        Ry = range(0.0,1.0,length=Ly)
+        zint = Interpolations.CubicSplineInterpolation((Rx,Ry), eqt.profiles_2d[1].psi)
+        xint = Interpolations.LinearInterpolation(Rx, eqt.profiles_2d[1].grid.dim1)
+        yint = Interpolations.LinearInterpolation(Ry, eqt.profiles_2d[1].grid.dim2)
+
+        Rx2 = range(0.0,1.0,length=resfac*Lx)
+        Ry2 = range(0.0,1.0,length=resfac*Ly)
+        x = xint.(Rx2)
+        y = yint.(Ry2)
+        z = [zint(i,j) for i in Rx2, j in Ry2]
+    end
+
+    cl = Contour.contour(x,y,z,psi_level)
 
     if ! closed
         prpz = []
