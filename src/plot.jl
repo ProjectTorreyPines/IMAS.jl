@@ -39,13 +39,13 @@ Plots equilibrium cross-section
 """
 @recipe function plot_eqcx(eqt::IMAS.equilibrium__time_slice; psi_levels=nothing, psi_levels_out=nothing, lcfs=false)
     if lcfs
-        psi_levels = [eqt.global_quantities.psi_boundary, eqt.global_quantities.psi_boundary]
+        psi_levels = [eqt.profiles_1d.psi[end], eqt.profiles_1d.psi[end]]
         psi_levels_out = []
     else
         if psi_levels === nothing
-            psi_levels = range(eqt.global_quantities.psi_axis, eqt.global_quantities.psi_boundary, length=11)
+            psi_levels = range(eqt.profiles_1d.psi[1], eqt.profiles_1d.psi[end], length=11)
         elseif isa(psi_levels, Int)
-            psi_levels = range(eqt.global_quantities.psi_axis, eqt.global_quantities.psi_boundary, length=psi_levels)
+            psi_levels = range(eqt.profiles_1d.psi[1], eqt.profiles_1d.psi[end], length=psi_levels)
         end
         if psi_levels_out === nothing
             psi_levels_out = (psi_levels[end] - psi_levels[1]) .* collect(range(0, 1, length=11)) .+ psi_levels[end]
@@ -64,14 +64,14 @@ Plots equilibrium cross-section
 
     # @series begin
     #     seriestype --> :contour
-    #     levels --> psi_level
+    #     levels --> psi_levels
     #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
     # end
     for psi_level in psi_levels
         for (pr, pz) in IMAS.flux_surface(eqt, psi_level, false)
             @series begin
                 seriestype --> :path
-                if psi_level == eqt.global_quantities.psi_boundary
+                if psi_level == eqt.profiles_1d.psi[end]
                     linewidth --> 2
                 else
                     linewidth --> 1
