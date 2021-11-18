@@ -5,8 +5,9 @@ using ProgressMeter
 ProgressMeter.ijulia_behavior(:clear)
 
 const imas_version = "3_33_0"
-ENV["OMAS_ROOT"] = "/Users/meneghini/Coding/atom/omas"
-ENV["OMAS_ROOT"] = "/Users/timslendebroek/GIT_things/omas"
+if ! ("OMAS_ROOT" in keys(ENV))
+    error("Environmental variable OMAS_ROOT is not set")
+end
 const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
 run(`sh -c "rm -rf $(dirname(dirname(@__FILE__)))/data_structures"`)
 run(`sh -c "mkdir $(dirname(dirname(@__FILE__)))/data_structures"`)
