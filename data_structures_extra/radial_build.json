@@ -215,13 +215,24 @@
    "documentation": "Height",
    "type": "static",
    "units": "m"
-   },
+ },
  "radial_build.pf_coils_rail[:].outline.distance": {
    "coordinates": ["radial_build.pf_coils_rail[:].outline.r"],
    "data_type": "FLT_1D",
    "documentation": "Distance along the rail skipping gaps",
    "type": "static",
    "units": "m"
+ },
+ "radial_build.tf.coils_n": {
+  "data_type": "INT_0D",
+  "documentation": "Number of coils around the torus",
+  "type": "static"
+ },
+ "radial_build.tf.thickness": {
+  "data_type": "FLT_0D",
+  "documentation": "Toroidal Thickness of the TF coils",
+  "type": "static",
+  "units": "m"
  },
  "radial_build.ids_properties": {
   "data_type": "STRUCTURE",
