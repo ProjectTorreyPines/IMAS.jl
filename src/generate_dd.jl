@@ -71,7 +71,7 @@ function imas_julia_struct(desired_structure::Vector{String})
         path = split(sel, ".")
 
         # shed some weight (2): no ggd or code
-        if ("ggd" in path) || ("ggd[:]" in path) || ("grids_ggd" in path) || ("grids_ggd[:]" in path) || ("code" in path)
+        if ("ggd" in path) || ("ggd[:]" in path) || ("grids_ggd" in path) || ("grids_ggd[:]" in path) || ("code" in path) || ("ids_properties" in path)
             continue
         end
 
