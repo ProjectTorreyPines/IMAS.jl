@@ -6,37 +6,37 @@ import PolygonOps
 import Optim
 
 """
-    flux_surfaces(eq::equilibrium; resfac::Int=1)
+    flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities in the equilibrium IDS
-The original psi grid can be upsampled of a `resfac` factor to get higher resolution flux surfaces
+The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eq::equilibrium; resfac::Int=1)
+function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
     for time_index in 1:length(eq.time_slice)
-        flux_surfaces(eq.time_slice[time_index]; resfac)
+        flux_surfaces(eq.time_slice[time_index]; upsample_factor)
     end
     return eq
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice; resfac::Int=1)
+    flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
-The original psi grid can be upsampled of a `resfac` factor to get higher resolution flux surfaces
+The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice; resfac::Int=1)
+function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
     R0 = eqt.boundary.geometric_axis.r
     B0 = eqt.profiles_1d.f[end] / R0
-    flux_surfaces(eqt, B0, R0; resfac)
+    flux_surfaces(eqt, B0, R0; upsample_factor)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; resfac::Int=1)
+    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
-The original psi grid can be upsampled of a `resfac` factor to get higher resolution flux surfaces
+The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; resfac::Int=1)
+function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
     cc = cocos(11)
 
     r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
@@ -45,9 +45,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; resfac:
     PSI_upsampled = eqt.profiles_2d[1].psi
 
     # upsampling for high-resolution r,z flux surface coordinates
-    if resfac>1
-        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1)*resfac)
-        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2)*resfac)
+    if upsample_factor>1
+        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1)*upsample_factor)
+        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2)*upsample_factor)
         PSI_upsampled = PSI_interpolant(r_upsampled,z_upsampled)
     end
 
