@@ -327,9 +327,11 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Boo
         psi_level = eqt.profiles_1d.psi[2]
     # handle boundary by finding accurate lcfs psi
     elseif psi_level == eqt.profiles_1d.psi[end]
-        psi__boundary_level = find_psi_boundary(eqt)
-        if (abs(psi__boundary_level-psi_level)<abs(eqt.profiles_1d.psi[end]-eqt.profiles_1d.psi[end-1]))
-            psi_level=psi__boundary_level
+        psi__boundary_level = find_psi_boundary(eqt, raise_error_on_not_open=false)
+        if psi__boundary_level !== nothing
+            if (abs(psi__boundary_level-psi_level)<abs(eqt.profiles_1d.psi[end]-eqt.profiles_1d.psi[end-1]))
+                psi_level=psi__boundary_level
+            end
         end
     end
 
@@ -365,7 +367,7 @@ end
 
 Find psi value of the last closed flux surface
 """
-function find_psi_boundary(eqt; precision=1e-3)
+function find_psi_boundary(eqt; precision=1e-3, raise_error_on_not_open=true)
     psirange_init = [eqt.profiles_1d.psi[1]*0.9+eqt.profiles_1d.psi[end]*0.1, eqt.profiles_1d.psi[end] + 0.5 * (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])]
 
     pr, pz = IMAS.flux_surface(eqt, psirange_init[1], true)
@@ -375,7 +377,11 @@ function find_psi_boundary(eqt; precision=1e-3)
 
     pr, pz = IMAS.flux_surface(eqt, psirange_init[end], true)
     if length(pr)>0
-        error("Flux surface at ψ=$(psirange_init[end]) is not open")
+        if raise_error_on_not_open
+            error("Flux surface at ψ=$(psirange_init[end]) is not open")
+        else
+            return nothing
+        end
     end
 
     psirange = deepcopy(psirange_init)
