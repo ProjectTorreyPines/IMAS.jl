@@ -76,7 +76,7 @@ function Base.getproperty(ids::IDS, field::Symbol)
         try
             return exec_expression_with_ancestor_args(ids, field, value, x)
         catch e
-            println("error with expression at $(f2u(ids)).$field")
+            println("Error with expression in $(f2u(ids)).$field")
             rethrow(e)
         end
     else
@@ -176,10 +176,10 @@ Execute a function passing the IDS stack as arguments to the function
     end
 """
 function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Function, func_args)
-    structure_name = f2u(ids)
+    structure_name = "$(f2u(ids)).$(field)"
     # keep track of recursion
     if ! (structure_name in expression_call_stack)
-        push!(expression_call_stack, "$(structure_name).$(field)")
+        push!(expression_call_stack, structure_name)
     else
         culprits = join(expression_call_stack, "\n    * ")
         error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")

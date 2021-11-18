@@ -61,29 +61,32 @@ function imas_julia_struct(desired_structure::Vector{String})
     for sel in sort(desired_structure)
         ProgressMeter.next!(p)
 
-        # ignore error fields
+        # shed some weight (1): ignore error fields
         if endswith(sel, "error_upper") | endswith(sel, "error_lower") | endswith(sel, "error_index")
             continue
         end
 
         # split IMAS path in 
         path = split(sel, ".")
-        
+
+        # shed some weight (2): no ggd or code
+        if ("ggd" in path) || ("ggd[:]" in path) || ("grids_ggd" in path) || ("grids_ggd[:]" in path) || ("code" in path)
+            continue
+        end
+
         # load imas data structure
         ddids = imas_dd_ids(path[1])
+
+        # shed some weight (3): no obsolescent
+        if ("lifecycle_status" in keys(ddids[sel])) && (ddids[sel]["lifecycle_status"] == "obsolescent")
+            continue
+        end
 
         h = ddict
         for (k, item) in enumerate(path)
             if (k > 1) & (k == length(path))
                 if ddids[sel]["data_type"] in ["STRUCTURE", "STRUCT_ARRAY"]
                     continue
-                end
-
-                # fix some issues in IMAS DD type definitions
-                if ddids[sel]["data_type"] == "INT_TYPE"
-                    ddids[sel]["data_type"] = "INT_0D"
-                elseif ddids[sel]["data_type"] == "FLT_1D_TYPE"
-                    ddids[sel]["data_type"] = "FLT_1D"
                 end
 
                 # find data type and dimension
@@ -94,13 +97,13 @@ function imas_julia_struct(desired_structure::Vector{String})
                 if tp in keys(type_translator)
                     if dim == 0
                         h[item] = ":: Union{Missing, $(type_translator[tp]), Function}"
-                        conversion_types = Union{conversion_types, type_translator[tp]}
+                        conversion_types = Union{conversion_types,type_translator[tp]}
                     elseif dim == 1
                         h[item] = ":: Union{Missing, AbstractArray{T, $dim} where T<:$(type_translator[tp]), AbstractRange{T} where T<:$(type_translator[tp]), Function}"
-                        conversion_types = Union{conversion_types, Array{type_translator[tp]}}
+                        conversion_types = Union{conversion_types,Array{type_translator[tp]}}
                     else
                         h[item] = ":: Union{Missing, AbstractArray{T, $dim} where T<:$(type_translator[tp]), Function}"
-                        conversion_types = Union{conversion_types, Array{type_translator[tp]}}
+                        conversion_types = Union{conversion_types,Array{type_translator[tp]}}
                     end
                 else
                     throw(ArgumentError("$(sel) IMAS $(ddids[sel]["data_type"]) has not been mapped to Julia data type"))
@@ -132,7 +135,8 @@ function imas_julia_struct(desired_structure::Vector{String})
         txt = String[]
         txt_parent = String[]
         inits = String[]
-        for (item, info) in h
+        for item in sort(collect(keys(h)))
+            info = h[item]
             # leaf
             if typeof(info) <: String
                 push!(txt, "    var\"$(item)\" $(info)")
