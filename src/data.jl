@@ -41,6 +41,12 @@ function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String
     # recursively traverse `dtc` structure
     level = length(path)
     for (k, v) in dct
+        if ! hasfield(typeof(ids), Symbol(k))
+            if ! skip_non_coordinates
+                println("$(f2i(ids)).$(k) was skipped in IMAS.jl data dictionary")
+            end
+            continue
+        end
         # Struct
         if typeof(v) <: Dict
             if verbose println(("｜"^level) * string(k)) end
