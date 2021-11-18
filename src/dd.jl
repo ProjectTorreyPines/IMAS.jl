@@ -13,35 +13,6 @@ mutable struct wall__temperature_reference <: IDS
     end
 end
 
-mutable struct wall__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function wall__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct wall__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: wall__ids_properties__version_put
-    _parent :: WeakRef
-    function wall__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=wall__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct wall__global_quantities__neutral___element <: IDSvectorElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
@@ -605,48 +576,17 @@ mutable struct wall <: IDS
     var"first_wall_power_flux_peak" :: wall__first_wall_power_flux_peak
     var"first_wall_surface_area" :: Union{Missing, Real, Function}
     var"global_quantities" :: wall__global_quantities
-    var"ids_properties" :: wall__ids_properties
     var"temperature_reference" :: wall__temperature_reference
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function wall(var"description_2d"=IDSvector(wall__description_2d[]), var"description_ggd"=IDSvector(wall__description_ggd[]), var"first_wall_power_flux_peak"=wall__first_wall_power_flux_peak(), var"first_wall_surface_area"=missing, var"global_quantities"=wall__global_quantities(), var"ids_properties"=wall__ids_properties(), var"temperature_reference"=wall__temperature_reference(), var"time"=missing, _parent=WeakRef(missing))
-        ids = new(var"description_2d", var"description_ggd", var"first_wall_power_flux_peak", var"first_wall_surface_area", var"global_quantities", var"ids_properties", var"temperature_reference", var"time", _parent)
+    function wall(var"description_2d"=IDSvector(wall__description_2d[]), var"description_ggd"=IDSvector(wall__description_ggd[]), var"first_wall_power_flux_peak"=wall__first_wall_power_flux_peak(), var"first_wall_surface_area"=missing, var"global_quantities"=wall__global_quantities(), var"temperature_reference"=wall__temperature_reference(), var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"description_2d", var"description_ggd", var"first_wall_power_flux_peak", var"first_wall_surface_area", var"global_quantities", var"temperature_reference", var"time", _parent)
         assign_expressions(ids)
         setfield!(ids.description_2d, :_parent, WeakRef(ids))
         setfield!(ids.description_ggd, :_parent, WeakRef(ids))
         setfield!(ids.first_wall_power_flux_peak, :_parent, WeakRef(ids))
         setfield!(ids.global_quantities, :_parent, WeakRef(ids))
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.temperature_reference, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
-mutable struct tf__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function tf__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct tf__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: tf__ids_properties__version_put
-    _parent :: WeakRef
-    function tf__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=tf__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
         return ids
     end
 end
@@ -1121,20 +1061,18 @@ mutable struct tf <: IDS
     var"coils_n" :: Union{Missing, Integer, Function}
     var"delta_b_field_tor_vacuum_r" :: tf__delta_b_field_tor_vacuum_r
     var"field_map" :: IDSvector{T} where {T<:tf__field_map}
-    var"ids_properties" :: tf__ids_properties
     var"is_periodic" :: Union{Missing, Integer, Function}
     var"latency" :: Union{Missing, Real, Function}
     var"r0" :: Union{Missing, Real, Function}
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function tf(var"b_field_tor_vacuum_r"=tf__b_field_tor_vacuum_r(), var"coil"=IDSvector(tf__coil[]), var"coils_n"=missing, var"delta_b_field_tor_vacuum_r"=tf__delta_b_field_tor_vacuum_r(), var"field_map"=IDSvector(tf__field_map[]), var"ids_properties"=tf__ids_properties(), var"is_periodic"=missing, var"latency"=missing, var"r0"=missing, var"time"=missing, _parent=WeakRef(missing))
-        ids = new(var"b_field_tor_vacuum_r", var"coil", var"coils_n", var"delta_b_field_tor_vacuum_r", var"field_map", var"ids_properties", var"is_periodic", var"latency", var"r0", var"time", _parent)
+    function tf(var"b_field_tor_vacuum_r"=tf__b_field_tor_vacuum_r(), var"coil"=IDSvector(tf__coil[]), var"coils_n"=missing, var"delta_b_field_tor_vacuum_r"=tf__delta_b_field_tor_vacuum_r(), var"field_map"=IDSvector(tf__field_map[]), var"is_periodic"=missing, var"latency"=missing, var"r0"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"b_field_tor_vacuum_r", var"coil", var"coils_n", var"delta_b_field_tor_vacuum_r", var"field_map", var"is_periodic", var"latency", var"r0", var"time", _parent)
         assign_expressions(ids)
         setfield!(ids.b_field_tor_vacuum_r, :_parent, WeakRef(ids))
         setfield!(ids.coil, :_parent, WeakRef(ids))
         setfield!(ids.delta_b_field_tor_vacuum_r, :_parent, WeakRef(ids))
         setfield!(ids.field_map, :_parent, WeakRef(ids))
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         return ids
     end
 end
@@ -6472,35 +6410,6 @@ mutable struct summary__kicks <: IDS
     end
 end
 
-mutable struct summary__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function summary__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct summary__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: summary__ids_properties__version_put
-    _parent :: WeakRef
-    function summary__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=summary__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct summary__heating_current_drive__power_nbi <: IDS
     var"source" :: Union{Missing, String, Function}
     var"value" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
@@ -8904,7 +8813,6 @@ mutable struct summary <: IDS
     var"gas_injection_rates" :: summary__gas_injection_rates
     var"global_quantities" :: summary__global_quantities
     var"heating_current_drive" :: summary__heating_current_drive
-    var"ids_properties" :: summary__ids_properties
     var"kicks" :: summary__kicks
     var"limiter" :: summary__limiter
     var"line_average" :: summary__line_average
@@ -8923,8 +8831,8 @@ mutable struct summary <: IDS
     var"volume_average" :: summary__volume_average
     var"wall" :: summary__wall
     _parent :: WeakRef
-    function summary(var"boundary"=summary__boundary(), var"configuration"=summary__configuration(), var"disruption"=summary__disruption(), var"elms"=summary__elms(), var"fusion"=summary__fusion(), var"gas_injection_rates"=summary__gas_injection_rates(), var"global_quantities"=summary__global_quantities(), var"heating_current_drive"=summary__heating_current_drive(), var"ids_properties"=summary__ids_properties(), var"kicks"=summary__kicks(), var"limiter"=summary__limiter(), var"line_average"=summary__line_average(), var"local"=summary__local(), var"magnetic_shear_flag"=summary__magnetic_shear_flag(), var"midplane"=summary__midplane(), var"pedestal_fits"=summary__pedestal_fits(), var"pellets"=summary__pellets(), var"rmps"=summary__rmps(), var"runaways"=summary__runaways(), var"scrape_off_layer"=summary__scrape_off_layer(), var"stationary_phase_flag"=summary__stationary_phase_flag(), var"tag"=summary__tag(), var"time"=missing, var"time_width"=missing, var"volume_average"=summary__volume_average(), var"wall"=summary__wall(), _parent=WeakRef(missing))
-        ids = new(var"boundary", var"configuration", var"disruption", var"elms", var"fusion", var"gas_injection_rates", var"global_quantities", var"heating_current_drive", var"ids_properties", var"kicks", var"limiter", var"line_average", var"local", var"magnetic_shear_flag", var"midplane", var"pedestal_fits", var"pellets", var"rmps", var"runaways", var"scrape_off_layer", var"stationary_phase_flag", var"tag", var"time", var"time_width", var"volume_average", var"wall", _parent)
+    function summary(var"boundary"=summary__boundary(), var"configuration"=summary__configuration(), var"disruption"=summary__disruption(), var"elms"=summary__elms(), var"fusion"=summary__fusion(), var"gas_injection_rates"=summary__gas_injection_rates(), var"global_quantities"=summary__global_quantities(), var"heating_current_drive"=summary__heating_current_drive(), var"kicks"=summary__kicks(), var"limiter"=summary__limiter(), var"line_average"=summary__line_average(), var"local"=summary__local(), var"magnetic_shear_flag"=summary__magnetic_shear_flag(), var"midplane"=summary__midplane(), var"pedestal_fits"=summary__pedestal_fits(), var"pellets"=summary__pellets(), var"rmps"=summary__rmps(), var"runaways"=summary__runaways(), var"scrape_off_layer"=summary__scrape_off_layer(), var"stationary_phase_flag"=summary__stationary_phase_flag(), var"tag"=summary__tag(), var"time"=missing, var"time_width"=missing, var"volume_average"=summary__volume_average(), var"wall"=summary__wall(), _parent=WeakRef(missing))
+        ids = new(var"boundary", var"configuration", var"disruption", var"elms", var"fusion", var"gas_injection_rates", var"global_quantities", var"heating_current_drive", var"kicks", var"limiter", var"line_average", var"local", var"magnetic_shear_flag", var"midplane", var"pedestal_fits", var"pellets", var"rmps", var"runaways", var"scrape_off_layer", var"stationary_phase_flag", var"tag", var"time", var"time_width", var"volume_average", var"wall", _parent)
         assign_expressions(ids)
         setfield!(ids.boundary, :_parent, WeakRef(ids))
         setfield!(ids.configuration, :_parent, WeakRef(ids))
@@ -8934,7 +8842,6 @@ mutable struct summary <: IDS
         setfield!(ids.gas_injection_rates, :_parent, WeakRef(ids))
         setfield!(ids.global_quantities, :_parent, WeakRef(ids))
         setfield!(ids.heating_current_drive, :_parent, WeakRef(ids))
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.kicks, :_parent, WeakRef(ids))
         setfield!(ids.limiter, :_parent, WeakRef(ids))
         setfield!(ids.line_average, :_parent, WeakRef(ids))
@@ -9020,37 +8927,7 @@ mutable struct radial_build__layer <: IDSvectorElement
     end
 end
 
-mutable struct radial_build__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function radial_build__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct radial_build__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: radial_build__ids_properties__version_put
-    _parent :: WeakRef
-    function radial_build__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=radial_build__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct radial_build <: IDS
-    var"ids_properties" :: radial_build__ids_properties
     var"layer" :: IDSvector{T} where {T<:radial_build__layer}
     var"oh_b_field_max" :: Union{Missing, Real, Function}
     var"pf_coils_rail" :: IDSvector{T} where {T<:radial_build__pf_coils_rail}
@@ -9058,10 +8935,9 @@ mutable struct radial_build <: IDS
     var"tf_b_field_max" :: Union{Missing, Real, Function}
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function radial_build(var"ids_properties"=radial_build__ids_properties(), var"layer"=IDSvector(radial_build__layer[]), var"oh_b_field_max"=missing, var"pf_coils_rail"=IDSvector(radial_build__pf_coils_rail[]), var"tf"=radial_build__tf(), var"tf_b_field_max"=missing, var"time"=missing, _parent=WeakRef(missing))
-        ids = new(var"ids_properties", var"layer", var"oh_b_field_max", var"pf_coils_rail", var"tf", var"tf_b_field_max", var"time", _parent)
+    function radial_build(var"layer"=IDSvector(radial_build__layer[]), var"oh_b_field_max"=missing, var"pf_coils_rail"=IDSvector(radial_build__pf_coils_rail[]), var"tf"=radial_build__tf(), var"tf_b_field_max"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"layer", var"oh_b_field_max", var"pf_coils_rail", var"tf", var"tf_b_field_max", var"time", _parent)
         assign_expressions(ids)
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.layer, :_parent, WeakRef(ids))
         setfield!(ids.pf_coils_rail, :_parent, WeakRef(ids))
         setfield!(ids.tf, :_parent, WeakRef(ids))
@@ -9166,35 +9042,6 @@ mutable struct pf_active__radial_force <: IDSvectorElement
         ids = new(var"combination", var"force", var"limit_max", var"limit_min", var"name", _parent)
         assign_expressions(ids)
         setfield!(ids.force, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
-mutable struct pf_active__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function pf_active__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct pf_active__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: pf_active__ids_properties__version_put
-    _parent :: WeakRef
-    function pf_active__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=pf_active__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
         return ids
     end
 end
@@ -9395,20 +9242,18 @@ mutable struct pf_active <: IDS
     var"circuit" :: IDSvector{T} where {T<:pf_active__circuit}
     var"coil" :: IDSvector{T} where {T<:pf_active__coil}
     var"global_quantities" :: pf_active__global_quantities
-    var"ids_properties" :: pf_active__ids_properties
     var"latency" :: Union{Missing, Real, Function}
     var"radial_force" :: IDSvector{T} where {T<:pf_active__radial_force}
     var"supply" :: IDSvector{T} where {T<:pf_active__supply}
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"vertical_force" :: IDSvector{T} where {T<:pf_active__vertical_force}
     _parent :: WeakRef
-    function pf_active(var"circuit"=IDSvector(pf_active__circuit[]), var"coil"=IDSvector(pf_active__coil[]), var"global_quantities"=pf_active__global_quantities(), var"ids_properties"=pf_active__ids_properties(), var"latency"=missing, var"radial_force"=IDSvector(pf_active__radial_force[]), var"supply"=IDSvector(pf_active__supply[]), var"time"=missing, var"vertical_force"=IDSvector(pf_active__vertical_force[]), _parent=WeakRef(missing))
-        ids = new(var"circuit", var"coil", var"global_quantities", var"ids_properties", var"latency", var"radial_force", var"supply", var"time", var"vertical_force", _parent)
+    function pf_active(var"circuit"=IDSvector(pf_active__circuit[]), var"coil"=IDSvector(pf_active__coil[]), var"global_quantities"=pf_active__global_quantities(), var"latency"=missing, var"radial_force"=IDSvector(pf_active__radial_force[]), var"supply"=IDSvector(pf_active__supply[]), var"time"=missing, var"vertical_force"=IDSvector(pf_active__vertical_force[]), _parent=WeakRef(missing))
+        ids = new(var"circuit", var"coil", var"global_quantities", var"latency", var"radial_force", var"supply", var"time", var"vertical_force", _parent)
         assign_expressions(ids)
         setfield!(ids.circuit, :_parent, WeakRef(ids))
         setfield!(ids.coil, :_parent, WeakRef(ids))
         setfield!(ids.global_quantities, :_parent, WeakRef(ids))
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.radial_force, :_parent, WeakRef(ids))
         setfield!(ids.supply, :_parent, WeakRef(ids))
         setfield!(ids.vertical_force, :_parent, WeakRef(ids))
@@ -10346,45 +10191,14 @@ mutable struct equilibrium__time_slice <: IDSvectorElement
     end
 end
 
-mutable struct equilibrium__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function equilibrium__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct equilibrium__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: equilibrium__ids_properties__version_put
-    _parent :: WeakRef
-    function equilibrium__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=equilibrium__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct equilibrium <: IDS
-    var"ids_properties" :: equilibrium__ids_properties
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time_slice" :: IDSvector{T} where {T<:equilibrium__time_slice}
     var"vacuum_toroidal_field" :: equilibrium__vacuum_toroidal_field
     _parent :: WeakRef
-    function equilibrium(var"ids_properties"=equilibrium__ids_properties(), var"time"=missing, var"time_slice"=IDSvector(equilibrium__time_slice[]), var"vacuum_toroidal_field"=equilibrium__vacuum_toroidal_field(), _parent=WeakRef(missing))
-        ids = new(var"ids_properties", var"time", var"time_slice", var"vacuum_toroidal_field", _parent)
+    function equilibrium(var"time"=missing, var"time_slice"=IDSvector(equilibrium__time_slice[]), var"vacuum_toroidal_field"=equilibrium__vacuum_toroidal_field(), _parent=WeakRef(missing))
+        ids = new(var"time", var"time_slice", var"vacuum_toroidal_field", _parent)
         assign_expressions(ids)
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.time_slice, :_parent, WeakRef(ids))
         setfield!(ids.vacuum_toroidal_field, :_parent, WeakRef(ids))
         return ids
@@ -10446,35 +10260,6 @@ mutable struct dataset_description__parent_entry <: IDS
     end
 end
 
-mutable struct dataset_description__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function dataset_description__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct dataset_description__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: dataset_description__ids_properties__version_put
-    _parent :: WeakRef
-    function dataset_description__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=dataset_description__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct dataset_description__data_entry <: IDS
     var"machine" :: Union{Missing, String, Function}
     var"pulse" :: Union{Missing, Integer, Function}
@@ -10492,7 +10277,6 @@ end
 mutable struct dataset_description <: IDS
     var"data_entry" :: dataset_description__data_entry
     var"dd_version" :: Union{Missing, String, Function}
-    var"ids_properties" :: dataset_description__ids_properties
     var"imas_version" :: Union{Missing, String, Function}
     var"parent_entry" :: dataset_description__parent_entry
     var"pulse_time_begin" :: Union{Missing, String, Function}
@@ -10501,11 +10285,10 @@ mutable struct dataset_description <: IDS
     var"simulation" :: dataset_description__simulation
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function dataset_description(var"data_entry"=dataset_description__data_entry(), var"dd_version"=missing, var"ids_properties"=dataset_description__ids_properties(), var"imas_version"=missing, var"parent_entry"=dataset_description__parent_entry(), var"pulse_time_begin"=missing, var"pulse_time_begin_epoch"=dataset_description__pulse_time_begin_epoch(), var"pulse_time_end_epoch"=dataset_description__pulse_time_end_epoch(), var"simulation"=dataset_description__simulation(), var"time"=missing, _parent=WeakRef(missing))
-        ids = new(var"data_entry", var"dd_version", var"ids_properties", var"imas_version", var"parent_entry", var"pulse_time_begin", var"pulse_time_begin_epoch", var"pulse_time_end_epoch", var"simulation", var"time", _parent)
+    function dataset_description(var"data_entry"=dataset_description__data_entry(), var"dd_version"=missing, var"imas_version"=missing, var"parent_entry"=dataset_description__parent_entry(), var"pulse_time_begin"=missing, var"pulse_time_begin_epoch"=dataset_description__pulse_time_begin_epoch(), var"pulse_time_end_epoch"=dataset_description__pulse_time_end_epoch(), var"simulation"=dataset_description__simulation(), var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data_entry", var"dd_version", var"imas_version", var"parent_entry", var"pulse_time_begin", var"pulse_time_begin_epoch", var"pulse_time_end_epoch", var"simulation", var"time", _parent)
         assign_expressions(ids)
         setfield!(ids.data_entry, :_parent, WeakRef(ids))
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.parent_entry, :_parent, WeakRef(ids))
         setfield!(ids.pulse_time_begin_epoch, :_parent, WeakRef(ids))
         setfield!(ids.pulse_time_end_epoch, :_parent, WeakRef(ids))
@@ -10988,45 +10771,14 @@ mutable struct core_sources__source <: IDSvectorElement
     end
 end
 
-mutable struct core_sources__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function core_sources__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct core_sources__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: core_sources__ids_properties__version_put
-    _parent :: WeakRef
-    function core_sources__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=core_sources__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct core_sources <: IDS
-    var"ids_properties" :: core_sources__ids_properties
     var"source" :: IDSvector{T} where {T<:core_sources__source}
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"vacuum_toroidal_field" :: core_sources__vacuum_toroidal_field
     _parent :: WeakRef
-    function core_sources(var"ids_properties"=core_sources__ids_properties(), var"source"=IDSvector(core_sources__source[]), var"time"=missing, var"vacuum_toroidal_field"=core_sources__vacuum_toroidal_field(), _parent=WeakRef(missing))
-        ids = new(var"ids_properties", var"source", var"time", var"vacuum_toroidal_field", _parent)
+    function core_sources(var"source"=IDSvector(core_sources__source[]), var"time"=missing, var"vacuum_toroidal_field"=core_sources__vacuum_toroidal_field(), _parent=WeakRef(missing))
+        ids = new(var"source", var"time", var"vacuum_toroidal_field", _parent)
         assign_expressions(ids)
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.source, :_parent, WeakRef(ids))
         setfield!(ids.vacuum_toroidal_field, :_parent, WeakRef(ids))
         return ids
@@ -11539,35 +11291,6 @@ mutable struct core_profiles__profiles_1d <: IDSvectorElement
     end
 end
 
-mutable struct core_profiles__ids_properties__version_put <: IDS
-    var"access_layer" :: Union{Missing, String, Function}
-    var"access_layer_language" :: Union{Missing, String, Function}
-    var"data_dictionary" :: Union{Missing, String, Function}
-    _parent :: WeakRef
-    function core_profiles__ids_properties__version_put(var"access_layer"=missing, var"access_layer_language"=missing, var"data_dictionary"=missing, _parent=WeakRef(missing))
-        ids = new(var"access_layer", var"access_layer_language", var"data_dictionary", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
-mutable struct core_profiles__ids_properties <: IDS
-    var"comment" :: Union{Missing, String, Function}
-    var"creation_date" :: Union{Missing, String, Function}
-    var"homogeneous_time" :: Union{Missing, Integer, Function}
-    var"occurrence" :: Union{Missing, Integer, Function}
-    var"provider" :: Union{Missing, String, Function}
-    var"source" :: Union{Missing, String, Function}
-    var"version_put" :: core_profiles__ids_properties__version_put
-    _parent :: WeakRef
-    function core_profiles__ids_properties(var"comment"=missing, var"creation_date"=missing, var"homogeneous_time"=missing, var"occurrence"=missing, var"provider"=missing, var"source"=missing, var"version_put"=core_profiles__ids_properties__version_put(), _parent=WeakRef(missing))
-        ids = new(var"comment", var"creation_date", var"homogeneous_time", var"occurrence", var"provider", var"source", var"version_put", _parent)
-        assign_expressions(ids)
-        setfield!(ids.version_put, :_parent, WeakRef(ids))
-        return ids
-    end
-end
-
 mutable struct core_profiles__global_quantities <: IDS
     var"beta_pol" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"beta_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
@@ -11593,16 +11316,14 @@ end
 
 mutable struct core_profiles <: IDS
     var"global_quantities" :: core_profiles__global_quantities
-    var"ids_properties" :: core_profiles__ids_properties
     var"profiles_1d" :: IDSvector{T} where {T<:core_profiles__profiles_1d}
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"vacuum_toroidal_field" :: core_profiles__vacuum_toroidal_field
     _parent :: WeakRef
-    function core_profiles(var"global_quantities"=core_profiles__global_quantities(), var"ids_properties"=core_profiles__ids_properties(), var"profiles_1d"=IDSvector(core_profiles__profiles_1d[]), var"time"=missing, var"vacuum_toroidal_field"=core_profiles__vacuum_toroidal_field(), _parent=WeakRef(missing))
-        ids = new(var"global_quantities", var"ids_properties", var"profiles_1d", var"time", var"vacuum_toroidal_field", _parent)
+    function core_profiles(var"global_quantities"=core_profiles__global_quantities(), var"profiles_1d"=IDSvector(core_profiles__profiles_1d[]), var"time"=missing, var"vacuum_toroidal_field"=core_profiles__vacuum_toroidal_field(), _parent=WeakRef(missing))
+        ids = new(var"global_quantities", var"profiles_1d", var"time", var"vacuum_toroidal_field", _parent)
         assign_expressions(ids)
         setfield!(ids.global_quantities, :_parent, WeakRef(ids))
-        setfield!(ids.ids_properties, :_parent, WeakRef(ids))
         setfield!(ids.profiles_1d, :_parent, WeakRef(ids))
         setfield!(ids.vacuum_toroidal_field, :_parent, WeakRef(ids))
         return ids
