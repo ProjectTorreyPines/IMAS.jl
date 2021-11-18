@@ -46,13 +46,30 @@ end
 update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
 """
 function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
-    cc = cocos(3) # for now hardcoded to 3 because testing with Solovev
+    cc = cocos(11)
 
     r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
     z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
-    Br_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].b_field_r)
-    Bz_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].b_field_z)
     PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
+
+    if false
+        if true
+            dPSIdR, dPSIdZ = gradient(eqt.profiles_2d[1].psi, r, z)
+            RR = hcat([r for k in z]...)
+            Br = cc.sigma_RpZ.*dPSIdZ./RR./(2*pi)^cc.exp_Bp
+            Bz = -cc.sigma_RpZ.*dPSIdR./RR./(2*pi)^cc.exp_Bp
+            Br_interpolant = Interpolations.CubicSplineInterpolation((r, z), Br)
+            Bz_interpolant = Interpolations.CubicSplineInterpolation((r, z), Bz)
+        else
+            Br_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].b_field_r)
+            Bz_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].b_field_z)
+        end
+        Br_vector_interpolant = (x,y) -> [Br_interpolant.(x[k],y[k]) for k in 1:length(x)]
+        Bz_vector_interpolant = (x,y) -> [Bz_interpolant.(x[k],y[k]) for k in 1:length(x)]
+    else
+        Br_vector_interpolant = (x,y) -> [cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[2]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
+        Bz_vector_interpolant = (x,y) -> [-cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[1]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
+    end
 
     eqt.profiles_1d.elongation = zero(eqt.profiles_1d.psi)
     eqt.profiles_1d.triangularity_lower = zero(eqt.profiles_1d.psi)
@@ -81,10 +98,11 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
             eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2] - (eqt.profiles_1d.elongation[3] - eqt.profiles_1d.elongation[2])
             eqt.profiles_1d.triangularity_upper[1] = 0.0
             eqt.profiles_1d.triangularity_lower[1] = 0.0
-            
-            t = range(0, 2 * pi, length=17)
-            a = 1E-3
+
+            a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
             b = eqt.profiles_1d.elongation[1] * a
+
+            t = range(0, 2 * pi, length=17)
             pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
             pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
             
@@ -153,8 +171,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
         eqt.profiles_1d.triangularity_lower[k] = (R - r_at_min_z) / a
 
         # poloidal magnetic field (with sign)
-        Br = Br_interpolant.(pr, pz)
-        Bz = Bz_interpolant.(pr, pz)
+        Br = Br_vector_interpolant(pr, pz)
+        Bz = Bz_vector_interpolant(pr, pz)
         Bp_abs = sqrt.(Br.^2.0 .+ Bz.^2.0)
         Bp = (Bp_abs
             .* cc.sigma_rhotp * cc.sigma_RpZ
@@ -162,7 +180,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
                   .- (pr .- eqt.global_quantities.magnetic_axis.r) .* Bz))
 
         # flux expansion
-        ll = cumsum(vcat([0], sqrt.(diff(pr).^2 + diff(pz).^2)))
+        ll = cumsum(vcat(0.0, sqrt.(diff(pr).^2 + diff(pz).^2)))
         fluxexpansion = 1.0 ./ Bp_abs
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
@@ -217,7 +235,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
             # perimeter
             eqt.global_quantities.length_pol = ll[end]
         end
-
     end
 
     # integral quantities are defined later
@@ -256,22 +273,39 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real)
 
     # rho_tor_norm
     rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (pi * B0)))
-    eqt.profiles_1d.rho_tor_norm = rho / rho[end]
+    rho_meters = rho[end]
+    eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
 
-    # phi
+    # phi 2D
     eqt.profiles_2d[1].phi = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc=Interpolations.Line()).(eqt.profiles_2d[1].psi)
 
     function flxAvg(input, ll, fluxexpansion, int_fluxexpansion_dl)
         return trapz(ll, input .* fluxexpansion) / int_fluxexpansion_dl
     end
 
+    # rho 2D in meters
+    RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
+
     # gm2: <∇ρ²/R²>
-    RHO = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, rho, extrapolation_bc=Interpolations.Line()).(eqt.profiles_2d[1].psi)
-    RHO_interpolant = Interpolations.CubicSplineInterpolation((r, z), RHO)
-    for k in 1:length(eqt.profiles_1d.psi)
-        tmp = [Interpolations.gradient(RHO_interpolant, PR[k][j], PZ[k][j]) for j in 1:length(PR[k])]
-        dPHI2 = [j[1].^2.0 .+ j[2].^2.0 for j in tmp]
-        eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k].^2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
+    if true
+        RHO_interpolant = Interpolations.CubicSplineInterpolation((r, z), RHO)
+        for k in 1:length(eqt.profiles_1d.psi)
+            tmp = [Interpolations.gradient(RHO_interpolant, PR[k][j], PZ[k][j]) for j in 1:length(PR[k])]
+            dPHI2 = [j[1].^2.0 .+ j[2].^2.0 for j in tmp]
+            eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k].^2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
+        end
+    else
+        dRHOdR,dRHOdZ = gradient(RHO,collect(r),collect(z))
+        dPHI2_interpolant = Interpolations.CubicSplineInterpolation((r, z), dRHOdR.^2.0.+dRHOdZ.^2.0)
+        for k in 1:length(eqt.profiles_1d.psi)
+            dPHI2 = dPHI2_interpolant.(PR[k],PZ[k])
+            eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k].^2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
+        end
+    end
+
+    # fix quantities on axis
+    for quantity in [:gm2]
+        eqt.profiles_1d.gm2[1] = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi[2:end], getproperty(eqt.profiles_1d,quantity)[2:end], extrapolation_bc=Interpolations.Line()).(eqt.profiles_1d.psi[1])
     end
 
     return eqt
