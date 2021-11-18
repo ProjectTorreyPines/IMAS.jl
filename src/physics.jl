@@ -316,7 +316,7 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Boo
     psi=eqt.profiles_1d.psi
     r0 = eqt.global_quantities.magnetic_axis.r
     z0 =eqt.global_quantities.magnetic_axis.z
-    flux_surfacee(dim1, dim2, PSI, psi, r0, z0, psi_level, closed)
+    flux_surface(dim1, dim2, PSI, psi, r0, z0, psi_level, closed)
 end
 
 function flux_surface(dim1::Union{AbstractVector,AbstractRange},
