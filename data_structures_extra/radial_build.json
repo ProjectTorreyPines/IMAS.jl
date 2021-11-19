@@ -150,7 +150,7 @@
  },
  "radial_build.layer[:].type": {
   "data_type": "INT_0D",
-  "documentation": "Center-stack type code\n0) vacuum (use this to set mimimum radius for OH)\n1) OH\n2) TF\n3) BL\n4) Shielding",
+  "documentation": "Center-stack type code\n0) vacuum (use this to set mimimum radius for OH)\n1) OH\n2) TF\n3) BL\n4) Shielding\n5) Wall\n-1) Vacuum vessel",
   "type": "static"
  },
  "radial_build.layer[:].identifier": {
