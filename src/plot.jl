@@ -45,7 +45,6 @@ Plots equilibrium cross-section
     if tmp !== nothing
         if (abs(tmp - eqt.profiles_1d.psi[end]) < abs(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[end-1]))
             psi__boundary_level = tmp
-            println("here")
         end
     end
 
