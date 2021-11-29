@@ -379,7 +379,7 @@ function find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
     find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision, raise_error_on_not_open)
 end
 
-function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision, raise_error_on_not_open)
+function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision=1e-6, raise_error_on_not_open)
     psirange_init = [psi[1]*0.9+psi[end]*0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
     pr, pz = flux_surface(dim1, dim2, PSI, psi, r0, z0, psirange_init[1], true)
