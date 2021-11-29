@@ -1,7 +1,7 @@
 using Plots
 
 """
-    function plot_pf_active_cx(pfa::pf_active)
+    plot_pf_active_cx(pfa::pf_active)
 
 Plots pf active cross-section
 """
@@ -33,19 +33,30 @@ end
 
 
 """
-    function plot_eqcx(eqt::IMAS.equilibrium__time_slice; lcfs=false)
+    plot_eqcx(eqt::IMAS.equilibrium__time_slice; psi_levels=nothing, psi_levels_out=nothing, lcfs=false)
 
 Plots equilibrium cross-section
 """
 @recipe function plot_eqcx(eqt::IMAS.equilibrium__time_slice; psi_levels=nothing, psi_levels_out=nothing, lcfs=false)
+
+    # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    psi__boundary_level = eqt.profiles_1d.psi[end]
+    tmp = find_psi_boundary(eqt, raise_error_on_not_open=false)
+    if tmp !== nothing
+        if (abs(tmp - eqt.profiles_1d.psi[end]) < abs(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[end-1]))
+            psi__boundary_level = tmp
+            println("here")
+        end
+    end
+
     if lcfs
-        psi_levels = [eqt.profiles_1d.psi[end], eqt.profiles_1d.psi[end]]
+        psi_levels = [psi__boundary_level, psi__boundary_level]
         psi_levels_out = []
     else
         if psi_levels === nothing
-            psi_levels = range(eqt.profiles_1d.psi[1], eqt.profiles_1d.psi[end], length=11)
+            psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=11)
         elseif isa(psi_levels, Int)
-            psi_levels = range(eqt.profiles_1d.psi[1], eqt.profiles_1d.psi[end], length=psi_levels)
+            psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels)
         end
         if psi_levels_out === nothing
             psi_levels_out = (psi_levels[end] - psi_levels[1]) .* collect(range(0, 1, length=11)) .+ psi_levels[end]
@@ -71,7 +82,7 @@ Plots equilibrium cross-section
         for (pr, pz) in IMAS.flux_surface(eqt, psi_level, false)
             @series begin
                 seriestype --> :path
-                if psi_level == eqt.profiles_1d.psi[end]
+                if psi_level == psi__boundary_level
                     linewidth --> 2
                 else
                     linewidth --> 1
@@ -96,7 +107,7 @@ function join_outlines(r1, z1, r2, z2)
 end
 
 """
-    function plot_radial_build_cx(rb::IMAS.radial_build)
+    plot_radial_build_cx(rb::IMAS.radial_build)
 
 Plots radial build cross-section
 """
@@ -113,6 +124,7 @@ Plots radial build cross-section
         [0]
     end
 
+    # outline
     if outline
         rmax = maximum(rb.layer[end].outline.r) * 2.0
 
@@ -145,10 +157,10 @@ Plots radial build cross-section
             IMAS.get_radial_build(rb, type=1).outline.r, IMAS.get_radial_build(rb, type=1).outline.z
         end
 
-            # all layers between the OH and the vessel
+        # all layers between the OH and the vessel
         valid = false
         for (k, l) in enumerate(rb.layer[1:end - 1])
-            if (l.type == 2) && (l.hfs == -1)
+            if (l.type == 2) && (l.hfs == 1)
                 valid = true
             end
             if l.type == -1
@@ -160,14 +172,14 @@ Plots radial build cross-section
             l1 = rb.layer[k + 1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
 
+            # setup labels and colors
             name = l.name
-
             color = :gray
-            if occursin("gap", l.name)
-                color = :white
+            if ! is_missing(l, :material) && l.material == "vacuum"
                 name = ""
+                color = :white
             elseif occursin("TF", l.name)
-            color = :green
+                color = :green
             elseif occursin("shield", l.name)
                 color = :red
             elseif occursin("blanket", l.name)
@@ -175,8 +187,7 @@ Plots radial build cross-section
             elseif occursin("wall", l.name)
                 color = :yellow
             end
-
-            for nm in ["inner","outer","vacuum","hfs","lfs"]
+            for nm in ["inner", "outer", "vacuum", "hfs", "lfs"]
                 name = replace(name, "$nm " => "")
             end
 
@@ -207,6 +218,7 @@ Plots radial build cross-section
             IMAS.get_radial_build(rb, type=-1).outline.r, IMAS.get_radial_build(rb, type=-1).outline.z
         end
 
+    # not-outlines
     else
 
         at = 0
@@ -214,21 +226,16 @@ Plots radial build cross-section
             @series begin
                 if ! is_missing(l, :material) && l.material == "vacuum"
                     color --> :white
-                end
-                if occursin("OH", l.name)
+                elseif occursin("OH", l.name)
                     color --> :blue
-                end
-                if occursin("TF", l.name)
+                elseif occursin("TF", l.name)
                     color --> :green
-                end
-                if occursin("shield", l.name)
+                elseif occursin("shield", l.name)
                     color --> :red
-                end
-                if occursin("blanket", l.name)
+                elseif occursin("blanket", l.name)
                     color --> :orange
-                end
-                if occursin("wall", l.name)
-                color --> :yellow
+                elseif occursin("wall", l.name)
+                    color --> :yellow
                 end
                 seriestype --> :vspan
                 label --> l.name
