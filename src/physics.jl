@@ -189,9 +189,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # j_tor = <j_tor/R> / <1/R>
         eqt.profiles_1d.j_tor[k] = (
                 -cc.sigma_Bp
-                .* (eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm9[k] / (4 * pi * 1e-7))
+                .* (eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / (4 * pi * 1e-7))
                 * (2.0 * pi)^cc.exp_Bp
-            )
+            ) / eqt.profiles_1d.gm9[k]
 
         # dvolume_dpsi
         eqt.profiles_1d.dvolume_dpsi[k] = (
