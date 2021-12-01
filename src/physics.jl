@@ -39,10 +39,17 @@ The original psi grid can be upsampled by a `upsample_factor` to get higher reso
 function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Integer=1)
     cc = cocos(11)
 
-    r = eqt.profiles_2d[1].grid.dim1
-    z = eqt.profiles_2d[1].grid.dim2
+    r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
+    z_upsampled = z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
     PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
-    r_upsampled, z_upsampled, PSI_upsampled = upsample(r, z, eqt.profiles_2d[1].psi, upsample_factor)
+    PSI_upsampled = eqt.profiles_2d[1].psi
+
+    # upsampling for high-resolution r,z flux surface coordinates
+    if upsample_factor>1
+        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1)*upsample_factor)
+        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2)*upsample_factor)
+        PSI_upsampled = PSI_interpolant(r_upsampled,z_upsampled)
+    end
 
     # Br and Bz evaluated through spline gradient
     Br_vector_interpolant = (x,y) -> [cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[2]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
@@ -289,26 +296,23 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 end
 
 """
-    flux_surface(eqt::equilibrium__time_slice, psi_level::Real; upsample_factor::Integer=1)
+    flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
 
 returns r,z coordiates of closed flux surface at given psi_level
 """
-function flux_surface(eqt::equilibrium__time_slice, psi_level::Real; upsample_factor::Integer=1)
-    return flux_surface(eqt, psi_level, true, upsample_factor=upsample_factor)
+function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
+    return flux_surface(eqt, psi_level, true)
 end
 
 """
-    flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool; upsample_factor::Integer=1)
+    flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool)
 
 returns r,z coordiates of open or closed flux surface at given psi_level
 """
-function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool; upsample_factor::Integer=1)
+function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool)
     dim1=eqt.profiles_2d[1].grid.dim1
     dim2=eqt.profiles_2d[1].grid.dim2
     PSI=eqt.profiles_2d[1].psi
-    if upsample_factor > 1
-        dim1, dim2, PSI = upsample(dim1, dim2, PSI, upsample_factor)
-    end
     psi=eqt.profiles_1d.psi
     r0 = eqt.global_quantities.magnetic_axis.r
     z0 =eqt.global_quantities.magnetic_axis.z
@@ -359,28 +363,6 @@ function flux_surface(dim1::Union{AbstractVector,AbstractRange},
     end
     return [], [], psi_level
 end
-
-function upsample(dim1::Union{AbstractVector,AbstractRange},
-    dim2::Union{AbstractVector,AbstractRange},
-    PSI::AbstractArray,
-    upsample_factor::Integer)
-
-    if upsample_factor < 1
-        error("Cannot upsample with factor $(upsample_factor)")
-    end
-    if upsample_factor == 1
-        return dim1, dim2, PSI
-    end
-
-    r = range(dim1[1], dim1[end], length=length(dim1))
-    z = range(dim2[1], dim2[end], length=length(dim2))
-    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), PSI)
-    r_upsampled = range(dim1[1], dim1[end], length=length(dim1)*upsample_factor)
-    z_upsampled = range(dim2[1], dim2[end], length=length(dim2)*upsample_factor)
-    return r_upsampled, z_upsampled, PSI_interpolant(r_upsampled,z_upsampled)
-
-end
-
 
 """
     find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
