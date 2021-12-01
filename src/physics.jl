@@ -6,12 +6,12 @@ import PolygonOps
 import Optim
 
 """
-    flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
+    flux_surfaces(eq::equilibrium; upsample_factor::Integer=1)
 
 Update flux surface averaged and geometric quantities in the equilibrium IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
+function flux_surfaces(eq::equilibrium; upsample_factor::Integer=1)
     for time_index in 1:length(eq.time_slice)
         flux_surfaces(eq.time_slice[time_index]; upsample_factor)
     end
@@ -19,24 +19,24 @@ function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
+    flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Integer=1)
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
+function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Integer=1)
     R0 = eqt.boundary.geometric_axis.r
     B0 = eqt.profiles_1d.f[end] / R0
     flux_surfaces(eqt, B0, R0; upsample_factor)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
+    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Integer=1)
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
+function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Integer=1)
     cc = cocos(11)
 
     r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
@@ -484,11 +484,11 @@ function get_radial_build(rb::IMAS.radial_build;
 end
 
 """
-    structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Real=10/resolution)
+    structures_mask(rb::IMAS.radial_build, resolution::Integer=257, border::Real=10/resolution)
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(rb::IMAS.radial_build; resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
+function structures_mask(rb::IMAS.radial_build; resolution::Integer=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
     border = maximum(rb.layer[end].outline.r)*border_fraction
     xlim = [0.0,maximum(rb.layer[end].outline.r)+border]
     ylim = [minimum(rb.layer[end].outline.z)-border,maximum(rb.layer[end].outline.z)+border]
