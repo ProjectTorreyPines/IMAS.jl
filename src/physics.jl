@@ -39,17 +39,10 @@ The original psi grid can be upsampled by a `upsample_factor` to get higher reso
 function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Integer=1)
     cc = cocos(11)
 
-    r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
-    z_upsampled = z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
+    r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
+    z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
     PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
-    PSI_upsampled = eqt.profiles_2d[1].psi
-
-    # upsampling for high-resolution r,z flux surface coordinates
-    if upsample_factor>1
-        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1)*upsample_factor)
-        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2)*upsample_factor)
-        PSI_upsampled = PSI_interpolant(r_upsampled,z_upsampled)
-    end
+    r_upsampled, z_upsampled, PSI_upsampled = upsample(r, z, eqt.profiles_2d[1].psi, upsample_factor)
 
     # Br and Bz evaluated through spline gradient
     Br_vector_interpolant = (x,y) -> [cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[2]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]

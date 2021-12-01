@@ -228,3 +228,31 @@ function gradient(arr::Matrix, coord1=1:size(arr)[1], coord2=1:size(arr)[2])
     d2 = transpose(hcat(map(x -> gradient(x, coord2), eachrow(arr))...))
     return d1, d2
 end
+
+"""
+    upsample(dim1::Union{AbstractVector,AbstractRange},
+        dim2::Union{AbstractVector,AbstractRange},
+        matrix::AbstractMatrix,
+        upsample_factor::Integer)
+
+Interpolate a matrix onto a grid upsample_factor larger in each dimension
+"""
+function upsample(dim1::Union{AbstractVector,AbstractRange},
+    dim2::Union{AbstractVector,AbstractRange},
+    matrix::AbstractMatrix,
+    upsample_factor::Integer)
+
+    if upsample_factor == 1
+        return dim1, dim2, matrix
+    elseif upsample_factor < 1
+        error("Cannot upsample with factor $(upsample_factor)")
+    end
+
+    r = range(dim1[1], dim1[end], length=length(dim1))
+    z = range(dim2[1], dim2[end], length=length(dim2))
+    matrix_interpolant = Interpolations.CubicSplineInterpolation((r, z), matrix)
+    r_upsampled = range(dim1[1], dim1[end], length=length(dim1)*upsample_factor)
+    z_upsampled = range(dim2[1], dim2[end], length=length(dim2)*upsample_factor)
+    return r_upsampled, z_upsampled, matrix_interpolant(r_upsampled,z_upsampled)
+
+end
