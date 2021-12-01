@@ -288,6 +288,38 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     return eqt
 end
 
+
+"""
+    flux_surfaces_RZ(eqt::equilibrium__time_slice; upsample_factor::Integer=1)
+
+Returns (R,Z) coordinates for flux surfaces
+"""
+function flux_surfaces_RZ(eqt::equilibrium__time_slice; upsample_factor::Integer=1)
+
+    r_upsampled, z_upsampled, PSI_upsampled = upsample(eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, eqt.profiles_2d[1].psi, upsample_factor)
+
+    RZs = Vector{Tuple{Vector, Vector}}()
+    for (k, psi_level0) in reverse(collect(enumerate(eqt.profiles_1d.psi)))
+
+        # on axis flux surface is a synthetic one
+        if k == 1
+            a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
+            b = eqt.profiles_1d.elongation[1] * a
+
+            t = range(0, 2 * pi, length=17)
+            pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
+            pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
+
+        # other flux surfaces
+        else
+            # trace flux surface
+            pr, pz, _ = flux_surface(r_upsampled, z_upsampled, PSI_upsampled, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, true)
+        end
+        pushfirst!(RZs,(pr,pz))
+    end
+    return RZs
+end
+
 """
     flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
 
