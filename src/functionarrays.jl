@@ -206,7 +206,7 @@ mutable struct IDSvector{T} <: AbstractVector{T}
     end
 end
 
-function Base.getindex(x::IDSvector{T}, i::Int64) where {T <: IDSvectorElement}
+function Base.getindex(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
     x.value[i]
 end
 
@@ -218,7 +218,7 @@ function Base.length(x::IDSvector{T}) where {T <: IDSvectorElement}
     length(x.value)
 end
 
-function Base.setindex!(x::IDSvector{T}, v, i::Int64) where {T <: IDSvectorElement}
+function Base.setindex!(x::IDSvector{T}, v, i::Int) where {T <: IDSvectorElement}
     x.value[i] = v
     setfield!(v, :_parent, WeakRef(x))
 end
@@ -242,4 +242,8 @@ function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
     else
         ids[state], state + 1
     end
+end
+
+function Base.deleteat!(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+    return Base.deleteat!(x.value, i)
 end
