@@ -280,7 +280,7 @@ function flux_surfaces_RZ(eqt::equilibrium__time_slice; upsample_factor::Integer
         # on axis flux surface is a synthetic one
         if k == 1
             a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
-            b = (2*eqt.profiles_1d.elongation[1] - eqt.profiles_1d.elongation[2])* a
+            b = (2 * eqt.profiles_1d.elongation[1] - eqt.profiles_1d.elongation[2]) * a
 
             t = range(0, 2 * pi, length=17)
             pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
