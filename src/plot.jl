@@ -165,7 +165,7 @@ end
 
 Plots radial build cross-section
 """
-@recipe function plot_radial_build_cx(rb::IMAS.radial_build; cx=true, outlines=false, only_layer=nothing)
+@recipe function plot_radial_build_cx(rb::IMAS.radial_build; cx=true, outlines=false, only_layers::Union{Nothing,Vector{T}} where T <:Symbol=nothing, exclude_layers::Vector{T} where T <:Symbol=Symbol[])
     aspect_ratio --> :equal
     grid --> :none
 
@@ -174,7 +174,7 @@ Plots radial build cross-section
         rmax = maximum(rb.layer[end].outline.r) * 2.0
 
         # Cryostat
-        if (only_layer === nothing) || (only_layer == :cryostat)
+        if ((only_layers === nothing) || (:cryostat in only_layers)) && (! (:cryostat in exclude_layers))
             if ! outlines
                 @series begin
                     seriestype --> :shape
@@ -206,7 +206,7 @@ Plots radial build cross-section
         end
 
         # OH
-        if (only_layer === nothing) || (only_layer == :oh)
+        if ((only_layers === nothing) || (:oh in only_layers)) && (! (:oh in exclude_layers))
             if ! outlines
                 @series begin
                     seriestype --> :shape
@@ -261,7 +261,7 @@ Plots radial build cross-section
                 name = replace(name, "$nm " => "")
             end
 
-            if (only_layer === nothing) || (only_layer == Symbol(name))
+            if ((only_layers === nothing) || (Symbol(name) in only_layers)) && (! (Symbol(name) in exclude_layers))
                 if ! outlines
                     @series begin
                         seriestype --> :shape
@@ -283,7 +283,7 @@ Plots radial build cross-section
             end
         end
 
-        if (only_layer === nothing) || (only_layer == :vessel)
+        if ((only_layers === nothing) || (:vessel in only_layers)) && (! (:vessel in exclude_layers))
             @series begin
                 seriestype --> :path
                 linewidth --> 2
