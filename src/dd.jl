@@ -8897,12 +8897,27 @@ mutable struct radial_build__pf_coils_rail <: IDSvectorElement
     end
 end
 
-mutable struct radial_build__oh <: IDS
-    var"b_field_rampup_requirement" :: Union{Missing, Real, Function}
+mutable struct radial_build__oh__rampup <: IDS
+    var"flux" :: Union{Missing, Real, Function}
+    var"min_b_field_required" :: Union{Missing, Real, Function}
+    var"min_j_required" :: Union{Missing, Real, Function}
+    var"oh_flux" :: Union{Missing, Real, Function}
+    var"pf_flux" :: Union{Missing, Real, Function}
     _parent :: WeakRef
-    function radial_build__oh(var"b_field_rampup_requirement"=missing, _parent=WeakRef(missing))
-        ids = new(var"b_field_rampup_requirement", _parent)
+    function radial_build__oh__rampup(var"flux"=missing, var"min_b_field_required"=missing, var"min_j_required"=missing, var"oh_flux"=missing, var"pf_flux"=missing, _parent=WeakRef(missing))
+        ids = new(var"flux", var"min_b_field_required", var"min_j_required", var"oh_flux", var"pf_flux", _parent)
         assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct radial_build__oh <: IDS
+    var"rampup" :: radial_build__oh__rampup
+    _parent :: WeakRef
+    function radial_build__oh(var"rampup"=radial_build__oh__rampup(), _parent=WeakRef(missing))
+        ids = new(var"rampup", _parent)
+        assign_expressions(ids)
+        setfield!(ids.rampup, :_parent, WeakRef(ids))
         return ids
     end
 end
