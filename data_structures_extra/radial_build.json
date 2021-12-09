@@ -101,18 +101,6 @@
   "lifecycle_status": "alpha",
   "type": "constant"
  },
- "radial_build.oh_b_field_max": {
-  "data_type": "FLT_0D",
-  "documentation": "Maximum OH magnetic field at the center of the solenoid",
-  "type": "static",
-  "units": "T"
- },
- "radial_build.tf_b_field_max": {
-  "data_type": "FLT_0D",
-  "documentation": "Maximum TF magnetic field at the vacuum vessel center",
-  "type": "static",
-  "units": "T"
- },
  "radial_build.layer": {
   "coordinates": [
    "1...N"
@@ -180,6 +168,36 @@
  "documentation": "Height",
  "type": "static",
  "units": "m"
+ },
+ "radial_build.oh.rampup.flux": {
+  "data_type": "FLT_0D",
+  "documentation": "Total flux required for the plasma rampup",
+  "type": "static",
+  "units": "Wb"
+ },
+ "radial_build.oh.rampup.pf_flux": {
+  "data_type": "FLT_0D",
+  "documentation": "PF coils contribution to the flux required for the plasma rampup",
+  "type": "static",
+  "units": "Wb"
+ },
+ "radial_build.oh.rampup.oh_flux": {
+  "data_type": "FLT_0D",
+  "documentation": "OH coil contribution to the flux required for the plasma rampup",
+  "type": "static",
+  "units": "Wb"
+ },
+ "radial_build.oh.rampup.min_b_field_required": {
+  "data_type": "FLT_0D",
+  "documentation": "Minimum OH magnetic field at the center of the solenoid required to get to the end of plasma rampup",
+  "type": "static",
+  "units": "T"
+ },
+ "radial_build.oh.rampup.min_j_required": {
+  "data_type": "FLT_0D",
+  "documentation": "Minimum OH coil current density required to get to the end of plasma rampup",
+  "type": "static",
+  "units": "A/m^2"
  },
  "radial_build.pf_coils_rail": {
    "coordinates": [
