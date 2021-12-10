@@ -1,55 +1,40 @@
 import Interpolations
 
-"""
-    set_field_time_array(ids::IDS, field::Symbol, time_index::Integer, value::Real)
 
-Set the value at a given time_index of a time dependent array in a given IDS
 """
-function set_field_time_array(ids::IDS, field::Symbol, time_index::Integer, value::Real)
-    array = missing
-    try
-        array = getproperty(ids, field)
-    catch
-        # pass
-    end
-    if (array === missing)
-        if time_index == 1
-            return setproperty!(ids, field, [value])
+    set_timedep_value!(time_ids::IDS, value_ids::IDS, value_symbol::Symbol, time0::Real, value0::Real; time_symbol::Symbol=:time)
+
+Set the value of a time-depentent quantity
+"""
+function set_timedep_value!(time_ids::IDS, value_ids::IDS, value_symbol::Symbol, time0::Real, value0::Real; time_symbol::Symbol=:time)
+    if is_missing(value_ids, value_symbol) || is_missing(time_ids, time_symbol)
+        setproperty!(time_ids, time_symbol, [time0])
+        setproperty!(value_ids, value_symbol, [value0])
+    else
+        time = getproperty(time_ids, time_symbol)
+        value = getproperty(value_ids, value_symbol)
+        if any(time .== time0)
+            time_index=argmin(abs.(time.-time0))
+            value[time_index]=value0
+        elseif time0 > maximum(time)
+            push!(time,time0)
+            push!(value,value0)
+        elseif time0 < minimum(time)
+            pushfirst!(time,time0)
+            pushfirst!(value,value0)
         else
-            error("$(f2i(ids)).$(field) is empty: cannot set data at index $(time_index)")
+            for (k,t) in enumerate(time)
+                if t<time0
+                    continue
+                else
+                    setproperty!(time_ids, time_symbol, vcat(time[1:k-1],time0,time[k:end]))
+                    setproperty!(value_ids, value_symbol, vcat(value[1:k-1],value0,value[k:end]))
+                    break
+                end
+            end
         end
     end
-    if time_index <= length(array)
-        array[time_index] = value
-    elseif time_index == (length(array) + 1)
-        push!(array, value)
-    else
-        error("$(f2i(ids)).$(field) has length $(length(array)): cannot set data at index $(time_index)")
-    end
-    return setproperty!(ids, field, array)
-end
-
-"""
-    get_time_index(ids_time_slice::IDS, time::Real)::Integer
-
-Return index of a given time and resize array of structures accordingly if necessary
-"""
-function get_time_index(ids_time_slice::IDSvector, time::Real)::Integer
-    ids = top(ids_time_slice)
-    if is_missing(ids, :time)
-        time_index = 1
-        set_field_time_array(ids, :time, time_index, time)
-        resize!(ids_time_slice, time_index)
-    elseif time in ids.time
-        time_index = findall(x -> x == time, ids.time)[1]
-    elseif maximum(ids.time) < time
-        time_index = length(ids.time) + 1
-        set_field_time_array(ids, :time, time_index, time)
-        resize!(ids_time_slice, time_index)
-    else
-        error("Cannot append time slice of $(f2i(ids_time_slice)) at $(time) seconds")
-    end
-    return time_index
+    return getproperty(time_ids, time_symbol), getproperty(value_ids, value_symbol)
 end
 
 
