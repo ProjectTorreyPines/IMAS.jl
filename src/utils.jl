@@ -213,3 +213,13 @@ function gradient(arr::Matrix, coord1=1:size(arr)[1], coord2=1:size(arr)[2])
     d2 = transpose(hcat(map(x -> gradient(x, coord2), eachrow(arr))...))
     return d1, d2
 end
+
+
+"""
+    meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVector})
+
+Return coordinate matrices from coordinate vectors
+"""
+function meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVector})
+    return x1' .* ones(length(x2)), ones(length(x1))' .* x2
+end
