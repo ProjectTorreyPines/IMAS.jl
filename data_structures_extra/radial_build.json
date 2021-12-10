@@ -169,33 +169,33 @@
  "type": "static",
  "units": "m"
  },
- "radial_build.oh.rampup.flux": {
+ "radial_build.flux_swing_requirements.rampup": {
   "data_type": "FLT_0D",
   "documentation": "Total flux required for the plasma rampup",
   "type": "static",
   "units": "Wb"
  },
- "radial_build.oh.rampup.pf_flux": {
+ "radial_build.flux_swing_requirements.flattop": {
   "data_type": "FLT_0D",
-  "documentation": "PF coils contribution to the flux required for the plasma rampup",
+  "documentation": "Total flux required for the plasma flattop",
   "type": "static",
   "units": "Wb"
  },
- "radial_build.oh.rampup.oh_flux": {
+ "radial_build.flux_swing_requirements.pf": {
   "data_type": "FLT_0D",
-  "documentation": "OH coil contribution to the flux required for the plasma rampup",
+  "documentation": "Contribution of vertical field from PF coils to flux swing",
   "type": "static",
   "units": "Wb"
  },
- "radial_build.oh.rampup.min_b_field_required": {
+ "radial_build.oh.required_b_field": {
   "data_type": "FLT_0D",
-  "documentation": "Minimum OH magnetic field at the center of the solenoid required to get to the end of plasma rampup",
+  "documentation": "Magnetic field in the OH solenoid required to satisfy rampup and flattop flux consumption",
   "type": "static",
   "units": "T"
  },
- "radial_build.oh.rampup.min_j_required": {
+ "radial_build.oh.required_j": {
   "data_type": "FLT_0D",
-  "documentation": "Minimum OH coil current density required to get to the end of plasma rampup",
+  "documentation": "Current density in the OH solenoid required to satisfy rampup and flattop flux consumption",
   "type": "static",
   "units": "A/m^2"
  },
@@ -205,6 +205,18 @@
    ],
    "data_type": "STRUCT_ARRAY",
    "documentation": "List of rails where the PF coils can slide on"
+ },
+ "radial_build.pf_coils_rail[:].coils_elements_area": {
+  "data_type": "FLT_0D",
+   "documentation": "Cross-sectional area taken up by individual filaments in a coil",
+   "type": "static",
+   "units": "m^2"
+ },
+ "radial_build.pf_coils_rail[:].coils_cleareance": {
+  "data_type": "FLT_0D",
+   "documentation": "Clereance that coils have from other structures",
+   "type": "static",
+   "units": "m"
  },
  "radial_build.pf_coils_rail[:].name": {
    "data_type": "STR_0D",

@@ -8885,39 +8885,27 @@ mutable struct radial_build__pf_coils_rail___outline <: IDS
 end
 
 mutable struct radial_build__pf_coils_rail <: IDSvectorElement
+    var"coils_cleareance" :: Union{Missing, Real, Function}
+    var"coils_elements_area" :: Union{Missing, Real, Function}
     var"coils_number" :: Union{Missing, Integer, Function}
     var"name" :: Union{Missing, String, Function}
     var"outline" :: radial_build__pf_coils_rail___outline
     _parent :: WeakRef
-    function radial_build__pf_coils_rail(var"coils_number"=missing, var"name"=missing, var"outline"=radial_build__pf_coils_rail___outline(), _parent=WeakRef(missing))
-        ids = new(var"coils_number", var"name", var"outline", _parent)
+    function radial_build__pf_coils_rail(var"coils_cleareance"=missing, var"coils_elements_area"=missing, var"coils_number"=missing, var"name"=missing, var"outline"=radial_build__pf_coils_rail___outline(), _parent=WeakRef(missing))
+        ids = new(var"coils_cleareance", var"coils_elements_area", var"coils_number", var"name", var"outline", _parent)
         assign_expressions(ids)
         setfield!(ids.outline, :_parent, WeakRef(ids))
         return ids
     end
 end
 
-mutable struct radial_build__oh__rampup <: IDS
-    var"flux" :: Union{Missing, Real, Function}
-    var"min_b_field_required" :: Union{Missing, Real, Function}
-    var"min_j_required" :: Union{Missing, Real, Function}
-    var"oh_flux" :: Union{Missing, Real, Function}
-    var"pf_flux" :: Union{Missing, Real, Function}
-    _parent :: WeakRef
-    function radial_build__oh__rampup(var"flux"=missing, var"min_b_field_required"=missing, var"min_j_required"=missing, var"oh_flux"=missing, var"pf_flux"=missing, _parent=WeakRef(missing))
-        ids = new(var"flux", var"min_b_field_required", var"min_j_required", var"oh_flux", var"pf_flux", _parent)
-        assign_expressions(ids)
-        return ids
-    end
-end
-
 mutable struct radial_build__oh <: IDS
-    var"rampup" :: radial_build__oh__rampup
+    var"required_b_field" :: Union{Missing, Real, Function}
+    var"required_j" :: Union{Missing, Real, Function}
     _parent :: WeakRef
-    function radial_build__oh(var"rampup"=radial_build__oh__rampup(), _parent=WeakRef(missing))
-        ids = new(var"rampup", _parent)
+    function radial_build__oh(var"required_b_field"=missing, var"required_j"=missing, _parent=WeakRef(missing))
+        ids = new(var"required_b_field", var"required_j", _parent)
         assign_expressions(ids)
-        setfield!(ids.rampup, :_parent, WeakRef(ids))
         return ids
     end
 end
@@ -8952,16 +8940,30 @@ mutable struct radial_build__layer <: IDSvectorElement
     end
 end
 
+mutable struct radial_build__flux_swing_requirements <: IDS
+    var"flattop" :: Union{Missing, Real, Function}
+    var"pf" :: Union{Missing, Real, Function}
+    var"rampup" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function radial_build__flux_swing_requirements(var"flattop"=missing, var"pf"=missing, var"rampup"=missing, _parent=WeakRef(missing))
+        ids = new(var"flattop", var"pf", var"rampup", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
 mutable struct radial_build <: IDS
+    var"flux_swing_requirements" :: radial_build__flux_swing_requirements
     var"layer" :: IDSvector{T} where {T<:radial_build__layer}
     var"oh" :: radial_build__oh
     var"pf_coils_rail" :: IDSvector{T} where {T<:radial_build__pf_coils_rail}
     var"tf" :: radial_build__tf
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function radial_build(var"layer"=IDSvector(radial_build__layer[]), var"oh"=radial_build__oh(), var"pf_coils_rail"=IDSvector(radial_build__pf_coils_rail[]), var"tf"=radial_build__tf(), var"time"=missing, _parent=WeakRef(missing))
-        ids = new(var"layer", var"oh", var"pf_coils_rail", var"tf", var"time", _parent)
+    function radial_build(var"flux_swing_requirements"=radial_build__flux_swing_requirements(), var"layer"=IDSvector(radial_build__layer[]), var"oh"=radial_build__oh(), var"pf_coils_rail"=IDSvector(radial_build__pf_coils_rail[]), var"tf"=radial_build__tf(), var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"flux_swing_requirements", var"layer", var"oh", var"pf_coils_rail", var"tf", var"time", _parent)
         assign_expressions(ids)
+        setfield!(ids.flux_swing_requirements, :_parent, WeakRef(ids))
         setfield!(ids.layer, :_parent, WeakRef(ids))
         setfield!(ids.oh, :_parent, WeakRef(ids))
         setfield!(ids.pf_coils_rail, :_parent, WeakRef(ids))
