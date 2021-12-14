@@ -76,7 +76,7 @@ function Base.getproperty(ids::IDS, field::Symbol)
         try
             return exec_expression_with_ancestor_args(ids, field, value, x)
         catch e
-            println("error with expression at $(f2u(ids)).$field")
+            println("Error with expression in $(f2u(ids)).$field")
             rethrow(e)
         end
     else
@@ -176,10 +176,10 @@ Execute a function passing the IDS stack as arguments to the function
     end
 """
 function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Function, func_args)
-    structure_name = f2u(ids)
+    structure_name = "$(f2u(ids)).$(field)"
     # keep track of recursion
     if ! (structure_name in expression_call_stack)
-        push!(expression_call_stack, "$(structure_name).$(field)")
+        push!(expression_call_stack, structure_name)
     else
         culprits = join(expression_call_stack, "\n    * ")
         error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
@@ -206,7 +206,7 @@ mutable struct IDSvector{T} <: AbstractVector{T}
     end
 end
 
-function Base.getindex(x::IDSvector{T}, i::Int64) where {T <: IDSvectorElement}
+function Base.getindex(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
     x.value[i]
 end
 
@@ -218,7 +218,7 @@ function Base.length(x::IDSvector{T}) where {T <: IDSvectorElement}
     length(x.value)
 end
 
-function Base.setindex!(x::IDSvector{T}, v, i::Int64) where {T <: IDSvectorElement}
+function Base.setindex!(x::IDSvector{T}, v, i::Int) where {T <: IDSvectorElement}
     x.value[i] = v
     setfield!(v, :_parent, WeakRef(x))
 end
@@ -242,4 +242,8 @@ function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
     else
         ids[state], state + 1
     end
+end
+
+function Base.deleteat!(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+    return Base.deleteat!(x.value, i)
 end
