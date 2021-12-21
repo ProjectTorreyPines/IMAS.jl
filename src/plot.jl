@@ -132,7 +132,7 @@ Plots equilibrium cross-section
         #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
         # end
         for psi_level in psi_levels
-            for (pr, pz) in IMAS.flux_surface(eqt, psi_level, false)
+            for (pr, pz) in IMAS.flux_surface(eqt, psi_level, nothing)
                 @series begin
                     seriestype --> :path
                     if psi_level == psi__boundary_level
