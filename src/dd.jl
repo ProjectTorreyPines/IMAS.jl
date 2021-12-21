@@ -8928,12 +8928,14 @@ mutable struct radial_build__layer <: IDSvectorElement
     var"material" :: Union{Missing, String, Function}
     var"name" :: Union{Missing, String, Function}
     var"outline" :: radial_build__layer___outline
+    var"shape" :: Union{Missing, Integer, Function}
+    var"shape_parameters" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"start_radius" :: Union{Missing, Real, Function}
     var"thickness" :: Union{Missing, Real, Function}
     var"type" :: Union{Missing, Integer, Function}
     _parent :: WeakRef
-    function radial_build__layer(var"end_radius"=missing, var"hfs"=missing, var"identifier"=missing, var"material"=missing, var"name"=missing, var"outline"=radial_build__layer___outline(), var"start_radius"=missing, var"thickness"=missing, var"type"=missing, _parent=WeakRef(missing))
-        ids = new(var"end_radius", var"hfs", var"identifier", var"material", var"name", var"outline", var"start_radius", var"thickness", var"type", _parent)
+    function radial_build__layer(var"end_radius"=missing, var"hfs"=missing, var"identifier"=missing, var"material"=missing, var"name"=missing, var"outline"=radial_build__layer___outline(), var"shape"=missing, var"shape_parameters"=missing, var"start_radius"=missing, var"thickness"=missing, var"type"=missing, _parent=WeakRef(missing))
+        ids = new(var"end_radius", var"hfs", var"identifier", var"material", var"name", var"outline", var"shape", var"shape_parameters", var"start_radius", var"thickness", var"type", _parent)
         assign_expressions(ids)
         setfield!(ids.outline, :_parent, WeakRef(ids))
         return ids

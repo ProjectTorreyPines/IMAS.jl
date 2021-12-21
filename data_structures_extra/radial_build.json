@@ -149,8 +149,17 @@
  "radial_build.layer[:].hfs": {
   "data_type": "INT_0D",
   "documentation": "Integer set to -1 if layer is on the high-field-side and 1 if layer is on the low-field-side. 0 when not applicable (eg. vessel, OH, and cryostat)",
+  "type": "static" 
+},
+"radial_build.layer[:].shape": {
+  "data_type": "INT_0D",
+  "documentation": "Intiger to identify the physical shape of the layer see radial_build_actor.jl for options ",
   "type": "static"
- },
+},
+"radial_build.layer[:].shape_parameters": {
+  "data_type": "FLT_1D",
+  "documentation": "List of the shape specific parameters for given shape type"
+},
  "radial_build.layer[:].outline": {
  "data_type": "STRUCTURE",
  "documentation": "Irregular outline of the limiting surface. Do NOT repeat the first point for closed contours"
