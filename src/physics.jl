@@ -1,4 +1,4 @@
-import Equilibrium:cocos
+import CoordinateConventions: cocos
 import Interpolations
 import Contour
 import StaticArrays

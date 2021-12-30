@@ -1,1 +1,1 @@
-# IMAS
+# IMAS.jl

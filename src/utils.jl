@@ -2,8 +2,6 @@ import Interpolations
 import LinearAlgebra
 import StaticArrays
 
-include("cocos.jl")
-
 """
     set_timedep_value!(time_ids::IDS, value_ids::IDS, value_symbol::Symbol, time0::Real, value0::Real; time_symbol::Symbol=:time)
 
