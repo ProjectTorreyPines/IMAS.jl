@@ -53,7 +53,7 @@ end
 
 Plots cross-section of individual coils
 """
-@recipe function plot_pf_active__coil_cx(coil::pf_active__coil; color::Symbol=:gray)
+@recipe function plot_pf_active__coil_cx(coil::pf_active__coil; color=:gray)
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
             color --> color
@@ -165,7 +165,7 @@ end
 
 Plots radial build cross-section
 """
-@recipe function plot_radial_build_cx(rb::IMAS.radial_build; cx=true, outlines=false, only_layers::Union{Nothing,Vector{T}} where T <:Symbol=nothing, exclude_layers::Vector{T} where T <:Symbol=Symbol[])
+@recipe function plot_radial_build_cx(rb::IMAS.radial_build; cx=true, outlines=false, only_layers=nothing, exclude_layers=Symbol[])
     aspect_ratio --> :equal
     grid --> :none
 
