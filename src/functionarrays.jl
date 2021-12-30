@@ -68,7 +68,9 @@ abstract type IDSvectorElement <: IDS end
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
     # raise a nice error for missing values
-    if value === missing
+    if typeof(value) <: IDS
+        return value
+    elseif value === missing
         error("$(f2i(ids)).$(field) is missing")
     # interpolate functions on given coordinates
     elseif typeof(value) <: Function
