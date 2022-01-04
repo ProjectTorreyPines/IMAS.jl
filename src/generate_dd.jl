@@ -50,7 +50,6 @@ Translate the IMAS `desired_structure` entries into Julia structs
 Note that `desired_structure` are fully qualified IMAS locations
 """
 function imas_julia_struct(desired_structure::Vector{String})
-    conversion_types = Union{}
     struct_commands = String[]
 
     branches = Vector()
@@ -98,13 +97,10 @@ function imas_julia_struct(desired_structure::Vector{String})
                 if tp in keys(type_translator)
                     if dim == 0
                         h[item] = ":: Union{Missing, $(type_translator[tp]), Function}"
-                        conversion_types = Union{conversion_types,type_translator[tp]}
                     elseif dim == 1
                         h[item] = ":: Union{Missing, AbstractArray{T, $dim} where T<:$(type_translator[tp]), AbstractRange{T} where T<:$(type_translator[tp]), Function}"
-                        conversion_types = Union{conversion_types,Array{type_translator[tp]}}
                     else
                         h[item] = ":: Union{Missing, AbstractArray{T, $dim} where T<:$(type_translator[tp]), Function}"
-                        conversion_types = Union{conversion_types,Array{type_translator[tp]}}
                     end
                 else
                     throw(ArgumentError("$(sel) IMAS $(ddids[sel]["data_type"]) has not been mapped to Julia data type"))
@@ -198,10 +194,10 @@ end
 #        eval(Meta.parse(txt))
     end
 
-    return struct_commands, conversion_types
+    return struct_commands
 end
 
-struct_commands, conversion_types = imas_julia_struct(desired_structure)
+struct_commands = imas_julia_struct(desired_structure)
 
 # Parse the Julia structs to make sure there are no issues
 p = Progress(length(struct_commands); desc="Compile IMAS.jl structs ", showspeed=true)
@@ -217,6 +213,5 @@ end
 
 open("$(dirname(@__FILE__))/dd.jl","w") do io
     println(io, "include(\"functionarrays.jl\")\n")
-    println(io, "conversion_types = $(string(conversion_types))\n")
     println(io, join(struct_commands, "\n"))
 end

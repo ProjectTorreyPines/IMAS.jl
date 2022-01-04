@@ -1,9 +1,19 @@
-import Equilibrium:cocos
+import CoordinateConventions: cocos
 import Interpolations
 import Contour
 import StaticArrays
 import PolygonOps
 import Optim
+
+function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int=11)
+    cc = cocos(cocos_number)
+    PSI_interpolant = Interpolations.CubicSplineInterpolation((r,z), psi)
+    Br_vector_interpolant = (x, y) -> cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x, y)[2]/x/(2*pi)^cc.exp_Bp
+    Bz_vector_interpolant = (x, y) -> -cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x, y)[1]/x/(2*pi)^cc.exp_Bp
+    Br_Bz_vector_interpolant = (x, y) -> (Br_vector_interpolant(x, y), Bz_vector_interpolant(x, y))
+    return Br_Bz_vector_interpolant
+end
+
 
 """
     flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
@@ -27,7 +37,7 @@ The original psi grid can be upsampled by a `upsample_factor` to get higher reso
 function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
     R0 = eqt.boundary.geometric_axis.r
     B0 = eqt.profiles_1d.f[end] / R0
-    flux_surfaces(eqt, B0, R0; upsample_factor)
+    return flux_surfaces(eqt, B0, R0; upsample_factor)
 end
 
 """
@@ -271,7 +281,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
 
     # gm2: <∇ρ²/R²>
-    if true
+    if false
         RHO_interpolant = Interpolations.CubicSplineInterpolation((r, z), RHO)
         for k in 1:length(eqt.profiles_1d.psi)
             tmp = [Interpolations.gradient(RHO_interpolant, PR[k][j], PZ[k][j]) for j in 1:length(PR[k])]
@@ -305,17 +315,17 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
 end
 
 """
-    flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool)
+    flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
 
 returns r,z coordiates of open or closed flux surface at given psi_level
 """
-function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Bool)
-    dim1=eqt.profiles_2d[1].grid.dim1
-    dim2=eqt.profiles_2d[1].grid.dim2
-    PSI=eqt.profiles_2d[1].psi
-    psi=eqt.profiles_1d.psi
+function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
+    dim1 = eqt.profiles_2d[1].grid.dim1
+    dim2 = eqt.profiles_2d[1].grid.dim2
+    PSI = eqt.profiles_2d[1].psi
+    psi = eqt.profiles_1d.psi
     r0 = eqt.global_quantities.magnetic_axis.r
-    z0 =eqt.global_quantities.magnetic_axis.z
+    z0 = eqt.global_quantities.magnetic_axis.z
     flux_surface(dim1, dim2, PSI, psi, r0, z0, psi_level, closed)
 end
 
@@ -326,7 +336,7 @@ function flux_surface(dim1::Union{AbstractVector,AbstractRange},
                       r0::Real,
                       z0::Real,
                       psi_level::Real,
-                      closed::Bool)
+                      closed::Union{Nothing,Bool})
     # handle on axis value as the first flux surface
     if psi_level == psi[1]
         psi_level = psi[2]
@@ -334,34 +344,44 @@ function flux_surface(dim1::Union{AbstractVector,AbstractRange},
     elseif psi_level == psi[end]
         psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; raise_error_on_not_open=false)
         if psi__boundary_level !== nothing
-            if (abs(psi__boundary_level-psi_level)<abs(psi[end]-psi[end-1]))
-                psi_level=psi__boundary_level
+            if abs(psi__boundary_level-psi_level) < abs(psi[end]-psi[end-1])
+                psi_level = psi__boundary_level
             end
         end
     end
 
+    # contouring routine
     cl = Contour.contour(dim1, dim2, PSI, psi_level)
 
-    if ! closed
-        prpz = []
+    prpz = []
+    # if no open/closed check, then return all contours
+    if closed === nothing
         for line in Contour.lines(cl)
-            push!(prpz, Contour.coordinates(line))
+            pr, pz = Contour.coordinates(line)
+            push!(prpz, (pr, pz))
+        end
+        return prpz
+    # look for closed flux-surface
+    elseif closed
+        for line in Contour.lines(cl)
+            pr, pz = Contour.coordinates(line)
+            # pick flux surface that close and contain magnetic axis
+            if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((r0, z0), collect(zip(pr, pz))) == 1)
+                return pr, pz, psi_level
+            end
+        end
+        return [], [], psi_level
+    # look for open flux-surfaces
+    elseif ! closed
+        for line in Contour.lines(cl)
+            pr, pz = Contour.coordinates(line)
+            # pick flux surfaces that close or that do not contain magnetic axis
+            if (pr[1] != pr[end]) || (pz[1] != pz[end]) || (PolygonOps.inpolygon((r0, z0), collect(zip(pr, pz))) != 1)
+                push!(prpz, (pr, pz))
+            end
         end
         return prpz
     end
-
-    for line in Contour.lines(cl)
-        pr, pz = Contour.coordinates(line)
-        # ignore flux surfaces that do not close
-        if closed && ((pr[1] != pr[end]) || (pz[1] != pz[end]))
-            continue
-        end 
-        # only consider flux surfaces that contain magnetic axis
-        if (! closed) || (PolygonOps.inpolygon((r0, z0), StaticArrays.SVector.(pr, pz)) == 1)
-            return pr, pz, psi_level
-        end
-    end
-    return [], [], psi_level
 end
 
 """

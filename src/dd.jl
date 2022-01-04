@@ -1,7 +1,5 @@
 include("functionarrays.jl")
 
-conversion_types = Union{Real, String, Array{Integer, N} where N, Array{Real, N} where N, Array{String, N} where N}
-
 mutable struct wall__temperature_reference <: IDS
     var"data" :: Union{Missing, Real, Function}
     var"description" :: Union{Missing, String, Function}

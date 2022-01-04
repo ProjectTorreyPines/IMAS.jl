@@ -53,7 +53,7 @@ end
 
 Plots cross-section of individual coils
 """
-@recipe function plot_pf_active__coil_cx(coil::pf_active__coil; color::Symbol=:gray)
+@recipe function plot_pf_active__coil_cx(coil::pf_active__coil; color=:gray)
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
             color --> color
@@ -132,7 +132,7 @@ Plots equilibrium cross-section
         #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
         # end
         for psi_level in psi_levels
-            for (pr, pz) in IMAS.flux_surface(eqt, psi_level, false)
+            for (pr, pz) in IMAS.flux_surface(eqt, psi_level, nothing)
                 @series begin
                     seriestype --> :path
                     if psi_level == psi__boundary_level
@@ -165,7 +165,7 @@ end
 
 Plots radial build cross-section
 """
-@recipe function plot_radial_build_cx(rb::IMAS.radial_build; cx=true, outlines=false, only_layers::Union{Nothing,Vector{T}} where T <:Symbol=nothing, exclude_layers::Vector{T} where T <:Symbol=Symbol[])
+@recipe function plot_radial_build_cx(rb::IMAS.radial_build; cx=true, outlines=false, only_layers=nothing, exclude_layers=Symbol[])
     aspect_ratio --> :equal
     grid --> :none
 

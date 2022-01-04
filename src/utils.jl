@@ -1,5 +1,6 @@
 import Interpolations
-
+import LinearAlgebra
+import StaticArrays
 
 """
     set_timedep_value!(time_ids::IDS, value_ids::IDS, value_symbol::Symbol, time0::Real, value0::Real; time_symbol::Symbol=:time)
@@ -214,7 +215,6 @@ function gradient(arr::Matrix, coord1=1:size(arr)[1], coord2=1:size(arr)[2])
     return d1, d2
 end
 
-
 """
     meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVector})
 
@@ -222,4 +222,73 @@ Return coordinate matrices from coordinate vectors
 """
 function meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVector})
     return x1' .* ones(length(x2)), ones(length(x1))' .* x2
+end
+
+"""
+intersection(l1_x::AbstractVector{T},
+             l1_y::AbstractVector{T},
+             l2_x::AbstractVector{T},
+             l2_y::AbstractVector{T};
+             as_list_of_points::Bool=true) where T
+
+Intersections between two 2D paths, returns list of (x,y) intersection points
+"""
+function intersection(l1_x::AbstractVector{T},
+                      l1_y::AbstractVector{T},
+                      l2_x::AbstractVector{T},
+                      l2_y::AbstractVector{T};
+                      as_list_of_points::Bool=true) where T
+    if as_list_of_points
+        crossings = NTuple{2,T}[]
+    else
+        crossings_x = T[]
+        crossings_y = T[]
+    end
+    for k1 in 1:(length(l1_x)-1)
+        s1_s = @StaticArrays.SVector [l1_x[k1],   l1_y[k1]]
+        s1_e = @StaticArrays.SVector [l1_x[k1+1], l1_y[k1+1]]
+        for k2 in 1:(length(l2_x)-1)
+            s2_s = @StaticArrays.SVector [l2_x[k2],   l2_y[k2]]
+            s2_e = @StaticArrays.SVector [l2_x[k2+1], l2_y[k2+1]]
+            crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
+            if crossing !== nothing
+                if as_list_of_points
+                    push!(crossings, (crossing[1],crossing[2]))
+                else
+                    push!(crossings_x, crossing[1])
+                    push!(crossings_y, crossing[2])
+                end
+            end
+        end
+    end
+    if as_list_of_points
+        return crossings
+    else
+        return crossings_x, crossings_y
+    end
+end
+
+function _ccw(A, B, C)
+    return (C[2] - A[2]) * (B[1] - A[1]) >= (B[2] - A[2]) * (C[1] - A[1])
+end
+
+function _intersect(A, B, C, D)
+    return (_ccw(A, C, D) != _ccw(B, C, D)) && (_ccw(A, B, C) != _ccw(A, B, D))
+end
+
+function _perp(a)
+    return [-a[2], a[1]]
+end
+
+function _seg_intersect(a1, a2, b1, b2)
+    if ! _intersect(a1, a2, b1, b2)
+        return nothing
+    end
+    da = a2 - a1
+    db = b2 - b1
+    dp = a1 - b1
+    dap = _perp(da)
+    denom = LinearAlgebra.dot(dap, db)
+    num = LinearAlgebra.dot(dap, dp)
+    return (num / denom) * db + b1
 end
