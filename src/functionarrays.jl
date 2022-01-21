@@ -25,7 +25,7 @@ end
 
 Read the IMAS data structures in the OMAS JSON format
 """
-@Memoize.memoize function imas_dd_ids(ids)
+Memoize.@memoize function imas_dd_ids(ids)
     tmp = Dict()
     for dir in ["data_structures", "data_structures_extra"]
         filename = joinpath(dirname(dirname(@__FILE__)), dir, "$ids.json")
