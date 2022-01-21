@@ -208,7 +208,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             .* eqt.profiles_1d.dvolume_dpsi[k]
             .* eqt.profiles_1d.f[k]
             .* eqt.profiles_1d.gm1[k]
-            ./ ((2 * pi)^(2.0 - cc.exp_Bp)))
+            ./ ((2.0 * pi)^(2.0 - cc.exp_Bp)))
 
         # quantities calculated on the last closed flux surface
         if k == length(eqt.profiles_1d.psi)
@@ -245,10 +245,10 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Bpave = eqt.global_quantities.ip * (4.0 * pi * 1e-7) / eqt.global_quantities.length_pol
 
     # beta_tor
-    eqt.global_quantities.beta_tor = trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end]
+    eqt.global_quantities.beta_tor = abs(trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_pol
-    eqt.global_quantities.beta_pol = trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end]
+    eqt.global_quantities.beta_pol = abs(trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
