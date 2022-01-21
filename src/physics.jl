@@ -65,20 +65,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Br_vector_interpolant = (x,y) -> [cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[2]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
     Bz_vector_interpolant = (x,y) -> [-cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[1]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
 
-    eqt.profiles_1d.elongation = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.triangularity_lower = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.triangularity_upper = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.r_inboard = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.r_outboard = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.q = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.dvolume_dpsi = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.j_tor = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.j_parallel = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.volume = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.gm1 = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.gm2 = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.gm9 = zero(eqt.profiles_1d.psi)
-    eqt.profiles_1d.phi = zero(eqt.profiles_1d.psi)
+    for item in [:elongation, :triangularity_lower, :triangularity_upper, :r_inboard, :r_outboard, :q, :dvolume_dpsi, :j_tor, :j_parallel, :volume, :gm1, :gm2, :gm9, :phi]
+        setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
+    end
 
     PR = []
     PZ = []
@@ -289,8 +278,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k].^2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
         end
     else
-        dRHOdR,dRHOdZ = gradient(RHO,collect(r),collect(z))
-        dPHI2_interpolant = Interpolations.CubicSplineInterpolation((r, z), dRHOdR.^2.0.+dRHOdZ.^2.0)
+        dRHOdR, dRHOdZ = gradient(RHO,collect(r),collect(z))
+        dPHI2_interpolant = Interpolations.CubicSplineInterpolation((r, z), dRHOdR.^2.0 .+ dRHOdZ.^2.0)
         for k in 1:length(eqt.profiles_1d.psi)
             dPHI2 = dPHI2_interpolant.(PR[k],PZ[k])
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k].^2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
@@ -299,7 +288,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # fix quantities on axis
     for quantity in [:gm2]
-        eqt.profiles_1d.gm2[1] = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi[2:end], getproperty(eqt.profiles_1d,quantity)[2:end], extrapolation_bc=Interpolations.Line()).(eqt.profiles_1d.psi[1])
+        eqt.profiles_1d.gm2[1] = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi[2:end], getproperty(eqt.profiles_1d, quantity)[2:end], extrapolation_bc=Interpolations.Line()).(eqt.profiles_1d.psi[1])
     end
 
     return eqt
