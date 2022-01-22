@@ -108,7 +108,7 @@ function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=fals
                 if skip_non_coordinates
                     return
                 else
-                    error("Assign data to `$c_name` before assigning `$(f2u(ids)).$(field)`")
+                    error("Can't assign data to `$(f2u(ids)).$(field)` before `$c_name`")
                 end
             end
         end
@@ -220,12 +220,12 @@ function Base.length(x::IDSvector{T}) where {T <: IDSvectorElement}
     length(x.value)
 end
 
-function Base.setindex!(x::IDSvector{T}, v, i::Int) where {T <: IDSvectorElement}
+function Base.setindex!(x::IDSvector{T}, v::T, i::Int) where {T <: IDSvectorElement}
     x.value[i] = v
     setfield!(v, :_parent, WeakRef(x))
 end
 
-function Base.push!(x::IDSvector{T}, v) where {T <: IDSvectorElement}
+function Base.push!(x::IDSvector{T}, v::T) where {T <: IDSvectorElement}
     setfield!(v, :_parent, WeakRef(x))
     push!(x.value, v)
 end
@@ -244,6 +244,11 @@ function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
     else
         ids[state], state + 1
     end
+end
+
+function Base.insert!(x::IDSvector{T}, i, v::T) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(x))
+    insert!(x.value, i, v)
 end
 
 function Base.deleteat!(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
