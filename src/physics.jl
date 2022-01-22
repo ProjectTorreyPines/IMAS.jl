@@ -232,7 +232,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             * trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
             * (2.0 * pi)^(1.0 - cc.exp_Bp)
         )
-
     end
 
     R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
