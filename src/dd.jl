@@ -11367,9 +11367,10 @@ mutable struct dd <: IDS
     var"summary" :: Union{Missing, summary}
     var"tf" :: Union{Missing, tf}
     var"wall" :: Union{Missing, wall}
+    var"global_time" :: Real
     _parent :: WeakRef
-    function dd(var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"radial_build"=radial_build(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), _parent=WeakRef(missing))
-        ids = new(var"core_profiles", var"core_sources", var"dataset_description", var"equilibrium", var"pf_active", var"radial_build", var"summary", var"tf", var"wall", _parent)
+    function dd(var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"radial_build"=radial_build(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), var"global_time"=0.0, _parent=WeakRef(missing))
+        ids = new(var"core_profiles", var"core_sources", var"dataset_description", var"equilibrium", var"pf_active", var"radial_build", var"summary", var"tf", var"wall", var"global_time", _parent)
         assign_expressions(ids)
         setfield!(ids.core_profiles, :_parent, WeakRef(ids))
         setfield!(ids.core_sources, :_parent, WeakRef(ids))
