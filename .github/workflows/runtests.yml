@@ -31,5 +31,5 @@ jobs:
           arch: ${{ matrix.arch }}
           show-versioninfo: true
       - run: GIT_URL_HEADER="https://project-torrey-pines:${{secrets.PTP_READ_TOKEN}}@github.com/" make install
-      - uses: julia-actions/julia-buildpkg@v1
+      #- uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
