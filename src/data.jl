@@ -4,30 +4,6 @@ include("dd.jl")
 
 include("utils.jl")
 
-import Base:resize!
-
-"""
-    resize!(collection::IDSvector{T}, n::Int) where {T<:IDS}
-
-Change size of a IDS array of structures
-"""
-function resize!(collection::IDSvector{T}, n::Int) where {T <: IDS}
-    if n > length(collection)
-        for k in length(collection):n - 1
-            obj = eltype(collection)()
-            setfield!(obj, :_parent, WeakRef(collection))
-            push!(collection.value, obj)
-            # println("push $(length(collection))")
-        end
-    elseif n < length(collection)
-        for k in n:length(collection) - 1
-            pop!(collection.value)
-            # println("pop $(length(collection))")
-        end
-    end
-    return collection
-end
-
 """
     dict2imas(dct, ids::IDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::IDS
 
@@ -173,6 +149,31 @@ function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
         return ids
     else
         return top(ids._parent.value;IDS_is_absolute_top=IDS_is_absolute_top)
+    end
+end
+
+"""
+    top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
+
+Return top-level IDS in the DD hierarchy.
+Considers IDS as maximum top level if IDS_is_absolute_top=true
+"""
+
+function top_ids(ids::Union{IDS,IDSvector})
+    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top=true)
+    if length(f2p(ids)) == 1
+        return ids
+    else
+        return missing
+    end
+end
+
+function top_dd(ids::Union{IDS,IDSvector})
+    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top=false)
+    if typeof(ids) <: dd
+        return ids
+    else
+        return missing
     end
 end
 
@@ -368,7 +369,7 @@ function f2p(ids::Union{IDS,IDSvector},
 
     # collect integers for arrays of structures
     if typeof(ids) <: IDSvector
-        ix = findfirst([k === child for k in ids.value])
+        ix = findfirst([k === child for k in ids._value])
         if ix === nothing
             push!(index, 0)
         else
@@ -553,10 +554,22 @@ function Base.show(io::IO, ::MIME"text/plain", ids::Union{IDS,IDSvector})
     return show(io, ids, 0)
 end
 
-function Base.show(io::IO, ids::Union{IDS,IDSvector})
+function Base.show(io::IO, ids::IDS)
     fnames = []
     for item in keys(ids)
         push!(fnames, item)
     end
-    return println(io, "$(f2i(ids)){$(join(collect(map(String,fnames)),", "))}")
+    return println(io, "$(f2i(ids)){$(join(collect(map(x->"$x",fnames)),", "))}")
+end
+
+function Base.show(io::IO, ids::IDSvector)
+    fnames = []
+    for item in keys(ids)
+        push!(fnames, item)
+    end
+    if length(ids) < 2
+        return println(io, "$(p2i(f2p(ids)[1:end-1]))[$(join(collect(map(x->"$x",fnames)),", "))]")
+    else
+        return println(io, "$(p2i(f2p(ids)[1:end-1]))[1...$(length(ids))]")
+    end
 end

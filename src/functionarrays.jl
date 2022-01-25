@@ -201,37 +201,93 @@ end
 #= ========= =#
 
 mutable struct IDSvector{T} <: AbstractVector{T}
-    value::Vector{T}
+    _value::Vector{T}
     _parent::WeakRef
-    function IDSvector(x::Vector{T}) where {T <: IDSvectorElement}
-        return new{T}(x, WeakRef(missing))
+    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
+        return new{T}(ids, WeakRef(missing))
     end
 end
 
-function Base.getindex(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
-    x.value[i]
+function Base.size(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    size(ids._value)
 end
 
-function Base.size(x::IDSvector{T}) where {T <: IDSvectorElement}
-    size(x.value)
+function Base.length(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    length(ids._value)
 end
 
-function Base.length(x::IDSvector{T}) where {T <: IDSvectorElement}
-    length(x.value)
+function Base.getindex(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    return getindex(ids, global_time(ids))
 end
 
-function Base.setindex!(x::IDSvector{T}, v::T, i::Int) where {T <: IDSvectorElement}
-    x.value[i] = v
-    setfield!(v, :_parent, WeakRef(x))
+function Base.getindex(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorElement}
+    return getindex(ids, global_time(ids))
 end
 
-function Base.push!(x::IDSvector{T}, v::T) where {T <: IDSvectorElement}
-    setfield!(v, :_parent, WeakRef(x))
-    push!(x.value, v)
+function Base.getindex(ids::IDSvector{T}, time0::Real) where {T <: IDSvectorElement}
+    if length(ids) == 0
+        ids[1]
+    end
+    time = time_array(ids; raise_errors=false) 
+    i = argmin(abs.(time .- time0))
+    ids._value[i]
 end
 
-function Base.pop!(x::IDSvector{T}) where {T <: IDSvectorElement}
-    pop!(x.value)
+function Base.getindex(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+    try
+        ids._value[i]
+    catch
+        error("Attempt to access $(length(ids))-element $(typeof(ids)) at index [$i]. Need to `resize!(ids, $i)`")
+    end
+end
+
+function Base.setindex!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+    setindex!(ids, v, global_time(ids))
+end
+
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: IDSvectorElement}
+    setindex!(ids, v, global_time(ids))
+end
+
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::Real) where {T <: IDSvectorElement}
+    time = time_array(ids; raise_errors=false)
+    if time0 < minimum(time)
+        pushfirst!(time, time0)
+        pushfirst!(ids, v)
+    else
+        i = argmin(abs.(time .- time0))
+        # perfect match --> overwrite
+        if minimum(abs.(time .- time0)) == 0
+            time[i] = time0
+            ids._value[i] = v
+        else
+            insert!(time, i+1, time0)
+            insert!(ids, i+1, v)
+        end
+    end
+    if hasfield(typeof(v), :time)
+        v.time=time0
+    end
+    setfield!(v, :_parent, WeakRef(ids))
+end
+
+function Base.setindex!(ids::IDSvector{T}, v::T, i::Int) where {T <: IDSvectorElement}
+    ids._value[i] = v
+    setfield!(v, :_parent, WeakRef(ids))
+end
+
+function Base.push!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    push!(ids._value, v)
+end
+
+function Base.pushfirst!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    pushfirst!(ids._value, v)
+end
+
+function Base.pop!(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    pop!(ids._value)
 end
 
 function iterate(ids::IDSvector{T}) where {T <: IDSvectorElement}
@@ -246,11 +302,47 @@ function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
     end
 end
 
-function Base.insert!(x::IDSvector{T}, i, v::T) where {T <: IDSvectorElement}
-    setfield!(v, :_parent, WeakRef(x))
-    insert!(x.value, i, v)
+function Base.insert!(ids::IDSvector{T}, i, v::T) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    insert!(ids._value, i, v)
 end
 
-function Base.deleteat!(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
-    return Base.deleteat!(x.value, i)
+function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+    return Base.deleteat!(ids._value, i)
+end
+
+function Base.resize!(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    return Base.resize!(ids, global_time(ids))
+end
+
+function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorElement}
+    return Base.resize!(ids, global_time(ids))
+end
+
+function Base.resize!(ids::IDSvector{T}, time0::Real) where {T <: IDSvectorElement}
+    time = time_array(ids; raise_errors=false)
+    if (length(ids) == 0) || (time0 > maximum(time))
+        k = length(ids) + 1
+        resize!(ids, k)
+        push!(time, time0)
+        if hasfield(typeof(ids[k]), :time)
+            ids[k].time = time0
+        end
+    end
+    return ids
+end
+
+function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
+    if n > length(ids)
+        for k in length(ids):n - 1
+            obj = eltype(ids)()
+            setfield!(obj, :_parent, WeakRef(ids))
+            push!(ids._value, obj)
+        end
+    elseif n < length(ids)
+        for k in n:length(ids) - 1
+            pop!(ids._value)
+        end
+    end
+    return ids
 end

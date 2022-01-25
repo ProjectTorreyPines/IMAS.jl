@@ -34,73 +34,39 @@ function set_timedep_value!(time_ids::IDS, value_ids::IDS, value_symbol::Symbol,
     return getproperty(time_ids, time_symbol), getproperty(value_ids, value_symbol)
 end
 
-"""
-    insert_time_index(time_array, time; overwrite = false)
-
-return insertion point of time to keep time_array sorted
-
-NOTE: Negative times are treated as "special" and are appended at the end
-"""
-function insert_time_index(time_array, time; overwrite = false)
-    if time < 0
-        t0 = 1E6 + time
-    end
-    for (k, t) in enumerate(time_array)
-        if t == time
-            if overwrite
-                return k
-            else
-                throw("time slice $time already present: time=$time_array")
+function time_array(x::IDSvector{T}; raise_errors::Bool=true) where {T<:IDSvectorElement}
+    time_array = []
+    h = x
+    while h._parent.value !== missing
+        h = h._parent.value
+        if hasfield(typeof(h), :time)
+            if is_missing(h, :time)
+                if raise_errors
+                    throw("$(f2i(h)).time is not set and $(p2i(f2p(x)[1:end-1]))[$time] could not be determined")
+                else
+                    h.time = Real[]
+                end
+            elseif length(h.time) == 0
+                if raise_errors
+                    throw("$(f2i(h)).time is empty and $(p2i(f2p(x)[1:end-1]))[$time] could not be determined")
+                end
             end
-        elseif t > t0
-            return k
+            time_array = h.time
+            break
         end
     end
-    return length(time_array) + 1
+    if time_array === nothing
+        if raise_errors
+            throw("Could not find time array information for $(p2i(f2p(x)[1:end-1]))[$time]")
+        end
+    end
+    time_array
 end
 
-"""
-    insert_time_slice!(dd::IMAS.dd, args...; kw...)
-
-Insert a time slice of an IDS in the data dictionary keeping time arrays sorted
-"""
-function insert_time_slice!(dd::IMAS.dd, args...; kw...)
-    return insert_time_slice!(getproperty(dd, Symbol(IMAS.f2p(args[1])[1])), args...; kw...)
-end
-
-function insert_time_slice!(eq::IMAS.equilibrium, eqt::IMAS.equilibrium__time_slice; time = nothing, R0 = nothing, overwrite = false)
-    if time === nothing
-        time = eqt.time
+function global_time(ids::Union{IDS,IDSvector})::Real
+    dd = top_dd(ids)
+    if dd === missing
+        throw("Could not reach top level dd where global time is defined")
     end
-    if R0 === nothing
-        R0 = eq.vacuum_toroidal_field.r0
-    end
-    if IMAS.is_missing(eq, :time)
-        eq.time = Real[]
-        eq.vacuum_toroidal_field.b0 = Real[]
-    end
-    # find time_index of insertion
-    time_index = insert_time_index(eq.time, time; overwrite = overwrite)
-
-    # set R0
-    eq.vacuum_toroidal_field.r0 = R0
-    # set time
-    eqt.time = time
-
-    if overwrite && (length(eq.time) >= time_index)
-        # update [eq.time]
-        eq.time[time_index] = time
-        # update [b0]
-        eq.vacuum_toroidal_field.b0[time_index] = eqt.profiles_1d.f[end] / R0
-        # update [eq.time_slice]
-        eq.time_slice[time_index] = eqt
-    else
-        # insert [eq.time]
-        insert!(eq.time, time_index, time)
-        # insert [b0]
-        insert!(eq.vacuum_toroidal_field.b0, time_index, eqt.profiles_1d.f[end] / R0)
-        # insert [eq.time_slice]
-        insert!(eq.time_slice, time_index, eqt)
-    end
-    return eq
+    return dd.global_time
 end
