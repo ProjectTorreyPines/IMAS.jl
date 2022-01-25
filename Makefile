@@ -1,5 +1,5 @@
 JULIA_PKG_DEVDIR ?= $(HOME)/.julia/dev
-GIT_URL_HEADER?=git
+GIT_URL_HEADER?=git@github.com:
 CURRENTDIR = $(shell pwd)
 
 all:
@@ -20,7 +20,7 @@ try Pkg.upgrade_manifest() catch end;\
 
 install_IMAS: install_CoordinateConventions
 	if [ ! -d "$(JULIA_PKG_DEVDIR)/IMAS" ]; then\
-		julia -e 'using Pkg; Pkg.develop(url="${GIT_URL_HEADER}@github.com:ProjectTorreyPines/IMAS.jl.git");';\
+		julia -e 'using Pkg; Pkg.develop(url="${GIT_URL_HEADER}ProjectTorreyPines/IMAS.jl.git");';\
 	fi
 	julia -e '\
 using Pkg;\
@@ -32,7 +32,7 @@ try Pkg.upgrade_manifest() catch end;\
 
 install_CoordinateConventions:
 	if [ ! -d "$(JULIA_PKG_DEVDIR)/CoordinateConventions" ]; then\
-		julia -e 'using Pkg; Pkg.develop(url="${GIT_URL_HEADER}@github.com:ProjectTorreyPines/CoordinateConventions.jl.git");';\
+		julia -e 'using Pkg; Pkg.develop(url="${GIT_URL_HEADER}ProjectTorreyPines/CoordinateConventions.jl.git");';\
 	fi
 	julia -e '\
 using Pkg;\
