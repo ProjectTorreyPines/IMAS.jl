@@ -5,7 +5,7 @@ using Plots
 
 Plots pf active cross-section
 """
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; cname::Symbol=:roma, time_index::Int=1)
+@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; cname=:roma, time_index=1)
 
     if what in [:cx, :coils_flux]
         label --> ""

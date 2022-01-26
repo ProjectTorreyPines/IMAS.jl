@@ -15,9 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          #- "1.3"
-          - "1.6"
-          #- "nightly" # this may fail
+          - "1.x"
         os:
           - ubuntu-latest
           #- macos-latest # avoid buring github actions hours
@@ -36,6 +34,7 @@ jobs:
           julia -e '
             using Pkg
             Pkg.activate(".")
-            Pkg.add(url="https://project-torrey-pines:${{secrets.PTP_READ_TOKEN}}@github.com/ProjectTorreyPines/Equilibrium.jl.git")'
+            Pkg.add(url="https://project-torrey-pines:${{secrets.PTP_READ_TOKEN}}@github.com/ProjectTorreyPines/CoordinateConventions.jl.git")
+            '
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1

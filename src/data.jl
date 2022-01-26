@@ -549,6 +549,14 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
     end
 end
 
-function Base.show(io::IO, ids::Union{IDS,IDSvector})
+function Base.show(io::IO, ::MIME"text/plain", ids::Union{IDS,IDSvector})
     return show(io, ids, 0)
+end
+
+function Base.show(io::IO, ids::Union{IDS,IDSvector})
+    fnames = []
+    for item in keys(ids)
+        push!(fnames, item)
+    end
+    return println(io, "$(f2i(ids)){$(join(collect(map(String,fnames)),", "))}")
 end
