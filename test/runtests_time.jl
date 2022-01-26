@@ -7,42 +7,53 @@ using Test
 
     dd.global_time = 1010.0
     eqt = resize!(dd.equilibrium.time_slice)[end]
+    @test length(dd.equilibrium.time_slice) == 1
+    n = length(dd.equilibrium.time_slice)
     eqt.global_quantities.ip = 1010.0
     @test dd.equilibrium.time_slice[1010.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[2000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[1000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[10000.0].global_quantities.ip === eqt.global_quantities.ip
-    @test dd.equilibrium.time_slice[1].global_quantities.ip === eqt.global_quantities.ip
-    @test_throws Exception dd.equilibrium.time_slice[2].global_quantities.ip
+    @test dd.equilibrium.time_slice[n].global_quantities.ip === eqt.global_quantities.ip
+    @test_throws Exception dd.equilibrium.time_slice[n+1].global_quantities.ip
     @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
+    @test (dd.equilibrium.time_slice[] = eqt) == eqt
 
     dd.global_time = 2020.0
     eqt = resize!(dd.equilibrium.time_slice)[end]
+    @test length(dd.equilibrium.time_slice) == 2
+    n = length(dd.equilibrium.time_slice)
     dd.equilibrium.time_slice[].global_quantities.ip = 2020.0
     @test dd.equilibrium.time_slice[2020.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[2000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[1000.0].global_quantities.ip !== eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[10000.0].global_quantities.ip === eqt.global_quantities.ip
-    @test dd.equilibrium.time_slice[2].global_quantities.ip === eqt.global_quantities.ip
-    @test_throws Exception dd.equilibrium.time_slice[3].global_quantities.ip
+    @test dd.equilibrium.time_slice[n].global_quantities.ip === eqt.global_quantities.ip
+    @test_throws Exception dd.equilibrium.time_slice[n+1].global_quantities.ip
     @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
+    @test (dd.equilibrium.time_slice[] = eqt) == eqt
 
     dd.global_time = 3030.0
     eqt = resize!(dd.equilibrium.time_slice, IMAS.τ)[end]
+    @test length(dd.equilibrium.time_slice) == 3
+    n = length(dd.equilibrium.time_slice)
     dd.equilibrium.time_slice[].global_quantities.ip = 3030.0
     @test dd.equilibrium.time_slice[3030.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[3000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[1000.0].global_quantities.ip !== eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[10000.0].global_quantities.ip === eqt.global_quantities.ip
-    @test dd.equilibrium.time_slice[3].global_quantities.ip === eqt.global_quantities.ip
-    @test_throws Exception dd.equilibrium.time_slice[4].global_quantities.ip
+    @test dd.equilibrium.time_slice[n].global_quantities.ip === eqt.global_quantities.ip
+    @test_throws Exception dd.equilibrium.time_slice[n+1].global_quantities.ip
     @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
+    @test (dd.equilibrium.time_slice[] = eqt) == eqt
 
+    # dial back global time at an existing time (closest time slice is 2)
     dd.global_time = 2020.0
     eqt = dd.equilibrium.time_slice[2]
+    @test length(dd.equilibrium.time_slice) == 3
     @test dd.equilibrium.time_slice[2020.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[2000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[1000.0].global_quantities.ip !== eqt.global_quantities.ip
@@ -50,6 +61,28 @@ using Test
     @test dd.equilibrium.time_slice[2].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
+    @test (dd.equilibrium.time_slice[] = eqt) == eqt
+
+    # dial back global time at an existing time (closest time slice is 2)
+    dd.global_time = 2013.0
+    eqt = dd.equilibrium.time_slice[2]
+    @test length(dd.equilibrium.time_slice) == 3
+    @test dd.equilibrium.time_slice[2020.0].global_quantities.ip === eqt.global_quantities.ip
+    @test dd.equilibrium.time_slice[2000.0].global_quantities.ip === eqt.global_quantities.ip
+    @test dd.equilibrium.time_slice[1000.0].global_quantities.ip !== eqt.global_quantities.ip
+    @test dd.equilibrium.time_slice[10000.0].global_quantities.ip !== eqt.global_quantities.ip
+    @test dd.equilibrium.time_slice[2].global_quantities.ip === eqt.global_quantities.ip
+    @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip === eqt.global_quantities.ip
+    @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
+    @test_throws Exception dd.equilibrium.time_slice[] = eqt # setindex! will complain trying to enter data at an earlier time that is not in time array
+
+    # resize! will complain if trying to resize at an earlier time
+    @test_throws Exception resize!(dd.equilibrium.time_slice)[end]
+
+    # resize! with global time will complain operating on IDSvectors that are not time dependent
+    @test_throws Exception resize!(dd.wall.description_2d)
+    @test_throws Exception resize!(dd.wall.description_2d, IMAS.τ)
+    @test_throws Exception resize!(dd.wall.description_2d, 1000.0)
 end
 
 @testset "time_array" begin

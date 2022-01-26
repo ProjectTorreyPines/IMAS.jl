@@ -1,6 +1,6 @@
 include("expressions.jl")
 
-struct GlobalTime end
+struct GlobalTime <: AbstractFloat end
 const τ = GlobalTime()
 
 #= ============ =#
@@ -221,15 +221,15 @@ function Base.length(ids::IDSvector{T}) where {T <: IDSvectorElement}
     length(ids._value)
 end
 
-function Base.getindex(ids::IDSvector{T}) where {T <: IDSvectorElement}
+function Base.getindex(ids::IDSvector{T}) where {T <: IDSvectorTimeElement}
     return getindex(ids, global_time(ids))
 end
 
-function Base.getindex(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorElement}
+function Base.getindex(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorTimeElement}
     return getindex(ids, global_time(ids))
 end
 
-function Base.getindex(ids::IDSvector{T}, time0::Real) where {T <: IDSvectorElement}
+function Base.getindex(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
     if length(ids) == 0
         ids[1]
     end
@@ -246,28 +246,28 @@ function Base.getindex(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
     end
 end
 
-function Base.setindex!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+function Base.setindex!(ids::IDSvector{T}, v::T) where {T <: IDSvectorTimeElement}
     setindex!(ids, v, global_time(ids))
 end
 
-function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: IDSvectorElement}
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: IDSvectorTimeElement}
     setindex!(ids, v, global_time(ids))
 end
 
-function Base.setindex!(ids::IDSvector{T}, v::T, time0::Real) where {T <: IDSvectorElement}
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
     time = time_array(ids)
     if time0 < minimum(time)
         pushfirst!(time, time0)
         pushfirst!(ids, v)
-    else
+    elseif time0 > maximum(time)
+        push!(time, time0)
+        push!(ids, v)
+    elseif minimum(abs.(time .- time0)) == 0
         i = argmin(abs.(time .- time0))
         # perfect match --> overwrite
-        if minimum(abs.(time .- time0)) == 0
-            ids._value[i] = v
-        else
-            insert!(time, i+1, time0)
-            insert!(ids, i+1, v)
-        end
+        ids._value[i] = v
+    else
+        error("Cannot insert data at time $time0 in middle of a time array structure ranging between $(time[1]) and $(time[end])")
     end
     if hasfield(typeof(v), :time)
         v.time=time0
@@ -315,15 +315,15 @@ function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
     return Base.deleteat!(ids._value, i)
 end
 
-function Base.resize!(ids::IDSvector{T}) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}) where {T <: IDSvectorTimeElement}
     return Base.resize!(ids, global_time(ids))
 end
 
-function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorTimeElement}
     return Base.resize!(ids, global_time(ids))
 end
 
-function Base.resize!(ids::IDSvector{T}, time0::Real) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
     time = time_array(ids)
     if (length(ids) == 0) || (time0 > maximum(time))
         k = length(ids) + 1
@@ -332,6 +332,8 @@ function Base.resize!(ids::IDSvector{T}, time0::Real) where {T <: IDSvectorEleme
         if hasfield(typeof(ids[k]), :time)
             ids[k].time = time0
         end
+    elseif time0 < maximum(time)
+        error("Cannot resize structure at time $time0 for a time array structure already ranging between $(time[1]) and $(time[end])")
     end
     return ids
 end
