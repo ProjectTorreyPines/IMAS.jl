@@ -14,6 +14,7 @@ using Test
     @test dd.equilibrium.time_slice[10000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[1].global_quantities.ip === eqt.global_quantities.ip
     @test_throws Exception dd.equilibrium.time_slice[2].global_quantities.ip
+    @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip===eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
 
     dd.global_time = 2020.0
@@ -24,6 +25,8 @@ using Test
     @test dd.equilibrium.time_slice[1000.0].global_quantities.ip !== eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[10000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[2].global_quantities.ip === eqt.global_quantities.ip
+    @test_throws Exception dd.equilibrium.time_slice[3].global_quantities.ip
+    @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip===eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
 
     dd.global_time = 3030.0
@@ -34,6 +37,8 @@ using Test
     @test dd.equilibrium.time_slice[1000.0].global_quantities.ip !== eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[10000.0].global_quantities.ip === eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[3].global_quantities.ip === eqt.global_quantities.ip
+    @test_throws Exception dd.equilibrium.time_slice[4].global_quantities.ip
+    @test dd.equilibrium.time_slice[IMAS.τ].global_quantities.ip===eqt.global_quantities.ip
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
 end
 
