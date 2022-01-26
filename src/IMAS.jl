@@ -2,9 +2,6 @@ __precompile__()
 
 module IMAS
 
-struct GlobalTime end
-const τ = GlobalTime()
-
 #= ============== =#
 #= DATA STRUCTURE =#
 #= ============== =#

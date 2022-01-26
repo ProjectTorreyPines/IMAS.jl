@@ -1,5 +1,8 @@
 include("expressions.jl")
 
+struct GlobalTime end
+const τ = GlobalTime()
+
 #= ============ =#
 #  IMAS DD read  #
 #= ============ =#
@@ -64,6 +67,8 @@ end
 
 abstract type IDS end
 abstract type IDSvectorElement <: IDS end
+abstract type IDSvectorStaticElement <: IDSvectorElement end
+abstract type IDSvectorTimeElement <: IDSvectorElement end
 
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)

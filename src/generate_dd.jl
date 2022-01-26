@@ -50,6 +50,7 @@ function imas_julia_struct(desired_structure::Vector{String})
     struct_commands = String[]
 
     branches = Vector()
+    timedep_structures = Vector()
     push!(branches, "")
 
     # generate hierarchy of dicts
@@ -66,7 +67,7 @@ function imas_julia_struct(desired_structure::Vector{String})
         # split IMAS path in 
         path = split(sel, ".")
 
-        # shed some weight (2): no ggd or code
+        # shed some weight (2): no ggd, code, ids_properties
         if ("ggd" in path) || ("ggd[:]" in path) || ("grids_ggd" in path) || ("grids_ggd[:]" in path) || ("code" in path) || ("ids_properties" in path)
             continue
         end
@@ -77,6 +78,11 @@ function imas_julia_struct(desired_structure::Vector{String})
         # shed some weight (3): no obsolescent
         if ("lifecycle_status" in keys(ddids[sel])) && (ddids[sel]["lifecycle_status"] == "obsolescent")
             continue
+        end
+
+        # detect if this is a time dependendent array of structure
+        if ("full_path" in keys(ddids[sel])) && (endswith(ddids[sel]["full_path"],"(itime)"))
+            push!(timedep_structures, sel*"[:]")
         end
 
         h = ddict
@@ -122,8 +128,18 @@ function imas_julia_struct(desired_structure::Vector{String})
             h = h[item]
         end
 
-        sep = "__"
         is_structarray = length(branch) > 0 && occursin("[", branch[end])
+        if is_structarray
+            if join(branch, ".") in timedep_structures
+                struct_type = "IDSvectorTimeElement"
+            else
+                struct_type = "IDSvectorStaticElement"
+            end
+        else
+            struct_type = "IDS"
+        end
+
+        sep = "__"
         struct_name_ = replace(join(branch, sep), "[:]" => "_")
         struct_name = replace(struct_name_, r"_$" => "")
         txt = String[]
@@ -156,8 +172,6 @@ function imas_julia_struct(desired_structure::Vector{String})
                 push!(txt_parent, "        setfield!(ids.$(item), :_parent, WeakRef(ids))")
             end
         end
-
-        struct_type = is_structarray ? "IDSvectorElement" : "IDS"
 
         txt_parent = join(txt_parent, "\n")
         if length(txt_parent) > 0
