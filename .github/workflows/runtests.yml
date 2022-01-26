@@ -30,6 +30,11 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
           show-versioninfo: true
-      - run: make install
+      - run: |
+          julia -e '
+            using Pkg
+            Pkg.activate(".")
+            Pkg.add(url="https://project-torrey-pines:${{secrets.PTP_READ_TOKEN}}@github.com/ProjectTorreyPines/CoordinateConventions.jl.git")
+            '
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
