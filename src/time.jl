@@ -34,30 +34,34 @@ function set_timedep_value!(time_ids::IDS, value_ids::IDS, value_symbol::Symbol,
     return getproperty(time_ids, time_symbol), getproperty(value_ids, value_symbol)
 end
 
-function time_array(x::IDSvector{T}; raise_errors::Bool=true) where {T<:IDSvectorElement}
-    time_array = []
+"""
+    look for time array information
+"""
+function time_array(x::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
+    time_array = nothing
+    missing_time_locations = []
+
+    # traverse IDS hierarchy upstream looking for a time array
     h = x
     while h._parent.value !== missing
-        h = h._parent.value
-        if hasfield(typeof(h), :time)
+        field_names_types = NamedTuple{fieldnames(typeof(h))}(fieldtypes(typeof(h)))
+        if :time in keys(field_names_types) && typeintersect(field_names_types[:time], AbstractVector) !== Union{}
             if is_missing(h, :time)
-                if raise_errors
-                    throw("$(f2i(h)).time is not set and $(p2i(f2p(x)[1:end-1]))[$time] could not be determined")
-                else
-                    h.time = Real[]
-                end
+                push!(missing_time_locations,h)
             elseif length(h.time) == 0
-                if raise_errors
-                    throw("$(f2i(h)).time is empty and $(p2i(f2p(x)[1:end-1]))[$time] could not be determined")
-                end
+                push!(missing_time_locations,h)
+            else
+                time_array = h.time
+                break
             end
-            time_array = h.time
-            break
         end
+        h = h._parent.value
     end
     if time_array === nothing
-        if raise_errors
+        if length(missing_time_locations)==0
             throw("Could not find time array information for $(p2i(f2p(x)[1:end-1]))[$time]")
+        else
+            time_array = missing_time_locations[end].time = Float64[]
         end
     end
     time_array
@@ -69,4 +73,56 @@ function global_time(ids::Union{IDS,IDSvector})::Real
         throw("Could not reach top level dd where global time is defined")
     end
     return dd.global_time
+end
+
+function set_time_array(ids, location,value)
+    time = time_array(ids)
+    time0 = global_time(ids)
+    i = nothing
+    if (length(time) == 0) || (time0 < minimum(time))
+        pushfirst!(time, time0)
+        if location !== :time
+            setproperty!(ids, location, [value])
+        end
+        i = 1
+    else
+        i = argmin(abs.(time .- time0))
+        # perfect match --> overwrite
+        if minimum(abs.(time .- time0)) == 0
+            if location !== :time
+                getproperty(ids, location)[i] = value
+            end
+        else
+            insert!(time, i+1, time0)
+            if location !== :time
+                insert!(getproperty(ids, location), i+1, value)
+            end
+        end
+    end
+    i = argmin(abs.(time .- time0))
+    return getproperty(ids, location)[i]
+end
+
+function get_time_array(ids, location)
+    time = time_array(ids)
+    time0 = global_time(ids)
+    i = argmin(abs.(time .- time0))
+    return getproperty(ids, location)[i]
+end
+
+macro timedep(ex)
+    quote
+        local expr = $(Meta.QuoteNode(ex))
+        if expr.head == :(=)
+            local value = $(esc(ex.args[2]))
+            local ids = $(esc(ex.args[1].args[1]))
+            local location = $(esc(ex.args[1].args[2]))
+            local tmp = set_time_array(ids, location, value)
+        else
+            local ids = $(esc(ex.args[1]))
+            local location = $(esc(ex.args[2]))
+            local tmp = get_time_array(ids, location)
+        end
+        tmp
+    end
 end

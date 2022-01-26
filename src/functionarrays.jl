@@ -228,7 +228,7 @@ function Base.getindex(ids::IDSvector{T}, time0::Real) where {T <: IDSvectorElem
     if length(ids) == 0
         ids[1]
     end
-    time = time_array(ids; raise_errors=false) 
+    time = time_array(ids) 
     i = argmin(abs.(time .- time0))
     ids._value[i]
 end
@@ -250,7 +250,7 @@ function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: 
 end
 
 function Base.setindex!(ids::IDSvector{T}, v::T, time0::Real) where {T <: IDSvectorElement}
-    time = time_array(ids; raise_errors=false)
+    time = time_array(ids)
     if time0 < minimum(time)
         pushfirst!(time, time0)
         pushfirst!(ids, v)
@@ -258,7 +258,6 @@ function Base.setindex!(ids::IDSvector{T}, v::T, time0::Real) where {T <: IDSvec
         i = argmin(abs.(time .- time0))
         # perfect match --> overwrite
         if minimum(abs.(time .- time0)) == 0
-            time[i] = time0
             ids._value[i] = v
         else
             insert!(time, i+1, time0)
@@ -320,7 +319,7 @@ function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvecto
 end
 
 function Base.resize!(ids::IDSvector{T}, time0::Real) where {T <: IDSvectorElement}
-    time = time_array(ids; raise_errors=false)
+    time = time_array(ids)
     if (length(ids) == 0) || (time0 > maximum(time))
         k = length(ids) + 1
         resize!(ids, k)
