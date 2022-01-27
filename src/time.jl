@@ -59,7 +59,7 @@ function time_array(x::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
     end
     if time_array === nothing
         if length(missing_time_locations) == 0
-            throw("Could not find time array information for $(p2i(f2p(x)[1:end-1]))[$time]")
+            error("Could not find time array information for $(p2i(f2p(x)[1:end-1]))[$time]")
         else
             time_array = missing_time_locations[end].time = Float64[]
         end
@@ -70,7 +70,7 @@ end
 function global_time(ids::Union{IDS,IDSvector})::Real
     dd = top_dd(ids)
     if dd === missing
-        throw("Could not reach top level dd where global time is defined")
+        error("Could not reach top level dd where global time is defined")
     end
     return dd.global_time
 end
@@ -83,34 +83,43 @@ set data to a time-dependent array at the dd.global_time
 function set_time_array(ids, location, value)
     time = time_array(ids)
     time0 = global_time(ids)
-    i = nothing
+    # no time information
     if length(time) == 0
         push!(time, time0)
         if location !== :time
             setproperty!(ids, location, [value])
         end
     else
+        i = argmin(abs.(time .- time0))
         # perfect match --> overwrite
         if minimum(abs.(time .- time0)) == 0
             if location !== :time
-                i = argmin(abs.(time .- time0))
-                if is_missing(ids, location)
+                if is_missing(ids, location) || (length(getproperty(ids, location)) == 0)
                     setproperty!(ids, location, vcat([NaN for k = 1:i-1], value))
                 else
-                    getproperty(ids, location)[i] = value
+                    last_value = getproperty(ids, location)
+                    if length(last_value)<i
+                        reps = i - length(last_value) - 1
+                        append!(last_value, vcat([last_value[end] for k = 1:reps], value))
+                    else
+                        last_value[i] = value
+                    end
                 end
             end
+        # append
         elseif time0 > maximum(time)
-            push(time, time0)
+            push!(time, time0)
             if location !== :time
-                if !is_missing(ids, location)
-                    setproperty!(ids, location, vcat([NaN for k = 1:i-1], value))
+                if is_missing(ids, location) || (length(getproperty(ids, location)) == 0)
+                    setproperty!(ids, location, vcat([NaN for k = 1:length(time)-1], value))
                 else
-                    reps = length(time) - length(getproperty(ids, location))
-                    last_value = getproperty(ids, location)[end]
-                    append!(getproperty(ids, location), vcat([last_value for k = 1:reps], value))
+                    last_value = getproperty(ids, location)
+                    reps = length(time) - length(last_value) - 1
+                    append!(last_value, vcat([last_value[end] for k = 1:reps], value))
                 end
             end
+        else
+            error("Could not add time array information for $(f2i(ids)).$location[$time]")
         end
     end
     i = argmin(abs.(time .- time0))
