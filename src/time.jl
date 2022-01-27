@@ -47,9 +47,9 @@ function time_array(x::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
         field_names_types = NamedTuple{fieldnames(typeof(h))}(fieldtypes(typeof(h)))
         if :time in keys(field_names_types) && typeintersect(field_names_types[:time], AbstractVector) !== Union{}
             if is_missing(h, :time)
-                push!(missing_time_locations,h)
+                push!(missing_time_locations, h)
             elseif length(h.time) == 0
-                push!(missing_time_locations,h)
+                push!(missing_time_locations, h)
             else
                 time_array = h.time
                 break
@@ -58,7 +58,7 @@ function time_array(x::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
         h = h._parent.value
     end
     if time_array === nothing
-        if length(missing_time_locations)==0
+        if length(missing_time_locations) == 0
             throw("Could not find time array information for $(p2i(f2p(x)[1:end-1]))[$time]")
         else
             time_array = missing_time_locations[end].time = Float64[]
@@ -75,27 +75,41 @@ function global_time(ids::Union{IDS,IDSvector})::Real
     return dd.global_time
 end
 
-function set_time_array(ids, location,value)
+"""
+    set_time_array(ids, location,value)
+
+set data to a time-dependent array at the dd.global_time
+"""
+function set_time_array(ids, location, value)
     time = time_array(ids)
     time0 = global_time(ids)
     i = nothing
-    if (length(time) == 0) || (time0 < minimum(time))
-        pushfirst!(time, time0)
+    if length(time) == 0
+        push!(time, time0)
         if location !== :time
             setproperty!(ids, location, [value])
         end
-        i = 1
     else
-        i = argmin(abs.(time .- time0))
         # perfect match --> overwrite
         if minimum(abs.(time .- time0)) == 0
             if location !== :time
-                getproperty(ids, location)[i] = value
+                i = argmin(abs.(time .- time0))
+                if is_missing(ids, location)
+                    setproperty!(ids, location, vcat([NaN for k = 1:i-1], value))
+                else
+                    getproperty(ids, location)[i] = value
+                end
             end
-        else
-            insert!(time, i+1, time0)
+        elseif time0 > maximum(time)
+            push(time, time0)
             if location !== :time
-                insert!(getproperty(ids, location), i+1, value)
+                if !is_missing(ids, location)
+                    setproperty!(ids, location, vcat([NaN for k = 1:i-1], value))
+                else
+                    reps = length(time) - length(getproperty(ids, location))
+                    last_value = getproperty(ids, location)[end]
+                    append!(getproperty(ids, location), vcat([last_value for k = 1:reps], value))
+                end
             end
         end
     end
@@ -103,6 +117,11 @@ function set_time_array(ids, location,value)
     return getproperty(ids, location)[i]
 end
 
+"""
+    get_time_array(ids, location)
+
+get data from a time-dependent array at the dd.global_time
+"""
 function get_time_array(ids, location)
     time = time_array(ids)
     time0 = global_time(ids)
@@ -110,7 +129,7 @@ function get_time_array(ids, location)
     return getproperty(ids, location)[i]
 end
 
-macro timedep(ex)
+function _timedep(ex)
     quote
         local expr = $(Meta.QuoteNode(ex))
         if expr.head == :(=)
@@ -125,4 +144,13 @@ macro timedep(ex)
         end
         tmp
     end
+end
+
+"""
+    timedep
+
+Macro for getting/setting data of a time-dependent array at the dd.global_time
+"""
+macro timedep(ex)
+    return _timedep(ex)
 end
