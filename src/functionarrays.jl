@@ -73,7 +73,7 @@ abstract type IDSvectorTimeElement <: IDSvectorElement end
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
     # raise a nice error for missing values
-    if typeof(value) <: IDS
+    if typeof(value) <: Union{IDS,IDSvector}
         return value
     elseif value === missing
         error("$(f2i(ids)).$(field) is missing")
@@ -97,33 +97,48 @@ end
 # Arguments
 - `skip_non_coordinates::Bool=false`: don't do anything for fields that not a IMAS coordinate
 """
-function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=false)
-    if typeof(v) <: IDS
-        setfield!(v, :_parent, WeakRef(ids))
-    end
-    if typeof(v) <: StepRangeLen
-        v = collect(v)
-    end
-    if typeof(v) <: AbstractArray
-        # figure out the coordinates
-        coords = coordinates(ids, field)
-        # do not allow assigning data before coordinates
-        for (c_name, c_value) in zip(coords[:names], coords[:values])
-            if c_value === missing
-                if skip_non_coordinates
-                    return
-                else
-                    error("Can't assign data to `$(f2u(ids)).$(field)` before `$c_name`")
-                end
-            end
-        end
-    end
+function _setproperty!(ids::IDS, field::Symbol, v)
     try
         setfield!(ids, field, v)
     catch e
         typeof(e) <: TypeError && error("$(typeof(v)) is the wrong type for $(f2u(ids)).$(field), it should be $(fieldtype(typeof(ids), field)))")
         rethrow()
     end
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=false)
+    _setproperty!(ids, field, v)
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v::StepRangeLen; skip_non_coordinates=false)
+    v = collect(v)
+    setproperty!(ids, field, v; skip_non_coordinates=skip_non_coordinates)
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v::AbstractArray; skip_non_coordinates=false)
+    # figure out the coordinates
+    coords = coordinates(ids, field)
+    # do not allow assigning data before coordinates
+    for (c_name, c_value) in zip(coords[:names], coords[:values])
+        if c_value === missing
+            if skip_non_coordinates
+                return
+            else
+                error("Can't assign data to `$(f2u(ids)).$(field)` before `$c_name`")
+            end
+        end
+    end
+    _setproperty!(ids, field, v)
+end
+
+function Base.setproperty!(ids::IDSvector{T}, field::Symbol, v::T; skip_non_coordinates=false) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    _setproperty!(ids, field, v)
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v::Union{IDS,IDSvector}; skip_non_coordinates=false)
+    setfield!(v, :_parent, WeakRef(ids))
+    _setproperty!(ids, field, v)
 end
 
 """
@@ -184,20 +199,22 @@ Execute a function passing the IDS stack as arguments to the function
 """
 function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Function, func_args)
     structure_name = "$(f2u(ids)).$(field)"
-    # keep track of recursion
-    if ! (structure_name in expression_call_stack)
-        push!(expression_call_stack, structure_name)
-    else
-        culprits = join(expression_call_stack, "\n    * ")
-        error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
-    end
-    # find ancestors to this ids
-    ancestors = ids_ancestors(ids)
-    # execute and in all cases pop the call_stack
     try
-        func(func_args...;ancestors...)
+        # keep track of recursion
+        if ! (structure_name in expression_call_stack)
+            push!(expression_call_stack, structure_name)
+        else
+            culprits = join(expression_call_stack, "\n    * ")
+            error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
+        end
+        # find ancestors to this ids
+        ancestors = ids_ancestors(ids)
+        # execute and in all cases pop the call_stack
+        func(func_args...; ancestors...)
     finally
-        pop!(expression_call_stack)
+        if length(expression_call_stack) > 0
+            pop!(expression_call_stack)
+        end
     end
 end
 
