@@ -61,14 +61,25 @@ function struct_field_type(structure::DataType, field::Symbol)
     return structure.types[index]
 end
 
-#= === =#
-#  IDS  #
-#= === =#
+#= ============================ =#
+#  IDS and IDSvector structures  #
+#= ============================ =#
 
 abstract type IDS end
 abstract type IDSvectorElement <: IDS end
 abstract type IDSvectorStaticElement <: IDSvectorElement end
 abstract type IDSvectorTimeElement <: IDSvectorElement end
+mutable struct IDSvector{T} <: AbstractVector{T}
+    _value::Vector{T}
+    _parent::WeakRef
+    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
+        return new{T}(ids, WeakRef(missing))
+    end
+end
+
+#= === =#
+#  IDS  #
+#= === =#
 
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
@@ -222,14 +233,6 @@ end
 #  IDSvector  #
 #= ========= =#
 
-mutable struct IDSvector{T} <: AbstractVector{T}
-    _value::Vector{T}
-    _parent::WeakRef
-    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
-        return new{T}(ids, WeakRef(missing))
-    end
-end
-
 function Base.size(ids::IDSvector{T}) where {T <: IDSvectorElement}
     size(ids._value)
 end
@@ -376,9 +379,6 @@ function Base.empty!(ids::IDS)
         if item != :_parent
             setproperty!(ids, item, getfield(tmp, item))
         end
-        # if typeof(getfield(tmp, item)) <: Union{IDS,IDSvector}
-        #     setfield!(getfield(tmp, item), :_parent, WeakRef(ids))
-        # end
     end
     assign_expressions(ids)
 end
