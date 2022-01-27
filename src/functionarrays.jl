@@ -369,3 +369,16 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
     end
     return ids
 end
+
+function Base.empty!(ids::IDS)
+    tmp = typeof(ids)()
+    for item in fieldnames(typeof(ids))
+        if item != :_parent
+            setproperty!(ids, item, getfield(tmp, item))
+        end
+        # if typeof(getfield(tmp, item)) <: Union{IDS,IDSvector}
+        #     setfield!(getfield(tmp, item), :_parent, WeakRef(ids))
+        # end
+    end
+    assign_expressions(ids)
+end
