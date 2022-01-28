@@ -10,10 +10,8 @@ function time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
     while h._parent.value !== missing
         field_names_types = NamedTuple{fieldnames(typeof(h))}(fieldtypes(typeof(h)))
         if :time in keys(field_names_types) && typeintersect(field_names_types[:time], AbstractVector) !== Union{}
-            if is_missing(h, :time)
-                push!(missing_time_locations, h)
-            elseif length(h.time) == 0
-                push!(missing_time_locations, h)
+            if is_missing(h, :time) || (length(h.time) == 0)
+                pushfirst!(missing_time_locations, h)
             else
                 time_array = h.time
                 break
