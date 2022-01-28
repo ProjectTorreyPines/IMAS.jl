@@ -11,7 +11,7 @@ mutable struct wall__temperature_reference <: IDS
     end
 end
 
-mutable struct wall__global_quantities__neutral___element <: IDSvectorElement
+mutable struct wall__global_quantities__neutral___element <: IDSvectorStaticElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
     var"z_n" :: Union{Missing, Real, Function}
@@ -23,7 +23,7 @@ mutable struct wall__global_quantities__neutral___element <: IDSvectorElement
     end
 end
 
-mutable struct wall__global_quantities__neutral <: IDSvectorElement
+mutable struct wall__global_quantities__neutral <: IDSvectorStaticElement
     var"element" :: IDSvector{T} where {T<:wall__global_quantities__neutral___element}
     var"gas_puff" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"label" :: Union{Missing, String, Function}
@@ -110,7 +110,7 @@ mutable struct wall__description_ggd___type <: IDS
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary <: IDSvectorStaticElement
     var"index" :: Union{Missing, Integer, Function}
     var"neighbours" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
@@ -121,7 +121,7 @@ mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension_
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension___object <: IDSvectorStaticElement
     var"boundary" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___space___objects_per_dimension___object___boundary}
     var"geometry" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"measure" :: Union{Missing, Real, Function}
@@ -135,7 +135,7 @@ mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension_
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___space___objects_per_dimension <: IDSvectorStaticElement
     var"object" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___space___objects_per_dimension___object}
     _parent :: WeakRef
     function wall__description_ggd___grid_ggd___space___objects_per_dimension(var"object"=IDSvector(wall__description_ggd___grid_ggd___space___objects_per_dimension___object[]), _parent=WeakRef(missing))
@@ -170,7 +170,7 @@ mutable struct wall__description_ggd___grid_ggd___space___geometry_type <: IDS
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___space <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___space <: IDSvectorStaticElement
     var"coordinates_type" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"geometry_type" :: wall__description_ggd___grid_ggd___space___geometry_type
     var"identifier" :: wall__description_ggd___grid_ggd___space___identifier
@@ -222,7 +222,7 @@ mutable struct wall__description_ggd___grid_ggd___grid_subset___identifier <: ID
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___grid_subset___element___object <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___grid_subset___element___object <: IDSvectorStaticElement
     var"dimension" :: Union{Missing, Integer, Function}
     var"index" :: Union{Missing, Integer, Function}
     var"space" :: Union{Missing, Integer, Function}
@@ -234,7 +234,7 @@ mutable struct wall__description_ggd___grid_ggd___grid_subset___element___object
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___grid_subset___element <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___grid_subset___element <: IDSvectorStaticElement
     var"object" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___grid_subset___element___object}
     _parent :: WeakRef
     function wall__description_ggd___grid_ggd___grid_subset___element(var"object"=IDSvector(wall__description_ggd___grid_ggd___grid_subset___element___object[]), _parent=WeakRef(missing))
@@ -245,7 +245,7 @@ mutable struct wall__description_ggd___grid_ggd___grid_subset___element <: IDSve
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___grid_subset___base <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___grid_subset___base <: IDSvectorStaticElement
     var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
@@ -257,7 +257,7 @@ mutable struct wall__description_ggd___grid_ggd___grid_subset___base <: IDSvecto
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd___grid_subset <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd___grid_subset <: IDSvectorStaticElement
     var"base" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___grid_subset___base}
     var"dimension" :: Union{Missing, Integer, Function}
     var"element" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___grid_subset___element}
@@ -275,7 +275,7 @@ mutable struct wall__description_ggd___grid_ggd___grid_subset <: IDSvectorElemen
     end
 end
 
-mutable struct wall__description_ggd___grid_ggd <: IDSvectorElement
+mutable struct wall__description_ggd___grid_ggd <: IDSvectorTimeElement
     var"grid_subset" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___grid_subset}
     var"identifier" :: wall__description_ggd___grid_ggd___identifier
     var"space" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd___space}
@@ -291,7 +291,7 @@ mutable struct wall__description_ggd___grid_ggd <: IDSvectorElement
     end
 end
 
-mutable struct wall__description_ggd <: IDSvectorElement
+mutable struct wall__description_ggd <: IDSvectorStaticElement
     var"grid_ggd" :: IDSvector{T} where {T<:wall__description_ggd___grid_ggd}
     var"type" :: wall__description_ggd___type
     _parent :: WeakRef
@@ -327,7 +327,7 @@ mutable struct wall__description_2d___vessel__unit___element___j_tor <: IDS
     end
 end
 
-mutable struct wall__description_2d___vessel__unit___element <: IDSvectorElement
+mutable struct wall__description_2d___vessel__unit___element <: IDSvectorStaticElement
     var"j_tor" :: wall__description_2d___vessel__unit___element___j_tor
     var"name" :: Union{Missing, String, Function}
     var"outline" :: wall__description_2d___vessel__unit___element___outline
@@ -396,7 +396,7 @@ mutable struct wall__description_2d___vessel__unit___annular <: IDS
     end
 end
 
-mutable struct wall__description_2d___vessel__unit <: IDSvectorElement
+mutable struct wall__description_2d___vessel__unit <: IDSvectorStaticElement
     var"annular" :: wall__description_2d___vessel__unit___annular
     var"element" :: IDSvector{T} where {T<:wall__description_2d___vessel__unit___element}
     var"identifier" :: Union{Missing, String, Function}
@@ -448,7 +448,7 @@ mutable struct wall__description_2d___type <: IDS
     end
 end
 
-mutable struct wall__description_2d___mobile__unit___outline <: IDSvectorElement
+mutable struct wall__description_2d___mobile__unit___outline <: IDSvectorTimeElement
     var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"time" :: Union{Missing, Real, Function}
     var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
@@ -460,7 +460,7 @@ mutable struct wall__description_2d___mobile__unit___outline <: IDSvectorElement
     end
 end
 
-mutable struct wall__description_2d___mobile__unit <: IDSvectorElement
+mutable struct wall__description_2d___mobile__unit <: IDSvectorStaticElement
     var"closed" :: Union{Missing, Integer, Function}
     var"name" :: Union{Missing, String, Function}
     var"outline" :: IDSvector{T} where {T<:wall__description_2d___mobile__unit___outline}
@@ -511,7 +511,7 @@ mutable struct wall__description_2d___limiter__unit___outline <: IDS
     end
 end
 
-mutable struct wall__description_2d___limiter__unit <: IDSvectorElement
+mutable struct wall__description_2d___limiter__unit <: IDSvectorStaticElement
     var"closed" :: Union{Missing, Integer, Function}
     var"name" :: Union{Missing, String, Function}
     var"outline" :: wall__description_2d___limiter__unit___outline
@@ -551,7 +551,7 @@ mutable struct wall__description_2d___limiter <: IDS
     end
 end
 
-mutable struct wall__description_2d <: IDSvectorElement
+mutable struct wall__description_2d <: IDSvectorStaticElement
     var"limiter" :: wall__description_2d___limiter
     var"mobile" :: wall__description_2d___mobile
     var"type" :: wall__description_2d___type
@@ -589,7 +589,7 @@ mutable struct wall <: IDS
     end
 end
 
-mutable struct tf__field_map___grid__space___objects_per_dimension___object___boundary <: IDSvectorElement
+mutable struct tf__field_map___grid__space___objects_per_dimension___object___boundary <: IDSvectorStaticElement
     var"index" :: Union{Missing, Integer, Function}
     var"neighbours" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     _parent :: WeakRef
@@ -600,7 +600,7 @@ mutable struct tf__field_map___grid__space___objects_per_dimension___object___bo
     end
 end
 
-mutable struct tf__field_map___grid__space___objects_per_dimension___object <: IDSvectorElement
+mutable struct tf__field_map___grid__space___objects_per_dimension___object <: IDSvectorStaticElement
     var"boundary" :: IDSvector{T} where {T<:tf__field_map___grid__space___objects_per_dimension___object___boundary}
     var"geometry" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"measure" :: Union{Missing, Real, Function}
@@ -614,7 +614,7 @@ mutable struct tf__field_map___grid__space___objects_per_dimension___object <: I
     end
 end
 
-mutable struct tf__field_map___grid__space___objects_per_dimension <: IDSvectorElement
+mutable struct tf__field_map___grid__space___objects_per_dimension <: IDSvectorStaticElement
     var"object" :: IDSvector{T} where {T<:tf__field_map___grid__space___objects_per_dimension___object}
     _parent :: WeakRef
     function tf__field_map___grid__space___objects_per_dimension(var"object"=IDSvector(tf__field_map___grid__space___objects_per_dimension___object[]), _parent=WeakRef(missing))
@@ -649,7 +649,7 @@ mutable struct tf__field_map___grid__space___geometry_type <: IDS
     end
 end
 
-mutable struct tf__field_map___grid__space <: IDSvectorElement
+mutable struct tf__field_map___grid__space <: IDSvectorStaticElement
     var"coordinates_type" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
     var"geometry_type" :: tf__field_map___grid__space___geometry_type
     var"identifier" :: tf__field_map___grid__space___identifier
@@ -701,7 +701,7 @@ mutable struct tf__field_map___grid__grid_subset___identifier <: IDS
     end
 end
 
-mutable struct tf__field_map___grid__grid_subset___element___object <: IDSvectorElement
+mutable struct tf__field_map___grid__grid_subset___element___object <: IDSvectorStaticElement
     var"dimension" :: Union{Missing, Integer, Function}
     var"index" :: Union{Missing, Integer, Function}
     var"space" :: Union{Missing, Integer, Function}
@@ -713,7 +713,7 @@ mutable struct tf__field_map___grid__grid_subset___element___object <: IDSvector
     end
 end
 
-mutable struct tf__field_map___grid__grid_subset___element <: IDSvectorElement
+mutable struct tf__field_map___grid__grid_subset___element <: IDSvectorStaticElement
     var"object" :: IDSvector{T} where {T<:tf__field_map___grid__grid_subset___element___object}
     _parent :: WeakRef
     function tf__field_map___grid__grid_subset___element(var"object"=IDSvector(tf__field_map___grid__grid_subset___element___object[]), _parent=WeakRef(missing))
@@ -724,7 +724,7 @@ mutable struct tf__field_map___grid__grid_subset___element <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map___grid__grid_subset___base <: IDSvectorElement
+mutable struct tf__field_map___grid__grid_subset___base <: IDSvectorStaticElement
     var"jacobian" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"tensor_contravariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
     var"tensor_covariant" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
@@ -736,7 +736,7 @@ mutable struct tf__field_map___grid__grid_subset___base <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map___grid__grid_subset <: IDSvectorElement
+mutable struct tf__field_map___grid__grid_subset <: IDSvectorStaticElement
     var"base" :: IDSvector{T} where {T<:tf__field_map___grid__grid_subset___base}
     var"dimension" :: Union{Missing, Integer, Function}
     var"element" :: IDSvector{T} where {T<:tf__field_map___grid__grid_subset___element}
@@ -769,7 +769,7 @@ mutable struct tf__field_map___grid <: IDS
     end
 end
 
-mutable struct tf__field_map___b_field_z <: IDSvectorElement
+mutable struct tf__field_map___b_field_z <: IDSvectorStaticElement
     var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid_index" :: Union{Missing, Integer, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
@@ -782,7 +782,7 @@ mutable struct tf__field_map___b_field_z <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map___b_field_tor <: IDSvectorElement
+mutable struct tf__field_map___b_field_tor <: IDSvectorStaticElement
     var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid_index" :: Union{Missing, Integer, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
@@ -795,7 +795,7 @@ mutable struct tf__field_map___b_field_tor <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map___b_field_r <: IDSvectorElement
+mutable struct tf__field_map___b_field_r <: IDSvectorStaticElement
     var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid_index" :: Union{Missing, Integer, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
@@ -808,7 +808,7 @@ mutable struct tf__field_map___b_field_r <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map___a_field_z <: IDSvectorElement
+mutable struct tf__field_map___a_field_z <: IDSvectorStaticElement
     var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid_index" :: Union{Missing, Integer, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
@@ -821,7 +821,7 @@ mutable struct tf__field_map___a_field_z <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map___a_field_tor <: IDSvectorElement
+mutable struct tf__field_map___a_field_tor <: IDSvectorStaticElement
     var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid_index" :: Union{Missing, Integer, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
@@ -834,7 +834,7 @@ mutable struct tf__field_map___a_field_tor <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map___a_field_r <: IDSvectorElement
+mutable struct tf__field_map___a_field_r <: IDSvectorStaticElement
     var"coefficients" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"grid_index" :: Union{Missing, Integer, Function}
     var"grid_subset_index" :: Union{Missing, Integer, Function}
@@ -847,7 +847,7 @@ mutable struct tf__field_map___a_field_r <: IDSvectorElement
     end
 end
 
-mutable struct tf__field_map <: IDSvectorElement
+mutable struct tf__field_map <: IDSvectorTimeElement
     var"a_field_r" :: IDSvector{T} where {T<:tf__field_map___a_field_r}
     var"a_field_tor" :: IDSvector{T} where {T<:tf__field_map___a_field_tor}
     var"a_field_z" :: IDSvector{T} where {T<:tf__field_map___a_field_z}
@@ -1005,7 +1005,7 @@ mutable struct tf__coil___conductor___cross_section <: IDS
     end
 end
 
-mutable struct tf__coil___conductor <: IDSvectorElement
+mutable struct tf__coil___conductor <: IDSvectorStaticElement
     var"cross_section" :: tf__coil___conductor___cross_section
     var"current" :: tf__coil___conductor___current
     var"elements" :: tf__coil___conductor___elements
@@ -1023,7 +1023,7 @@ mutable struct tf__coil___conductor <: IDSvectorElement
     end
 end
 
-mutable struct tf__coil <: IDSvectorElement
+mutable struct tf__coil <: IDSvectorStaticElement
     var"conductor" :: IDSvector{T} where {T<:tf__coil___conductor}
     var"current" :: tf__coil___current
     var"identifier" :: Union{Missing, String, Function}
@@ -5981,7 +5981,7 @@ mutable struct summary__local__divertor_plate___flux_expansion <: IDS
     end
 end
 
-mutable struct summary__local__divertor_plate <: IDSvectorElement
+mutable struct summary__local__divertor_plate <: IDSvectorStaticElement
     var"flux_expansion" :: summary__local__divertor_plate___flux_expansion
     var"n_e" :: summary__local__divertor_plate___n_e
     var"n_i" :: summary__local__divertor_plate___n_i
@@ -6713,7 +6713,7 @@ mutable struct summary__heating_current_drive__nbi___angle <: IDS
     end
 end
 
-mutable struct summary__heating_current_drive__nbi <: IDSvectorElement
+mutable struct summary__heating_current_drive__nbi <: IDSvectorStaticElement
     var"angle" :: summary__heating_current_drive__nbi___angle
     var"beam_current_fraction" :: summary__heating_current_drive__nbi___beam_current_fraction
     var"beam_power_fraction" :: summary__heating_current_drive__nbi___beam_power_fraction
@@ -6821,7 +6821,7 @@ mutable struct summary__heating_current_drive__lh___current <: IDS
     end
 end
 
-mutable struct summary__heating_current_drive__lh <: IDSvectorElement
+mutable struct summary__heating_current_drive__lh <: IDSvectorStaticElement
     var"current" :: summary__heating_current_drive__lh___current
     var"energy_fast" :: summary__heating_current_drive__lh___energy_fast
     var"frequency" :: summary__heating_current_drive__lh___frequency
@@ -6965,7 +6965,7 @@ mutable struct summary__heating_current_drive__ic___current <: IDS
     end
 end
 
-mutable struct summary__heating_current_drive__ic <: IDSvectorElement
+mutable struct summary__heating_current_drive__ic <: IDSvectorStaticElement
     var"current" :: summary__heating_current_drive__ic___current
     var"e_field_plus_minus_ratio" :: summary__heating_current_drive__ic___e_field_plus_minus_ratio
     var"energy_fast" :: summary__heating_current_drive__ic___energy_fast
@@ -7106,7 +7106,7 @@ mutable struct summary__heating_current_drive__ec___angle_pol <: IDS
     end
 end
 
-mutable struct summary__heating_current_drive__ec <: IDSvectorElement
+mutable struct summary__heating_current_drive__ec <: IDSvectorStaticElement
     var"angle_pol" :: summary__heating_current_drive__ec___angle_pol
     var"angle_tor" :: summary__heating_current_drive__ec___angle_tor
     var"current" :: summary__heating_current_drive__ec___current
@@ -8882,7 +8882,7 @@ mutable struct radial_build__pf_coils_rail___outline <: IDS
     end
 end
 
-mutable struct radial_build__pf_coils_rail <: IDSvectorElement
+mutable struct radial_build__pf_coils_rail <: IDSvectorStaticElement
     var"coils_cleareance" :: Union{Missing, Real, Function}
     var"coils_elements_area" :: Union{Missing, Real, Function}
     var"coils_number" :: Union{Missing, Integer, Function}
@@ -8919,7 +8919,7 @@ mutable struct radial_build__layer___outline <: IDS
     end
 end
 
-mutable struct radial_build__layer <: IDSvectorElement
+mutable struct radial_build__layer <: IDSvectorStaticElement
     var"end_radius" :: Union{Missing, Real, Function}
     var"hfs" :: Union{Missing, Integer, Function}
     var"identifier" :: Union{Missing, Integer, Function}
@@ -8983,7 +8983,7 @@ mutable struct pf_active__vertical_force___force <: IDS
     end
 end
 
-mutable struct pf_active__vertical_force <: IDSvectorElement
+mutable struct pf_active__vertical_force <: IDSvectorStaticElement
     var"combination" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"force" :: pf_active__vertical_force___force
     var"limit_max" :: Union{Missing, Real, Function}
@@ -9020,7 +9020,7 @@ mutable struct pf_active__supply___current <: IDS
     end
 end
 
-mutable struct pf_active__supply <: IDSvectorElement
+mutable struct pf_active__supply <: IDSvectorStaticElement
     var"current" :: pf_active__supply___current
     var"current_limit_max" :: Union{Missing, Real, Function}
     var"current_limit_min" :: Union{Missing, Real, Function}
@@ -9058,7 +9058,7 @@ mutable struct pf_active__radial_force___force <: IDS
     end
 end
 
-mutable struct pf_active__radial_force <: IDSvectorElement
+mutable struct pf_active__radial_force <: IDSvectorStaticElement
     var"combination" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"force" :: pf_active__radial_force___force
     var"limit_max" :: Union{Missing, Real, Function}
@@ -9165,7 +9165,7 @@ mutable struct pf_active__coil___element___geometry <: IDS
     end
 end
 
-mutable struct pf_active__coil___element <: IDSvectorElement
+mutable struct pf_active__coil___element <: IDSvectorStaticElement
     var"area" :: Union{Missing, Real, Function}
     var"geometry" :: pf_active__coil___element___geometry
     var"identifier" :: Union{Missing, String, Function}
@@ -9202,7 +9202,7 @@ mutable struct pf_active__coil___b_field_max_timed <: IDS
     end
 end
 
-mutable struct pf_active__coil <: IDSvectorElement
+mutable struct pf_active__coil <: IDSvectorStaticElement
     var"b_field_max" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"b_field_max_timed" :: pf_active__coil___b_field_max_timed
     var"current" :: pf_active__coil___current
@@ -9248,7 +9248,7 @@ mutable struct pf_active__circuit___current <: IDS
     end
 end
 
-mutable struct pf_active__circuit <: IDSvectorElement
+mutable struct pf_active__circuit <: IDSvectorStaticElement
     var"connections" :: Union{Missing, AbstractArray{T, 2} where T<:Integer, Function}
     var"current" :: pf_active__circuit___current
     var"identifier" :: Union{Missing, String, Function}
@@ -9323,7 +9323,7 @@ mutable struct equilibrium__time_slice___profiles_2d___grid <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice___profiles_2d <: IDSvectorElement
+mutable struct equilibrium__time_slice___profiles_2d <: IDSvectorStaticElement
     var"b_field_r" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"b_field_tor" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
     var"b_field_z" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
@@ -9553,7 +9553,7 @@ mutable struct equilibrium__time_slice___constraints__x_point___position_measure
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__x_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__x_point <: IDSvectorStaticElement
     var"chi_squared_r" :: Union{Missing, Real, Function}
     var"chi_squared_z" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
@@ -9594,7 +9594,7 @@ mutable struct equilibrium__time_slice___constraints__strike_point___position_me
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__strike_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__strike_point <: IDSvectorStaticElement
     var"chi_squared_r" :: Union{Missing, Real, Function}
     var"chi_squared_z" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
@@ -9625,7 +9625,7 @@ mutable struct equilibrium__time_slice___constraints__q___position <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__q <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__q <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9643,7 +9643,7 @@ mutable struct equilibrium__time_slice___constraints__q <: IDSvectorElement
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__pressure <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__pressure <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9659,7 +9659,7 @@ mutable struct equilibrium__time_slice___constraints__pressure <: IDSvectorEleme
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__pf_passive_current <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__pf_passive_current <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9675,7 +9675,7 @@ mutable struct equilibrium__time_slice___constraints__pf_passive_current <: IDSv
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__pf_current <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__pf_current <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9691,7 +9691,7 @@ mutable struct equilibrium__time_slice___constraints__pf_current <: IDSvectorEle
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__n_e_line <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__n_e_line <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9707,7 +9707,7 @@ mutable struct equilibrium__time_slice___constraints__n_e_line <: IDSvectorEleme
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__n_e <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__n_e <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9723,7 +9723,7 @@ mutable struct equilibrium__time_slice___constraints__n_e <: IDSvectorElement
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__mse_polarisation_angle <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__mse_polarisation_angle <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9771,7 +9771,7 @@ mutable struct equilibrium__time_slice___constraints__iron_core_segment___magnet
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__iron_core_segment <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__iron_core_segment <: IDSvectorStaticElement
     var"magnetisation_r" :: equilibrium__time_slice___constraints__iron_core_segment___magnetisation_r
     var"magnetisation_z" :: equilibrium__time_slice___constraints__iron_core_segment___magnetisation_z
     _parent :: WeakRef
@@ -9800,7 +9800,7 @@ mutable struct equilibrium__time_slice___constraints__ip <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__flux_loop <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__flux_loop <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9816,7 +9816,7 @@ mutable struct equilibrium__time_slice___constraints__flux_loop <: IDSvectorElem
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__faraday_angle <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__faraday_angle <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9848,7 +9848,7 @@ mutable struct equilibrium__time_slice___constraints__diamagnetic_flux <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice___constraints__bpol_probe <: IDSvectorElement
+mutable struct equilibrium__time_slice___constraints__bpol_probe <: IDSvectorStaticElement
     var"chi_squared" :: Union{Missing, Real, Function}
     var"exact" :: Union{Missing, Integer, Function}
     var"measured" :: Union{Missing, Real, Function}
@@ -9921,7 +9921,7 @@ mutable struct equilibrium__time_slice___constraints <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice___boundary_separatrix__x_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___boundary_separatrix__x_point <: IDSvectorStaticElement
     var"r" :: Union{Missing, Real, Function}
     var"z" :: Union{Missing, Real, Function}
     _parent :: WeakRef
@@ -9932,7 +9932,7 @@ mutable struct equilibrium__time_slice___boundary_separatrix__x_point <: IDSvect
     end
 end
 
-mutable struct equilibrium__time_slice___boundary_separatrix__strike_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___boundary_separatrix__strike_point <: IDSvectorStaticElement
     var"r" :: Union{Missing, Real, Function}
     var"z" :: Union{Missing, Real, Function}
     _parent :: WeakRef
@@ -9965,7 +9965,7 @@ mutable struct equilibrium__time_slice___boundary_separatrix__geometric_axis <: 
     end
 end
 
-mutable struct equilibrium__time_slice___boundary_separatrix__gap <: IDSvectorElement
+mutable struct equilibrium__time_slice___boundary_separatrix__gap <: IDSvectorStaticElement
     var"angle" :: Union{Missing, Real, Function}
     var"identifier" :: Union{Missing, String, Function}
     var"name" :: Union{Missing, String, Function}
@@ -10052,7 +10052,7 @@ mutable struct equilibrium__time_slice___boundary_separatrix <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice___boundary_secondary_separatrix__x_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___boundary_secondary_separatrix__x_point <: IDSvectorStaticElement
     var"r" :: Union{Missing, Real, Function}
     var"z" :: Union{Missing, Real, Function}
     _parent :: WeakRef
@@ -10063,7 +10063,7 @@ mutable struct equilibrium__time_slice___boundary_secondary_separatrix__x_point 
     end
 end
 
-mutable struct equilibrium__time_slice___boundary_secondary_separatrix__strike_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___boundary_secondary_separatrix__strike_point <: IDSvectorStaticElement
     var"r" :: Union{Missing, Real, Function}
     var"z" :: Union{Missing, Real, Function}
     _parent :: WeakRef
@@ -10102,7 +10102,7 @@ mutable struct equilibrium__time_slice___boundary_secondary_separatrix <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice___boundary__x_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___boundary__x_point <: IDSvectorStaticElement
     var"r" :: Union{Missing, Real, Function}
     var"z" :: Union{Missing, Real, Function}
     _parent :: WeakRef
@@ -10113,7 +10113,7 @@ mutable struct equilibrium__time_slice___boundary__x_point <: IDSvectorElement
     end
 end
 
-mutable struct equilibrium__time_slice___boundary__strike_point <: IDSvectorElement
+mutable struct equilibrium__time_slice___boundary__strike_point <: IDSvectorStaticElement
     var"r" :: Union{Missing, Real, Function}
     var"z" :: Union{Missing, Real, Function}
     _parent :: WeakRef
@@ -10190,7 +10190,7 @@ mutable struct equilibrium__time_slice___boundary <: IDS
     end
 end
 
-mutable struct equilibrium__time_slice <: IDSvectorElement
+mutable struct equilibrium__time_slice <: IDSvectorTimeElement
     var"boundary" :: equilibrium__time_slice___boundary
     var"boundary_secondary_separatrix" :: equilibrium__time_slice___boundary_secondary_separatrix
     var"boundary_separatrix" :: equilibrium__time_slice___boundary_separatrix
@@ -10374,7 +10374,7 @@ mutable struct core_sources__source___species__neutral__state <: IDS
     end
 end
 
-mutable struct core_sources__source___species__neutral__element <: IDSvectorElement
+mutable struct core_sources__source___species__neutral__element <: IDSvectorStaticElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
     var"z_n" :: Union{Missing, Real, Function}
@@ -10415,7 +10415,7 @@ mutable struct core_sources__source___species__ion__state <: IDS
     end
 end
 
-mutable struct core_sources__source___species__ion__element <: IDSvectorElement
+mutable struct core_sources__source___species__ion__element <: IDSvectorStaticElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
     var"z_n" :: Union{Missing, Real, Function}
@@ -10480,7 +10480,7 @@ mutable struct core_sources__source___profiles_1d___neutral___state___neutral_ty
     end
 end
 
-mutable struct core_sources__source___profiles_1d___neutral___state <: IDSvectorElement
+mutable struct core_sources__source___profiles_1d___neutral___state <: IDSvectorStaticElement
     var"electron_configuration" :: Union{Missing, String, Function}
     var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"label" :: Union{Missing, String, Function}
@@ -10497,7 +10497,7 @@ mutable struct core_sources__source___profiles_1d___neutral___state <: IDSvector
     end
 end
 
-mutable struct core_sources__source___profiles_1d___neutral___element <: IDSvectorElement
+mutable struct core_sources__source___profiles_1d___neutral___element <: IDSvectorStaticElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
     var"z_n" :: Union{Missing, Real, Function}
@@ -10509,7 +10509,7 @@ mutable struct core_sources__source___profiles_1d___neutral___element <: IDSvect
     end
 end
 
-mutable struct core_sources__source___profiles_1d___neutral <: IDSvectorElement
+mutable struct core_sources__source___profiles_1d___neutral <: IDSvectorStaticElement
     var"element" :: IDSvector{T} where {T<:core_sources__source___profiles_1d___neutral___element}
     var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"ion_index" :: Union{Missing, Integer, Function}
@@ -10549,7 +10549,7 @@ mutable struct core_sources__source___profiles_1d___ion___state___energy_decompo
     end
 end
 
-mutable struct core_sources__source___profiles_1d___ion___state <: IDSvectorElement
+mutable struct core_sources__source___profiles_1d___ion___state <: IDSvectorStaticElement
     var"electron_configuration" :: Union{Missing, String, Function}
     var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"energy_decomposed" :: core_sources__source___profiles_1d___ion___state___energy_decomposed
@@ -10619,7 +10619,7 @@ mutable struct core_sources__source___profiles_1d___ion___energy_decomposed <: I
     end
 end
 
-mutable struct core_sources__source___profiles_1d___ion___element <: IDSvectorElement
+mutable struct core_sources__source___profiles_1d___ion___element <: IDSvectorStaticElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
     var"z_n" :: Union{Missing, Real, Function}
@@ -10631,7 +10631,7 @@ mutable struct core_sources__source___profiles_1d___ion___element <: IDSvectorEl
     end
 end
 
-mutable struct core_sources__source___profiles_1d___ion <: IDSvectorElement
+mutable struct core_sources__source___profiles_1d___ion <: IDSvectorStaticElement
     var"element" :: IDSvector{T} where {T<:core_sources__source___profiles_1d___ion___element}
     var"energy" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"energy_decomposed" :: core_sources__source___profiles_1d___ion___energy_decomposed
@@ -10713,7 +10713,7 @@ mutable struct core_sources__source___profiles_1d___electrons <: IDS
     end
 end
 
-mutable struct core_sources__source___profiles_1d <: IDSvectorElement
+mutable struct core_sources__source___profiles_1d <: IDSvectorTimeElement
     var"conductivity_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"current_parallel_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"electrons" :: core_sources__source___profiles_1d___electrons
@@ -10764,7 +10764,7 @@ mutable struct core_sources__source___global_quantities___electrons <: IDS
     end
 end
 
-mutable struct core_sources__source___global_quantities <: IDSvectorElement
+mutable struct core_sources__source___global_quantities <: IDSvectorTimeElement
     var"current_parallel" :: Union{Missing, Real, Function}
     var"electrons" :: core_sources__source___global_quantities___electrons
     var"power" :: Union{Missing, Real, Function}
@@ -10781,7 +10781,7 @@ mutable struct core_sources__source___global_quantities <: IDSvectorElement
     end
 end
 
-mutable struct core_sources__source <: IDSvectorElement
+mutable struct core_sources__source <: IDSvectorStaticElement
     var"global_quantities" :: IDSvector{T} where {T<:core_sources__source___global_quantities}
     var"identifier" :: core_sources__source___identifier
     var"profiles_1d" :: IDSvector{T} where {T<:core_sources__source___profiles_1d}
@@ -10901,7 +10901,7 @@ mutable struct core_profiles__profiles_1d___neutral___state___neutral_type <: ID
     end
 end
 
-mutable struct core_profiles__profiles_1d___neutral___state <: IDSvectorElement
+mutable struct core_profiles__profiles_1d___neutral___state <: IDSvectorStaticElement
     var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
@@ -10924,7 +10924,7 @@ mutable struct core_profiles__profiles_1d___neutral___state <: IDSvectorElement
     end
 end
 
-mutable struct core_profiles__profiles_1d___neutral___element <: IDSvectorElement
+mutable struct core_profiles__profiles_1d___neutral___element <: IDSvectorStaticElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
     var"z_n" :: Union{Missing, Real, Function}
@@ -10936,7 +10936,7 @@ mutable struct core_profiles__profiles_1d___neutral___element <: IDSvectorElemen
     end
 end
 
-mutable struct core_profiles__profiles_1d___neutral <: IDSvectorElement
+mutable struct core_profiles__profiles_1d___neutral <: IDSvectorStaticElement
     var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_thermal" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
@@ -11040,7 +11040,7 @@ mutable struct core_profiles__profiles_1d___ion___state___density_fit <: IDS
     end
 end
 
-mutable struct core_profiles__profiles_1d___ion___state <: IDSvectorElement
+mutable struct core_profiles__profiles_1d___ion___state <: IDSvectorStaticElement
     var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fit" :: core_profiles__profiles_1d___ion___state___density_fit
@@ -11071,7 +11071,7 @@ mutable struct core_profiles__profiles_1d___ion___state <: IDSvectorElement
     end
 end
 
-mutable struct core_profiles__profiles_1d___ion___element <: IDSvectorElement
+mutable struct core_profiles__profiles_1d___ion___element <: IDSvectorStaticElement
     var"a" :: Union{Missing, Real, Function}
     var"atoms_n" :: Union{Missing, Integer, Function}
     var"z_n" :: Union{Missing, Real, Function}
@@ -11116,7 +11116,7 @@ mutable struct core_profiles__profiles_1d___ion___density_fit <: IDS
     end
 end
 
-mutable struct core_profiles__profiles_1d___ion <: IDSvectorElement
+mutable struct core_profiles__profiles_1d___ion <: IDSvectorStaticElement
     var"density" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fast" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"density_fit" :: core_profiles__profiles_1d___ion___density_fit
@@ -11274,7 +11274,7 @@ mutable struct core_profiles__profiles_1d___e_field <: IDS
     end
 end
 
-mutable struct core_profiles__profiles_1d <: IDSvectorElement
+mutable struct core_profiles__profiles_1d <: IDSvectorTimeElement
     var"conductivity_parallel" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"current_parallel_inside" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"e_field" :: core_profiles__profiles_1d___e_field
@@ -11367,9 +11367,10 @@ mutable struct dd <: IDS
     var"summary" :: Union{Missing, summary}
     var"tf" :: Union{Missing, tf}
     var"wall" :: Union{Missing, wall}
+    var"global_time" :: Real
     _parent :: WeakRef
-    function dd(var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"radial_build"=radial_build(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), _parent=WeakRef(missing))
-        ids = new(var"core_profiles", var"core_sources", var"dataset_description", var"equilibrium", var"pf_active", var"radial_build", var"summary", var"tf", var"wall", _parent)
+    function dd(var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"radial_build"=radial_build(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), var"global_time"=0.0, _parent=WeakRef(missing))
+        ids = new(var"core_profiles", var"core_sources", var"dataset_description", var"equilibrium", var"pf_active", var"radial_build", var"summary", var"tf", var"wall", var"global_time", _parent)
         assign_expressions(ids)
         setfield!(ids.core_profiles, :_parent, WeakRef(ids))
         setfield!(ids.core_sources, :_parent, WeakRef(ids))

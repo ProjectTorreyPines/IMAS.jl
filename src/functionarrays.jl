@@ -1,5 +1,8 @@
 include("expressions.jl")
 
+struct GlobalTime <: AbstractFloat end
+const τ = GlobalTime()
+
 #= ============ =#
 #  IMAS DD read  #
 #= ============ =#
@@ -58,17 +61,30 @@ function struct_field_type(structure::DataType, field::Symbol)
     return structure.types[index]
 end
 
+#= ============================ =#
+#  IDS and IDSvector structures  #
+#= ============================ =#
+
+abstract type IDS end
+abstract type IDSvectorElement <: IDS end
+abstract type IDSvectorStaticElement <: IDSvectorElement end
+abstract type IDSvectorTimeElement <: IDSvectorElement end
+mutable struct IDSvector{T} <: AbstractVector{T}
+    _value::Vector{T}
+    _parent::WeakRef
+    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
+        return new{T}(ids, WeakRef(missing))
+    end
+end
+
 #= === =#
 #  IDS  #
 #= === =#
 
-abstract type IDS end
-abstract type IDSvectorElement <: IDS end
-
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
     # raise a nice error for missing values
-    if typeof(value) <: IDS
+    if typeof(value) <: Union{IDS,IDSvector}
         return value
     elseif value === missing
         error("$(f2i(ids)).$(field) is missing")
@@ -92,33 +108,48 @@ end
 # Arguments
 - `skip_non_coordinates::Bool=false`: don't do anything for fields that not a IMAS coordinate
 """
-function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=false)
-    if typeof(v) <: IDS
-        setfield!(v, :_parent, WeakRef(ids))
-    end
-    if typeof(v) <: StepRangeLen
-        v = collect(v)
-    end
-    if typeof(v) <: AbstractArray
-        # figure out the coordinates
-        coords = coordinates(ids, field)
-        # do not allow assigning data before coordinates
-        for (c_name, c_value) in zip(coords[:names], coords[:values])
-            if c_value === missing
-                if skip_non_coordinates
-                    return
-                else
-                    error("Can't assign data to `$(f2u(ids)).$(field)` before `$c_name`")
-                end
-            end
-        end
-    end
+function _setproperty!(ids::IDS, field::Symbol, v)
     try
         setfield!(ids, field, v)
     catch e
         typeof(e) <: TypeError && error("$(typeof(v)) is the wrong type for $(f2u(ids)).$(field), it should be $(fieldtype(typeof(ids), field)))")
         rethrow()
     end
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=false)
+    _setproperty!(ids, field, v)
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v::StepRangeLen; skip_non_coordinates=false)
+    v = collect(v)
+    setproperty!(ids, field, v; skip_non_coordinates=skip_non_coordinates)
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v::AbstractArray; skip_non_coordinates=false)
+    # figure out the coordinates
+    coords = coordinates(ids, field)
+    # do not allow assigning data before coordinates
+    for (c_name, c_value) in zip(coords[:names], coords[:values])
+        if c_value === missing
+            if skip_non_coordinates
+                return
+            else
+                error("Can't assign data to `$(f2u(ids)).$(field)` before `$c_name`")
+            end
+        end
+    end
+    _setproperty!(ids, field, v)
+end
+
+function Base.setproperty!(ids::IDSvector{T}, field::Symbol, v::T; skip_non_coordinates=false) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    _setproperty!(ids, field, v)
+end
+
+function Base.setproperty!(ids::IDS, field::Symbol, v::Union{IDS,IDSvector}; skip_non_coordinates=false)
+    setfield!(v, :_parent, WeakRef(ids))
+    _setproperty!(ids, field, v)
 end
 
 """
@@ -179,20 +210,22 @@ Execute a function passing the IDS stack as arguments to the function
 """
 function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Function, func_args)
     structure_name = "$(f2u(ids)).$(field)"
-    # keep track of recursion
-    if ! (structure_name in expression_call_stack)
-        push!(expression_call_stack, structure_name)
-    else
-        culprits = join(expression_call_stack, "\n    * ")
-        error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
-    end
-    # find ancestors to this ids
-    ancestors = ids_ancestors(ids)
-    # execute and in all cases pop the call_stack
     try
-        func(func_args...;ancestors...)
+        # keep track of recursion
+        if ! (structure_name in expression_call_stack)
+            push!(expression_call_stack, structure_name)
+        else
+            culprits = join(expression_call_stack, "\n    * ")
+            error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
+        end
+        # find ancestors to this ids
+        ancestors = ids_ancestors(ids)
+        # execute and in all cases pop the call_stack
+        func(func_args...; ancestors...)
     finally
-        pop!(expression_call_stack)
+        if length(expression_call_stack) > 0
+            pop!(expression_call_stack)
+        end
     end
 end
 
@@ -200,38 +233,85 @@ end
 #  IDSvector  #
 #= ========= =#
 
-mutable struct IDSvector{T} <: AbstractVector{T}
-    value::Vector{T}
-    _parent::WeakRef
-    function IDSvector(x::Vector{T}) where {T <: IDSvectorElement}
-        return new{T}(x, WeakRef(missing))
+function Base.size(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    size(ids._value)
+end
+
+function Base.length(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    length(ids._value)
+end
+
+function Base.getindex(ids::IDSvector{T}) where {T <: IDSvectorTimeElement}
+    return getindex(ids, global_time(ids))
+end
+
+function Base.getindex(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorTimeElement}
+    return getindex(ids, global_time(ids))
+end
+
+function Base.getindex(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
+    if length(ids) == 0
+        ids[1]
+    end
+    time = time_array(ids) 
+    i = argmin(abs.(time .- time0))
+    ids._value[i]
+end
+
+function Base.getindex(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+    try
+        ids._value[i]
+    catch
+        error("Attempt to access $(length(ids))-element $(typeof(ids)) at index [$i]. Need to `resize!(ids, $i)`")
     end
 end
 
-function Base.getindex(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
-    x.value[i]
+function Base.setindex!(ids::IDSvector{T}, v::T) where {T <: IDSvectorTimeElement}
+    setindex!(ids, v, global_time(ids))
 end
 
-function Base.size(x::IDSvector{T}) where {T <: IDSvectorElement}
-    size(x.value)
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: IDSvectorTimeElement}
+    setindex!(ids, v, global_time(ids))
 end
 
-function Base.length(x::IDSvector{T}) where {T <: IDSvectorElement}
-    length(x.value)
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
+    time = time_array(ids)
+    if time0 < minimum(time)
+        pushfirst!(time, time0)
+        pushfirst!(ids, v)
+    elseif time0 > maximum(time)
+        push!(time, time0)
+        push!(ids, v)
+    elseif minimum(abs.(time .- time0)) == 0
+        i = argmin(abs.(time .- time0))
+        # perfect match --> overwrite
+        ids._value[i] = v
+    else
+        error("Cannot insert data at time $time0 in middle of a time array structure ranging between $(time[1]) and $(time[end])")
+    end
+    if hasfield(typeof(v), :time)
+        v.time=time0
+    end
+    setfield!(v, :_parent, WeakRef(ids))
 end
 
-function Base.setindex!(x::IDSvector{T}, v::T, i::Int) where {T <: IDSvectorElement}
-    x.value[i] = v
-    setfield!(v, :_parent, WeakRef(x))
+function Base.setindex!(ids::IDSvector{T}, v::T, i::Int) where {T <: IDSvectorElement}
+    ids._value[i] = v
+    setfield!(v, :_parent, WeakRef(ids))
 end
 
-function Base.push!(x::IDSvector{T}, v::T) where {T <: IDSvectorElement}
-    setfield!(v, :_parent, WeakRef(x))
-    push!(x.value, v)
+function Base.push!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    push!(ids._value, v)
 end
 
-function Base.pop!(x::IDSvector{T}) where {T <: IDSvectorElement}
-    pop!(x.value)
+function Base.pushfirst!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    pushfirst!(ids._value, v)
+end
+
+function Base.pop!(ids::IDSvector{T}) where {T <: IDSvectorElement}
+    pop!(ids._value)
 end
 
 function iterate(ids::IDSvector{T}) where {T <: IDSvectorElement}
@@ -246,11 +326,59 @@ function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
     end
 end
 
-function Base.insert!(x::IDSvector{T}, i, v::T) where {T <: IDSvectorElement}
-    setfield!(v, :_parent, WeakRef(x))
-    insert!(x.value, i, v)
+function Base.insert!(ids::IDSvector{T}, i, v::T) where {T <: IDSvectorElement}
+    setfield!(v, :_parent, WeakRef(ids))
+    insert!(ids._value, i, v)
 end
 
-function Base.deleteat!(x::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
-    return Base.deleteat!(x.value, i)
+function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+    return Base.deleteat!(ids._value, i)
+end
+
+function Base.resize!(ids::IDSvector{T}) where {T <: IDSvectorTimeElement}
+    return Base.resize!(ids, global_time(ids))
+end
+
+function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorTimeElement}
+    return Base.resize!(ids, global_time(ids))
+end
+
+function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
+    time = time_array(ids)
+    if (length(ids) == 0) || (time0 > maximum(time))
+        k = length(ids) + 1
+        resize!(ids, k)
+        push!(time, time0)
+        if hasfield(typeof(ids[k]), :time)
+            ids[k].time = time0
+        end
+    elseif time0 < maximum(time)
+        error("Cannot resize structure at time $time0 for a time array structure already ranging between $(time[1]) and $(time[end])")
+    end
+    return ids
+end
+
+function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
+    if n > length(ids)
+        for k in length(ids):n - 1
+            obj = eltype(ids)()
+            setfield!(obj, :_parent, WeakRef(ids))
+            push!(ids._value, obj)
+        end
+    elseif n < length(ids)
+        for k in n:length(ids) - 1
+            pop!(ids._value)
+        end
+    end
+    return ids
+end
+
+function Base.empty!(ids::IDS)
+    tmp = typeof(ids)()
+    for item in fieldnames(typeof(ids))
+        if item != :_parent
+            setproperty!(ids, item, getfield(tmp, item))
+        end
+    end
+    assign_expressions(ids)
 end

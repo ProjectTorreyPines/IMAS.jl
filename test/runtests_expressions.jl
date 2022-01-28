@@ -1,3 +1,6 @@
+import IMAS
+using Test
+
 @testset "expressions" begin
     ne0 = 1E20
     Te0 = 1E3
