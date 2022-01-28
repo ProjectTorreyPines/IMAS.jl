@@ -178,17 +178,17 @@ function join_outlines(r1, z1, r2, z2)
 end
 
 """
-    plot_build_cx(rb::IMAS.build)
+    plot_build_cx(bd::IMAS.build)
 
 Plots build cross-section
 """
-@recipe function plot_build_cx(rb::IMAS.build; cx=true, outlines=false, only_layers=nothing, exclude_layers=Symbol[])
+@recipe function plot_build_cx(bd::IMAS.build; cx=true, outlines=false, only_layers=nothing, exclude_layers=Symbol[])
     aspect_ratio --> :equal
     grid --> :none
 
     # cx
     if cx
-        rmax = maximum(rb.layer[end].outline.r) * 2.0
+        rmax = maximum(bd.layer[end].outline.r) * 2.0
 
         # Cryostat
         if ((only_layers === nothing) || (:cryostat in only_layers)) && (! (:cryostat in exclude_layers))
@@ -199,7 +199,7 @@ Plots build cross-section
                     color --> :white
                     label --> ""
                     xlim --> [0,rmax]
-                    join_outlines(rb.layer[end].outline.r, rb.layer[end].outline.z, IMAS.get_build(rb, type=-1).outline.r, IMAS.get_build(rb, type=-1).outline.z)
+                    join_outlines(bd.layer[end].outline.r, bd.layer[end].outline.z, IMAS.get_build(bd, type=-1).outline.r, IMAS.get_build(bd, type=-1).outline.z)
                 end
             end
 
@@ -209,7 +209,7 @@ Plots build cross-section
                 color --> :black
                 label --> (! outlines ? "Cryostat" : "")
                 xlim --> [0,rmax]
-                rb.layer[end].outline.r[1:end - 1], rb.layer[end].outline.z[1:end - 1]
+                bd.layer[end].outline.r[1:end - 1], bd.layer[end].outline.z[1:end - 1]
             end
 
             @series begin
@@ -218,7 +218,7 @@ Plots build cross-section
                 label --> ""
                 linestyle --> :dash
                 color --> :black
-                [0.0, 0.0], [minimum(rb.layer[end].outline.z), maximum(rb.layer[end].outline.z)]
+                [0.0, 0.0], [minimum(bd.layer[end].outline.z), maximum(bd.layer[end].outline.z)]
             end
         end
 
@@ -229,9 +229,9 @@ Plots build cross-section
                     seriestype --> :shape
                     linewidth --> 0.0
                     color --> :gray
-                    label --> (! outlines ? IMAS.get_build(rb, type=1).name : "")
+                    label --> (! outlines ? IMAS.get_build(bd, type=1).name : "")
                     xlim --> [0,rmax]
-                    IMAS.get_build(rb, type=1).outline.r, IMAS.get_build(rb, type=1).outline.z
+                    IMAS.get_build(bd, type=1).outline.r, IMAS.get_build(bd, type=1).outline.z
                 end
             end
             @series begin
@@ -240,13 +240,13 @@ Plots build cross-section
                 color --> :black
                 label --> ""
                 xlim --> [0,rmax]
-                IMAS.get_build(rb, type=1).outline.r, IMAS.get_build(rb, type=1).outline.z
+                IMAS.get_build(bd, type=1).outline.r, IMAS.get_build(bd, type=1).outline.z
             end
         end
 
         # all layers between the OH and the vessel
         valid = false
-        for (k, l) in enumerate(rb.layer[1:end - 1])
+        for (k, l) in enumerate(bd.layer[1:end - 1])
             if (l.type == 2) && (l.hfs == 1)
                 valid = true
             end
@@ -256,7 +256,7 @@ Plots build cross-section
             if IMAS.is_missing(l.outline, :r) || ! valid
                 continue
             end
-            l1 = rb.layer[k + 1]
+            l1 = bd.layer[k + 1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
 
             # setup labels and colors
@@ -307,7 +307,7 @@ Plots build cross-section
                 color --> :black
                 label --> (! outlines ? "Vessel" : "")
                 xlim --> [0, rmax]
-                IMAS.get_build(rb, type=-1).outline.r, IMAS.get_build(rb, type=-1).outline.z
+                IMAS.get_build(bd, type=-1).outline.r, IMAS.get_build(bd, type=-1).outline.z
             end
         end
 
@@ -324,7 +324,7 @@ Plots build cross-section
         end
 
         at = 0
-        for l in rb.layer
+        for l in bd.layer
             @series begin
                 if ! is_missing(l, :material) && l.material == "vacuum"
                     color --> :white
