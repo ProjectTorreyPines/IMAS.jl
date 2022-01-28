@@ -100,7 +100,7 @@ function get_time_array(ids::Union{IDS,IDSvector{T}}, location::Symbol) where {T
     return getproperty(ids, location)[i]
 end
 
-function _timedep(ex)
+function _ddtime(ex)
     quote
         local expr = $(Meta.QuoteNode(ex))
         if expr.head == :(=)
@@ -118,10 +118,10 @@ function _timedep(ex)
 end
 
 """
-    timedep
+    ddtime
 
 Macro for getting/setting data of a time-dependent array at the dd.global_time
 """
-macro timedep(ex)
-    return _timedep(ex)
+macro ddtime(ex)
+    return _ddtime(ex)
 end

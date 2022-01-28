@@ -1,6 +1,6 @@
 import Revise
 import IMAS
-import IMAS: @timedep
+import IMAS: @ddtime
 using Test
 
 @testset "time_ids" begin
@@ -105,40 +105,40 @@ end
     dd = IMAS.dd()
 
     dd.global_time = 1010.0
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0 = 1.0) == 1.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0 = 1.0) == 1.0
     @test dd.equilibrium.time == [1010.0]
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0) == 1.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0) == 1.0
     @test dd.equilibrium.vacuum_toroidal_field.b0 == [1.0]
 
     dd.global_time = 2020.0
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0 = 2.0) == 2.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0 = 2.0) == 2.0
     @test dd.equilibrium.time == [1010.0, 2020.0]
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0) == 2.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0) == 2.0
     @test dd.equilibrium.vacuum_toroidal_field.b0 == [1.0, 2.0]
 
     dd.global_time = 3030.0
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0) == 2.0 # time interpolation
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0) == 2.0 # time interpolation
     @test dd.equilibrium.time == [1010.0, 2020.0]
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0 = 3.0) == 3.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0 = 3.0) == 3.0
     @test dd.equilibrium.time == [1010.0, 2020.0, 3030.0]
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0) == 3.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0) == 3.0
     @test dd.equilibrium.vacuum_toroidal_field.b0 == [1.0, 2.0, 3.0]
 
     # edit something in the past
     dd.global_time = 2020.0
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0 = -2.0) == -2.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0 = -2.0) == -2.0
 
     # insert a time
     push!(dd.equilibrium.time, 4040.0)
 
     # test interpolation and insertion
     dd.global_time = 5050.0
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0 = 5.0) == 5.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0 = 5.0) == 5.0
     @test dd.equilibrium.vacuum_toroidal_field.b0 == [1.0, -2.0, 3.0, 3.0, 5.0]
 
     # test insertion at later time of an empty field
     empty!(dd.equilibrium.vacuum_toroidal_field.b0)
-    @test @timedep(dd.equilibrium.vacuum_toroidal_field.b0 = 5.0) == 5.0
+    @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0 = 5.0) == 5.0
     @test all(dd.equilibrium.vacuum_toroidal_field.b0 .=== [NaN, NaN, NaN, NaN, 5.0])
 
 end
