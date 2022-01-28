@@ -86,6 +86,15 @@ end
 
 Plots equilibrium cross-section
 """
+@recipe function plot_eqtcx(eq::IMAS.equilibrium; psi_levels=nothing, psi_levels_out=nothing, lcfs=false)
+    @series begin
+        psi_levels --> psi_levels
+        psi_levels_out --> psi_levels_out
+        lcfs --> lcfs
+        return eq.time_slice[]
+    end
+end
+
 @recipe function plot_eqtcx(eqt::IMAS.equilibrium__time_slice; psi_levels=nothing, psi_levels_out=nothing, lcfs=false)
 
     label --> ""
@@ -113,12 +122,20 @@ Plots equilibrium cross-section
             if psi_levels === nothing
                 psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=11)
             elseif isa(psi_levels, Int)
-                psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels)
+                if psi_levels > 1
+                    psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels)
+                else
+                    psi_levels = []
+                end
             end
             if psi_levels_out === nothing
-                psi_levels_out = (psi_levels[end] - psi_levels[1]) .* collect(range(0, 1, length=11)) .+ psi_levels[end]
+                psi_levels_out = (psi__boundary_level - eqt.profiles_1d.psi[1]) .* collect(range(0, 1, length=11)) .+ psi__boundary_level
             elseif isa(psi_levels_out, Int)
-                psi_levels_out = (psi_levels[end] - psi_levels[1]) .* collect(range(0, 1, length=psi_levels_out)) .+ psi_levels[end]
+                if psi_levels_out > 1
+                    psi_levels_out = (psi__boundary_level - eqt.profiles_1d.psi[1]) .* collect(range(0, 1, length=psi_levels_out)) .+ psi__boundary_level
+                else
+                    psi_levels_out = []
+                end
             end
         end
         psi_levels = unique(vcat(psi_levels, psi_levels_out))
