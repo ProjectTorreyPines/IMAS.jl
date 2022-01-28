@@ -81,13 +81,20 @@ end
 #  IDS  #
 #= === =#
 
+struct IMASmissingDataException <: Exception
+    ids::IDS
+    field::Symbol
+end
+
+Base.showerror(io::IO, e::IMASmissingDataException) = print(io, "ERROR: $(f2i(e.ids)).$(e.field) is missing")
+
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
     # raise a nice error for missing values
     if typeof(value) <: Union{IDS,IDSvector}
         return value
     elseif value === missing
-        error("$(f2i(ids)).$(field) is missing")
+        throw(IMASmissingDataException(ids, field))
     # interpolate functions on given coordinates
     elseif typeof(value) <: Function
         x = coordinates(ids, field)[:values]
@@ -253,7 +260,7 @@ function Base.getindex(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSv
     if length(ids) == 0
         ids[1]
     end
-    time = time_array(ids) 
+    time = time_parent(ids).time
     i = argmin(abs.(time .- time0))
     ids._value[i]
 end
@@ -275,7 +282,7 @@ function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: 
 end
 
 function Base.setindex!(ids::IDSvector{T}, v::T, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
-    time = time_array(ids)
+    time = time_parent(ids).time
     if time0 < minimum(time)
         pushfirst!(time, time0)
         pushfirst!(ids, v)
@@ -344,8 +351,11 @@ function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvecto
 end
 
 function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
-    time = time_array(ids)
-    if (length(ids) == 0) || (time0 > maximum(time))
+    _time=time_parent(ids)
+    time = _time.time
+    if length(ids) > length(time)
+        error("Length [$(length(ids))] of $(p2i(f2p(ids)[1:end-1])) does not match length [$(length(time))] of $(f2i(_time)).time. Cannot resize based on global_time.")
+    elseif (length(ids) == 0) || (time0 > maximum(time))
         k = length(ids) + 1
         resize!(ids, k)
         push!(time, time0)
@@ -355,7 +365,7 @@ function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSve
     elseif time0 < maximum(time)
         error("Cannot resize structure at time $time0 for a time array structure already ranging between $(time[1]) and $(time[end])")
     end
-    return ids
+    return ids[end]
 end
 
 function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
@@ -370,7 +380,105 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
             pop!(ids._value)
         end
     end
+    return ids[end]
+end
+
+"""
+    Base.resize!(ids::IDSvector{T}, func::Function) where {T <: IDSvectorElement}
+
+Resize array of structure if a function returns false
+"""
+function Base.resize!(ids::IDSvector{T}, func::Function) where {T <: IDSvectorElement}
+    if length(ids) == 0
+        return resize!(ids, 1)
+    end
+    matches = Dict()
+    for (k, item) in enumerate(ids)
+        try
+            if func(item)
+                matches[k]=item
+            end
+        catch e
+            if typeof(e) <: IMASmissingDataException
+                resize!(ids, length(ids) + 1)
+            else
+                rethrow()
+            end
+        end
+    end
+    if length(matches) == 1
+        return collect(values(matches))[1]
+    elseif length(matches) > 1
+        error("Multiple entries $([k for k in keys(matches)]) match resize! conditions")
+    end
+    return resize!(ids, length(ids) + 1)
+end
+
+function _set_conditions(ids::IDS, conditions::Pair{String}...)
+    for (path, value) in conditions
+        h = ids
+        for p in i2p(path)
+            if typeof(p) <: Int
+                if p > length(h)
+                    resize!(h, p)
+                end
+                h = h[p]
+            else
+                p = Symbol(p)
+                if is_missing(h, p)
+                    setproperty!(h, p, value)
+                end
+                h = getproperty(h, p)
+            end
+        end
+    end
     return ids
+end
+
+"""
+    Base.resize!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
+
+Resize if a set of conditions are not met, and populate structure with those conditions
+"""
+
+function Base.resize!(ids::IDSvector{T}, conditions::Pair{String}...) where {T <: IDSvectorElement}
+    if length(ids) == 0
+        return _set_conditions(resize!(ids, 1), conditions...)
+    end
+    matches = Dict()
+    for (k, item) in enumerate(ids)
+        match = true
+        for (path, value) in conditions
+            h = item
+            for p in i2p(path)
+                if typeof(p) <: Int
+                    if p > length(h)
+                        return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
+                    end
+                    h = h[p]
+                else
+                    p = Symbol(p)
+                    if is_missing(h, p)
+                        return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
+                    end
+                    h = getproperty(h, p)
+                end
+            end
+            if h != value
+                match = false
+                break
+            end
+        end
+        if match
+            matches[k]=item
+        end
+    end
+    if length(matches) == 1
+        return collect(values(matches))[1]
+    elseif length(matches) > 1
+        error("Multiple entries $([k for k in keys(matches)]) match resize! conditions")
+    end
+    return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
 end
 
 function Base.empty!(ids::IDS)

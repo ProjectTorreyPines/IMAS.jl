@@ -22,17 +22,17 @@ function time_locations(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement
 end
 
 """
-    time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
+    time_parent(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
 
 Look for time array information
 """
-function time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
+function time_parent(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
     locs, tarr = time_locations(ids)
     h = [locs[k] for k in 1:length(locs) if tarr[k]][end]
     if is_missing(h, :time)
         h.time = Float64[]
     end
-    return h.time
+    return h
 end
 
 """
@@ -54,7 +54,7 @@ end
 set data to a time-dependent array at the dd.global_time
 """
 function set_time_array(ids::Union{IDS,IDSvector{T}}, location::Symbol, value) where {T<:IDSvectorElement}
-    time = time_array(ids)
+    time = time_parent(ids).time
     time0 = global_time(ids)
     # no time information
     if length(time) == 0
@@ -105,7 +105,7 @@ end
 get data from a time-dependent array at the dd.global_time
 """
 function get_time_array(ids::Union{IDS,IDSvector{T}}, location::Symbol) where {T<:IDSvectorElement}
-    time = time_array(ids)
+    time = time_parent(ids).time
     time0 = global_time(ids)
     i = argmin(abs.(time .- time0))
     return getproperty(ids, location)[i]
