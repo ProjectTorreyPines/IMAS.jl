@@ -178,11 +178,11 @@ function join_outlines(r1, z1, r2, z2)
 end
 
 """
-    plot_radial_build_cx(rb::IMAS.radial_build)
+    plot_build_cx(rb::IMAS.build)
 
-Plots radial build cross-section
+Plots build cross-section
 """
-@recipe function plot_radial_build_cx(rb::IMAS.radial_build; cx=true, outlines=false, only_layers=nothing, exclude_layers=Symbol[])
+@recipe function plot_build_cx(rb::IMAS.build; cx=true, outlines=false, only_layers=nothing, exclude_layers=Symbol[])
     aspect_ratio --> :equal
     grid --> :none
 
@@ -199,7 +199,7 @@ Plots radial build cross-section
                     color --> :white
                     label --> ""
                     xlim --> [0,rmax]
-                    join_outlines(rb.layer[end].outline.r, rb.layer[end].outline.z, IMAS.get_radial_build(rb, type=-1).outline.r, IMAS.get_radial_build(rb, type=-1).outline.z)
+                    join_outlines(rb.layer[end].outline.r, rb.layer[end].outline.z, IMAS.get_build(rb, type=-1).outline.r, IMAS.get_build(rb, type=-1).outline.z)
                 end
             end
 
@@ -229,9 +229,9 @@ Plots radial build cross-section
                     seriestype --> :shape
                     linewidth --> 0.0
                     color --> :gray
-                    label --> (! outlines ? IMAS.get_radial_build(rb, type=1).name : "")
+                    label --> (! outlines ? IMAS.get_build(rb, type=1).name : "")
                     xlim --> [0,rmax]
-                    IMAS.get_radial_build(rb, type=1).outline.r, IMAS.get_radial_build(rb, type=1).outline.z
+                    IMAS.get_build(rb, type=1).outline.r, IMAS.get_build(rb, type=1).outline.z
                 end
             end
             @series begin
@@ -240,7 +240,7 @@ Plots radial build cross-section
                 color --> :black
                 label --> ""
                 xlim --> [0,rmax]
-                IMAS.get_radial_build(rb, type=1).outline.r, IMAS.get_radial_build(rb, type=1).outline.z
+                IMAS.get_build(rb, type=1).outline.r, IMAS.get_build(rb, type=1).outline.z
             end
         end
 
@@ -307,7 +307,7 @@ Plots radial build cross-section
                 color --> :black
                 label --> (! outlines ? "Vessel" : "")
                 xlim --> [0, rmax]
-                IMAS.get_radial_build(rb, type=-1).outline.r, IMAS.get_radial_build(rb, type=-1).outline.z
+                IMAS.get_build(rb, type=-1).outline.r, IMAS.get_build(rb, type=-1).outline.z
             end
         end
 

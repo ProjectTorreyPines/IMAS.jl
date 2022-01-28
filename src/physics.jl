@@ -424,11 +424,11 @@ function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision=1e-6, raise_e
 end
 
 """
-    radial_build_radii(rb::IMAS.radial_build)
+    build_radii(rb::IMAS.build)
 
-Return list of radii in the radial build
+Return list of radii in the build
 """
-function radial_build_radii(rb::IMAS.radial_build)
+function build_radii(rb::IMAS.build)
     layers_radii = Real[]
     layer_start = 0
     for l in rb.layer
@@ -440,16 +440,16 @@ function radial_build_radii(rb::IMAS.radial_build)
 end
 
 """
-    get_radial_build(rb::IMAS.radial_build;
+    get_build(rb::IMAS.build;
                      type::Union{Nothing,Int}=nothing,
                      name::Union{Nothing,String}=nothing,
                      identifier::Union{Nothing,UInt,Int}=nothing,
                      hfs::Union{Nothing,Int}=nothing,
                      return_only_one=true )
 
-Select layer(s) in radial build based on a series of selection criteria
+Select layer(s) in build based on a series of selection criteria
 """
-function get_radial_build(rb::IMAS.radial_build;
+function get_build(rb::IMAS.build;
                           type::Union{Nothing,Int}=nothing,
                           name::Union{Nothing,String}=nothing,
                           identifier::Union{Nothing,UInt,Int}=nothing,
@@ -475,7 +475,7 @@ function get_radial_build(rb::IMAS.radial_build;
     end
     if length(valid_layers)==0
         if raise_error_on_missing
-            error("Did not find radial_build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
+            error("Did not find build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
         else
             return nothing
         end
@@ -492,11 +492,11 @@ function get_radial_build(rb::IMAS.radial_build;
 end
 
 """
-    structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Real=10/resolution)
+    structures_mask(rb::IMAS.build, resolution::Int=257, border::Real=10/resolution)
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(rb::IMAS.radial_build; resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
+function structures_mask(rb::IMAS.build; resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
     border = maximum(rb.layer[end].outline.r)*border_fraction
     xlim = [0.0,maximum(rb.layer[end].outline.r)+border]
     ylim = [minimum(rb.layer[end].outline.z)-border,maximum(rb.layer[end].outline.z)+border]
@@ -530,7 +530,7 @@ function structures_mask(rb::IMAS.radial_build; resolution::Int=257, border_frac
             end
         end
     end
-    rlim_oh = IMAS.get_radial_build(rb,type=1).start_radius
+    rlim_oh = IMAS.get_build(rb,type=1).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr<rlim_oh
