@@ -424,14 +424,14 @@ function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision=1e-6, raise_e
 end
 
 """
-    radial_build_radii(rb::IMAS.radial_build)
+    build_radii(bd::IMAS.build)
 
-Return list of radii in the radial build
+Return list of radii in the build
 """
-function radial_build_radii(rb::IMAS.radial_build)
+function build_radii(bd::IMAS.build)
     layers_radii = Real[]
     layer_start = 0
-    for l in rb.layer
+    for l in bd.layer
         push!(layers_radii, layer_start)
         layer_start = layer_start + l.thickness
     end
@@ -440,16 +440,16 @@ function radial_build_radii(rb::IMAS.radial_build)
 end
 
 """
-    get_radial_build(rb::IMAS.radial_build;
+    get_build(bd::IMAS.build;
                      type::Union{Nothing,Int}=nothing,
                      name::Union{Nothing,String}=nothing,
                      identifier::Union{Nothing,UInt,Int}=nothing,
                      hfs::Union{Nothing,Int}=nothing,
                      return_only_one=true )
 
-Select layer(s) in radial build based on a series of selection criteria
+Select layer(s) in build based on a series of selection criteria
 """
-function get_radial_build(rb::IMAS.radial_build;
+function get_build(bd::IMAS.build;
                           type::Union{Nothing,Int}=nothing,
                           name::Union{Nothing,String}=nothing,
                           identifier::Union{Nothing,UInt,Int}=nothing,
@@ -464,7 +464,7 @@ function get_radial_build(rb::IMAS.radial_build;
     end
     
     valid_layers = []
-    for (k,l) in enumerate(rb.layer)
+    for (k,l) in enumerate(bd.layer)
         if (name===nothing || l.name == name) && (type===nothing || l.type == type) && (identifier===nothing || l.identifier == identifier) && (hfs===nothing || l.hfs in hfs)
             if return_index
                 push!(valid_layers, k)
@@ -475,7 +475,7 @@ function get_radial_build(rb::IMAS.radial_build;
     end
     if length(valid_layers)==0
         if raise_error_on_missing
-            error("Did not find radial_build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
+            error("Did not find build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
         else
             return nothing
         end
@@ -492,20 +492,20 @@ function get_radial_build(rb::IMAS.radial_build;
 end
 
 """
-    structures_mask(rb::IMAS.radial_build, resolution::Int=257, border::Real=10/resolution)
+    structures_mask(bd::IMAS.build, resolution::Int=257, border::Real=10/resolution)
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(rb::IMAS.radial_build; resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
-    border = maximum(rb.layer[end].outline.r)*border_fraction
-    xlim = [0.0,maximum(rb.layer[end].outline.r)+border]
-    ylim = [minimum(rb.layer[end].outline.z)-border,maximum(rb.layer[end].outline.z)+border]
+function structures_mask(bd::IMAS.build; resolution::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
+    border = maximum(bd.layer[end].outline.r)*border_fraction
+    xlim = [0.0,maximum(bd.layer[end].outline.r)+border]
+    ylim = [minimum(bd.layer[end].outline.z)-border,maximum(bd.layer[end].outline.z)+border]
     rmask = range(xlim[1], xlim[2], length=resolution)
     zmask = range(ylim[1], ylim[2], length=resolution * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
     valid = true
-    for layer in vcat(rb.layer[end],rb.layer)
+    for layer in vcat(bd.layer[end],bd.layer)
         if layer.type == -1
             valid = false
         end
@@ -530,7 +530,7 @@ function structures_mask(rb::IMAS.radial_build; resolution::Int=257, border_frac
             end
         end
     end
-    rlim_oh = IMAS.get_radial_build(rb,type=1).start_radius
+    rlim_oh = IMAS.get_build(bd,type=1).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr<rlim_oh
