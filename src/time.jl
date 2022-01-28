@@ -1,34 +1,38 @@
 """
+    time_locations(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
+
+Return all possible time locations with info about whether they are arrays or not
+"""
+function time_locations(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
+    time_locations = []
+    time_array = []
+
+    # traverse IDS hierarchy upstream looking for a :time
+    h = ids
+    while h._parent.value !== missing
+        field_names_types = NamedTuple{fieldnames(typeof(h))}(fieldtypes(typeof(h)))
+        if :time in keys(field_names_types)
+            pushfirst!(time_locations, h)
+            pushfirst!(time_array, typeintersect(field_names_types[:time], AbstractVector) !== Union{})
+        end
+        h = h._parent.value
+    end
+
+    return time_locations, time_array
+end
+
+"""
     time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
 
 Look for time array information
 """
 function time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
-    time_array = nothing
-    missing_time_locations = []
-
-    # traverse IDS hierarchy upstream looking for a time array
-    h = ids
-    while h._parent.value !== missing
-        field_names_types = NamedTuple{fieldnames(typeof(h))}(fieldtypes(typeof(h)))
-        if :time in keys(field_names_types) && typeintersect(field_names_types[:time], AbstractVector) !== Union{}
-            if is_missing(h, :time) || (length(h.time) == 0)
-                pushfirst!(missing_time_locations, h)
-            else
-                time_array = h.time
-                break
-            end
-        end
-        h = h._parent.value
+    locs, tarr = time_locations(ids)
+    h = [locs[k] for k in 1:length(locs) if tarr[k]][end]
+    if is_missing(h, :time)
+        h.time = Float64[]
     end
-    if time_array === nothing
-        if length(missing_time_locations) == 0
-            error("Could not find time array information for $(p2i(f2p(ids)[1:end-1]))[$time]")
-        else
-            time_array = missing_time_locations[end].time = Float64[]
-        end
-    end
-    time_array
+    return h.time
 end
 
 """
