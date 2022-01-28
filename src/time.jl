@@ -1,5 +1,7 @@
 """
-    look for time array information
+    time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
+
+Look for time array information
 """
 function time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
     time_array = nothing
@@ -29,6 +31,11 @@ function time_array(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
     time_array
 end
 
+"""
+    global_time(ids::Union{IDS,IDSvector})::Real
+
+get the dd.global_time of a given IDS
+"""
 function global_time(ids::Union{IDS,IDSvector})::Real
     dd = top_dd(ids)
     if dd === missing
@@ -100,6 +107,15 @@ function get_time_array(ids::Union{IDS,IDSvector{T}}, location::Symbol) where {T
     return getproperty(ids, location)[i]
 end
 
+"""
+    ddtime
+
+Macro for getting/setting data of a time-dependent array at the dd.global_time
+"""
+macro ddtime(ex)
+    return _ddtime(ex)
+end
+
 function _ddtime(ex)
     quote
         local expr = $(Meta.QuoteNode(ex))
@@ -115,13 +131,4 @@ function _ddtime(ex)
         end
         tmp
     end
-end
-
-"""
-    ddtime
-
-Macro for getting/setting data of a time-dependent array at the dd.global_time
-"""
-macro ddtime(ex)
-    return _ddtime(ex)
 end
