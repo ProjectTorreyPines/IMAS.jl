@@ -253,7 +253,7 @@ function Base.getindex(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSv
     if length(ids) == 0
         ids[1]
     end
-    time = time_array(ids) 
+    time = time_parent(ids).time
     i = argmin(abs.(time .- time0))
     ids._value[i]
 end
@@ -275,7 +275,7 @@ function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: 
 end
 
 function Base.setindex!(ids::IDSvector{T}, v::T, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
-    time = time_array(ids)
+    time = time_parent(ids).time
     if time0 < minimum(time)
         pushfirst!(time, time0)
         pushfirst!(ids, v)
@@ -344,8 +344,11 @@ function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvecto
 end
 
 function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
-    time = time_array(ids)
-    if (length(ids) == 0) || (time0 > maximum(time))
+    _time=time_parent(ids)
+    time = _time.time
+    if length(ids) > length(time)
+        error("Length [$(length(ids))] of $(p2i(f2p(ids)[1:end-1])) does not match length [$(length(time))] of $(f2i(_time)).time. Cannot resize based on global_time.")
+    elseif (length(ids) == 0) || (time0 > maximum(time))
         k = length(ids) + 1
         resize!(ids, k)
         push!(time, time0)
@@ -355,7 +358,7 @@ function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSve
     elseif time0 < maximum(time)
         error("Cannot resize structure at time $time0 for a time array structure already ranging between $(time[1]) and $(time[end])")
     end
-    return ids
+    return ids[end]
 end
 
 function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
@@ -370,7 +373,8 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
             pop!(ids._value)
         end
     end
-    return ids
+    return ids[end]
+end
 end
 
 function Base.empty!(ids::IDS)
