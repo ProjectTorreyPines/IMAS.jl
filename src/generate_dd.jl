@@ -5,7 +5,7 @@ using ProgressMeter
 ProgressMeter.ijulia_behavior(:clear)
 
 const imas_version = "3_33_0"
-if ! ("OMAS_ROOT" in keys(ENV))
+if !("OMAS_ROOT" in keys(ENV))
     error("Environmental variable OMAS_ROOT is not set")
 end
 const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
@@ -25,7 +25,7 @@ assign_expressions = x -> x
 ids_names = imas_dd_ids_names()
 ids_names = ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "tf", "wall", "radial_build"]
 
-p = Progress(length(ids_names); desc="Parse JSON structs ", showspeed=true)
+p = Progress(length(ids_names); desc = "Parse JSON structs ", showspeed = true)
 desired_structure = String[]
 for ids_name in ids_names
     ProgressMeter.next!(p)
@@ -38,10 +38,7 @@ end
 #  Implementing selected IMAS DD as Julia structures
 #= ================================================= =#
 
-const type_translator = Dict("STR" => String,
-                             "INT" => Integer,
-                             "FLT" => Real,
-                             "CPX" => Complex{Real})
+const type_translator = Dict("STR" => String, "INT" => Integer, "FLT" => Real, "CPX" => Complex{Real})
 
 """
     imas_julia_struct(desired_structure::Vector{String})
@@ -53,10 +50,11 @@ function imas_julia_struct(desired_structure::Vector{String})
     struct_commands = String[]
 
     branches = Vector()
+    timedep_structures = Vector()
     push!(branches, "")
 
     # generate hierarchy of dicts
-    p = Progress(length(desired_structure); desc="Generate hierarchy of dicts ", showspeed=true)
+    p = Progress(length(desired_structure); desc = "Generate hierarchy of dicts ", showspeed = true)
     ddict = Dict()
     for sel in sort(desired_structure)
         ProgressMeter.next!(p)
@@ -69,7 +67,7 @@ function imas_julia_struct(desired_structure::Vector{String})
         # split IMAS path in 
         path = split(sel, ".")
 
-        # shed some weight (2): no ggd or code
+        # shed some weight (2): no ggd, code, ids_properties
         if ("ggd" in path) || ("ggd[:]" in path) || ("grids_ggd" in path) || ("grids_ggd[:]" in path) || ("code" in path) || ("ids_properties" in path)
             continue
         end
@@ -80,6 +78,11 @@ function imas_julia_struct(desired_structure::Vector{String})
         # shed some weight (3): no obsolescent
         if ("lifecycle_status" in keys(ddids[sel])) && (ddids[sel]["lifecycle_status"] == "obsolescent")
             continue
+        end
+
+        # detect if this is a time dependendent array of structure
+        if ("full_path" in keys(ddids[sel])) && (endswith(ddids[sel]["full_path"],"(itime)"))
+            push!(timedep_structures, sel*"[:]")
         end
 
         h = ddict
@@ -106,7 +109,7 @@ function imas_julia_struct(desired_structure::Vector{String})
                     throw(ArgumentError("$(sel) IMAS $(ddids[sel]["data_type"]) has not been mapped to Julia data type"))
                 end
             end
-            if ! (item in keys(h))
+            if !(item in keys(h))
                 h[item] = Dict()
                 push!(branches, path[1:k])
             end
@@ -116,7 +119,7 @@ function imas_julia_struct(desired_structure::Vector{String})
 
     # generate source code of Julia structures
     is_structarray = false
-    p = Progress(length(branches); desc="Generate source code of Julia structures ", showspeed=true)
+    p = Progress(length(branches); desc = "Generate source code of Julia structures ", showspeed = true)
     for branch in reverse(branches)
         ProgressMeter.next!(p)
 
@@ -125,8 +128,18 @@ function imas_julia_struct(desired_structure::Vector{String})
             h = h[item]
         end
 
-        sep = "__"
         is_structarray = length(branch) > 0 && occursin("[", branch[end])
+        if is_structarray
+            if join(branch, ".") in timedep_structures
+                struct_type = "IDSvectorTimeElement"
+            else
+                struct_type = "IDSvectorStaticElement"
+            end
+        else
+            struct_type = "IDS"
+        end
+
+        sep = "__"
         struct_name_ = replace(join(branch, sep), "[:]" => "_")
         struct_name = replace(struct_name_, r"_$" => "")
         txt = String[]
@@ -138,20 +151,20 @@ function imas_julia_struct(desired_structure::Vector{String})
             if typeof(info) <: String
                 push!(txt, "    var\"$(item)\" $(info)")
                 push!(inits, "var\"$(item)\"=missing")
-            # branch
+                # branch
             else
                 # top level
                 if length(struct_name_) == 0
                     push!(txt, "    var\"$(item)\" :: Union{Missing, $(item)}")
                     push!(inits, "var\"$(item)\"=$(item)()")
-                # arrays of structs
+                    # arrays of structs
                 elseif occursin("[:]", item)
                     item_ = replace(item, "[:]" => "_")
                     item = replace(item, "[:]" => "")
                     item_ = item
                     push!(txt, "    var\"$(item)\" :: IDSvector{T} where {T<:$(struct_name_)$(sep)$(item_)}")
                     push!(inits, "var\"$(item)\"=IDSvector($(struct_name_)$(sep)$(item_)[])")
-                # structs
+                    # structs
                 else
                     push!(txt, "    var\"$(item)\" :: $(struct_name_)$(sep)$(item)")
                     push!(inits, "var\"$(item)\"=$(struct_name_)$(sep)$(item)()")
@@ -160,16 +173,17 @@ function imas_julia_struct(desired_structure::Vector{String})
             end
         end
 
-        struct_type = is_structarray ? "IDSvectorElement" : "IDS"
-
         txt_parent = join(txt_parent, "\n")
         if length(txt_parent) > 0
             txt_parent = "\n$(txt_parent)"
         end
-        inits = join(inits, ", ")
         if length(struct_name) == 0
             struct_name = "dd"
+            global_time_varname = "global_time"
+            push!(txt, "    var\"$(global_time_varname)\" :: Real")
+            push!(inits, "var\"$(global_time_varname)\"=0.0")
         end
+        inits = join(inits, ", ")
         txt_parent = """
     _parent :: WeakRef
     function $(struct_name)($(inits), _parent=WeakRef(missing))
@@ -189,9 +203,9 @@ end
 
         push!(struct_commands, txt)
 
-#       uncomment to debug data structure
-#        println(txt)
-#        eval(Meta.parse(txt))
+        # #uncomment to debug data structure
+        # println(txt)
+        # eval(Meta.parse(txt))
     end
 
     return struct_commands
@@ -200,7 +214,7 @@ end
 struct_commands = imas_julia_struct(desired_structure)
 
 # Parse the Julia structs to make sure there are no issues
-p = Progress(length(struct_commands); desc="Compile IMAS.jl structs ", showspeed=true)
+p = Progress(length(struct_commands); desc = "Compile IMAS.jl structs ", showspeed = true)
 for txt in struct_commands
     ProgressMeter.next!(p)
     try
@@ -211,7 +225,7 @@ for txt in struct_commands
     end
 end
 
-open("$(dirname(@__FILE__))/dd.jl","w") do io
+open("$(dirname(@__FILE__))/dd.jl", "w") do io
     println(io, "include(\"functionarrays.jl\")\n")
     println(io, join(struct_commands, "\n"))
 end

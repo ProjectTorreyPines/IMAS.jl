@@ -1,3 +1,6 @@
+import IMAS
+using Test
+
 @testset "IDS" begin
     # instantiate and populate top-level IDS
     data = IMAS.dd();
