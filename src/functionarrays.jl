@@ -81,13 +81,20 @@ end
 #  IDS  #
 #= === =#
 
+struct IMASmissingDataException <: Exception
+    ids::IDS
+    field::Symbol
+end
+
+Base.showerror(io::IO, e::IMASmissingDataException) = print(io, "ERROR: $(f2i(e.ids)).$(e.field) is missing")
+
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
     # raise a nice error for missing values
     if typeof(value) <: Union{IDS,IDSvector}
         return value
     elseif value === missing
-        error("$(f2i(ids)).$(field) is missing")
+        throw(IMASmissingDataException(ids, field))
     # interpolate functions on given coordinates
     elseif typeof(value) <: Function
         x = coordinates(ids, field)[:values]
@@ -375,6 +382,103 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
     end
     return ids[end]
 end
+
+"""
+    Base.resize!(ids::IDSvector{T}, func::Function) where {T <: IDSvectorElement}
+
+Resize array of structure if a function returns false
+"""
+function Base.resize!(ids::IDSvector{T}, func::Function) where {T <: IDSvectorElement}
+    if length(ids) == 0
+        return resize!(ids, 1)
+    end
+    matches = Dict()
+    for (k, item) in enumerate(ids)
+        try
+            if func(item)
+                matches[k]=item
+            end
+        catch e
+            if typeof(e) <: IMASmissingDataException
+                resize!(ids, length(ids) + 1)
+            else
+                rethrow()
+            end
+        end
+    end
+    if length(matches) == 1
+        return collect(values(matches))[1]
+    elseif length(matches) > 1
+        error("Multiple entries $([k for k in keys(matches)]) match resize! conditions")
+    end
+    return resize!(ids, length(ids) + 1)
+end
+
+function _set_conditions(ids::IDS, conditions::Pair{String}...)
+    for (path, value) in conditions
+        h = ids
+        for p in i2p(path)
+            if typeof(p) <: Int
+                if p > length(h)
+                    resize!(h, p)
+                end
+                h = h[p]
+            else
+                p = Symbol(p)
+                if is_missing(h, p)
+                    setproperty!(h, p, value)
+                end
+                h = getproperty(h, p)
+            end
+        end
+    end
+    return ids
+end
+
+"""
+    Base.resize!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
+
+Resize if a set of conditions are not met, and populate structure with those conditions
+"""
+
+function Base.resize!(ids::IDSvector{T}, conditions::Pair{String}...) where {T <: IDSvectorElement}
+    if length(ids) == 0
+        return _set_conditions(resize!(ids, 1), conditions...)
+    end
+    matches = Dict()
+    for (k, item) in enumerate(ids)
+        match = true
+        for (path, value) in conditions
+            h = item
+            for p in i2p(path)
+                if typeof(p) <: Int
+                    if p > length(h)
+                        return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
+                    end
+                    h = h[p]
+                else
+                    p = Symbol(p)
+                    if is_missing(h, p)
+                        return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
+                    end
+                    h = getproperty(h, p)
+                end
+            end
+            if h != value
+                match = false
+                break
+            end
+        end
+        if match
+            matches[k]=item
+        end
+    end
+    if length(matches) == 1
+        return collect(values(matches))[1]
+    elseif length(matches) > 1
+        error("Multiple entries $([k for k in keys(matches)]) match resize! conditions")
+    end
+    return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
 end
 
 function Base.empty!(ids::IDS)

@@ -27,7 +27,7 @@ end
 
 returns true/false if field is missing in IDS
 """
-function is_missing(ids::IDS, field)::Bool
+function is_missing(ids::IDS, field::Symbol)::Bool
     try
         getproperty(ids, field)
         return false
