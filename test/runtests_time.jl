@@ -1,13 +1,12 @@
 import Revise
-import IMAS
-import IMAS: @ddtime
+using IMAS
 using Test
 
 @testset "time_ids" begin
     dd = IMAS.dd()
 
     dd.global_time = 1010.0
-    eqt = resize!(dd.equilibrium.time_slice)[end]
+    eqt = resize!(dd.equilibrium.time_slice)
     @test length(dd.equilibrium.time_slice) == 1
     n = length(dd.equilibrium.time_slice)
     eqt.global_quantities.ip = 1.0
@@ -23,7 +22,7 @@ using Test
     @test (dd.equilibrium.time_slice[] = eqt) == eqt
 
     dd.global_time = 2020.0
-    eqt = resize!(dd.equilibrium.time_slice)[end]
+    eqt = resize!(dd.equilibrium.time_slice)
     @test length(dd.equilibrium.time_slice) == 2
     n = length(dd.equilibrium.time_slice)
     dd.equilibrium.time_slice[].global_quantities.ip = 2.0
@@ -39,7 +38,7 @@ using Test
     @test (dd.equilibrium.time_slice[] = eqt) == eqt
 
     dd.global_time = 3030.0
-    eqt = resize!(dd.equilibrium.time_slice, IMAS.τ)[end]
+    eqt = resize!(dd.equilibrium.time_slice, IMAS.τ)
     @test length(dd.equilibrium.time_slice) == 3
     n = length(dd.equilibrium.time_slice)
     dd.equilibrium.time_slice[].global_quantities.ip = 3.0
@@ -81,7 +80,7 @@ using Test
     @test_throws Exception dd.equilibrium.time_slice[] = eqt # setindex! will complain trying to enter data at an earlier time that is not in time array
 
     # resize! will complain if trying to resize at an earlier time
-    @test_throws Exception resize!(dd.equilibrium.time_slice)[end]
+    @test_throws Exception resize!(dd.equilibrium.time_slice)
 
     # resize! with global time will complain operating on IDSvectors that are not time dependent
     @test_throws Exception resize!(dd.wall.description_2d)
@@ -90,11 +89,11 @@ using Test
 
     # add an empty time-slice
     dd.global_time = 4040.0
-    eqt = resize!(dd.equilibrium.time_slice, IMAS.τ)[end]
+    eqt = resize!(dd.equilibrium.time_slice, IMAS.τ)
     @test length(dd.equilibrium.time_slice) == 4
 
     dd.global_time = 5050.0
-    eqt = resize!(dd.equilibrium.time_slice, IMAS.τ)[end]
+    eqt = resize!(dd.equilibrium.time_slice, IMAS.τ)
     @test length(dd.equilibrium.time_slice) == 5
     @test_throws Exception dd.equilibrium.time_slice[].global_quantities.ip # elements within arrays of structures do not time-interpolate
     dd.equilibrium.time_slice[].global_quantities.ip = 5.0

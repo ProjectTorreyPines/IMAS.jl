@@ -441,7 +441,8 @@ end
 Resize if a set of conditions are not met, and populate structure with those conditions
 """
 
-function Base.resize!(ids::IDSvector{T}, conditions::Pair{String}...) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...) where {T <: IDSvectorElement}
+    conditions = vcat(condition, collect(conditions))
     if length(ids) == 0
         return _set_conditions(resize!(ids, 1), conditions...)
     end

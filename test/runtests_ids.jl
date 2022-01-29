@@ -1,5 +1,5 @@
 import Revise
-import IMAS
+using IMAS
 using Test
 
 @testset "IDS" begin
