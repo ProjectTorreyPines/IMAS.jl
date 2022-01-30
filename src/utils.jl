@@ -94,6 +94,16 @@ function Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector
     end
 end
 
+
+function interp(ids::IDS, field::Symbol; kw...)
+    coord = coordinates(ids,field)
+    if length(coord[:values]) > 1
+        error("Cannot interpolate multi-dimensional $(f2i(ids)).$field that has coordinates $([k for k in coord[:names]])")
+    end
+    return interp(coord[:values][1], getproperty(ids, field); kw...)
+end
+
+
 """
     interp(xs, y, scheme::Symbol=:linear, extrapolate::Symbol=:linear; kw...)
 
