@@ -78,7 +78,7 @@ mutable struct IDSvector{T} <: AbstractVector{T}
 end
 
 #= === =#
-#  IDS  #
+#  Exceptions  #
 #= === =#
 
 struct IMASmissingDataException <: Exception
@@ -87,6 +87,29 @@ struct IMASmissingDataException <: Exception
 end
 
 Base.showerror(io::IO, e::IMASmissingDataException) = print(io, "ERROR: $(f2i(e.ids)).$(e.field) is missing")
+
+abstract type IMASexpressionError <: Exception end
+
+struct IMASexpressionRecursion <: IMASexpressionError
+    call_stack::Vector{String}
+end
+
+function Base.showerror(io::IO, e::IMASexpressionRecursion)
+    culprits = join(e.call_stack, "\n    * ")
+    error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
+end
+
+struct IMASbadExpression <: IMASexpressionError
+    ids::IDS
+    field::Symbol
+    reason::String
+end
+
+Base.showerror(io::IO, e::IMASbadExpression) = print(io, "Bad expression $(f2i(e.ids)).$(e.field)\n$(e.reason)")
+
+#= === =#
+#  IDS  #
+#= === =#
 
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
@@ -101,8 +124,11 @@ function Base.getproperty(ids::IDS, field::Symbol)
         try
             return exec_expression_with_ancestor_args(ids, field, value, x)
         catch e
-            println("Error with expression in $(f2u(ids)).$field")
-            rethrow(e)
+            if typeof(e) <: IMASexpressionRecursion
+                rethrow(e)
+            else
+                throw(IMASbadExpression(ids,field,sprint(showerror, e)))
+            end
         end
     else
         return value
@@ -222,8 +248,7 @@ function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Funct
         if ! (structure_name in expression_call_stack)
             push!(expression_call_stack, structure_name)
         else
-            culprits = join(expression_call_stack, "\n    * ")
-            error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
+            throw(IMASexpressionRecursion(copy(expression_call_stack)))
         end
         # find ancestors to this ids
         ancestors = ids_ancestors(ids)
