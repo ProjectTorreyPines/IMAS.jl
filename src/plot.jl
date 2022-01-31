@@ -101,7 +101,7 @@ end
     aspect_ratio --> :equal
     primary --> false
 
-    if (length(eqt.profiles_2d) == 0) || is_missing(eqt.profiles_2d[1], :psi)
+    if (length(eqt.profiles_2d) == 0) || ismissing(eqt.profiles_2d[1], :psi)
         # if there is no psi map then plot the boundary
         @series begin
             eqt.boundary.outline.r, eqt.boundary.outline.z
@@ -258,7 +258,7 @@ Plots build cross-section
             if l.type == -1
                 valid = false
             end
-            if IMAS.is_missing(l.outline, :r) || !valid
+            if IMAS.ismissing(l.outline, :r) || !valid
                 continue
             end
             l1 = bd.layer[k+1]
@@ -267,7 +267,7 @@ Plots build cross-section
             # setup labels and colors
             name = l.name
             color = :gray
-            if !is_missing(l, :material) && l.material == "vacuum"
+            if !ismissing(l, :material) && l.material == "vacuum"
                 name = ""
                 color = :white
             elseif occursin("TF", l.name)
@@ -331,7 +331,7 @@ Plots build cross-section
         at = 0
         for l in bd.layer
             @series begin
-                if !is_missing(l, :material) && l.material == "vacuum"
+                if !ismissing(l, :material) && l.material == "vacuum"
                     color --> :white
                 elseif occursin("OH", l.name)
                     color --> :gray

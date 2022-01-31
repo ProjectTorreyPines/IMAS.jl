@@ -124,12 +124,12 @@ Base.showerror(io::IO, e::IMASbadExpression) = print(io, "Bad expression $(f2i(e
 
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
-    if typeof(value) <: Union{IDS,IDSvector}
-        # nothing to do for data structures
-        return value
-    elseif value === missing
+    if value === missing
         # raise a nice error for missing values
         throw(IMASmissingDataException(ids, field))
+    elseif typeof(value) <: Union{IDS,IDSvector}
+        # nothing to do for data structures
+        return value
     elseif typeof(value) <: Function
         # interpolate functions on given coordinates
         x = coordinates(ids, field)[:values]
@@ -464,7 +464,7 @@ function _set_conditions(ids::IDS, conditions::Pair{String}...)
                 h = h[p]
             else
                 p = Symbol(p)
-                if is_missing(h, p)
+                if ismissing(h, p)
                     setproperty!(h, p, value)
                 end
                 h = getproperty(h, p)
@@ -498,7 +498,7 @@ function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pa
                     h = h[p]
                 else
                     p = Symbol(p)
-                    if is_missing(h, p)
+                    if ismissing(h, p)
                         return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
                     end
                     h = getproperty(h, p)

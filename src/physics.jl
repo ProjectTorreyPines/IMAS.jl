@@ -535,9 +535,9 @@ function structures_mask(bd::IMAS.build; resolution::Int = 257, border_fraction:
         if layer.type == -1
             valid = false
         end
-        if valid && !is_missing(layer.outline, :r)
+        if valid && !ismissing(layer.outline, :r)
             outline = StaticArrays.SVector.(layer.outline.r, layer.outline.z)
-            if !is_missing(layer, :material) && layer.material == "vacuum"
+            if !ismissing(layer, :material) && layer.material == "vacuum"
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) == 1
