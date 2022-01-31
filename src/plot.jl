@@ -382,6 +382,7 @@ end
         @series begin
             subplot := 1
             label --> ion.label
+            linestyle --> :dash
             ion, :temperature
         end
     end
@@ -402,6 +403,7 @@ end
         @series begin
             subplot := 3
             label --> ion.label
+            linestyle --> :dash
             ion, :density
         end
     end
