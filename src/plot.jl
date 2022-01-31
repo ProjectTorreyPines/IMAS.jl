@@ -374,15 +374,16 @@ end
 
     @series begin
         subplot := 1
-        label --> "Electrons"
+        label --> "e"
         cpt.electrons, :temperature
     end
 
-    @series begin
-        subplot := 1
-        label --> "Ions"
-        linestyle --> :dash
-        cpt.electrons, :temperature
+    for ion in cpt.ion
+        @series begin
+            subplot := 1
+            label --> ion.label
+            ion, :temperature
+        end
     end
 
     @series begin
