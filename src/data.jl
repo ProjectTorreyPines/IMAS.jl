@@ -15,35 +15,43 @@ Populate IMAS data structure `ids` based on data contained in Julia dictionary `
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 - `skip_non_coordinates::Bool=false`: only assign coordinates to the data structure
 """
-function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String[], skip_non_coordinates::Bool=false) where {T <: IDS}
+function dict2imas(dct, ids::T; verbose::Bool = false, path::Vector{String} = String[], skip_non_coordinates::Bool = false) where {T<:IDS}
     # recursively traverse `dtc` structure
     level = length(path)
     for (k, v) in dct
-        if ! hasfield(typeof(ids), Symbol(k))
-            if ! skip_non_coordinates
+        if !hasfield(typeof(ids), Symbol(k))
+            if !skip_non_coordinates
                 println("$(f2i(ids)).$(k) was skipped in IMAS.jl data dictionary")
             end
             continue
         end
         # Struct
         if typeof(v) <: Dict
-            if verbose println(("｜"^level) * string(k)) end
+            if verbose
+                println(("｜"^level) * string(k))
+            end
             ff = getfield(ids, Symbol(k))
-            dict2imas(v, ff; path=vcat(path, [string(k)]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
+            dict2imas(v, ff; path = vcat(path, [string(k)]), verbose = verbose, skip_non_coordinates = skip_non_coordinates)
 
-        # Array of struct
+            # Array of struct
         elseif (typeof(v) <: Array) && (length(v) > 0) && (typeof(v[1]) <: Dict)
             ff = getfield(ids, Symbol(k))
-            if verbose println(("｜"^level) * string(k)) end
+            if verbose
+                println(("｜"^level) * string(k))
+            end
             resize!(ff, length(v))
-            for i in 1:length(v)
-                if verbose println(("｜"^(level + 1)) * string(i)) end
-                dict2imas(v[i], ff[i]; path=vcat(path, [string(k),"[$i]"]), verbose=verbose, skip_non_coordinates=skip_non_coordinates)
+            for i = 1:length(v)
+                if verbose
+                    println(("｜"^(level + 1)) * string(i))
+                end
+                dict2imas(v[i], ff[i]; path = vcat(path, [string(k), "[$i]"]), verbose = verbose, skip_non_coordinates = skip_non_coordinates)
             end
 
-        # Leaf
+            # Leaf
         else
-            if verbose print(("｜"^level) * string(k) * " → ") end
+            if verbose
+                print(("｜"^level) * string(k) * " → ")
+            end
             target_type = Core.Compiler.typesubtract(struct_field_type(typeof(ids), Symbol(k)), Union{Missing,Function}, 1)
             if target_type <: AbstractArray
                 if tp_ndims(target_type) == 2
@@ -55,8 +63,10 @@ function dict2imas(dct, ids::T ;verbose::Bool=false, path::Vector{String}=String
                     v = convert(Array{tp_eltype(target_type),tp_ndims(target_type)}, v)
                 end
             end
-            setproperty!(ids, Symbol(k), v; skip_non_coordinates=skip_non_coordinates)
-            if verbose println(typeof(v)) end
+            setproperty!(ids, Symbol(k), v; skip_non_coordinates = skip_non_coordinates)
+            if verbose
+                println(typeof(v))
+            end
         end
     end
 
@@ -76,11 +86,11 @@ Load from a file with give `filename` the IMAS data structure saved in JSON form
 # Arguments
 - `verbose::Bool=false`: print structure hierarchy as it is filled
 """
-function json2imas(filename::String; verbose::Bool=false)::IDS
+function json2imas(filename::String; verbose::Bool = false)::IDS
     ids_data = dd()
     json_data = JSON.parsefile(filename)
-    dict2imas(json_data, ids_data; verbose=verbose, skip_non_coordinates=true)
-    dict2imas(json_data, ids_data; verbose=verbose, skip_non_coordinates=false)
+    dict2imas(json_data, ids_data; verbose = verbose, skip_non_coordinates = true)
+    dict2imas(json_data, ids_data; verbose = verbose, skip_non_coordinates = false)
     return ids_data
 end
 
@@ -104,7 +114,7 @@ function imas2dict(ids::Union{IDS,IDSvector}, dct::Union{Dict,Vector})
         if typeof(ids) <: IDSvector
             # arrays of structures
             push!(dct, Dict())
-            imas2dict(ids[item],dct[item])
+            imas2dict(ids[item], dct[item])
         else
             value = getproperty(ids, item)
             # structures
@@ -115,7 +125,7 @@ function imas2dict(ids::Union{IDS,IDSvector}, dct::Union{Dict,Vector})
                     dct[item] = Any[]
                 end
                 imas2dict(value, dct[item])
-            # field
+                # field
             else
                 dct[item] = value
             end
@@ -142,7 +152,7 @@ end
 Return top-level IDS in the DD hierarchy.
 Considers IDS as maximum top level if IDS_is_absolute_top=true
 """
-function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
+function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
     if IDS_is_absolute_top & (typeof(ids) <: dd)
         error("Cannot call top(x::IMAS.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
     elseif ids._parent.value === missing
@@ -150,7 +160,7 @@ function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return ids
     else
-        return top(ids._parent.value;IDS_is_absolute_top=IDS_is_absolute_top)
+        return top(ids._parent.value; IDS_is_absolute_top = IDS_is_absolute_top)
     end
 end
 
@@ -162,7 +172,7 @@ Considers IDS as maximum top level if IDS_is_absolute_top=true
 """
 
 function top_ids(ids::Union{IDS,IDSvector})
-    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top=true)
+    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top = true)
     if length(f2p(ids)) == 1
         return ids
     else
@@ -171,7 +181,7 @@ function top_ids(ids::Union{IDS,IDSvector})
 end
 
 function top_dd(ids::Union{IDS,IDSvector})
-    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top=false)
+    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top = false)
     if typeof(ids) <: dd
         return ids
     else
@@ -185,7 +195,7 @@ end
 Return parent IDS/IDSvector in the hierarchy
 If IDS_is_absolute_top then returns `missing` instead of IMAS.dd()
 """
-function parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
+function parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
     if ids._parent.value === missing
         return missing
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
@@ -234,7 +244,7 @@ Reach location in a given IDS
 # Arguments
 - `f2::Function=f2i`: function used to process the IDS path to be compared to `location`
 """
-function goto(ids::IDS, location::String; f2::Function=f2i)
+function goto(ids::IDS, location::String; f2::Function = f2i)
     # find common ancestor
     cs, s1, s2 = IMAS.common_base_string(f2(ids), location)
     cs0 = replace(cs, r"\.$" => "")
@@ -263,7 +273,7 @@ Coordinate value is `missing` if the coordinate is missing in the data structure
 function coordinates(ids::IDS, field::Symbol)
     info = imas_info(ids, field)
     # handle scalar quantities (which do not have coordinate)
-    if ! ("coordinates" in keys(info))
+    if !("coordinates" in keys(info))
         return Dict(:names => [], :values => [])
     end
     coord_names = deepcopy(info["coordinates"])
@@ -272,7 +282,7 @@ function coordinates(ids::IDS, field::Symbol)
         if occursin("...", coord)
             push!(coord_values, nothing)
         else
-            h = goto(ids, u2fs(p2i(i2p(coord)[1:end - 1])); f2=f2fs)
+            h = goto(ids, u2fs(p2i(i2p(coord)[1:end-1])); f2 = f2fs)
             coord_leaf = Symbol(i2p(coord)[end])
             h = getfield(h, coord_leaf)
             # add value to the coord_values
@@ -289,7 +299,7 @@ Return string with units
 """
 function units(location::String)
     info = imas_info(location)
-    return get(info,"units","")
+    return get(info, "units", "")
 end
 
 """
@@ -341,12 +351,12 @@ function Base.keys(ids::IDS)
         # empty entries
         if v === missing
             continue
-        # empty structures/arrays of structures (recursive)
+            # empty structures/arrays of structures (recursive)
         elseif typeof(v) <: Union{IDS,IDSvector}
             if length(keys(v)) > 0
                 push!(kkk, k)
             end
-        # entries with data
+            # entries with data
         else
             push!(kkk, k)
         end
@@ -361,33 +371,33 @@ end
 function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
     items = keys(ids)
     for (k, item) in enumerate(sort(items))
-        printstyled(io, "$('｜'^depth)"; color=:yellow)
+        printstyled(io, "$('｜'^depth)"; color = :yellow)
         # arrays of structurs
         if typeof(ids) <: IDSvector
-            printstyled(io, "[$(item)]\n"; bold=true, color=:green)
+            printstyled(io, "[$(item)]\n"; bold = true, color = :green)
             show(io, ids[item], depth + 1)
         else
             value = getfield(ids, item)
-            # structures
             if typeof(value) <: Union{IDS,IDSvector}
+                # structures
                 if (typeof(ids) <: dd)
-                    printstyled(io, "$(uppercase(string(item)))\n"; bold=true)
+                    printstyled(io, "$(uppercase(string(item)))\n"; bold = true)
                 else
-                    printstyled(io, "$(string(item))\n"; bold=true)
+                    printstyled(io, "$(string(item))\n"; bold = true)
                 end
                 show(io, value, depth + 1)
-            # field
             else
+                # field
                 printstyled(io, "$(item)")
-                printstyled(io, " ➡ "; color=:red)
+                printstyled(io, " ➡ "; color = :red)
                 if typeof(value) <: Function
-                    printstyled(io, "Function\n"; color=:green)
+                    printstyled(io, "Function\n"; color = :green)
                 elseif typeof(value) <: String
-                    printstyled(io, "\"$(value)\"\n"; color=:magenta)
+                    printstyled(io, "\"$(value)\"\n"; color = :magenta)
                 elseif typeof(value) <: Number
-                    printstyled(io, "$(value)\n"; color=:magenta)
+                    printstyled(io, "$(value)\n"; color = :magenta)
                 else
-                    printstyled(io, "$(Base.summary(value))\n"; color=:blue)
+                    printstyled(io, "$(Base.summary(value))\n"; color = :blue)
                 end
             end
         end

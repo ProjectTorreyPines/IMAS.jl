@@ -14,7 +14,7 @@ abstract type IDSvectorTimeElement <: IDSvectorElement end
 mutable struct IDSvector{T} <: AbstractVector{T}
     _value::Vector{T}
     _parent::WeakRef
-    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
+    function IDSvector(ids::Vector{T}) where {T<:IDSvectorElement}
         return new{T}(ids, WeakRef(missing))
     end
 end
@@ -31,10 +31,11 @@ import Memoize
 
 Return list of IDS names
 """
-function imas_dd_ids_names(dirs::Vector{String}=["data_structures", "data_structures_extra"])
+function imas_dd_ids_names(dirs::Vector{String} = ["data_structures", "data_structures_extra"])
     filenames = String[]
     for dir in dirs
-        append!(filenames, [filename for filename in readdir(joinpath(dirname(dirname(@__FILE__)), dir)) if ! startswith(filename, "_") && endswith(filename, ".json")])
+        dir_filenames = readdir(joinpath(dirname(dirname(@__FILE__)), dir))
+        append!(filenames, [filename for filename in dir_filenames if !startswith(filename, "_") && endswith(filename, ".json")])
     end
     filenames = [replace(filename, ".json" => "") for filename in sort(filenames)]
 end
@@ -123,13 +124,14 @@ Base.showerror(io::IO, e::IMASbadExpression) = print(io, "Bad expression $(f2i(e
 
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
-    # raise a nice error for missing values
     if typeof(value) <: Union{IDS,IDSvector}
+        # nothing to do for data structures
         return value
     elseif value === missing
+        # raise a nice error for missing values
         throw(IMASmissingDataException(ids, field))
-    # interpolate functions on given coordinates
     elseif typeof(value) <: Function
+        # interpolate functions on given coordinates
         x = coordinates(ids, field)[:values]
         try
             return exec_expression_with_ancestor_args(ids, field, value, x)
@@ -137,7 +139,7 @@ function Base.getproperty(ids::IDS, field::Symbol)
             if typeof(e) <: IMASexpressionRecursion
                 rethrow(e)
             else
-                throw(IMASbadExpression(ids,field,sprint(showerror, e)))
+                throw(IMASbadExpression(ids, field, sprint(showerror, e)))
             end
         end
     else
@@ -160,16 +162,16 @@ function _setproperty!(ids::IDS, field::Symbol, v)
     end
 end
 
-function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates=false)
+function Base.setproperty!(ids::IDS, field::Symbol, v; skip_non_coordinates = false)
     _setproperty!(ids, field, v)
 end
 
-function Base.setproperty!(ids::IDS, field::Symbol, v::StepRangeLen; skip_non_coordinates=false)
+function Base.setproperty!(ids::IDS, field::Symbol, v::StepRangeLen; skip_non_coordinates = false)
     v = collect(v)
-    setproperty!(ids, field, v; skip_non_coordinates=skip_non_coordinates)
+    setproperty!(ids, field, v; skip_non_coordinates = skip_non_coordinates)
 end
 
-function Base.setproperty!(ids::IDS, field::Symbol, v::AbstractArray; skip_non_coordinates=false)
+function Base.setproperty!(ids::IDS, field::Symbol, v::AbstractArray; skip_non_coordinates = false)
     # figure out the coordinates
     coords = coordinates(ids, field)
     # do not allow assigning data before coordinates
@@ -185,12 +187,12 @@ function Base.setproperty!(ids::IDS, field::Symbol, v::AbstractArray; skip_non_c
     _setproperty!(ids, field, v)
 end
 
-function Base.setproperty!(ids::IDSvector{T}, field::Symbol, v::T; skip_non_coordinates=false) where {T <: IDSvectorElement}
+function Base.setproperty!(ids::IDSvector{T}, field::Symbol, v::T; skip_non_coordinates = false) where {T<:IDSvectorElement}
     setfield!(v, :_parent, WeakRef(ids))
     _setproperty!(ids, field, v)
 end
 
-function Base.setproperty!(ids::IDS, field::Symbol, v::Union{IDS,IDSvector}; skip_non_coordinates=false)
+function Base.setproperty!(ids::IDS, field::Symbol, v::Union{IDS,IDSvector}; skip_non_coordinates = false)
     setfield!(v, :_parent, WeakRef(ids))
     _setproperty!(ids, field, v)
 end
@@ -208,7 +210,7 @@ function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
         if typeof(p) <: String
             ancestors[Symbol(p)] = missing
         elseif p != 0
-            ancestors[Symbol(path[k - 1] * "_index")] = missing
+            ancestors[Symbol(path[k-1] * "_index")] = missing
         end
     end
     # traverse ancestors and assign pointers
@@ -218,8 +220,8 @@ function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
         if typeof(path[end]) <: String
             ancestors[Symbol(path[end])] = h
         elseif path[end] != 0
-            ancestors[Symbol(path[end - 1])] = h
-            ancestors[Symbol(path[end - 1] * "_index")] = path[end]
+            ancestors[Symbol(path[end-1])] = h
+            ancestors[Symbol(path[end-1] * "_index")] = path[end]
         end
         h = h._parent.value
     end
@@ -255,7 +257,7 @@ function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Funct
     structure_name = "$(f2u(ids)).$(field)"
     try
         # keep track of recursion
-        if ! (structure_name in expression_call_stack)
+        if !(structure_name in expression_call_stack)
             push!(expression_call_stack, structure_name)
         else
             throw(IMASexpressionRecursion(copy(expression_call_stack)))
@@ -275,23 +277,23 @@ end
 #  IDSvector  #
 #= ========= =#
 
-function Base.size(ids::IDSvector{T}) where {T <: IDSvectorElement}
+function Base.size(ids::IDSvector{T}) where {T<:IDSvectorElement}
     size(ids._value)
 end
 
-function Base.length(ids::IDSvector{T}) where {T <: IDSvectorElement}
+function Base.length(ids::IDSvector{T}) where {T<:IDSvectorElement}
     length(ids._value)
 end
 
-function Base.getindex(ids::IDSvector{T}) where {T <: IDSvectorTimeElement}
+function Base.getindex(ids::IDSvector{T}) where {T<:IDSvectorTimeElement}
     return getindex(ids, global_time(ids))
 end
 
-function Base.getindex(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorTimeElement}
+function Base.getindex(ids::IDSvector{T}, time0::GlobalTime) where {T<:IDSvectorTimeElement}
     return getindex(ids, global_time(ids))
 end
 
-function Base.getindex(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
+function Base.getindex(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvectorTimeElement}
     if length(ids) == 0
         ids[1]
     end
@@ -300,7 +302,7 @@ function Base.getindex(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSv
     ids._value[i]
 end
 
-function Base.getindex(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+function Base.getindex(ids::IDSvector{T}, i::Int) where {T<:IDSvectorElement}
     try
         ids._value[i]
     catch
@@ -308,15 +310,15 @@ function Base.getindex(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
     end
 end
 
-function Base.setindex!(ids::IDSvector{T}, v::T) where {T <: IDSvectorTimeElement}
+function Base.setindex!(ids::IDSvector{T}, v::T) where {T<:IDSvectorTimeElement}
     setindex!(ids, v, global_time(ids))
 end
 
-function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T <: IDSvectorTimeElement}
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::GlobalTime) where {T<:IDSvectorTimeElement}
     setindex!(ids, v, global_time(ids))
 end
 
-function Base.setindex!(ids::IDSvector{T}, v::T, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
+function Base.setindex!(ids::IDSvector{T}, v::T, time0::AbstractFloat) where {T<:IDSvectorTimeElement}
     time = time_parent(ids).time
     if time0 < minimum(time)
         pushfirst!(time, time0)
@@ -332,35 +334,35 @@ function Base.setindex!(ids::IDSvector{T}, v::T, time0::AbstractFloat) where {T 
         error("Cannot insert data at time $time0 in middle of a time array structure ranging between $(time[1]) and $(time[end])")
     end
     if hasfield(typeof(v), :time)
-        v.time=time0
+        v.time = time0
     end
     setfield!(v, :_parent, WeakRef(ids))
 end
 
-function Base.setindex!(ids::IDSvector{T}, v::T, i::Int) where {T <: IDSvectorElement}
+function Base.setindex!(ids::IDSvector{T}, v::T, i::Int) where {T<:IDSvectorElement}
     ids._value[i] = v
     setfield!(v, :_parent, WeakRef(ids))
 end
 
-function Base.push!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+function Base.push!(ids::IDSvector{T}, v::T) where {T<:IDSvectorElement}
     setfield!(v, :_parent, WeakRef(ids))
     push!(ids._value, v)
 end
 
-function Base.pushfirst!(ids::IDSvector{T}, v::T) where {T <: IDSvectorElement}
+function Base.pushfirst!(ids::IDSvector{T}, v::T) where {T<:IDSvectorElement}
     setfield!(v, :_parent, WeakRef(ids))
     pushfirst!(ids._value, v)
 end
 
-function Base.pop!(ids::IDSvector{T}) where {T <: IDSvectorElement}
+function Base.pop!(ids::IDSvector{T}) where {T<:IDSvectorElement}
     pop!(ids._value)
 end
 
-function iterate(ids::IDSvector{T}) where {T <: IDSvectorElement}
+function iterate(ids::IDSvector{T}) where {T<:IDSvectorElement}
     return ids[1], 2
 end
 
-function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
+function iterate(ids::IDSvector{T}, state) where {T<:IDSvectorElement}
     if isempty(state)
         nothing
     else
@@ -368,28 +370,30 @@ function iterate(ids::IDSvector{T}, state) where {T <: IDSvectorElement}
     end
 end
 
-function Base.insert!(ids::IDSvector{T}, i, v::T) where {T <: IDSvectorElement}
+function Base.insert!(ids::IDSvector{T}, i, v::T) where {T<:IDSvectorElement}
     setfield!(v, :_parent, WeakRef(ids))
     insert!(ids._value, i, v)
 end
 
-function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T <: IDSvectorElement}
+function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T<:IDSvectorElement}
     return Base.deleteat!(ids._value, i)
 end
 
-function Base.resize!(ids::IDSvector{T}) where {T <: IDSvectorTimeElement}
+function Base.resize!(ids::IDSvector{T}) where {T<:IDSvectorTimeElement}
     return Base.resize!(ids, global_time(ids))
 end
 
-function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T <: IDSvectorTimeElement}
+function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T<:IDSvectorTimeElement}
     return Base.resize!(ids, global_time(ids))
 end
 
-function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSvectorTimeElement}
-    _time=time_parent(ids)
+function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvectorTimeElement}
+    _time = time_parent(ids)
     time = _time.time
     if length(ids) > length(time)
-        error("Length [$(length(ids))] of $(p2i(f2p(ids)[1:end-1])) does not match length [$(length(time))] of $(f2i(_time)).time. Cannot resize based on global_time.")
+        error(
+            "Length [$(length(ids))] of $(p2i(f2p(ids)[1:end-1])) does not match length [$(length(time))] of $(f2i(_time)).time. Cannot resize based on global_time.",
+        )
     elseif (length(ids) == 0) || (time0 > maximum(time))
         k = length(ids) + 1
         resize!(ids, k)
@@ -403,15 +407,15 @@ function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T <: IDSve
     return ids[end]
 end
 
-function Base.resize!(ids::IDSvector{T}, n::Int) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
     if n > length(ids)
-        for k in length(ids):n - 1
+        for k = length(ids):n-1
             obj = eltype(ids)()
             setfield!(obj, :_parent, WeakRef(ids))
             push!(ids._value, obj)
         end
     elseif n < length(ids)
-        for k in n:length(ids) - 1
+        for k = n:length(ids)-1
             pop!(ids._value)
         end
     end
@@ -423,7 +427,7 @@ end
 
 Resize array of structure if a function returns false
 """
-function Base.resize!(ids::IDSvector{T}, func::Function) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}, func::Function) where {T<:IDSvectorElement}
     if length(ids) == 0
         return resize!(ids, 1)
     end
@@ -431,7 +435,7 @@ function Base.resize!(ids::IDSvector{T}, func::Function) where {T <: IDSvectorEl
     for (k, item) in enumerate(ids)
         try
             if func(item)
-                matches[k]=item
+                matches[k] = item
             end
         catch e
             if typeof(e) <: IMASmissingDataException
@@ -476,7 +480,7 @@ end
 Resize if a set of conditions are not met, and populate structure with those conditions
 """
 
-function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...) where {T<:IDSvectorElement}
     conditions = vcat(condition, collect(conditions))
     if length(ids) == 0
         return _set_conditions(resize!(ids, 1), conditions...)
@@ -506,7 +510,7 @@ function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pa
             end
         end
         if match
-            matches[k]=item
+            matches[k] = item
         end
     end
     if length(matches) == 1
