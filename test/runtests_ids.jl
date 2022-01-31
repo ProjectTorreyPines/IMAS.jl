@@ -1,5 +1,5 @@
-import Revise
-import IMAS
+using Revise
+using IMAS
 using Test
 
 @testset "IDS" begin
@@ -105,7 +105,23 @@ using Test
     @test ion === dd.core_profiles.profiles_1d[].ion[end]
     @test length(dd.core_profiles.profiles_1d[].ion) == 3
     @test_throws Exception resize!(dd.core_profiles.profiles_1d[].ion, "z_ion" => 2)
+end
 
+@testset "coords" begin
+    dd = IMAS.dd()
+    prof1d = resize!(dd.core_profiles.profiles_1d)
+    prof1d.grid.rho_tor_norm = range(0, 1, 100)
+    prof1d.electrons.temperature = (x; _...) -> 1.0 .- x .^ 2
+
+    xx = range(0, 1, 3)
+    yy = @coords(prof1d.electrons.temperature => xx)
+    @test length(yy) == 3
+    @test yy[1] ≈ 1.0
+    @test yy[end] ≈ 0.0
+
+    xx = range(-1, 2, 11)
+    yy = @coords(prof1d.electrons.temperature => xx)
+    @test length(yy) == 11
 end
 
 @testset "IDS_IMAS" begin

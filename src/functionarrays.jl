@@ -3,6 +3,22 @@ include("expressions.jl")
 struct GlobalTime <: AbstractFloat end
 const τ = GlobalTime()
 
+#= ============================ =#
+#  IDS and IDSvector structures  #
+#= ============================ =#
+
+abstract type IDS end
+abstract type IDSvectorElement <: IDS end
+abstract type IDSvectorStaticElement <: IDSvectorElement end
+abstract type IDSvectorTimeElement <: IDSvectorElement end
+mutable struct IDSvector{T} <: AbstractVector{T}
+    _value::Vector{T}
+    _parent::WeakRef
+    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
+        return new{T}(ids, WeakRef(missing))
+    end
+end
+
 #= ============ =#
 #  IMAS DD read  #
 #= ============ =#
@@ -51,6 +67,16 @@ function imas_info(location::String)
 end
 
 """
+    imas_info(ids::IDS, field::Symbol)
+
+Return information of a filed of an IDS
+"""
+function imas_info(ids::Union{IDS,IDSvector}, field::Symbol)
+    location = "$(f2u(ids)).$(field)"
+    return imas_info("$(f2u(ids)).$(field)")
+end
+
+"""
     struct_field_type(structure::DataType, field::Symbol)
 
 Return the typeof of a given `field` witin a `structure`
@@ -61,24 +87,8 @@ function struct_field_type(structure::DataType, field::Symbol)
     return structure.types[index]
 end
 
-#= ============================ =#
-#  IDS and IDSvector structures  #
-#= ============================ =#
-
-abstract type IDS end
-abstract type IDSvectorElement <: IDS end
-abstract type IDSvectorStaticElement <: IDSvectorElement end
-abstract type IDSvectorTimeElement <: IDSvectorElement end
-mutable struct IDSvector{T} <: AbstractVector{T}
-    _value::Vector{T}
-    _parent::WeakRef
-    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
-        return new{T}(ids, WeakRef(missing))
-    end
-end
-
 #= === =#
-#  IDS  #
+#  Exceptions  #
 #= === =#
 
 struct IMASmissingDataException <: Exception
@@ -87,6 +97,29 @@ struct IMASmissingDataException <: Exception
 end
 
 Base.showerror(io::IO, e::IMASmissingDataException) = print(io, "ERROR: $(f2i(e.ids)).$(e.field) is missing")
+
+abstract type IMASexpressionError <: Exception end
+
+struct IMASexpressionRecursion <: IMASexpressionError
+    call_stack::Vector{String}
+end
+
+function Base.showerror(io::IO, e::IMASexpressionRecursion)
+    culprits = join(e.call_stack, "\n    * ")
+    error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
+end
+
+struct IMASbadExpression <: IMASexpressionError
+    ids::IDS
+    field::Symbol
+    reason::String
+end
+
+Base.showerror(io::IO, e::IMASbadExpression) = print(io, "Bad expression $(f2i(e.ids)).$(e.field)\n$(e.reason)")
+
+#= === =#
+#  IDS  #
+#= === =#
 
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
@@ -101,8 +134,11 @@ function Base.getproperty(ids::IDS, field::Symbol)
         try
             return exec_expression_with_ancestor_args(ids, field, value, x)
         catch e
-            println("Error with expression in $(f2u(ids)).$field")
-            rethrow(e)
+            if typeof(e) <: IMASexpressionRecursion
+                rethrow(e)
+            else
+                throw(IMASbadExpression(ids,field,sprint(showerror, e)))
+            end
         end
     else
         return value
@@ -222,8 +258,7 @@ function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Funct
         if ! (structure_name in expression_call_stack)
             push!(expression_call_stack, structure_name)
         else
-            culprits = join(expression_call_stack, "\n    * ")
-            error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
+            throw(IMASexpressionRecursion(copy(expression_call_stack)))
         end
         # find ancestors to this ids
         ancestors = ids_ancestors(ids)
@@ -441,7 +476,8 @@ end
 Resize if a set of conditions are not met, and populate structure with those conditions
 """
 
-function Base.resize!(ids::IDSvector{T}, conditions::Pair{String}...) where {T <: IDSvectorElement}
+function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...) where {T <: IDSvectorElement}
+    conditions = vcat(condition, collect(conditions))
     if length(ids) == 0
         return _set_conditions(resize!(ids, 1), conditions...)
     end

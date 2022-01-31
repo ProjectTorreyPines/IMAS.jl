@@ -49,28 +49,28 @@ function global_time(ids::Union{IDS,IDSvector})::Real
 end
 
 """
-    set_time_array(ids, location,value)
+    set_time_array(ids, field, value)
 
 set data to a time-dependent array at the dd.global_time
 """
-function set_time_array(ids::Union{IDS,IDSvector{T}}, location::Symbol, value) where {T<:IDSvectorElement}
+function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, value) where {T<:IDSvectorElement}
     time = time_parent(ids).time
     time0 = global_time(ids)
     # no time information
     if length(time) == 0
         push!(time, time0)
-        if location !== :time
-            setproperty!(ids, location, [value])
+        if field !== :time
+            setproperty!(ids, field, [value])
         end
     else
         i = argmin(abs.(time .- time0))
         # perfect match --> overwrite
         if minimum(abs.(time .- time0)) == 0
-            if location !== :time
-                if is_missing(ids, location) || (length(getproperty(ids, location)) == 0)
-                    setproperty!(ids, location, vcat([NaN for k = 1:i-1], value))
+            if field !== :time
+                if is_missing(ids, field) || (length(getproperty(ids, field)) == 0)
+                    setproperty!(ids, field, vcat([NaN for k = 1:i-1], value))
                 else
-                    last_value = getproperty(ids, location)
+                    last_value = getproperty(ids, field)
                     if length(last_value)<i
                         reps = i - length(last_value) - 1
                         append!(last_value, vcat([last_value[end] for k = 1:reps], value))
@@ -82,37 +82,37 @@ function set_time_array(ids::Union{IDS,IDSvector{T}}, location::Symbol, value) w
         # append
         elseif time0 > maximum(time)
             push!(time, time0)
-            if location !== :time
-                if is_missing(ids, location) || (length(getproperty(ids, location)) == 0)
-                    setproperty!(ids, location, vcat([NaN for k = 1:length(time)-1], value))
+            if field !== :time
+                if is_missing(ids, field) || (length(getproperty(ids, field)) == 0)
+                    setproperty!(ids, field, vcat([NaN for k = 1:length(time)-1], value))
                 else
-                    last_value = getproperty(ids, location)
+                    last_value = getproperty(ids, field)
                     reps = length(time) - length(last_value) - 1
                     append!(last_value, vcat([last_value[end] for k = 1:reps], value))
                 end
             end
         else
-            error("Could not add time array information for $(f2i(ids)).$location[$time]")
+            error("Could not add time array information for $(f2i(ids)).$field[$time]")
         end
     end
     i = argmin(abs.(time .- time0))
-    return getproperty(ids, location)[i]
+    return getproperty(ids, field)[i]
 end
 
 """
-    get_time_array(ids, location)
+    get_time_array(ids, field)
 
 get data from a time-dependent array at the dd.global_time
 """
-function get_time_array(ids::Union{IDS,IDSvector{T}}, location::Symbol) where {T<:IDSvectorElement}
+function get_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol) where {T<:IDSvectorElement}
     time = time_parent(ids).time
     time0 = global_time(ids)
     i = argmin(abs.(time .- time0))
-    return getproperty(ids, location)[i]
+    return getproperty(ids, field)[i]
 end
 
 """
-    ddtime
+    ddtime ids.path.to.time.dependent.array
 
 Macro for getting/setting data of a time-dependent array at the dd.global_time
 """
@@ -126,12 +126,12 @@ function _ddtime(ex)
         if expr.head == :(=)
             local value = $(esc(ex.args[2]))
             local ids = $(esc(ex.args[1].args[1]))
-            local location = $(esc(ex.args[1].args[2]))
-            local tmp = set_time_array(ids, location, value)
+            local field = $(esc(ex.args[1].args[2]))
+            local tmp = set_time_array(ids, field, value)
         else
             local ids = $(esc(ex.args[1]))
-            local location = $(esc(ex.args[2]))
-            local tmp = get_time_array(ids, location)
+            local field = $(esc(ex.args[2]))
+            local tmp = get_time_array(ids, field)
         end
         tmp
     end

@@ -4,6 +4,8 @@ include("dd.jl")
 
 include("utils.jl")
 
+include("f2.jl")
+
 """
     dict2imas(dct, ids::IDS=dd() ;verbose::Bool=false, path::Vector{String}=String[])::IDS
 
@@ -254,19 +256,19 @@ end
 """
     coordinates(ids::IDS, field::Symbol)
 
-Returns two lists, one of coordinate names and the other with their values in the data structure
+Return two lists, one of coordinate names and the other with their values in the data structure
 Coordinate value is `nothing` when the data does not have a coordinate
 Coordinate value is `missing` if the coordinate is missing in the data structure
 """
 function coordinates(ids::IDS, field::Symbol)
-    info = imas_info("$(f2u(ids)).$(field)")
+    info = imas_info(ids, field)
     # handle scalar quantities (which do not have coordinate)
     if ! ("coordinates" in keys(info))
         return Dict(:names => [], :values => [])
     end
     coord_names = deepcopy(info["coordinates"])
     coord_values = []
-    for (k, coord) in enumerate(coord_names)
+    for coord in coord_names
         if occursin("...", coord)
             push!(coord_values, nothing)
         else
@@ -281,201 +283,46 @@ function coordinates(ids::IDS, field::Symbol)
 end
 
 """
-    f2u(ids::Union{IDS, IDSvector, DataType, Symbol, String})
+    units(ids::IDS, field::Symbol)
 
-Returns universal IMAS location of a given IDS
+Return string with units
 """
-function f2u(ids::IDS)
-    return _f2u(typeof(ids))
-end
-
-function f2u(ids::IDSvector)
-    return _f2u(eltype(ids)) * "[:]"
-end
-
-function f2u(ids::IDSvectorElement)
-    return _f2u(typeof(ids)) * "[:]"
-end
-
-function _f2u(ids::DataType)
-    return _f2u(Base.typename(ids).name)
-end
-
-function _f2u(ids::Symbol)
-    return _f2u(string(ids))
-end
-
-function _f2u(ids::String)
-    if in(':', ids) | in('.', ids)
-        error("`$ids` is not a qualified IDS type")
-    end
-    tmp = replace(ids, "___" => "[:].")
-    tmp = replace(tmp, "__" => ".")
-    return replace(tmp, r"\.$" => "")
+function units(location::String)
+    info = imas_info(location)
+    return get(info,"units","")
 end
 
 """
-    f2fs(ids::IDS)::String
+    units(ids::IDS, field::Symbol)
 
-return IDS type as a string
+Return string with units
 """
-function f2fs(ids::IDS)::String
-    return _f2fs(typeof(ids))
+function units(ids::IDS, field::Symbol)
+    location = "$(f2u(ids)).$(field)"
+    return units(location)
 end
-
-function f2fs(ids::IDSvector)::String
-    return _f2fs(eltype(ids))
-end
-
-function f2fs(ids::IDSvectorElement)::String
-    return _f2fs(typeof(ids)) * "___"
-end
-
-function _f2fs(ids::DataType)::String
-    return string(Base.typename(ids).name)
-end
-
 
 """
-    f2p(ids::Union{IDS,IDSvector})::Vector{Union{String,Int}}
+    coords ids.path.to.array.y => interpolating_x
 
-Returns IMAS location of a given IDS
-
-NOTE: indexes of arrays of structures that cannot be determined are set to 0
+Macro for interpolating data
 """
-function f2p(ids::Union{IDS,IDSvector})::Vector{Union{String,Int}}
-    return f2p(ids, missing, nothing, Int[])
+macro coords(ex)
+    return _coords(ex)
 end
 
-function f2p(ids::Union{IDS,IDSvector},
-             child::Union{Missing,IDS,IDSvector},
-             path::Union{Nothing,Vector},
-             index::Vector{Int})
-    # initialize path and index
-    if path === nothing
-        if typeof(ids) <: IDS
-            if typeof(ids._parent.value) <: IDSvector
-                name = string(Base.typename(typeof(ids)).name) * "___"
-            else
-                name = string(Base.typename(typeof(ids)).name)
-            end
-        elseif typeof(ids) <: IDSvector
-            name = string(Base.typename(eltype(ids)).name) * "___"
+function _coords(ex)
+    quote
+        local expr = $(esc(Meta.QuoteNode(ex)))
+        if (expr.head !== :call) || (expr.args[1] != :(=>))
+            error("@coords must use `dd.ids.field => xx` syntax")
         end
-        path = replace(name, "___" => "__:__")
-        path = Vector{Any}(Vector{String}(split(path, "__")))
-        path = [k == ":" ? 0 : k for k in path if length(k) > 0]
+        local ids = $(esc(ex.args[2].args[1]))
+        local field = $(esc(ex.args[2].args[2]))
+        local xx = $(esc(ex.args[3]))
+        local yy = interp(ids, field)(xx)
+        yy
     end
-
-    # collect integers for arrays of structures
-    if typeof(ids) <: IDSvector
-        ix = findfirst([k === child for k in ids._value])
-        if ix === nothing
-            push!(index, 0)
-        else
-            push!(index, ix)
-        end
-    end
-
-    # traverse IDSs upstream or return result once top is reached
-    if ids._parent.value === missing
-        index = reverse(index)
-        path = reverse([(typeof(k) <: Int) & (length(index) > 0) ? pop!(index) : k for k in reverse(path)])
-        return path
-    else
-        return f2p(ids._parent.value, ids, path, index)
-    end
-end
-
-"""
-    f2i(ids::Union{IDS,IDSvector})::String
-
-return IMAS location of a given IDS
-"""
-function f2i(ids::Union{IDS,IDSvector})::String
-    return p2i(f2p(ids))
-end
-
-"""
-    i2p(imas_location::String)::Vector{Union{String,Int}}
-
-Split IMAS location in its elements
-"""
-function i2p(imas_location::String)::Vector{Union{String,Int}}
-    path = []
-    if length(imas_location) == 0
-        return path
-    end
-    for s in split(imas_location, '.')
-        if in('[', s)
-            s, n = split(s, '[')
-            n = strip(n, ']')
-            s = string(s)
-            push!(path, s)
-            if n == ":"
-                push!(path, ":")
-            else
-                push!(path, parse(Int, n))
-        end
-        else
-            s = string(s)
-            push!(path, s)
-        end
-    end
-    return path
-end
-
-
-"""
-    p2i(path::Vector{Union{String,Int}})::String
-
-Combine list of IMAS location elements into a string
-"""
-function p2i(path::Vector{Union{String,Int}})::String
-    str = String[]
-    for item in path
-        if item == ":"
-            push!(str, "[:]")
-        elseif typeof(item) <: Int
-            push!(str, "[$(string(item))]")
-        else
-            push!(str, item)
-        end
-    end
-    return replace(join(str, "."), ".[" => "[")
-end
-
-function p2i(path::Vector)::String
-    return p2i(Vector{Union{String,Int}}(path))
-end
-
-"""
-    i2u(imas_location::String)::String
-
-return universal IMAS location from IMAS location
-ie. replaces indexes of arrays of structures with [:]
-"""
-function i2u(imas_location::String)::String
-    return replace(imas_location, r"\[[0-9]+\]" => "[:]")
-end
-
-"""
-    u2fs(imas_location::String)::String
-
-return IDS/IDSvector type as a string starting from a universal IMAS location string
-"""
-function u2fs(imas_location::String)::String
-    tmp = replace(imas_location, "." => "__")
-    return replace(tmp, "[:]" => "_")
-end
-
-"""
-    return IDS/IDSvector type starting from a universal IMAS location string
-
-u2f(imas_location::String)
-"""
-function u2f(imas_location::String)
-    return eval(Meta.parse(u2fs(imas_location)))
 end
 
 """

@@ -9,7 +9,7 @@ given two strings it returns a tuple of 3 strings that is the common initial par
 """
 function common_base_string(s1::String, s2::String)::Tuple{String,String,String}
     index = nothing
-    for k in 1:min(length(s1), length(s2))
+    for k = 1:min(length(s1), length(s2))
         sub = SubString(s2, 1, k)
         if startswith(s1, sub)
             index = k
@@ -51,7 +51,7 @@ end
 Normalize a vector so that the first item in the array is 0 and the last one is 1
 This is handy where psi_norm should be used (and IMAS does not define a psi_norm array)
 """
-function norm01(x::AbstractVector{T} where T <: Real)::Vector{Real}
+function norm01(x::AbstractVector{T} where {T<:Real})::Vector{Real}
     return (x .- x[1]) ./ (x[end] .- x[1])
 end
 
@@ -60,12 +60,12 @@ end
 
 Turn a vector into a range (if possible)
 """
-function to_range(vector::AbstractVector{T} where T <: Real)
+function to_range(vector::AbstractVector{T} where {T<:Real})
     tmp = diff(vector)
-    if ! (1 - sum(abs.(tmp .- tmp[1])) / length(vector) ≈ 1.0)
+    if !(1 - sum(abs.(tmp .- tmp[1])) / length(vector) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
-    return range(vector[1], vector[end], length=length(vector))
+    return range(vector[1], vector[end], length = length(vector))
 end
 
 """
@@ -94,17 +94,27 @@ function Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector
     end
 end
 
+
+function interp(ids::IDS, field::Symbol; kw...)
+    coord = coordinates(ids, field)
+    if length(coord[:values]) > 1
+        error("Cannot interpolate multi-dimensional $(f2i(ids)).$field that has coordinates $([k for k in coord[:names]])")
+    end
+    return interp(coord[:values][1], getproperty(ids, field); kw...)
+end
+
+
 """
     interp(xs, y, scheme::Symbol=:linear, extrapolate::Symbol=:linear; kw...)
 
 Interface to Interpolations.jl that makes it similar to Scipy.interpolate
 """
-function interp(xs, y, scheme::Symbol=:linear, extrapolate::Symbol=:linear; kw...)
+function interp(xs, y, scheme::Symbol = :linear, extrapolate::Symbol = :linear; kw...)
 
     if isa(xs, Union{AbstractVector,AbstractRange})
         xs = (xs,)
     end
-    
+
     if extrapolate == :throw
         extrapolation_bc = Interpolations.Throw()
     elseif extrapolate == :linear
@@ -118,22 +128,22 @@ function interp(xs, y, scheme::Symbol=:linear, extrapolate::Symbol=:linear; kw..
     else
         error("interp extrapolation_bc can only be :throw, :flat, :linear, :periodic, or a number")
     end
-    
+
     # Interpolate.jl does not handle arrays of length one
     if length(size(y)) == 1 && size(y)[1] == 1
         if extrapolate != :throw
             xs = ([xs[1][1] - 1, xs[1][1] + 1],)
-            y = [y[1],y[1]]
+            y = [y[1], y[1]]
             scheme = :constant
         end
     end
 
     if scheme == :constant
-        itp = Interpolations.ConstantInterpolation(xs, y; extrapolation_bc=extrapolation_bc)
+        itp = Interpolations.ConstantInterpolation(xs, y; extrapolation_bc = extrapolation_bc)
     elseif scheme == :linear
-        itp = Interpolations.LinearInterpolation(xs, y; extrapolation_bc=extrapolation_bc)
+        itp = Interpolations.LinearInterpolation(xs, y; extrapolation_bc = extrapolation_bc)
     elseif scheme == :cubic
-        itp = Interpolations.CubicSplineInterpolation(xs, y; extrapolation_bc=extrapolation_bc)
+        itp = Interpolations.CubicSplineInterpolation(xs, y; extrapolation_bc = extrapolation_bc)
     else
         error("interp scheme can only be :constant, :linear, or :cubic ")
     end
@@ -148,7 +158,7 @@ Gradient of a vector computed using second order accurate central differences in
 The returned gradient hence has the same shape as the input array.
 https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 """
-function gradient(arr::AbstractVector, coord=1:length(arr))
+function gradient(arr::AbstractVector, coord = 1:length(arr))
     np = size(arr)[1]
     out = similar(arr)
     dcoord = diff(coord)
@@ -157,22 +167,22 @@ function gradient(arr::AbstractVector, coord=1:length(arr))
     out[1] = (arr[2] - arr[1]) / dcoord[1]
 
     # Central difference in interior using numpy method
-    for p in 2:np - 1
-        dp1 = dcoord[p - 1]
+    for p = 2:np-1
+        dp1 = dcoord[p-1]
         dp2 = dcoord[p]
         a = -dp2 / (dp1 * (dp1 + dp2))
         b = (dp2 - dp1) / (dp1 * dp2)
         c = dp1 / (dp2 * (dp1 + dp2))
-        out[p] = a * arr[p - 1] + b * arr[p] + c * arr[p + 1]
+        out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
     end
 
     # Backwards difference at the end
-    out[end] = (arr[end] - arr[end - 1]) / dcoord[end]
+    out[end] = (arr[end] - arr[end-1]) / dcoord[end]
 
     return out
 end
 
-function gradient(arr::Matrix, coord1=1:size(arr)[1], coord2=1:size(arr)[2])
+function gradient(arr::Matrix, coord1 = 1:size(arr)[1], coord2 = 1:size(arr)[2])
     d1 = hcat(map(x -> gradient(x, coord1), eachcol(arr))...)
     d2 = transpose(hcat(map(x -> gradient(x, coord2), eachrow(arr))...))
     return d1, d2
@@ -196,27 +206,29 @@ intersection(l1_x::AbstractVector{T},
 
 Intersections between two 2D paths, returns list of (x,y) intersection points
 """
-function intersection(l1_x::AbstractVector{T},
-                      l1_y::AbstractVector{T},
-                      l2_x::AbstractVector{T},
-                      l2_y::AbstractVector{T};
-                      as_list_of_points::Bool=true) where T
+function intersection(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T};
+    as_list_of_points::Bool = true,
+) where {T}
     if as_list_of_points
         crossings = NTuple{2,T}[]
     else
         crossings_x = T[]
         crossings_y = T[]
     end
-    for k1 in 1:(length(l1_x)-1)
-        s1_s = @StaticArrays.SVector [l1_x[k1],   l1_y[k1]]
-        s1_e = @StaticArrays.SVector [l1_x[k1+1], l1_y[k1+1]]
-        for k2 in 1:(length(l2_x)-1)
-            s2_s = @StaticArrays.SVector [l2_x[k2],   l2_y[k2]]
-            s2_e = @StaticArrays.SVector [l2_x[k2+1], l2_y[k2+1]]
+    for k1 = 1:(length(l1_x)-1)
+        s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
+        s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
+        for k2 = 1:(length(l2_x)-1)
+            s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
+            s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
             crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
             if crossing !== nothing
                 if as_list_of_points
-                    push!(crossings, (crossing[1],crossing[2]))
+                    push!(crossings, (crossing[1], crossing[2]))
                 else
                     push!(crossings_x, crossing[1])
                     push!(crossings_y, crossing[2])
@@ -244,7 +256,7 @@ function _perp(a)
 end
 
 function _seg_intersect(a1, a2, b1, b2)
-    if ! _intersect(a1, a2, b1, b2)
+    if !_intersect(a1, a2, b1, b2)
         return nothing
     end
     da = a2 - a1
