@@ -256,19 +256,19 @@ end
 """
     coordinates(ids::IDS, field::Symbol)
 
-Returns two lists, one of coordinate names and the other with their values in the data structure
+Return two lists, one of coordinate names and the other with their values in the data structure
 Coordinate value is `nothing` when the data does not have a coordinate
 Coordinate value is `missing` if the coordinate is missing in the data structure
 """
 function coordinates(ids::IDS, field::Symbol)
-    info = imas_info("$(f2u(ids)).$(field)")
+    info = imas_info(ids, field)
     # handle scalar quantities (which do not have coordinate)
     if ! ("coordinates" in keys(info))
         return Dict(:names => [], :values => [])
     end
     coord_names = deepcopy(info["coordinates"])
     coord_values = []
-    for (k, coord) in enumerate(coord_names)
+    for coord in coord_names
         if occursin("...", coord)
             push!(coord_values, nothing)
         else
@@ -280,6 +280,26 @@ function coordinates(ids::IDS, field::Symbol)
         end
     end
     return Dict(:names => coord_names, :values => coord_values)
+end
+
+"""
+    units(ids::IDS, field::Symbol)
+
+Return string with units
+"""
+function units(location::String)
+    info = imas_info(location)
+    return get(info,"units","")
+end
+
+"""
+    units(ids::IDS, field::Symbol)
+
+Return string with units
+"""
+function units(ids::IDS, field::Symbol)
+    location = "$(f2u(ids)).$(field)"
+    return units(location)
 end
 
 """

@@ -3,6 +3,22 @@ include("expressions.jl")
 struct GlobalTime <: AbstractFloat end
 const τ = GlobalTime()
 
+#= ============================ =#
+#  IDS and IDSvector structures  #
+#= ============================ =#
+
+abstract type IDS end
+abstract type IDSvectorElement <: IDS end
+abstract type IDSvectorStaticElement <: IDSvectorElement end
+abstract type IDSvectorTimeElement <: IDSvectorElement end
+mutable struct IDSvector{T} <: AbstractVector{T}
+    _value::Vector{T}
+    _parent::WeakRef
+    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
+        return new{T}(ids, WeakRef(missing))
+    end
+end
+
 #= ============ =#
 #  IMAS DD read  #
 #= ============ =#
@@ -51,6 +67,16 @@ function imas_info(location::String)
 end
 
 """
+    imas_info(ids::IDS, field::Symbol)
+
+Return information of a filed of an IDS
+"""
+function imas_info(ids::Union{IDS,IDSvector}, field::Symbol)
+    location = "$(f2u(ids)).$(field)"
+    return imas_info("$(f2u(ids)).$(field)")
+end
+
+"""
     struct_field_type(structure::DataType, field::Symbol)
 
 Return the typeof of a given `field` witin a `structure`
@@ -59,22 +85,6 @@ function struct_field_type(structure::DataType, field::Symbol)
     names = fieldnames(structure)
     index = findfirst(isequal(field), names)
     return structure.types[index]
-end
-
-#= ============================ =#
-#  IDS and IDSvector structures  #
-#= ============================ =#
-
-abstract type IDS end
-abstract type IDSvectorElement <: IDS end
-abstract type IDSvectorStaticElement <: IDSvectorElement end
-abstract type IDSvectorTimeElement <: IDSvectorElement end
-mutable struct IDSvector{T} <: AbstractVector{T}
-    _value::Vector{T}
-    _parent::WeakRef
-    function IDSvector(ids::Vector{T}) where {T <: IDSvectorElement}
-        return new{T}(ids, WeakRef(missing))
-    end
 end
 
 #= === =#

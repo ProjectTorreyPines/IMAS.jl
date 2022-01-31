@@ -1,4 +1,5 @@
 using Plots
+using LaTeXStrings
 
 """
     plot_pf_active_cx(pfa::pf_active)
@@ -79,14 +80,12 @@ Plots cross-section of individual coils
     end
 end
 
-
-
 """
     plot_eqcx(eqt::IMAS.equilibrium__time_slice; psi_levels=nothing, psi_levels_out=nothing, lcfs=false)
 
 Plots equilibrium cross-section
 """
-@recipe function plot_eqtcx(eq::IMAS.equilibrium; psi_levels = nothing, psi_levels_out = nothing, lcfs = false)
+@recipe function plot_eqcx(eq::IMAS.equilibrium; psi_levels = nothing, psi_levels_out = nothing, lcfs = false)
     @series begin
         psi_levels --> psi_levels
         psi_levels_out --> psi_levels_out
@@ -361,4 +360,95 @@ Plots build cross-section
             end
         end
     end
+end
+
+@recipe function plot_cp(cp::IMAS.core_profiles)
+    @series begin
+        return cp.profiles_1d[]
+    end
+end
+
+@recipe function plot_cp(cpt::IMAS.core_profiles__profiles_1d)
+    layout := (1,3)
+    size := (1100, 290)
+
+    @series begin
+        subplot := 1
+        label --> "Electrons"
+        cpt.electrons, :temperature
+    end
+
+    @series begin
+        subplot := 1
+        label --> "Ions"
+        linestyle --> :dash
+        cpt.electrons, :temperature
+    end
+
+    @series begin
+        subplot := 2
+        label := ""
+        cpt, :rotation_frequency_tor_sonic
+    end
+
+    @series begin
+        subplot := 3
+        label := "e"
+        cpt.electrons, :density
+    end
+
+    for ion in cpt.ion
+        @series begin
+            subplot := 3
+            label --> ion.label
+            ion, :density
+        end
+    end
+
+end
+
+#= ================ =#
+#  generic plotting  #
+#= ================ =#
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol)
+    coords = coordinates(ids, field)
+    @series begin
+        xlabel --> nice_field(i2p(coords[:names][1])[end])*nice_units(units(coords[:names][1]))
+        ylabel --> nice_units(units(ids, field))
+        title --> nice_field(field)
+        coords[:values][1], getproperty(ids, field)
+    end
+end
+
+#= ================== =#
+#  handling of labels  #
+#= ================== =#
+nice_field_symbols = Dict()
+nice_field_symbols["rho_tor_norm"] = L"\rho"
+nice_field_symbols["psi"] = L"\psi"
+nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
+
+function nice_field(field::String)
+    if field in keys(nice_field_symbols)
+        field = nice_field_symbols[field]
+    else
+        field = uppercasefirst(replace(field, "_" => " "))
+    end
+    return field
+end
+
+function nice_field(field::Symbol)
+    nice_field(String(field))
+end
+
+function nice_units(units::String)
+    if units == "-"
+        units = ""
+    end
+    if length(units) > 0
+        units=replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
+        units = L"[%$units]"
+        units =" "*units
+    end
+    return units
 end
