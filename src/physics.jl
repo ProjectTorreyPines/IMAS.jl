@@ -65,7 +65,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Br_vector_interpolant = (x,y) -> [cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[2]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
     Bz_vector_interpolant = (x,y) -> [-cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[1]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
 
-    for item in [:elongation, :triangularity_lower, :triangularity_upper, :r_inboard, :r_outboard, :q, :dvolume_dpsi, :j_tor, :j_parallel, :volume, :gm1, :gm2, :gm9, :phi]
+    for item in [:elongation, :triangularity_lower, :triangularity_upper, :r_inboard, :r_outboard, :q, :dvolume_dpsi, :j_tor, :j_parallel, :volume, :gm1, :gm2,:gm8, :gm9, :phi]
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
 
@@ -181,6 +181,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
         # gm1 = <1/R^2>
         eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr.^2)
+
+        # gm8 = <R>
+        eqt.profiles_1d.gm8[k] = flxAvg(pr)
 
         # gm9 = <1/R>
         eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr)
