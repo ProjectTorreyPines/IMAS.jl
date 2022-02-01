@@ -436,6 +436,8 @@ function nice_field(field::String)
     if field in keys(nice_field_symbols)
         field = nice_field_symbols[field]
     else
+        field = replace(field, r"_tor" => " toroidal")
+        field = replace(field, r"_pol" => " poloidal")
         field = uppercasefirst(replace(field, "_" => " "))
     end
     return field
@@ -451,6 +453,7 @@ function nice_units(units::String)
     end
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
+        units = replace(units, "." => s"\\,")
         units = L"[%$units]"
         units = " " * units
     end

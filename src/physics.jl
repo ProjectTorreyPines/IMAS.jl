@@ -65,6 +65,11 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
     Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
 
+    # find magnetic axis
+    res = Optim.optimize(x -> PSI_interpolant(x[1], x[2]), [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+    eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
+    eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
+
     for item in [
         :elongation,
         :triangularity_lower,
@@ -74,7 +79,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :q,
         :dvolume_dpsi,
         :j_tor,
-        :j_parallel,
         :volume,
         :gm1,
         :gm2,
@@ -89,7 +93,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     PZ = []
     LL = []
     FLUXEXPANSION = []
-    INT_FLUXEXPANSION_DL = []
+    INT_FLUXEXPANSION_DL = zeros(length(eqt.profiles_1d.psi))
+    BPL = zeros(length(eqt.profiles_1d.psi))
     for (k, psi_level0) in reverse(collect(enumerate(eqt.profiles_1d.psi)))
 
         # on axis flux surface is a synthetic one
@@ -129,7 +134,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
                 true,
             )
             if length(pr) == 0
-                error("Could not trace $(k) closed flux surface at ψ = $(psi_level)  which is  ψₙ = $(k / length(eqt.profiles_1d.psi))")
+                error("Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
 
             # Extrema on array indices
@@ -191,13 +196,15 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         ll = cumsum(vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2)))
         fluxexpansion = 1.0 ./ Bp_abs
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+        Bpl = trapz(ll, Bp)
 
         # save flux surface coordinates for later use
         pushfirst!(PR, pr)
         pushfirst!(PZ, pz)
         pushfirst!(LL, ll)
         pushfirst!(FLUXEXPANSION, fluxexpansion)
-        pushfirst!(INT_FLUXEXPANSION_DL, int_fluxexpansion_dl)
+        INT_FLUXEXPANSION_DL[k] = int_fluxexpansion_dl
+        BPL[k] = Bpl
 
         # flux-surface averaging function
         function flxAvg(input)
@@ -232,7 +239,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # quantities calculated on the last closed flux surface
         if k == length(eqt.profiles_1d.psi)
             # ip
-            eqt.global_quantities.ip = cc.sigma_rhotp * trapz(ll, Bp) / (4e-7 * pi)
+            eqt.global_quantities.ip = cc.sigma_rhotp * Bpl / (4e-7 * pi)
 
             # perimeter
             eqt.global_quantities.length_pol = ll[end]
@@ -256,6 +263,10 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # average poloidal magnetic field
     Bpave = eqt.global_quantities.ip * (4.0 * pi * 1e-7) / eqt.global_quantities.length_pol
+
+    # li
+    Bp2v = trapz(eqt.profiles_1d.psi, BPL * (2.0 * pi)^(1.0 - cc.exp_Bp))
+    eqt.global_quantities.li_3 = 2 * Bp2v / R0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
 
     # beta_tor
     eqt.global_quantities.beta_tor = abs(
@@ -483,7 +494,7 @@ function get_build(
     hfs::Union{Nothing,Int,Array} = nothing,
     return_only_one = true,
     return_index = false,
-    raise_error_on_missing = true,
+    raise_error_on_missing = true
 )
 
     if isa(hfs, Int)

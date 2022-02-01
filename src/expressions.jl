@@ -53,10 +53,10 @@ expressions["equilibrium.time_slice[:].global_quantities.psi_boundary"] =
 
 
 expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.r"] =
-    (;time_slice, _...) -> (time_slice.profiles_1d.r_inboard[1] + time_slice.profiles_1d.r_outboard[1]) * 0.5
+    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r[1]
 
 expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
-    (;time_slice, _...) -> 0.0
+    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[1]
 
 
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
