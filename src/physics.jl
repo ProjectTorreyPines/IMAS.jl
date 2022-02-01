@@ -168,14 +168,21 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         end
 
         # geometric
+        a_ = 0.5 * (pr[imaxr] - pr[iminr])
         a = 0.5 * (max_r - min_r)
+        b_ = 0.5 * (pz[imaxz] - pz[iminz])
         b = 0.5 * (max_z - min_z)
-        R = 0.5 * (max_r + min_r)
+        Rm_ = 0.5 * (pr[imaxr] + pr[iminr])
+        Rm = 0.5 * (max_r + min_r)
+        Zm_ = 0.5 * (pz[imaxz] + pz[iminz])
+        Zm = 0.5 * (max_z + min_z)
         eqt.profiles_1d.r_outboard[k] = max_r
         eqt.profiles_1d.r_inboard[k] = min_r
-        eqt.profiles_1d.elongation[k] = b / a
-        eqt.profiles_1d.triangularity_upper[k] = (R - r_at_max_z) / a
-        eqt.profiles_1d.triangularity_lower[k] = (R - r_at_min_z) / a
+        eqt.profiles_1d.elongation[k] = κ = b / a
+        eqt.profiles_1d.triangularity_upper[k] = (Rm - r_at_max_z) / a
+        eqt.profiles_1d.triangularity_lower[k] = (Rm - r_at_min_z) / a
+
+        MXH_amplitudes = miller_extended_harmonic(pr, pz, Rm_, Zm_, a_, b_, 5)
 
         # poloidal magnetic field (with sign)
         Br = Br_vector_interpolant(pr, pz)
@@ -364,34 +371,102 @@ function flux_surface(
     cl = Contour.contour(dim1, dim2, PSI, psi_level)
 
     prpz = []
-    # if no open/closed check, then return all contours
     if closed === nothing
+        # if no open/closed check, then return all contours
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
+            reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
             push!(prpz, (pr, pz))
         end
         return prpz
-        # look for closed flux-surface
     elseif closed
+        # look for closed flux-surface
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surface that close and contain magnetic axis
             if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((r0, z0), collect(zip(pr, pz))) == 1)
+                reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
                 return pr, pz, psi_level
             end
         end
         return [], [], psi_level
-        # look for open flux-surfaces
     elseif !closed
+        # look for open flux-surfaces
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surfaces that close or that do not contain magnetic axis
             if (pr[1] != pr[end]) || (pz[1] != pz[end]) || (PolygonOps.inpolygon((r0, z0), collect(zip(pr, pz))) != 1)
+                reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
                 push!(prpz, (pr, pz))
             end
         end
         return prpz
     end
+end
+
+function MXH_moment(f, w, d)
+    # This does Int[f.w]/Int[w.w];
+    # If w is a pure Fourier mode, this gives the Fourier coefficient
+    # Could probably be replaced by some Julia trapz
+    s0 = sum((f[1:end-1] .* w[1:end-1] .+ f[2:end] .* w[2:end]) .* d[1:end-1])
+    s1 = sum((w[1:end-1] .* w[1:end-1] .+ w[2:end] .* w[2:end]) .* d[1:end-1])
+    return s0 / s1
+end
+
+"""
+    miller_extended_harmonic()
+
+Compute Fourier coefficients for Miller-extended-harmonic representation
+    R(r,θ) = R(r) + a(r)*cos(θᵣ(r,θ)) where θᵣ(r,θ) = θ + C₀(r) + sum[Cᵢ(r)*cos(i*θ) + Sᵢ(r)*sin(i*θ)]
+    Z(r,θ) = Z(r) + κ(r)*a(r)*sin(θ)
+"""
+function miller_extended_harmonic(pr, pz, Rm, Zm, a, b, MXH_modes)
+    MXH_amplitudes = zeros(2 * MXH_modes + 1)
+    th = 0.0
+    th_old = 0.0
+    thr = 0.0
+    thr_old = 0.0
+
+    L = length(pr)
+    θ = zeros(L)
+    θᵣ = zeros(L)
+
+    # Calculate angles with proper branches
+    for j in 1:L
+        th_old = th
+        thr_old = thr
+        aa = (pz[j] - Zm) / b
+        th = asin(min(-1, max(1, aa)))
+        bb = (pr[j] - Rm) / a
+        thr = acos(min(-1, max(1, bb)))
+        if (j == 1) || ((th > th_old) && (thr > thr_old))
+            θ[j] = th
+            θᵣ[j] = thr
+        elseif (th < th_old) && (thr > thr_old)
+            θ[j] = π - th
+            θᵣ[j] = thr
+        elseif (th < th_old) && (thr < thr_old)
+            θ[j] = π - th
+            θᵣ[j] = 2π - thr
+        elseif (th > th_old) && (thr < thr_old)
+            θ[j] = 2π + th
+            θᵣ[j] = 2π - thr
+        end
+    end
+
+    dθ = zeros(L)
+    for j in 1:L-1
+        dθ[j] = θ[j+1] - θ[j]
+        dθ[j] < 0 && (dθ[j] += 2π)
+    end
+    dθ[end] = dθ[1]
+
+    MXH_amplitudes[1] = MXH_moment(θᵣ - θ, ones(L), dθ)
+    for m in 1:MXH_modes
+        MXH_amplitudes[2m] = MXH_moment(θᵣ - θ, sin.(m * θ), dθ)
+        MXH_amplitudes[2m+1] = MXH_moment(θᵣ - θ, cos.(m * θ), dθ)
+    end
+    return MXH_amplitudes
 end
 
 """
@@ -479,7 +554,7 @@ function get_build(
     hfs::Union{Nothing,Int,Array} = nothing,
     return_only_one = true,
     return_index = false,
-    raise_error_on_missing = true,
+    raise_error_on_missing = true
 )
 
     if isa(hfs, Int)
@@ -568,5 +643,31 @@ function structures_mask(bd::IMAS.build; resolution::Int = 257, border_fraction:
         return rmask, zmask, 1.0 .- mask
     else
         return rmask, zmask, mask
+    end
+end
+
+"""
+    reorder_flux_surface!(pr, pz, z0)
+
+Reorder so clockwise and starting from first point
+"""
+function reorder_flux_surface!(pr, pz, z0)
+    # flip to counterclockwise so θ will increase
+    istart = argmax(pr[1:end-1])
+    if pz[istart+1] < pz[istart]
+        reverse!(pr)
+        reverse!(pz)
+        istart = length(pr) + 1 - istart
+    end
+
+    # start from point above z0 (only if flux surface closes)
+    if (pr[1] == pr[end]) && (pz[1] == pz[end])
+        while pz[istart] < z0
+            istart += 1
+        end
+        pr[1:end-1] = circshift(pr[1:end-1], 1 - istart)
+        pz[1:end-1] = circshift(pz[1:end-1], 1 - istart)
+        pr[end] = pr[1]
+        pz[end] = pz[1]
     end
 end
