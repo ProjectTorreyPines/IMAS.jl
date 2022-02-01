@@ -206,6 +206,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # gm1 = <1/R^2>
         eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2)
 
+        # gm8 = <R>
+        eqt.profiles_1d.gm8[k] = flxAvg(pr)
+
         # gm9 = <1/R>
         eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr)
 
