@@ -39,7 +39,9 @@ function dict2imas(dct, ids::T; verbose::Bool = false, path::Vector{String} = St
             if verbose
                 println(("｜"^level) * string(k))
             end
-            resize!(ff, length(v))
+            if length(ff) < length(v)
+                resize!(ff, length(v))
+            end
             for i = 1:length(v)
                 if verbose
                     println(("｜"^(level + 1)) * string(i))
@@ -230,6 +232,7 @@ function assign_expressions(ids::Union{IDS,IDSvector})
             setproperty!(ids, item, expressions["$(struct_name).$(item)"])
         end
     end
+    return ids
 end
 
 #= ===================== =#

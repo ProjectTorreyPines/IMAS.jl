@@ -379,6 +379,17 @@ function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T<:IDSvectorElement}
     return Base.deleteat!(ids._value, i)
 end
 
+function Base.empty!(ids::IDS)
+    tmp = typeof(ids)()
+    for item in fieldnames(typeof(ids))
+        if item != :_parent
+            setproperty!(ids, item, getfield(tmp, item))
+        end
+    end
+    assign_expressions(ids)
+    return ids
+end
+
 function Base.resize!(ids::IDSvector{T}) where {T<:IDSvectorTimeElement}
     return Base.resize!(ids, global_time(ids))
 end
@@ -408,15 +419,11 @@ function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvect
 end
 
 function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
-    if n > length(ids)
-        for k = length(ids):n-1
-            obj = eltype(ids)()
-            setfield!(obj, :_parent, WeakRef(ids))
-            push!(ids._value, obj)
-        end
-    elseif n < length(ids)
-        for k = n:length(ids)-1
-            pop!(ids._value)
+    if n == 0
+        return empty!(ids)
+    elseif n > length(ids)
+        for k in length(ids):n-1
+            push!(ids, eltype(ids)())
         end
     end
     return ids[end]
@@ -477,9 +484,10 @@ end
 """
     Base.resize!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
 
-Resize if a set of conditions are not met, and populate structure with those conditions
+Resize if a set of conditions are not met
+If an entry matching the condition is found, then the content of the matching IDS is emptied, and the IDS is populated with the conditions
+Returns selected IDS
 """
-
 function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...) where {T<:IDSvectorElement}
     conditions = vcat(condition, collect(conditions))
     if length(ids) == 0
@@ -493,13 +501,15 @@ function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pa
             for p in i2p(path)
                 if typeof(p) <: Int
                     if p > length(h)
-                        return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
+                        match = false
+                        break
                     end
                     h = h[p]
                 else
                     p = Symbol(p)
                     if ismissing(h, p)
-                        return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
+                        match = false
+                        break
                     end
                     h = getproperty(h, p)
                 end
@@ -514,19 +524,10 @@ function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pa
         end
     end
     if length(matches) == 1
-        return collect(values(matches))[1]
+        return _set_conditions(empty!(collect(values(matches))[1]), conditions...)
     elseif length(matches) > 1
         error("Multiple entries $([k for k in keys(matches)]) match resize! conditions")
+    else
+        return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
     end
-    return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
-end
-
-function Base.empty!(ids::IDS)
-    tmp = typeof(ids)()
-    for item in fieldnames(typeof(ids))
-        if item != :_parent
-            setproperty!(ids, item, getfield(tmp, item))
-        end
-    end
-    assign_expressions(ids)
 end
