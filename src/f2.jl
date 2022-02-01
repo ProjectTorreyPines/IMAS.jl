@@ -65,10 +65,7 @@ function f2p(ids::Union{IDS,IDSvector})::Vector{Union{String,Int}}
     return f2p(ids, missing, nothing, Int[])
 end
 
-function f2p(ids::Union{IDS,IDSvector},
-             child::Union{Missing,IDS,IDSvector},
-             path::Union{Nothing,Vector},
-             index::Vector{Int})
+function f2p(ids::Union{IDS,IDSvector}, child::Union{Missing,IDS,IDSvector}, path::Union{Nothing,Vector}, index::Vector{Int})
     # initialize path and index
     if path === nothing
         if typeof(ids) <: IDS
@@ -134,7 +131,7 @@ function i2p(imas_location::String)::Vector{Union{String,Int}}
                 push!(path, ":")
             else
                 push!(path, parse(Int, n))
-        end
+            end
         else
             s = string(s)
             push!(path, s)

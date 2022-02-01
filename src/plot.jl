@@ -45,6 +45,7 @@ Plots pf active cross-section
 
     else
         error("IMAS.pf_active `what` to plot can only be :cx or :currents")
+
     end
 
 end
@@ -100,14 +101,14 @@ end
     aspect_ratio --> :equal
     primary --> false
 
-    # if there is no psi map then plot the boundary
-    if (length(eqt.profiles_2d) == 0) || is_missing(eqt.profiles_2d[1], :psi)
+    if (length(eqt.profiles_2d) == 0) || ismissing(eqt.profiles_2d[1], :psi)
+        # if there is no psi map then plot the boundary
         @series begin
             eqt.boundary.outline.r, eqt.boundary.outline.z
         end
 
-        # plot cx
     else
+        # plot cx
         # handle psi levels
         psi__boundary_level = eqt.profiles_1d.psi[end]
         tmp = find_psi_boundary(eqt, raise_error_on_not_open = false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
@@ -257,7 +258,7 @@ Plots build cross-section
             if l.type == -1
                 valid = false
             end
-            if IMAS.is_missing(l.outline, :r) || !valid
+            if IMAS.ismissing(l.outline, :r) || !valid
                 continue
             end
             l1 = bd.layer[k+1]
@@ -266,7 +267,7 @@ Plots build cross-section
             # setup labels and colors
             name = l.name
             color = :gray
-            if !is_missing(l, :material) && l.material == "vacuum"
+            if !ismissing(l, :material) && l.material == "vacuum"
                 name = ""
                 color = :white
             elseif occursin("TF", l.name)
@@ -330,7 +331,7 @@ Plots build cross-section
         at = 0
         for l in bd.layer
             @series begin
-                if !is_missing(l, :material) && l.material == "vacuum"
+                if !ismissing(l, :material) && l.material == "vacuum"
                     color --> :white
                 elseif occursin("OH", l.name)
                     color --> :gray
@@ -369,7 +370,7 @@ end
 end
 
 @recipe function plot_cp(cpt::IMAS.core_profiles__profiles_1d)
-    layout := (1,3)
+    layout := (1, 3)
     size := (1100, 290)
 
     @series begin
@@ -382,6 +383,7 @@ end
         @series begin
             subplot := 1
             label --> ion.label
+            linestyle --> :dash
             ion, :temperature
         end
     end
@@ -402,6 +404,7 @@ end
         @series begin
             subplot := 3
             label --> ion.label
+            linestyle --> :dash
             ion, :density
         end
     end
@@ -414,7 +417,7 @@ end
 @recipe function plot_field(ids::IMAS.IDS, field::Symbol)
     coords = coordinates(ids, field)
     @series begin
-        xlabel --> nice_field(i2p(coords[:names][1])[end])*nice_units(units(coords[:names][1]))
+        xlabel --> nice_field(i2p(coords[:names][1])[end]) * nice_units(units(coords[:names][1]))
         ylabel --> nice_units(units(ids, field))
         title --> nice_field(field)
         coords[:values][1], getproperty(ids, field)
@@ -447,9 +450,9 @@ function nice_units(units::String)
         units = ""
     end
     if length(units) > 0
-        units=replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
+        units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
         units = L"[%$units]"
-        units =" "*units
+        units = " " * units
     end
     return units
 end

@@ -23,17 +23,22 @@ function common_base_string(s1::String, s2::String)::Tuple{String,String,String}
 end
 
 """
-    is_missing(ids::IDS, leaf)::Bool
+    ismissing(ids::IDS, leaf)::Bool
 
 returns true/false if field is missing in IDS
 """
-function is_missing(ids::IDS, field::Symbol)::Bool
+function Base.ismissing(ids::IDS, field::Symbol)::Bool
     try
         getproperty(ids, field)
         return false
     catch
         return true
     end
+end
+
+function is_missing(ids::IDS, field::Symbol)::Bool
+    @warn "Use of `IMAS.is_missing(ids, field)` is deprecated. Use `IMAS.ismissing(ids, field)`` instead."
+    return ismissing(ids, field)
 end
 
 """

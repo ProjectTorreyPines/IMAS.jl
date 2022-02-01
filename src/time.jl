@@ -29,7 +29,7 @@ Look for time array information
 function time_parent(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
     locs, tarr = time_locations(ids)
     h = [locs[k] for k in 1:length(locs) if tarr[k]][end]
-    if is_missing(h, :time)
+    if ismissing(h, :time)
         h.time = Float64[]
     end
     return h
@@ -64,14 +64,14 @@ function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, value) wher
         end
     else
         i = argmin(abs.(time .- time0))
-        # perfect match --> overwrite
         if minimum(abs.(time .- time0)) == 0
+            # perfect match --> overwrite
             if field !== :time
-                if is_missing(ids, field) || (length(getproperty(ids, field)) == 0)
+                if ismissing(ids, field) || (length(getproperty(ids, field)) == 0)
                     setproperty!(ids, field, vcat([NaN for k = 1:i-1], value))
                 else
                     last_value = getproperty(ids, field)
-                    if length(last_value)<i
+                    if length(last_value) < i
                         reps = i - length(last_value) - 1
                         append!(last_value, vcat([last_value[end] for k = 1:reps], value))
                     else
@@ -79,11 +79,11 @@ function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, value) wher
                     end
                 end
             end
-        # append
         elseif time0 > maximum(time)
+            # next timeslice --> append
             push!(time, time0)
             if field !== :time
-                if is_missing(ids, field) || (length(getproperty(ids, field)) == 0)
+                if ismissing(ids, field) || (length(getproperty(ids, field)) == 0)
                     setproperty!(ids, field, vcat([NaN for k = 1:length(time)-1], value))
                 else
                     last_value = getproperty(ids, field)
