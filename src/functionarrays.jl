@@ -425,39 +425,15 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
         for k in length(ids):n-1
             push!(ids, eltype(ids)())
         end
-    end
-    return ids[end]
-end
-
-"""
-    Base.resize!(ids::IDSvector{T}, func::Function) where {T <: IDSvectorElement}
-
-Resize array of structure if a function returns false
-"""
-function Base.resize!(ids::IDSvector{T}, func::Function) where {T<:IDSvectorElement}
-    if length(ids) == 0
-        return resize!(ids, 1)
-    end
-    matches = Dict()
-    for (k, item) in enumerate(ids)
-        try
-            if func(item)
-                matches[k] = item
-            end
-        catch e
-            if typeof(e) <: IMASmissingDataException
-                resize!(ids, length(ids) + 1)
-            else
-                rethrow()
+    else
+        if n < length(ids)
+            for k in n:length(ids)-1
+                pop!(ids)
             end
         end
+        empty!(ids[end])
     end
-    if length(matches) == 1
-        return collect(values(matches))[1]
-    elseif length(matches) > 1
-        error("Multiple entries $([k for k in keys(matches)]) match resize! conditions")
-    end
-    return resize!(ids, length(ids) + 1)
+    return ids[end]
 end
 
 function _set_conditions(ids::IDS, conditions::Pair{String}...)
