@@ -78,6 +78,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :volume,
         :gm1,
         :gm2,
+        :gm8,
         :gm9,
         :phi,
     ]
