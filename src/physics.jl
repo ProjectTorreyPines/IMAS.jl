@@ -62,12 +62,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     end
 
     # Br and Bz evaluated through spline gradient
-<<<<<<< HEAD
-    Br_vector_interpolant = (x,y) -> [cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[2]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
-    Bz_vector_interpolant = (x,y) -> [-cc.sigma_RpZ*Interpolations.gradient(PSI_interpolant, x[k], y[k])[1]/x[k]/(2*pi)^cc.exp_Bp for k in 1:length(x)]
-
-    for item in [:elongation, :triangularity_lower, :triangularity_upper, :r_inboard, :r_outboard, :q, :dvolume_dpsi, :j_tor, :j_parallel, :volume, :gm1, :gm2,:gm8, :gm9, :phi]
-=======
     Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
     Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
 
@@ -87,7 +81,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :gm9,
         :phi,
     ]
->>>>>>> 9ccdf615b259ff9c317f37d6074a4e959d56dbd2
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
 
