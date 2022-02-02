@@ -394,11 +394,19 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
                 printstyled(io, "$(item)")
                 printstyled(io, " ➡ "; color = :red)
                 if typeof(value) <: Function
-                    printstyled(io, "Function\n"; color = :green)
+                    printstyled(io, "Function\n"; color = :blue)
                 elseif typeof(value) <: String
                     printstyled(io, "\"$(value)\"\n"; color = :magenta)
-                elseif typeof(value) <: Number
-                    printstyled(io, "$(value)\n"; color = :magenta)
+                elseif typeof(value) <: Integer
+                    printstyled(io, "$(value)\n"; color = :yellow)
+                elseif typeof(value) <: AbstractFloat
+                    printstyled(io, "$(value)\n"; color = :red)
+                elseif typeof(value) <: AbstractArray
+                    if  length(value)<5
+                        printstyled(io, "$(value)\n"; color = :green)
+                    else
+                        printstyled(io, "$(Base.summary(value))\n"; color = :green)
+                    end
                 else
                     printstyled(io, "$(Base.summary(value))\n"; color = :blue)
                 end
