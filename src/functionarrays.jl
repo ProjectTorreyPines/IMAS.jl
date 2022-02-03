@@ -408,7 +408,9 @@ function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvect
     elseif (length(ids) == 0) || (time0 > maximum(time))
         k = length(ids) + 1
         resize!(ids, k)
-        push!(time, time0)
+        if !(time0 in time)
+            push!(time, time0)
+        end
         if hasfield(typeof(ids[k]), :time)
             ids[k].time = time0
         end
