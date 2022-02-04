@@ -59,6 +59,9 @@ expressions["equilibrium.time_slice[:].global_quantities.psi_boundary"] =
 expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.r"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r[1]
 
+expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
+    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[1]
+
 #expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.b_field_tor"] =
 #    (; equilibrium, _...) ->  abs(@ddtime(equilibrium.vacuum_toroidal_field.b0)) * equilibrium.vacuum_toroidal_field.r0 / equilibrium.boundary.geometric_axis.r
 
