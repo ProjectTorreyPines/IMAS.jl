@@ -21,8 +21,12 @@ using Test
     @test profiles_1d.electrons.pressure[1] ≈ pe0
 
     # test passing of whole structure
-    profiles_1d.electrons.pressure = (x; electrons, profiles_1d, profiles_1d_index, core_profiles, dd) -> pe0 .* (1.0 .- x .^ 2)
+    profiles_1d.electrons.pressure = (x; dd, electrons, profiles_1d, profiles_1d_index, core_profiles) -> pe0 .* (1.0 .- x .^ 2)
     @test profiles_1d.electrons.pressure[1] ≈ pe0
+
+    # test using of macros in expressions
+    profiles_1d.electrons.pressure = (x; dd, _...) -> x .* 0.0 .+ @ddtime(dd.core_profiles.time)
+    @test profiles_1d.electrons.pressure[1] == 0.0
 
     # structures linked to top level IDS
     core_profiles = IMAS.core_profiles()
@@ -34,7 +38,7 @@ using Test
     @test profiles_1d.electrons.temperature[1] ≈ Te0
 
     # test passing of whole structure
-    profiles_1d.electrons.pressure = (x; electrons, profiles_1d, profiles_1d_index, core_profiles, dd) -> pe0 .* (1.0 .- x .^ 2)
+    profiles_1d.electrons.pressure = (x; dd, electrons, profiles_1d, profiles_1d_index, core_profiles) -> pe0 .* (1.0 .- x .^ 2)
     @test profiles_1d.electrons.pressure[1] ≈ pe0
 
     # structures linked after array of structures
@@ -45,7 +49,7 @@ using Test
     @test profiles_1d.electrons.density[1] ≈ ne0
 
     # test passing of whole structure
-    profiles_1d.electrons.pressure = (x; electrons, profiles_1d, profiles_1d_index, core_profiles, dd) -> pe0 .* (1.0 .- x .^ 2)
+    profiles_1d.electrons.pressure = (x; dd, electrons, profiles_1d, profiles_1d_index, core_profiles) -> pe0 .* (1.0 .- x .^ 2)
     @test profiles_1d.electrons.pressure[1] ≈ pe0
 
     # test infinite recursion
