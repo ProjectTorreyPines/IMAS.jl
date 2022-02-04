@@ -1,6 +1,6 @@
 using Trapz
 expressions = Dict{String,Function}()
-constants_e = 1.60218e-19
+
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
 # 
@@ -17,13 +17,13 @@ constants_e = 1.60218e-19
 #= =========== =#
 
 expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
-    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * constants_e
+    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * Constants.e
 
 expressions["core_profiles.profiles_1d[:].electrons.density"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * constants_e)
+    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * Constants.e)
 
 expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * constants_e)
+    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * Constants.e)
 
 #expressions["summary.global_quantities.beta_tor_thermal_norm"] =
 #    (;dd, _...) -> calc_beta_thermal_norm!(dd.summary, dd.equilibrium, dd.core_profiles)
@@ -68,17 +68,14 @@ expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
     (psi; time_slice, _...) -> psi .* 0.0 .+ time_slice.global_quantities.magnetic_axis.z
 
-
 expressions["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r[end]
 
 expressions["equilibrium.time_slice[:].boundary.geometric_axis.z"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[end]
 
-
 expressions["equilibrium.time_slice[:].boundary.minor_radius"] =
     (;time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] - time_slice.profiles_1d.r_inboard[end]) * 0.5
-
 
 expressions["equilibrium.time_slice[:].boundary.elongation"] =
     (;time_slice, _...) -> (time_slice.boundary.elongation_lower + time_slice.boundary.elongation_upper) * 0.5
