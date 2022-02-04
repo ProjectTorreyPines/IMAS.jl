@@ -206,10 +206,11 @@ function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
     ancestors = Dict()
     # initialize ancestors to missing
     path = f2p(ids)
+    pushfirst!(path, "dd")
     for (k, p) in enumerate(path)
         if typeof(p) <: String
             ancestors[Symbol(p)] = missing
-        elseif p != 0
+        else
             ancestors[Symbol(path[k-1] * "_index")] = missing
         end
     end
@@ -225,6 +226,9 @@ function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
         end
         h = h._parent.value
     end
+    # for anc in keys(ancestors)
+    #     println("$anc => $(typeof(ancestors[anc]))")
+    # end
     return ancestors
 end
 
