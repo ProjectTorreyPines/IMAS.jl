@@ -119,20 +119,23 @@ end
             psi_levels = [psi__boundary_level, psi__boundary_level]
             psi_levels_out = []
         else
+            npsi = 11
             if psi_levels === nothing
-                psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length = 11)
+                psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length = npsi)
             elseif isa(psi_levels, Int)
                 if psi_levels > 1
+                    npsi = psi_levels
                     psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length = psi_levels)
                 else
                     psi_levels = []
                 end
             end
+            delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
             if psi_levels_out === nothing
-                psi_levels_out = (psi__boundary_level - eqt.profiles_1d.psi[1]) .* collect(range(0, 1, length = 11)) .+ psi__boundary_level
+                psi_levels_out = delta_psi .* range(0, 1, length = npsi) .+ psi__boundary_level
             elseif isa(psi_levels_out, Int)
                 if psi_levels_out > 1
-                    psi_levels_out = (psi__boundary_level - eqt.profiles_1d.psi[1]) .* collect(range(0, 1, length = psi_levels_out)) .+ psi__boundary_level
+                    psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
                 else
                     psi_levels_out = []
                 end

@@ -517,7 +517,7 @@ function get_build(
     end
     if length(valid_layers) == 0
         if raise_error_on_missing
-            error("Did not find build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
+            error("Did not find build.layer: name=$name type=$type identifier=$identifier hfs=$hfs")
         else
             return nothing
         end
