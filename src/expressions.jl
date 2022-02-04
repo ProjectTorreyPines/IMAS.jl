@@ -1,6 +1,6 @@
 using Trapz
 expressions = Dict{String,Function}()
-
+constants_e = 1.60218e-19
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
 # 
@@ -15,15 +15,18 @@ expressions = Dict{String,Function}()
 #= =========== =#
 # Core Profiles #
 #= =========== =#
+
 expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
-    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * constants_e
 
 expressions["core_profiles.profiles_1d[:].electrons.density"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * 1.60218e-19)
+    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * constants_e)
 
 expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * 1.60218e-19)
+    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * constants_e)
 
+expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
+    (rho_tor_norm; core_profiles, _...) -> total_pressure_thermal(core_profiles)
 #= ========= =#
 # Equilibrium #
 #= ========= =#

@@ -585,3 +585,12 @@ function structures_mask(bd::IMAS.build; resolution::Int = 257, border_fraction:
         return rmask, zmask, mask
     end
 end
+
+function total_pressure_thermal(core_profiles)
+    prof1d = core_profiles.profiles_1d[]
+    pressure = prof1d.electrons.density .* prof1d.electrons.temperature
+    for ion in prof1d.ion
+        pressure += ion.density .* ion.temperature
+    end
+    return pressure * 1.60218e-19
+end
