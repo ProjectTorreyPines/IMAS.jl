@@ -13,7 +13,7 @@ include("data.jl")
 #= ================= =#
 
 include("time.jl")
-
+include("constants.jl")
 include("physics.jl")
 
 #= ================== =#
@@ -25,6 +25,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export is_missing, @ddtime, @coords
+export is_missing, @ddtime, @coords, Constants
 
 end # module
