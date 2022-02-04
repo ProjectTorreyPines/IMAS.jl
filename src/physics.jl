@@ -608,6 +608,6 @@ function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equili
 
     pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
     beta_tor = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
-    @ddtime (summary.global_quantities.beta_tor = beta_tor)
-    @ddtime (summary.global_quantities.beta_tor_thermal_norm = beta_tor* eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
+    @ddtime (summary.global_quantities.beta_tor.value = beta_tor)
+    @ddtime (summary.global_quantities.beta_tor_thermal_norm.value = beta_tor* eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
 end

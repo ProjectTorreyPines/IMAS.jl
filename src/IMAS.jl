@@ -25,6 +25,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export is_missing, @ddtime, @coords, Constants
+export is_missing, @ddtime, @coords, constants
 
 end # module
