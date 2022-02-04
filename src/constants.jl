@@ -1,6 +1,6 @@
 import PhysicalConstants.CODATA2018 as PCs
 
-@kwdef struct PhysicsConstants
+Base.@kwdef struct PhysicsConstants
     μ_0 :: Float64 = float(Float64, PCs.μ_0).val
     c_0 :: Float64 = float(Float64, PCs.c_0).val
     ϵ_0 :: Float64 = float(Float64, PCs.ε_0).val
@@ -13,4 +13,4 @@ import PhysicalConstants.CODATA2018 as PCs
     m_u :: Float64 =  float(Float64, PCs.m_u).val
 end
 
-Constants = PhysicsConstants()
+constants = PhysicsConstants()

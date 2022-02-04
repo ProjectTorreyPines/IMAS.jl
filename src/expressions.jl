@@ -17,13 +17,13 @@ expressions = Dict{String,Function}()
 #= =========== =#
 
 expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
-    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * Constants.e
+    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * constants.e
 
 expressions["core_profiles.profiles_1d[:].electrons.density"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * Constants.e)
+    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * constants.e)
 
 expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * Constants.e)
+    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * constants.e)
 
 #expressions["summary.global_quantities.beta_tor_thermal_norm"] =
 #    (;dd, _...) -> calc_beta_thermal_norm!(dd.summary, dd.equilibrium, dd.core_profiles)

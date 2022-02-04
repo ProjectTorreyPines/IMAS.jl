@@ -593,7 +593,7 @@ function total_pressure_thermal!(core_profiles)
     for ion in prof1d.ion
         pressure += ion.density .* ion.temperature
     end
-    return pressure * Constants.e
+    return pressure * constants.e
 end
 
 function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equilibrium, core_profiles::IMAS.core_profiles)
@@ -607,7 +607,7 @@ function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equili
     volume_cp = IMAS.interp(eq1d.rho_tor_norm, eq1d.volume)[rho]
 
     pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
-    beta_tor = 2 * Constants.μ_0 * pressure_thermal_avg / Bt^2
+    beta_tor = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
     @ddtime (summary.global_quantities.beta_tor = beta_tor)
     @ddtime (summary.global_quantities.beta_tor_thermal_norm = beta_tor* eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
 end
