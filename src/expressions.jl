@@ -25,8 +25,12 @@ expressions["core_profiles.profiles_1d[:].electrons.density"] =
 expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
     (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * constants_e)
 
+#expressions["summary.global_quantities.beta_tor_thermal_norm"] =
+#    (;dd, _...) -> calc_beta_thermal_norm!(dd.summary, dd.equilibrium, dd.core_profiles)
+
 expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
-    (rho_tor_norm; core_profiles, _...) -> total_pressure_thermal(core_profiles)
+    (rho_tor_norm; core_profiles, _...) -> total_pressure_thermal!(core_profiles)
+
 #= ========= =#
 # Equilibrium #
 #= ========= =#
@@ -58,8 +62,11 @@ expressions["equilibrium.time_slice[:].global_quantities.psi_boundary"] =
 expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.r"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r[1]
 
-expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
-    (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[1]
+expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.r"] =
+
+
+#expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.b_field_tor"] =
+#    (; equilibrium, _...) ->  abs(@ddtime(equilibrium.vacuum_toroidal_field.b0)) * equilibrium.vacuum_toroidal_field.r0 / equilibrium.boundary.geometric_axis.r
 
 
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
