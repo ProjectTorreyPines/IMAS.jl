@@ -400,7 +400,7 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
                 elseif typeof(value) <: Integer
                     printstyled(io, "$(value)\n"; color = :yellow)
                 elseif typeof(value) <: AbstractFloat
-                    printstyled(io, "$(value)\n"; color = :red)
+                    printstyled(io, "$(round(value; digits = 3))\n"; color = :red)
                 elseif typeof(value) <: AbstractArray
                     if  length(value)<5
                         printstyled(io, "$(value)\n"; color = :green)
