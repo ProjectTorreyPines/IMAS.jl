@@ -195,8 +195,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # flux expansion
         ll = cumsum(vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2)))
         fluxexpansion = 1.0 ./ Bp_abs
-        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
-        Bpl = trapz(ll, Bp)
+        int_fluxexpansion_dl = integrate(ll, fluxexpansion)
+        Bpl = integrate(ll, Bp)
 
         # save flux surface coordinates for later use
         pushfirst!(PR, pr)
@@ -208,7 +208,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
         # flux-surface averaging function
         function flxAvg(input)
-            return trapz(ll, input .* fluxexpansion) / int_fluxexpansion_dl
+            return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
         end
 
         # gm1 = <1/R^2>
@@ -247,12 +247,12 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     end
 
     # integral quantities are defined later
-    for k = 1:length(eqt.profiles_1d.psi)
+    for k = 2:length(eqt.profiles_1d.psi)
         # volume
-        eqt.profiles_1d.volume[k] = trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
+        eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
 
         # phi
-        eqt.profiles_1d.phi[k] = (cc.sigma_Bp * cc.sigma_rhotp * trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp))
+        eqt.profiles_1d.phi[k] = (cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp))
     end
 
     R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
@@ -265,17 +265,17 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Bpave = eqt.global_quantities.ip * (4.0 * pi * 1e-7) / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = trapz(eqt.profiles_1d.psi, BPL * (2.0 * pi)^(1.0 - cc.exp_Bp))
+    Bp2v = integrate(eqt.profiles_1d.psi, BPL * (2.0 * pi)^(1.0 - cc.exp_Bp))
     eqt.global_quantities.li_3 = 2 * Bp2v / R0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
 
     # beta_tor
     eqt.global_quantities.beta_tor = abs(
-        trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
+        integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
     )
 
     # beta_pol
     eqt.global_quantities.beta_pol = abs(
-        trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
+        integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
     )
 
     # beta_normal
@@ -292,7 +292,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
 
     function flxAvg(input, ll, fluxexpansion, int_fluxexpansion_dl)
-        return trapz(ll, input .* fluxexpansion) / int_fluxexpansion_dl
+        return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
     end
 
     # rho 2D in meters

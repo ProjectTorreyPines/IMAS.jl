@@ -81,8 +81,8 @@ function imas_julia_struct(desired_structure::Vector{String})
         end
 
         # detect if this is a time dependendent array of structure
-        if ("full_path" in keys(ddids[sel])) && (endswith(ddids[sel]["full_path"],"(itime)"))
-            push!(timedep_structures, sel*"[:]")
+        if ("full_path" in keys(ddids[sel])) && (endswith(ddids[sel]["full_path"], "(itime)"))
+            push!(timedep_structures, sel * "[:]")
         end
 
         h = ddict

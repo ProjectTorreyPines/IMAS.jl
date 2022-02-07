@@ -1,4 +1,4 @@
-using Trapz
+import NumericalIntegration: integrate
 expressions = Dict{String,Function}()
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
@@ -32,7 +32,7 @@ expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
 expressions["equilibrium.time_slice[:].profiles_1d.f"] = (psi; equilibrium, time_slice_index, _...) -> (psi === missing ? [1] : ones(size(psi))) .* (equilibrium.vacuum_toroidal_field.b0[time_slice_index] * equilibrium.vacuum_toroidal_field.r0)
 
 expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
-    (;time_slice, _...) -> 3 / 2 * trapz(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
+    (;time_slice, _...) -> 3 / 2 * integrate(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
 
 expressions["equilibrium.time_slice[:].global_quantities.q_95"] =

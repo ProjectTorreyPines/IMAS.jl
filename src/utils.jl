@@ -216,7 +216,7 @@ function intersection(
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T};
-    as_list_of_points::Bool = true,
+    as_list_of_points::Bool = true
 ) where {T}
     if as_list_of_points
         crossings = NTuple{2,T}[]

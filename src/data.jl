@@ -157,7 +157,7 @@ Considers IDS as maximum top level if IDS_is_absolute_top=true
 function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
     if IDS_is_absolute_top & (typeof(ids) <: dd)
         error("Cannot call top(x::IMAS.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
-    elseif ! (typeof(ids._parent.value) <: Union{IDS,IDSvector})
+    elseif !(typeof(ids._parent.value) <: Union{IDS,IDSvector})
         return ids
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return ids
@@ -198,7 +198,7 @@ Return parent IDS/IDSvector in the hierarchy
 If IDS_is_absolute_top then returns `missing` instead of IMAS.dd()
 """
 function parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
-    if ! (typeof(ids._parent.value) <: Union{IDS,IDSvector})
+    if !(typeof(ids._parent.value) <: Union{IDS,IDSvector})
         return missing
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return missing
@@ -402,7 +402,7 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
                 elseif typeof(value) <: AbstractFloat
                     printstyled(io, "$(value)\n"; color = :red)
                 elseif typeof(value) <: AbstractArray
-                    if  length(value)<5
+                    if length(value) < 5
                         printstyled(io, "$(value)\n"; color = :green)
                     else
                         printstyled(io, "$(Base.summary(value))\n"; color = :green)

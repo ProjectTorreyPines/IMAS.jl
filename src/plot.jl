@@ -313,7 +313,7 @@ Plots build cross-section
                 seriestype --> :path
                 linewidth --> 1.0
                 color --> :black
-                label --> (!outlines ? "Plasma" : "")
+                label --> ""
                 xlim --> [0, rmax]
                 IMAS.get_build(bd, type = -1).outline.r, IMAS.get_build(bd, type = -1).outline.z
             end
