@@ -93,12 +93,12 @@ function f2p(ids::Union{IDS,IDSvector}, child::Union{Missing,IDS,IDSvector}, pat
     end
 
     # traverse IDSs upstream or return result once top is reached
-    if ids._parent.value === missing
+    if typeof(ids._parent.value) <: Union{IDS,IDSvector}
+        return f2p(ids._parent.value, ids, path, index)
+    else
         index = reverse(index)
         path = reverse([(typeof(k) <: Int) & (length(index) > 0) ? pop!(index) : k for k in reverse(path)])
         return path
-    else
-        return f2p(ids._parent.value, ids, path, index)
     end
 end
 

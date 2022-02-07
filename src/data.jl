@@ -157,7 +157,7 @@ Considers IDS as maximum top level if IDS_is_absolute_top=true
 function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
     if IDS_is_absolute_top & (typeof(ids) <: dd)
         error("Cannot call top(x::IMAS.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
-    elseif ids._parent.value === missing
+    elseif ! (typeof(ids._parent.value) <: Union{IDS,IDSvector})
         return ids
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return ids
@@ -183,7 +183,7 @@ function top_ids(ids::Union{IDS,IDSvector})
 end
 
 function top_dd(ids::Union{IDS,IDSvector})
-    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top = false)
+    ids = top(ids; IDS_is_absolute_top = false)
     if typeof(ids) <: dd
         return ids
     else
@@ -198,7 +198,7 @@ Return parent IDS/IDSvector in the hierarchy
 If IDS_is_absolute_top then returns `missing` instead of IMAS.dd()
 """
 function parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
-    if ids._parent.value === missing
+    if ! (typeof(ids._parent.value) <: Union{IDS,IDSvector})
         return missing
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return missing
