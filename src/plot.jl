@@ -252,7 +252,7 @@ Plots build cross-section
             end
         end
 
-        # all layers between the OH and the vessel
+        # all layers between the OH and the plasma
         valid = false
         for (k, l) in enumerate(bd.layer[1:end-1])
             if (l.type == 2) && (l.hfs == 1)
@@ -308,12 +308,12 @@ Plots build cross-section
             end
         end
 
-        if ((only_layers === nothing) || (:vessel in only_layers)) && (!(:vessel in exclude_layers))
+        if ((only_layers === nothing) || (:plasma in only_layers)) && (!(:plasma in exclude_layers))
             @series begin
                 seriestype --> :path
-                linewidth --> 2
+                linewidth --> 1.0
                 color --> :black
-                label --> (!outlines ? "Vessel" : "")
+                label --> (!outlines ? "Plasma" : "")
                 xlim --> [0, rmax]
                 IMAS.get_build(bd, type = -1).outline.r, IMAS.get_build(bd, type = -1).outline.z
             end
