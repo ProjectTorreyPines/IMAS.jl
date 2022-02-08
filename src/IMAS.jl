@@ -2,6 +2,8 @@ __precompile__()
 
 module IMAS
 
+using Printf
+
 #= ============== =#
 #= DATA STRUCTURE =#
 #= ============== =#
