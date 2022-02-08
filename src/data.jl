@@ -403,7 +403,11 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
                     printstyled(io, @sprintf("%g\n", value); color = :red)
                 elseif typeof(value) <: AbstractArray
                     if length(value) < 5
-                        printstyled(io, "[$(join([@sprintf("%g",v) for v in value],","))]\n"; color = :green)
+                        if eltype(value) <: AbstractFloat
+                            printstyled(io, "[$(join([@sprintf("%g",v) for v in value],","))]\n"; color = :green)
+                        else
+                            printstyled(io, "$value\n"; color = :green)
+                        end
                     else
                         printstyled(io, "$(Base.summary(value))\n"; color = :green)
                     end
