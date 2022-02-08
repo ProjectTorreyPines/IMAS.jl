@@ -4,6 +4,7 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
+import NumericalIntegration.integrate
 
 function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
     cc = cocos(cocos_number)
@@ -584,4 +585,29 @@ function structures_mask(bd::IMAS.build; resolution::Int = 257, border_fraction:
     else
         return rmask, zmask, mask
     end
+end
+
+function total_pressure_thermal!(core_profiles)
+    prof1d = core_profiles.profiles_1d[]
+    pressure = prof1d.electrons.density .* prof1d.electrons.temperature
+    for ion in prof1d.ion
+        pressure += ion.density .* ion.temperature
+    end
+    return pressure * constants.e
+end
+
+function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equilibrium, core_profiles::IMAS.core_profiles)
+    eqt = equilibrium.time_slice[]
+    eq1d = eqt.profiles_1d
+    cp1d = core_profiles.profiles_1d[]
+    pressure_thermal = cp1d.pressure_thermal
+    rho = cp1d.grid.rho_tor_norm
+    Bt = @ddtime(equilibrium.vacuum_toroidal_field.b0)
+    Ip = eqt.global_quantities.ip
+    volume_cp = IMAS.interp(eq1d.rho_tor_norm, eq1d.volume)[rho]
+
+    pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
+    beta_tor = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
+    @ddtime (summary.global_quantities.beta_tor.value = beta_tor)
+    @ddtime (summary.global_quantities.beta_tor_thermal_norm.value = beta_tor* eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
 end
