@@ -5,7 +5,7 @@ using Test
 @testset "expressions" begin
     ne0 = 1E20
     Te0 = 1E3
-    pe0 = ne0 * Te0 * 1.60218e-19
+    pe0 = ne0 * Te0 * IMAS.constants.e
 
     # here we test expressions starting from different heights in the data dictionary
     # also, we are mixing data, user-defined functions, and expressions and using

@@ -13,10 +13,10 @@ include("data.jl")
 #= ================= =#
 #= PHYSICS FUNCTIONS =#
 #= ================= =#
-
-include("time.jl")
 include("constants.jl")
+include("time.jl")
 include("physics.jl")
+include("expressions.jl")
 
 #= ================== =#
 #= PLOTTING FUNCTIONS =#
