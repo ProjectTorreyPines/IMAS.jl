@@ -393,23 +393,23 @@ end
 
     @series begin
         subplot := 2
-        label := ""
-        cpt, :rotation_frequency_tor_sonic
-    end
-
-    @series begin
-        subplot := 3
         label := "e"
         cpt.electrons, :density
     end
 
     for ion in cpt.ion
         @series begin
-            subplot := 3
+            subplot := 2
             label --> ion.label
             linestyle --> :dash
             ion, :density
         end
+    end
+
+    @series begin
+        subplot := 3
+        label := ""
+        cpt, :rotation_frequency_tor_sonic
     end
 
 end
