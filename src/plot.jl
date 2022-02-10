@@ -427,6 +427,36 @@ end
     end
 end
 
+# Plotting Measurements
+
+@recipe function f(y::AbstractArray{<:Measurement})
+    ribbon := Measurements.uncertainty.(y)
+    Measurements.value.(y)
+end
+
+@recipe function f(func::Function, x::AbstractArray{<:Measurement})
+    y = func.(x)
+    xerror := Measurements.uncertainty.(x)
+    yerror := Measurements.uncertainty.(y)
+    Measurements.value.(x), Measurements.value.(y)
+end
+
+@recipe function f(x::AbstractArray{<:Measurement}, y::AbstractArray{<:Measurement})
+    xerror := Measurements.uncertainty.(x)
+    yerror := Measurements.uncertainty.(y)
+    Measurements.value.(x), Measurements.value.(y)
+end
+
+@recipe function f(x::AbstractArray{<:Measurement}, y::AbstractArray)
+    xerror := Measurements.uncertainty.(x)
+    Measurements.value.(x), y
+end
+
+@recipe function f(x::AbstractArray, y::AbstractArray{<:Measurement})
+    ribbon := Measurements.uncertainty.(y)
+    x, Measurements.value.(y)
+end
+
 #= ================== =#
 #  handling of labels  #
 #= ================== =#

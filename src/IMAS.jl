@@ -7,7 +7,7 @@ using Printf
 #= ============== =#
 #= DATA STRUCTURE =#
 #= ============== =#
-
+include("real.jl")
 include("data.jl")
 
 #= ================= =#
@@ -21,12 +21,12 @@ include("expressions.jl")
 #= ================== =#
 #= PLOTTING FUNCTIONS =#
 #= ================== =#
-
 include("plot.jl")
 
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
 export is_missing, @ddtime, @coords, constants
+export ±, no_error
 
 end # module
