@@ -9175,6 +9175,699 @@ mutable struct pf_active <: IDS
     end
 end
 
+mutable struct nbi__unit___species <: IDS
+    var"a" :: Union{Missing, Real, Function}
+    var"label" :: Union{Missing, String, Function}
+    var"z_n" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___species(var"a"=missing, var"label"=missing, var"z_n"=missing, _parent=WeakRef(missing))
+        ids = new(var"a", var"label", var"z_n", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___source__x3_unit_vector <: IDS
+    var"x" :: Union{Missing, Real, Function}
+    var"y" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___source__x3_unit_vector(var"x"=missing, var"y"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"x", var"y", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___source__x2_unit_vector <: IDS
+    var"x" :: Union{Missing, Real, Function}
+    var"y" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___source__x2_unit_vector(var"x"=missing, var"y"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"x", var"y", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___source__x1_unit_vector <: IDS
+    var"x" :: Union{Missing, Real, Function}
+    var"y" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___source__x1_unit_vector(var"x"=missing, var"y"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"x", var"y", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___source__outline <: IDS
+    var"x1" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"x2" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___source__outline(var"x1"=missing, var"x2"=missing, _parent=WeakRef(missing))
+        ids = new(var"x1", var"x2", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___source__centre <: IDS
+    var"phi" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___source__centre(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___source <: IDS
+    var"centre" :: nbi__unit___source__centre
+    var"geometry_type" :: Union{Missing, Integer, Function}
+    var"outline" :: nbi__unit___source__outline
+    var"radius" :: Union{Missing, Real, Function}
+    var"surface" :: Union{Missing, Real, Function}
+    var"x1_unit_vector" :: nbi__unit___source__x1_unit_vector
+    var"x1_width" :: Union{Missing, Real, Function}
+    var"x2_unit_vector" :: nbi__unit___source__x2_unit_vector
+    var"x2_width" :: Union{Missing, Real, Function}
+    var"x3_unit_vector" :: nbi__unit___source__x3_unit_vector
+    _parent :: WeakRef
+    function nbi__unit___source(var"centre"=nbi__unit___source__centre(), var"geometry_type"=missing, var"outline"=nbi__unit___source__outline(), var"radius"=missing, var"surface"=missing, var"x1_unit_vector"=nbi__unit___source__x1_unit_vector(), var"x1_width"=missing, var"x2_unit_vector"=nbi__unit___source__x2_unit_vector(), var"x2_width"=missing, var"x3_unit_vector"=nbi__unit___source__x3_unit_vector(), _parent=WeakRef(missing))
+        ids = new(var"centre", var"geometry_type", var"outline", var"radius", var"surface", var"x1_unit_vector", var"x1_width", var"x2_unit_vector", var"x2_width", var"x3_unit_vector", _parent)
+        assign_expressions(ids)
+        setfield!(ids.centre, :_parent, WeakRef(ids))
+        setfield!(ids.outline, :_parent, WeakRef(ids))
+        setfield!(ids.x1_unit_vector, :_parent, WeakRef(ids))
+        setfield!(ids.x2_unit_vector, :_parent, WeakRef(ids))
+        setfield!(ids.x3_unit_vector, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct nbi__unit___power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___energy <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___energy(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group___tilting___delta_position <: IDS
+    var"phi" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group___tilting___delta_position(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group___tilting <: IDSvectorTimeElement
+    var"delta_angle" :: Union{Missing, Real, Function}
+    var"delta_position" :: nbi__unit___beamlets_group___tilting___delta_position
+    var"delta_tangency_radius" :: Union{Missing, Real, Function}
+    var"time" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group___tilting(var"delta_angle"=missing, var"delta_position"=nbi__unit___beamlets_group___tilting___delta_position(), var"delta_tangency_radius"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"delta_angle", var"delta_position", var"delta_tangency_radius", var"time", _parent)
+        assign_expressions(ids)
+        setfield!(ids.delta_position, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group___position <: IDS
+    var"phi" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group___position(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group___focus <: IDS
+    var"focal_length_horizontal" :: Union{Missing, Real, Function}
+    var"focal_length_vertical" :: Union{Missing, Real, Function}
+    var"width_min_horizontal" :: Union{Missing, Real, Function}
+    var"width_min_vertical" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group___focus(var"focal_length_horizontal"=missing, var"focal_length_vertical"=missing, var"width_min_horizontal"=missing, var"width_min_vertical"=missing, _parent=WeakRef(missing))
+        ids = new(var"focal_length_horizontal", var"focal_length_vertical", var"width_min_horizontal", var"width_min_vertical", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group___divergence_component <: IDSvectorStaticElement
+    var"horizontal" :: Union{Missing, Real, Function}
+    var"particles_fraction" :: Union{Missing, Real, Function}
+    var"vertical" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group___divergence_component(var"horizontal"=missing, var"particles_fraction"=missing, var"vertical"=missing, _parent=WeakRef(missing))
+        ids = new(var"horizontal", var"particles_fraction", var"vertical", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group___beamlets__positions <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group___beamlets__positions(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group___beamlets <: IDS
+    var"angles" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"positions" :: nbi__unit___beamlets_group___beamlets__positions
+    var"power_fractions" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"tangency_radii" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group___beamlets(var"angles"=missing, var"positions"=nbi__unit___beamlets_group___beamlets__positions(), var"power_fractions"=missing, var"tangency_radii"=missing, _parent=WeakRef(missing))
+        ids = new(var"angles", var"positions", var"power_fractions", var"tangency_radii", _parent)
+        assign_expressions(ids)
+        setfield!(ids.positions, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beamlets_group <: IDSvectorStaticElement
+    var"angle" :: Union{Missing, Real, Function}
+    var"beamlets" :: nbi__unit___beamlets_group___beamlets
+    var"direction" :: Union{Missing, Integer, Function}
+    var"divergence_component" :: IDSvector{T} where {T<:nbi__unit___beamlets_group___divergence_component}
+    var"focus" :: nbi__unit___beamlets_group___focus
+    var"position" :: nbi__unit___beamlets_group___position
+    var"tangency_radius" :: Union{Missing, Real, Function}
+    var"tilting" :: IDSvector{T} where {T<:nbi__unit___beamlets_group___tilting}
+    var"width_horizontal" :: Union{Missing, Real, Function}
+    var"width_vertical" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beamlets_group(var"angle"=missing, var"beamlets"=nbi__unit___beamlets_group___beamlets(), var"direction"=missing, var"divergence_component"=IDSvector(nbi__unit___beamlets_group___divergence_component[]), var"focus"=nbi__unit___beamlets_group___focus(), var"position"=nbi__unit___beamlets_group___position(), var"tangency_radius"=missing, var"tilting"=IDSvector(nbi__unit___beamlets_group___tilting[]), var"width_horizontal"=missing, var"width_vertical"=missing, _parent=WeakRef(missing))
+        ids = new(var"angle", var"beamlets", var"direction", var"divergence_component", var"focus", var"position", var"tangency_radius", var"tilting", var"width_horizontal", var"width_vertical", _parent)
+        assign_expressions(ids)
+        setfield!(ids.beamlets, :_parent, WeakRef(ids))
+        setfield!(ids.divergence_component, :_parent, WeakRef(ids))
+        setfield!(ids.focus, :_parent, WeakRef(ids))
+        setfield!(ids.position, :_parent, WeakRef(ids))
+        setfield!(ids.tilting, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beam_power_fraction <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beam_power_fraction(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___beam_current_fraction <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___beam_current_fraction(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___aperture___x3_unit_vector <: IDS
+    var"x" :: Union{Missing, Real, Function}
+    var"y" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___aperture___x3_unit_vector(var"x"=missing, var"y"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"x", var"y", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___aperture___x2_unit_vector <: IDS
+    var"x" :: Union{Missing, Real, Function}
+    var"y" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___aperture___x2_unit_vector(var"x"=missing, var"y"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"x", var"y", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___aperture___x1_unit_vector <: IDS
+    var"x" :: Union{Missing, Real, Function}
+    var"y" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___aperture___x1_unit_vector(var"x"=missing, var"y"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"x", var"y", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___aperture___outline <: IDS
+    var"x1" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"x2" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___aperture___outline(var"x1"=missing, var"x2"=missing, _parent=WeakRef(missing))
+        ids = new(var"x1", var"x2", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___aperture___centre <: IDS
+    var"phi" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function nbi__unit___aperture___centre(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct nbi__unit___aperture <: IDSvectorStaticElement
+    var"centre" :: nbi__unit___aperture___centre
+    var"geometry_type" :: Union{Missing, Integer, Function}
+    var"outline" :: nbi__unit___aperture___outline
+    var"radius" :: Union{Missing, Real, Function}
+    var"surface" :: Union{Missing, Real, Function}
+    var"x1_unit_vector" :: nbi__unit___aperture___x1_unit_vector
+    var"x1_width" :: Union{Missing, Real, Function}
+    var"x2_unit_vector" :: nbi__unit___aperture___x2_unit_vector
+    var"x2_width" :: Union{Missing, Real, Function}
+    var"x3_unit_vector" :: nbi__unit___aperture___x3_unit_vector
+    _parent :: WeakRef
+    function nbi__unit___aperture(var"centre"=nbi__unit___aperture___centre(), var"geometry_type"=missing, var"outline"=nbi__unit___aperture___outline(), var"radius"=missing, var"surface"=missing, var"x1_unit_vector"=nbi__unit___aperture___x1_unit_vector(), var"x1_width"=missing, var"x2_unit_vector"=nbi__unit___aperture___x2_unit_vector(), var"x2_width"=missing, var"x3_unit_vector"=nbi__unit___aperture___x3_unit_vector(), _parent=WeakRef(missing))
+        ids = new(var"centre", var"geometry_type", var"outline", var"radius", var"surface", var"x1_unit_vector", var"x1_width", var"x2_unit_vector", var"x2_width", var"x3_unit_vector", _parent)
+        assign_expressions(ids)
+        setfield!(ids.centre, :_parent, WeakRef(ids))
+        setfield!(ids.outline, :_parent, WeakRef(ids))
+        setfield!(ids.x1_unit_vector, :_parent, WeakRef(ids))
+        setfield!(ids.x2_unit_vector, :_parent, WeakRef(ids))
+        setfield!(ids.x3_unit_vector, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct nbi__unit <: IDSvectorStaticElement
+    var"aperture" :: IDSvector{T} where {T<:nbi__unit___aperture}
+    var"beam_current_fraction" :: nbi__unit___beam_current_fraction
+    var"beam_power_fraction" :: nbi__unit___beam_power_fraction
+    var"beamlets_group" :: IDSvector{T} where {T<:nbi__unit___beamlets_group}
+    var"energy" :: nbi__unit___energy
+    var"identifier" :: Union{Missing, String, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"power_launched" :: nbi__unit___power_launched
+    var"source" :: nbi__unit___source
+    var"species" :: nbi__unit___species
+    _parent :: WeakRef
+    function nbi__unit(var"aperture"=IDSvector(nbi__unit___aperture[]), var"beam_current_fraction"=nbi__unit___beam_current_fraction(), var"beam_power_fraction"=nbi__unit___beam_power_fraction(), var"beamlets_group"=IDSvector(nbi__unit___beamlets_group[]), var"energy"=nbi__unit___energy(), var"identifier"=missing, var"name"=missing, var"power_launched"=nbi__unit___power_launched(), var"source"=nbi__unit___source(), var"species"=nbi__unit___species(), _parent=WeakRef(missing))
+        ids = new(var"aperture", var"beam_current_fraction", var"beam_power_fraction", var"beamlets_group", var"energy", var"identifier", var"name", var"power_launched", var"source", var"species", _parent)
+        assign_expressions(ids)
+        setfield!(ids.aperture, :_parent, WeakRef(ids))
+        setfield!(ids.beam_current_fraction, :_parent, WeakRef(ids))
+        setfield!(ids.beam_power_fraction, :_parent, WeakRef(ids))
+        setfield!(ids.beamlets_group, :_parent, WeakRef(ids))
+        setfield!(ids.energy, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.source, :_parent, WeakRef(ids))
+        setfield!(ids.species, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct nbi <: IDS
+    var"latency" :: Union{Missing, Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"unit" :: IDSvector{T} where {T<:nbi__unit}
+    _parent :: WeakRef
+    function nbi(var"latency"=missing, var"time"=missing, var"unit"=IDSvector(nbi__unit[]), _parent=WeakRef(missing))
+        ids = new(var"latency", var"time", var"unit", _parent)
+        assign_expressions(ids)
+        setfield!(ids.unit, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct lh_antennas__reference_point <: IDS
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__reference_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___row___position <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___row___position(var"phi"=missing, var"r"=missing, var"time"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"time", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___row <: IDSvectorStaticElement
+    var"n_pol" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"n_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"position" :: lh_antennas__antenna___row___position
+    var"power_density_spectrum_1d" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"power_density_spectrum_2d" :: Union{Missing, AbstractArray{T, 3} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___row(var"n_pol"=missing, var"n_tor"=missing, var"name"=missing, var"position"=lh_antennas__antenna___row___position(), var"power_density_spectrum_1d"=missing, var"power_density_spectrum_2d"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"n_pol", var"n_tor", var"name", var"position", var"power_density_spectrum_1d", var"power_density_spectrum_2d", var"time", _parent)
+        assign_expressions(ids)
+        setfield!(ids.position, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___reflection_coefficient <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___reflection_coefficient(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___pressure_tank <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___pressure_tank(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___power_reflected <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___power_reflected(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___power_forward <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___power_forward(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___position__z <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___position__z(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___position__r <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___position__r(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___position__phi <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___position__phi(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___position <: IDS
+    var"definition" :: Union{Missing, String, Function}
+    var"phi" :: lh_antennas__antenna___position__phi
+    var"r" :: lh_antennas__antenna___position__r
+    var"z" :: lh_antennas__antenna___position__z
+    _parent :: WeakRef
+    function lh_antennas__antenna___position(var"definition"=missing, var"phi"=lh_antennas__antenna___position__phi(), var"r"=lh_antennas__antenna___position__r(), var"z"=lh_antennas__antenna___position__z(), _parent=WeakRef(missing))
+        ids = new(var"definition", var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        setfield!(ids.phi, :_parent, WeakRef(ids))
+        setfield!(ids.r, :_parent, WeakRef(ids))
+        setfield!(ids.z, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___phase_average <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___phase_average(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___n_parallel_peak <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___n_parallel_peak(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___n_e <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___n_e(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___module___reflection_coefficient <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___module___reflection_coefficient(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___module___power_reflected <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___module___power_reflected(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___module___power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___module___power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___module___power_forward <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___module___power_forward(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___module___phase <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas__antenna___module___phase(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna___module <: IDSvectorStaticElement
+    var"identifier" :: Union{Missing, String, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"phase" :: lh_antennas__antenna___module___phase
+    var"power_forward" :: lh_antennas__antenna___module___power_forward
+    var"power_launched" :: lh_antennas__antenna___module___power_launched
+    var"power_reflected" :: lh_antennas__antenna___module___power_reflected
+    var"reflection_coefficient" :: lh_antennas__antenna___module___reflection_coefficient
+    _parent :: WeakRef
+    function lh_antennas__antenna___module(var"identifier"=missing, var"name"=missing, var"phase"=lh_antennas__antenna___module___phase(), var"power_forward"=lh_antennas__antenna___module___power_forward(), var"power_launched"=lh_antennas__antenna___module___power_launched(), var"power_reflected"=lh_antennas__antenna___module___power_reflected(), var"reflection_coefficient"=lh_antennas__antenna___module___reflection_coefficient(), _parent=WeakRef(missing))
+        ids = new(var"identifier", var"name", var"phase", var"power_forward", var"power_launched", var"power_reflected", var"reflection_coefficient", _parent)
+        assign_expressions(ids)
+        setfield!(ids.phase, :_parent, WeakRef(ids))
+        setfield!(ids.power_forward, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.power_reflected, :_parent, WeakRef(ids))
+        setfield!(ids.reflection_coefficient, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct lh_antennas__antenna <: IDSvectorStaticElement
+    var"distance_to_antenna" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"frequency" :: Union{Missing, Real, Function}
+    var"identifier" :: Union{Missing, String, Function}
+    var"model_name" :: Union{Missing, String, Function}
+    var"module" :: IDSvector{T} where {T<:lh_antennas__antenna___module}
+    var"n_e" :: lh_antennas__antenna___n_e
+    var"n_parallel_peak" :: lh_antennas__antenna___n_parallel_peak
+    var"name" :: Union{Missing, String, Function}
+    var"phase_average" :: lh_antennas__antenna___phase_average
+    var"position" :: lh_antennas__antenna___position
+    var"power_forward" :: lh_antennas__antenna___power_forward
+    var"power_launched" :: lh_antennas__antenna___power_launched
+    var"power_reflected" :: lh_antennas__antenna___power_reflected
+    var"pressure_tank" :: lh_antennas__antenna___pressure_tank
+    var"reflection_coefficient" :: lh_antennas__antenna___reflection_coefficient
+    var"row" :: IDSvector{T} where {T<:lh_antennas__antenna___row}
+    _parent :: WeakRef
+    function lh_antennas__antenna(var"distance_to_antenna"=missing, var"frequency"=missing, var"identifier"=missing, var"model_name"=missing, var"module"=IDSvector(lh_antennas__antenna___module[]), var"n_e"=lh_antennas__antenna___n_e(), var"n_parallel_peak"=lh_antennas__antenna___n_parallel_peak(), var"name"=missing, var"phase_average"=lh_antennas__antenna___phase_average(), var"position"=lh_antennas__antenna___position(), var"power_forward"=lh_antennas__antenna___power_forward(), var"power_launched"=lh_antennas__antenna___power_launched(), var"power_reflected"=lh_antennas__antenna___power_reflected(), var"pressure_tank"=lh_antennas__antenna___pressure_tank(), var"reflection_coefficient"=lh_antennas__antenna___reflection_coefficient(), var"row"=IDSvector(lh_antennas__antenna___row[]), _parent=WeakRef(missing))
+        ids = new(var"distance_to_antenna", var"frequency", var"identifier", var"model_name", var"module", var"n_e", var"n_parallel_peak", var"name", var"phase_average", var"position", var"power_forward", var"power_launched", var"power_reflected", var"pressure_tank", var"reflection_coefficient", var"row", _parent)
+        assign_expressions(ids)
+        setfield!(ids.module, :_parent, WeakRef(ids))
+        setfield!(ids.n_e, :_parent, WeakRef(ids))
+        setfield!(ids.n_parallel_peak, :_parent, WeakRef(ids))
+        setfield!(ids.phase_average, :_parent, WeakRef(ids))
+        setfield!(ids.position, :_parent, WeakRef(ids))
+        setfield!(ids.power_forward, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.power_reflected, :_parent, WeakRef(ids))
+        setfield!(ids.pressure_tank, :_parent, WeakRef(ids))
+        setfield!(ids.reflection_coefficient, :_parent, WeakRef(ids))
+        setfield!(ids.row, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct lh_antennas <: IDS
+    var"antenna" :: IDSvector{T} where {T<:lh_antennas__antenna}
+    var"latency" :: Union{Missing, Real, Function}
+    var"power_launched" :: lh_antennas__power_launched
+    var"reference_point" :: lh_antennas__reference_point
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function lh_antennas(var"antenna"=IDSvector(lh_antennas__antenna[]), var"latency"=missing, var"power_launched"=lh_antennas__power_launched(), var"reference_point"=lh_antennas__reference_point(), var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"antenna", var"latency", var"power_launched", var"reference_point", var"time", _parent)
+        assign_expressions(ids)
+        setfield!(ids.antenna, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.reference_point, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct equilibrium__vacuum_toroidal_field <: IDS
     var"b0" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"r0" :: Union{Missing, Real, Function}
@@ -10115,6 +10808,197 @@ mutable struct equilibrium <: IDS
         assign_expressions(ids)
         setfield!(ids.time_slice, :_parent, WeakRef(ids))
         setfield!(ids.vacuum_toroidal_field, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___steering_angle_tor <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___steering_angle_tor(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___steering_angle_pol <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___steering_angle_pol(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___mode <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___mode(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___launching_position <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r_limit_max" :: Union{Missing, Real, Function}
+    var"r_limit_min" :: Union{Missing, Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___launching_position(var"phi"=missing, var"r"=missing, var"r_limit_max"=missing, var"r_limit_min"=missing, var"time"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"r_limit_max", var"r_limit_min", var"time", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___frequency <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___frequency(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___beam__spot__size <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___beam__spot__size(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___beam__spot__angle <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___beam__spot__angle(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___beam__spot <: IDS
+    var"angle" :: ec_launchers__launcher___beam__spot__angle
+    var"size" :: ec_launchers__launcher___beam__spot__size
+    _parent :: WeakRef
+    function ec_launchers__launcher___beam__spot(var"angle"=ec_launchers__launcher___beam__spot__angle(), var"size"=ec_launchers__launcher___beam__spot__size(), _parent=WeakRef(missing))
+        ids = new(var"angle", var"size", _parent)
+        assign_expressions(ids)
+        setfield!(ids.angle, :_parent, WeakRef(ids))
+        setfield!(ids.size, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___beam__phase__curvature <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___beam__phase__curvature(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___beam__phase__angle <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers__launcher___beam__phase__angle(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___beam__phase <: IDS
+    var"angle" :: ec_launchers__launcher___beam__phase__angle
+    var"curvature" :: ec_launchers__launcher___beam__phase__curvature
+    _parent :: WeakRef
+    function ec_launchers__launcher___beam__phase(var"angle"=ec_launchers__launcher___beam__phase__angle(), var"curvature"=ec_launchers__launcher___beam__phase__curvature(), _parent=WeakRef(missing))
+        ids = new(var"angle", var"curvature", _parent)
+        assign_expressions(ids)
+        setfield!(ids.angle, :_parent, WeakRef(ids))
+        setfield!(ids.curvature, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher___beam <: IDS
+    var"phase" :: ec_launchers__launcher___beam__phase
+    var"spot" :: ec_launchers__launcher___beam__spot
+    _parent :: WeakRef
+    function ec_launchers__launcher___beam(var"phase"=ec_launchers__launcher___beam__phase(), var"spot"=ec_launchers__launcher___beam__spot(), _parent=WeakRef(missing))
+        ids = new(var"phase", var"spot", _parent)
+        assign_expressions(ids)
+        setfield!(ids.phase, :_parent, WeakRef(ids))
+        setfield!(ids.spot, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ec_launchers__launcher <: IDSvectorStaticElement
+    var"beam" :: ec_launchers__launcher___beam
+    var"frequency" :: ec_launchers__launcher___frequency
+    var"identifier" :: Union{Missing, String, Function}
+    var"launching_position" :: ec_launchers__launcher___launching_position
+    var"mode" :: ec_launchers__launcher___mode
+    var"name" :: Union{Missing, String, Function}
+    var"power_launched" :: ec_launchers__launcher___power_launched
+    var"steering_angle_pol" :: ec_launchers__launcher___steering_angle_pol
+    var"steering_angle_tor" :: ec_launchers__launcher___steering_angle_tor
+    _parent :: WeakRef
+    function ec_launchers__launcher(var"beam"=ec_launchers__launcher___beam(), var"frequency"=ec_launchers__launcher___frequency(), var"identifier"=missing, var"launching_position"=ec_launchers__launcher___launching_position(), var"mode"=ec_launchers__launcher___mode(), var"name"=missing, var"power_launched"=ec_launchers__launcher___power_launched(), var"steering_angle_pol"=ec_launchers__launcher___steering_angle_pol(), var"steering_angle_tor"=ec_launchers__launcher___steering_angle_tor(), _parent=WeakRef(missing))
+        ids = new(var"beam", var"frequency", var"identifier", var"launching_position", var"mode", var"name", var"power_launched", var"steering_angle_pol", var"steering_angle_tor", _parent)
+        assign_expressions(ids)
+        setfield!(ids.beam, :_parent, WeakRef(ids))
+        setfield!(ids.frequency, :_parent, WeakRef(ids))
+        setfield!(ids.launching_position, :_parent, WeakRef(ids))
+        setfield!(ids.mode, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.steering_angle_pol, :_parent, WeakRef(ids))
+        setfield!(ids.steering_angle_tor, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ec_launchers <: IDS
+    var"latency" :: Union{Missing, Real, Function}
+    var"launcher" :: IDSvector{T} where {T<:ec_launchers__launcher}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ec_launchers(var"latency"=missing, var"launcher"=IDSvector(ec_launchers__launcher[]), var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"latency", var"launcher", var"time", _parent)
+        assign_expressions(ids)
+        setfield!(ids.launcher, :_parent, WeakRef(ids))
         return ids
     end
 end
@@ -11362,21 +12246,27 @@ mutable struct dd <: IDS
     var"core_profiles" :: Union{Missing, core_profiles}
     var"core_sources" :: Union{Missing, core_sources}
     var"dataset_description" :: Union{Missing, dataset_description}
+    var"ec_launchers" :: Union{Missing, ec_launchers}
     var"equilibrium" :: Union{Missing, equilibrium}
+    var"lh_antennas" :: Union{Missing, lh_antennas}
+    var"nbi" :: Union{Missing, nbi}
     var"pf_active" :: Union{Missing, pf_active}
     var"summary" :: Union{Missing, summary}
     var"tf" :: Union{Missing, tf}
     var"wall" :: Union{Missing, wall}
     var"global_time" :: Real
     _parent :: WeakRef
-    function dd(var"build"=build(), var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"equilibrium"=equilibrium(), var"pf_active"=pf_active(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), var"global_time"=0.0, _parent=WeakRef(missing))
-        ids = new(var"build", var"core_profiles", var"core_sources", var"dataset_description", var"equilibrium", var"pf_active", var"summary", var"tf", var"wall", var"global_time", _parent)
+    function dd(var"build"=build(), var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"ec_launchers"=ec_launchers(), var"equilibrium"=equilibrium(), var"lh_antennas"=lh_antennas(), var"nbi"=nbi(), var"pf_active"=pf_active(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), var"global_time"=0.0, _parent=WeakRef(missing))
+        ids = new(var"build", var"core_profiles", var"core_sources", var"dataset_description", var"ec_launchers", var"equilibrium", var"lh_antennas", var"nbi", var"pf_active", var"summary", var"tf", var"wall", var"global_time", _parent)
         assign_expressions(ids)
         setfield!(ids.build, :_parent, WeakRef(ids))
         setfield!(ids.core_profiles, :_parent, WeakRef(ids))
         setfield!(ids.core_sources, :_parent, WeakRef(ids))
         setfield!(ids.dataset_description, :_parent, WeakRef(ids))
+        setfield!(ids.ec_launchers, :_parent, WeakRef(ids))
         setfield!(ids.equilibrium, :_parent, WeakRef(ids))
+        setfield!(ids.lh_antennas, :_parent, WeakRef(ids))
+        setfield!(ids.nbi, :_parent, WeakRef(ids))
         setfield!(ids.pf_active, :_parent, WeakRef(ids))
         setfield!(ids.summary, :_parent, WeakRef(ids))
         setfield!(ids.tf, :_parent, WeakRef(ids))
