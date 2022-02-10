@@ -423,38 +423,18 @@ end
         xlabel --> nice_field(i2p(coords[:names][1])[end]) * nice_units(units(coords[:names][1]))
         ylabel --> nice_units(units(ids, field))
         title --> nice_field(field)
-        coords[:values][1], getproperty(ids, field)
+
+        xvalue = coords[:values][1]
+        yvalue = getproperty(ids, field)
+
+        # plot 1D Measurements with ribbon
+        if (eltype(yvalue) <: Measurement) && !((eltype(xvalue) <: Measurement))
+            ribbon := Measurements.uncertainty.(yvalue)
+            yvalue = Measurements.value.(yvalue)
+        end
+
+        xvalue, yvalue
     end
-end
-
-# Plotting Measurements
-
-@recipe function f(y::AbstractArray{<:Measurement})
-    ribbon := Measurements.uncertainty.(y)
-    Measurements.value.(y)
-end
-
-@recipe function f(func::Function, x::AbstractArray{<:Measurement})
-    y = func.(x)
-    xerror := Measurements.uncertainty.(x)
-    yerror := Measurements.uncertainty.(y)
-    Measurements.value.(x), Measurements.value.(y)
-end
-
-@recipe function f(x::AbstractArray{<:Measurement}, y::AbstractArray{<:Measurement})
-    xerror := Measurements.uncertainty.(x)
-    yerror := Measurements.uncertainty.(y)
-    Measurements.value.(x), Measurements.value.(y)
-end
-
-@recipe function f(x::AbstractArray{<:Measurement}, y::AbstractArray)
-    xerror := Measurements.uncertainty.(x)
-    Measurements.value.(x), y
-end
-
-@recipe function f(x::AbstractArray, y::AbstractArray{<:Measurement})
-    ribbon := Measurements.uncertainty.(y)
-    x, Measurements.value.(y)
 end
 
 #= ================== =#

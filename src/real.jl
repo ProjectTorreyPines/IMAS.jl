@@ -30,5 +30,8 @@ function no_error(x::Real)
 end
 
 function no_error(x::Measurement)
-    return no_error(x.val)
+    ## we purposly do not do it recursively since generally
+    ## Measurement of Measurement is an indication of someghing going wrong
+    # return no_error(x.val)
+    return x.val
 end
