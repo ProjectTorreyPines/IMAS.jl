@@ -72,7 +72,7 @@ function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, value) wher
                 else
                     last_value = getproperty(ids, field)
                     # if destination array needs a type upgrade, then go for it
-                    if (!(typeof(value) <: eltype(last_value))) && (eltype(last_value) <: typeof(value))
+                    if !(typeof(value) <: eltype(last_value))
                         last_value = typeof(value)[v for v in last_value]
                         setproperty!(ids, field, last_value)
                     end
