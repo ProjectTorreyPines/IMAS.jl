@@ -26,6 +26,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export is_missing, @ddtime, @coords, constants, ±, no_error
+export is_missing, @ddtime, @coords, constants, ±, force_float
 
 end # module

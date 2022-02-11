@@ -25,13 +25,13 @@ function Base.convert(t::Type{T}, x::Measurement{T}) where {T<:AbstractFloat}
     end
 end
 
-function no_error(x::Real)
+function force_float(x::Real)
     return x
 end
 
-function no_error(x::Measurement)
+function force_float(x::Measurement)
     ## we purposly do not do it recursively since generally
     ## Measurement of Measurement is an indication of someghing going wrong
-    # return no_error(x.val)
+    # return force_float(x.val)
     return x.val
 end
