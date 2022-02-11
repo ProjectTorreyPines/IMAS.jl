@@ -393,7 +393,7 @@ end
 
     @series begin
         subplot := 2
-        label := "e"
+        label --> "e"
         cpt.electrons, :density
     end
 
@@ -408,7 +408,7 @@ end
 
     @series begin
         subplot := 3
-        label := ""
+        label --> ""
         cpt, :rotation_frequency_tor_sonic
     end
 
