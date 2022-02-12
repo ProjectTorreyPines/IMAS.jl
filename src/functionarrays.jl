@@ -445,6 +445,16 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
     return ids[end]
 end
 
+function Base.fill!(target_ids::T, source_ids::T) where {T<:IDS}
+    for field in fieldnames(typeof(target_ids))
+        if field == :_parent
+            continue
+        end
+        setproperty!(target_ids, field, deepcopy(getfield(source_ids, field)))
+    end
+    return target_ids
+end
+
 function _set_conditions(ids::IDS, conditions::Pair{String}...)
     for (path, value) in conditions
         h = ids
