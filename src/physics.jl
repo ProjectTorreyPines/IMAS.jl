@@ -611,3 +611,36 @@ function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equili
     @ddtime (summary.global_quantities.beta_tor.value = beta_tor)
     @ddtime (summary.global_quantities.beta_tor_thermal_norm.value = beta_tor* eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
 end
+
+"""
+    ion_element(species::Symbol)
+
+returns a `core_profiles__profiles_1d___ion` structure populated with the element information
+"""
+function ion_element(species::Symbol)
+    ion = IMAS.core_profiles__profiles_1d___ion()
+    element = resize!(ion.element, 1)
+    if species == :D
+        element.z_n = 1
+        element.a = 2
+    elseif species == :DT
+        element.z_n = 1
+        element.a = 2.5
+    elseif species == :T
+        element.z_n = 1
+        element.a = 3
+    elseif species == :He
+        element.z_n = 2
+        element.a = 4
+    elseif species == :C
+        element.z_n = 6
+        element.a = 12
+    elseif species == :Ne
+        element.z_n = 10
+        element.a = 20
+    else
+        error("Element $species is not recognized. Add it to the `IMAS.ion_element()` function.")
+    end
+    ion.label = String(species)
+    return ion
+end
