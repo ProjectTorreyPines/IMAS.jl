@@ -620,7 +620,10 @@ returns a `core_profiles__profiles_1d___ion` structure populated with the elemen
 function ion_element(species::Symbol)
     ion = IMAS.core_profiles__profiles_1d___ion()
     element = resize!(ion.element, 1)
-    if species == :D
+    if species == :H
+        element.z_n = 1
+        element.a = 1
+    elseif species == :D
         element.z_n = 1
         element.a = 2
     elseif species == :DT

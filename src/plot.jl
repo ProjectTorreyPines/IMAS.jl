@@ -376,36 +376,46 @@ end
     layout := (1, 3)
     size := (1100, 290)
 
+    # temperatures
     @series begin
         subplot := 1
         label --> "e"
+        ylim --> (0, Inf)
         cpt.electrons, :temperature
     end
-
     for ion in cpt.ion
         @series begin
             subplot := 1
             label --> ion.label
             linestyle --> :dash
+            ylim --> (0, Inf)
             ion, :temperature
         end
     end
 
+    # densities
     @series begin
         subplot := 2
         label --> "e"
+        ylim --> (0.0, Inf)
         cpt.electrons, :density
     end
-
     for ion in cpt.ion
         @series begin
+            Z = ion.element[1].z_n
             subplot := 2
-            label --> ion.label
+            if Z == 1.0
+                label --> ion.label
+            else
+                label --> "$(ion.label) × $(Int(Z))"
+            end
             linestyle --> :dash
-            ion, :density
+            ylim --> (0.0, Inf)
+            ion, :density, Z
         end
     end
 
+    # rotation
     @series begin
         subplot := 3
         label --> ""
@@ -417,15 +427,19 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol)
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol, norm::Real=1.0)
     coords = coordinates(ids, field)
     @series begin
         xlabel --> nice_field(i2p(coords[:names][1])[end]) * nice_units(units(coords[:names][1]))
         ylabel --> nice_units(units(ids, field))
         title --> nice_field(field)
 
+        if endswith(coords[:names][1], "rho_tor_norm")
+            xlim --> (0.0, 1.0)
+        end
+
         xvalue = coords[:values][1]
-        yvalue = getproperty(ids, field)
+        yvalue = getproperty(ids, field) * norm
 
         # plot 1D Measurements with ribbon
         if (eltype(yvalue) <: Measurement) && !((eltype(xvalue) <: Measurement))
