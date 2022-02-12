@@ -108,6 +108,14 @@ using Test
     end
     @test length(dd.core_sources.time) == 1
 
+    # resize!(dd.equilibrium.time_slice) returns an empty IDS
+    dd = IMAS.dd()
+    eqt = resize!(dd.equilibrium.time_slice)
+    eqt.global_quantities.ip = 1.0
+    eqt = resize!(dd.equilibrium.time_slice)
+    @test ismissing(eqt.global_quantities, :ip)
+    @test !ismissing(eqt, :time)
+
 end
 
 @testset "time_array" begin

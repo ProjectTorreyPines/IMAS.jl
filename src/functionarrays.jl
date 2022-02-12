@@ -416,6 +416,11 @@ function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvect
         if hasfield(typeof(ids[k]), :time)
             ids[k].time = time0
         end
+    elseif time0 == maximum(time)
+        empty!(ids[end])
+        if hasfield(typeof(ids[end]), :time)
+            ids[end].time = time0
+        end
     elseif time0 < maximum(time)
         error("Cannot resize structure at time $time0 for a time array structure already ranging between $(time[1]) and $(time[end])")
     end
@@ -435,8 +440,8 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
                 pop!(ids)
             end
         end
-        empty!(ids[end])
     end
+    empty!(ids[end])
     return ids[end]
 end
 
