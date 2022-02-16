@@ -6,14 +6,14 @@ using LaTeXStrings
 
 Plots pf active cross-section
 """
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol = :cx; cname = :roma, time_index = 1)
+@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol = :cx; cname = :roma)
 
     if what in [:cx, :coils_flux]
         label --> ""
         aspect --> :equal
         colorbar_title --> "PF currents [A]"
 
-        currents = [c.current.data[time_index] for c in pfa.coil]
+        currents = [@ddtime(c.current.data) for c in pfa.coil]
         CURRENT = maximum(abs.(currents))
 
         # dummy markers to get the colorbar right
@@ -27,7 +27,7 @@ Plots pf active cross-section
 
         # plot individual coils
         for c in pfa.coil
-            current_color_index = (c.current.data[time_index] + CURRENT) / (2 * CURRENT)
+            current_color_index = (@ddtime(c.current.data) + CURRENT) / (2 * CURRENT)
             @series begin
                 color --> cgrad(cname)[current_color_index]
                 c
@@ -35,8 +35,8 @@ Plots pf active cross-section
         end
 
     elseif what == :currents
-        label --> "$(pfa.coil[1].current.time[time_index]) s"
-        currents = [c.current.data[time_index] for c in pfa.coil]
+        label --> "$(@ddtime(pfa.coil[1].current.time)) s"
+        currents = [@ddtime(c.current.data) for c in pfa.coil]
         @series begin
             linestyle --> :dash
             marker --> :circle
