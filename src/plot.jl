@@ -1,4 +1,4 @@
-using Plots
+using RecipesBase
 using LaTeXStrings
 
 """

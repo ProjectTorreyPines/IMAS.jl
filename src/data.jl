@@ -422,10 +422,12 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
     end
 end
 
+# show function for the Jupyter notebook
 function Base.show(io::IO, ::MIME"text/plain", ids::Union{IDS,IDSvector})
     return show(io, ids, 0)
 end
 
+# show function for inline prints
 function Base.show(io::IO, ids::IDS)
     fnames = []
     for item in keys(ids)
@@ -434,6 +436,7 @@ function Base.show(io::IO, ids::IDS)
     return println(io, "$(f2i(ids)){$(join(collect(map(x->"$x",fnames)),", "))}")
 end
 
+# show function for inline prints
 function Base.show(io::IO, ids::IDSvector)
     fnames = []
     for item in keys(ids)
