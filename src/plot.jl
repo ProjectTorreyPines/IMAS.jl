@@ -1,3 +1,4 @@
+import PlotUtils
 using RecipesBase
 using LaTeXStrings
 
@@ -29,7 +30,7 @@ Plots pf active cross-section
         for c in pfa.coil
             current_color_index = (@ddtime(c.current.data) + CURRENT) / (2 * CURRENT)
             @series begin
-                color --> cgrad(cname)[current_color_index]
+                color --> PlotUtils.cgrad(cname)[current_color_index]
                 c
             end
         end
