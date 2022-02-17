@@ -1,4 +1,4 @@
-import NumericalIntegration: integrate
+import NumericalIntegration: integrate, cumul_integrate
 expressions = Dict{String,Function}()
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
@@ -110,8 +110,45 @@ expressions["equilibrium.time_slice[:].boundary.squareness_lower_outer"] =
 expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
     (;time_slice, _...) -> time_slice.profiles_1d.squareness_upper_outer[end]
 
+#= ============ =#
+#  core_sources  #
+#= ============ =#
+expressions["core_sources.source[:].profiles_1d[:].electrons.power_inside"] =
+    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.electrons.energy)
+
+expressions["core_sources.source[:].profiles_1d[:].electrons.energy"] =
+    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.electrons.power_inside)
+
+
+expressions["core_sources.source[:].profiles_1d[:].total_ion_power_inside"] =
+    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.total_ion_energy)
+
+expressions["core_sources.source[:].profiles_1d[:].total_ion_energy"] =
+    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.total_ion_power_inside)
+
+
+expressions["core_sources.source[:].profiles_1d[:].electrons.particles_inside"] =
+    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.electrons.particles)
+
+expressions["core_sources.source[:].profiles_1d[:].electrons.particles"] =
+    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.electrons.particles_inside)
+
+
+expressions["core_sources.source[:].profiles_1d[:].current_parallel_inside"] =
+    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.j_parallel)
+
+expressions["core_sources.source[:].profiles_1d[:]. "] =
+    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.current_parallel_inside)
+
+
+expressions["core_sources.source[:].profiles_1d[:].torque_tor_inside"] =
+    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.momentum_tor)
+
+expressions["core_sources.source[:].profiles_1d[:].momentum_tor"] =
+    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.torque_tor_inside)
+
 #= ===== =#
-#  Build #
+#  Build  #
 #= ===== =#
 expressions["build.layer[:].start_radius"] =
     (;build, layer_index, _...) -> build_radii(build)[1:end - 1][layer_index]

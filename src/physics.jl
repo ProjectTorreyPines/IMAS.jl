@@ -609,7 +609,7 @@ function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equili
     pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
     beta_tor = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
     @ddtime (summary.global_quantities.beta_tor.value = beta_tor)
-    @ddtime (summary.global_quantities.beta_tor_thermal_norm.value = beta_tor* eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
+    @ddtime (summary.global_quantities.beta_tor_thermal_norm.value = beta_tor * eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
 end
 
 """
@@ -646,4 +646,83 @@ function ion_element(species::Symbol)
     end
     ion.label = String(species)
     return ion
+end
+
+"""
+    new_source(
+        source::IMAS.core_sources__source,
+        index::Int,
+        name::String,
+        rho::Union{AbstractVector,AbstractRange},
+        volume::Union{AbstractVector,AbstractRange};
+        qe::Union{AbstractVector,Missing} = missing,
+        qi::Union{AbstractVector,Missing} = missing,
+        se::Union{AbstractVector,Missing} = missing,
+        jpar::Union{AbstractVector,Missing} = missing,
+        momentum::Union{AbstractVector,Missing} = missing)
+
+Populates the IMAS.core_sources__source with given heating, particle, current, momentun profiles
+
+
+"""
+function new_source(
+    source::IMAS.core_sources__source,
+    index::Int,
+    name::String,
+    rho::Union{AbstractVector,AbstractRange},
+    volume::Union{AbstractVector,AbstractRange};
+    electrons_energy::Union{AbstractVector,Missing} = missing,
+    electrons_power_inside::Union{AbstractVector,Missing} = missing,
+    total_ion_energy::Union{AbstractVector,Missing} = missing,
+    total_ion_power_inside::Union{AbstractVector,Missing} = missing,
+    electrons_particles::Union{AbstractVector,Missing} = missing,
+    electrons_particles_inside::Union{AbstractVector,Missing} = missing,
+    j_parallel::Union{AbstractVector,Missing} = missing,
+    current_parallel_inside::Union{AbstractVector,Missing} = missing,
+    momentum_tor::Union{AbstractVector,Missing} = missing,
+    torque_tor_inside::Union{AbstractVector,Missing} = missing)
+
+    source.identifier.name = name
+    source.identifier.index = index
+    resize!(source.profiles_1d)
+    cs1d = source.profiles_1d[]
+    cs1d.grid.rho_tor_norm = rho
+    cs1d.grid.volume = volume
+
+    if electrons_energy !== missing
+        cs1d.electrons.energy = IMAS.interp(LinRange(0, 1, length(electrons_energy)), electrons_energy)(cs1d.grid.rho_tor_norm)
+    end
+    if electrons_power_inside !== missing
+        cs1d.electrons.power_inside = IMAS.interp(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if total_ion_energy !== missing
+        cs1d.total_ion_energy = IMAS.interp(LinRange(0, 1, length(total_ion_energy)), total_ion_energy)(cs1d.grid.rho_tor_norm)
+    end
+    if total_ion_power_inside !== missing
+        cs1d.total_ion_power_inside = IMAS.interp(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if electrons_particles !== missing
+        cs1d.electrons.particles = IMAS.interp(LinRange(0, 1, length(electrons_particles)), electrons_particles)(cs1d.grid.rho_tor_norm)
+    end
+    if electrons_particles_inside !== missing
+        cs1d.electrons.particles_inside = IMAS.interp(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if j_parallel !== missing
+        cs1d.j_parallel = IMAS.interp(LinRange(0, 1, length(j_parallel)), j_parallel)(cs1d.grid.rho_tor_norm)
+    end
+    if current_parallel_inside !== missing
+        cs1d.current_parallel_inside = IMAS.interp(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if momentum_tor !== missing
+        cs1d.momentum_tor = IMAS.interp(LinRange(0, 1, length(momentum_tor)), momentum_tor)(cs1d.grid.rho_tor_norm)
+    end
+    if torque_tor_inside !== missing
+        cs1d.torque_tor_inside = IMAS.interp(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    return source
 end
