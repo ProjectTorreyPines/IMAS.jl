@@ -366,16 +366,17 @@ Plots build cross-section
         end
     end
 end
+
 @recipe function plot_cs(cs::IMAS.core_sources)
-    layout := (2,2)
-    size := (600,600)
+    layout := (2, 2)
+    size := (600, 600)
     for isource in cs.source
         cs1d = isource.profiles_1d[]
-        
-        
+
         if !ismissing(cs1d.electrons, :energy)
             @series begin
                 subplot := 1
+                title := "Electron Power"
                 label --> isource.identifier.name
                 cs1d.electrons, :energy
             end
@@ -384,14 +385,16 @@ end
         if !ismissing(cs1d, :total_ion_energy)
             @series begin
                 subplot := 2
+                title := "Ion Power"
                 label --> isource.identifier.name
                 cs1d, :total_ion_energy
             end
         end
-        
+
         if !ismissing(cs1d.electrons, :particles)
             @series begin
                 subplot := 3
+                title := "Electron Particle"
                 label --> isource.identifier.name
                 cs1d.electrons, :particles
             end
@@ -400,12 +403,14 @@ end
         if !ismissing(cs1d, :j_parallel)
             @series begin
                 subplot := 4
+                title := "Parallel Current"
                 label --> isource.identifier.name
                 cs1d, :j_parallel
             end
         end
     end
 end
+
 @recipe function plot_cp(cp::IMAS.core_profiles)
     @series begin
         return cp.profiles_1d[]
@@ -467,7 +472,7 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol, norm::Real=1.0)
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol, norm::Real = 1.0)
     coords = coordinates(ids, field)
     @series begin
         xlabel --> nice_field(i2p(coords[:names][1])[end]) * nice_units(units(coords[:names][1]))
@@ -498,11 +503,6 @@ nice_field_symbols = Dict()
 nice_field_symbols["rho_tor_norm"] = L"\rho"
 nice_field_symbols["psi"] = L"\psi"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
-nice_field_symbols["energy"] = "Electron Power Density"
-nice_field_symbols["total_ion_energy"] = "Ion Power Density"
-nice_field_symbols["particles"] = "Electron Source"
-nice_field_symbols["j_parallel"] = "Current Drive"
-
 
 function nice_field(field::String)
     if field in keys(nice_field_symbols)
