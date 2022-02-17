@@ -534,16 +534,16 @@ function get_build(
 end
 
 """
-    structures_mask(bd::IMAS.build, resolution::Int=257, border::Real=10/resolution)
+    structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(bd::IMAS.build; resolution::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
+function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
-    rmask = range(xlim[1], xlim[2], length = resolution)
-    zmask = range(ylim[1], ylim[2], length = resolution * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    rmask = range(xlim[1], xlim[2], length = ngrid)
+    zmask = range(ylim[1], ylim[2], length = ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
     valid = true
