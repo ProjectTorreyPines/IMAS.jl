@@ -371,7 +371,8 @@ end
     for isource in cs.source
         cs1d = isource.profiles_1d[]
         
-        if !ismissing(cs1d.electrons.energy)
+        
+        if !ismissing(cs1d.electrons, :energy)
             @series begin
                 subplot := 1
                 label --> isource.identifier.name
@@ -379,7 +380,7 @@ end
             end
         end
 
-        if !ismissing(cs1d.total_ion_energy)
+        if !ismissing(cs1d, :total_ion_energy)
             @series begin
                 subplot := 2
                 label --> isource.identifier.name
@@ -387,7 +388,7 @@ end
             end
         end
         
-        if !ismissing(cs1d.electrons.particles)
+        if !ismissing(cs1d.electrons, :particles)
             @series begin
                 subplot := 3
                 label --> isource.identifier.name
@@ -395,7 +396,7 @@ end
             end
         end
 
-        if !ismissing(cs1d.j_parallel)
+        if !ismissing(cs1d, :j_parallel)
             @series begin
                 subplot := 4
                 label --> isource.identifier.name
