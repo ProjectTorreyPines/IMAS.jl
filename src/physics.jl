@@ -4,7 +4,7 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
-import NumericalIntegration.integrate
+import NumericalIntegration: integrate, cumul_integrate
 
 function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
     cc = cocos(cocos_number)
@@ -80,6 +80,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :q,
         :dvolume_dpsi,
         :j_tor,
+        :area,
         :volume,
         :gm1,
         :gm2,
@@ -98,8 +99,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     BPL = zeros(length(eqt.profiles_1d.psi))
     for (k, psi_level0) in reverse(collect(enumerate(eqt.profiles_1d.psi)))
 
-        # on axis flux surface is a synthetic one
-        if k == 1
+        if k == 1 # on axis flux surface is a synthetic one
             eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2] - (eqt.profiles_1d.elongation[3] - eqt.profiles_1d.elongation[2])
             eqt.profiles_1d.triangularity_upper[1] = 0.0
             eqt.profiles_1d.triangularity_lower[1] = 0.0
@@ -121,8 +121,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             z_at_max_r, max_r = pz[imaxr], pr[imaxr]
             z_at_min_r, min_r = pz[iminr], pr[iminr]
 
-            # other flux surfaces
-        else
+        else  # other flux surfaces
             # trace flux surface
             pr, pz, psi_level = flux_surface(
                 r_upsampled,
@@ -149,7 +148,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             z_at_min_r, min_r = pz[iminr], pr[iminr]
 
             # accurate geometric quantities by finding geometric extrema as optimization problem
-            w = 1E-6
+            w = 1E-4 # push away from magnetic axis
             function fx(x, psi_level)
                 try
                     (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
@@ -247,8 +246,31 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         end
     end
 
-    # integral quantities are defined later
+    function flxAvg(input, ll, fluxexpansion, int_fluxexpansion_dl)
+        return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
+    end
+
+    function volume_integrate(what)
+        return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+    end
+
+    function surface_integrate(what)
+        return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+    end
+
+    function cumlul_volume_integrate(what)
+        return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+    end
+
+    function cumlul_surface_integrate(what)
+        return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+    end
+
+    # integral quantities
     for k = 2:length(eqt.profiles_1d.psi)
+        # area
+        eqt.profiles_1d.area[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k] .* eqt.profiles_1d.gm9[1:k]) ./ 2pi
+
         # volume
         eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
 
@@ -270,14 +292,10 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.global_quantities.li_3 = 2 * Bp2v / R0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
 
     # beta_tor
-    eqt.global_quantities.beta_tor = abs(
-        integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
-    )
+    eqt.global_quantities.beta_tor = abs(volume_integrate(eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_pol
-    eqt.global_quantities.beta_pol = abs(
-        integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
-    )
+    eqt.global_quantities.beta_pol = abs(volume_integrate(eqt.profiles_1d.pressure)/ eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
@@ -291,10 +309,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     # phi 2D
     eqt.profiles_2d[1].phi =
         Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
-
-    function flxAvg(input, ll, fluxexpansion, int_fluxexpansion_dl)
-        return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
-    end
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
