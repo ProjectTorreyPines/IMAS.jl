@@ -167,10 +167,18 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
             res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
             (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
-            (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
-            (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            if psi_level0 != eqt.profiles_1d.psi[end]
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            end
+            # p = plot(pr, pz, label = "")
+            # plot!([max_r], [z_at_max_r], marker = :cicle)
+            # plot!([min_r], [z_at_min_r], marker = :cicle)
+            # plot!([r_at_max_z], [max_z], marker = :cicle)
+            # plot!([r_at_min_z], [min_z], marker = :cicle)
+            # display(p)
         end
 
         # geometric
@@ -295,7 +303,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.global_quantities.beta_tor = abs(volume_integrate(eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_pol
-    eqt.global_quantities.beta_pol = abs(volume_integrate(eqt.profiles_1d.pressure)/ eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
+    eqt.global_quantities.beta_pol = abs(volume_integrate(eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
