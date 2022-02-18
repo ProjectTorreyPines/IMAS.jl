@@ -187,7 +187,7 @@ end
 
 
 @testset "JSON_IO" begin
-    filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "sample_equilibrium_ods.json")
+    filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "D3D_eq_ods.json")
     dd = IMAS.json2imas(filename; verbose = false)
     @test length(dd.wall.description_2d[1].limiter.unit[1].outline.r) > 0
 end
