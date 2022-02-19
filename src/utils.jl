@@ -36,6 +36,21 @@ function Base.ismissing(ids::IDS, field::Symbol)::Bool
     end
 end
 
+function Base.ismissing(ids::IDSvector, field::Int)::Bool
+    return length(ids) < field
+end
+
+function Base.ismissing(ids::Union{IDS,IDSvector}, field::Vector)::Bool
+    if length(field) == 1
+        return ismissing(ids, field[1])
+    end
+    if typeof(field[1]) <: Integer
+        return ismissing(ids[field[1]], field[2:end])
+    else
+        return ismissing(getfield(ids, field[1]), field[2:end])
+    end
+end
+
 function is_missing(ids::IDS, field::Symbol)::Bool
     @warn "Use of `IMAS.is_missing(ids, field)` is deprecated. Use `IMAS.ismissing(ids, field)`` instead."
     return ismissing(ids, field)
