@@ -1,9 +1,11 @@
 using Revise
 using IMAS
 using Test
-using Plots
 
 do_plot = false
+if do_plot
+    using Plots
+end
 
 @testset "flux_surfaces" begin
     filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "D3D_eq_ods.json")
