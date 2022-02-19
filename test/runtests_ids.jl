@@ -119,7 +119,9 @@ end
     # test p2i
     @test IMAS.p2i(["core_profiles", "profiles_1d", 1, "grid"]) == "core_profiles.profiles_1d[1].grid"
     @test IMAS.p2i(["core_profiles", "profiles_1d", ":", "grid"]) == "core_profiles.profiles_1d[:].grid"
-    @test_throws Exception IMAS.p2i([:core_profiles, :profiles_1d, ":", :grid])
+    @test IMAS.p2i([:core_profiles, :profiles_1d, ":", :grid]) == "core_profiles.profiles_1d[:].grid"
+    @test IMAS.p2i([:core_profiles, :profiles_1d, :(:), :grid]) == "core_profiles.profiles_1d[:].grid"
+    @test IMAS.p2i([:core_profiles, :profiles_1d, 1, :grid]) == "core_profiles.profiles_1d[1].grid"
 
     # test nested resizing
     wall = IMAS.wall()
@@ -184,7 +186,6 @@ end
         @test length(profiles_1d.electrons.density) == length(profiles_1d.j_total)
     end
 end
-
 
 @testset "JSON_IO" begin
     filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "D3D_eq_ods.json")

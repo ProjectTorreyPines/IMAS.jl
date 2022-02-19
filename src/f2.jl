@@ -149,7 +149,7 @@ Combine list of IMAS location elements into a string
 function p2i(path::Vector{Union{String,Symbol,Int}})::String
     str = String[]
     for item in path
-        if item == ":"
+        if item in [":", :(:)]
             push!(str, "[:]")
         elseif typeof(item) <: Int
             push!(str, "[$(string(item))]")
