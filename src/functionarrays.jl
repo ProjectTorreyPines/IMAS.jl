@@ -72,8 +72,19 @@ Return information of a filed of an IDS
 """
 function imas_info(ids::Union{IDS,IDSvector}, field::Symbol)
     location = "$(f2u(ids)).$(field)"
-    return imas_info("$(f2u(ids)).$(field)")
+    return imas_info(location)
 end
+
+
+function imas_info(ids::Type, field::Symbol)
+    if ids <: IMAS.IDSvectorElement
+        location = "$(IMAS._f2u(ids))[:].$(field)"
+    else
+        location = "$(IMAS._f2u(ids)).$(field)"
+    end
+    return imas_info(location)
+end
+
 
 """
     struct_field_type(structure::DataType, field::Symbol)
