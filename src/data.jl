@@ -21,7 +21,7 @@ function dict2imas(dct, ids::T; verbose::Bool = false, path::Vector{String} = St
     for (k, v) in dct
         if !hasfield(typeof(ids), Symbol(k))
             if !skip_non_coordinates
-                println("$(f2i(ids)).$(k) was skipped in IMAS.jl data dictionary")
+                @warn("$(f2i(ids)).$(k) was skipped in IMAS.jl data dictionary", maxlog=1)
             end
             continue
         end
