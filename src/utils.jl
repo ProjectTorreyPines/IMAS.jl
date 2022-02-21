@@ -392,3 +392,15 @@ function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function
     end
     return differences
 end
+
+"""
+    resample_2d_line(x, y, step)
+
+Resample 2D line with uniform stepping
+"""
+function resample_2d_line(x::Vector{T}, y::Vector{T}, step::T) where {T <: Real}
+    s = cumsum(sqrt.(gradient(x) .^ 2 + gradient(y) .^ 2))
+    n = Integer(ceil(s[end] / step))
+    t = range(s[1], s[end]; length = n)
+    return interp(s, x)(t), interp(s, y)(t)
+end
