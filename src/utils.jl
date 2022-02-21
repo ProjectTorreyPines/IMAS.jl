@@ -45,7 +45,11 @@ function Base.ismissing(ids::Union{IDS,IDSvector}, field::Vector)::Bool
         return ismissing(ids, field[1])
     end
     if typeof(field[1]) <: Integer
-        return ismissing(ids[field[1]], field[2:end])
+        if field[1] <= length(ids)
+            return ismissing(ids[field[1]], field[2:end])
+        else
+            return true
+        end
     else
         return ismissing(getfield(ids, field[1]), field[2:end])
     end
