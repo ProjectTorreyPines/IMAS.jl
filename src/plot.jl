@@ -18,19 +18,25 @@ Plots pf active cross-section
         CURRENT = maximum(abs.(currents))
 
         # dummy markers to get the colorbar right
-        @series begin
-            seriestype --> :scatter
-            color --> cname
-            clim --> (-CURRENT, CURRENT)
-            marker_z --> [-CURRENT, CURRENT]
-            [(NaN, NaN), (NaN, NaN)]
+        if any(currents .!= 0.0)
+            @series begin
+                seriestype --> :scatter
+                color --> cname
+                clim --> (-CURRENT, CURRENT)
+                marker_z --> [-CURRENT, CURRENT]
+                [(NaN, NaN), (NaN, NaN)]
+            end
         end
 
         # plot individual coils
         for c in pfa.coil
             current_color_index = (@ddtime(c.current.data) + CURRENT) / (2 * CURRENT)
             @series begin
-                color --> PlotUtils.cgrad(cname)[current_color_index]
+                if all(currents .== 0.0)
+                    color --> :black
+                else
+                    color --> PlotUtils.cgrad(cname)[current_color_index]
+                end
                 c
             end
         end
@@ -52,11 +58,11 @@ Plots pf active cross-section
 end
 
 """
-    plot_pf_active__coil_cx(coil::pf_active__coil; color::Symbol=:gray)
+    plot_coil_cx(coil::pf_active__coil; color = :gray)
 
 Plots cross-section of individual coils
 """
-@recipe function plot_pf_active__coil_cx(coil::pf_active__coil; color = :gray)
+@recipe function plot_coil_cx(coil::pf_active__coil; color = :black)
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
             color --> color
@@ -181,10 +187,33 @@ function join_outlines(r1, z1, r2, z2)
     return p(r1, r2), p(z1, z2)
 end
 
-"""
-    plot_build_cx(bd::IMAS.build)
 
-Plots build cross-section
+@recipe function plot_pf_coils_rail(rail::IMAS.build__pf_coils_rail)
+    if !ismissing(rail.outline, :r)
+        @series begin
+            color --> :gray
+            linestyle --> :dash
+            rail.outline.r, rail.outline.z
+        end
+    end
+end
+
+@recipe function plot_pf_coils_rail(rails::IDSvector{IMAS.build__pf_coils_rail})
+    for (krail, rail) in enumerate(rails)
+        if !ismissing(rail.outline, :r)
+            @series begin
+                label --> "Coil opt. rail"
+                primary --> krail == 1 ? true : false
+                rail
+            end
+        end
+    end
+end
+
+"""
+    plot_build_cx(bd::IMAS.build; cx = true, outlines = false, only_layers = nothing, exclude_layers = Symbol[])
+
+Plot build cross-section or radial build
 """
 @recipe function plot_build_cx(bd::IMAS.build; cx = true, outlines = false, only_layers = nothing, exclude_layers = Symbol[])
     aspect_ratio --> :equal
@@ -320,8 +349,7 @@ Plots build cross-section
             end
         end
 
-        # not-cx
-    else
+    else  # not-cx
 
         @series begin
             seriestype --> :vline

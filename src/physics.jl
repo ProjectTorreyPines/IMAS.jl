@@ -500,12 +500,16 @@ function build_radii(bd::IMAS.build)
 end
 
 """
-    get_build(bd::IMAS.build;
-                     type::Union{Nothing,Int}=nothing,
-                     name::Union{Nothing,String}=nothing,
-                     identifier::Union{Nothing,UInt,Int}=nothing,
-                     hfs::Union{Nothing,Int}=nothing,
-                     return_only_one=true )
+    function get_build(
+        bd::IMAS.build;
+        type::Union{Nothing,Int} = nothing,
+        name::Union{Nothing,String} = nothing,
+        identifier::Union{Nothing,UInt,Int} = nothing,
+        hfs::Union{Nothing,Int,Array} = nothing,
+        return_only_one = true,
+        return_index = false,
+        raise_error_on_missing = true
+    )
 
 Select layer(s) in build based on a series of selection criteria
 """
