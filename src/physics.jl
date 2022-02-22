@@ -817,9 +817,9 @@ end
 Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
 More info see omfit_classes.utils_fusion.py nclass_conductivity function
 """
-function nclass_conductivity!(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
+function nclass_conductivity!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
+    eqt = dd.equilibrium.time_slice[time]
+    cp1d = dd.core_profiles.profiles_1d[time]
 
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature

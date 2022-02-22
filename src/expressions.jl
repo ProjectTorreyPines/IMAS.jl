@@ -34,6 +34,10 @@ expressions["dd.summary.global_quantities.beta_tor_thermal_norm"] =
 expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
     (rho_tor_norm; core_profiles, _...) -> total_pressure_thermal!(core_profiles)
 
+
+expressions["core_profiles.profiles_1d[:].conductivity_parallel"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> nclass_conductivity!(dd; time=profiles_1d.time)
+
 #= ========= =#
 # Equilibrium #
 #= ========= =#
