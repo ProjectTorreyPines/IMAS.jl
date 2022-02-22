@@ -776,3 +776,143 @@ function new_source(
 
     return source
 end
+
+"""
+    sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+
+    Compute a low-accuracy but fast approximation to the ion heating fraction (for alpha particles and beam particles).
+
+"""
+function sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+    Te = cp1d.electrons.temperature
+    ne = cp1d.electrons.density
+    rho = cp1d.grid.rho_tor_norm
+
+    particle_mass *= constants.m_p
+
+    c_a = zeros(length(rho))
+    W_crit = similar(rho)
+    ion_elec_fraction = similar(W_crit)
+
+    for ion in cp1d.ion
+        ni = ion.density
+        Zi = ion.element[1].z_n
+        mi = ion.element[1].a * constants.m_p
+        c_a .+= (ni ./ ne) .* Zi .^ 2 .* (mi ./ particle_mass)
+    end
+
+    W_crit = Te .* (4.0 .* sqrt.(constants.m_e / particle_mass) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)
+    
+    x = particle_energy ./ W_crit
+    for (idx, x_i) in enumerate(x)
+        y = x_i .* rho
+        f = integrate(y, 1.0 ./ (1.0 .+ y .^ 1.5))
+        ion_elec_fraction[idx] = f / x_i
+    end
+
+    return ion_elec_fraction
+end
+
+"""
+nclass_conductivity!(dd::IMAS.dd)
+    
+    Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
+    More info see omfit_classes.utils_fusion.py nclass_conductivity function
+"""
+
+function nclass_conductivity!(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    
+    rho = cp1d.grid.rho_tor_norm
+    Te=cp1d.electrons.temperature
+    ne=cp1d.electrons.density
+    Ti=cp1d.ion[1].temperature
+    Zeff=cp1d.zeff
+    
+    R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
+    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
+    
+    eps = a ./ R
+    
+    volume = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)[rho]
+    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)[rho]
+
+    nis=[ion.density for ion in cp1d.ion]
+    zis=[ion.element[1].z_n for ion in cp1d.ion]
+
+    # for now coppied a ft
+    if !ismissing(eqt.profiles_1d, :trapped_fraction)
+        trapped_fraction = IMAS.interp(eqt.profiles_1d.rho_tor_norm,eqt.profiles_1d.trapped_fraction)[rho]
+    else
+        trapped_fraction = 1 .- [0.99221059, 0.79592721, 0.75799424, 0.73389253, 0.7151828 ,
+           0.69995242, 0.68697106, 0.67581998, 0.66565369, 0.65652218,
+           0.64821287, 0.64040429, 0.63300986, 0.62595333, 0.61935542,
+           0.61301781, 0.60683948, 0.60103076, 0.59531234, 0.59010553,
+           0.58474824, 0.57977481, 0.57497436, 0.57024495, 0.56567474,
+           0.56135082, 0.5570025 , 0.55288717, 0.54889162, 0.54485018,
+           0.54104985, 0.53733695, 0.53364428, 0.53017627, 0.52668355,
+           0.52338065, 0.51997456, 0.51672705, 0.51361177, 0.51040148,
+           0.50745769, 0.5043767 , 0.50145692, 0.49845087, 0.49563612,
+           0.49277345, 0.48988489, 0.48715743, 0.48441203, 0.48170042,
+           0.47899589, 0.47638562, 0.47378681, 0.47123695, 0.4686115 ,
+           0.46617411, 0.46365054, 0.46122012, 0.45878225, 0.45644444,
+           0.45403486, 0.45171448, 0.44939778, 0.44718057, 0.44488356,
+           0.44267947, 0.44055971, 0.43843501, 0.43630736, 0.43430458,
+           0.43233779, 0.43036787, 0.42850637, 0.42668277, 0.42488358,
+           0.42306826, 0.4213361 , 0.41963368, 0.41791915, 0.41620204,
+           0.41453745, 0.41291046, 0.41122227, 0.40962278, 0.4080247 ,
+           0.40645655, 0.40487557, 0.40336553, 0.4018056 , 0.40036677,
+           0.39889212, 0.39746457, 0.39600087, 0.39458569, 0.39319673,
+           0.39183304, 0.3905006 , 0.38915813, 0.38788326, 0.38657842,
+           0.38532951, 0.38411506, 0.38288309, 0.3817364 , 0.38057343,
+           0.37941943, 0.37835533, 0.37730187, 0.37625781, 0.37528697,
+           0.3743115 , 0.37340852, 0.37255248, 0.37171022, 0.37094909,
+           0.37028069, 0.36969356, 0.36927536, 0.36910198, 0.3692237 ,
+           0.36967849, 0.37050068, 0.37149299, 0.37242502, 0.37308737,
+           0.37349228, 0.37386176, 0.3743942 , 0.37507864]
+        trapped_fraction = IMAS.interp(LinRange(0,1,129),trapped_fraction)[rho]
+    end
+
+    ni = sum(nis)
+    Nis = zeros(length(nis))
+    for (idx, ion_density) in enumerate(nis)
+        Nis[idx] = integrate(volume, ion_density)
+    end
+      
+    Zdom = zis[argmax(Nis)]
+
+    Zavg = ne ./ ni
+    Zion = (Zdom .^ 2 .* Zavg .* Zeff) .^ 0.25  # Thanks to memo from T. Osborne for pointing out how to do this correctly.
+
+    Zions = [(Zi .^ 2 .* Zavg .* Zeff) .^ 0.25 for Zi in zis]
+    Zions_avg = sum(Zions)/length(Zions)  # Average Zion over ion species
+
+    Zi_use_L = Zavg
+    Zi_use_C = Zion
+
+    lnLambda_i = 30.0 .- log.(Zi_use_L .^ 3 .* sqrt.(ni) ./ (Ti .^ 1.5))
+    lnLambda_e = 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
+
+    nuestar = 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e ./ (Te .^ 2 .* eps .^ 1.5) 
+    nuistar = 4.90e-18 .* abs.(q) .* R .* ni .* Zi_use_C .^ 4 .* lnLambda_i ./ (Ti .^ 2 .* eps .^ 1.5)
+
+    function spitzer_conductivity(Te, Zeff, lnLambda_e)
+        return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e)
+    end
+                
+    # neo 2021
+    f33teff = trapped_fraction ./ (
+        1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+ 0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5
+    )
+    F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3 
+
+    neoclassical_conductivity = spitzer_conductivity(Te, Zeff, lnLambda_e) .* F33  # equation 13a ( 1/(Ohm m) )
+
+    plot(rho,spitzer_conductivity(Te, Zeff, lnLambda_e),ls=:dash,label="spitzer")
+    display(plot!(rho,neoclassical_conductivity,label="neo 2021",xlabel="ρ",ylabel="1/ohm /m"))
+    
+    cp1d.conductivity_parallel = neoclassical_conductivity
+    
+    return neoclassical_conductivity  # Units are 1/(Ohm*meter)
+end
