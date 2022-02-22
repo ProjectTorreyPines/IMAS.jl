@@ -16,6 +16,9 @@ expressions = Dict{String,Function}()
 # Core Profiles #
 #= =========== =#
 
+# expressions["core_profiles.profiles_1d[:].grid.volume"] =
+#     (rho_tor_norm; dd, _...) -> IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)(rho)
+
 expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
     (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * constants.e
 
