@@ -64,4 +64,16 @@ using Test
     time_slice.profiles_1d.volume = range(0.0, 1.0, length = 11)
     time_slice.profiles_1d.pressure = 1.0 .- range(0.0, 1.0, length = 11)
     @test time_slice.global_quantities.energy_mhd ≈ 0.75
+
+    # test expressions across different IDSs with global_time information
+    dd = IMAS.dd()
+    resize!(dd.equilibrium.time_slice, 0.0)
+    resize!(dd.equilibrium.time_slice, 3.0)
+    dd.global_time = 3.0
+    dd.equilibrium.time_slice[].profiles_1d.psi = LinRange(0, 1, 11)
+    dd.equilibrium.time_slice[].profiles_1d.rho_tor_norm = LinRange(0, 1, 11)
+    dd.equilibrium.time_slice[].profiles_1d.volume = LinRange(0, 1, 11)
+    resize!(dd.core_profiles.profiles_1d, 3.0)
+    dd.core_profiles.profiles_1d[].grid.rho_tor_norm = LinRange(0, 1, 11)
+    @test all(dd.core_profiles.profiles_1d[1].grid.volume .≈ dd.equilibrium.time_slice[2].profiles_1d.volume)
 end
