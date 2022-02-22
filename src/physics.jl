@@ -892,5 +892,3 @@ function nclass_conductivity!(dd::IMAS.dd)
     
     return neoclassical_conductivity  # Units are 1/(Ohm*meter)
 end
-nclass_conductivity!(dd)
-
