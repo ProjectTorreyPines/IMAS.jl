@@ -23,7 +23,7 @@ assign_expressions = x -> x
 # IMAS data structure
 #= ==================================== =#
 ids_names = imas_dd_ids_names()
-ids_names = ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "tf", "wall", "build"]
+ids_names = ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "tf", "wall","nbi", "ec_launchers", "lh_antennas", "build"]
 
 p = Progress(length(ids_names); desc = "Parse JSON structs ", showspeed = true)
 desired_structure = String[]
@@ -81,8 +81,8 @@ function imas_julia_struct(desired_structure::Vector{String})
         end
 
         # detect if this is a time dependendent array of structure
-        if ("full_path" in keys(ddids[sel])) && (endswith(ddids[sel]["full_path"],"(itime)"))
-            push!(timedep_structures, sel*"[:]")
+        if ("full_path" in keys(ddids[sel])) && (endswith(ddids[sel]["full_path"], "(itime)"))
+            push!(timedep_structures, sel * "[:]")
         end
 
         h = ddict

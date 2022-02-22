@@ -21,7 +21,7 @@ function dict2imas(dct, ids::T; verbose::Bool = false, path::Vector{String} = St
     for (k, v) in dct
         if !hasfield(typeof(ids), Symbol(k))
             if !skip_non_coordinates
-                println("$(f2i(ids)).$(k) was skipped in IMAS.jl data dictionary")
+                @warn("$(f2i(ids)).$(k) was skipped in IMAS.jl data dictionary", maxlog=1)
             end
             continue
         end
@@ -39,7 +39,9 @@ function dict2imas(dct, ids::T; verbose::Bool = false, path::Vector{String} = St
             if verbose
                 println(("｜"^level) * string(k))
             end
-            resize!(ff, length(v))
+            if length(ff) < length(v)
+                resize!(ff, length(v))
+            end
             for i = 1:length(v)
                 if verbose
                     println(("｜"^(level + 1)) * string(i))
@@ -155,7 +157,7 @@ Considers IDS as maximum top level if IDS_is_absolute_top=true
 function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
     if IDS_is_absolute_top & (typeof(ids) <: dd)
         error("Cannot call top(x::IMAS.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
-    elseif ids._parent.value === missing
+    elseif !(typeof(ids._parent.value) <: Union{IDS,IDSvector})
         return ids
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return ids
@@ -181,7 +183,7 @@ function top_ids(ids::Union{IDS,IDSvector})
 end
 
 function top_dd(ids::Union{IDS,IDSvector})
-    ids = top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top = false)
+    ids = top(ids; IDS_is_absolute_top = false)
     if typeof(ids) <: dd
         return ids
     else
@@ -196,7 +198,7 @@ Return parent IDS/IDSvector in the hierarchy
 If IDS_is_absolute_top then returns `missing` instead of IMAS.dd()
 """
 function parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
-    if ids._parent.value === missing
+    if !(typeof(ids._parent.value) <: Union{IDS,IDSvector})
         return missing
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
         return missing
@@ -230,6 +232,7 @@ function assign_expressions(ids::Union{IDS,IDSvector})
             setproperty!(ids, item, expressions["$(struct_name).$(item)"])
         end
     end
+    return ids
 end
 
 #= ===================== =#
@@ -391,11 +394,23 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
                 printstyled(io, "$(item)")
                 printstyled(io, " ➡ "; color = :red)
                 if typeof(value) <: Function
-                    printstyled(io, "Function\n"; color = :green)
+                    printstyled(io, "Function\n"; color = :blue)
                 elseif typeof(value) <: String
                     printstyled(io, "\"$(value)\"\n"; color = :magenta)
-                elseif typeof(value) <: Number
-                    printstyled(io, "$(value)\n"; color = :magenta)
+                elseif typeof(value) <: Integer
+                    printstyled(io, "$(value)\n"; color = :yellow)
+                elseif typeof(value) <: AbstractFloat
+                    printstyled(io, @sprintf("%g\n", value); color = :red)
+                elseif typeof(value) <: AbstractArray
+                    if length(value) < 5
+                        if eltype(value) <: AbstractFloat
+                            printstyled(io, "[$(join([@sprintf("%g",v) for v in value],","))]\n"; color = :green)
+                        else
+                            printstyled(io, "$value\n"; color = :green)
+                        end
+                    else
+                        printstyled(io, "$(Base.summary(value))\n"; color = :green)
+                    end
                 else
                     printstyled(io, "$(Base.summary(value))\n"; color = :blue)
                 end
@@ -407,10 +422,12 @@ function Base.show(io::IO, ids::Union{IDS,IDSvector}, depth::Int)
     end
 end
 
+# show function for the Jupyter notebook
 function Base.show(io::IO, ::MIME"text/plain", ids::Union{IDS,IDSvector})
     return show(io, ids, 0)
 end
 
+# show function for inline prints
 function Base.show(io::IO, ids::IDS)
     fnames = []
     for item in keys(ids)
@@ -419,6 +436,7 @@ function Base.show(io::IO, ids::IDS)
     return println(io, "$(f2i(ids)){$(join(collect(map(x->"$x",fnames)),", "))}")
 end
 
+# show function for inline prints
 function Base.show(io::IO, ids::IDSvector)
     fnames = []
     for item in keys(ids)

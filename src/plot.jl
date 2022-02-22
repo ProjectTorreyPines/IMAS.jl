@@ -1,4 +1,5 @@
-using Plots
+import PlotUtils
+using RecipesBase
 using LaTeXStrings
 
 """
@@ -6,37 +7,43 @@ using LaTeXStrings
 
 Plots pf active cross-section
 """
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol = :cx; cname = :roma, time_index = 1)
+@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol = :cx; cname = :roma)
 
     if what in [:cx, :coils_flux]
         label --> ""
         aspect --> :equal
         colorbar_title --> "PF currents [A]"
 
-        currents = [c.current.data[time_index] for c in pfa.coil]
+        currents = [@ddtime(c.current.data) for c in pfa.coil]
         CURRENT = maximum(abs.(currents))
 
         # dummy markers to get the colorbar right
-        @series begin
-            seriestype --> :scatter
-            color --> cname
-            clim --> (-CURRENT, CURRENT)
-            marker_z --> [-CURRENT, CURRENT]
-            [(NaN, NaN), (NaN, NaN)]
+        if any(currents .!= 0.0)
+            @series begin
+                seriestype --> :scatter
+                color --> cname
+                clim --> (-CURRENT, CURRENT)
+                marker_z --> [-CURRENT, CURRENT]
+                [(NaN, NaN), (NaN, NaN)]
+            end
         end
 
         # plot individual coils
         for c in pfa.coil
-            current_color_index = (c.current.data[time_index] + CURRENT) / (2 * CURRENT)
+            current_color_index = (@ddtime(c.current.data) + CURRENT) / (2 * CURRENT)
             @series begin
-                color --> cgrad(cname)[current_color_index]
+                if all(currents .== 0.0)
+                    color --> :black
+                else
+                    color --> PlotUtils.cgrad(cname)[current_color_index]
+                end
                 c
             end
         end
 
     elseif what == :currents
-        label --> "$(pfa.coil[1].current.time[time_index]) s"
-        currents = [c.current.data[time_index] for c in pfa.coil]
+        label --> "$(@ddtime(pfa.coil[1].current.time)) s"
+        currents = [@ddtime(c.current.data) for c in pfa.coil]
         @series begin
             linestyle --> :dash
             marker --> :circle
@@ -51,11 +58,11 @@ Plots pf active cross-section
 end
 
 """
-    plot_pf_active__coil_cx(coil::pf_active__coil; color::Symbol=:gray)
+    plot_coil_cx(coil::pf_active__coil; color = :gray)
 
 Plots cross-section of individual coils
 """
-@recipe function plot_pf_active__coil_cx(coil::pf_active__coil; color = :gray)
+@recipe function plot_coil_cx(coil::pf_active__coil; color = :black)
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
             color --> color
@@ -119,20 +126,23 @@ end
             psi_levels = [psi__boundary_level, psi__boundary_level]
             psi_levels_out = []
         else
+            npsi = 11
             if psi_levels === nothing
-                psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length = 11)
+                psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length = npsi)
             elseif isa(psi_levels, Int)
                 if psi_levels > 1
+                    npsi = psi_levels
                     psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length = psi_levels)
                 else
                     psi_levels = []
                 end
             end
+            delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
             if psi_levels_out === nothing
-                psi_levels_out = (psi__boundary_level - eqt.profiles_1d.psi[1]) .* collect(range(0, 1, length = 11)) .+ psi__boundary_level
+                psi_levels_out = delta_psi .* range(0, 1, length = npsi) .+ psi__boundary_level
             elseif isa(psi_levels_out, Int)
                 if psi_levels_out > 1
-                    psi_levels_out = (psi__boundary_level - eqt.profiles_1d.psi[1]) .* collect(range(0, 1, length = psi_levels_out)) .+ psi__boundary_level
+                    psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
                 else
                     psi_levels_out = []
                 end
@@ -177,10 +187,33 @@ function join_outlines(r1, z1, r2, z2)
     return p(r1, r2), p(z1, z2)
 end
 
-"""
-    plot_build_cx(bd::IMAS.build)
 
-Plots build cross-section
+@recipe function plot_pf_coils_rail(rail::IMAS.build__pf_coils_rail)
+    if !ismissing(rail.outline, :r)
+        @series begin
+            color --> :gray
+            linestyle --> :dash
+            rail.outline.r, rail.outline.z
+        end
+    end
+end
+
+@recipe function plot_pf_coils_rail(rails::IDSvector{IMAS.build__pf_coils_rail})
+    for (krail, rail) in enumerate(rails)
+        if !ismissing(rail.outline, :r)
+            @series begin
+                label --> "Coil opt. rail"
+                primary --> krail == 1 ? true : false
+                rail
+            end
+        end
+    end
+end
+
+"""
+    plot_build_cx(bd::IMAS.build; cx = true, outlines = false, only_layers = nothing, exclude_layers = Symbol[])
+
+Plot build cross-section or radial build
 """
 @recipe function plot_build_cx(bd::IMAS.build; cx = true, outlines = false, only_layers = nothing, exclude_layers = Symbol[])
     aspect_ratio --> :equal
@@ -249,7 +282,7 @@ Plots build cross-section
             end
         end
 
-        # all layers between the OH and the vessel
+        # all layers between the OH and the plasma
         valid = false
         for (k, l) in enumerate(bd.layer[1:end-1])
             if (l.type == 2) && (l.hfs == 1)
@@ -305,19 +338,18 @@ Plots build cross-section
             end
         end
 
-        if ((only_layers === nothing) || (:vessel in only_layers)) && (!(:vessel in exclude_layers))
+        if ((only_layers === nothing) || (:plasma in only_layers)) && (!(:plasma in exclude_layers))
             @series begin
                 seriestype --> :path
-                linewidth --> 2
+                linewidth --> 1.0
                 color --> :black
-                label --> (!outlines ? "Vessel" : "")
+                label --> ""
                 xlim --> [0, rmax]
                 IMAS.get_build(bd, type = -1).outline.r, IMAS.get_build(bd, type = -1).outline.z
             end
         end
 
-        # not-cx
-    else
+    else  # not-cx
 
         @series begin
             seriestype --> :vline
@@ -363,6 +395,50 @@ Plots build cross-section
     end
 end
 
+@recipe function plot_cs(cs::IMAS.core_sources)
+    layout := (2, 2)
+    size := (600, 600)
+    for isource in cs.source
+        cs1d = isource.profiles_1d[]
+
+        if !ismissing(cs1d.electrons, :energy)
+            @series begin
+                subplot := 1
+                title := "Electron Power"
+                label --> isource.identifier.name
+                cs1d.electrons, :energy
+            end
+        end
+
+        if !ismissing(cs1d, :total_ion_energy)
+            @series begin
+                subplot := 2
+                title := "Ion Power"
+                label --> isource.identifier.name
+                cs1d, :total_ion_energy
+            end
+        end
+
+        if !ismissing(cs1d.electrons, :particles)
+            @series begin
+                subplot := 3
+                title := "Electron Particle"
+                label --> isource.identifier.name
+                cs1d.electrons, :particles
+            end
+        end
+
+        if !ismissing(cs1d, :j_parallel)
+            @series begin
+                subplot := 4
+                title := "Parallel Current"
+                label --> isource.identifier.name
+                cs1d, :j_parallel
+            end
+        end
+    end
+end
+
 @recipe function plot_cp(cp::IMAS.core_profiles)
     @series begin
         return cp.profiles_1d[]
@@ -373,40 +449,50 @@ end
     layout := (1, 3)
     size := (1100, 290)
 
+    # temperatures
     @series begin
         subplot := 1
         label --> "e"
+        ylim --> (0, Inf)
         cpt.electrons, :temperature
     end
-
     for ion in cpt.ion
         @series begin
             subplot := 1
             label --> ion.label
             linestyle --> :dash
+            ylim --> (0, Inf)
             ion, :temperature
         end
     end
 
+    # densities
     @series begin
         subplot := 2
-        label := ""
-        cpt, :rotation_frequency_tor_sonic
-    end
-
-    @series begin
-        subplot := 3
-        label := "e"
+        label --> "e"
+        ylim --> (0.0, Inf)
         cpt.electrons, :density
     end
-
     for ion in cpt.ion
         @series begin
-            subplot := 3
-            label --> ion.label
+            Z = ion.element[1].z_n
+            subplot := 2
+            if Z == 1.0
+                label --> ion.label
+            else
+                label --> "$(ion.label) × $(Int(Z))"
+            end
             linestyle --> :dash
-            ion, :density
+            ylim --> (0.0, Inf)
+            ion, :density, Z
         end
+    end
+
+    # rotation
+    @series begin
+        subplot := 3
+        label --> ""
+        cpt, :rotation_frequency_tor_sonic
     end
 
 end
@@ -414,13 +500,27 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol)
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol, norm::Real = 1.0)
     coords = coordinates(ids, field)
     @series begin
         xlabel --> nice_field(i2p(coords[:names][1])[end]) * nice_units(units(coords[:names][1]))
         ylabel --> nice_units(units(ids, field))
         title --> nice_field(field)
-        coords[:values][1], getproperty(ids, field)
+
+        if endswith(coords[:names][1], "rho_tor_norm")
+            xlim --> (0.0, 1.0)
+        end
+
+        xvalue = coords[:values][1]
+        yvalue = getproperty(ids, field) * norm
+
+        # plot 1D Measurements with ribbon
+        if (eltype(yvalue) <: Measurement) && !((eltype(xvalue) <: Measurement))
+            ribbon := Measurements.uncertainty.(yvalue)
+            yvalue = Measurements.value.(yvalue)
+        end
+
+        xvalue, yvalue
     end
 end
 
@@ -436,6 +536,8 @@ function nice_field(field::String)
     if field in keys(nice_field_symbols)
         field = nice_field_symbols[field]
     else
+        field = replace(field, r"_tor" => " toroidal")
+        field = replace(field, r"_pol" => " poloidal")
         field = uppercasefirst(replace(field, "_" => " "))
     end
     return field
@@ -451,6 +553,7 @@ function nice_units(units::String)
     end
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
+        units = replace(units, "." => s"\\,")
         units = L"[%$units]"
         units = " " * units
     end

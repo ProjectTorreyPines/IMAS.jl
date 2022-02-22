@@ -98,6 +98,24 @@ using Test
     @test_throws Exception dd.equilibrium.time_slice[].global_quantities.ip # elements within arrays of structures do not time-interpolate
     dd.equilibrium.time_slice[].global_quantities.ip = 5.0
     @test dd.equilibrium.time_slice[].global_quantities.ip === eqt.global_quantities.ip
+
+    # https://github.com/ProjectTorreyPines/FUSE.jl/issues/18
+    dd = IMAS.dd()
+    for i in 1:2
+        isource = resize!(dd.core_sources.source, "identifier.index" => 3)
+        resize!(isource.profiles_1d)
+        @test dd.core_sources.source[1] === dd.core_sources.source[end] === isource
+    end
+    @test length(dd.core_sources.time) == 1
+
+    # resize!(dd.equilibrium.time_slice) returns an empty IDS
+    dd = IMAS.dd()
+    eqt = resize!(dd.equilibrium.time_slice)
+    eqt.global_quantities.ip = 1.0
+    eqt = resize!(dd.equilibrium.time_slice)
+    @test ismissing(eqt.global_quantities, :ip)
+    @test !ismissing(eqt, :time)
+
 end
 
 @testset "time_array" begin

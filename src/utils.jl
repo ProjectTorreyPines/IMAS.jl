@@ -36,6 +36,25 @@ function Base.ismissing(ids::IDS, field::Symbol)::Bool
     end
 end
 
+function Base.ismissing(ids::IDSvector, field::Int)::Bool
+    return length(ids) < field
+end
+
+function Base.ismissing(ids::Union{IDS,IDSvector}, field::Vector)::Bool
+    if length(field) == 1
+        return ismissing(ids, field[1])
+    end
+    if typeof(field[1]) <: Integer
+        if field[1] <= length(ids)
+            return ismissing(ids[field[1]], field[2:end])
+        else
+            return true
+        end
+    else
+        return ismissing(getfield(ids, field[1]), field[2:end])
+    end
+end
+
 function is_missing(ids::IDS, field::Symbol)::Bool
     @warn "Use of `IMAS.is_missing(ids, field)` is deprecated. Use `IMAS.ismissing(ids, field)`` instead."
     return ismissing(ids, field)
@@ -216,7 +235,7 @@ function intersection(
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T};
-    as_list_of_points::Bool = true,
+    as_list_of_points::Bool = true
 ) where {T}
     if as_list_of_points
         crossings = NTuple{2,T}[]
@@ -271,4 +290,121 @@ function _seg_intersect(a1, a2, b1, b2)
     denom = LinearAlgebra.dot(dap, db)
     num = LinearAlgebra.dot(dap, dp)
     return (num / denom) * db + b1
+end
+
+"""
+    same_length_vectors(args...)
+
+Returns scalars and vectors as vectors of the same lengths
+For example:
+
+    same_length_vectors(1, [2], [3,3,6], [4,4,4,4,4,4])
+    
+    4-element Vector{Vector{Int64}}:
+    [1, 1, 1, 1, 1, 1]
+    [2, 2, 2, 2, 2, 2]
+    [3, 3, 6, 3, 3, 6]
+    [4, 4, 4, 4, 4, 4]
+"""
+function same_length_vectors(args...)
+    n = maximum(map(length, args))
+    args = collect(map(x -> isa(x, Vector) ? x : [x], args))
+    args = map(x -> vcat([x for k in 1:n]...)[1:n], args)
+end
+
+diff_function(v1, v2, tol) = maximum(abs.(v1 .- v2) ./ (tol + sum(abs.(v1) .+ abs.(v2)) / 2.0 / length(v1)))
+
+
+"""
+    diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function = nothing, recursive = true, differences = Dict(), verbose=true)
+
+Compares two IDSs and returns dictionary with differences
+"""
+function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function = nothing, recursive = true, differences = Dict(), verbose = true)
+    @assert typeof(ids1) === typeof(ids2) "IDS types are different:  $(typeof(ids1))  and  $(typeof(ids2))"
+    for field in sort(collect(fieldnames(typeof(ids2))))
+        if field === :_parent
+            continue
+        end
+        v1 = missing
+        v2 = missing
+        try
+            v1 = getproperty(ids1, field)
+        catch e
+            if typeof(e) <: IMASmissingDataException
+                v1 = missing
+            else
+                rethrow
+            end
+        end
+        try
+            v2 = getproperty(ids2, field)
+        catch e
+            if typeof(e) <: IMASmissingDataException
+                v2 = missing
+            else
+                rethrow
+            end
+        end
+
+        pathname = p2i(vcat(path, field))
+        if v1 === v2 === missing
+            continue
+        elseif typeof(v1) != typeof(v2)
+            differences[pathname] = "types  $(typeof(v1)) --  $(typeof(v2))"
+        elseif typeof(v1) <: IDS
+            if recursive
+                diff(v1, v2, vcat(path, field); tol, plot_function, recursive, differences)
+            end
+        elseif typeof(v1) <: IDSvector
+            if recursive
+                if length(v1) != length(v2)
+                    differences[pathname] = "length  $(length(v1)) --  $(length(v2))"
+                else
+                    for k in 1:length(v1)
+                        diff(v1[k], v2[k], vcat(path, field, k); tol, plot_function, recursive, differences)
+                    end
+                end
+            end
+        elseif typeof(v1) <: AbstractArray
+            if length(v1) != length(v2)
+                differences[pathname] = "length  $(length(v1)) --  $(length(v2))"
+            elseif diff_function(v1, v2, tol) > tol
+                if (typeof(v1) <: AbstractVector) && (plot_function !== nothing)
+                    display(plot_function(1:length(v1), [v1, v2], title = pathname, label = ""))
+                end
+                differences[pathname] = @sprintf("value %g", diff_function(v1, v2, tol))
+            end
+        elseif typeof(v1) <: Number
+            if diff_function(v1, v2, tol) > tol
+                differences[pathname] = "value  $v1 --  $v2"
+            end
+        else
+            println((pathname, typeof(v1), typeof(v2)))
+            asdadas
+            differences[pathname] = "value  $v1 --  $v2"
+        end
+        if verbose && (pathname in keys(differences))
+            printstyled(pathname; bold = true)
+            printstyled(" ➡ "; color = :red)
+            println(differences[pathname])
+        end
+    end
+    return differences
+end
+
+"""
+    resample_2d_line(x, y, step)
+
+Resample 2D line with uniform stepping
+"""
+function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T}=nothing) where {T <: Real}
+    s = cumsum(sqrt.(gradient(x) .^ 2 + gradient(y) .^ 2))
+    if step !== nothing
+        n = Integer(ceil(s[end] / step))
+    else
+        n = length(x)
+    end
+    t = range(s[1], s[end]; length = n)
+    return interp(s, x)(t), interp(s, y)(t)
 end

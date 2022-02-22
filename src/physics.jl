@@ -4,6 +4,7 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
+import NumericalIntegration: integrate, cumul_integrate
 
 function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
     cc = cocos(cocos_number)
@@ -65,6 +66,11 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
     Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
 
+    # find magnetic axis
+    res = Optim.optimize(x -> PSI_interpolant(x[1], x[2]), [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+    eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
+    eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
+
     for item in [
         :elongation,
         :triangularity_lower,
@@ -74,12 +80,16 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :q,
         :dvolume_dpsi,
         :j_tor,
-        :j_parallel,
+        :area,
         :volume,
         :gm1,
         :gm2,
+        :gm4,
+        :gm5,
+        :gm8,
         :gm9,
         :phi,
+        :trapped_fraction
     ]
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
@@ -88,11 +98,11 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     PZ = []
     LL = []
     FLUXEXPANSION = []
-    INT_FLUXEXPANSION_DL = []
+    INT_FLUXEXPANSION_DL = zeros(length(eqt.profiles_1d.psi))
+    BPL = zeros(length(eqt.profiles_1d.psi))
     for (k, psi_level0) in reverse(collect(enumerate(eqt.profiles_1d.psi)))
 
-        # on axis flux surface is a synthetic one
-        if k == 1
+        if k == 1 # on axis flux surface is a synthetic one
             eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2] - (eqt.profiles_1d.elongation[3] - eqt.profiles_1d.elongation[2])
             eqt.profiles_1d.triangularity_upper[1] = 0.0
             eqt.profiles_1d.triangularity_lower[1] = 0.0
@@ -114,8 +124,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             z_at_max_r, max_r = pz[imaxr], pr[imaxr]
             z_at_min_r, min_r = pz[iminr], pr[iminr]
 
-            # other flux surfaces
-        else
+        else  # other flux surfaces
             # trace flux surface
             pr, pz, psi_level = flux_surface(
                 r_upsampled,
@@ -128,7 +137,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
                 true,
             )
             if length(pr) == 0
-                error("Could not trace $(k) closed flux surface at ψ = $(psi_level)  which is  ψₙ = $(k / length(eqt.profiles_1d.psi))")
+                error("Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
 
             # Extrema on array indices
@@ -142,7 +151,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             z_at_min_r, min_r = pz[iminr], pr[iminr]
 
             # accurate geometric quantities by finding geometric extrema as optimization problem
-            w = 1E-6
+            w = 1E-4 # push away from magnetic axis
             function fx(x, psi_level)
                 try
                     (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - eqt.global_quantities.magnetic_axis.r)^2 * w
@@ -161,10 +170,18 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
             res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
             (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
-            (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
-            (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            if psi_level0 != eqt.profiles_1d.psi[end]
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            end
+            # p = plot(pr, pz, label = "")
+            # plot!([max_r], [z_at_max_r], marker = :cicle)
+            # plot!([min_r], [z_at_min_r], marker = :cicle)
+            # plot!([r_at_max_z], [max_z], marker = :cicle)
+            # plot!([r_at_min_z], [min_z], marker = :cicle)
+            # display(p)
         end
 
         # geometric
@@ -187,7 +204,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # poloidal magnetic field (with sign)
         Br = Br_vector_interpolant(pr, pz)
         Bz = Bz_vector_interpolant(pr, pz)
-        Bp_abs = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
+        Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
+        Bp_abs = sqrt.(Bp2)
         Bp = (
             Bp_abs .* cc.sigma_rhotp * cc.sigma_RpZ .*
             sign.((pz .- eqt.global_quantities.magnetic_axis.z) .* Br .- (pr .- eqt.global_quantities.magnetic_axis.r) .* Bz)
@@ -196,22 +214,47 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # flux expansion
         ll = cumsum(vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2)))
         fluxexpansion = 1.0 ./ Bp_abs
-        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+        int_fluxexpansion_dl = integrate(ll, fluxexpansion)
+        Bpl = integrate(ll, Bp)
 
         # save flux surface coordinates for later use
         pushfirst!(PR, pr)
         pushfirst!(PZ, pz)
         pushfirst!(LL, ll)
         pushfirst!(FLUXEXPANSION, fluxexpansion)
-        pushfirst!(INT_FLUXEXPANSION_DL, int_fluxexpansion_dl)
+        INT_FLUXEXPANSION_DL[k] = int_fluxexpansion_dl
+        BPL[k] = Bpl
 
         # flux-surface averaging function
         function flxAvg(input)
-            return trapz(ll, input .* fluxexpansion) / int_fluxexpansion_dl
+            return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
         end
+
+        # trapped fraction
+        Bt = eqt.profiles_1d.f[k] ./ pr
+        Btot = sqrt.(Bp2 .+ Bt .^ 2)
+        Bmax = maximum(Btot)
+        Bratio = Btot ./ Bmax
+        avg_Btot = flxAvg(Btot)
+        avg_Btot2 = flxAvg(Btot .^ 2)
+        hf = flxAvg((1.0 .- sqrt.(1.0 .- Bratio) .* (1.0 .+ Bratio ./ 2.0)) ./ Bratio .^ 2)
+        h = avg_Btot / Bmax
+        h2 = avg_Btot2 / Bmax^2
+        ftu = 1.0 - h2 / (h^2) * (1.0 - sqrt(1.0 - h) * (1.0 + 0.5 * h))
+        ftl = 1.0 - h2 * hf
+        eqt.profiles_1d.trapped_fraction[k] = 0.75 * ftu + 0.25 * ftl
 
         # gm1 = <1/R^2>
         eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2)
+
+        # gm4 = <1/B^2>
+        eqt.profiles_1d.gm4[k] = flxAvg(1.0 ./ Btot .^ 2)
+
+        # gm5 = <B^2>
+        eqt.profiles_1d.gm5[k] = avg_Btot2
+
+        # gm8 = <R>
+        eqt.profiles_1d.gm8[k] = flxAvg(pr)
 
         # gm9 = <1/R>
         eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr)
@@ -235,20 +278,43 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # quantities calculated on the last closed flux surface
         if k == length(eqt.profiles_1d.psi)
             # ip
-            eqt.global_quantities.ip = cc.sigma_rhotp * trapz(ll, Bp) / (4e-7 * pi)
+            eqt.global_quantities.ip = cc.sigma_rhotp * Bpl / (4e-7 * pi)
 
             # perimeter
             eqt.global_quantities.length_pol = ll[end]
         end
     end
 
-    # integral quantities are defined later
-    for k = 1:length(eqt.profiles_1d.psi)
+    function flxAvg(input, ll, fluxexpansion, int_fluxexpansion_dl)
+        return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
+    end
+
+    function volume_integrate(what)
+        return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+    end
+
+    function surface_integrate(what)
+        return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+    end
+
+    function cumlul_volume_integrate(what)
+        return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+    end
+
+    function cumlul_surface_integrate(what)
+        return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+    end
+
+    # integral quantities
+    for k = 2:length(eqt.profiles_1d.psi)
+        # area
+        eqt.profiles_1d.area[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k] .* eqt.profiles_1d.gm9[1:k]) ./ 2pi
+
         # volume
-        eqt.profiles_1d.volume[k] = trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
+        eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
 
         # phi
-        eqt.profiles_1d.phi[k] = (cc.sigma_Bp * cc.sigma_rhotp * trapz(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp))
+        eqt.profiles_1d.phi[k] = (cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp))
     end
 
     R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
@@ -260,15 +326,15 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     # average poloidal magnetic field
     Bpave = eqt.global_quantities.ip * (4.0 * pi * 1e-7) / eqt.global_quantities.length_pol
 
+    # li
+    Bp2v = integrate(eqt.profiles_1d.psi, BPL * (2.0 * pi)^(1.0 - cc.exp_Bp))
+    eqt.global_quantities.li_3 = 2 * Bp2v / R0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
+
     # beta_tor
-    eqt.global_quantities.beta_tor = abs(
-        trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
-    )
+    eqt.global_quantities.beta_tor = abs(volume_integrate(eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_pol
-    eqt.global_quantities.beta_pol = abs(
-        trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.pressure) / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end],
-    )
+    eqt.global_quantities.beta_pol = abs(volume_integrate(eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
@@ -282,10 +348,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     # phi 2D
     eqt.profiles_2d[1].phi =
         Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
-
-    function flxAvg(input, ll, fluxexpansion, int_fluxexpansion_dl)
-        return trapz(ll, input .* fluxexpansion) / int_fluxexpansion_dl
-    end
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
@@ -537,12 +599,16 @@ function build_radii(bd::IMAS.build)
 end
 
 """
-    get_build(bd::IMAS.build;
-                     type::Union{Nothing,Int}=nothing,
-                     name::Union{Nothing,String}=nothing,
-                     identifier::Union{Nothing,UInt,Int}=nothing,
-                     hfs::Union{Nothing,Int}=nothing,
-                     return_only_one=true )
+    function get_build(
+        bd::IMAS.build;
+        type::Union{Nothing,Int} = nothing,
+        name::Union{Nothing,String} = nothing,
+        identifier::Union{Nothing,UInt,Int} = nothing,
+        hfs::Union{Nothing,Int,Array} = nothing,
+        return_only_one = true,
+        return_index = false,
+        raise_error_on_missing = true
+    )
 
 Select layer(s) in build based on a series of selection criteria
 """
@@ -576,7 +642,7 @@ function get_build(
     end
     if length(valid_layers) == 0
         if raise_error_on_missing
-            error("Did not find build.layer layer name:$name type:$type identifier:$identifier hfs:$hfs")
+            error("Did not find build.layer: name=$name type=$type identifier=$identifier hfs=$hfs")
         else
             return nothing
         end
@@ -593,16 +659,16 @@ function get_build(
 end
 
 """
-    structures_mask(bd::IMAS.build, resolution::Int=257, border::Real=10/resolution)
+    structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(bd::IMAS.build; resolution::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
+function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
-    rmask = range(xlim[1], xlim[2], length = resolution)
-    zmask = range(ylim[1], ylim[2], length = resolution * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    rmask = range(xlim[1], xlim[2], length = ngrid)
+    zmask = range(ylim[1], ylim[2], length = ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
     valid = true
@@ -670,4 +736,241 @@ function reorder_flux_surface!(pr, pz, z0)
         pr[end] = pr[1]
         pz[end] = pz[1]
     end
+end
+
+function total_pressure_thermal!(core_profiles)
+    prof1d = core_profiles.profiles_1d[]
+    pressure = prof1d.electrons.density .* prof1d.electrons.temperature
+    for ion in prof1d.ion
+        pressure += ion.density .* ion.temperature
+    end
+    return pressure * constants.e
+end
+
+function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equilibrium, core_profiles::IMAS.core_profiles)
+    eqt = equilibrium.time_slice[]
+    eq1d = eqt.profiles_1d
+    cp1d = core_profiles.profiles_1d[]
+    pressure_thermal = cp1d.pressure_thermal
+    rho = cp1d.grid.rho_tor_norm
+    Bt = @ddtime(equilibrium.vacuum_toroidal_field.b0)
+    Ip = eqt.global_quantities.ip
+    volume_cp = IMAS.interp(eq1d.rho_tor_norm, eq1d.volume)[rho]
+
+    pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
+    beta_tor = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
+    @ddtime (summary.global_quantities.beta_tor.value = beta_tor)
+    @ddtime (summary.global_quantities.beta_tor_thermal_norm.value = beta_tor * eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
+end
+
+"""
+    ion_element(species::Symbol)
+
+returns a `core_profiles__profiles_1d___ion` structure populated with the element information
+"""
+function ion_element(species::Symbol)
+    ion = IMAS.core_profiles__profiles_1d___ion()
+    element = resize!(ion.element, 1)
+    if species == :H
+        element.z_n = 1
+        element.a = 1
+    elseif species == :D
+        element.z_n = 1
+        element.a = 2
+    elseif species == :DT
+        element.z_n = 1
+        element.a = 2.5
+    elseif species == :T
+        element.z_n = 1
+        element.a = 3
+    elseif species == :He
+        element.z_n = 2
+        element.a = 4
+    elseif species == :C
+        element.z_n = 6
+        element.a = 12
+    elseif species == :Ne
+        element.z_n = 10
+        element.a = 20
+    else
+        error("Element $species is not recognized. Add it to the `IMAS.ion_element()` function.")
+    end
+    ion.label = String(species)
+    return ion
+end
+
+"""
+    new_source(
+        source::IMAS.core_sources__source,
+        index::Int,
+        name::String,
+        rho::Union{AbstractVector,AbstractRange},
+        volume::Union{AbstractVector,AbstractRange};
+        qe::Union{AbstractVector,Missing} = missing,
+        qi::Union{AbstractVector,Missing} = missing,
+        se::Union{AbstractVector,Missing} = missing,
+        jpar::Union{AbstractVector,Missing} = missing,
+        momentum::Union{AbstractVector,Missing} = missing)
+
+Populates the IMAS.core_sources__source with given heating, particle, current, momentun profiles
+
+
+"""
+function new_source(
+    source::IMAS.core_sources__source,
+    index::Int,
+    name::String,
+    rho::Union{AbstractVector,AbstractRange},
+    volume::Union{AbstractVector,AbstractRange};
+    electrons_energy::Union{AbstractVector,Missing} = missing,
+    electrons_power_inside::Union{AbstractVector,Missing} = missing,
+    total_ion_energy::Union{AbstractVector,Missing} = missing,
+    total_ion_power_inside::Union{AbstractVector,Missing} = missing,
+    electrons_particles::Union{AbstractVector,Missing} = missing,
+    electrons_particles_inside::Union{AbstractVector,Missing} = missing,
+    j_parallel::Union{AbstractVector,Missing} = missing,
+    current_parallel_inside::Union{AbstractVector,Missing} = missing,
+    momentum_tor::Union{AbstractVector,Missing} = missing,
+    torque_tor_inside::Union{AbstractVector,Missing} = missing)
+
+    source.identifier.name = name
+    source.identifier.index = index
+    resize!(source.profiles_1d)
+    cs1d = source.profiles_1d[]
+    cs1d.grid.rho_tor_norm = rho
+    cs1d.grid.volume = volume
+
+    if electrons_energy !== missing
+        cs1d.electrons.energy = IMAS.interp(LinRange(0, 1, length(electrons_energy)), electrons_energy)(cs1d.grid.rho_tor_norm)
+    end
+    if electrons_power_inside !== missing
+        cs1d.electrons.power_inside = IMAS.interp(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if total_ion_energy !== missing
+        cs1d.total_ion_energy = IMAS.interp(LinRange(0, 1, length(total_ion_energy)), total_ion_energy)(cs1d.grid.rho_tor_norm)
+    end
+    if total_ion_power_inside !== missing
+        cs1d.total_ion_power_inside = IMAS.interp(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if electrons_particles !== missing
+        cs1d.electrons.particles = IMAS.interp(LinRange(0, 1, length(electrons_particles)), electrons_particles)(cs1d.grid.rho_tor_norm)
+    end
+    if electrons_particles_inside !== missing
+        cs1d.electrons.particles_inside = IMAS.interp(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if j_parallel !== missing
+        cs1d.j_parallel = IMAS.interp(LinRange(0, 1, length(j_parallel)), j_parallel)(cs1d.grid.rho_tor_norm)
+    end
+    if current_parallel_inside !== missing
+        cs1d.current_parallel_inside = IMAS.interp(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    if momentum_tor !== missing
+        cs1d.momentum_tor = IMAS.interp(LinRange(0, 1, length(momentum_tor)), momentum_tor)(cs1d.grid.rho_tor_norm)
+    end
+    if torque_tor_inside !== missing
+        cs1d.torque_tor_inside = IMAS.interp(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside)(cs1d.grid.rho_tor_norm)
+    end
+
+    return source
+end
+
+"""
+    sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+
+Compute a low-accuracy but fast approximation to the ion heating fraction (for alpha particles and beam particles).
+"""
+function sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+    Te = cp1d.electrons.temperature
+    ne = cp1d.electrons.density
+    rho = cp1d.grid.rho_tor_norm
+
+    particle_mass = particle_mass * constants.m_p
+
+    c_a = zeros(length(rho))
+    W_crit = similar(rho)
+    ion_elec_fraction = similar(W_crit)
+    for ion in cp1d.ion
+        ni = ion.density
+        Zi = ion.element[1].z_n
+        mi = ion.element[1].a * constants.m_p
+        c_a .+= (ni ./ ne) .* Zi .^ 2 .* (mi ./ particle_mass)
+    end
+
+    W_crit = Te .* (4.0 .* sqrt.(constants.m_e / particle_mass) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)
+
+    x = particle_energy ./ W_crit
+    for (idx, x_i) in enumerate(x)
+        y = x_i .* rho
+        f = integrate(y, 1.0 ./ (1.0 .+ y .^ 1.5))
+        ion_elec_fraction[idx] = f / x_i
+    end
+
+    return ion_elec_fraction
+end
+
+"""
+    nclass_conductivity!(dd::IMAS.dd)
+
+Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
+More info see omfit_classes.utils_fusion.py nclass_conductivity function
+"""
+function nclass_conductivity!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
+    eqt = dd.equilibrium.time_slice[time]
+    cp1d = dd.core_profiles.profiles_1d[time]
+
+    rho = cp1d.grid.rho_tor_norm
+    Te = cp1d.electrons.temperature
+    ne = cp1d.electrons.density
+    Ti = cp1d.ion[1].temperature
+    Zeff = cp1d.zeff
+
+    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+
+    eps = a ./ R
+
+    volume = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)(rho)
+    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
+    trapped_fraction = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction)(rho)
+
+    nis = [ion.density for ion in cp1d.ion]
+    zis = [ion.element[1].z_n for ion in cp1d.ion]
+    ni = sum(nis)
+    Nis = zeros(length(nis))
+    for (idx, ion_density) in enumerate(nis)
+        Nis[idx] = integrate(volume, ion_density)
+    end
+
+    Zdom = zis[argmax(Nis)]
+
+    Zavg = ne ./ ni
+    Zion = (Zdom .^ 2 .* Zavg .* Zeff) .^ 0.25
+
+    Zions = [(Zi .^ 2 .* Zavg .* Zeff) .^ 0.25 for Zi in zis]
+    Zions_avg = sum(Zions) / length(Zions)
+
+    Zi_use_L = Zavg
+    Zi_use_C = Zion
+
+    lnLambda_i = 30.0 .- log.(Zi_use_L .^ 3 .* sqrt.(ni) ./ (Ti .^ 1.5))
+    lnLambda_e = 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
+
+    nuestar = 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e ./ (Te .^ 2 .* eps .^ 1.5)
+    nuistar = 4.90e-18 .* abs.(q) .* R .* ni .* Zi_use_C .^ 4 .* lnLambda_i ./ (Ti .^ 2 .* eps .^ 1.5)
+
+    function spitzer_conductivity(Te, Zeff, lnLambda_e)
+        return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e)
+    end
+
+    # neo 2021
+    f33teff = trapped_fraction ./ (1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+ 0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5)
+    F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
+
+    cp1d.conductivity_parallel = spitzer_conductivity(Te, Zeff, lnLambda_e) .* F33
+
+    return cp1d.conductivity_parallel
 end

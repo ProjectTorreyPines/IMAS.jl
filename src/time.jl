@@ -71,6 +71,11 @@ function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, value) wher
                     setproperty!(ids, field, vcat([NaN for k = 1:i-1], value))
                 else
                     last_value = getproperty(ids, field)
+                    # if destination array needs a type upgrade, then go for it
+                    if !(typeof(value) <: eltype(last_value))
+                        last_value = typeof(value)[v for v in last_value]
+                        setproperty!(ids, field, last_value)
+                    end
                     if length(last_value) < i
                         reps = i - length(last_value) - 1
                         append!(last_value, vcat([last_value[end] for k = 1:reps], value))

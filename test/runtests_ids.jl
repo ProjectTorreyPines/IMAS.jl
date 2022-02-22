@@ -66,27 +66,6 @@ using Test
     # make sure an error is raised when trying to access missing dd
     @test_throws Exception dd.core_profiles.profiles_1d[1].j_total
 
-    # resize! using function as condition to create new entry
-    dd = IMAS.dd()
-    resize!(dd.core_profiles.profiles_1d)
-    ion = resize!(dd.core_profiles.profiles_1d[].ion, ion -> (ion.z_ion == 1))
-    @test ion === dd.core_profiles.profiles_1d[].ion[end]
-    ion.z_ion = 1
-    @test length(dd.core_profiles.profiles_1d[].ion) == 1
-    ion = resize!(dd.core_profiles.profiles_1d[].ion, ion -> (ion.z_ion == 1))
-    @test ion === dd.core_profiles.profiles_1d[].ion[end]
-    @test length(dd.core_profiles.profiles_1d[].ion) == 1
-    ion = resize!(dd.core_profiles.profiles_1d[].ion, ion -> (ion.z_ion == 2))
-    @test ion === dd.core_profiles.profiles_1d[].ion[end]
-    ion.z_ion = 2
-    @test length(dd.core_profiles.profiles_1d[].ion) == 2
-    ion = resize!(dd.core_profiles.profiles_1d[].ion, ion -> (ion.z_ion == 2))
-    @test ion === dd.core_profiles.profiles_1d[].ion[end]
-    @test length(dd.core_profiles.profiles_1d[].ion) == 2
-    ion = resize!(dd.core_profiles.profiles_1d[].ion, 3)
-    ion.z_ion = 2
-    @test_throws Exception resize!(dd.core_profiles.profiles_1d[].ion, ion -> (ion.z_ion == 2))
-
     # resize! using pair of string and values as conditions to create new entry
     dd = IMAS.dd()
     resize!(dd.core_profiles.profiles_1d)
@@ -140,7 +119,9 @@ end
     # test p2i
     @test IMAS.p2i(["core_profiles", "profiles_1d", 1, "grid"]) == "core_profiles.profiles_1d[1].grid"
     @test IMAS.p2i(["core_profiles", "profiles_1d", ":", "grid"]) == "core_profiles.profiles_1d[:].grid"
-    @test_throws Exception IMAS.p2i([:core_profiles, :profiles_1d, ":", :grid])
+    @test IMAS.p2i([:core_profiles, :profiles_1d, ":", :grid]) == "core_profiles.profiles_1d[:].grid"
+    @test IMAS.p2i([:core_profiles, :profiles_1d, :(:), :grid]) == "core_profiles.profiles_1d[:].grid"
+    @test IMAS.p2i([:core_profiles, :profiles_1d, 1, :grid]) == "core_profiles.profiles_1d[1].grid"
 
     # test nested resizing
     wall = IMAS.wall()
@@ -206,9 +187,8 @@ end
     end
 end
 
-
 @testset "JSON_IO" begin
-    filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "sample_equilibrium_ods.json")
+    filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "D3D_eq_ods.json")
     dd = IMAS.json2imas(filename; verbose = false)
     @test length(dd.wall.description_2d[1].limiter.unit[1].outline.r) > 0
 end
