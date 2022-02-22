@@ -84,9 +84,12 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :volume,
         :gm1,
         :gm2,
+        :gm4,
+        :gm5,
         :gm8,
         :gm9,
         :phi,
+        :trapped_fraction
     ]
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
@@ -194,7 +197,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # poloidal magnetic field (with sign)
         Br = Br_vector_interpolant(pr, pz)
         Bz = Bz_vector_interpolant(pr, pz)
-        Bp_abs = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
+        Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
+        Bp_abs = sqrt.(Bp2)
         Bp = (
             Bp_abs .* cc.sigma_rhotp * cc.sigma_RpZ .*
             sign.((pz .- eqt.global_quantities.magnetic_axis.z) .* Br .- (pr .- eqt.global_quantities.magnetic_axis.r) .* Bz)
@@ -219,8 +223,28 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
         end
 
+        # trapped fraction
+        Bt = eqt.profiles_1d.f[k] ./ pr
+        Btot = sqrt.(Bp2 .+ Bt .^ 2)
+        Bmax = maximum(Btot)
+        Bratio = Btot ./ Bmax
+        avg_Btot = flxAvg(Btot)
+        avg_Btot2 = flxAvg(Btot .^ 2)
+        hf = flxAvg((1.0 .- sqrt.(1.0 .- Bratio) .* (1.0 .+ Bratio ./ 2.0)) ./ Bratio .^ 2)
+        h = avg_Btot / Bmax
+        h2 = avg_Btot2 / Bmax^2
+        ftu = 1.0 - h2 / (h^2) * (1.0 - sqrt(1.0 - h) * (1.0 + 0.5 * h))
+        ftl = 1.0 - h2 * hf
+        eqt.profiles_1d.trapped_fraction[k] = 0.75 * ftu + 0.25 * ftl
+
         # gm1 = <1/R^2>
         eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2)
+
+        # gm4 = <1/B^2>
+        eqt.profiles_1d.gm4[k] = flxAvg(1.0 ./ Btot .^ 2)
+
+        # gm5 = <B^2>
+        eqt.profiles_1d.gm5[k] = avg_Btot2
 
         # gm8 = <R>
         eqt.profiles_1d.gm8[k] = flxAvg(pr)
