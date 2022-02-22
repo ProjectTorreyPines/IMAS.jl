@@ -827,8 +827,8 @@ function nclass_conductivity!(dd::IMAS.dd)
     Ti = cp1d.ion[1].temperature
     Zeff = cp1d.zeff
 
-    R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
-    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
+    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
 
     eps = a ./ R
 
