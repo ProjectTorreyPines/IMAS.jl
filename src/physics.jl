@@ -778,11 +778,11 @@ function new_source(
 end
 
 """
-    sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+    sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
 
 Compute a low-accuracy but fast approximation to the ion heating fraction (for alpha particles and beam particles).
 """
-function sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density
     rho = cp1d.grid.rho_tor_norm
