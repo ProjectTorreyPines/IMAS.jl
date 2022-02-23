@@ -72,6 +72,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
 
     for item in [
+        :b_field_average,
+        :b_field_max,
+        :b_field_min,
         :elongation,
         :triangularity_lower,
         :triangularity_upper,
@@ -226,6 +229,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # trapped fraction
         Bt = eqt.profiles_1d.f[k] ./ pr
         Btot = sqrt.(Bp2 .+ Bt .^ 2)
+        Bmin = minimum(Btot)
         Bmax = maximum(Btot)
         Bratio = Btot ./ Bmax
         avg_Btot = flxAvg(Btot)
@@ -236,6 +240,15 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         ftu = 1.0 - h2 / (h^2) * (1.0 - sqrt(1.0 - h) * (1.0 + 0.5 * h))
         ftl = 1.0 - h2 * hf
         eqt.profiles_1d.trapped_fraction[k] = 0.75 * ftu + 0.25 * ftl
+
+        # Bavg
+        profiles_1d.b_field_average[k] = avg_Btot
+
+        # Bmax
+        profiles_1d.b_field_max[k] = Bmax
+
+        # Bmin
+        profiles_1d.b_field_min[k] = Bmin
 
         # gm1 = <1/R^2>
         eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2)
