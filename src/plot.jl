@@ -402,40 +402,45 @@ end
         cs1d = isource.profiles_1d[]
 
         if !ismissing(cs1d.electrons, :energy)
+            tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
             @series begin
                 subplot := 1
                 title := "Electron Power"
-                label --> isource.identifier.name
+                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
                 cs1d.electrons, :energy
             end
         end
 
         if !ismissing(cs1d, :total_ion_energy)
+            tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
             @series begin
                 subplot := 2
                 title := "Ion Power"
-                label --> isource.identifier.name
+                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
                 cs1d, :total_ion_energy
             end
         end
 
         if !ismissing(cs1d.electrons, :particles)
+            tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
             @series begin
                 subplot := 3
                 title := "Electron Particle"
-                label --> isource.identifier.name
+                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g s⁻¹]", tot)
                 cs1d.electrons, :particles
             end
         end
 
         if !ismissing(cs1d, :j_parallel)
+            tot = integrate(cs1d.grid.area, cs1d.j_parallel)
             @series begin
                 subplot := 4
                 title := "Parallel Current"
-                label --> isource.identifier.name
+                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g MA]", tot / 1E6)
                 cs1d, :j_parallel
             end
         end
+
     end
 end
 
