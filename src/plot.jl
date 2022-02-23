@@ -403,7 +403,7 @@ end
 
     @series begin
         subplot := 1
-        color := Int(objectid(source))
+        color := objectid(source) % Int
         title := "Electron Power"
         if !ismissing(cs1d.electrons, :energy)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
@@ -421,7 +421,7 @@ end
 
     @series begin
         subplot := 2
-        color := Int(objectid(source))
+        color := objectid(source) % Int
         title := "Ion Power"
         if !ismissing(cs1d, :total_ion_energy)
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
@@ -439,7 +439,7 @@ end
 
     @series begin
         subplot := 3
-        color := Int(objectid(source))
+        color := objectid(source) % Int
         title := "Electron Particle"
         if !ismissing(cs1d.electrons, :particles)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
@@ -457,7 +457,7 @@ end
 
     @series begin
         subplot := 4
-        color := Int(objectid(source))
+        color := objectid(source) % Int
         title := "Parallel Current"
         if !ismissing(cs1d, :j_parallel)
             tot = integrate(cs1d.grid.area, cs1d.j_parallel)
