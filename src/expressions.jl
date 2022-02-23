@@ -149,10 +149,10 @@ expressions["core_sources.source[:].profiles_1d[:].electrons.particles"] =
 
 
 expressions["core_sources.source[:].profiles_1d[:].current_parallel_inside"] =
-    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.j_parallel)
+    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.area, profiles_1d.j_parallel)
 
 expressions["core_sources.source[:].profiles_1d[:]. "] =
-    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.current_parallel_inside)
+    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.area, profiles_1d.current_parallel_inside)
 
 
 expressions["core_sources.source[:].profiles_1d[:].torque_tor_inside"] =
