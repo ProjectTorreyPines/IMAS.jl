@@ -242,13 +242,13 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         eqt.profiles_1d.trapped_fraction[k] = 0.75 * ftu + 0.25 * ftl
 
         # Bavg
-        profiles_1d.b_field_average[k] = avg_Btot
+        eqt.profiles_1d.b_field_average[k] = avg_Btot
 
         # Bmax
-        profiles_1d.b_field_max[k] = Bmax
+        eqt.profiles_1d.b_field_max[k] = Bmax
 
         # Bmin
-        profiles_1d.b_field_min[k] = Bmin
+        eqt.profiles_1d.b_field_min[k] = Bmin
 
         # gm1 = <1/R^2>
         eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2)
