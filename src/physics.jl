@@ -935,5 +935,5 @@ function DT_fusion_source!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
         cp1d.grid.rho_tor_norm, cp1d.grid.volume;
         electrons_energy = alpha_power .* ion_electron_fraction,
         total_ion_energy = alpha_power .* (1 .- ion_electron_fraction))
-    @ddtime (dd.summary.global_parameters.fusion.value=isource.total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
+    @ddtime (dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
 end
