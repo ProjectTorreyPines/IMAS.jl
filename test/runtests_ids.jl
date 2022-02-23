@@ -185,6 +185,14 @@ end
         profiles_1d.j_total = (x; _...) -> (1.0 .- x .^ 2) .^ 2.0
         @test length(profiles_1d.electrons.density) == length(profiles_1d.j_total)
     end
+
+    # test conditional resizing
+    isource = resize!(dd.core_sources.source, "identifier.index" => 1)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 2)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 3)
+    @test length(dd.core_sources.source) == 3
+    isource = resize!(dd.core_sources.source, "identifier.index" => 2)
+    @test length(dd.core_sources.source) == 3
 end
 
 @testset "JSON_IO" begin
