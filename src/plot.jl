@@ -395,52 +395,83 @@ Plot build cross-section or radial build
     end
 end
 
-@recipe function plot_cs(cs::IMAS.core_sources)
+@recipe function plot_cs(cs::IMAS.core_sources; integrated = false)
     layout := (2, 2)
     size := (600, 600)
-    for isource in cs.source
-        cs1d = isource.profiles_1d[]
+    for (isource, source) in enumerate(cs.source)
+        cs1d = source.profiles_1d[]
 
-        if !ismissing(cs1d.electrons, :energy)
-            tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
-            @series begin
-                subplot := 1
-                title := "Electron Power"
-                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
+        @series begin
+            subplot := 1
+            color := isource
+            title := "Electron Power"
+            if !ismissing(cs1d.electrons, :energy)
+                tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
+                label --> "$(source.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
+            end
+            if !integrated && !ismissing(cs1d.electrons, :energy)
                 cs1d.electrons, :energy
+            elseif integrated && !ismissing(cs1d.electrons, :power_inside)
+                cs1d.electrons, :power_inside
+            else
+                label --> ""
+                [NaN], [NaN]
             end
         end
 
-        if !ismissing(cs1d, :total_ion_energy)
-            tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
-            @series begin
-                subplot := 2
-                title := "Ion Power"
-                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
+        @series begin
+            subplot := 2
+            color := isource
+            title := "Ion Power"
+            if !ismissing(cs1d, :total_ion_energy)
+                tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
+                label --> "$(source.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
+            end
+            if !integrated && !ismissing(cs1d, :total_ion_energy)
                 cs1d, :total_ion_energy
+            elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
+                cs1d, :total_ion_power_inside
+            else
+                label --> ""
+                [NaN], [NaN]
             end
         end
 
-        if !ismissing(cs1d.electrons, :particles)
-            tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
-            @series begin
-                subplot := 3
-                title := "Electron Particle"
-                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g s⁻¹]", tot)
+        @series begin
+            subplot := 3
+            color := isource
+            title := "Electron Particle"
+            if !ismissing(cs1d.electrons, :particles)
+                tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
+                label --> "$(source.identifier.name) " * @sprintf("[%3.3g s⁻¹]", tot)
+            end
+            if !integrated && !ismissing(cs1d.electrons, :particles)
                 cs1d.electrons, :particles
+            elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
+                cs1d.electrons, :particles_inside
+            else
+                label --> ""
+                [NaN], [NaN]
             end
         end
 
-        if !ismissing(cs1d, :j_parallel)
-            tot = integrate(cs1d.grid.area, cs1d.j_parallel)
-            @series begin
-                subplot := 4
-                title := "Parallel Current"
-                label --> "$(isource.identifier.name) " * @sprintf("[%3.3g MA]", tot / 1E6)
+        @series begin
+            subplot := 4
+            color := isource
+            title := "Parallel Current"
+            if !ismissing(cs1d, :j_parallel)
+                tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+                label --> "$(source.identifier.name) " * @sprintf("[%3.3g MA]", tot / 1E6)
+            end
+            if !integrated && !ismissing(cs1d, :j_parallel)
                 cs1d, :j_parallel
+            elseif integrated && !ismissing(cs1d, :current_parallel_inside)
+                cs1d, :current_parallel_inside
+            else
+                label --> ""
+                [NaN], [NaN]
             end
         end
-
     end
 end
 
