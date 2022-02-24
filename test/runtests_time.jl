@@ -158,4 +158,9 @@ end
     @test @ddtime(dd.equilibrium.vacuum_toroidal_field.b0 = 5.0) == 5.0
     @test all(dd.equilibrium.vacuum_toroidal_field.b0 .=== [NaN, NaN, NaN, NaN, 5.0])
 
+    # test write/read at times specified as arguments
+    time = 2020.0
+    @test IMAS.set_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time, -2.0) == -2.0
+    @test IMAS.get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time) == -2.0
+
 end

@@ -54,8 +54,11 @@ end
 set data to a time-dependent array at the dd.global_time
 """
 function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, value) where {T<:IDSvectorElement}
+    return set_time_array(ids, field, global_time(ids), value)
+end
+
+function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, time0::Float64, value) where {T<:IDSvectorElement}
     time = time_parent(ids).time
-    time0 = global_time(ids)
     # no time information
     if length(time) == 0
         push!(time, time0)
@@ -110,17 +113,15 @@ end
 get data from a time-dependent array at the dd.global_time
 """
 function get_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol) where {T<:IDSvectorElement}
+    return get_time_array(ids, field, global_time(ids))
+end
+
+function get_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, time0::Float64) where {T<:IDSvectorElement}
     time = time_parent(ids).time
-    time0 = global_time(ids)
     i = argmin(abs.(time .- time0))
     return getproperty(ids, field)[i]
 end
 
-"""
-    ddtime ids.path.to.time.dependent.array
-
-Macro for getting/setting data of a time-dependent array at the dd.global_time
-"""
 macro ddtime(ex)
     return _ddtime(ex)
 end
