@@ -81,6 +81,6 @@ using Test
     @test typeof(empty!(dd.equilibrium.time_slice[2],:time)) <: Function
     push!(dd.equilibrium.time_slice, IMAS.equilibrium__time_slice())
     @test length(dd.equilibrium.time_slice) == 3
-    @test_throws BoundsError dd.equilibrium.time_slice[3].time
+    @test_throws IMAS.IMASbadExpression dd.equilibrium.time_slice[3].time
 
 end
