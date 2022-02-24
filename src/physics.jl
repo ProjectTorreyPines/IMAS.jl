@@ -320,8 +320,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
 
         # phi
-        eqt.profiles_1d.phi[k] = cc.sigma_Bp * cc.sigma_rhotp *
-                                 integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp)
+        eqt.profiles_1d.phi[k] = cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp)
     end
 
     R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
@@ -338,14 +337,11 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.global_quantities.li_3 = 2 * Bp2v / R0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
 
     # beta_tor
-    eqt.global_quantities.beta_tor = abs(volume_integrate(eqt.profiles_1d.pressure)
-                                         /
-                                         (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
+    avg_press = volume_integrate(eqt.profiles_1d.pressure)
+    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_pol
-    eqt.global_quantities.beta_pol = abs(volume_integrate(eqt.profiles_1d.pressure)
-                                         /
-                                         eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
+    eqt.global_quantities.beta_pol = abs(avg_press / eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
@@ -357,9 +353,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
 
     # phi 2D
-    eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi,
-            extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
+    eqt.profiles_2d[1].phi = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
@@ -383,12 +377,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # fix quantities on axis
     for quantity in [:gm2]
-        eqt.profiles_1d.gm2[1] =
-            Interpolations.CubicSplineInterpolation(
-                eqt.profiles_1d.psi[2:end],
-                getproperty(eqt.profiles_1d, quantity)[2:end],
-                extrapolation_bc = Interpolations.Line(),
-            ).(eqt.profiles_1d.psi[1])
+        eqt.profiles_1d.gm2[1] = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi[2:end], getproperty(eqt.profiles_1d, quantity)[2:end], extrapolation_bc = Interpolations.Line()).(eqt.profiles_1d.psi[1])
     end
 
     return eqt
@@ -797,8 +786,7 @@ function new_source(
 end
 
 """
-    sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real #eV, particle_mass::Real #A.U)
-
+    sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
 
 Compute a low-accuracy but fast approximation to the ion heating fraction (for alpha particles and beam particles).
 """
@@ -872,25 +860,22 @@ function nclass_conductivity!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
     end
 
     # neo 2021
-    f33teff = trapped_fraction ./
-              (1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .*
-                    (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+ 0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5)
+    f33teff = trapped_fraction ./ (1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+ 0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5)
 
-    F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .*
-                                                 f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
+    F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
 
     cp1d.conductivity_parallel = spitzer_conductivity(Te, Zeff, lnLambda_e) .* F33
 
     return cp1d.conductivity_parallel
 end
 """
-    DT_fusion_source!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
+    DT_fusion_source!(dd::IMAS.dd)
 
 Calculates DT fusion heating and modifies dd.core_sources with an estimation of the alpha slowing down to the ions and electrons
 """
-function DT_fusion_source!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
+function DT_fusion_source!(dd::IMAS.dd)
 
-    cp1d = dd.core_profiles.profiles_1d[time]
+    cp1d = dd.core_profiles.profiles_1d[]
 
     fast_helium_energy = 3.5e6 * 1.6022e-12 * 1e-7  # Joules
     # Table VII of H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
@@ -906,18 +891,19 @@ function DT_fusion_source!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
 
     # Find the right D-T density
     ion_list = [ion.label for ion in cp1d.ion]
-    if "D" ∈ ion_list && "T" ∈ ion_list && length(findall(ion -> isequal(ion, "T"), ion_list)) < 2
-        n_deuterium = cp1d.ion[findfirst(ion -> isequal(ion, "D"), ion_list)].density
-        n_tritium = cp1d.ion[findfirst(ion -> isequal(ion, "T"), ion_list)].density
-    elseif "DT" ∈ ion_list
-        n_deuterium = n_tritium = cp1d.ion[findfirst(ion -> isequal(ion, "DT"), ion_list)].density ./ 2
-    elseif "TD" ∈ ion_list
-        n_deuterium = n_tritium = cp1d.ion[findfirst(ion -> isequal(ion, "TD"), ion_list)].density ./ 2
+    if "D" in ion_list && "T" in ion_list && length(findall(ion -> isequal(ion, "T"), ion_list)) < 2
+        D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
+        n_deuterium = cp1d.ion[D_index].density
+        T_index = findfirst(ion -> isequal(ion, "T"), ion_list)
+        n_tritium = cp1d.ion[T_index].density
+        Ti = (cp1d.ion[D_index].temperature + cp1d.ion[T_index].temperature) ./ 2.0 .* 1e-3 # keV
+    elseif "DT" in ion_list
+        DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
+        n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
+        Ti = cp1d.ion[DT_index].temperature .* 1e-3 # keV
     else
         error("No Deuterium and Tritium found in core_profiles")
     end
-
-    Ti = cp1d.ion[1].temperature .* 1e-3 # keV
 
     r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
     theta = Ti ./ (1.0 .- r0)
@@ -931,9 +917,6 @@ function DT_fusion_source!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
     isource = resize!(dd.core_sources.source, "identifier.index" => 6)
-    new_source(isource, 6, "dt_fusion_heating",
-        cp1d.grid.rho_tor_norm, cp1d.grid.volume;
-        electrons_energy = alpha_power .* ion_electron_fraction,
-        total_ion_energy = alpha_power .* (1 .- ion_electron_fraction))
-    @ddtime (dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
+    new_source(isource, 6, "α heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy = alpha_power .* ion_electron_fraction, total_ion_energy = alpha_power .* (1 .- ion_electron_fraction))
+    @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
 end
