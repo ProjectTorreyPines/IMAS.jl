@@ -206,6 +206,12 @@ function Base.setproperty!(ids::IDS, field::Symbol, v::Union{IDS,IDSvector}; ski
     _setproperty!(ids, field, v)
 end
 
+function Base.deepcopy(ids::Union{IDS,IDSvector})
+    ids1 = Base.deepcopy_internal(ids, Base.IdDict())
+    ids1._parent = WeakRef(missing)
+    return ids1
+end
+
 """
     ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
 
