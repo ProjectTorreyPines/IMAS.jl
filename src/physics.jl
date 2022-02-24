@@ -72,7 +72,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
         Optim.Newton(),
         Optim.Options(g_tol = 1E-8);
-        autodiff = :forward,
+        autodiff = :forward
     )
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
@@ -565,7 +565,7 @@ function get_build(
     hfs::Union{Nothing,Int,Array} = nothing,
     return_only_one = true,
     return_index = false,
-    raise_error_on_missing = true,
+    raise_error_on_missing = true
 )
 
     if isa(hfs, Int)
@@ -750,7 +750,7 @@ function new_source(
     j_parallel::Union{AbstractVector,Missing} = missing,
     current_parallel_inside::Union{AbstractVector,Missing} = missing,
     momentum_tor::Union{AbstractVector,Missing} = missing,
-    torque_tor_inside::Union{AbstractVector,Missing} = missing,
+    torque_tor_inside::Union{AbstractVector,Missing} = missing
 )
 
     source.identifier.name = name
@@ -941,7 +941,68 @@ function DT_fusion_source!(dd::IMAS.dd)
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
         electrons_energy = alpha_power .* ion_electron_fraction,
-        total_ion_energy = alpha_power .* (1 .- ion_electron_fraction),
+        total_ion_energy = alpha_power .* (1 .- ion_electron_fraction)
     )
     @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
+end
+
+"""
+    total_sources(dd::IMAS.dd)
+
+Returns core_sources__source___profiles_1d with sources totals
+"""
+function total_sources(dd)
+    total_source1d = IMAS.core_sources__source___profiles_1d()
+    total_source1d.grid.rho_tor_norm = rho = dd.core_profiles.profiles_1d[].grid.rho_tor_norm
+    total_source1d.grid.volume = dd.core_profiles.profiles_1d[].grid.volume
+    total_source1d.grid.area = dd.core_profiles.profiles_1d[].grid.area
+    total_source1d.time = dd.global_time
+
+    all_indexes = [source.identifier.index for source in dd.core_sources.source]
+
+    for source in dd.core_sources.source
+        if source.identifier.index in [0]
+            @warn "total_sources() skipping unspecified source with index $(source.identifier.index)"
+            continue
+        elseif 107 >= source.identifier.index >= 100
+            @warn "total_sources() skipping combination source with index $(source.identifier.index)"
+            continue
+        elseif (source.identifier.index) in [1] && any(all_indexes .> 1)
+            @warn "total_sources() skipping total source with index $(source.identifier.index)"
+            continue
+        elseif (source.identifier.index) in [200] && any(300 > all_indexes > 200)
+            @warn "total_sources() skipping total radiation source with index $(source.identifier.index)"
+            continue
+        end
+        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
+
+        @debug "total_sources() including $source_name source with index $(source.identifier.index)"
+        source1d = source.profiles_1d[]
+        for sub in [nothing, :electrons]
+            ids1 = total_source1d
+            ids2 = source1d
+            if sub !== nothing
+                ids1 = getproperty(ids1, sub)
+                ids2 = getproperty(ids2, sub)
+            end
+            for field in fieldnames(typeof(ids1))
+                initialized = false
+                if !ismissing(ids2, field)
+                    y = getproperty(ids2, field)
+                    if typeof(y) <: AbstractVector{T} where {T<:Real}
+                        @debug((source_name, sub, field, typeof(getfield(ids1, field))))
+                        if typeof(getfield(ids1, field)) <: Union{Missing,Function}
+                            setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
+                            initialized = true
+                        end
+                        old_value = getproperty(ids1, field)
+                        x = source1d.grid.rho_tor_norm
+                        setproperty!(ids1, field, old_value .+ IMAS.interp(x, y)(rho))
+                    end
+                end
+            end
+        end
+    end
+
+    return total_source1d
 end
