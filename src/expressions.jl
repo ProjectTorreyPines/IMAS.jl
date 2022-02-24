@@ -39,11 +39,14 @@ expressions["core_profiles.profiles_1d[:].grid.volume"] =
         return interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)(rho_tor_norm)
     end
 
-expressions["core_profiles.source[:].profiles_1d[:].grid.area"] =
+expressions["core_profiles.profiles_1d[:].grid.area"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         return interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area)(rho_tor_norm)
     end
+
+expressions["core_profiles.profiles_1d[:].time"] =
+    (;core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
 
 #= ========= =#
 # Equilibrium #
@@ -177,6 +180,12 @@ expressions["core_sources.source[:].profiles_1d[:].grid.area"] =
         return interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area)(rho_tor_norm)
     end
 
+
+expressions["core_sources.source[:].profiles_1d[:].time"] =
+    (;core_sources, profiles_1d_index, _...) -> core_sources.time[profiles_1d_index]
+
+expressions["core_sources.source[:].global_quantities[:].time"] =
+    (;core_sources, global_quantities_index, _...) -> core_sources.time[global_quantities_index]
 
 #= ===== =#
 #  Build  #

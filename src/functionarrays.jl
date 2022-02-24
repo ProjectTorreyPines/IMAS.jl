@@ -454,12 +454,12 @@ function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
     if n == 0
         return empty!(ids)
     elseif n > length(ids)
-        for k in length(ids):n-1
+        for k = length(ids):n-1
             push!(ids, eltype(ids)())
         end
     else
         if n < length(ids)
-            for k in n:length(ids)-1
+            for k = n:length(ids)-1
                 pop!(ids)
             end
         end
