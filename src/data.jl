@@ -113,22 +113,29 @@ end
 function imas2dict(ids::Union{IDS,IDSvector}, dct::Union{Dict,Vector})
     items = sort(keys(ids))
     for item in items
-        if typeof(ids) <: IDSvector
-            # arrays of structures
+        if typeof(ids) <: IDSvector # arrays of structures
             push!(dct, Dict())
             imas2dict(ids[item], dct[item])
         else
-            value = getproperty(ids, item)
-            # structures
-            if typeof(value) <: Union{IDS,IDSvector}
+            value = missing
+            try
+                value = getproperty(ids, item)
+            catch e
+                if typeof(e) <: IMASexpressionError
+                    #@debug(sprint(showerror, e))
+                    continue
+                else
+                    throw
+                end
+            end
+            if typeof(value) <: Union{IDS,IDSvector} # structures
                 if typeof(value) <: IDS
                     dct[item] = Dict()
                 else
                     dct[item] = Any[]
                 end
                 imas2dict(value, dct[item])
-                # field
-            else
+            else # field
                 dct[item] = value
             end
         end
