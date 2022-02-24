@@ -9,7 +9,7 @@ function time_locations(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement
 
     # traverse IDS hierarchy upstream looking for a :time
     h = ids
-    while h._parent.value !== missing
+    while typeof(h) <: Union{IDS,IDSvector}
         field_names_types = NamedTuple{fieldnames(typeof(h))}(fieldtypes(typeof(h)))
         if :time in keys(field_names_types)
             pushfirst!(time_locations, h)

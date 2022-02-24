@@ -67,13 +67,20 @@ using Test
 
     # test expressions across different IDSs with global_time information
     dd = IMAS.dd()
-    resize!(dd.equilibrium.time_slice, 0.0)
-    resize!(dd.equilibrium.time_slice, 3.0)
-    dd.global_time = 3.0
+    resize!(dd.equilibrium.time_slice, 1.0)
+    resize!(dd.equilibrium.time_slice, 2.0)
+    dd.global_time = 2.0
     dd.equilibrium.time_slice[].profiles_1d.psi = LinRange(0, 1, 11)
     dd.equilibrium.time_slice[].profiles_1d.rho_tor_norm = LinRange(0, 1, 11)
     dd.equilibrium.time_slice[].profiles_1d.volume = LinRange(0, 1, 11)
-    resize!(dd.core_profiles.profiles_1d, 3.0)
+    resize!(dd.core_profiles.profiles_1d, 2.0)
     dd.core_profiles.profiles_1d[].grid.rho_tor_norm = LinRange(0, 1, 11)
     @test all(dd.core_profiles.profiles_1d[1].grid.volume .≈ dd.equilibrium.time_slice[2].profiles_1d.volume)
+
+    # test equilibrium.time_slice[:].time expression
+    @test typeof(empty!(dd.equilibrium.time_slice[2],:time)) <: Function
+    push!(dd.equilibrium.time_slice, IMAS.equilibrium__time_slice())
+    @test length(dd.equilibrium.time_slice) == 3
+    @test_throws BoundsError dd.equilibrium.time_slice[3].time
+
 end

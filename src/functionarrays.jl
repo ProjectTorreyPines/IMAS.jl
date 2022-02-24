@@ -225,7 +225,7 @@ function ids_ancestors(ids::IDS)::Dict{Symbol,Union{Missing,IDS,Int}}
     end
     # traverse ancestors and assign pointers
     h = ids
-    while h !== missing
+    while typeof(h) <: Union{IDS,IDSvector}
         path = f2p(h)
         if typeof(path[end]) <: String
             ancestors[Symbol(path[end])] = h
@@ -401,6 +401,18 @@ function Base.empty!(ids::IDS)
     end
     assign_expressions(ids)
     return ids
+end
+
+function Base.empty!(ids::IDS, field::Symbol)
+    struct_name = f2u(ids)
+    if "$(struct_name).$(field)" in keys(expressions)
+        return setproperty!(ids, field, expressions["$(struct_name).$(field)"])
+    elseif typeof(getfield(ids, field)) <: Union{IDS,IDSvector}
+        return empty!(getfield(ids, field))
+    else
+        setproperty!(ids, field, missing)
+        return missing
+    end
 end
 
 function Base.resize!(ids::IDSvector{T}) where {T<:IDSvectorTimeElement}

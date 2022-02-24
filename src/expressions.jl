@@ -124,6 +124,9 @@ expressions["equilibrium.time_slice[:].boundary.squareness_lower_outer"] =
 expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
     (;time_slice, _...) -> time_slice.profiles_1d.squareness_upper_outer[end]
 
+expressions["equilibrium.time_slice[:].time"] =
+    (;equilibrium, time_slice_index, _...) -> equilibrium.time[time_slice_index]
+
 #= ============ =#
 #  core_sources  #
 #= ============ =#
