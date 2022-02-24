@@ -80,7 +80,7 @@ expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
     (;time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[1]
 
 expressions["equilibrium.time_slice[:].global_quantities.magnetic_axis.b_field_tor"] =
-    (; equilibrium, _...) ->  @ddtime(equilibrium.vacuum_toroidal_field.b0) * equilibrium.vacuum_toroidal_field.r0 / equilibrium.boundary.geometric_axis.r
+    (; equilibrium, time_slice_index, _...) ->  equilibrium.vacuum_toroidal_field.b0[time_slice_index] * equilibrium.vacuum_toroidal_field.r0 / equilibrium.time_slice[time_slice_index].boundary.geometric_axis.r
 
 expressions["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
     (psi; time_slice, _...) -> (time_slice.profiles_1d.r_outboard .+ time_slice.profiles_1d.r_inboard) .* 0.5
