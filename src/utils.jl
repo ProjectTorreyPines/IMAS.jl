@@ -235,7 +235,7 @@ function intersection(
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T};
-    as_list_of_points::Bool = true
+    as_list_of_points::Bool = true,
 ) where {T}
     if as_list_of_points
         crossings = NTuple{2,T}[]
@@ -309,7 +309,7 @@ For example:
 function same_length_vectors(args...)
     n = maximum(map(length, args))
     args = collect(map(x -> isa(x, Vector) ? x : [x], args))
-    args = map(x -> vcat([x for k in 1:n]...)[1:n], args)
+    args = map(x -> vcat([x for k = 1:n]...)[1:n], args)
 end
 
 diff_function(v1, v2, tol) = maximum(abs.(v1 .- v2) ./ (tol + sum(abs.(v1) .+ abs.(v2)) / 2.0 / length(v1)))
@@ -361,7 +361,7 @@ function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function
                 if length(v1) != length(v2)
                     differences[pathname] = "length  $(length(v1)) --  $(length(v2))"
                 else
-                    for k in 1:length(v1)
+                    for k = 1:length(v1)
                         diff(v1[k], v2[k], vcat(path, field, k); tol, plot_function, recursive, differences)
                     end
                 end
@@ -398,7 +398,7 @@ end
 
 Resample 2D line with uniform stepping
 """
-function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T}=nothing) where {T <: Real}
+function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T} = nothing) where {T<:Real}
     s = cumsum(sqrt.(gradient(x) .^ 2 + gradient(y) .^ 2))
     if step !== nothing
         n = Integer(ceil(s[end] / step))

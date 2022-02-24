@@ -67,7 +67,13 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
 
     # find magnetic axis
-    res = Optim.optimize(x -> PSI_interpolant(x[1], x[2]), [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+    res = Optim.optimize(
+        x -> PSI_interpolant(x[1], x[2]),
+        [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
+        Optim.Newton(),
+        Optim.Options(g_tol = 1E-8);
+        autodiff = :forward,
+    )
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
 
@@ -92,7 +98,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :gm8,
         :gm9,
         :phi,
-        :trapped_fraction
+        :trapped_fraction,
     ]
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
@@ -353,7 +359,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
 
     # phi 2D
-    eqt.profiles_2d[1].phi = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
+    eqt.profiles_2d[1].phi =
+        Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
@@ -377,7 +384,12 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # fix quantities on axis
     for quantity in [:gm2]
-        eqt.profiles_1d.gm2[1] = Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi[2:end], getproperty(eqt.profiles_1d, quantity)[2:end], extrapolation_bc = Interpolations.Line()).(eqt.profiles_1d.psi[1])
+        eqt.profiles_1d.gm2[1] =
+            Interpolations.CubicSplineInterpolation(
+                eqt.profiles_1d.psi[2:end],
+                getproperty(eqt.profiles_1d, quantity)[2:end],
+                extrapolation_bc = Interpolations.Line(),
+            ).(eqt.profiles_1d.psi[1])
     end
 
     return eqt
@@ -553,7 +565,7 @@ function get_build(
     hfs::Union{Nothing,Int,Array} = nothing,
     return_only_one = true,
     return_index = false,
-    raise_error_on_missing = true
+    raise_error_on_missing = true,
 )
 
     if isa(hfs, Int)
@@ -738,7 +750,8 @@ function new_source(
     j_parallel::Union{AbstractVector,Missing} = missing,
     current_parallel_inside::Union{AbstractVector,Missing} = missing,
     momentum_tor::Union{AbstractVector,Missing} = missing,
-    torque_tor_inside::Union{AbstractVector,Missing} = missing)
+    torque_tor_inside::Union{AbstractVector,Missing} = missing,
+)
 
     source.identifier.name = name
     source.identifier.index = index
@@ -860,7 +873,11 @@ function nclass_conductivity!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
     end
 
     # neo 2021
-    f33teff = trapped_fraction ./ (1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+ 0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5)
+    f33teff =
+        trapped_fraction ./ (
+            1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+
+            0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5
+        )
 
     F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
 
@@ -917,6 +934,14 @@ function DT_fusion_source!(dd::IMAS.dd)
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
     isource = resize!(dd.core_sources.source, "identifier.index" => 6)
-    new_source(isource, 6, "α heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy = alpha_power .* ion_electron_fraction, total_ion_energy = alpha_power .* (1 .- ion_electron_fraction))
+    new_source(
+        isource,
+        6,
+        "α heating",
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume;
+        electrons_energy = alpha_power .* ion_electron_fraction,
+        total_ion_energy = alpha_power .* (1 .- ion_electron_fraction),
+    )
     @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
 end
