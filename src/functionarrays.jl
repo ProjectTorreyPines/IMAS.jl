@@ -106,7 +106,7 @@ struct IMASmissingDataException <: Exception
     field::Symbol
 end
 
-Base.showerror(io::IO, e::IMASmissingDataException) = print(io, "ERROR: $(f2i(e.ids)).$(e.field) is missing")
+Base.showerror(io::IO, e::IMASmissingDataException) = print(io, "$(f2i(e.ids)).$(e.field) is missing")
 
 abstract type IMASexpressionError <: Exception end
 
@@ -116,7 +116,7 @@ end
 
 function Base.showerror(io::IO, e::IMASexpressionRecursion)
     culprits = join(e.call_stack, "\n    * ")
-    error("These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
+    print(io, "These expressions are calling themselves recursively:\n    * $(culprits)\nAssign a numerical value to one of them to break the cycle.")
 end
 
 struct IMASbadExpression <: IMASexpressionError
