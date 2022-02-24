@@ -398,19 +398,34 @@ Plot build cross-section or radial build
     end
 end
 
+@recipe function plot_cs(cs::IMAS.core_sources; integrated = false)
+    for source in cs.source
+        @series begin
+            integrated := integrated
+            source
+        end
+    end
+end
+
 @recipe function plot_source(source::IMAS.core_sources__source; integrated = false)
+    @series begin
+        name := source.identifier.name
+        integrated := integrated
+        source.profiles_1d[]
+    end
+end
+
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", integrated = false)
     layout := (2, 2)
     size := (600, 600)
 
-    cs1d = source.profiles_1d[]
-
     @series begin
         subplot := 1
-        color := objectid(source) % Int
+        color := objectid(cs1d) % Int
         title := "Electron Power"
         if !ismissing(cs1d.electrons, :energy)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
-            label --> "$(source.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
+            label --> "$name " * @sprintf("[%3.3g MW]", tot / 1E6)
         end
         if !integrated && !ismissing(cs1d.electrons, :energy)
             cs1d.electrons, :energy
@@ -424,11 +439,11 @@ end
 
     @series begin
         subplot := 2
-        color := objectid(source) % Int
+        color := objectid(cs1d) % Int
         title := "Ion Power"
         if !ismissing(cs1d, :total_ion_energy)
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
-            label --> "$(source.identifier.name) " * @sprintf("[%3.3g MW]", tot / 1E6)
+            label --> "$name " * @sprintf("[%3.3g MW]", tot / 1E6)
         end
         if !integrated && !ismissing(cs1d, :total_ion_energy)
             cs1d, :total_ion_energy
@@ -442,11 +457,11 @@ end
 
     @series begin
         subplot := 3
-        color := objectid(source) % Int
+        color := objectid(cs1d) % Int
         title := "Electron Particle"
         if !ismissing(cs1d.electrons, :particles)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
-            label --> "$(source.identifier.name) " * @sprintf("[%3.3g s⁻¹]", tot)
+            label --> "$name " * @sprintf("[%3.3g s⁻¹]", tot)
         end
         if !integrated && !ismissing(cs1d.electrons, :particles)
             cs1d.electrons, :particles
@@ -460,11 +475,11 @@ end
 
     @series begin
         subplot := 4
-        color := objectid(source) % Int
+        color := objectid(cs1d) % Int
         title := "Parallel Current"
         if !ismissing(cs1d, :j_parallel)
             tot = integrate(cs1d.grid.area, cs1d.j_parallel)
-            label --> "$(source.identifier.name) " * @sprintf("[%3.3g MA]", tot / 1E6)
+            label --> "$name " * @sprintf("[%3.3g MA]", tot / 1E6)
         end
         if !integrated && !ismissing(cs1d, :j_parallel)
             cs1d, :j_parallel
@@ -473,15 +488,6 @@ end
         else
             label --> ""
             [NaN], [NaN]
-        end
-    end
-end
-
-@recipe function plot_cs(cs::IMAS.core_sources; integrated = false)
-    for source in cs.source
-        @series begin
-            integrated := integrated
-            source
         end
     end
 end
