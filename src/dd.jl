@@ -9868,6 +9868,562 @@ mutable struct lh_antennas <: IDS
     end
 end
 
+mutable struct ic_antennas__reference_point <: IDS
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__reference_point(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___surface_current <: IDSvectorTimeElement
+    var"m_pol" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"n_tor" :: Union{Missing, AbstractArray{T, 1} where T<:Integer, AbstractRange{T} where T<:Integer, Function}
+    var"spectrum" :: Union{Missing, AbstractArray{T, 2} where T<:Real, Function}
+    var"time" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___surface_current(var"m_pol"=missing, var"n_tor"=missing, var"spectrum"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"m_pol", var"n_tor", var"spectrum", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___power_reflected <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___power_reflected(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___power_forward <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___power_forward(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___voltage___position <: IDS
+    var"phi" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___voltage___position(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___voltage___phase <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___voltage___phase(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___voltage___amplitude <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___voltage___amplitude(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___voltage <: IDSvectorStaticElement
+    var"amplitude" :: ic_antennas__antenna___module___voltage___amplitude
+    var"identifier" :: Union{Missing, String, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"phase" :: ic_antennas__antenna___module___voltage___phase
+    var"position" :: ic_antennas__antenna___module___voltage___position
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___voltage(var"amplitude"=ic_antennas__antenna___module___voltage___amplitude(), var"identifier"=missing, var"name"=missing, var"phase"=ic_antennas__antenna___module___voltage___phase(), var"position"=ic_antennas__antenna___module___voltage___position(), _parent=WeakRef(missing))
+        ids = new(var"amplitude", var"identifier", var"name", var"phase", var"position", _parent)
+        assign_expressions(ids)
+        setfield!(ids.amplitude, :_parent, WeakRef(ids))
+        setfield!(ids.phase, :_parent, WeakRef(ids))
+        setfield!(ids.position, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___phase <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___phase(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___outline <: IDS
+    var"phi" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___outline(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___geometry__rectangle <: IDS
+    var"height" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"width" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___geometry__rectangle(var"height"=missing, var"r"=missing, var"width"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"height", var"r", var"width", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___geometry__outline <: IDS
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___geometry__outline(var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___geometry__oblique <: IDS
+    var"alpha" :: Union{Missing, Real, Function}
+    var"beta" :: Union{Missing, Real, Function}
+    var"length_alpha" :: Union{Missing, Real, Function}
+    var"length_beta" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___geometry__oblique(var"alpha"=missing, var"beta"=missing, var"length_alpha"=missing, var"length_beta"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"alpha", var"beta", var"length_alpha", var"length_beta", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___geometry__arcs_of_circle <: IDS
+    var"curvature_radii" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___geometry__arcs_of_circle(var"curvature_radii"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"curvature_radii", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___geometry <: IDS
+    var"arcs_of_circle" :: ic_antennas__antenna___module___strap___geometry__arcs_of_circle
+    var"geometry_type" :: Union{Missing, Integer, Function}
+    var"oblique" :: ic_antennas__antenna___module___strap___geometry__oblique
+    var"outline" :: ic_antennas__antenna___module___strap___geometry__outline
+    var"rectangle" :: ic_antennas__antenna___module___strap___geometry__rectangle
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___geometry(var"arcs_of_circle"=ic_antennas__antenna___module___strap___geometry__arcs_of_circle(), var"geometry_type"=missing, var"oblique"=ic_antennas__antenna___module___strap___geometry__oblique(), var"outline"=ic_antennas__antenna___module___strap___geometry__outline(), var"rectangle"=ic_antennas__antenna___module___strap___geometry__rectangle(), _parent=WeakRef(missing))
+        ids = new(var"arcs_of_circle", var"geometry_type", var"oblique", var"outline", var"rectangle", _parent)
+        assign_expressions(ids)
+        setfield!(ids.arcs_of_circle, :_parent, WeakRef(ids))
+        setfield!(ids.oblique, :_parent, WeakRef(ids))
+        setfield!(ids.outline, :_parent, WeakRef(ids))
+        setfield!(ids.rectangle, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap___current <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap___current(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___strap <: IDSvectorStaticElement
+    var"current" :: ic_antennas__antenna___module___strap___current
+    var"distance_to_conductor" :: Union{Missing, Real, Function}
+    var"geometry" :: ic_antennas__antenna___module___strap___geometry
+    var"outline" :: ic_antennas__antenna___module___strap___outline
+    var"phase" :: ic_antennas__antenna___module___strap___phase
+    var"width_tor" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___strap(var"current"=ic_antennas__antenna___module___strap___current(), var"distance_to_conductor"=missing, var"geometry"=ic_antennas__antenna___module___strap___geometry(), var"outline"=ic_antennas__antenna___module___strap___outline(), var"phase"=ic_antennas__antenna___module___strap___phase(), var"width_tor"=missing, _parent=WeakRef(missing))
+        ids = new(var"current", var"distance_to_conductor", var"geometry", var"outline", var"phase", var"width_tor", _parent)
+        assign_expressions(ids)
+        setfield!(ids.current, :_parent, WeakRef(ids))
+        setfield!(ids.geometry, :_parent, WeakRef(ids))
+        setfield!(ids.outline, :_parent, WeakRef(ids))
+        setfield!(ids.phase, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___reflection_coefficient <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___reflection_coefficient(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___pressure___position <: IDS
+    var"phi" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___pressure___position(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___pressure___phase <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___pressure___phase(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___pressure___amplitude <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___pressure___amplitude(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___pressure <: IDSvectorStaticElement
+    var"amplitude" :: ic_antennas__antenna___module___pressure___amplitude
+    var"identifier" :: Union{Missing, String, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"phase" :: ic_antennas__antenna___module___pressure___phase
+    var"position" :: ic_antennas__antenna___module___pressure___position
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___pressure(var"amplitude"=ic_antennas__antenna___module___pressure___amplitude(), var"identifier"=missing, var"name"=missing, var"phase"=ic_antennas__antenna___module___pressure___phase(), var"position"=ic_antennas__antenna___module___pressure___position(), _parent=WeakRef(missing))
+        ids = new(var"amplitude", var"identifier", var"name", var"phase", var"position", _parent)
+        assign_expressions(ids)
+        setfield!(ids.amplitude, :_parent, WeakRef(ids))
+        setfield!(ids.phase, :_parent, WeakRef(ids))
+        setfield!(ids.position, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___power_reflected <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___power_reflected(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___power_launched <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___power_launched(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___power_forward <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___power_forward(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___phase_reflected <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___phase_reflected(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___phase_forward <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___phase_forward(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___matching_element___type <: IDS
+    var"description" :: Union{Missing, String, Function}
+    var"index" :: Union{Missing, Integer, Function}
+    var"name" :: Union{Missing, String, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___matching_element___type(var"description"=missing, var"index"=missing, var"name"=missing, _parent=WeakRef(missing))
+        ids = new(var"description", var"index", var"name", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___matching_element___phase <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___matching_element___phase(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___matching_element___capacitance <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___matching_element___capacitance(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___matching_element <: IDSvectorStaticElement
+    var"capacitance" :: ic_antennas__antenna___module___matching_element___capacitance
+    var"name" :: Union{Missing, String, Function}
+    var"phase" :: ic_antennas__antenna___module___matching_element___phase
+    var"type" :: ic_antennas__antenna___module___matching_element___type
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___matching_element(var"capacitance"=ic_antennas__antenna___module___matching_element___capacitance(), var"name"=missing, var"phase"=ic_antennas__antenna___module___matching_element___phase(), var"type"=ic_antennas__antenna___module___matching_element___type(), _parent=WeakRef(missing))
+        ids = new(var"capacitance", var"name", var"phase", var"type", _parent)
+        assign_expressions(ids)
+        setfield!(ids.capacitance, :_parent, WeakRef(ids))
+        setfield!(ids.phase, :_parent, WeakRef(ids))
+        setfield!(ids.type, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___frequency <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___frequency(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___current___position <: IDS
+    var"phi" :: Union{Missing, Real, Function}
+    var"r" :: Union{Missing, Real, Function}
+    var"z" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___current___position(var"phi"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+        ids = new(var"phi", var"r", var"z", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___current___phase <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___current___phase(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___current___amplitude <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___current___amplitude(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module___current <: IDSvectorStaticElement
+    var"amplitude" :: ic_antennas__antenna___module___current___amplitude
+    var"identifier" :: Union{Missing, String, Function}
+    var"name" :: Union{Missing, String, Function}
+    var"phase" :: ic_antennas__antenna___module___current___phase
+    var"position" :: ic_antennas__antenna___module___current___position
+    _parent :: WeakRef
+    function ic_antennas__antenna___module___current(var"amplitude"=ic_antennas__antenna___module___current___amplitude(), var"identifier"=missing, var"name"=missing, var"phase"=ic_antennas__antenna___module___current___phase(), var"position"=ic_antennas__antenna___module___current___position(), _parent=WeakRef(missing))
+        ids = new(var"amplitude", var"identifier", var"name", var"phase", var"position", _parent)
+        assign_expressions(ids)
+        setfield!(ids.amplitude, :_parent, WeakRef(ids))
+        setfield!(ids.phase, :_parent, WeakRef(ids))
+        setfield!(ids.position, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___module <: IDSvectorStaticElement
+    var"current" :: IDSvector{T} where {T<:ic_antennas__antenna___module___current}
+    var"frequency" :: ic_antennas__antenna___module___frequency
+    var"identifier" :: Union{Missing, String, Function}
+    var"matching_element" :: IDSvector{T} where {T<:ic_antennas__antenna___module___matching_element}
+    var"name" :: Union{Missing, String, Function}
+    var"phase_forward" :: ic_antennas__antenna___module___phase_forward
+    var"phase_reflected" :: ic_antennas__antenna___module___phase_reflected
+    var"power_forward" :: ic_antennas__antenna___module___power_forward
+    var"power_launched" :: ic_antennas__antenna___module___power_launched
+    var"power_reflected" :: ic_antennas__antenna___module___power_reflected
+    var"pressure" :: IDSvector{T} where {T<:ic_antennas__antenna___module___pressure}
+    var"reflection_coefficient" :: ic_antennas__antenna___module___reflection_coefficient
+    var"strap" :: IDSvector{T} where {T<:ic_antennas__antenna___module___strap}
+    var"voltage" :: IDSvector{T} where {T<:ic_antennas__antenna___module___voltage}
+    _parent :: WeakRef
+    function ic_antennas__antenna___module(var"current"=IDSvector(ic_antennas__antenna___module___current[]), var"frequency"=ic_antennas__antenna___module___frequency(), var"identifier"=missing, var"matching_element"=IDSvector(ic_antennas__antenna___module___matching_element[]), var"name"=missing, var"phase_forward"=ic_antennas__antenna___module___phase_forward(), var"phase_reflected"=ic_antennas__antenna___module___phase_reflected(), var"power_forward"=ic_antennas__antenna___module___power_forward(), var"power_launched"=ic_antennas__antenna___module___power_launched(), var"power_reflected"=ic_antennas__antenna___module___power_reflected(), var"pressure"=IDSvector(ic_antennas__antenna___module___pressure[]), var"reflection_coefficient"=ic_antennas__antenna___module___reflection_coefficient(), var"strap"=IDSvector(ic_antennas__antenna___module___strap[]), var"voltage"=IDSvector(ic_antennas__antenna___module___voltage[]), _parent=WeakRef(missing))
+        ids = new(var"current", var"frequency", var"identifier", var"matching_element", var"name", var"phase_forward", var"phase_reflected", var"power_forward", var"power_launched", var"power_reflected", var"pressure", var"reflection_coefficient", var"strap", var"voltage", _parent)
+        assign_expressions(ids)
+        setfield!(ids.current, :_parent, WeakRef(ids))
+        setfield!(ids.frequency, :_parent, WeakRef(ids))
+        setfield!(ids.matching_element, :_parent, WeakRef(ids))
+        setfield!(ids.phase_forward, :_parent, WeakRef(ids))
+        setfield!(ids.phase_reflected, :_parent, WeakRef(ids))
+        setfield!(ids.power_forward, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.power_reflected, :_parent, WeakRef(ids))
+        setfield!(ids.pressure, :_parent, WeakRef(ids))
+        setfield!(ids.reflection_coefficient, :_parent, WeakRef(ids))
+        setfield!(ids.strap, :_parent, WeakRef(ids))
+        setfield!(ids.voltage, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna___frequency <: IDS
+    var"data" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas__antenna___frequency(var"data"=missing, var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"data", var"time", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
+mutable struct ic_antennas__antenna <: IDSvectorStaticElement
+    var"frequency" :: ic_antennas__antenna___frequency
+    var"identifier" :: Union{Missing, String, Function}
+    var"module" :: IDSvector{T} where {T<:ic_antennas__antenna___module}
+    var"name" :: Union{Missing, String, Function}
+    var"power_forward" :: ic_antennas__antenna___power_forward
+    var"power_launched" :: ic_antennas__antenna___power_launched
+    var"power_reflected" :: ic_antennas__antenna___power_reflected
+    var"surface_current" :: IDSvector{T} where {T<:ic_antennas__antenna___surface_current}
+    _parent :: WeakRef
+    function ic_antennas__antenna(var"frequency"=ic_antennas__antenna___frequency(), var"identifier"=missing, var"module"=IDSvector(ic_antennas__antenna___module[]), var"name"=missing, var"power_forward"=ic_antennas__antenna___power_forward(), var"power_launched"=ic_antennas__antenna___power_launched(), var"power_reflected"=ic_antennas__antenna___power_reflected(), var"surface_current"=IDSvector(ic_antennas__antenna___surface_current[]), _parent=WeakRef(missing))
+        ids = new(var"frequency", var"identifier", var"module", var"name", var"power_forward", var"power_launched", var"power_reflected", var"surface_current", _parent)
+        assign_expressions(ids)
+        setfield!(ids.frequency, :_parent, WeakRef(ids))
+        setfield!(ids.module, :_parent, WeakRef(ids))
+        setfield!(ids.power_forward, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.power_reflected, :_parent, WeakRef(ids))
+        setfield!(ids.surface_current, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct ic_antennas <: IDS
+    var"antenna" :: IDSvector{T} where {T<:ic_antennas__antenna}
+    var"latency" :: Union{Missing, Real, Function}
+    var"power_launched" :: ic_antennas__power_launched
+    var"reference_point" :: ic_antennas__reference_point
+    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
+    _parent :: WeakRef
+    function ic_antennas(var"antenna"=IDSvector(ic_antennas__antenna[]), var"latency"=missing, var"power_launched"=ic_antennas__power_launched(), var"reference_point"=ic_antennas__reference_point(), var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"antenna", var"latency", var"power_launched", var"reference_point", var"time", _parent)
+        assign_expressions(ids)
+        setfield!(ids.antenna, :_parent, WeakRef(ids))
+        setfield!(ids.power_launched, :_parent, WeakRef(ids))
+        setfield!(ids.reference_point, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct equilibrium__vacuum_toroidal_field <: IDS
     var"b0" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"r0" :: Union{Missing, Real, Function}
@@ -12248,6 +12804,7 @@ mutable struct dd <: IDS
     var"dataset_description" :: Union{Missing, dataset_description}
     var"ec_launchers" :: Union{Missing, ec_launchers}
     var"equilibrium" :: Union{Missing, equilibrium}
+    var"ic_antennas" :: Union{Missing, ic_antennas}
     var"lh_antennas" :: Union{Missing, lh_antennas}
     var"nbi" :: Union{Missing, nbi}
     var"pf_active" :: Union{Missing, pf_active}
@@ -12256,8 +12813,8 @@ mutable struct dd <: IDS
     var"wall" :: Union{Missing, wall}
     var"global_time" :: Real
     _parent :: WeakRef
-    function dd(var"build"=build(), var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"ec_launchers"=ec_launchers(), var"equilibrium"=equilibrium(), var"lh_antennas"=lh_antennas(), var"nbi"=nbi(), var"pf_active"=pf_active(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), var"global_time"=0.0, _parent=WeakRef(missing))
-        ids = new(var"build", var"core_profiles", var"core_sources", var"dataset_description", var"ec_launchers", var"equilibrium", var"lh_antennas", var"nbi", var"pf_active", var"summary", var"tf", var"wall", var"global_time", _parent)
+    function dd(var"build"=build(), var"core_profiles"=core_profiles(), var"core_sources"=core_sources(), var"dataset_description"=dataset_description(), var"ec_launchers"=ec_launchers(), var"equilibrium"=equilibrium(), var"ic_antennas"=ic_antennas(), var"lh_antennas"=lh_antennas(), var"nbi"=nbi(), var"pf_active"=pf_active(), var"summary"=summary(), var"tf"=tf(), var"wall"=wall(), var"global_time"=0.0, _parent=WeakRef(missing))
+        ids = new(var"build", var"core_profiles", var"core_sources", var"dataset_description", var"ec_launchers", var"equilibrium", var"ic_antennas", var"lh_antennas", var"nbi", var"pf_active", var"summary", var"tf", var"wall", var"global_time", _parent)
         assign_expressions(ids)
         setfield!(ids.build, :_parent, WeakRef(ids))
         setfield!(ids.core_profiles, :_parent, WeakRef(ids))
@@ -12265,6 +12822,7 @@ mutable struct dd <: IDS
         setfield!(ids.dataset_description, :_parent, WeakRef(ids))
         setfield!(ids.ec_launchers, :_parent, WeakRef(ids))
         setfield!(ids.equilibrium, :_parent, WeakRef(ids))
+        setfield!(ids.ic_antennas, :_parent, WeakRef(ids))
         setfield!(ids.lh_antennas, :_parent, WeakRef(ids))
         setfield!(ids.nbi, :_parent, WeakRef(ids))
         setfield!(ids.pf_active, :_parent, WeakRef(ids))

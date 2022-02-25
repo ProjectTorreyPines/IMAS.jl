@@ -6,7 +6,7 @@ ProgressMeter.ijulia_behavior(:clear)
 
 const imas_version = "3_33_0"
 if !("OMAS_ROOT" in keys(ENV))
-    error("Environmental variable OMAS_ROOT is not set")
+    error("Ennvironmental variable OMAS_ROOT is not set")
 end
 const omas_imas_structure_folder = joinpath(ENV["OMAS_ROOT"], "omas", "imas_structures")
 run(`sh -c "rm -rf $(dirname(dirname(@__FILE__)))/data_structures"`)
@@ -24,7 +24,7 @@ assign_expressions = x -> x
 #= ==================================== =#
 ids_names = imas_dd_ids_names()
 ids_names =
-    ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "tf", "wall", "nbi", "ec_launchers", "lh_antennas", "build"]
+    ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "tf", "wall", "nbi", "ec_launchers","ic_antennas", "lh_antennas", "build"]
 
 p = Progress(length(ids_names); desc = "Parse JSON structs ", showspeed = true)
 desired_structure = String[]
