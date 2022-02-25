@@ -38,14 +38,16 @@ end
 """
     global_time(ids::Union{IDS,IDSvector})
 
-get the dd.global_time of a given IDS
+Get the dd.global_time of a given IDS
+If top-level dd cannot be reached then returns `Inf`
 """
 function global_time(ids::Union{IDS,IDSvector})::Float64
     dd = top_dd(ids)
     if dd === missing
-        error("Could not reach top level dd where global time is defined")
+        return Inf
+    else
+        return dd.global_time
     end
-    return dd.global_time
 end
 
 """
