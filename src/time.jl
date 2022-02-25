@@ -36,11 +36,11 @@ function time_parent(ids::Union{IDS,IDSvector{T}}) where {T<:IDSvectorElement}
 end
 
 """
-    global_time(ids::Union{IDS,IDSvector})::Real
+    global_time(ids::Union{IDS,IDSvector})
 
 get the dd.global_time of a given IDS
 """
-function global_time(ids::Union{IDS,IDSvector})::Real
+function global_time(ids::Union{IDS,IDSvector})::Float64
     dd = top_dd(ids)
     if dd === missing
         error("Could not reach top level dd where global time is defined")

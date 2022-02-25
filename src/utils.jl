@@ -70,12 +70,12 @@ function iscallable(f)
 end
 
 """
-    norm01(x::Vector{T} where T<:Real)::Vector{Real}
+    norm01(x::Vector{T} where T<:Real)
 
 Normalize a vector so that the first item in the array is 0 and the last one is 1
 This is handy where psi_norm should be used (and IMAS does not define a psi_norm array)
 """
-function norm01(x::AbstractVector{T} where {T<:Real})::Vector{Real}
+function norm01(x::AbstractVector{T} where {T<:Real})
     return (x .- x[1]) ./ (x[end] .- x[1])
 end
 

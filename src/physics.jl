@@ -810,8 +810,9 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
 
     particle_mass = particle_mass * constants.m_p
 
-    c_a = zeros(length(rho))
-    W_crit = similar(rho)
+    tp = typeof(promote(Te[1],ne[1],rho[1])[1])
+    c_a = zeros(tp, length(rho))
+    W_crit = similar(c_a)
     ion_elec_fraction = similar(W_crit)
     for ion in cp1d.ion
         ni = ion.density
