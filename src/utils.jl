@@ -379,9 +379,13 @@ function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function
             if diff_function(v1, v2, tol) > tol
                 differences[pathname] = "value  $v1 --  $v2"
             end
+        elseif typeof(v1) <: Union{String,Symbol}
+            if v1 != v2
+                differences[pathname] = "value  $v1 --  $v2"
+            end
         else
             println((pathname, typeof(v1), typeof(v2)))
-            asdadas
+            asdadas # raise error to force use to handle this explicitly
             differences[pathname] = "value  $v1 --  $v2"
         end
         if verbose && (pathname in keys(differences))
