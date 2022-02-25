@@ -356,6 +356,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     # rho_tor_norm
     rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (pi * B0)))
     rho_meters = rho[end]
+    eqt.profiles_1d.rho_tor = rho
     eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
 
     # phi 2D
@@ -810,7 +811,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
 
     particle_mass = particle_mass * constants.m_p
 
-    tp = typeof(promote(Te[1],ne[1],rho[1])[1])
+    tp = typeof(promote(Te[1], ne[1], rho[1])[1])
     c_a = zeros(tp, length(rho))
     W_crit = similar(c_a)
     ion_elec_fraction = similar(W_crit)
@@ -957,8 +958,12 @@ Returns core_sources__source___profiles_1d with sources totals
 function total_sources(dd)
     total_source1d = IMAS.core_sources__source___profiles_1d()
     total_source1d.grid.rho_tor_norm = rho = dd.core_profiles.profiles_1d[].grid.rho_tor_norm
-    total_source1d.grid.volume = dd.core_profiles.profiles_1d[].grid.volume
-    total_source1d.grid.area = dd.core_profiles.profiles_1d[].grid.area
+    if !ismissing(dd.core_profiles.profiles_1d[].grid, :volume)
+        total_source1d.grid.volume = dd.core_profiles.profiles_1d[].grid.volume
+    end
+    if !ismissing(dd.core_profiles.profiles_1d[].grid, :area)
+        total_source1d.grid.area = dd.core_profiles.profiles_1d[].grid.area
+    end
     total_source1d.time = dd.global_time
 
     all_indexes = [source.identifier.index for source in dd.core_sources.source]
