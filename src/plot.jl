@@ -405,6 +405,16 @@ end
             source
         end
     end
+    dd = top_dd(cs)
+    if dd !== missing
+        @series begin
+            integrated := integrated
+            name := "Total"
+            linewidth := 2
+            color := :black
+            total_sources(dd)
+        end
+    end
 end
 
 @recipe function plot_source(source::IMAS.core_sources__source; integrated = false)
