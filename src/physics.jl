@@ -920,7 +920,7 @@ function DT_fusion_source!(dd::IMAS.dd)
         n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
         Ti = cp1d.ion[DT_index].temperature .* 1e-3 # keV
     else
-        error("No Deuterium and Tritium found in core_profiles")
+        return dd
     end
 
     r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
@@ -945,6 +945,8 @@ function DT_fusion_source!(dd::IMAS.dd)
         total_ion_energy = alpha_power .* (1 .- ion_electron_fraction)
     )
     @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
+
+    return dd
 end
 
 """
