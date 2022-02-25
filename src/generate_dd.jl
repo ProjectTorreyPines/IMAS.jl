@@ -24,7 +24,7 @@ assign_expressions = x -> x
 #= ==================================== =#
 ids_names = imas_dd_ids_names()
 ids_names =
-    ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "tf", "wall", "nbi", "ec_launchers","ic_antennas", "lh_antennas", "build"]
+    ["core_profiles", "core_sources", "dataset_description", "equilibrium", "pf_active", "summary", "tf", "wall", "nbi", "ec_launchers", "ic_antennas", "lh_antennas", "build"]
 
 p = Progress(length(ids_names); desc = "Parse JSON structs ", showspeed = true)
 desired_structure = String[]
