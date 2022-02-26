@@ -570,3 +570,20 @@ function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pa
         return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
     end
 end
+
+"""
+    Base.deleteat!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
+
+If an entry matching the condition is found, then the content of the matching IDS is emptied
+"""
+function Base.deleteat!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...) where {T<:IDSvectorElement}
+    conditions = vcat(condition, collect(conditions))
+    if length(ids) == 0
+        return ids
+    end
+    matches = _match(ids, conditions)
+    for k in reverse(collect(keys(matches)))
+        deleteat!(ids, k)
+    end
+    return ids
+end
