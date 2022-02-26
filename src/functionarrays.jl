@@ -395,7 +395,7 @@ function Base.insert!(ids::IDSvector{T}, i, v::T) where {T<:IDSvectorElement}
 end
 
 function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T<:IDSvectorElement}
-    return Base.deleteat!(ids._value, i)
+    return deleteat!(ids._value, i)
 end
 
 function Base.empty!(ids::IDS)
@@ -422,11 +422,11 @@ function Base.empty!(ids::IDS, field::Symbol)
 end
 
 function Base.resize!(ids::IDSvector{T}) where {T<:IDSvectorTimeElement}
-    return Base.resize!(ids, global_time(ids))
+    return resize!(ids, global_time(ids))
 end
 
 function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T<:IDSvectorTimeElement}
-    return Base.resize!(ids, global_time(ids))
+    return resize!(ids, global_time(ids))
 end
 
 function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvectorTimeElement}
@@ -505,18 +505,7 @@ function _set_conditions(ids::IDS, conditions::Pair{String}...)
     return ids
 end
 
-"""
-    Base.resize!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
-
-Resize if a set of conditions are not met
-If an entry matching the condition is found, then the content of the matching IDS is emptied, and the IDS is populated with the conditions
-Returns selected IDS
-"""
-function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...) where {T<:IDSvectorElement}
-    conditions = vcat(condition, collect(conditions))
-    if length(ids) == 0
-        return _set_conditions(resize!(ids, 1), conditions...)
-    end
+function _match(ids::IDSvector{T}, conditions) where {T<:IDSvectorElement}
     matches = Dict()
     for (k, item) in enumerate(ids)
         match = true
@@ -547,10 +536,36 @@ function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pa
             matches[k] = item
         end
     end
+    return matches
+end
+
+"""
+    Base.resize!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
+
+Resize if a set of conditions are not met
+If an entry matching the condition is found, then the content of the matching IDS is emptied, and the IDS is populated with the conditions
+Returns selected IDS
+"""
+function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pair{String}...; allow_multiple_matches = false) where {T<:IDSvectorElement}
+    conditions = vcat(condition, collect(conditions))
+    if length(ids) == 0
+        return _set_conditions(resize!(ids, 1), conditions...)
+    end
+    matches = _match(ids, conditions)
     if length(matches) == 1
         return _set_conditions(empty!(collect(values(matches))[1]), conditions...)
     elseif length(matches) > 1
-        error("Multiple entries $([k for k in keys(matches)]) match resize! conditions")
+        if allow_multiple_matches
+            for (kk, k) in reverse(collect(enumerate(keys(matches))))
+                if kk == 1
+                    return _set_conditions(empty!(matches[k]), conditions...)
+                else
+                    deleteat!(ids, k)
+                end
+            end
+        else
+            error("Multiple entries $([k for k in keys(matches)]) match resize! conditions: $conditions")
+        end
     else
         return _set_conditions(resize!(ids, length(ids) + 1), conditions...)
     end

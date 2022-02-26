@@ -935,7 +935,7 @@ function DT_fusion_source!(dd::IMAS.dd)
 
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
-    isource = resize!(dd.core_sources.source, "identifier.index" => 6)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
     new_source(
         isource,
         6,
