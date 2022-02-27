@@ -303,20 +303,20 @@ Plot build cross-section or radial build
             # setup labels and colors
             name = l.name
             color = :gray
-            if !ismissing(l, :material) && l.material == "vacuum"
+            if l.type in [0]
                 name = ""
                 color = :white
-            elseif occursin("TF", l.name)
+            elseif l.type in [2]
                 color = :green
-            elseif occursin("shield", l.name)
+            elseif l.type in [3]
                 color = :red
-            elseif occursin("blanket", l.name)
+            elseif l.type in [4]
                 color = :orange
-            elseif occursin("wall", l.name)
+            elseif l.type in [5]
                 color = :yellow
             end
             for nm in ["inner", "outer", "vacuum", "hfs", "lfs"]
-                name = replace(name, "$nm " => "")
+                name = replace(name, r"$nm "i => "")
             end
 
             if ((only_layers === nothing) || (Symbol(name) in only_layers)) && (!(Symbol(name) in exclude_layers))
@@ -341,6 +341,7 @@ Plot build cross-section or radial build
             end
         end
 
+        # plasma
         if ((only_layers === nothing) || (:plasma in only_layers)) && (!(:plasma in exclude_layers))
             @series begin
                 seriestype --> :path
@@ -366,17 +367,17 @@ Plot build cross-section or radial build
         at = 0
         for l in bd.layer
             @series begin
-                if !ismissing(l, :material) && l.material == "vacuum"
+                if l.type in [-1, 0]
                     color --> :white
-                elseif occursin("OH", l.name)
+                elseif l.type in [1]
                     color --> :gray
-                elseif occursin("TF", l.name)
+                elseif l.type in [2]
                     color --> :green
-                elseif occursin("shield", l.name)
+                elseif l.type in [3]
                     color --> :red
-                elseif occursin("blanket", l.name)
+                elseif l.type in [4]
                     color --> :orange
-                elseif occursin("wall", l.name)
+                elseif l.type in [5]
                     color --> :yellow
                 end
                 seriestype --> :vspan
