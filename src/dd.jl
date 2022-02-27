@@ -12686,35 +12686,36 @@ end
 
 mutable struct build__tf <: IDS
     var"coils_n" :: Union{Missing, Integer, Function}
+    var"material" :: Union{Missing, String, Function}
     var"thickness" :: Union{Missing, Real, Function}
     _parent :: WeakRef
-    function build__tf(var"coils_n"=missing, var"thickness"=missing, _parent=WeakRef(missing))
-        ids = new(var"coils_n", var"thickness", _parent)
+    function build__tf(var"coils_n"=missing, var"material"=missing, var"thickness"=missing, _parent=WeakRef(missing))
+        ids = new(var"coils_n", var"material", var"thickness", _parent)
         assign_expressions(ids)
         return ids
     end
 end
 
-mutable struct build__pf_coils_rail___outline <: IDS
+mutable struct build__pf_active__rail___outline <: IDS
     var"distance" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"r" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     var"z" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function build__pf_coils_rail___outline(var"distance"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
+    function build__pf_active__rail___outline(var"distance"=missing, var"r"=missing, var"z"=missing, _parent=WeakRef(missing))
         ids = new(var"distance", var"r", var"z", _parent)
         assign_expressions(ids)
         return ids
     end
 end
 
-mutable struct build__pf_coils_rail <: IDSvectorStaticElement
+mutable struct build__pf_active__rail <: IDSvectorStaticElement
     var"coils_cleareance" :: Union{Missing, Real, Function}
     var"coils_elements_area" :: Union{Missing, Real, Function}
     var"coils_number" :: Union{Missing, Integer, Function}
     var"name" :: Union{Missing, String, Function}
-    var"outline" :: build__pf_coils_rail___outline
+    var"outline" :: build__pf_active__rail___outline
     _parent :: WeakRef
-    function build__pf_coils_rail(var"coils_cleareance"=missing, var"coils_elements_area"=missing, var"coils_number"=missing, var"name"=missing, var"outline"=build__pf_coils_rail___outline(), _parent=WeakRef(missing))
+    function build__pf_active__rail(var"coils_cleareance"=missing, var"coils_elements_area"=missing, var"coils_number"=missing, var"name"=missing, var"outline"=build__pf_active__rail___outline(), _parent=WeakRef(missing))
         ids = new(var"coils_cleareance", var"coils_elements_area", var"coils_number", var"name", var"outline", _parent)
         assign_expressions(ids)
         setfield!(ids.outline, :_parent, WeakRef(ids))
@@ -12722,12 +12723,25 @@ mutable struct build__pf_coils_rail <: IDSvectorStaticElement
     end
 end
 
+mutable struct build__pf_active <: IDS
+    var"material" :: Union{Missing, String, Function}
+    var"rail" :: IDSvector{T} where {T<:build__pf_active__rail}
+    _parent :: WeakRef
+    function build__pf_active(var"material"=missing, var"rail"=IDSvector(build__pf_active__rail[]), _parent=WeakRef(missing))
+        ids = new(var"material", var"rail", _parent)
+        assign_expressions(ids)
+        setfield!(ids.rail, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
 mutable struct build__oh <: IDS
+    var"material" :: Union{Missing, String, Function}
     var"required_b_field" :: Union{Missing, Real, Function}
     var"required_j" :: Union{Missing, Real, Function}
     _parent :: WeakRef
-    function build__oh(var"required_b_field"=missing, var"required_j"=missing, _parent=WeakRef(missing))
-        ids = new(var"required_b_field", var"required_j", _parent)
+    function build__oh(var"material"=missing, var"required_b_field"=missing, var"required_j"=missing, _parent=WeakRef(missing))
+        ids = new(var"material", var"required_b_field", var"required_j", _parent)
         assign_expressions(ids)
         return ids
     end
@@ -12781,17 +12795,17 @@ mutable struct build <: IDS
     var"flux_swing_requirements" :: build__flux_swing_requirements
     var"layer" :: IDSvector{T} where {T<:build__layer}
     var"oh" :: build__oh
-    var"pf_coils_rail" :: IDSvector{T} where {T<:build__pf_coils_rail}
+    var"pf_active" :: build__pf_active
     var"tf" :: build__tf
     var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function build(var"flux_swing_requirements"=build__flux_swing_requirements(), var"layer"=IDSvector(build__layer[]), var"oh"=build__oh(), var"pf_coils_rail"=IDSvector(build__pf_coils_rail[]), var"tf"=build__tf(), var"time"=missing, _parent=WeakRef(missing))
-        ids = new(var"flux_swing_requirements", var"layer", var"oh", var"pf_coils_rail", var"tf", var"time", _parent)
+    function build(var"flux_swing_requirements"=build__flux_swing_requirements(), var"layer"=IDSvector(build__layer[]), var"oh"=build__oh(), var"pf_active"=build__pf_active(), var"tf"=build__tf(), var"time"=missing, _parent=WeakRef(missing))
+        ids = new(var"flux_swing_requirements", var"layer", var"oh", var"pf_active", var"tf", var"time", _parent)
         assign_expressions(ids)
         setfield!(ids.flux_swing_requirements, :_parent, WeakRef(ids))
         setfield!(ids.layer, :_parent, WeakRef(ids))
         setfield!(ids.oh, :_parent, WeakRef(ids))
-        setfield!(ids.pf_coils_rail, :_parent, WeakRef(ids))
+        setfield!(ids.pf_active, :_parent, WeakRef(ids))
         setfield!(ids.tf, :_parent, WeakRef(ids))
         return ids
     end

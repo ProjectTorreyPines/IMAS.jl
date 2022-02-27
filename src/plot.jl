@@ -191,7 +191,7 @@ function join_outlines(r1, z1, r2, z2)
 end
 
 
-@recipe function plot_pf_coils_rail(rail::IMAS.build__pf_coils_rail)
+@recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
     if !ismissing(rail.outline, :r)
         @series begin
             color --> :gray
@@ -201,7 +201,7 @@ end
     end
 end
 
-@recipe function plot_pf_coils_rail(rails::IDSvector{IMAS.build__pf_coils_rail})
+@recipe function plot_pf_active_rail(rails::IDSvector{IMAS.build__pf_active__rail})
     for (krail, rail) in enumerate(rails)
         if !ismissing(rail.outline, :r)
             @series begin

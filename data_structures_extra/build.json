@@ -208,59 +208,71 @@
   "type": "static",
   "units": "A/m^2"
  },
- "build.pf_coils_rail": {
+ "build.oh.material": {
+  "data_type": "STR_0D",
+  "documentation": "Material of the OH coils",
+  "type": "static",
+  "units": ""
+ },
+ "build.pf_active.rail": {
    "coordinates": [
     "1...N"
    ],
    "data_type": "STRUCT_ARRAY",
    "documentation": "List of rails where the PF coils can slide on"
  },
- "build.pf_coils_rail[:].coils_elements_area": {
+ "build.pf_active.rail[:].coils_elements_area": {
   "data_type": "FLT_0D",
    "documentation": "Cross-sectional area taken up by individual filaments in a coil",
    "type": "static",
    "units": "m^2"
  },
- "build.pf_coils_rail[:].coils_cleareance": {
+ "build.pf_active.rail[:].coils_cleareance": {
   "data_type": "FLT_0D",
    "documentation": "Clereance that coils have from other structures",
    "type": "static",
    "units": "m"
  },
- "build.pf_coils_rail[:].name": {
+ "build.pf_active.rail[:].name": {
    "data_type": "STR_0D",
    "documentation": "Name of the pf coil rail",
    "type": "static"
  },
-  "build.pf_coils_rail[:].coils_number": {
+  "build.pf_active.rail[:].coils_number": {
     "data_type": "INT_0D",
     "documentation": "Number of coils on the rail",
     "type": "static"
  },
-  "build.pf_coils_rail[:].outline": {
+  "build.pf_active.rail[:].outline": {
    "data_type": "STRUCTURE",
    "documentation": "Irregular (possibly not-continuous) outline of the rail surface"
  },
- "build.pf_coils_rail[:].outline.r": {
+ "build.pf_active.rail[:].outline.r": {
    "coordinates": ["1...N"],
    "data_type": "FLT_1D",
    "documentation": "Major radius",
    "type": "static",
    "units": "m"
  },
- "build.pf_coils_rail[:].outline.z": {
-   "coordinates": ["build.pf_coils_rail[:].outline.r"],
+ "build.pf_active.rail[:].outline.z": {
+   "coordinates": ["build.pf_active.rail[:].outline.r"],
    "data_type": "FLT_1D",
    "documentation": "Height",
    "type": "static",
    "units": "m"
  },
- "build.pf_coils_rail[:].outline.distance": {
-   "coordinates": ["build.pf_coils_rail[:].outline.r"],
+ "build.pf_active.rail[:].outline.distance": {
+   "coordinates": ["build.pf_active.rail[:].outline.r"],
    "data_type": "FLT_1D",
    "documentation": "Distance along the rail skipping gaps",
    "type": "static",
    "units": "m"
+ },
+ "build.pf_active.material": {
+  "data_type": "STR_0D",
+  "documentation": "Material of the PF coils",
+  "type": "static",
+  "units": ""
  },
  "build.tf.coils_n": {
   "data_type": "INT_0D",
@@ -269,9 +281,15 @@
  },
  "build.tf.thickness": {
   "data_type": "FLT_0D",
-  "documentation": "Toroidal Thickness of the TF coils",
+  "documentation": "Thickness of the TF coils",
   "type": "static",
   "units": "m"
+ },
+ "build.tf.material": {
+  "data_type": "STR_0D",
+  "documentation": "Material of the TF coils",
+  "type": "static",
+  "units": ""
  },
  "build.ids_properties": {
   "data_type": "STRUCTURE",
