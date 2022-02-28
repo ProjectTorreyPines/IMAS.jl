@@ -951,6 +951,24 @@ function DT_fusion_source!(dd::IMAS.dd)
 end
 
 """
+    bremsstrahlung_source!(dd::IMAS.dd)
+
+Calculates Bremsstrahlung radiation source and adds it to dd.core_sources
+"""
+function bremsstrahlung_source!(dd::IMAS.dd)
+    # Plasma estimated at ellipsoid torus for volume contribution (triangularity is small correction)
+    cp1d = dd.core_profiles.profiles_1d[]
+    ne = cp1d.electrons.density
+    Te = cp1d.electrons.temperature
+
+    # Bremsstrahlung radiation
+    powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 8)
+    new_source(isource, 8, "Bremsstrahlung", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy = powerDensityBrem)
+    return dd
+end
+
+"""
     total_sources(dd::IMAS.dd)
 
 Returns core_sources__source___profiles_1d with sources totals
