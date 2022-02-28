@@ -834,15 +834,17 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     return ion_elec_fraction
 end
 
-"""
-    nclass_conductivity!(dd::IMAS.dd)
+function lnLambda_e(ne, Te)
+    return 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
+end
 
-Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
-More info see omfit_classes.utils_fusion.py nclass_conductivity function
-"""
-function nclass_conductivity!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
-    eqt = dd.equilibrium.time_slice[time]
-    cp1d = dd.core_profiles.profiles_1d[time]
+function spitzer_conductivity(ne, Te, Zeff)
+    return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e(ne, Te))
+end
+
+function nuestar(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
 
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
@@ -856,37 +858,87 @@ function nclass_conductivity!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
 
     eps = a ./ R
 
-    volume = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)(rho)
     q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
+
+    return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
+end
+
+
+function collision_frequencies(dd::IMAS.dd)
+    # from TGYRO `collision_rates` subroutine
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    Te = cp1d.electrons.temperature # ev
+    ne = cp1d.electrons.density / 1E6 # cm^-3
+    me = constants.m_e * 1E3 # g
+    mp = constants.m_p * 1E3 # g
+    e = 4.8032e-10 # statcoul
+    k = 1.6022e-12 # erg/eV
+
+    loglam = 24.0.-log.(sqrt.(ne)./Te)
+
+    # 1/tau_ee (Belli 2008) in 1/s
+    nue = sqrt(2) .* pi .* ne * e^4.0 .* loglam ./ (sqrt(me) * (k * Te) .^ 1.5)
+
+    # 1/tau_ii (Belli 2008) in 1/s
+    nui = zeros(length(Te))
+    for ion in cp1d.ion
+        Ti = ion.temperature
+        ni = ion.density / 1E6
+        Zi = ion.element[1].z_n
+        mi = ion.element[1].a * mp
+        nui += sqrt(2) .* pi .* ni .* Zi .* e^4.0 .* loglam ./ (sqrt.(mi) .* (k .* Ti) .^ 1.5)
+    end
+
+    # c_exch = 1.8e-19 is the formulary exch. coefficient
+    c_exch = 2.0 * (4.0 / 3) * sqrt(2.0 * pi) * e^4 / k^1.5
+
+    # nu_exch in 1/s
+    nu_exch = zeros(length(Te))
+    for ion in cp1d.ion
+        Ti = ion.temperature
+        ni = ion.density / 1E6
+        Zi = ion.element[1].z_n
+        mi = ion.element[1].a * mp
+        nu_exch .+= c_exch .* sqrt(me * mi) * Zi^2 .* ni .* loglam ./ (me .* Ti .+ mi .* Te) .^ 1.5
+    end
+
+    return nue, nui, nu_exch
+end
+
+"""
+    nclass_conductivity!(dd::IMAS.dd)
+
+Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
+More info see omfit_classes.utils_fusion.py nclass_conductivity function
+"""
+function nclass_conductivity!(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    rho = cp1d.grid.rho_tor_norm
+    Te = cp1d.electrons.temperature
+    ne = cp1d.electrons.density
+    Zeff = cp1d.zeff
+
     trapped_fraction = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction)(rho)
 
-    nis = [ion.density for ion in cp1d.ion]
-    Nis = zeros(length(nis))
-    for (idx, ion_density) in enumerate(nis)
-        Nis[idx] = integrate(volume, ion_density)
-    end
-
-    lnLambda_e = 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
-
-    nuestar = 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e ./ (Te .^ 2 .* eps .^ 1.5)
-
-    function spitzer_conductivity(Te, Zeff, lnLambda_e)
-        return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e)
-    end
+    nue = nuestar(dd)
 
     # neo 2021
     f33teff =
         trapped_fraction ./ (
-            1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+
-            0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5
+            1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nue) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+
+            0.61 .* (1 .- 0.41 .* trapped_fraction) .* nue ./ Zeff .^ 0.5
         )
 
     F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
 
-    cp1d.conductivity_parallel = spitzer_conductivity(Te, Zeff, lnLambda_e) .* F33
+    cp1d.conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
 
     return cp1d.conductivity_parallel
 end
+
 """
     DT_fusion_source!(dd::IMAS.dd)
 
@@ -935,7 +987,7 @@ function DT_fusion_source!(dd::IMAS.dd)
 
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
-    isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches = true)
     new_source(
         isource,
         6,
@@ -946,6 +998,26 @@ function DT_fusion_source!(dd::IMAS.dd)
         total_ion_energy = alpha_power .* ion_electron_fraction
     )
     @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
+
+    return dd
+end
+
+"""
+    collisional_exchange_source!(dd::IMAS.dd)
+
+Calculates collisional exchange source and modifies dd.core_sources
+"""
+function collisional_exchange_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    ne = cp1d.electrons.density
+    Te = cp1d.electrons.temperature
+    Ti = cp1d.ion[1].temperature
+
+    nu_exch = collision_frequencies(dd)[3]
+    delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
+
+    isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches = true)
+    new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy = -delta, total_ion_energy = delta)
 
     return dd
 end
