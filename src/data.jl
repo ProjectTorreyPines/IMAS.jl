@@ -263,7 +263,7 @@ function goto(ids::IDS, location::String; f2::Function = f2i)
     while f2(h) != cs0
         h = h._parent.value
         if h === missing
-            error("Could not reach `$(location)` from `$(f2(ids))`")
+            throw(IMASdetachedHead("$(location)", "$(f2(ids))"))
         end
     end
     # then dive into the location branch
@@ -292,11 +292,19 @@ function coordinates(ids::IDS, field::Symbol)
         if occursin("...", coord)
             push!(coord_values, nothing)
         else
-            h = goto(ids, u2fs(p2i(i2p(coord)[1:end-1])); f2 = f2fs)
-            coord_leaf = Symbol(i2p(coord)[end])
-            h = getfield(h, coord_leaf)
-            # add value to the coord_values
-            push!(coord_values, h)
+            try
+                h = goto(ids, u2fs(p2i(i2p(coord)[1:end-1])); f2 = f2fs)
+                coord_leaf = Symbol(i2p(coord)[end])
+                h = getfield(h, coord_leaf)
+                # add value to the coord_values
+                push!(coord_values, h)
+            catch e
+                if typeof(e) <: IMASdetachedHead
+                    push!(coord_values, missing)
+                else
+                    rethrow()
+                end
+            end
         end
     end
     return Dict(:names => coord_names, :values => coord_values)
