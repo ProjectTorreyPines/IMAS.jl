@@ -19,12 +19,24 @@ expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
     (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * constants.e
 
 expressions["core_profiles.profiles_1d[:].electrons.density"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * constants.e)
+    (rho_tor_norm; electrons, _...) -> begin
+        tmp = electrons.density_thermal
+        if !ismissing(electrons,:density_fast)
+            tmp += electrons.density_fast
+        end
+        return tmp
+    end
 
-expressions["core_profiles.profiles_1d[:].electrons.temperature"] =
-    (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * constants.e)
+expressions["core_profiles.profiles_1d[:].ion[:].density"] =
+    (rho_tor_norm; ion, _...) -> begin
+        tmp = ion.density_thermal
+        if !ismissing(ion,:density_fast)
+            tmp += ion.density_fast
+        end
+        return tmp
+    end
 
-expressions["dd.summary.global_quantities.beta_tor_thermal_norm"] =
+    expressions["dd.summary.global_quantities.beta_tor_thermal_norm"] =
     (;dd, _...) -> calc_beta_thermal_norm!(dd.summary, dd.equilibrium, dd.core_profiles)
 
 expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
