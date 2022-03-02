@@ -436,7 +436,7 @@ end
         title := "Electron Power"
         if !ismissing(cs1d.electrons, :energy)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
-            label --> "$name " * @sprintf("[%3.3g MW]", tot / 1E6)
+            label --> "$name " * @sprintf("[%.3g MW]", tot / 1E6)
         end
         if !integrated && !ismissing(cs1d.electrons, :energy)
             cs1d.electrons, :energy
@@ -454,7 +454,7 @@ end
         title := "Ion Power"
         if !ismissing(cs1d, :total_ion_energy)
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
-            label --> "$name " * @sprintf("[%3.3g MW]", tot / 1E6)
+            label --> "$name " * @sprintf("[%.3g MW]", tot / 1E6)
         end
         if !integrated && !ismissing(cs1d, :total_ion_energy)
             cs1d, :total_ion_energy
@@ -472,7 +472,7 @@ end
         title := "Electron Particle"
         if !ismissing(cs1d.electrons, :particles)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
-            label --> "$name " * @sprintf("[%3.3g s⁻¹]", tot)
+            label --> "$name " * @sprintf("[%.3g s⁻¹]", tot)
         end
         if !integrated && !ismissing(cs1d.electrons, :particles)
             cs1d.electrons, :particles
@@ -490,7 +490,7 @@ end
         title := "Parallel Current"
         if !ismissing(cs1d, :j_parallel)
             tot = integrate(cs1d.grid.area, cs1d.j_parallel)
-            label --> "$name " * @sprintf("[%3.3g MA]", tot / 1E6)
+            label --> "$name " * @sprintf("[%.3g MA]", tot / 1E6)
         end
         if !integrated && !ismissing(cs1d, :j_parallel)
             cs1d, :j_parallel
@@ -544,7 +544,7 @@ end
             if Z == 1.0
                 label --> ion.label
             else
-                label --> "$(ion.label) × $(Int(Z))"
+                label --> "$(ion.label) × " * @sprintf("%.3g", Z)
             end
             linestyle --> :dash
             ylim --> (0.0, Inf)
