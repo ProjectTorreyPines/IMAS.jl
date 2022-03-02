@@ -834,56 +834,8 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     return ion_elec_fraction
 end
 
-function lnLambda_e(ne, Te)
-    return 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
-end
-
-function lnLambda_i(ni, Ti, Zavg)
-    return 30.0 .- log.(Zavg .^ 3 * sqrt.(ni) ./ (Ti .^ 1.5))
-end
-
 function spitzer_conductivity(ne, Te, Zeff)
     return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e(ne, Te))
-end
-
-function nuestar(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
-
-    rho = cp1d.grid.rho_tor_norm
-    Te = cp1d.electrons.temperature
-    ne = cp1d.electrons.density
-    Zeff = cp1d.zeff
-
-    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
-    R = IMAS.interp(eqt.profiles_1d.rho_tor_norm, R)(rho)
-    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
-    a = IMAS.interp(eqt.profiles_1d.rho_tor_norm, a)(rho)
-
-    eps = a ./ R
-
-    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
-
-    return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
-end
-
-function nuistar(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
-
-    rho = cp1d.grid.rho_tor_norm
-    Zeff = cp1d.zeff
-
-    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
-    R = IMAS.interp(eqt.profiles_1d.rho_tor_norm, R)(rho)
-    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
-    a = IMAS.interp(eqt.profiles_1d.rho_tor_norm, a)(rho)
-
-    eps = a ./ R
-
-    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
-
-    return 4.90e-18 * abs.(q) .* R .* ni * Zeff .^ 4 * lnLambda_i(ni, Ti, Zeff) / (Ti .^ 2 .* eps .^ 1.5)
 end
 
 function collision_frequencies(dd::IMAS.dd)
@@ -928,21 +880,25 @@ function collision_frequencies(dd::IMAS.dd)
     return nue, nui, nu_exch
 end
 
-function Sauter_neo2021_bootsrap(dd::IMAS.dd)
+function Sauter_neo2021_bootsrap_current(dd::IMAS.dd)
 
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
 
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
+    Ti = cp1d.ion[1].temperature
 
     pressure_thermal = cp1d.pressure_thermal
     Zeff = cp1d.zeff
 
     R_pe = cp1d.electrons.pressure ./ pressure_thermal
 
-    fT = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction)(rho)
-
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    fT = IMAS.interp(rho_eq, eqt.profiles_1d.trapped_fraction)(rho)
+    I_psi = IMAS.interp(rho_eq, eqt.profiles_1d.f)(rho)
+    q = IMAS.interp(rho_eq, eqt.profiles_1d.q)(rho)
+    
     nue = nuestar(dd)
     nui = nuistar(dd)
 
@@ -964,7 +920,11 @@ function Sauter_neo2021_bootsrap(dd::IMAS.dd)
         0.06 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 4
     )
 
-
+    f32eeteff = fT ./ (1 .+ (0.23 .* (1 .- 0.96 .* fT) .* sqrt.(nue)) ./ Zeff .^ 0.5
+            .+ (0.13 .* (1 .- 0.38 .* fT) .* nue ./ Zeff .^ 2)
+            .* (sqrt.(1 .+ 2 .* (Zeff .- 1) .^ 0.5) .+ fT .^ 2 .* sqrt.((0.075 .+ 0.25 .* (Zeff .- 1) .^ 2) .* nue))
+        ) 
+    
     X = f32eeteff
     F32ee = (0.1 .+ 0.6 .* Zeff) ./ (Zeff .* (0.77 .+ 0.63 .* (1 .+ (Zeff .- 1) .^ 1.1))) .* (X .- X .^ 4)
     (
@@ -990,6 +950,11 @@ function Sauter_neo2021_bootsrap(dd::IMAS.dd)
 
     L_32 = F32ee .+ F32ei
 
+    f34teff = fT ./ (
+            (1 .+ 0.25 .* (1 .- 0.7 .* fT) .* sqrt.(nue) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5))
+            .+ (0.61 .* (1 .- 0.41 .* fT) .* nue) ./ (Zeff .^ 0.5)
+        )
+    
     X = f34teff
     L_34 = (
         (1 .+ 0.15 ./ (Zeff .^ 1.2 .- 0.71)) .* X
@@ -1009,11 +974,64 @@ function Sauter_neo2021_bootsrap(dd::IMAS.dd)
 
     bra1 = F31 .* IMAS.gradient(pressure_thermal, rho) ./ pressure_thermal
     bra2 = L_32 .* IMAS.gradient(Te, rho) ./ Te
-    bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* IMAS.gradient(psi, Ti) ./ Ti
+    bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* IMAS.gradient(Ti,rho) ./ Ti
 
 
-    jboot1 = .-I_psi .* pe .* np.sign(q) .* (bra1 .+ bra2 .+ bra3)
+    jboot1 = .-I_psi .* cp1d.electrons.pressure .* sign(q[end]) .* (bra1 .+ bra2 .+ bra3)
     return jboot1
+end
+
+
+function nuestar(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    rho = cp1d.grid.rho_tor_norm
+    Te = cp1d.electrons.temperature
+    ne = cp1d.electrons.density
+    Zeff = cp1d.zeff
+
+    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    R = IMAS.interp(eqt.profiles_1d.rho_tor_norm, R)(rho)
+    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+    a = IMAS.interp(eqt.profiles_1d.rho_tor_norm, a)(rho)
+
+    eps = a ./ R
+
+    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
+
+    return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
+end
+
+function nuistar(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    rho = cp1d.grid.rho_tor_norm
+    Zeff = cp1d.zeff
+
+    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    R = IMAS.interp(eqt.profiles_1d.rho_tor_norm, R)(rho)
+    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+    a = IMAS.interp(eqt.profiles_1d.rho_tor_norm, a)(rho)
+
+    eps = a ./ R
+
+    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
+    ne = cp1d.electrons.density
+    ni = sum([ion.density for ion in cp1d.ion])
+    Ti = cp1d.ion[1].temperature
+    
+    Zavg = ne ./ ni
+
+    return 4.90e-18 .* abs.(q) .* R .* ni .* Zeff .^ 4 .* lnLambda_i(ni, Ti, Zavg) ./ (Ti .^ 2 .* eps .^ 1.5)
+end
+function lnLambda_e(ne, Te)
+    return 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
+end
+
+function lnLambda_i(ni, Ti, Zavg)
+    return 30.0 .- log.(Zavg .^ 3 .* sqrt.(ni) ./ (Ti .^ 1.5))
 end
 
 """
