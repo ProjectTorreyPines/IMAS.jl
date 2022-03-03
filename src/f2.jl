@@ -182,8 +182,10 @@ end
 return IDS/IDSvector type as a string starting from a universal IMAS location string
 """
 function u2fs(imas_location::String)::String
-    tmp = replace(imas_location, "." => "__")
-    return replace(tmp, "[:]" => "_")
+    imas_location = replace(imas_location, r"\[\:\]$" => "___")
+    imas_location = replace(imas_location, "[:]." => "___")
+    imas_location = replace(imas_location, "." => "__")
+    return imas_location
 end
 
 """

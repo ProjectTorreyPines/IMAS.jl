@@ -334,7 +334,7 @@ function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function
             if typeof(e) <: IMASmissingDataException
                 v1 = missing
             else
-                rethrow
+                rethrow()
             end
         end
         try
@@ -343,7 +343,7 @@ function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function
             if typeof(e) <: IMASmissingDataException
                 v2 = missing
             else
-                rethrow
+                rethrow()
             end
         end
 

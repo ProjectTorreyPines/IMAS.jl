@@ -118,7 +118,7 @@ function get_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol) where {T<:I
     return get_time_array(ids, field, global_time(ids))
 end
 
-function get_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, time0::Float64) where {T<:IDSvectorElement}
+function get_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, time0::Real) where {T<:IDSvectorElement}
     time = time_parent(ids).time
     i = argmin(abs.(time .- time0))
     return getproperty(ids, field)[i]

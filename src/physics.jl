@@ -733,8 +733,6 @@ end
         momentum::Union{AbstractVector,Missing} = missing)
 
 Populates the IMAS.core_sources__source with given heating, particle, current, momentun profiles
-
-
 """
 function new_source(
     source::IMAS.core_sources__source,
@@ -1235,4 +1233,13 @@ function total_sources(dd)
     end
 
     return total_source1d
+end
+
+"""
+    area(coil::IMAS.pf_active__coil)
+
+returns cross sectional area of PF coils
+"""
+function area(coil::IMAS.pf_active__coil)
+    return coil.element[1].geometry.rectangle.width * coil.element[1].geometry.rectangle.height
 end

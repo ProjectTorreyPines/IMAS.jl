@@ -101,6 +101,10 @@ end
     xx = range(-1, 2, 11)
     yy = @coords(prof1d.electrons.temperature => xx)
     @test length(yy) == 11
+
+    pf_active = IMAS.pf_active()
+    coil = resize!(pf_active.coil, 1)
+    @test all(IMAS.coordinates(coil, :current_limit_max)[:values] .=== Any[missing, missing])
 end
 
 @testset "IDS_IMAS" begin
@@ -163,18 +167,6 @@ end
     @test coords[:names][1] == "core_profiles.profiles_1d[:].grid.rho_tor_norm"
     @test coords[:values][1] === dd.core_profiles.profiles_1d[2].grid.rho_tor_norm
     @test length(coords[:values][1]) == 3
-
-    # # test change of grid on numerical array dd and function dd
-    # dd = IMAS.dd();
-    # resize!(dd.core_profiles.profiles_1d, 3)
-    # dd.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=10)
-    # dd.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
-    # dd.core_profiles.profiles_1d[1].electrons.temperature = 1.0 .- (dd.core_profiles.profiles_1d[1].grid.rho_tor_norm).^2
-    # dd.core_profiles.profiles_1d[2].electrons.temperature = x -> 1.0 .- x.^2
-    # dd.core_profiles.profiles_1d[1].grid.rho_tor_norm = range(0.0, stop=1.0, length=3)
-    # @test length(dd.core_profiles.profiles_1d[1].electrons.temperature) == 3
-    # dd.core_profiles.profiles_1d[2].grid.rho_tor_norm = range(0.0, stop=1.0, length=4)
-    # @test length(dd.core_profiles.profiles_1d[2].electrons.temperature) == 4
 
     # test working with IDSvectorElement standalone or in a IDSvector
     dd = IMAS.dd()

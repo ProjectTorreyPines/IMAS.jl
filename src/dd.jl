@@ -12684,13 +12684,46 @@ mutable struct core_profiles <: IDS
     end
 end
 
+mutable struct build__tf__technology <: IDS
+    var"JxB_strain" :: Union{Missing, Real, Function}
+    var"fraction_stainless" :: Union{Missing, Real, Function}
+    var"fraction_void" :: Union{Missing, Real, Function}
+    var"material" :: Union{Missing, String, Function}
+    var"ratio_SC_to_copper" :: Union{Missing, Real, Function}
+    var"temperature" :: Union{Missing, Real, Function}
+    var"thermal_strain" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function build__tf__technology(var"JxB_strain"=missing, var"fraction_stainless"=missing, var"fraction_void"=missing, var"material"=missing, var"ratio_SC_to_copper"=missing, var"temperature"=missing, var"thermal_strain"=missing, _parent=WeakRef(missing))
+        ids = new(var"JxB_strain", var"fraction_stainless", var"fraction_void", var"material", var"ratio_SC_to_copper", var"temperature", var"thermal_strain", _parent)
+        assign_expressions(ids)
+        return ids
+    end
+end
+
 mutable struct build__tf <: IDS
     var"coils_n" :: Union{Missing, Integer, Function}
-    var"material" :: Union{Missing, String, Function}
+    var"technology" :: build__tf__technology
     var"thickness" :: Union{Missing, Real, Function}
     _parent :: WeakRef
-    function build__tf(var"coils_n"=missing, var"material"=missing, var"thickness"=missing, _parent=WeakRef(missing))
-        ids = new(var"coils_n", var"material", var"thickness", _parent)
+    function build__tf(var"coils_n"=missing, var"technology"=build__tf__technology(), var"thickness"=missing, _parent=WeakRef(missing))
+        ids = new(var"coils_n", var"technology", var"thickness", _parent)
+        assign_expressions(ids)
+        setfield!(ids.technology, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct build__pf_active__technology <: IDS
+    var"JxB_strain" :: Union{Missing, Real, Function}
+    var"fraction_stainless" :: Union{Missing, Real, Function}
+    var"fraction_void" :: Union{Missing, Real, Function}
+    var"material" :: Union{Missing, String, Function}
+    var"ratio_SC_to_copper" :: Union{Missing, Real, Function}
+    var"temperature" :: Union{Missing, Real, Function}
+    var"thermal_strain" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function build__pf_active__technology(var"JxB_strain"=missing, var"fraction_stainless"=missing, var"fraction_void"=missing, var"material"=missing, var"ratio_SC_to_copper"=missing, var"temperature"=missing, var"thermal_strain"=missing, _parent=WeakRef(missing))
+        ids = new(var"JxB_strain", var"fraction_stainless", var"fraction_void", var"material", var"ratio_SC_to_copper", var"temperature", var"thermal_strain", _parent)
         assign_expressions(ids)
         return ids
     end
@@ -12724,25 +12757,43 @@ mutable struct build__pf_active__rail <: IDSvectorStaticElement
 end
 
 mutable struct build__pf_active <: IDS
-    var"material" :: Union{Missing, String, Function}
     var"rail" :: IDSvector{T} where {T<:build__pf_active__rail}
+    var"technology" :: build__pf_active__technology
     _parent :: WeakRef
-    function build__pf_active(var"material"=missing, var"rail"=IDSvector(build__pf_active__rail[]), _parent=WeakRef(missing))
-        ids = new(var"material", var"rail", _parent)
+    function build__pf_active(var"rail"=IDSvector(build__pf_active__rail[]), var"technology"=build__pf_active__technology(), _parent=WeakRef(missing))
+        ids = new(var"rail", var"technology", _parent)
         assign_expressions(ids)
         setfield!(ids.rail, :_parent, WeakRef(ids))
+        setfield!(ids.technology, :_parent, WeakRef(ids))
+        return ids
+    end
+end
+
+mutable struct build__oh__technology <: IDS
+    var"JxB_strain" :: Union{Missing, Real, Function}
+    var"fraction_stainless" :: Union{Missing, Real, Function}
+    var"fraction_void" :: Union{Missing, Real, Function}
+    var"material" :: Union{Missing, String, Function}
+    var"ratio_SC_to_copper" :: Union{Missing, Real, Function}
+    var"temperature" :: Union{Missing, Real, Function}
+    var"thermal_strain" :: Union{Missing, Real, Function}
+    _parent :: WeakRef
+    function build__oh__technology(var"JxB_strain"=missing, var"fraction_stainless"=missing, var"fraction_void"=missing, var"material"=missing, var"ratio_SC_to_copper"=missing, var"temperature"=missing, var"thermal_strain"=missing, _parent=WeakRef(missing))
+        ids = new(var"JxB_strain", var"fraction_stainless", var"fraction_void", var"material", var"ratio_SC_to_copper", var"temperature", var"thermal_strain", _parent)
+        assign_expressions(ids)
         return ids
     end
 end
 
 mutable struct build__oh <: IDS
-    var"material" :: Union{Missing, String, Function}
     var"required_b_field" :: Union{Missing, Real, Function}
     var"required_j" :: Union{Missing, Real, Function}
+    var"technology" :: build__oh__technology
     _parent :: WeakRef
-    function build__oh(var"material"=missing, var"required_b_field"=missing, var"required_j"=missing, _parent=WeakRef(missing))
-        ids = new(var"material", var"required_b_field", var"required_j", _parent)
+    function build__oh(var"required_b_field"=missing, var"required_j"=missing, var"technology"=build__oh__technology(), _parent=WeakRef(missing))
+        ids = new(var"required_b_field", var"required_j", var"technology", _parent)
         assign_expressions(ids)
+        setfield!(ids.technology, :_parent, WeakRef(ids))
         return ids
     end
 end
@@ -12797,10 +12848,9 @@ mutable struct build <: IDS
     var"oh" :: build__oh
     var"pf_active" :: build__pf_active
     var"tf" :: build__tf
-    var"time" :: Union{Missing, AbstractArray{T, 1} where T<:Real, AbstractRange{T} where T<:Real, Function}
     _parent :: WeakRef
-    function build(var"flux_swing_requirements"=build__flux_swing_requirements(), var"layer"=IDSvector(build__layer[]), var"oh"=build__oh(), var"pf_active"=build__pf_active(), var"tf"=build__tf(), var"time"=missing, _parent=WeakRef(missing))
-        ids = new(var"flux_swing_requirements", var"layer", var"oh", var"pf_active", var"tf", var"time", _parent)
+    function build(var"flux_swing_requirements"=build__flux_swing_requirements(), var"layer"=IDSvector(build__layer[]), var"oh"=build__oh(), var"pf_active"=build__pf_active(), var"tf"=build__tf(), _parent=WeakRef(missing))
+        ids = new(var"flux_swing_requirements", var"layer", var"oh", var"pf_active", var"tf", _parent)
         assign_expressions(ids)
         setfield!(ids.flux_swing_requirements, :_parent, WeakRef(ids))
         setfield!(ids.layer, :_parent, WeakRef(ids))
