@@ -47,11 +47,36 @@ Plots pf active cross-section
 
     elseif what == :currents
         label --> "$(get_time_array(pfa.coil[1].current, :time, time)) s"
-        currents = [get_time_array(c.current, :data, time) for c in pfa.coil]
+        currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
         @series begin
             linestyle --> :dash
             marker --> :circle
             ["$k" for k = 1:length(currents)], currents
+        end
+
+        Imax = []
+        for c in pfa.coil
+            if !ismissing(c.b_field_max_timed, :data)
+                b_max = get_time_array(c.b_field_max_timed, :data, time)
+                temperature = 0.0
+                Jcrit = Interpolations.CubicSplineInterpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max)(b_max, temperature)
+                push!(Imax, Jcrit * area(c))
+            else
+                push!(Imax, NaN)
+            end
+        end
+
+        if !all(isnan.(Imax))
+            @series begin
+                marker --> :cross
+                label := "Max current"
+                ["$k" for k = 1:length(currents)], Imax
+            end
+            @series begin
+                marker --> :cross
+                primary := false
+                ["$k" for k = 1:length(currents)], -Imax
+            end
         end
 
     else
