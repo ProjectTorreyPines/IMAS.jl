@@ -2,105 +2,6 @@
  "build": {
   "documentation": "Radial build of the center stack"
  },
- "build.code": {
-  "data_type": "STRUCTURE",
-  "documentation": "Generic decription of the code-specific parameters for the code that has produced this IDS",
-  "full_path": "build/code",
-  "lifecycle_status": "alpha",
-  "structure_reference": "code"
- },
- "build.code.commit": {
-  "data_type": "STR_0D",
-  "documentation": "Unique commit reference of software",
-  "full_path": "build/code/commit",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.library": {
-  "coordinates": [
-   "1...N"
-  ],
-  "data_type": "STRUCT_ARRAY",
-  "documentation": "List of external libraries used by the code that has produced this IDS",
-  "full_path": "build/code/library(i1)",
-  "lifecycle_status": "alpha",
-  "maxoccur": "10",
-  "structure_reference": "library"
- },
- "build.code.library[:].commit": {
-  "data_type": "STR_0D",
-  "documentation": "Unique commit reference of software",
-  "full_path": "build/code/library(i1)/commit",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.library[:].name": {
-  "data_type": "STR_0D",
-  "documentation": "Name of software",
-  "full_path": "build/code/library(i1)/name",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.library[:].parameters": {
-  "data_type": "STR_0D",
-  "documentation": "List of the code specific parameters in XML format",
-  "full_path": "build/code/library(i1)/parameters",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.library[:].repository": {
-  "data_type": "STR_0D",
-  "documentation": "URL of software repository",
-  "full_path": "build/code/library(i1)/repository",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.library[:].version": {
-  "data_type": "STR_0D",
-  "documentation": "Unique version (tag) of software",
-  "full_path": "build/code/library(i1)/version",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.name": {
-  "data_type": "STR_0D",
-  "documentation": "Name of software generating IDS",
-  "full_path": "build/code/name",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.output_flag": {
-  "coordinates": [
-   "build.time"
-  ],
-  "data_type": "INT_1D",
-  "documentation": "Output flag : 0 means the run is successful, other values mean some difficulty has been encountered, the exact meaning is then code specific. Negative values mean the result shall not be used.",
-  "full_path": "build/code/output_flag(:)",
-  "lifecycle_status": "alpha",
-  "timebasepath": "/time",
-  "type": "dynamic"
- },
- "build.code.parameters": {
-  "data_type": "STR_0D",
-  "documentation": "List of the code specific parameters in XML format",
-  "full_path": "build/code/parameters",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.repository": {
-  "data_type": "STR_0D",
-  "documentation": "URL of software repository",
-  "full_path": "build/code/repository",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.code.version": {
-  "data_type": "STR_0D",
-  "documentation": "Unique version (tag) of software",
-  "full_path": "build/code/version",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
  "build.layer": {
   "coordinates": [
    "1...N"
@@ -208,9 +109,45 @@
   "type": "static",
   "units": "A/m^2"
  },
- "build.oh.material": {
+ "build.oh.technology.material": {
   "data_type": "STR_0D",
   "documentation": "Material of the OH coils",
+  "type": "static",
+  "units": ""
+ },
+ "build.oh.technology.temperature": {
+  "data_type": "FLT_0D",
+  "documentation": "OH coils temperature",
+  "type": "static",
+  "units": "K"
+ },
+ "build.oh.technology.thermal_strain": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of thermal expansion strain over maximum total strain on the OH coils",
+  "type": "static",
+  "units": ""
+ },
+ "build.oh.technology.JxB_strain": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of maximum JxB strain over maximum total strain on the OH coils",
+  "type": "static",
+  "units": ""
+ },
+ "build.oh.technology.fraction_stainless": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of stainless steel in the OH coils cross-sectional areas",
+  "type": "static",
+  "units": ""
+ },
+ "build.oh.technology.fraction_void": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of `void` in the OH coils cross-sectional area. Void is everything (like coolant) that is not structural nor conductor",
+  "type": "static",
+  "units": ""
+ },
+ "build.oh.technology.ratio_SC_to_copper": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of superconductor to copper cross-sectional areas in OH coils",
   "type": "static",
   "units": ""
  },
@@ -235,7 +172,7 @@
  },
  "build.pf_active.rail[:].name": {
    "data_type": "STR_0D",
-   "documentation": "Name of the pf coil rail",
+   "documentation": "Name of the coil rail",
    "type": "static"
  },
   "build.pf_active.rail[:].coils_number": {
@@ -268,15 +205,51 @@
    "type": "static",
    "units": "m"
  },
- "build.pf_active.material": {
+ "build.pf_active.technology.material": {
   "data_type": "STR_0D",
   "documentation": "Material of the PF coils",
   "type": "static",
   "units": ""
  },
+ "build.pf_active.technology.temperature": {
+  "data_type": "FLT_0D",
+  "documentation": "PF coils temperature",
+  "type": "static",
+  "units": "K"
+ },
+ "build.pf_active.technology.thermal_strain": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of thermal expansion strain over maximum total strain on the PF coils",
+  "type": "static",
+  "units": ""
+ },
+ "build.pf_active.technology.JxB_strain": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of maximum JxB strain over maximum total strain on the PF coils",
+  "type": "static",
+  "units": ""
+ },
+ "build.pf_active.technology.fraction_stainless": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of stainless steel in the PF coils cross-sectional areas",
+  "type": "static",
+  "units": ""
+ },
+ "build.pf_active.technology.fraction_void": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of `void` in the PF coils cross-sectional area. Void is everything (like coolant) that is not structural nor conductor",
+  "type": "static",
+  "units": ""
+ },
+ "build.pf_active.technology.ratio_SC_to_copper": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of superconductor to copper cross-sectional areas in the PF coils",
+  "type": "static",
+  "units": ""
+ },
  "build.tf.coils_n": {
   "data_type": "INT_0D",
-  "documentation": "Number of coils around the torus",
+  "documentation": "Number of TF coils around the torus",
   "type": "static"
  },
  "build.tf.thickness": {
@@ -285,97 +258,46 @@
   "type": "static",
   "units": "m"
  },
- "build.tf.material": {
+ "build.tf.technology.material": {
   "data_type": "STR_0D",
   "documentation": "Material of the TF coils",
   "type": "static",
   "units": ""
  },
- "build.ids_properties": {
-  "data_type": "STRUCTURE",
-  "documentation": "Interface Data Structure properties. This element identifies the node above as an IDS",
-  "full_path": "build/ids_properties",
-  "lifecycle_status": "alpha",
-  "structure_reference": "ids_properties"
+ "build.tf.technology.temperature": {
+  "data_type": "FLT_0D",
+  "documentation": "TF coils temperature",
+  "type": "static",
+  "units": "K"
  },
- "build.ids_properties.comment": {
-  "data_type": "STR_0D",
-  "documentation": "Any comment describing the content of this IDS",
-  "full_path": "build/ids_properties/comment",
-  "lifecycle_status": "alpha",
-  "type": "constant"
+ "build.tf.technology.thermal_strain": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of thermal expansion strain over maximum total strain on the TF coils",
+  "type": "static",
+  "units": ""
  },
- "build.ids_properties.creation_date": {
-  "data_type": "STR_0D",
-  "documentation": "Date at which this data has been produced",
-  "full_path": "build/ids_properties/creation_date",
-  "lifecycle_status": "alpha",
-  "type": "constant"
+ "build.tf.technology.JxB_strain": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of maximum JxB strain over maximum total strain on the TF coils",
+  "type": "static",
+  "units": ""
  },
- "build.ids_properties.homogeneous_time": {
-  "data_type": "INT_0D",
-  "documentation": "This node must be filled (with 0, 1, or 2) for the IDS to be valid. If 1, the time of this IDS is homogeneous, i.e. the time values for this IDS are stored in the time node just below the root of this IDS. If 0, the time values are stored in the various time fields at lower levels in the tree. In the case only constant or static nodes are filled within the IDS, homogeneous_time must be set to 2",
-  "full_path": "build/ids_properties/homogeneous_time",
-  "lifecycle_status": "alpha",
-  "type": "constant"
+ "build.tf.technology.fraction_stainless": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of stainless steel in the TF coils cross-sectional areas",
+  "type": "static",
+  "units": ""
  },
- "build.ids_properties.occurrence": {
-  "data_type": "INT_0D",
-  "description": "occurrence number [NOTE: this field only exists in OMAS and is not part of the ITER PDM]",
-  "full_path": "build.ids_properties.occurrence"
+ "build.tf.technology.fraction_void": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of `void` in the TF coils cross-sectional area. Void is everything (like coolant) that is not structural nor conductor",
+  "type": "static",
+  "units": ""
  },
- "build.ids_properties.provider": {
-  "data_type": "STR_0D",
-  "documentation": "Name of the person in charge of producing this data",
-  "full_path": "build/ids_properties/provider",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.ids_properties.source": {
-  "data_type": "STR_0D",
-  "documentation": "Source of the data (any comment describing the origin of the data : code, path to diagnostic signals, processing method, ...)",
-  "full_path": "build/ids_properties/source",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.ids_properties.version_put": {
-  "data_type": "STRUCTURE",
-  "documentation": "Version of the access layer package used to PUT this IDS",
-  "full_path": "build/ids_properties/version_put",
-  "lifecycle_status": "alpha",
-  "structure_reference": "version_dd_al"
- },
- "build.ids_properties.version_put.access_layer": {
-  "data_type": "STR_0D",
-  "documentation": "Version of Access Layer used to PUT this IDS",
-  "full_path": "build/ids_properties/version_put/access_layer",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.ids_properties.version_put.access_layer_language": {
-  "data_type": "STR_0D",
-  "documentation": "Programming language of the Access Layer high level API used to PUT this IDS",
-  "full_path": "build/ids_properties/version_put/access_layer_language",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.ids_properties.version_put.data_dictionary": {
-  "data_type": "STR_0D",
-  "documentation": "Version of Data Dictionary used to PUT this IDS",
-  "full_path": "build/ids_properties/version_put/data_dictionary",
-  "lifecycle_status": "alpha",
-  "type": "constant"
- },
- "build.time": {
-  "coordinates": [
-   "1...N"
-  ],
-  "data_type": "FLT_1D_TYPE",
-  "documentation": "Generic time",
-  "full_path": "build/time(:)",
-  "lifecycle_status": "alpha",
-  "timebasepath": "time",
-  "type": "dynamic",
-  "units": "s"
+ "build.tf.technology.ratio_SC_to_copper": {
+  "data_type": "FLT_0D",
+  "documentation": "Fraction of superconductor to copper cross-sectional areas in the TF coils",
+  "type": "static",
+  "units": ""
  }
 }
