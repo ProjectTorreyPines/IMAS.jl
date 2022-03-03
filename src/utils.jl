@@ -93,28 +93,28 @@ function to_range(vector::AbstractVector{T} where {T<:Real})
 end
 
 """
-    Interpolations.CubicSplineInterpolation(x::AbstractVector, y::AbstractVector, args...; kw...)
+    Interpolations.CubicSplineInterpolation(x::AbstractVector, y::AbstractVector; kw...)
 
 Attempt to convert x::Vector to Range to feed to Interpolations.CubicSplineInterpolation
 """
-function Interpolations.CubicSplineInterpolation(x::AbstractVector, y::AbstractVector, args...; kw...)
+function Interpolations.CubicSplineInterpolation(x::AbstractVector, y::AbstractVector; kw...)
     if x[end] < x[1]
-        return Interpolations.CubicSplineInterpolation(reverse(to_range(x)), reverse(y), args...; kw...)
+        return Interpolations.CubicSplineInterpolation(reverse(to_range(x)), reverse(y); kw...)
     else
-        return Interpolations.CubicSplineInterpolation(to_range(x), y, args...; kw...)
+        return Interpolations.CubicSplineInterpolation(to_range(x), y; kw...)
     end
 end
 
 """
-    Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector, args...; kw...)
+    Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector; kw...)
 
 Attempt to convert x::Vector to Range to feed to Interpolations.LinearInterpolation
 """
-function Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector, args...; kw...)
+function Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector; kw...)
     if x[end] < x[1]
-        return Interpolations.LinearInterpolation(reverse(to_range(x)), reverse(y), args...; kw...)
+        return Interpolations.LinearInterpolation((reverse(x),), reverse(y); kw...)
     else
-        return Interpolations.LinearInterpolation(to_range(x), y, args...; kw...)
+        return Interpolations.LinearInterpolation((x,), y; kw...)
     end
 end
 
@@ -135,10 +135,6 @@ Interface to Interpolations.jl that makes it similar to Scipy.interpolate
 """
 function interp(xs, y, scheme::Symbol = :linear, extrapolate::Symbol = :linear; kw...)
 
-    if isa(xs, Union{AbstractVector,AbstractRange})
-        xs = (xs,)
-    end
-
     if extrapolate == :throw
         extrapolation_bc = Interpolations.Throw()
     elseif extrapolate == :linear
@@ -156,7 +152,7 @@ function interp(xs, y, scheme::Symbol = :linear, extrapolate::Symbol = :linear; 
     # Interpolate.jl does not handle arrays of length one
     if length(size(y)) == 1 && size(y)[1] == 1
         if extrapolate != :throw
-            xs = ([xs[1][1] - 1, xs[1][1] + 1],)
+            xs = [xs[1] - 1, xs[1] + 1]
             y = [y[1], y[1]]
             scheme = :constant
         end
