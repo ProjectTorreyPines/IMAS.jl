@@ -71,7 +71,7 @@ expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (;time_slice, _...) -> 3 / 2 * integrate(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
 expressions["equilibrium.time_slice[:].global_quantities.q_95"] =
-    (;time_slice, _...) -> Interpolations.LinearInterpolation(time_slice.profiles_1d.rho_tor_norm, time_slice.profiles_1d.q)(0.95)
+    (;time_slice, _...) -> Interpolations.LinearInterpolation(norm01(time_slice.profiles_1d.psi), time_slice.profiles_1d.q)(0.95)
 
 expressions["equilibrium.time_slice[:].global_quantities.q_axis"] =
     (;time_slice, _...) -> time_slice.profiles_1d.q[1]
