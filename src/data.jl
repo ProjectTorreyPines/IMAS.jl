@@ -254,21 +254,25 @@ Reach location in a given IDS
 # Arguments
 - `f2::Function=f2i`: function used to process the IDS path to be compared to `location`
 """
-function goto(ids::IDS, location::String; f2::Function = f2i)
+function goto(ids::Union{IDS,IDSvector}, location::String; f2::Function = f2i)
     # find common ancestor
-    cs, s1, s2 = IMAS.common_base_string(f2(ids), location)
+    cs, s1, s2 = common_base_string(f2(ids), location)
     cs0 = replace(cs, r"\.$" => "")
     # go upstream until common acestor
     h = ids
     while f2(h) != cs0
-        h = h._parent.value
-        if h === missing
-            throw(IMASdetachedHead("$(location)", "$(f2(ids))"))
+        if h._parent.value === missing
+            break
         end
+        h = h._parent.value
     end
     # then dive into the location branch
     for k in i2p(s2)
-        h = getfield(h, Symbol(k))
+        try
+            h = getfield(h, Symbol(k))
+        catch
+            throw(IMASdetachedHead("$(f2(ids))", "$(location)"))
+        end
     end
     return h
 end

@@ -2,6 +2,17 @@ using Revise
 using IMAS
 using Test
 
+
+@testset "goto" begin
+    dd = IMAS.dd()
+    @test IMAS.goto(dd, "equilibrium") === dd.equilibrium
+    @test IMAS.goto(dd.equilibrium, "equilibrium") === dd.equilibrium
+    eq = IMAS.equilibrium()
+    @test IMAS.goto(eq, "equilibrium") === eq
+    @test IMAS.goto(eq.time_slice, "time_slice") === eq.time_slice
+    @test IMAS.goto(eq.time_slice, "vacuum_toroidal_field") === eq.vacuum_toroidal_field
+end
+
 @testset "expressions" begin
     ne0 = 1E20
     Te0 = 1E3
@@ -35,6 +46,7 @@ using Test
     profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length = 21)
     profiles_1d.electrons.density = ne0 .* (1.0 .- profiles_1d.grid.rho_tor_norm .^ 2)
     profiles_1d.electrons.pressure = (x; _...) -> pe0 .* (1.0 .- x .^ 2)
+    profiles_1d.electrons.temperature = (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * constants.e)
     @test profiles_1d.electrons.temperature[1] ≈ Te0
 
     # test passing of whole structure
@@ -46,6 +58,7 @@ using Test
     profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length = 21)
     profiles_1d.electrons.temperature = (x; _...) -> Te0 .* (1.0 .- x .^ 2)
     profiles_1d.electrons.pressure = (x; _...) -> pe0 .* (1.0 .- x .^ 2)
+    profiles_1d.electrons.density = (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * constants.e)
     @test profiles_1d.electrons.density[1] ≈ ne0
 
     # test passing of whole structure

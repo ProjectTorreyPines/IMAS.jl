@@ -106,7 +106,7 @@ struct IMASdetachedHead <: Exception
     destination::String
 end
 
-Base.showerror(io::IO, e::IMASdetachedHead) = print(io, "Could not reach `$destination` from `$source`")
+Base.showerror(io::IO, e::IMASdetachedHead) = print(io, "Could not reach `$(e.destination)` from `$(e.source)`")
 
 struct IMASmissingDataException <: Exception
     ids::IDS
@@ -153,7 +153,7 @@ function Base.getproperty(ids::IDS, field::Symbol)
             return exec_expression_with_ancestor_args(ids, field, value, x)
         catch e
             if typeof(e) <: IMASexpressionRecursion
-                rethrow(e)
+                rethrow()
             else
                 throw(IMASbadExpression(ids, field, sprint(showerror, e)))
             end
