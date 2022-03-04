@@ -352,7 +352,7 @@ function _coords(ex)
         local ids = $(esc(ex.args[2].args[1]))
         local field = $(esc(ex.args[2].args[2]))
         local xx = $(esc(ex.args[3]))
-        local yy = interp(ids, field)(xx)
+        local yy = interp1d(ids, field).(xx)
         yy
     end
 end

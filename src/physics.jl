@@ -675,7 +675,7 @@ function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equili
     rho = cp1d.grid.rho_tor_norm
     Bt = @ddtime(equilibrium.vacuum_toroidal_field.b0)
     Ip = eqt.global_quantities.ip
-    volume_cp = IMAS.interp(eq1d.rho_tor_norm, eq1d.volume)[rho]
+    volume_cp = IMAS.interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
 
     pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
     beta_tor = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
@@ -760,38 +760,38 @@ function new_source(
     cs1d.grid.volume = volume
 
     if electrons_energy !== missing
-        cs1d.electrons.energy = IMAS.interp(LinRange(0, 1, length(electrons_energy)), electrons_energy)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.energy = IMAS.interp1d(LinRange(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
     end
     if electrons_power_inside !== missing
-        cs1d.electrons.power_inside = IMAS.interp(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.power_inside = IMAS.interp1d(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if total_ion_energy !== missing
-        cs1d.total_ion_energy = IMAS.interp(LinRange(0, 1, length(total_ion_energy)), total_ion_energy)(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_energy = IMAS.interp1d(LinRange(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
     end
     if total_ion_power_inside !== missing
-        cs1d.total_ion_power_inside = IMAS.interp(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_power_inside = IMAS.interp1d(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if electrons_particles !== missing
-        cs1d.electrons.particles = IMAS.interp(LinRange(0, 1, length(electrons_particles)), electrons_particles)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles = IMAS.interp1d(LinRange(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
     end
     if electrons_particles_inside !== missing
-        cs1d.electrons.particles_inside = IMAS.interp(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles_inside = IMAS.interp1d(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if j_parallel !== missing
-        cs1d.j_parallel = IMAS.interp(LinRange(0, 1, length(j_parallel)), j_parallel)(cs1d.grid.rho_tor_norm)
+        cs1d.j_parallel = IMAS.interp1d(LinRange(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
     end
     if current_parallel_inside !== missing
-        cs1d.current_parallel_inside = IMAS.interp(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.current_parallel_inside = IMAS.interp1d(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if momentum_tor !== missing
-        cs1d.momentum_tor = IMAS.interp(LinRange(0, 1, length(momentum_tor)), momentum_tor)(cs1d.grid.rho_tor_norm)
+        cs1d.momentum_tor = IMAS.interp1d(LinRange(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
     end
     if torque_tor_inside !== missing
-        cs1d.torque_tor_inside = IMAS.interp(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.torque_tor_inside = IMAS.interp1d(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
     end
 
     return source
@@ -1052,7 +1052,7 @@ function nclass_conductivity!(dd::IMAS.dd)
     ne = cp1d.electrons.density
     Zeff = cp1d.zeff
 
-    trapped_fraction = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction)(rho)
+    trapped_fraction = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
 
     nue = nuestar(dd)
 
@@ -1226,7 +1226,7 @@ function total_sources(dd)
                         end
                         old_value = getproperty(ids1, field)
                         x = source1d.grid.rho_tor_norm
-                        setproperty!(ids1, field, old_value .+ IMAS.interp(x, y)(rho))
+                        setproperty!(ids1, field, old_value .+ IMAS.interp1d(x, y).(rho))
                     end
                 end
             end

@@ -58,9 +58,9 @@ Plots pf active cross-section
         for c in pfa.coil
             if !ismissing(c.b_field_max_timed, :data)
                 b_max = get_time_array(c.b_field_max_timed, :data, time)
-                temperature = 0.0
-                Jcrit = Interpolations.CubicSplineInterpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max)(b_max, temperature)
-                push!(Imax, Jcrit * area(c))
+                temperature = c.temperature[1] # issue: IMAS does not have a way to store the current pf coil temperature
+                Icrit = Interpolations.CubicSplineInterpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
+                push!(Imax, Icrit)
             else
                 push!(Imax, NaN)
             end

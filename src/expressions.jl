@@ -48,7 +48,7 @@ expressions["core_profiles.profiles_1d[:].conductivity_parallel"] =
 expressions["core_profiles.profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)(rho_tor_norm)
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].grid.psi"] =
@@ -60,7 +60,7 @@ expressions["core_profiles.profiles_1d[:].grid.psi"] =
 expressions["core_profiles.profiles_1d[:].grid.area"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area)(rho_tor_norm)
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].time"] =
@@ -189,13 +189,13 @@ expressions["core_sources.source[:].profiles_1d[:].momentum_tor"] =
 expressions["core_sources.source[:].profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)(rho_tor_norm)
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume).(rho_tor_norm)
     end
 
 expressions["core_sources.source[:].profiles_1d[:].grid.area"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area)(rho_tor_norm)
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area).(rho_tor_norm)
     end
 
 
