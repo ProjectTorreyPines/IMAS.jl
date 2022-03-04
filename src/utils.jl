@@ -1,4 +1,5 @@
 import Interpolations
+import DataInterpolations
 import LinearAlgebra
 import StaticArrays
 
@@ -92,82 +93,36 @@ function to_range(vector::AbstractVector{T} where {T<:Real})
     return range(vector[1], vector[end], length = length(vector))
 end
 
-"""
-    Interpolations.CubicSplineInterpolation(x::AbstractVector, y::AbstractVector; kw...)
 
-Attempt to convert x::Vector to Range to feed to Interpolations.CubicSplineInterpolation
-"""
-function Interpolations.CubicSplineInterpolation(x::AbstractVector, y::AbstractVector; kw...)
-    if x[end] < x[1]
-        return Interpolations.CubicSplineInterpolation(reverse(to_range(x)), reverse(y); kw...)
-    else
-        return Interpolations.CubicSplineInterpolation(to_range(x), y; kw...)
-    end
-end
-
-"""
-    Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector; kw...)
-
-Attempt to convert x::Vector to Range to feed to Interpolations.LinearInterpolation
-"""
-function Interpolations.LinearInterpolation(x::AbstractVector, y::AbstractVector; kw...)
-    if x[end] < x[1]
-        return Interpolations.LinearInterpolation((reverse(x),), reverse(y); kw...)
-    else
-        return Interpolations.LinearInterpolation((x,), y; kw...)
-    end
-end
-
-
-function interp(ids::IDS, field::Symbol; kw...)
+function interp1d(ids::IDS, field::Symbol, scheme::Symbol = :linear)
     coord = coordinates(ids, field)
     if length(coord[:values]) > 1
         error("Cannot interpolate multi-dimensional $(f2i(ids)).$field that has coordinates $([k for k in coord[:names]])")
     end
-    return interp(coord[:values][1], getproperty(ids, field); kw...)
+    return interp1d(coord[:values][1], getproperty(ids, field), scheme)
 end
 
 
 """
-    interp(xs, y, scheme::Symbol=:linear, extrapolate::Symbol=:linear; kw...)
+    interp1d(x, y, scheme::Symbol=:linear)
 
-Interface to Interpolations.jl that makes it similar to Scipy.interpolate
+One dimensional curve interpolations with sheme :constant, :linear, :quadratic, :cubic, :lagrange 
 """
-function interp(xs, y, scheme::Symbol = :linear, extrapolate::Symbol = :linear; kw...)
-
-    if extrapolate == :throw
-        extrapolation_bc = Interpolations.Throw()
-    elseif extrapolate == :linear
-        extrapolation_bc = Interpolations.Line()
-    elseif extrapolate == :flat
-        extrapolation_bc = Interpolations.Flat()
-    elseif extrapolate == :periodic
-        extrapolation_bc = Interpolations.Periodic()
-    elseif isa(extrapolate, Number)
-        extrapolation_bc = extrapolate
-    else
-        error("interp extrapolation_bc can only be :throw, :flat, :linear, :periodic, or a number")
-    end
-
-    # Interpolate.jl does not handle arrays of length one
-    if length(size(y)) == 1 && size(y)[1] == 1
-        if extrapolate != :throw
-            xs = [xs[1] - 1, xs[1] + 1]
-            y = [y[1], y[1]]
-            scheme = :constant
-        end
-    end
-
+function interp1d(x, y, scheme::Symbol = :linear)
     if scheme == :constant
-        itp = Interpolations.ConstantInterpolation(xs, y; extrapolation_bc = extrapolation_bc)
+        itp = DataInterpolations.ConstantInterpolation(y, x)
     elseif scheme == :linear
-        itp = Interpolations.LinearInterpolation(xs, y; extrapolation_bc = extrapolation_bc)
+        itp = DataInterpolations.LinearInterpolation(y, x)
+    elseif scheme == :quadratic
+        itp = DataInterpolations.QuadraticSpline(y, x)
     elseif scheme == :cubic
-        itp = Interpolations.CubicSplineInterpolation(xs, y; extrapolation_bc = extrapolation_bc)
+        itp = DataInterpolations.CubicSpline(y, x)
+    elseif scheme == :lagrange
+        n = length(y) - 1
+        itp = DataInterpolations.LagrangeInterpolation(y, x, n)
     else
-        error("interp scheme can only be :constant, :linear, or :cubic ")
+        error("interp1d scheme can only be :constant, :linear, :quadratic, :cubic, :lagrange")
     end
-
     return itp
 end
 
@@ -231,7 +186,7 @@ function intersection(
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T};
-    as_list_of_points::Bool = true,
+    as_list_of_points::Bool = true
 ) where {T}
     if as_list_of_points
         crossings = NTuple{2,T}[]
@@ -406,5 +361,5 @@ function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T} = n
         n = length(x)
     end
     t = range(s[1], s[end]; length = n)
-    return interp(s, x)(t), interp(s, y)(t)
+    return interp1d(s, x).(t), interp1d(s, y).(t)
 end
