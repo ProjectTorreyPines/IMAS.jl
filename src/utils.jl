@@ -282,7 +282,7 @@ function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function
         try
             v1 = getproperty(ids1, field)
         catch e
-            if typeof(e) <: IMASmissingDataException
+            if typeof(e) <: Union{IMASmissingDataException,IMASexpressionError}
                 v1 = missing
             else
                 rethrow()
@@ -291,7 +291,7 @@ function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function
         try
             v2 = getproperty(ids2, field)
         catch e
-            if typeof(e) <: IMASmissingDataException
+            if typeof(e) <: Union{IMASmissingDataException,IMASexpressionError}
                 v2 = missing
             else
                 rethrow()
