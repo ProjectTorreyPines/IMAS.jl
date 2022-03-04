@@ -878,7 +878,7 @@ function collision_frequencies(dd::IMAS.dd)
     return nue, nui, nu_exch
 end
 
-function Sauter_neo2021_bootsrap(dd::IMAS.dd)
+function Sauter_neo2021_bootstrap!(dd::IMAS.dd)
 
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
@@ -898,9 +898,9 @@ function Sauter_neo2021_bootsrap(dd::IMAS.dd)
     dTi_dpsi = IMAS.gradient(Ti) ./ dpsi
     dTe_dpsi = IMAS.gradient(Te) ./ dpsi
 
-    fT = IMAS.interp(rho_eq, eqt.profiles_1d.trapped_fraction)(rho)
-    I_psi = IMAS.interp(rho_eq, eqt.profiles_1d.f)(rho)
-    q = IMAS.interp(rho_eq, eqt.profiles_1d.q)(rho)
+    fT = IMAS.interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
+    I_psi = IMAS.interp1d(rho_eq, eqt.profiles_1d.f).(rho)
+    q = IMAS.interp1d(rho_eq, eqt.profiles_1d.q).(rho)
 
     nue = nuestar(dd)
     nui = nuistar(dd)
@@ -982,7 +982,10 @@ function Sauter_neo2021_bootsrap(dd::IMAS.dd)
     bra2 = L_32 .* dTe_dpsi ./ Te
     bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* dTi_dpsi ./ Ti
 
-    return .-I_psi .* cp1d.electrons.pressure .* sign(q[end]) .* (bra1 .+ bra2 .+ bra3) ./ @ddtime dd.equilibrium.vacuum_toroidal_field.b0
+    j_boot = -I_psi .* cp1d.electrons.pressure .* sign(eqt.global_quantities.ip) .* (bra1 .+ bra2 .+ bra3) ./ @ddtime dd.equilibrium.vacuum_toroidal_field.b0
+    cp1d.j_bootstrap = j_boot
+
+    return j_boot
 end
 
 
@@ -996,13 +999,13 @@ function nuestar(dd::IMAS.dd)
     Zeff = cp1d.zeff
 
     R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
-    R = IMAS.interp(eqt.profiles_1d.rho_tor_norm, R)(rho)
+    R = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
     a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
-    a = IMAS.interp(eqt.profiles_1d.rho_tor_norm, a)(rho)
+    a = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
     eps = a ./ R
 
-    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
+    q = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
     return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
 end
@@ -1015,13 +1018,13 @@ function nuistar(dd::IMAS.dd)
     Zeff = cp1d.zeff
 
     R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
-    R = IMAS.interp(eqt.profiles_1d.rho_tor_norm, R)(rho)
+    R = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
     a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
-    a = IMAS.interp(eqt.profiles_1d.rho_tor_norm, a)(rho)
+    a = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
     eps = a ./ R
 
-    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
+    q = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
     ni = sum([ion.density for ion in cp1d.ion])
     Ti = cp1d.ion[1].temperature
@@ -1243,4 +1246,16 @@ returns cross sectional area of PF coils
 """
 function area(coil::IMAS.pf_active__coil)
     return coil.element[1].geometry.rectangle.width * coil.element[1].geometry.rectangle.height
+end
+
+function energy_thermal!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    W_th = 3/2 * integrate(cp1d.grid.volume,cp1d.pressure_thermal)
+    @ddtime dd.summary.global_quantities.energy_thermal = W_th
+    return W_th
+end
+
+function ne_vol_avg(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    return integrate(cp1d.grid.volume,cp1d.electrons.density) ./cp1d.grid.volume[end]
 end
