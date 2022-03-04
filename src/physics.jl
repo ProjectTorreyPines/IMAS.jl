@@ -888,13 +888,15 @@ function Sauter_neo2021_bootsrap(dd::IMAS.dd)
 
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
-
-    psi_cp = IMAS.interp(rho_eq, eqt.profiles_1d.psi)(rho) / 2pi
-
     pressure_thermal = cp1d.pressure_thermal
+    R_pe = cp1d.electrons.pressure ./ pressure_thermal
     Zeff = cp1d.zeff
 
-    R_pe = cp1d.electrons.pressure ./ pressure_thermal
+    psi_cp = cp1d.grid.psi ./ 2pi
+    dpsi = IMAS.gradient(psi_cp)
+    dP_dpsi = IMAS.gradient(pressure_thermal) ./ dpsi
+    dTi_dpsi = IMAS.gradient(Ti) ./ dpsi
+    dTe_dpsi = IMAS.gradient(Te) ./ dpsi
 
     fT = IMAS.interp(rho_eq, eqt.profiles_1d.trapped_fraction)(rho)
     I_psi = IMAS.interp(rho_eq, eqt.profiles_1d.f)(rho)
@@ -976,12 +978,11 @@ function Sauter_neo2021_bootsrap(dd::IMAS.dd)
         1 ./ (1 .+ 0.004 .* nui .^ 2 .* fT .^ 6)
     )
 
-    bra1 = F31 .* IMAS.gradient(pressure_thermal, psi_cp) ./ cp1d.electrons.pressure
-    bra2 = L_32 .* IMAS.gradient(Te, psi_cp) ./ Te
-    bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* IMAS.gradient(Ti, psi_cp) ./ Ti
+    bra1 = F31 .* dP_dpsi ./ cp1d.electrons.pressure
+    bra2 = L_32 .* dTe_dpsi ./ Te
+    bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* dTi_dpsi ./ Ti
 
-    jboot1 = .-I_psi .* cp1d.electrons.pressure .* sign(q[end]) .* (bra1 .+ bra2 .+ bra3) / @ddtime dd.equilibrium.vacuum_toroidal_field.b0
-    return jboot1
+    return .-I_psi .* cp1d.electrons.pressure .* sign(q[end]) .* (bra1 .+ bra2 .+ bra3) ./ @ddtime dd.equilibrium.vacuum_toroidal_field.b0
 end
 
 
