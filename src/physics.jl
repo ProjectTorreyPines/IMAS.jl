@@ -361,7 +361,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # phi 2D
     eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
+        Interpolations.CubicSplineInterpolation(to_range(eqt.profiles_1d.psi), eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
@@ -387,7 +387,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     for quantity in [:gm2]
         eqt.profiles_1d.gm2[1] =
             Interpolations.CubicSplineInterpolation(
-                eqt.profiles_1d.psi[2:end],
+                to_range(eqt.profiles_1d.psi[2:end]),
                 getproperty(eqt.profiles_1d, quantity)[2:end],
                 extrapolation_bc = Interpolations.Line(),
             ).(eqt.profiles_1d.psi[1])
