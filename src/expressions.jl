@@ -45,10 +45,19 @@ expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
 expressions["core_profiles.profiles_1d[:].conductivity_parallel"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> nclass_conductivity!(dd; time=profiles_1d.time)
 
+expressions["core_profiles.profiles_1d[:].j_bootstrap"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> Sauter_neo2021_bootstrap!(dd)
+
 expressions["core_profiles.profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume).(rho_tor_norm)
+    end
+
+expressions["core_profiles.profiles_1d[:].grid.psi"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.psi).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].grid.area"] =
@@ -207,3 +216,10 @@ expressions["build.layer[:].start_radius"] =
 
 expressions["build.layer[:].end_radius"] =
     (;build, layer_index, _...) -> build_radii(build)[2:end][layer_index]
+
+#= ======= =#
+#  Summary  #
+#= ======= =#
+
+#expressions["summary.global_quantities.energy_thermal"] =
+#    (;summary, global_quantities, _...) = energy_thermal!(dd)
