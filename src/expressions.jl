@@ -53,19 +53,14 @@ expressions["core_profiles.profiles_1d[:].j_non_inductive"] =
 
 expressions["core_profiles.profiles_1d[:].j_total"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
-        if !ismissing(profiles_1d,:j_ohmic) && !ismissing(profiles_1d,:j_non_inductive)
-            return profiles_1d.j_non_inductive .+ profiles_1d.j_ohmic
-        else
-        #    return profiles_1d.j_non_inductive .+ profiles_1d.j_ohmic
-            eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-            return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel).(rho_tor_norm)
-        end
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].j_tor"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_tor).(rho_tor_norm)
+        Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
 expressions["core_profiles.profiles_1d[:].grid.volume"] =
@@ -100,7 +95,8 @@ expressions["core_profiles.vacuum_toroidal_field.r0"] =
 #= ========= =#
 # IMAS does not hold B0 information in a given time slice, but we can get that info from `B0=f/R0`
 # This trick propagates the B0 information to a time_slice even when that time_slice has not been initialized with profiles_1d data
-expressions["equilibrium.time_slice[:].profiles_1d.f"] = (psi; equilibrium, time_slice_index, _...) -> (psi === missing ? [1] : ones(size(psi))) .* (equilibrium.vacuum_toroidal_field.b0[time_slice_index] * equilibrium.vacuum_toroidal_field.r0)
+expressions["equilibrium.time_slice[:].profiles_1d.f"] =
+    (psi; equilibrium, time_slice_index, _...) -> (psi === missing ? [1] : ones(size(psi))) .* (equilibrium.vacuum_toroidal_field.b0[time_slice_index] * equilibrium.vacuum_toroidal_field.r0)
 
 expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (;time_slice, _...) -> 3 / 2 * integrate(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
@@ -173,6 +169,12 @@ expressions["equilibrium.time_slice[:].boundary.squareness_lower_outer"] =
 
 expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
     (;time_slice, _...) -> time_slice.profiles_1d.squareness_upper_outer[end]
+
+expressions["equilibrium.time_slice[:].profiles_1d.j_tor"] =
+    (psi;profiles_1d, _...) -> Jpar_2_Jtor(profiles_1d.rho_tor_norm, profiles_1d.j_parallel, true, time_slice)
+
+expressions["equilibrium.time_slice[:].profiles_1d.j_parallel"] =
+    (psi;time_slice, profiles_1d, _...) -> Jtor_2_Jpar(profiles_1d.rho_tor_norm, profiles_1d.j_tor, true, time_slice)
 
 expressions["equilibrium.time_slice[:].time"] =
     (;equilibrium, time_slice_index, _...) -> equilibrium.time[time_slice_index]
