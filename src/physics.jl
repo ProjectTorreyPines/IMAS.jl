@@ -878,11 +878,13 @@ function collision_frequencies(dd::IMAS.dd)
     return nue, nui, nu_exch
 end
 
-function Sauter_neo2021_bootstrap!(dd::IMAS.dd)
-
+function Sauter_neo2021_bootstrap(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
+    return Sauter_neo2021_bootstrap(eqt, cp1d)
+end
 
+function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
 
@@ -902,8 +904,8 @@ function Sauter_neo2021_bootstrap!(dd::IMAS.dd)
     I_psi = IMAS.interp1d(rho_eq, eqt.profiles_1d.f).(rho)
     q = IMAS.interp1d(rho_eq, eqt.profiles_1d.q).(rho)
 
-    nue = nuestar(dd)
-    nui = nuistar(dd)
+    nue = nuestar(eqt, cp1d)
+    nui = nuistar(eqt, cp1d)
 
     # neo 2021
     f31teff = fT ./ (
@@ -983,16 +985,17 @@ function Sauter_neo2021_bootstrap!(dd::IMAS.dd)
     bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* dTi_dpsi ./ Ti
 
     j_boot = -I_psi .* cp1d.electrons.pressure .* sign(eqt.global_quantities.ip) .* (bra1 .+ bra2 .+ bra3) ./ @ddtime dd.equilibrium.vacuum_toroidal_field.b0
-    cp1d.j_bootstrap = j_boot
 
     return j_boot
 end
 
-
 function nuestar(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
+    return nuestar(eqt, cp1d)
+end
 
+function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density
@@ -1013,7 +1016,10 @@ end
 function nuistar(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
+    return nuistar(eqt, cp1d)
+end
 
+function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Zeff = cp1d.zeff
 
@@ -1033,6 +1039,7 @@ function nuistar(dd::IMAS.dd)
 
     return 4.90e-18 .* abs.(q) .* R .* ni .* Zeff .^ 4 .* lnLambda_i(ni, Ti, Zavg) ./ (Ti .^ 2 .* eps .^ 1.5)
 end
+
 function lnLambda_e(ne, Te)
     return 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
 end
@@ -1040,16 +1047,20 @@ end
 function lnLambda_i(ni, Ti, Zavg)
     return 30.0 .- log.(Zavg .^ 3 .* sqrt.(ni) ./ (Ti .^ 1.5))
 end
+
+function nclass_conductivity(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    return nclass_conductivity(eqt, cp1d)
+end
+
 """
-    nclass_conductivity!(dd::IMAS.dd)
+    nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
 More info see omfit_classes.utils_fusion.py nclass_conductivity function
 """
-function nclass_conductivity!(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
-
+function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density
@@ -1057,7 +1068,7 @@ function nclass_conductivity!(dd::IMAS.dd)
 
     trapped_fraction = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
 
-    nue = nuestar(dd)
+    nue = nuestar(eqt, cp1d)
 
     # neo 2021
     f33teff =
@@ -1068,9 +1079,9 @@ function nclass_conductivity!(dd::IMAS.dd)
 
     F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
 
-    cp1d.conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
+    conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
 
-    return cp1d.conductivity_parallel
+    return conductivity_parallel
 end
 
 """
@@ -1250,12 +1261,12 @@ end
 
 function energy_thermal!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    W_th = 3/2 * integrate(cp1d.grid.volume,cp1d.pressure_thermal)
+    W_th = 3 / 2 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
     @ddtime dd.summary.global_quantities.energy_thermal = W_th
     return W_th
 end
 
 function ne_vol_avg(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    return integrate(cp1d.grid.volume,cp1d.electrons.density) ./cp1d.grid.volume[end]
+    return integrate(cp1d.grid.volume, cp1d.electrons.density) ./ cp1d.grid.volume[end]
 end

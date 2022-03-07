@@ -43,10 +43,10 @@ expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
     (rho_tor_norm; core_profiles, _...) -> total_pressure_thermal!(core_profiles)
 
 expressions["core_profiles.profiles_1d[:].conductivity_parallel"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> nclass_conductivity!(dd; time=profiles_1d.time)
+    (rho_tor_norm; dd, profiles_1d, _...) -> nclass_conductivity(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)
 
 expressions["core_profiles.profiles_1d[:].j_bootstrap"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> Sauter_neo2021_bootstrap!(dd)
+    (rho_tor_norm; dd, profiles_1d, _...) -> Sauter_neo2021_bootstrap(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)
 
 expressions["core_profiles.profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
