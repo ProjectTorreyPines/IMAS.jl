@@ -658,10 +658,9 @@ function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real
     end
 end
 
-function total_pressure_thermal!(core_profiles)
-    prof1d = core_profiles.profiles_1d[]
-    pressure = prof1d.electrons.density .* prof1d.electrons.temperature
-    for ion in prof1d.ion
+function total_pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+    pressure = cp1d.electrons.density .* cp1d.electrons.temperature
+    for ion in cp1d.ion
         pressure += ion.density .* ion.temperature
     end
     return pressure * constants.e

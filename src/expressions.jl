@@ -36,11 +36,8 @@ expressions["core_profiles.profiles_1d[:].ion[:].density"] =
         return tmp
     end
 
-    expressions["dd.summary.global_quantities.beta_tor_thermal_norm"] =
-    (;dd, _...) -> calc_beta_thermal_norm!(dd.summary, dd.equilibrium, dd.core_profiles)
-
 expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
-    (rho_tor_norm; core_profiles, _...) -> total_pressure_thermal!(core_profiles)
+    (rho_tor_norm; profiles_1d, _...) -> total_pressure_thermal(profiles_1d)
 
 expressions["core_profiles.profiles_1d[:].conductivity_parallel"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> nclass_conductivity(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)
@@ -48,16 +45,32 @@ expressions["core_profiles.profiles_1d[:].conductivity_parallel"] =
 expressions["core_profiles.profiles_1d[:].j_bootstrap"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> Sauter_neo2021_bootstrap(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)
 
+expressions["core_profiles.profiles_1d[:].j_ohmic"] =
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
+
+expressions["core_profiles.profiles_1d[:].j_non_inductive"] =
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_ohmic
+
+expressions["core_profiles.profiles_1d[:].j_total"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        if !ismissing(profiles_1d,:j_ohmic) && !ismissing(profiles_1d,:j_non_inductive)
+            return profiles_1d.j_non_inductive .+ profiles_1d.j_ohmic
+        else
+            eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+            return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel).(rho_tor_norm)
+        end
+    end
+
+expressions["core_profiles.profiles_1d[:].j_tor"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_tor).(rho_tor_norm)
+    end
+
 expressions["core_profiles.profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume).(rho_tor_norm)
-    end
-
-expressions["core_profiles.profiles_1d[:].grid.psi"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> begin
-        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.psi).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].grid.area"] =
@@ -66,8 +79,20 @@ expressions["core_profiles.profiles_1d[:].grid.area"] =
         return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area).(rho_tor_norm)
     end
 
+expressions["core_profiles.profiles_1d[:].grid.psi"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.psi).(rho_tor_norm)
+    end
+
 expressions["core_profiles.profiles_1d[:].time"] =
     (;core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
+
+expressions["core_profiles.vacuum_toroidal_field.b0"] =
+    (;dd, core_profiles, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant)(core_profiles.time)
+
+expressions["core_profiles.vacuum_toroidal_field.r0"] =
+    (;dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
 
 #= ========= =#
 # Equilibrium #
@@ -201,12 +226,23 @@ expressions["core_sources.source[:].profiles_1d[:].grid.area"] =
         return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area).(rho_tor_norm)
     end
 
+expressions["core_sources.source[:].profiles_1d[:].grid.psi"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.psi).(rho_tor_norm)
+    end
 
 expressions["core_sources.source[:].profiles_1d[:].time"] =
     (;core_sources, profiles_1d_index, _...) -> core_sources.time[profiles_1d_index]
 
 expressions["core_sources.source[:].global_quantities[:].time"] =
     (;core_sources, global_quantities_index, _...) -> core_sources.time[global_quantities_index]
+
+expressions["core_sources.vacuum_toroidal_field.b0"] =
+    (;dd, core_sources, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant)(core_sources.time)
+
+expressions["core_sources.vacuum_toroidal_field.r0"] =
+    (;dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
 
 #= ===== =#
 #  Build  #
@@ -220,6 +256,9 @@ expressions["build.layer[:].end_radius"] =
 #= ======= =#
 #  Summary  #
 #= ======= =#
+
+expressions["dd.summary.global_quantities.beta_tor_thermal_norm"] =
+    (;dd, _...) -> calc_beta_thermal_norm!(dd.summary, dd.equilibrium, dd.core_profiles) #OVERWRITES
 
 #expressions["summary.global_quantities.energy_thermal"] =
 #    (;summary, global_quantities, _...) = energy_thermal!(dd)
