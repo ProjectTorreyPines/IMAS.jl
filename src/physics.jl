@@ -1198,20 +1198,20 @@ end
 
 Returns core_sources__source___profiles_1d with sources totals
 """
-function total_sources(dd)
+function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
     total_source1d = IMAS.core_sources__source___profiles_1d()
-    total_source1d.grid.rho_tor_norm = rho = dd.core_profiles.profiles_1d[].grid.rho_tor_norm
-    if !ismissing(dd.core_profiles.profiles_1d[].grid, :volume)
-        total_source1d.grid.volume = dd.core_profiles.profiles_1d[].grid.volume
+    total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
+    if !ismissing(cp1d.grid, :volume)
+        total_source1d.grid.volume = cp1d.grid.volume
     end
-    if !ismissing(dd.core_profiles.profiles_1d[].grid, :area)
-        total_source1d.grid.area = dd.core_profiles.profiles_1d[].grid.area
+    if !ismissing(cp1d.grid, :area)
+        total_source1d.grid.area = cp1d.grid.area
     end
-    total_source1d.time = dd.global_time
+    total_source1d.time = cp1d.time
 
-    all_indexes = [source.identifier.index for source in dd.core_sources.source]
+    all_indexes = [source.identifier.index for source in core_sources.source]
 
-    for source in dd.core_sources.source
+    for source in core_sources.source
         if source.identifier.index in [0]
             @warn "total_sources() skipping unspecified source with index $(source.identifier.index)"
             continue
@@ -1228,7 +1228,7 @@ function total_sources(dd)
         source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
 
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
-        source1d = source.profiles_1d[]
+        source1d = source.profiles_1d[Float64(cp1d.time)]
         for sub in [nothing, :electrons]
             ids1 = total_source1d
             ids2 = source1d
@@ -1248,8 +1248,10 @@ function total_sources(dd)
                         end
                         old_value = getproperty(ids1, field)
                         x = source1d.grid.rho_tor_norm
-                        setproperty!(ids1, field, old_value .+ IMAS.interp1d(x, y).(rho))
+                        setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
                     end
+                else
+                    setproperty!(ids1, field, zeros(size(rho)))
                 end
             end
         end
