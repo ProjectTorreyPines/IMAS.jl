@@ -762,38 +762,38 @@ function new_source(
     cs1d.grid.volume = volume
 
     if electrons_energy !== missing
-        cs1d.electrons.energy = IMAS.interp1d(LinRange(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.energy = interp1d(LinRange(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
     end
     if electrons_power_inside !== missing
-        cs1d.electrons.power_inside = IMAS.interp1d(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.power_inside = interp1d(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if total_ion_energy !== missing
-        cs1d.total_ion_energy = IMAS.interp1d(LinRange(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_energy = interp1d(LinRange(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
     end
     if total_ion_power_inside !== missing
-        cs1d.total_ion_power_inside = IMAS.interp1d(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_power_inside = interp1d(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if electrons_particles !== missing
-        cs1d.electrons.particles = IMAS.interp1d(LinRange(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles = interp1d(LinRange(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
     end
     if electrons_particles_inside !== missing
-        cs1d.electrons.particles_inside = IMAS.interp1d(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles_inside = interp1d(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if j_parallel !== missing
-        cs1d.j_parallel = IMAS.interp1d(LinRange(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
+        cs1d.j_parallel = interp1d(LinRange(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
     end
     if current_parallel_inside !== missing
-        cs1d.current_parallel_inside = IMAS.interp1d(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.current_parallel_inside = interp1d(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if momentum_tor !== missing
-        cs1d.momentum_tor = IMAS.interp1d(LinRange(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
+        cs1d.momentum_tor = interp1d(LinRange(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
     end
     if torque_tor_inside !== missing
-        cs1d.torque_tor_inside = IMAS.interp1d(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.torque_tor_inside = interp1d(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
     end
 
     return source
@@ -902,9 +902,9 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     dTi_dpsi = IMAS.gradient(Ti) ./ dpsi
     dTe_dpsi = IMAS.gradient(Te) ./ dpsi
 
-    fT = IMAS.interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
-    I_psi = IMAS.interp1d(rho_eq, eqt.profiles_1d.f).(rho)
-    q = IMAS.interp1d(rho_eq, eqt.profiles_1d.q).(rho)
+    fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
+    I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
+    q = interp1d(rho_eq, eqt.profiles_1d.q).(rho)
 
     nue = nuestar(eqt, cp1d)
     nui = nuistar(eqt, cp1d)
@@ -1004,13 +1004,13 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     Zeff = cp1d.zeff
 
     R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
-    R = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
+    R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
     a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
-    a = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
+    a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
     eps = a ./ R
 
-    q = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
+    q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
     return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
 end
@@ -1026,13 +1026,13 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     Zeff = cp1d.zeff
 
     R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
-    R = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
+    R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
     a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
-    a = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
+    a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
     eps = a ./ R
 
-    q = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
+    q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
     ni = sum([ion.density for ion in cp1d.ion])
     Ti = cp1d.ion[1].temperature
@@ -1068,7 +1068,7 @@ function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_
     ne = cp1d.electrons.density
     Zeff = cp1d.zeff
 
-    trapped_fraction = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
+    trapped_fraction = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
 
     nue = nuestar(eqt, cp1d)
 
@@ -1187,8 +1187,13 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     return dd
 end
 
+
+function total_sources(dd)
+    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
+end
+
 """
-    total_sources(dd::IMAS.dd)
+    core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
 
 Returns core_sources__source___profiles_1d with sources totals
 """
