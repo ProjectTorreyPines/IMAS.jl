@@ -257,8 +257,8 @@ expressions["build.layer[:].end_radius"] =
 #  Summary  #
 #= ======= =#
 
-expressions["dd.summary.global_quantities.beta_tor_thermal_norm"] =
-    (;dd, _...) -> calc_beta_thermal_norm!(dd.summary, dd.equilibrium, dd.core_profiles) #OVERWRITES
+expressions["summary.global_quantities.beta_tor_thermal_norm"] =
+    (;dd, summary, _...) -> [calc_beta_thermal_norm(dd.equilibrium.time_slice[Float64(time)], dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
 
 #expressions["summary.global_quantities.energy_thermal"] =
 #    (;summary, global_quantities, _...) = energy_thermal!(dd)
