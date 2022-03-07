@@ -97,15 +97,15 @@
   "type": "static",
   "units": "Wb"
  },
- "build.oh.required_b_field": {
+ "build.oh.max_b_field": {
   "data_type": "FLT_0D",
-  "documentation": "Magnetic field in the OH solenoid required to satisfy rampup and flattop flux consumption",
+  "documentation": "Maximum magnetic field in the OH solenoid, as required to satisfy rampup and flattop flux consumption",
   "type": "static",
   "units": "T"
  },
- "build.oh.required_j": {
+ "build.oh.max_j": {
   "data_type": "FLT_0D",
-  "documentation": "Current density in the OH solenoid required to satisfy rampup and flattop flux consumption",
+  "documentation": "Maximum current density in the OH solenoid, as required to satisfy rampup and flattop flux consumption",
   "type": "static",
   "units": "A/m^2"
  },

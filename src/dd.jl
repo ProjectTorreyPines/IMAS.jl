@@ -12786,12 +12786,12 @@ mutable struct build__oh__technology <: IDS
 end
 
 mutable struct build__oh <: IDS
-    var"required_b_field" :: Union{Missing, Real, Function}
-    var"required_j" :: Union{Missing, Real, Function}
+    var"max_b_field" :: Union{Missing, Real, Function}
+    var"max_j" :: Union{Missing, Real, Function}
     var"technology" :: build__oh__technology
     _parent :: WeakRef
-    function build__oh(var"required_b_field"=missing, var"required_j"=missing, var"technology"=build__oh__technology(), _parent=WeakRef(missing))
-        ids = new(var"required_b_field", var"required_j", var"technology", _parent)
+    function build__oh(var"max_b_field"=missing, var"max_j"=missing, var"technology"=build__oh__technology(), _parent=WeakRef(missing))
+        ids = new(var"max_b_field", var"max_j", var"technology", _parent)
         assign_expressions(ids)
         setfield!(ids.technology, :_parent, WeakRef(ids))
         return ids
