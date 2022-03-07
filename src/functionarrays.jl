@@ -281,13 +281,14 @@ Execute a function passing the IDS stack as arguments to the function
 """
 function exec_expression_with_ancestor_args(ids::IDS, field::Symbol, func::Function, func_args)
     structure_name = "$(f2u(ids)).$(field)"
+    #@info ">"^length(expression_call_stack) * " " * structure_name
+    # keep track of recursion
+    if !(structure_name in expression_call_stack)
+        push!(expression_call_stack, structure_name)
+    else
+        throw(IMASexpressionRecursion(copy(expression_call_stack)))
+    end
     try
-        # keep track of recursion
-        if !(structure_name in expression_call_stack)
-            push!(expression_call_stack, structure_name)
-        else
-            throw(IMASexpressionRecursion(copy(expression_call_stack)))
-        end
         # find ancestors to this ids
         ancestors = ids_ancestors(ids)
         # execute and in all cases pop the call_stack
