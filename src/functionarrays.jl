@@ -428,86 +428,6 @@ function Base.insert!(ids::IDSvector{T}, i, v::T) where {T<:IDSvectorElement}
     insert!(ids._value, i, v)
 end
 
-function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T<:IDSvectorElement}
-    return deleteat!(ids._value, i)
-end
-
-function Base.empty!(ids::IDS)
-    tmp = typeof(ids)()
-    for item in fieldnames(typeof(ids))
-        if item != :_parent
-            setproperty!(ids, item, getfield(tmp, item))
-        end
-    end
-    assign_expressions(ids)
-    return ids
-end
-
-function Base.empty!(ids::IDS, field::Symbol)
-    struct_name = f2u(ids)
-    if "$(struct_name).$(field)" in keys(expressions)
-        return setproperty!(ids, field, expressions["$(struct_name).$(field)"])
-    elseif typeof(getfield(ids, field)) <: Union{IDS,IDSvector}
-        return empty!(getfield(ids, field))
-    else
-        setproperty!(ids, field, missing)
-        return missing
-    end
-end
-
-function Base.resize!(ids::IDSvector{T}) where {T<:IDSvectorTimeElement}
-    return resize!(ids, global_time(ids))
-end
-
-function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T<:IDSvectorTimeElement}
-    return resize!(ids, global_time(ids))
-end
-
-function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvectorTimeElement}
-    _time = time_parent(ids)
-    time = _time.time
-    if length(ids) > length(time)
-        error(
-            "Length [$(length(ids))] of $(p2i(f2p(ids)[1:end-1])) does not match length [$(length(time))] of $(f2i(_time)).time. Cannot resize based on global_time.",
-        )
-    elseif (length(ids) == 0) || (time0 > maximum(time))
-        k = length(ids) + 1
-        resize!(ids, k)
-        if !(time0 in time)
-            push!(time, time0)
-        end
-        if hasfield(typeof(ids[k]), :time)
-            ids[k].time = time0
-        end
-    elseif time0 == maximum(time)
-        empty!(ids[end])
-        if hasfield(typeof(ids[end]), :time)
-            ids[end].time = time0
-        end
-    elseif time0 < maximum(time)
-        error("Cannot resize structure at time $time0 for a time array structure already ranging between $(time[1]) and $(time[end])")
-    end
-    return ids[end]
-end
-
-function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
-    if n == 0
-        return empty!(ids)
-    elseif n > length(ids)
-        for k = length(ids):n-1
-            push!(ids, eltype(ids)())
-        end
-    else
-        if n < length(ids)
-            for k = n:length(ids)-1
-                pop!(ids)
-            end
-        end
-    end
-    empty!(ids[end])
-    return ids[end]
-end
-
 function Base.fill!(target_ids::T, source_ids::T) where {T<:IDS}
     for field in fieldnames(typeof(target_ids))
         if field == :_parent
@@ -518,6 +438,9 @@ function Base.fill!(target_ids::T, source_ids::T) where {T<:IDS}
     return target_ids
 end
 
+#= ===== =#
+#  UTILS  #
+#= ===== =#
 function _set_conditions(ids::IDS, conditions::Pair{String}...)
     for (path, value) in conditions
         h = ids
@@ -573,6 +496,90 @@ function _match(ids::IDSvector{T}, conditions) where {T<:IDSvectorElement}
     return matches
 end
 
+#= ====== =#
+#  empty!  #
+#= ====== =#
+
+function Base.empty!(ids::IDS)
+    tmp = typeof(ids)()
+    for item in fieldnames(typeof(ids))
+        if item != :_parent
+            setproperty!(ids, item, getfield(tmp, item))
+        end
+    end
+    assign_expressions(ids)
+    return ids
+end
+
+function Base.empty!(ids::IDS, field::Symbol)
+    struct_name = f2u(ids)
+    if "$(struct_name).$(field)" in keys(expressions)
+        return setproperty!(ids, field, expressions["$(struct_name).$(field)"])
+    elseif typeof(getfield(ids, field)) <: Union{IDS,IDSvector}
+        return empty!(getfield(ids, field))
+    else
+        setproperty!(ids, field, missing)
+        return missing
+    end
+end
+
+#= ======= =#
+#  resize!  #
+#= ======= =#
+
+function Base.resize!(ids::IDSvector{T}) where {T<:IDSvectorTimeElement}
+    return resize!(ids, global_time(ids))
+end
+
+function Base.resize!(ids::IDSvector{T}, time0::GlobalTime) where {T<:IDSvectorTimeElement}
+    return resize!(ids, global_time(ids))
+end
+
+function Base.resize!(ids::IDSvector{T}, time0::AbstractFloat) where {T<:IDSvectorTimeElement}
+    _time = time_parent(ids)
+    time = _time.time
+    if length(ids) > length(time)
+        error(
+            "Length [$(length(ids))] of $(p2i(f2p(ids)[1:end-1])) does not match length [$(length(time))] of $(f2i(_time)).time. Cannot resize based on global_time.",
+        )
+    elseif (length(ids) == 0) || (time0 > maximum(time))
+        k = length(ids) + 1
+        resize!(ids, k)
+        if !(time0 in time)
+            push!(time, time0)
+        end
+        if hasfield(typeof(ids[k]), :time)
+            ids[k].time = time0
+        end
+    elseif time0 == maximum(time)
+        empty!(ids[end])
+        if hasfield(typeof(ids[end]), :time)
+            ids[end].time = time0
+        end
+    elseif time0 < maximum(time)
+        error("Cannot resize structure at time $time0 for a time array structure already ranging between $(time[1]) and $(time[end])")
+    end
+    return ids[end]
+end
+
+function Base.resize!(ids::IDSvector{T}, n::Int) where {T<:IDSvectorElement}
+    if n == 0
+        return empty!(ids)
+    elseif n > length(ids)
+        for k = length(ids):n-1
+            push!(ids, eltype(ids)())
+        end
+    else
+        if n < length(ids)
+            for k = n:length(ids)-1
+                pop!(ids)
+            end
+        end
+    end
+    empty!(ids[end])
+    return ids[end]
+end
+
 """
     Base.resize!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
 
@@ -605,6 +612,13 @@ function Base.resize!(ids::IDSvector{T}, condition::Pair{String}, conditions::Pa
     end
 end
 
+#= ========= =#
+#  deleteat!  #
+#= ========= =#
+function Base.deleteat!(ids::IDSvector{T}, i::Int) where {T<:IDSvectorElement}
+    return deleteat!(ids._value, i)
+end
+
 """
     Base.deleteat!(ids::IDSvector{T}, conditions...) where {T <: IDSvectorElement}
 
@@ -622,9 +636,9 @@ function Base.deleteat!(ids::IDSvector{T}, condition::Pair{String}, conditions::
     return ids
 end
 
-#= ============= =#
-#  IDS/IDSvector  #
-#= ============= =#
+#= ========= =#
+#  ismissing  #
+#= ========= =#
 
 """
     ismissing(ids::IDS, leaf)::Bool

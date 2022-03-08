@@ -4,35 +4,6 @@ import LinearAlgebra
 import StaticArrays
 
 """
-    common_base_string(s1::String, s2::String)::Vector{String}
-
-given two strings it returns a tuple of 3 strings that is the common initial part, and then the remaining parts
-"""
-function common_base_string(s1::String, s2::String)::Tuple{String,String,String}
-    index = nothing
-    for k = 1:min(length(s1), length(s2))
-        sub = SubString(s2, 1, k)
-        if startswith(s1, sub)
-            index = k
-        end
-    end
-    if index === nothing
-        return "", s1, s2
-    else
-        return string(SubString(s1, 1, index)), string(SubString(s1, index + 1, length(s1))), string(SubString(s2, index + 1, length(s2)))
-    end
-end
-
-"""
-    iscallable(f)
-
-returns true if argument is callable
-"""
-function iscallable(f)
-    return !isempty(methods(f))
-end
-
-"""
     norm01(x::Vector{T} where T<:Real)
 
 Normalize a vector so that the first item in the array is 0 and the last one is 1
