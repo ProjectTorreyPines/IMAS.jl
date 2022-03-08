@@ -1,5 +1,4 @@
 import NumericalIntegration: integrate, cumul_integrate
-expressions = Dict{String,Function}()
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of

@@ -1,8 +1,8 @@
-import JSON
-
 include("dd.jl")
 
 include("f2.jl")
+
+expressions = Dict{String,Function}()
 
 """
     assign_expressions(ids::Union{IDS,IDSvector})
