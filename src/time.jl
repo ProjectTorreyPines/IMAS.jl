@@ -106,6 +106,7 @@ function set_time_array(ids::Union{IDS,IDSvector{T}}, field::Symbol, time0::Floa
         end
     end
     i = argmin(abs.(time .- time0))
+    push!(access_log.write, "$(f2u(ids)).$(field)") # make sure that ids.field appears in the `write` access_log
     return getproperty(ids, field)[i]
 end
 

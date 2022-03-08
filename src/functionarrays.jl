@@ -141,6 +141,29 @@ Base.showerror(io::IO, e::IMASbadExpression) = print(io, "Bad expression $(f2i(e
 #  IDS  #
 #= === =#
 
+struct AccessLog
+    read::Set{String}
+    expr::Set{String}
+    write::Set{String}
+end
+
+const access_log = AccessLog(Set(String[]), Set(String[]), Set(String[]))
+
+function empty_access_log!()
+    empty!(access_log.read)
+    empty!(access_log.expr)
+    empty!(access_log.write)
+end
+
+function Base.show(io::IO, ::MIME"text/plain", access_log::AccessLog)
+    for field in [:read, :expr, :write]
+        log = getfield(IMAS.access_log, field)
+        for k in sort(collect(log))
+            println(io, "$field: $k")
+        end
+    end
+end
+
 function Base.getproperty(ids::IDS, field::Symbol)
     value = getfield(ids, field)
     if value === missing
@@ -153,7 +176,9 @@ function Base.getproperty(ids::IDS, field::Symbol)
         # interpolate functions on given coordinates
         x = coordinates(ids, field)[:values]
         try
-            return exec_expression_with_ancestor_args(ids, field, value, x)
+            value = exec_expression_with_ancestor_args(ids, field, value, x)
+            push!(access_log.expr, "$(f2u(ids)).$(field)")
+            return value
         catch e
             if typeof(e) <: IMASexpressionRecursion
                 rethrow()
@@ -161,7 +186,10 @@ function Base.getproperty(ids::IDS, field::Symbol)
                 throw(IMASbadExpression(ids, field, sprint(showerror, e)))
             end
         end
+    elseif field == :_parent
+        return value
     else
+        push!(access_log.read, "$(f2u(ids)).$(field)")
         return value
     end
 end
@@ -175,9 +203,15 @@ end
 function _setproperty!(ids::IDS, field::Symbol, v)
     try
         setfield!(ids, field, v)
+        if !(typeof(v) <: Union{IDS,IDSvector}) && (field != :_parent)
+            push!(access_log.write, "$(f2u(ids)).$(field)")
+        end
     catch e
-        typeof(e) <: TypeError && error("$(typeof(v)) is the wrong type for $(f2u(ids)).$(field), it should be $(fieldtype(typeof(ids), field)))")
-        rethrow()
+        if typeof(e) <: TypeError
+            error("$(typeof(v)) is the wrong type for $(f2u(ids)).$(field), it should be $(fieldtype(typeof(ids), field)))")
+        else
+            rethrow()
+        end
     end
 end
 
