@@ -140,11 +140,11 @@ end
     @test IMAS.f2p(wall.description_2d[1].mobile.unit[2].outline[1]) == ["wall", "description_2d", 1, "mobile", "unit", 2, "outline", 1]
     @test IMAS.f2p(wall__description_2d.mobile.unit[2].outline[1]) == ["wall", "description_2d", 0, "mobile", "unit", 2, "outline", 1]
 
-    # test imas_info
-    @test IMAS.imas_info("core_profiles.profiles_1d[1]") == IMAS.imas_info("core_profiles.profiles_1d[:]")
-    @test IMAS.imas_info("core_profiles.profiles_1d") == IMAS.imas_info("core_profiles.profiles_1d[:]")
-    @test all([haskey(IMAS.imas_info("core_profiles.profiles_1d"), k) for k in ["coordinates", "data_type", "full_path", "documentation"]])
-    @test_throws Exception IMAS.imas_info("core_profiles.does_not_exist")
+    # test info
+    @test IMAS.info("core_profiles.profiles_1d[1]") == IMAS.info("core_profiles.profiles_1d[:]")
+    @test IMAS.info("core_profiles.profiles_1d") == IMAS.info("core_profiles.profiles_1d[:]")
+    @test all([haskey(IMAS.info("core_profiles.profiles_1d"), k) for k in ["coordinates", "data_type", "full_path", "documentation"]])
+    @test_throws Exception IMAS.info("core_profiles.does_not_exist")
 
     # test coordinate of a coordinate
     coords = IMAS.coordinates(dd.core_profiles.profiles_1d[1].grid, :rho_tor_norm)

@@ -285,12 +285,12 @@ Coordinate value is `nothing` when the data does not have a coordinate
 Coordinate value is `missing` if the coordinate is missing in the data structure
 """
 function coordinates(ids::IDS, field::Symbol)
-    info = imas_info(ids, field)
+    txt = info(ids, field)
     # handle scalar quantities (which do not have coordinate)
-    if !("coordinates" in keys(info))
+    if !("coordinates" in keys(txt))
         return Dict(:names => [], :values => [])
     end
-    coord_names = deepcopy(info["coordinates"])
+    coord_names = deepcopy(txt["coordinates"])
     coord_values = []
     for coord in coord_names
         if occursin("...", coord)
@@ -320,8 +320,7 @@ end
 Return string with units
 """
 function units(location::String)
-    info = imas_info(location)
-    return get(info, "units", "")
+    return get(info(location), "units", "")
 end
 
 """

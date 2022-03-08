@@ -55,34 +55,37 @@ Memoize.@memoize function imas_dd_ids(ids)
 end
 
 """
-    imas_info(location::String)
+    info(location::String)
 
 Return information of a node in the IMAS data structure
 """
-function imas_info(location::String)
+function info(location::String)
+    if location == "dd.global_time"
+        return Dict("units" => "s", "documentation" => "Generic global time")
+    end
     location = replace(location, r"\[[0-9]+\]$" => "[:]")
     location = replace(location, r"\[:\]$" => "")
     return imas_dd_ids(split(location, ".")[1])[location]
 end
 
 """
-    imas_info(ids::IDS, field::Symbol)
+    info(ids::IDS, field::Symbol)
 
 Return information of a filed of an IDS
 """
-function imas_info(ids::Union{IDS,IDSvector}, field::Symbol)
+function info(ids::Union{IDS,IDSvector}, field::Symbol)
     location = "$(f2u(ids)).$(field)"
-    return imas_info(location)
+    return info(location)
 end
 
 
-function imas_info(ids::Type, field::Symbol)
+function info(ids::Type, field::Symbol)
     if ids <: IMAS.IDSvectorElement
         location = "$(IMAS._f2u(ids))[:].$(field)"
     else
         location = "$(IMAS._f2u(ids)).$(field)"
     end
-    return imas_info(location)
+    return info(location)
 end
 
 
