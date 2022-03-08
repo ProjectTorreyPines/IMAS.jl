@@ -423,18 +423,6 @@ function Base.pop!(ids::IDSvector{T}) where {T<:IDSvectorElement}
     pop!(ids._value)
 end
 
-function Base.iterate(ids::IDSvector{T}) where {T<:IDSvectorElement}
-    return ids[1], 2
-end
-
-function Base.iterate(ids::IDSvector{T}, state) where {T<:IDSvectorElement}
-    if isempty(state)
-        nothing
-    else
-        ids[state], state + 1
-    end
-end
-
 function Base.insert!(ids::IDSvector{T}, i, v::T) where {T<:IDSvectorElement}
     setfield!(v, :_parent, WeakRef(ids))
     insert!(ids._value, i, v)
