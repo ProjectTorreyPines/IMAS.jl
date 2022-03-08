@@ -675,3 +675,91 @@ function Base.ismissing(ids::IDSvector, field::Vector)::Bool
         return true
     end
 end
+
+#= ==== =#
+#  diff  #
+#= ==== =#
+
+_diff_function(v1, v2, tol) = maximum(abs.(v1 .- v2) ./ (tol + sum(abs.(v1) .+ abs.(v2)) / 2.0 / length(v1)))
+
+"""
+    diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function = nothing, recursive = true, differences = Dict(), verbose=true)
+
+Compares two IDSs and returns dictionary with differences
+"""
+function Base.diff(ids1::IDS, ids2::IDS, path = Any[]; tol = 1E-2, plot_function = nothing, recursive = true, differences = Dict(), verbose = true)
+    @assert typeof(ids1) === typeof(ids2) "IDS types are different:  $(typeof(ids1))  and  $(typeof(ids2))"
+    for field in sort(collect(fieldnames(typeof(ids2))))
+        if field === :_parent
+            continue
+        end
+        v1 = missing
+        v2 = missing
+        try
+            v1 = getproperty(ids1, field)
+        catch e
+            if typeof(e) <: Union{IMASmissingDataException,IMASexpressionError}
+                v1 = missing
+            else
+                rethrow()
+            end
+        end
+        try
+            v2 = getproperty(ids2, field)
+        catch e
+            if typeof(e) <: Union{IMASmissingDataException,IMASexpressionError}
+                v2 = missing
+            else
+                rethrow()
+            end
+        end
+
+        pathname = p2i(vcat(path, field))
+        if v1 === v2 === missing
+            continue
+        elseif typeof(v1) != typeof(v2)
+            differences[pathname] = "types  $(typeof(v1)) --  $(typeof(v2))"
+        elseif typeof(v1) <: IDS
+            if recursive
+                diff(v1, v2, vcat(path, field); tol, plot_function, recursive, differences)
+            end
+        elseif typeof(v1) <: IDSvector
+            if recursive
+                if length(v1) != length(v2)
+                    differences[pathname] = "length  $(length(v1)) --  $(length(v2))"
+                else
+                    for k = 1:length(v1)
+                        diff(v1[k], v2[k], vcat(path, field, k); tol, plot_function, recursive, differences)
+                    end
+                end
+            end
+        elseif typeof(v1) <: AbstractArray
+            if length(v1) != length(v2)
+                differences[pathname] = "length  $(length(v1)) --  $(length(v2))"
+            elseif _diff_function(v1, v2, tol) > tol
+                if (typeof(v1) <: AbstractVector) && (plot_function !== nothing)
+                    display(plot_function(1:length(v1), [v1, v2], title = pathname, label = ""))
+                end
+                differences[pathname] = @sprintf("value %g", _diff_function(v1, v2, tol))
+            end
+        elseif typeof(v1) <: Number
+            if _diff_function(v1, v2, tol) > tol
+                differences[pathname] = "value  $v1 --  $v2"
+            end
+        elseif typeof(v1) <: Union{String,Symbol}
+            if v1 != v2
+                differences[pathname] = "value  $v1 --  $v2"
+            end
+        else
+            println((pathname, typeof(v1), typeof(v2)))
+            asdadas # raise error to force use to handle this explicitly
+            differences[pathname] = "value  $v1 --  $v2"
+        end
+        if verbose && (pathname in keys(differences))
+            printstyled(pathname; bold = true)
+            printstyled(" ➡ "; color = :red)
+            println(differences[pathname])
+        end
+    end
+    return differences
+end
