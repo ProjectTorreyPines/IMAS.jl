@@ -423,11 +423,11 @@ function Base.pop!(ids::IDSvector{T}) where {T<:IDSvectorElement}
     pop!(ids._value)
 end
 
-function iterate(ids::IDSvector{T}) where {T<:IDSvectorElement}
+function Base.iterate(ids::IDSvector{T}) where {T<:IDSvectorElement}
     return ids[1], 2
 end
 
-function iterate(ids::IDSvector{T}, state) where {T<:IDSvectorElement}
+function Base.iterate(ids::IDSvector{T}, state) where {T<:IDSvectorElement}
     if isempty(state)
         nothing
     else
