@@ -12,7 +12,7 @@ install: install_IMAS
 	julia -e '\
 using Pkg;\
 Pkg.activate();\
-Pkg.develop(["IMAS", "CoordinateConventions"]);\
+Pkg.develop(["IMAS", "IMASDD", "CoordinateConventions"]);\
 Pkg.resolve();\
 try Pkg.upgrade_manifest() catch end;\
 '
@@ -29,6 +29,17 @@ Pkg.resolve();\
 try Pkg.upgrade_manifest() catch end;\
 '
 
+install_IMASDD:
+	if [ ! -d "$(JULIA_PKG_DEVDIR)/IMASDD" ]; then\
+		julia -e 'using Pkg; Pkg.develop(url="git@github.com:ProjectTorreyPines/IMASDD.jl.git");';\
+	fi
+	julia -e '\
+using Pkg;\
+Pkg.activate("$(JULIA_PKG_DEVDIR)/IMASDD");\
+Pkg.resolve();\
+try Pkg.upgrade_manifest() catch end;\
+'
+
 install_CoordinateConventions:
 	if [ ! -d "$(JULIA_PKG_DEVDIR)/CoordinateConventions" ]; then\
 		julia -e 'using Pkg; Pkg.develop(url="git@github.com:ProjectTorreyPines/CoordinateConventions.jl.git");';\
@@ -40,11 +51,14 @@ Pkg.resolve();\
 try Pkg.upgrade_manifest() catch end;\
 '
 
-update: update_IMAS update_CoordinateConventions
+update: update_IMAS update_IMASDD update_CoordinateConventions
 	make install
 
 update_IMAS:
 	cd $(JULIA_PKG_DEVDIR)/IMAS; git fetch; git pull
+
+update_IMASDD:
+	cd $(JULIA_PKG_DEVDIR)/IMASDD; git fetch; git pull
 
 update_CoordinateConventions:
 	cd $(JULIA_PKG_DEVDIR)/CoordinateConventions; git fetch; git pull
