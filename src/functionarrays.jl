@@ -79,10 +79,10 @@ function info(ids::Union{IDS,IDSvector}, field::Symbol)
 end
 
 function info(ids::Type, field::Symbol)
-    if ids <: IMAS.IDSvectorElement
-        location = "$(IMAS._f2u(ids))[:].$(field)"
+    if ids <: IDSvectorElement
+        location = "$(_f2u(ids))[:].$(field)"
     else
-        location = "$(IMAS._f2u(ids)).$(field)"
+        location = "$(_f2u(ids)).$(field)"
     end
     return info(location)
 end
@@ -211,7 +211,7 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", access_log::AccessLog)
     for field in [:read, :expr, :write]
-        log = getfield(IMAS.access_log, field)
+        log = getfield(access_log, field)
         for k in sort(collect(log))
             println(io, "$field: $k")
         end
@@ -888,7 +888,7 @@ Considers IDS as maximum top level if IDS_is_absolute_top=true
 """
 function top(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
     if IDS_is_absolute_top & (typeof(ids) <: dd)
-        error("Cannot call top(x::IMAS.dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
+        error("Cannot call top(x::dd,IDS_is_absolute_top=true). Use `IDS_is_absolute_top=false`.")
     elseif !(typeof(ids._parent.value) <: Union{IDS,IDSvector})
         return ids
     elseif IDS_is_absolute_top & (typeof(ids._parent.value) <: dd)
@@ -927,7 +927,7 @@ end
     parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool=true)
 
 Return parent IDS/IDSvector in the hierarchy
-If IDS_is_absolute_top then returns `missing` instead of IMAS.dd()
+If IDS_is_absolute_top then returns `missing` instead of dd()
 """
 function parent(ids::Union{IDS,IDSvector}; IDS_is_absolute_top::Bool = true)
     if !(typeof(ids._parent.value) <: Union{IDS,IDSvector})
