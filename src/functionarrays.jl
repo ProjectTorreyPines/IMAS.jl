@@ -621,3 +621,43 @@ function Base.deleteat!(ids::IDSvector{T}, condition::Pair{String}, conditions::
     end
     return ids
 end
+
+#= ============= =#
+#  IDS/IDSvector  #
+#= ============= =#
+
+"""
+    ismissing(ids::IDS, leaf)::Bool
+
+returns true/false if field is missing in IDS
+"""
+function Base.ismissing(ids::IDS, field::Symbol)::Bool
+    try
+        getproperty(ids, field)
+        return false
+    catch
+        return true
+    end
+end
+
+function Base.ismissing(ids::IDS, field::Vector)::Bool
+    if length(field) == 1
+        return ismissing(ids, field[1])
+    end
+    return ismissing(getfield(ids, field[1]), field[2:end])
+end
+
+function Base.ismissing(ids::IDSvector, field::Int)::Bool
+    return length(ids) < field
+end
+
+function Base.ismissing(ids::IDSvector, field::Vector)::Bool
+    if length(field) == 1
+        return ismissing(ids, field[1])
+    end
+    if field[1] <= length(ids)
+        return ismissing(ids[field[1]], field[2:end])
+    else
+        return true
+    end
+end
