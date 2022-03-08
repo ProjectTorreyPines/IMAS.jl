@@ -91,7 +91,7 @@ end
     @test all(dd.core_profiles.profiles_1d[1].grid.volume .≈ dd.equilibrium.time_slice[2].profiles_1d.volume)
 
     # test equilibrium.time_slice[:].time expression
-    @test typeof(empty!(dd.equilibrium.time_slice[2],:time)) <: Function
+    @test typeof(empty!(dd.equilibrium.time_slice[2], :time)) <: Function
     push!(dd.equilibrium.time_slice, IMAS.equilibrium__time_slice())
     @test length(dd.equilibrium.time_slice) == 3
     @test_throws IMAS.IMASbadExpression dd.equilibrium.time_slice[3].time
