@@ -202,10 +202,11 @@ end
 """
 function _setproperty!(ids::IDS, field::Symbol, v)
     try
-        setfield!(ids, field, v)
+        tmp = setfield!(ids, field, v)
         if !(typeof(v) <: Union{IDS,IDSvector}) && (field != :_parent)
             push!(access_log.write, "$(f2u(ids)).$(field)")
         end
+        return tmp
     catch e
         if typeof(e) <: TypeError
             error("$(typeof(v)) is the wrong type for $(f2u(ids)).$(field), it should be $(fieldtype(typeof(ids), field)))")
