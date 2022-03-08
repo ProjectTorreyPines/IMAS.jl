@@ -7,14 +7,14 @@ using Printf
 #= ============== =#
 #= DATA STRUCTURE =#
 #= ============== =#
-include("real.jl")
 include("data.jl")
+include("time.jl")
 
 #= ================= =#
 #= PHYSICS FUNCTIONS =#
 #= ================= =#
+include("real.jl")
 include("constants.jl")
-include("time.jl")
 include("math.jl")
 include("physics.jl")
 include("expressions.jl")
