@@ -667,17 +667,15 @@ function total_pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
 end
 
 function calc_beta_thermal_norm(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
-    return calc_beta_thermal_norm(eqt, cp1d)
+    return calc_beta_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[])
 end
 
-function calc_beta_thermal_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    eq = top_ids(eqt)
+function calc_beta_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+    eqt = eq.time_slice[Float64(cp1d.time)]
     eq1d = eqt.profiles_1d
     pressure_thermal = cp1d.pressure_thermal
     rho = cp1d.grid.rho_tor_norm
-    Bt = interp1d(eq.time, eq.vacuum_toroidal_field.b0).(eqt.time)
+    Bt = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
     Ip = eqt.global_quantities.ip
     volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
     pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
@@ -1269,16 +1267,54 @@ function area(coil::IMAS.pf_active__coil)
     return coil.element[1].geometry.rectangle.width * coil.element[1].geometry.rectangle.height
 end
 
-function energy_thermal!(dd::IMAS.dd)
-    cp1d = dd.core_profiles.profiles_1d[]
-    W_th = 3 / 2 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
-    @ddtime dd.summary.global_quantities.energy_thermal = W_th
-    return W_th
+function energy_thermal(dd::IMAS.dd)
+    return energy_thermal(dd.core_profiles.profiles_1d[])
+end
+
+function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+    return 3 / 2 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
 end
 
 function ne_vol_avg(dd::IMAS.dd)
-    cp1d = dd.core_profiles.profiles_1d[]
-    return integrate(cp1d.grid.volume, cp1d.electrons.density) ./ cp1d.grid.volume[end]
+    return ne_vol_avg(dd.core_profiles.profiles_1d[])
+end
+
+function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
+    return integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
+end
+
+function tau_e_thermal(dd::IMAS.dd)
+    return tau_e_thermal(dd.core_profiles.profiles_1d[], dd.core_sources)
+end
+
+function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+    total_source = IMAS.total_sources(sources,cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
+    return energy_thermal(cp1d)  / total_power_inside
+end
+
+function tau_e_h98(dd::IMAS.dd; time=missing)
+    if time === missing
+        time = dd.global_time
+    end
+    
+    eqt = dd.equilibrium.time_slice[Float64(time)]
+    cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+
+    total_source = IMAS.total_sources(dd.core_sources, cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
+    m = 2.5
+    tau98 = (
+        0.0562
+        * abs(eqt.global_quantities.ip/1e6) ^ 0.93
+        * abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time)) ^ 0.15
+        * (total_power_inside/1e6) ^ -0.69
+        * (ne_vol_avg(cp1d) / 1e19) ^ 0.41
+        * m ^ 0.19
+        * dd.equilibrium.vacuum_toroidal_field.r0 ^ 1.97
+        * (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius) ^ -0.58
+        * eqt.boundary.elongation ^ 0.78)
+    return tau98
 end
 
 """

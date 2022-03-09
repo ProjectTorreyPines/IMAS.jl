@@ -259,8 +259,14 @@ expressions["build.layer[:].end_radius"] =
 #  Summary  #
 #= ======= =#
 
-expressions["summary.global_quantities.beta_tor_thermal_norm"] =
-    (;dd, summary, _...) -> [calc_beta_thermal_norm(dd.equilibrium.time_slice[Float64(time)], dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
+expressions["summary.global_quantities.beta_tor_thermal_norm.value"] =
+    (time ;dd, summary, _...) -> [calc_beta_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
 
-#expressions["summary.global_quantities.energy_thermal"] =
-#    (;summary, global_quantities, _...) = energy_thermal!(dd)
+expressions["summary.global_quantities.energy_thermal.value"] =
+    (time ;dd, summary, _...) ->  [energy_thermal(dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
+
+expressions["summary.global_quantities.tau_energy.value"] =
+    (time ;dd, summary, _...) -> [tau_e_thermal(dd.core_profiles.profiles_1d[Float64(time)], dd.core_sources) for time in summary.time]
+
+expressions["summary.global_quantities.tau_energy_98.value"] =
+    (time ;dd, summary, _...) -> [tau_e_h98(dd, time=time) for time in summary.time]
