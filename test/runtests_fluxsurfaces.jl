@@ -1,14 +1,15 @@
 using Revise
 using IMAS
+import IMASDD
 using Test
 
-do_plot = false
+do_plot = true
 if do_plot
     using Plots
 end
 
 @testset "flux_surfaces" begin
-    filename = joinpath(dirname(dirname(abspath(@__FILE__))), "sample", "D3D_eq_ods.json")
+    filename = joinpath(dirname(dirname(pathof(IMASDD))), "sample", "D3D_eq_ods.json")
     dd = IMAS.json2imas(filename; verbose = false)
 
     dd_orig = deepcopy(dd)
