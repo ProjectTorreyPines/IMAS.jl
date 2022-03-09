@@ -3,7 +3,7 @@ using IMAS
 import IMASDD
 using Test
 
-do_plot = true
+do_plot = false
 if do_plot
     using Plots
 end
