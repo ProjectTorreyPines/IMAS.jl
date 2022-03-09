@@ -2,15 +2,15 @@ import NumericalIntegration: integrate, cumul_integrate
 expressions = Dict{String,Function}()
 
 """
-    assign_expressions(ids::Union{IDS,IDSvector})
+    assign_expressions(ids::IDS)
 
-Assign expressions to a IDS/IDSvector
+Assign expressions to an IDS
 NOTE: This is done not recursively
 """
-function assign_expressions(ids::Union{IDS,IDSvector})
+function assign_expressions(ids::IDS)
     struct_name = f2u(ids)
     for item in children(ids)
-        if typeof(getfield(ids, item)) <: Union{IDS,IDSvector}
+        if typeof(getfield(ids, item)) <: IDS
             continue
         elseif "$(struct_name).$(item)" in keys(expressions)
             setproperty!(ids, item, expressions["$(struct_name).$(item)"])
