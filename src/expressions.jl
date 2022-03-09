@@ -19,6 +19,11 @@ function assign_expressions(ids::Union{IDS,IDSvector})
     return ids
 end
 
+function assign_expressions(ids::IDS, field::Symbol)
+    struct_name = f2u(ids)
+    return get(expressions, "$(struct_name).$(field)", missing)
+end
+
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
 # 
