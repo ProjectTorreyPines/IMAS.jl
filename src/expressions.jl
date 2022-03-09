@@ -1,4 +1,28 @@
 import NumericalIntegration: integrate, cumul_integrate
+expressions = Dict{String,Function}()
+
+"""
+    assign_expressions(ids::IDS)
+
+Assign expressions to an IDS
+NOTE: This is done not recursively
+"""
+function assign_expressions(ids::IDS)
+    struct_name = f2u(ids)
+    for item in children(ids)
+        if typeof(getfield(ids, item)) <: IDS
+            continue
+        elseif "$(struct_name).$(item)" in keys(expressions)
+            setproperty!(ids, item, expressions["$(struct_name).$(item)"])
+        end
+    end
+    return ids
+end
+
+function assign_expressions(ids::IDS, field::Symbol)
+    struct_name = f2u(ids)
+    return get(expressions, "$(struct_name).$(field)", missing)
+end
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
