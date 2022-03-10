@@ -903,7 +903,6 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
 
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
-    q = interp1d(rho_eq, eqt.profiles_1d.q).(rho)
 
     nue = nuestar(eqt, cp1d)
     nui = nuistar(eqt, cp1d)
@@ -985,7 +984,9 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     bra2 = L_32 .* dTe_dpsi ./ Te
     bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* dTi_dpsi ./ Ti
 
-    j_boot = -I_psi .* cp1d.electrons.pressure .* sign(eqt.global_quantities.ip) .* (bra1 .+ bra2 .+ bra3) ./ @ddtime dd.equilibrium.vacuum_toroidal_field.b0
+    equilibrium = top_ids(eqt)
+    B0 = get_time_array(equilibrium.vacuum_toroidal_field, :b0, eqt.time)
+    j_boot = -I_psi .* cp1d.electrons.pressure .* sign(eqt.global_quantities.ip) .* (bra1 .+ bra2 .+ bra3) ./ B0
 
     return j_boot
 end
