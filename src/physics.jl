@@ -1288,50 +1288,33 @@ function tau_e_thermal(dd::IMAS.dd)
 end
 
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
-    total_source = IMAS.total_sources(sources,cp1d)
+    total_source = IMAS.total_sources(sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    return energy_thermal(cp1d)  / total_power_inside
+    return energy_thermal(cp1d) / total_power_inside
 end
 
-function hydrogen_isotope_average(cp1d::IMAS.core_profiles__profiles_1d)
-    n_deuterium_avg = 0.0
-    n_tritium_avg = 0.0
-    volume = cp1d.grid.volume
-    for ion in cp1d.ion
-        if ion.label == "D" || ion.label == "d"
-            n_deuterium_avg += integrate(volume, ion.density_thermal)
-        elseif ion.label == "T" || ion.label == "t"
-            n_tritium_avg += integrate(volume, ion.density_thermal)
-        elseif ion.label == "DT" || ion.label == "dt" || ion.label="TD" || ion.label="td"
-            n_tritium_avg += integrate(volume, ion.density_thermal) / 2
-            n_deuterium_avg += integrate(volume, ion.density_thermal) / 2
-        end
-    end
-    @show (2.014102 * n_deuterium_avg + 3.016049 * n_tritium_avg) / (n_deuterium_avg + n_tritium_avg)
-    return (2.014102 * n_deuterium_avg + 3.016049 * n_tritium_avg) / (n_deuterium_avg + n_tritium_avg)
-end
-
-function tau_e_h98(dd::IMAS.dd; time=missing)
+function tau_e_h98(dd::IMAS.dd; time = missing)
     if time === missing
         time = dd.global_time
     end
-    
+
     eqt = dd.equilibrium.time_slice[Float64(time)]
     cp1d = dd.core_profiles.profiles_1d[Float64(time)]
 
     total_source = IMAS.total_sources(dd.core_sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    println("asdfsdf ",hydrogen_isotope_average(cp1d))
+    isotope_factor = sum([ion.density .* ion.element[1].a for ion in ions if ion.element[1].z_n == 1]) / sum([ion.density for ion in ions if ion.element[1].z_n == 1])
+
     tau98 = (
         0.0562
-        * abs(eqt.global_quantities.ip/1e6) ^ 0.93
-        * abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time)) ^ 0.15
-        * (total_power_inside/1e6) ^ -0.69
-        * (ne_vol_avg(cp1d) / 1e19) ^ 0.41
-        * hydrogen_isotope_average(cp1d) ^ 0.19
-        * dd.equilibrium.vacuum_toroidal_field.r0 ^ 1.97
-        * (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius) ^ -0.58
-        * eqt.boundary.elongation ^ 0.78)
+        * abs(eqt.global_quantities.ip / 1e6)^0.93
+        * abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time))^0.15
+        * (total_power_inside / 1e6)^-0.69
+        * (ne_vol_avg(cp1d) / 1e19)^0.41
+        * isotope_factor^0.19
+        * dd.equilibrium.vacuum_toroidal_field.r0^1.97
+        * (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius)^-0.58
+        * eqt.boundary.elongation^0.78)
     return tau98
 end
 
