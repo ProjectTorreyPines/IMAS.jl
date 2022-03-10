@@ -1303,7 +1303,8 @@ function tau_e_h98(dd::IMAS.dd; time = missing)
 
     total_source = IMAS.total_sources(dd.core_sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    isotope_factor = sum([ion.density .* ion.element[1].a for ion in ions if ion.element[1].z_n == 1]) / sum([ion.density for ion in ions if ion.element[1].z_n == 1])
+    isotope_factor = integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1])) /
+                     integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1]))
 
     tau98 = (
         0.0562
