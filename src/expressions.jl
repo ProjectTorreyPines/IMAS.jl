@@ -294,3 +294,6 @@ expressions["summary.global_quantities.tau_energy.value"] =
 
 expressions["summary.global_quantities.tau_energy_98.value"] =
     (time ;dd, summary, _...) -> [tau_e_h98(dd, time=time) for time in summary.time]
+
+expressions["summary.global_quantities.h_98.value"] =
+    (time ;dd, summary, _...) -> summary.global_quantities.tau_energy.value ./ summary.global_quantities.tau_energy_98.value
