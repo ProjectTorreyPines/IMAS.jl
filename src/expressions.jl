@@ -72,7 +72,7 @@ expressions["core_profiles.profiles_1d[:].j_ohmic"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
 expressions["core_profiles.profiles_1d[:].j_non_inductive"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d).j_parallel
+    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d).j_parallel .+ profiles_1d.j_bootstrap
 
 expressions["core_profiles.profiles_1d[:].j_total"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
