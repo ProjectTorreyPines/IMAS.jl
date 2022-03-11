@@ -88,7 +88,7 @@ end
     dd.equilibrium.time_slice[].profiles_1d.volume = LinRange(0, 1, 11)
     resize!(dd.core_profiles.profiles_1d, 2.0)
     dd.core_profiles.profiles_1d[].grid.rho_tor_norm = LinRange(0, 1, 11)
-    @test all(dd.core_profiles.profiles_1d[1].grid.volume .≈ dd.equilibrium.time_slice[2].profiles_1d.volume)
+    @test all(dd.core_profiles.profiles_1d[1].grid.volume .+ 1 .≈ dd.equilibrium.time_slice[2].profiles_1d.volume .+ 1)
 
     # test equilibrium.time_slice[:].time expression
     @test typeof(empty!(dd.equilibrium.time_slice[2], :time)) <: Function
