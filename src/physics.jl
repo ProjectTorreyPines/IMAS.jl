@@ -1249,9 +1249,20 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                         x = source1d.grid.rho_tor_norm
                         setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
                     end
-                else
-                    setproperty!(ids1, field, zeros(size(rho)))
                 end
+            end
+        end
+    end
+
+    # assign zeros to missing fields of total_sources
+    for sub in [nothing, :electrons]
+        ids1 = total_source1d
+        if sub !== nothing
+            ids1 = getproperty(ids1, sub)
+        end
+        for field in fieldnames(typeof(ids1))
+            if ismissing(ids1, field)
+                setproperty!(ids1, field, zeros(size(rho)))
             end
         end
     end
