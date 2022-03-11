@@ -244,12 +244,14 @@ end
 Plot build cross-section or radial build
 """
 @recipe function plot_build_cx(bd::IMAS.build; cx = true, outlines = false, only_layers = nothing, exclude_layers = Symbol[])
+
+    legend_position --> :outerbottomright
     aspect_ratio --> :equal
     grid --> :none
 
     # cx
     if cx
-        rmax = maximum(bd.layer[end].outline.r) * 2.0
+        rmax = maximum(bd.layer[end].outline.r)
 
         # Cryostat
         if ((only_layers === nothing) || (:cryostat in only_layers)) && (!(:cryostat in exclude_layers))
@@ -408,7 +410,7 @@ Plot build cross-section or radial build
                 seriestype --> :vspan
                 label --> l.name
                 alpha --> 0.2
-                xlim --> [0, at * 2.0]
+                xlim --> [0, at]
                 [at, at + l.thickness]
             end
             at += l.thickness
@@ -417,14 +419,14 @@ Plot build cross-section or radial build
                 linewidth --> 0.5
                 label --> ""
                 color --> :black
-                xlim --> [0, at * 2.0]
+                xlim --> [0, at]
                 [at]
             end
         end
     end
 end
 
-@recipe function plot_cs(cs::IMAS.core_sources; integrated = false)
+@recipe function plot_core_sources(cs::IMAS.core_sources; integrated = false)
     for source in cs.source
         @series begin
             integrated := integrated
@@ -451,9 +453,9 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", integrated = false)
-    layout := (2, 2)
-    size := (600, 600)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name = "", integrated = false)
+    layout := (1, 4)
+    size := (1100, 290)
 
     @series begin
         subplot := 1
@@ -528,13 +530,13 @@ end
     end
 end
 
-@recipe function plot_cp(cp::IMAS.core_profiles)
+@recipe function plot_core_profiles(cp::IMAS.core_profiles)
     @series begin
         return cp.profiles_1d[]
     end
 end
 
-@recipe function plot_cp(cpt::IMAS.core_profiles__profiles_1d)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d)
     layout := (1, 3)
     size := (1100, 290)
 
@@ -584,6 +586,65 @@ end
         cpt, :rotation_frequency_tor_sonic
     end
 
+end
+
+@recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises})
+    smcs = parent(parent(stress))
+    r_oh = smcs.grid.r_oh
+    r_tf = smcs.grid.r_tf
+    r_pl = missing
+    if !ismissing(smcs.grid,:r_pl)
+        r_pl = smcs.grid.r_pl
+    end
+
+    @series begin
+        r_oh, stress.oh ./ 1E6
+    end
+    @series begin
+        primary := false
+        r_tf, stress.tf ./ 1E6
+    end
+    if r_pl !== missing
+        @series begin
+            primary := false
+            r_pl, stress.pl ./ 1E6
+        end
+    end
+end
+
+@recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress}; linewidth=1)
+
+    legend_position --> :outerbottomright
+    ylabel --> "Stresses [MPa]"
+    xlabel --> "Radius [m]"
+
+    @series begin
+        label := "Von Mises"
+        linewidth := linewidth + 2
+        stress.vonmises
+    end
+    @series begin
+        label := "Hoop"
+        linewidth := linewidth + 1
+        stress.hoop
+    end
+    @series begin
+        label := "Radial"
+        linewidth := linewidth + 2
+        stress.radial
+    end
+
+    smcs = parent(stress)
+    for radius in [smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[end]]
+        @series begin
+            seriestype --> :vline
+            linewidth --> 2
+            label --> ""
+            linestyle --> :dash
+            color --> :black
+            [radius]
+        end
+    end
 end
 
 #= ================ =#
