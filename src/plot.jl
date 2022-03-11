@@ -589,7 +589,7 @@ end
 end
 
 @recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises})
-    smcs = IMAS.parent(IMAS.parent(stress))
+    smcs = parent(parent(stress))
     r_oh = smcs.grid.r_oh
     r_tf = smcs.grid.r_tf
     r_pl = missing
@@ -634,7 +634,7 @@ end
         stress.radial
     end
 
-    smcs = IMAS.parent(stress)
+    smcs = parent(stress)
     for radius in [smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[end]]
         @series begin
             seriestype --> :vline
