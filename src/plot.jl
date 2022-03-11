@@ -244,12 +244,14 @@ end
 Plot build cross-section or radial build
 """
 @recipe function plot_build_cx(bd::IMAS.build; cx = true, outlines = false, only_layers = nothing, exclude_layers = Symbol[])
+
+    legend_position --> :outerbottomright
     aspect_ratio --> :equal
     grid --> :none
 
     # cx
     if cx
-        rmax = maximum(bd.layer[end].outline.r) * 2.0
+        rmax = maximum(bd.layer[end].outline.r)
 
         # Cryostat
         if ((only_layers === nothing) || (:cryostat in only_layers)) && (!(:cryostat in exclude_layers))
@@ -408,7 +410,7 @@ Plot build cross-section or radial build
                 seriestype --> :vspan
                 label --> l.name
                 alpha --> 0.2
-                xlim --> [0, at * 2.0]
+                xlim --> [0, at]
                 [at, at + l.thickness]
             end
             at += l.thickness
@@ -417,14 +419,14 @@ Plot build cross-section or radial build
                 linewidth --> 0.5
                 label --> ""
                 color --> :black
-                xlim --> [0, at * 2.0]
+                xlim --> [0, at]
                 [at]
             end
         end
     end
 end
 
-@recipe function plot_cs(cs::IMAS.core_sources; integrated = false)
+@recipe function plot_core_sources(cs::IMAS.core_sources; integrated = false)
     for source in cs.source
         @series begin
             integrated := integrated
@@ -451,9 +453,9 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", integrated = false)
-    layout := (2, 2)
-    size := (600, 600)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name = "", integrated = false)
+    layout := (1, 4)
+    size := (1100, 290)
 
     @series begin
         subplot := 1
@@ -528,13 +530,13 @@ end
     end
 end
 
-@recipe function plot_cp(cp::IMAS.core_profiles)
+@recipe function plot_core_profiles(cp::IMAS.core_profiles)
     @series begin
         return cp.profiles_1d[]
     end
 end
 
-@recipe function plot_cp(cpt::IMAS.core_profiles__profiles_1d)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d)
     layout := (1, 3)
     size := (1100, 290)
 
