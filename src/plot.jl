@@ -588,6 +588,65 @@ end
 
 end
 
+@recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises})
+    smcs = IMAS.parent(IMAS.parent(stress))
+    r_oh = smcs.grid.r_oh
+    r_tf = smcs.grid.r_tf
+    r_pl = missing
+    if !ismissing(smcs.grid,:r_pl)
+        r_pl = smcs.grid.r_pl
+    end
+
+    @series begin
+        r_oh, stress.oh ./ 1E6
+    end
+    @series begin
+        primary := false
+        r_tf, stress.tf ./ 1E6
+    end
+    if r_pl !== missing
+        @series begin
+            primary := false
+            r_pl, stress.pl ./ 1E6
+        end
+    end
+end
+
+@recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress}; linewidth=1)
+
+    legend_position --> :outerbottomright
+    ylabel --> "Stresses [MPa]"
+    xlabel --> "Radius [m]"
+
+    @series begin
+        label := "Von Mises"
+        linewidth := linewidth + 2
+        stress.vonmises
+    end
+    @series begin
+        label := "Hoop"
+        linewidth := linewidth + 1
+        stress.hoop
+    end
+    @series begin
+        label := "Radial"
+        linewidth := linewidth + 2
+        stress.radial
+    end
+
+    smcs = IMAS.parent(stress)
+    for radius in [smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[end]]
+        @series begin
+            seriestype --> :vline
+            linewidth --> 2
+            label --> ""
+            linestyle --> :dash
+            color --> :black
+            [radius]
+        end
+    end
+end
+
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
