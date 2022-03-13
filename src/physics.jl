@@ -8,6 +8,7 @@ import NumericalIntegration: integrate, cumul_integrate
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_
+@enum BuildLayerShape _convex_hull_=-2 _offset_ _dummy_ _princeton_D_ _rectangle_ _triple_arc_ _miller_ _spline_
 
 function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
     cc = cocos(cocos_number)
