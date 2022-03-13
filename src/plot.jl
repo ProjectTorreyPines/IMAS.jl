@@ -315,7 +315,7 @@ Plot build cross-section or radial build
         # all layers between the OH and the plasma
         valid = false
         for (k, l) in enumerate(bd.layer[1:end-1])
-            if (l.type == Int(_tf_)) && (l.hfs == Int(_hfs_))
+            if (l.type == Int(_tf_)) && (l.fs == Int(_hfs_))
                 valid = true
             end
             if l.type == Int(_plasma_)

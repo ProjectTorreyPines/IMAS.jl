@@ -7,7 +7,7 @@ import Optim
 import NumericalIntegration: integrate, cumul_integrate
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_
-@enum BuildLayerSide _lfs_ = -1 _single_ _hfs_
+@enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_
 
 function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
     cc = cocos(cocos_number)
@@ -566,19 +566,19 @@ function get_build(
     type::Union{Nothing,BuildLayerType} = nothing,
     name::Union{Nothing,String} = nothing,
     identifier::Union{Nothing,UInt,Int} = nothing,
-    hfs::Union{Nothing,BuildLayerSide,Vector{BuildLayerSide}} = nothing,
+    fs::Union{Nothing,BuildLayerSide,Vector{BuildLayerSide}} = nothing,
     return_only_one = true,
     return_index = false,
     raise_error_on_missing = true
 )
 
-    if hfs === nothing
+    if fs === nothing
         #pass
     else
-        if isa(hfs, BuildLayerSide)
-            hfs = [hfs]
+        if isa(fs, BuildLayerSide)
+            fs = [fs]
         end
-        hfs = collect(map(Int, hfs))
+        fs = collect(map(Int, fs))
     end
     if isa(type, BuildLayerType) 
         type = Int(type)
@@ -589,7 +589,7 @@ function get_build(
         if (name === nothing || l.name == name) &&
            (type === nothing || l.type == type) &&
            (identifier === nothing || l.identifier == identifier) &&
-           (hfs === nothing || l.hfs in hfs)
+           (fs === nothing || l.fs in fs)
             if return_index
                 push!(valid_layers, k)
             else
@@ -599,7 +599,7 @@ function get_build(
     end
     if length(valid_layers) == 0
         if raise_error_on_missing
-            error("Did not find build.layer: name=$name type=$type identifier=$identifier hfs=$hfs")
+            error("Did not find build.layer: name=$name type=$type identifier=$identifier fs=$fs")
         else
             return nothing
         end
@@ -608,7 +608,7 @@ function get_build(
         if length(valid_layers) == 1
             return valid_layers[1]
         else
-            error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier hfs:$hfs")
+            error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier fs:$fs")
         end
     else
         return valid_layers
