@@ -265,8 +265,8 @@ Plot build cross-section or radial build
                     join_outlines(
                         bd.layer[end].outline.r,
                         bd.layer[end].outline.z,
-                        IMAS.get_build(bd, type = -1).outline.r,
-                        IMAS.get_build(bd, type = -1).outline.z,
+                        IMAS.get_build(bd, type = _plasma_).outline.r,
+                        IMAS.get_build(bd, type = _plasma_).outline.z,
                     )
                 end
             end
@@ -297,9 +297,9 @@ Plot build cross-section or radial build
                     seriestype --> :shape
                     linewidth --> 0.0
                     color --> :gray
-                    label --> (!outlines ? IMAS.get_build(bd, type = 1).name : "")
+                    label --> (!outlines ? IMAS.get_build(bd, type = _oh_).name : "")
                     xlim --> [0, rmax]
-                    IMAS.get_build(bd, type = 1).outline.r, IMAS.get_build(bd, type = 1).outline.z
+                    IMAS.get_build(bd, type = _oh_).outline.r, IMAS.get_build(bd, type = _oh_).outline.z
                 end
             end
             @series begin
@@ -308,17 +308,17 @@ Plot build cross-section or radial build
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                IMAS.get_build(bd, type = 1).outline.r, IMAS.get_build(bd, type = 1).outline.z
+                IMAS.get_build(bd, type = _oh_).outline.r, IMAS.get_build(bd, type = _oh_).outline.z
             end
         end
 
         # all layers between the OH and the plasma
         valid = false
         for (k, l) in enumerate(bd.layer[1:end-1])
-            if (l.type == 2) && (l.hfs == 1)
+            if (l.type == Int(_tf_)) && (l.hfs == Int(_hfs_))
                 valid = true
             end
-            if l.type == -1
+            if l.type == Int(_plasma_)
                 valid = false
             end
             if IMAS.ismissing(l.outline, :r) || !valid
@@ -330,20 +330,22 @@ Plot build cross-section or radial build
             # setup labels and colors
             name = l.name
             color = :gray
-            if l.type in [0]
+            if l.type == Int(_gap_)
                 name = ""
                 color = :white
-            elseif l.type in [2]
+            elseif l.type == Int(_tf_)
                 color = :green
-            elseif l.type in [3]
+            elseif l.type == Int(_shield_)
                 color = :red
-            elseif l.type in [4]
+            elseif l.type == Int(_blanket_)
                 color = :orange
-            elseif l.type in [5]
+            elseif l.type == Int(_wall_)
                 color = :yellow
+            elseif l.type == Int(_vessel_)
+                color = :lightblue
             end
-            for nm in ["inner", "outer", "vacuum", "hfs", "lfs"]
-                name = replace(name, r"$nm "i => "")
+            for nm in ["inner", "outer", "vacuum", "hfs", "lfs", "gap"]
+                name = replace(name, Regex("$(nm) ","i") => "")
             end
 
             if ((only_layers === nothing) || (Symbol(name) in only_layers)) && (!(Symbol(name) in exclude_layers))
@@ -376,7 +378,7 @@ Plot build cross-section or radial build
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                IMAS.get_build(bd, type = -1).outline.r, IMAS.get_build(bd, type = -1).outline.z
+                IMAS.get_build(bd, type = _plasma_).outline.r, IMAS.get_build(bd, type = _plasma_).outline.z
             end
         end
 
@@ -394,18 +396,22 @@ Plot build cross-section or radial build
         at = 0
         for l in bd.layer
             @series begin
-                if l.type in [-1, 0]
+                if l.type == Int(_plasma_)
+                    color --> :pink
+                elseif l.type == Int(_gap_)
                     color --> :white
-                elseif l.type in [1]
+                elseif l.type == Int(_oh_)
                     color --> :gray
-                elseif l.type in [2]
+                elseif l.type == Int(_tf_)
                     color --> :green
-                elseif l.type in [3]
+                elseif l.type == Int(_shield_)
                     color --> :red
-                elseif l.type in [4]
+                elseif l.type == Int(_blanket_)
                     color --> :orange
-                elseif l.type in [5]
+                elseif l.type == Int(_wall_)
                     color --> :yellow
+                elseif l.type == Int(_vessel_)
+                    color --> :lightblue
                 end
                 seriestype --> :vspan
                 label --> l.name

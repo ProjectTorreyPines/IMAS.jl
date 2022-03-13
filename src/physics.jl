@@ -6,6 +6,9 @@ import PolygonOps
 import Optim
 import NumericalIntegration: integrate, cumul_integrate
 
+@enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_
+@enum BuildLayerSide _lfs_ = -1 _single_ _hfs_
+
 function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
     cc = cocos(cocos_number)
     PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), psi)
@@ -560,17 +563,25 @@ Select layer(s) in build based on a series of selection criteria
 """
 function get_build(
     bd::IMAS.build;
-    type::Union{Nothing,Int} = nothing,
+    type::Union{Nothing,BuildLayerType} = nothing,
     name::Union{Nothing,String} = nothing,
     identifier::Union{Nothing,UInt,Int} = nothing,
-    hfs::Union{Nothing,Int,Array} = nothing,
+    hfs::Union{Nothing,BuildLayerSide,Vector{BuildLayerSide}} = nothing,
     return_only_one = true,
     return_index = false,
     raise_error_on_missing = true
 )
 
-    if isa(hfs, Int)
-        hfs = [hfs]
+    if hfs === nothing
+        #pass
+    else
+        if isa(hfs, BuildLayerSide)
+            hfs = [hfs]
+        end
+        hfs = collect(map(Int, hfs))
+    end
+    if isa(type, BuildLayerType) 
+        type = Int(type)
     end
 
     valid_layers = []
@@ -619,7 +630,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real
 
     valid = true
     for layer in vcat(bd.layer[end], bd.layer)
-        if layer.type == -1
+        if layer.type == _plasma_
             valid = false
         end
         if valid && !ismissing(layer.outline, :r)
@@ -643,7 +654,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real
             end
         end
     end
-    rlim_oh = IMAS.get_build(bd, type = 1).start_radius
+    rlim_oh = IMAS.get_build(bd, type = _oh_).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr < rlim_oh
