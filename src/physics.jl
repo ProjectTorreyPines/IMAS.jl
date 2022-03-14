@@ -631,7 +631,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real
 
     valid = true
     for layer in vcat(bd.layer[end], bd.layer)
-        if layer.type == _plasma_
+        if layer.type == Int(_plasma_)
             valid = false
         end
         if valid && !ismissing(layer.outline, :r)
