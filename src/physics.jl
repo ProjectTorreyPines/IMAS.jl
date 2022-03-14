@@ -635,11 +635,11 @@ function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real
             valid = false
         end
         if valid && !ismissing(layer.outline, :r)
-            outline = StaticArrays.SVector.(layer.outline.r, layer.outline.z)
-            if !ismissing(layer, :material) && lowercase(layer.material) == "vacuum"
+            outline = collect(zip(layer.outline.r, layer.outline.z))
+            if lowercase(layer.material) == "vacuum"
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
-                        if PolygonOps.inpolygon((rr, zz), outline) == 1
+                        if PolygonOps.inpolygon((rr, zz), outline) != 0
                             mask[kr, kz] = 0.0
                         end
                     end
