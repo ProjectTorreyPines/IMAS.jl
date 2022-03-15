@@ -8,7 +8,7 @@ import NumericalIntegration: integrate, cumul_integrate
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_
-@enum BuildLayerShape _convex_hull_=-2 _offset_ _dummy_ _princeton_D_ _rectangle_ _triple_arc_ _miller_ _spline_
+@enum BuildLayerShape _convex_hull_ = -2 _offset_ _dummy_ _princeton_D_ _rectangle_ _triple_arc_ _miller_ _spline_
 
 function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
     cc = cocos(cocos_number)
@@ -581,7 +581,7 @@ function get_build(
         end
         fs = collect(map(Int, fs))
     end
-    if isa(type, BuildLayerType) 
+    if isa(type, BuildLayerType)
         type = Int(type)
     end
 
@@ -1413,4 +1413,74 @@ function Jtor_2_Jpar(rho_tor_norm, Jtor, includes_bootstrap::Bool, eqt::IMAS.equ
     B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
     Jpar = JparB ./ B0
     return Jpar
+end
+
+"""
+    centroid(x::Vector{T}, y::Vector{T}) where {T <: Real}
+
+Calculate centroid of polygon
+"""
+function centroid(x::Vector{T}, y::Vector{T}) where {T<:Real}
+    dy = diff(y)
+    dx = diff(x)
+    x0 = (x[2:end] .+ x[1:end-1]) .* 0.5
+    y0 = (y[2:end] .+ y[1:end-1]) .* 0.5
+    A = sum(dy .* x0)
+    x_c = -sum(dx .* y0 .* x0) ./ A
+    y_c = sum(dy .* x0 .* y0) ./ A
+    return x_c, y_c
+end
+
+"""
+    area(x::Vector{T}, y::Vector{T}) where {T <: Real}
+
+Calculate area of polygon
+"""
+function area(x::Vector{T}, y::Vector{T}) where {T<:Real}
+    x1 = x[1:end-1]
+    x2 = x[2:end]
+    y1 = y[1:end-1]
+    y2 = y[2:end]
+    return abs.(sum(x1 .* y2) - sum(y1 .* x2)) ./ 2
+end
+
+"""
+    toroidal_volume(x::Vector{T}, y::Vector{T}) where {T <: Real}
+
+Calculate volume of polygon revolved around x=0
+"""
+function toroidal_volume(x::Vector{T}, y::Vector{T}) where {T<:Real}
+    return area(x, y) * 2pi * centroid(x, y)[1]
+end
+
+function func_nested_layers(layer::IMAS.build__layer, func::Function)
+    if layer.fs == Int(_lhfs_)
+        return func(layer)
+    else
+        i = index(layer)
+        if layer.fs == Int(_hfs_)
+            layer_in = parent(layer)[i+1]
+        else
+            layer_in = parent(layer)[i-1]
+        end
+        return func(layer) - func(layer_in)
+    end
+end
+
+"""
+    area(layer::IMAS.build__layer)
+
+Calculate area of a build layer outline
+"""
+function area(layer::IMAS.build__layer)
+    func_nested_layers(layer, l -> area(l.outline.r, l.outline.z))
+end
+
+"""
+    volume(layer::IMAS.build__layer)
+
+Calculate volume of a build layer outline revolved around x=0
+"""
+function volume(layer::IMAS.build__layer)
+    func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
 end

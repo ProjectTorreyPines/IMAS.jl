@@ -279,6 +279,12 @@ expressions["build.layer[:].start_radius"] =
 expressions["build.layer[:].end_radius"] =
     (;build, layer_index, _...) -> build_radii(build)[2:end][layer_index]
 
+expressions["build.layer[:].area"] =
+    (;layer, _...) -> area(layer)
+
+expressions["build.layer[:].volume"] =
+    (;layer, _...) -> volume(layer)
+
 #= ======= =#
 #  Summary  #
 #= ======= =#
