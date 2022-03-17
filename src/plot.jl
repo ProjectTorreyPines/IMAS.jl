@@ -6,6 +6,7 @@ using LaTeXStrings
     plot_pf_active_cx(pfa::pf_active)
 
 Plots pf active cross-section
+NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
 """
 @recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol = :cx; time = nothing, cname = :roma)
 
@@ -18,7 +19,7 @@ Plots pf active cross-section
         aspect --> :equal
         colorbar_title --> "PF currents [A]"
 
-        currents = [get_time_array(c.current, :data, time) for c in pfa.coil]
+        currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
         CURRENT = maximum(abs.(currents))
 
         # dummy markers to get the colorbar right
@@ -34,7 +35,7 @@ Plots pf active cross-section
 
         # plot individual coils
         for c in pfa.coil
-            current_color_index = (get_time_array(c.current, :data, time) + CURRENT) / (2 * CURRENT)
+            current_color_index = (get_time_array(c.current, :data, time) * c.element[1].turns_with_sign + CURRENT) / (2 * CURRENT)
             @series begin
                 if all(currents .== 0.0)
                     color --> :black
