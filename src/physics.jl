@@ -1199,7 +1199,6 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     return dd
 end
 
-
 function total_sources(dd)
     total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
 end
