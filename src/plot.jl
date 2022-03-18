@@ -137,6 +137,9 @@ end
 
     label --> ""
     aspect_ratio --> :equal
+    @series begin
+        [],[]
+    end
     primary --> false
 
     if (length(eqt.profiles_2d) == 0) || ismissing(eqt.profiles_2d[1], :psi)
