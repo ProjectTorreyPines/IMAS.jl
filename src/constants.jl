@@ -1,7 +1,7 @@
 import PhysicalConstants.CODATA2018 as PCs
 
 """
-Structure with physics constants:
+Named tuple with physics constants:
 
     μ_0 = 1.25663706212e-6
     c = 2.99792458e8
@@ -14,17 +14,15 @@ Structure with physics constants:
     atm = 101325.0
     m_u = 1.6605390666e-27
 """
-Base.@kwdef struct PhysicsConstants
-    μ_0 :: Float64 = convert(Float64, PCs.μ_0).val
-    c :: Float64 = convert(Float64, PCs.c_0).val
-    ϵ_0 :: Float64 = convert(Float64, PCs.ε_0).val
-    k_B :: Float64 = convert(Float64, PCs.k_B).val
-    e :: Float64 = convert(Float64, PCs.e).val
-    m_e :: Float64 =  convert(Float64, PCs.m_e).val
-    m_p :: Float64 =  convert(Float64, PCs.m_p).val
-    m_n :: Float64 =  convert(Float64, PCs.m_n).val
-    atm :: Float64 = convert(Float64, PCs.atm).val
-    m_u :: Float64 =  convert(Float64, PCs.m_u).val
-end
-
-constants = PhysicsConstants()
+const constants = (
+    μ_0 = convert(Float64, PCs.μ_0).val,
+    c = convert(Float64, PCs.c_0).val,
+    ϵ_0 = convert(Float64, PCs.ε_0).val,
+    k_B = convert(Float64, PCs.k_B).val,
+    e = convert(Float64, PCs.e).val,
+    m_e = convert(Float64, PCs.m_e).val,
+    m_p = convert(Float64, PCs.m_p).val,
+    m_n = convert(Float64, PCs.m_n).val,
+    atm = convert(Float64, PCs.atm).val,
+    m_u = convert(Float64, PCs.m_u).val
+)
