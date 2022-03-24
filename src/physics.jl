@@ -493,20 +493,26 @@ function xpoint!(eqt::IMAS.equilibrium__time_slice)
     Bp = IMAS.Bp_interpolant(eqt)
 
     # first guess (typically pretty good)
-    i1 = argmin(Bp(pr, pz))
+    tmp = Bp(pr, pz)
+    v1 = minimum(tmp)
+    i1 = argmin(tmp)
     x1 = pr[i1]
     z1 = pz[i1]
 
-    # optimize
-    res = Optim.optimize(
-        x -> Bp([x[1]], [x[2]])[1],
-        [x1, z1],
-        Optim.NelderMead(),
-        Optim.Options(g_tol=1E-8)
-    )
-    x1, z1 = res.minimizer
+    # refine x-point location
+    if v1 < 1E-3
+        res = Optim.optimize(
+            x -> Bp([x[1]], [x[2]])[1],
+            [x1, z1],
+            Optim.NelderMead(),
+            Optim.Options(g_tol=1E-8)
+        )
+        x1, z1 = res.minimizer
+        v1 = res.minimum
+    end
 
-    if res.minimum < 1E-3
+    # add x-point only if it was found
+    if v1 < 1E-3
         resize!(eqt.boundary.x_point, 1)
         eqt.boundary.x_point[1].r = x1
         eqt.boundary.x_point[1].z = z1
