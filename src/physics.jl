@@ -10,15 +10,19 @@ import NumericalIntegration: integrate, cumul_integrate
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_
 @enum BuildLayerShape _convex_hull_ = -2 _offset_ _dummy_ _princeton_D_ _rectangle_ _triple_arc_ _miller_ _spline_
 
-function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
-    cc = cocos(cocos_number)
-    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), psi)
-    Br_vector_interpolant = (x, y) -> cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x, y)[2] / x / (2 * pi)^cc.exp_Bp
-    Bz_vector_interpolant = (x, y) -> -cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x, y)[1] / x / (2 * pi)^cc.exp_Bp
-    Br_Bz_vector_interpolant = (x, y) -> (Br_vector_interpolant(x, y), Bz_vector_interpolant(x, y))
-    return Br_Bz_vector_interpolant
-end
+function Bp_interpolant(eqt::equilibrium__time_slice)
+    cc = cocos(11)
 
+    r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
+    z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
+    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
+
+    # Br and Bz evaluated through spline gradient
+    Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
+    Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
+
+    return (x, y) -> sqrt.(Br_vector_interpolant(x, y) .^ 2 + Bz_vector_interpolant(x, y) .^ 2)
+end
 
 """
     flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
@@ -26,7 +30,7 @@ end
 Update flux surface averaged and geometric quantities in the equilibrium IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eq::equilibrium; upsample_factor::Int = 1)
+function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
     for time_index = 1:length(eq.time_slice)
         flux_surfaces(eq.time_slice[time_index]; upsample_factor)
     end
@@ -39,7 +43,7 @@ end
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int = 1)
+function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
     R0 = eqt.boundary.geometric_axis.r
     B0 = eqt.profiles_1d.f[end] / R0
     return flux_surfaces(eqt, B0, R0; upsample_factor)
@@ -51,18 +55,18 @@ end
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int = 1)
+function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
     cc = cocos(11)
 
-    r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length = length(eqt.profiles_2d[1].grid.dim1))
-    z_upsampled = z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length = length(eqt.profiles_2d[1].grid.dim2))
+    r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
+    z_upsampled = z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
     PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
     PSI_upsampled = eqt.profiles_2d[1].psi
 
     # upsampling for high-resolution r,z flux surface coordinates
     if upsample_factor > 1
-        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length = length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
-        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length = length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
+        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
+        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
         PSI_upsampled = PSI_interpolant(r_upsampled, z_upsampled)
     end
 
@@ -75,11 +79,14 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         x -> PSI_interpolant(x[1], x[2]),
         [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
         Optim.Newton(),
-        Optim.Options(g_tol = 1E-8);
-        autodiff = :forward
+        Optim.Options(g_tol=1E-8);
+        autodiff=:forward
     )
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
+
+    # find xpoint
+    xpoint!(eqt)
 
     for item in [
         :b_field_average,
@@ -123,7 +130,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
             b = eqt.profiles_1d.elongation[1] * a
 
-            t = range(0, 2 * pi, length = 17)
+            t = range(0, 2 * pi, length=17)
             pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
             pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
 
@@ -179,14 +186,14 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
                     return 100
                 end
             end
-            res = Optim.optimize(x -> fx(x, psi_level), [max_r, z_at_max_r], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+            res = Optim.optimize(x -> fx(x, psi_level), [max_r, z_at_max_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+            res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
             (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
             if psi_level0 != eqt.profiles_1d.psi[end]
-                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
                 (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
                 (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
             end
             # p = plot(pr, pz, label = "")
@@ -365,7 +372,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # phi 2D
     eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(to_range(eqt.profiles_1d.psi), eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
+        Interpolations.CubicSplineInterpolation(to_range(eqt.profiles_1d.psi), eqt.profiles_1d.phi, extrapolation_bc=Interpolations.Line()).(eqt.profiles_2d[1].psi)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
@@ -393,7 +400,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             Interpolations.CubicSplineInterpolation(
                 to_range(eqt.profiles_1d.psi[2:end]),
                 getproperty(eqt.profiles_1d, quantity)[2:end],
-                extrapolation_bc = Interpolations.Line(),
+                extrapolation_bc=Interpolations.Line(),
             ).(eqt.profiles_1d.psi[1])
     end
 
@@ -439,7 +446,7 @@ function flux_surface(
         psi_level = psi[2]
         # handle boundary by finding accurate lcfs psi
     elseif psi_level == psi[end]
-        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; raise_error_on_not_open = false)
+        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; raise_error_on_not_open=false)
         if psi__boundary_level !== nothing
             if abs(psi__boundary_level - psi_level) < abs(psi[end] - psi[end-1])
                 psi_level = psi__boundary_level
@@ -481,12 +488,42 @@ function flux_surface(
     end
 end
 
+function xpoint!(eqt::IMAS.equilibrium__time_slice)
+    pr, pz = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
+    Bp = IMAS.Bp_interpolant(eqt)
+
+    # first guess (typically pretty good)
+    i1 = argmin(Bp(pr, pz))
+    x1 = pr[i1]
+    z1 = pz[i1]
+
+    # optimize
+    res = Optim.optimize(
+        x -> Bp([x[1]], [x[2]])[1],
+        [x1, z1],
+        Optim.NelderMead(),
+        Optim.Options(g_tol=1E-8)
+    )
+    x1, z1 = res.minimizer
+
+    if res.minimum < 1E-3
+        resize!(eqt.boundary.x_point, 1)
+        eqt.boundary.x_point[1].r = x1
+        eqt.boundary.x_point[1].z = z1
+    else
+        empty!(eqt.boundary.x_point)
+    end
+
+    return eqt.boundary.x_point
+end
+
+
 """
     find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
 
 Find psi value of the last closed flux surface
 """
-function find_psi_boundary(eqt; precision = 1e-6, raise_error_on_not_open = true)
+function find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
     dim1 = eqt.profiles_2d[1].grid.dim1
     dim2 = eqt.profiles_2d[1].grid.dim2
     PSI = eqt.profiles_2d[1].psi
@@ -496,7 +533,7 @@ function find_psi_boundary(eqt; precision = 1e-6, raise_error_on_not_open = true
     find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision, raise_error_on_not_open)
 end
 
-function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision = 1e-6, raise_error_on_not_open)
+function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision=1e-6, raise_error_on_not_open)
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
     pr, pz = flux_surface(dim1, dim2, PSI, psi, r0, z0, psirange_init[1], true)
@@ -564,13 +601,13 @@ Select layer(s) in build based on a series of selection criteria
 """
 function get_build(
     bd::IMAS.build;
-    type::Union{Nothing,BuildLayerType} = nothing,
-    name::Union{Nothing,String} = nothing,
-    identifier::Union{Nothing,UInt,Int} = nothing,
-    fs::Union{Nothing,BuildLayerSide,Vector{BuildLayerSide}} = nothing,
-    return_only_one = true,
-    return_index = false,
-    raise_error_on_missing = true
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,UInt,Int}=nothing,
+    fs::Union{Nothing,BuildLayerSide,Vector{BuildLayerSide}}=nothing,
+    return_only_one=true,
+    return_index=false,
+    raise_error_on_missing=true
 )
 
     if fs === nothing
@@ -621,12 +658,12 @@ end
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
+function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
-    rmask = range(xlim[1], xlim[2], length = ngrid)
-    zmask = range(ylim[1], ylim[2], length = ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    rmask = range(xlim[1], xlim[2], length=ngrid)
+    zmask = range(ylim[1], ylim[2], length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
     valid = true
@@ -655,7 +692,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real
             end
         end
     end
-    rlim_oh = IMAS.get_build(bd, type = _oh_).start_radius
+    rlim_oh = IMAS.get_build(bd, type=_oh_).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr < rlim_oh
@@ -753,16 +790,16 @@ function new_source(
     name::String,
     rho::Union{AbstractVector,AbstractRange},
     volume::Union{AbstractVector,AbstractRange};
-    electrons_energy::Union{AbstractVector,Missing} = missing,
-    electrons_power_inside::Union{AbstractVector,Missing} = missing,
-    total_ion_energy::Union{AbstractVector,Missing} = missing,
-    total_ion_power_inside::Union{AbstractVector,Missing} = missing,
-    electrons_particles::Union{AbstractVector,Missing} = missing,
-    electrons_particles_inside::Union{AbstractVector,Missing} = missing,
-    j_parallel::Union{AbstractVector,Missing} = missing,
-    current_parallel_inside::Union{AbstractVector,Missing} = missing,
-    momentum_tor::Union{AbstractVector,Missing} = missing,
-    torque_tor_inside::Union{AbstractVector,Missing} = missing
+    electrons_energy::Union{AbstractVector,Missing}=missing,
+    electrons_power_inside::Union{AbstractVector,Missing}=missing,
+    total_ion_energy::Union{AbstractVector,Missing}=missing,
+    total_ion_power_inside::Union{AbstractVector,Missing}=missing,
+    electrons_particles::Union{AbstractVector,Missing}=missing,
+    electrons_particles_inside::Union{AbstractVector,Missing}=missing,
+    j_parallel::Union{AbstractVector,Missing}=missing,
+    current_parallel_inside::Union{AbstractVector,Missing}=missing,
+    momentum_tor::Union{AbstractVector,Missing}=missing,
+    torque_tor_inside::Union{AbstractVector,Missing}=missing
 )
 
     source.identifier.name = name
@@ -1146,15 +1183,15 @@ function DT_fusion_source!(dd::IMAS.dd)
 
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
-    isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches = true)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
     new_source(
         isource,
         6,
         "α heating",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
-        electrons_energy = alpha_power .* (1 .- ion_electron_fraction),
-        total_ion_energy = alpha_power .* ion_electron_fraction
+        electrons_energy=alpha_power .* (1 .- ion_electron_fraction),
+        total_ion_energy=alpha_power .* ion_electron_fraction
     )
     @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
 
@@ -1175,8 +1212,8 @@ function collisional_exchange_source!(dd::IMAS.dd)
     nu_exch = collision_frequencies(dd)[3]
     delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
 
-    isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches = true)
-    new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy = -delta, total_ion_energy = delta)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
+    new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
 
     return dd
 end
@@ -1195,7 +1232,7 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     # Bremsstrahlung radiation
     powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
     isource = resize!(dd.core_sources.source, "identifier.index" => 8)
-    new_source(isource, 8, "Bremsstrahlung", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy = powerDensityBrem)
+    new_source(isource, 8, "Bremsstrahlung", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
     return dd
 end
 
@@ -1316,7 +1353,7 @@ function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core
     return energy_thermal(cp1d) / total_power_inside
 end
 
-function tau_e_h98(dd::IMAS.dd; time = missing)
+function tau_e_h98(dd::IMAS.dd; time=missing)
     if time === missing
         time = dd.global_time
     end
