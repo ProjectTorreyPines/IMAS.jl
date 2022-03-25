@@ -68,8 +68,10 @@ end
     # test infinite recursion
     profiles_1d = IMAS.core_profiles__profiles_1d()
     profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length = 21)
-    profiles_1d.electrons.pressure = (x; _...) -> pe0 .* (1.0 .- x .^ 2)
-    @test_throws Exception profiles_1d.electrons.density[1]
+    profiles_1d.electrons.pressure = (rho_tor_norm; electrons, _...) -> electrons.density .* electrons.temperature * constants.e
+    profiles_1d.electrons.temperature = (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.density * constants.e)
+    profiles_1d.electrons.density = (rho_tor_norm; electrons, _...) -> electrons.pressure ./ (electrons.temperature * constants.e)
+    @test_throws IMAS.IMASexpressionRecursion profiles_1d.electrons.density[1]
 
     # test expressions using scalar quantities
     time_slice = IMAS.equilibrium__time_slice()
