@@ -1242,6 +1242,19 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     return dd
 end
 
+"""
+    simple_ohmic_heating_profile!(dd::IMAS.dd, ohmic_power)
+    # ohmic power in Watts
+Assumes the ohmic heating profile as the parallel conductivity in core_profiles and adds it to dd.core_sources
+"""
+function simple_ohmic_heating_profile!(dd::IMAS.dd, ohmic_power::Real)
+    cp1d = dd.core_profiles.profiles_1d[]
+    powerDensityOhm = ohmic_power .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.volume, cp1d.conductivity_parallel)
+    isource = resize!(dd.core_sources.source, "identifier.index" => 7)
+    new_source(isource, 7, "Ohmic heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm)
+    return dd
+end
+
 function total_sources(dd)
     total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
 end
