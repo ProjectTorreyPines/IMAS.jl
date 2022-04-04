@@ -1141,6 +1141,11 @@ function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_
     return conductivity_parallel
 end
 
+function ohmic_current_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area,cp1d.j_non_inductive)
+    return I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+end
+
 """
     DT_fusion_source!(dd::IMAS.dd)
 
@@ -1247,9 +1252,10 @@ end
     # ohmic power in Watts
 Assumes the ohmic heating profile as the parallel conductivity in core_profiles and adds it to dd.core_sources
 """
-function simple_ohmic_heating_profile!(dd::IMAS.dd, ohmic_power::Real)
+function ohmic_power_steady_state!(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
-    powerDensityOhm = ohmic_power .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.volume, cp1d.conductivity_parallel)
+    powerDensityOhm = ohmic_current_steady_state(eqt, cp1d).^2 ./ cp1d.conductivity_parallel
     isource = resize!(dd.core_sources.source, "identifier.index" => 7)
     new_source(isource, 7, "Ohmic heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm)
     return dd
