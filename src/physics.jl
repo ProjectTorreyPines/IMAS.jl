@@ -74,9 +74,11 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
     Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
 
+    psi_sign = sign(eqt.profiles_1d.psi[end]-eqt.profiles_1d.psi[1])
+
     # find magnetic axis
     res = Optim.optimize(
-        x -> PSI_interpolant(x[1], x[2]),
+        x -> PSI_interpolant(x[1], x[2]) * psi_sign,
         [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
         Optim.Newton(),
         Optim.Options(g_tol=1E-8);
@@ -372,7 +374,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # phi 2D
     eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(to_range(eqt.profiles_1d.psi), eqt.profiles_1d.phi, extrapolation_bc=Interpolations.Line()).(eqt.profiles_2d[1].psi)
+        Interpolations.CubicSplineInterpolation(to_range(eqt.profiles_1d.psi)*psi_sign, eqt.profiles_1d.phi, extrapolation_bc=Interpolations.Line()).(eqt.profiles_2d[1].psi*psi_sign)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
@@ -398,10 +400,10 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     for quantity in [:gm2]
         eqt.profiles_1d.gm2[1] =
             Interpolations.CubicSplineInterpolation(
-                to_range(eqt.profiles_1d.psi[2:end]),
+                to_range(eqt.profiles_1d.psi[2:end])*psi_sign,
                 getproperty(eqt.profiles_1d, quantity)[2:end],
                 extrapolation_bc=Interpolations.Line(),
-            ).(eqt.profiles_1d.psi[1])
+            ).(eqt.profiles_1d.psi[1]*psi_sign)
     end
 
     return eqt
