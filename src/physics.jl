@@ -1140,9 +1140,15 @@ function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_
 
     return conductivity_parallel
 end
+"""
+    ohmic_current_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
+Determines what the steady-state ohmic current is based on conductivity_parallel and j_non_inductive
+Note: does not take q<1 into account
+"""
 function ohmic_current_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area,cp1d.j_non_inductive)
+    j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
+    I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
     return I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
 end
 
@@ -1248,9 +1254,9 @@ function bremsstrahlung_source!(dd::IMAS.dd)
 end
 
 """
-    simple_ohmic_heating_profile!(dd::IMAS.dd, ohmic_power)
-    # ohmic power in Watts
-Assumes the ohmic heating profile as the parallel conductivity in core_profiles and adds it to dd.core_sources
+    ohmic_power_steady_state!(dd::IMAS.dd)
+
+Calculates the ohmic power based on η * J_ohmic² and stores this in dd.core_sources.source[new]
 """
 function ohmic_power_steady_state!(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
