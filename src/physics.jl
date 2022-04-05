@@ -1379,9 +1379,17 @@ function tau_e_thermal(dd::IMAS.dd)
 end
 
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+    # power losses due to radiation shouldn't be subtracted from tau_e_thermal
+    radiation_indices = [8, 10] # [brehm, line]  # note synchlotron radation gets reabsorbed
+    radiation_energy = 0.
+    for source in sources.source
+        if source.identifier.index ∈ radiation_indices
+            radiation_energy += source.profiles_1d[].electrons.power_inside[end]
+        end
+    end
     total_source = IMAS.total_sources(sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    return energy_thermal(cp1d) / total_power_inside
+    return energy_thermal(cp1d) / (total_power_inside - radiation_energy)
 end
 
 function tau_e_h98(dd::IMAS.dd; time=missing)
