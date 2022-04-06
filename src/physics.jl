@@ -1261,7 +1261,7 @@ Calculates the ohmic power based on η * J_ohmic² and stores this in dd.core_so
 function ohmic_power_steady_state!(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
-    powerDensityOhm = ohmic_current_steady_state(eqt, cp1d).^2 ./ cp1d.conductivity_parallel
+    powerDensityOhm = ohmic_current_steady_state(eqt, cp1d) .^ 2 ./ cp1d.conductivity_parallel
     isource = resize!(dd.core_sources.source, "identifier.index" => 7)
     new_source(isource, 7, "Ohmic heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm)
     return dd
@@ -1381,7 +1381,7 @@ end
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
     # power losses due to radiation shouldn't be subtracted from tau_e_thermal
     radiation_indices = [8, 10] # [brehm, line]  # note synchlotron radation gets reabsorbed
-    radiation_energy = 0.
+    radiation_energy = 0.0
     for source in sources.source
         if source.identifier.index ∈ radiation_indices
             radiation_energy += source.profiles_1d[].electrons.power_inside[end]
@@ -1558,4 +1558,16 @@ Calculate volume of a build layer outline revolved around x=0
 """
 function volume(layer::IMAS.build__layer)
     func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
+end
+
+"""
+    bunit(eqt::IMAS.equilibrium__time_slice)
+
+Calculate bunit from equilibrium
+"""
+function bunit(eqt::IMAS.equilibrium__time_slice)
+    eq1d = eqt.profiles_1d
+    rmin = 0.5 * (eq1d.r_outboard - eq1d.r_inboard)
+    phi = eq1d.phi
+    return centraldiff(phi) ./ centraldiff(2 * pi * rmin) ./ rmin
 end
