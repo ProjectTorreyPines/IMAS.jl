@@ -1312,6 +1312,9 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         end
         source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
 
+        if isempty(source.profiles_1d)
+            continue
+        end
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
         source1d = source.profiles_1d[Float64(cp1d.time)]
         for sub in [nothing, :electrons]
