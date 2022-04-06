@@ -1439,10 +1439,9 @@ Evaluate thermal energy confinement time
 """
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
     # power losses due to radiation shouldn't be subtracted from tau_e_thermal
-    radiation_energy = radiation_losses(sources)
     total_source = IMAS.total_sources(sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    return energy_thermal(cp1d) / (total_power_inside - radiation_energy)
+    return energy_thermal(cp1d) / (total_power_inside - radiation_losses(sources))
 end
 
 function tau_e_h98(dd::IMAS.dd; time=missing)
@@ -1454,7 +1453,7 @@ function tau_e_h98(dd::IMAS.dd; time=missing)
     cp1d = dd.core_profiles.profiles_1d[Float64(time)]
 
     total_source = IMAS.total_sources(dd.core_sources, cp1d)
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
     isotope_factor = integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1])) /
                      integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1]))
 
@@ -1611,4 +1610,16 @@ Calculate volume of a build layer outline revolved around x=0
 """
 function volume(layer::IMAS.build__layer)
     func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
+end
+
+"""
+    bunit(eqt::IMAS.equilibrium__time_slice)
+
+Calculate bunit from equilibrium
+"""
+function bunit(eqt::IMAS.equilibrium__time_slice)
+    eq1d = eqt.profiles_1d
+    rmin = 0.5 * (eq1d.r_outboard - eq1d.r_inboard)
+    phi = eq1d.phi
+    return centraldiff(phi) ./ centraldiff(2 * pi * rmin) ./ rmin
 end
