@@ -1152,13 +1152,19 @@ end
 """
     j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+Sets j_ohmic and j_total to what it would be at steady-state, based on parallel conductivity and j_non_inductive
 """
 function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
     I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
-    cp1d.j_ohmic = I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
-    return cp1d.j_ohmic
+    j_ohmic = I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+    cp1d.j_total = cp1d.j_non_inductive + j_ohmic
+    if typeof(getfield(cp1d, :j_ohmic)) <: Function
+        @assert all(j_ohmic .≈ cp1d.j_ohmic)
+    else
+        cp1d.j_ohmic = j_ohmic
+    end
+    return j_ohmic
 end
 
 """
