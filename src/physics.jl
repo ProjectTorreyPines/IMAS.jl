@@ -74,7 +74,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
     Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
 
-    psi_sign = sign(eqt.profiles_1d.psi[end]-eqt.profiles_1d.psi[1])
+    psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
 
     # find magnetic axis
     res = Optim.optimize(
@@ -374,7 +374,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
     # phi 2D
     eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(to_range(eqt.profiles_1d.psi)*psi_sign, eqt.profiles_1d.phi, extrapolation_bc=Interpolations.Line()).(eqt.profiles_2d[1].psi*psi_sign)
+        Interpolations.CubicSplineInterpolation(to_range(eqt.profiles_1d.psi) * psi_sign, eqt.profiles_1d.phi, extrapolation_bc=Interpolations.Line()).(eqt.profiles_2d[1].psi * psi_sign)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
@@ -400,10 +400,10 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     for quantity in [:gm2]
         eqt.profiles_1d.gm2[1] =
             Interpolations.CubicSplineInterpolation(
-                to_range(eqt.profiles_1d.psi[2:end])*psi_sign,
+                to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
                 getproperty(eqt.profiles_1d, quantity)[2:end],
                 extrapolation_bc=Interpolations.Line(),
-            ).(eqt.profiles_1d.psi[1]*psi_sign)
+            ).(eqt.profiles_1d.psi[1] * psi_sign)
     end
 
     return eqt
@@ -784,11 +784,17 @@ end
         name::String,
         rho::Union{AbstractVector,AbstractRange},
         volume::Union{AbstractVector,AbstractRange};
-        qe::Union{AbstractVector,Missing} = missing,
-        qi::Union{AbstractVector,Missing} = missing,
-        se::Union{AbstractVector,Missing} = missing,
-        jpar::Union{AbstractVector,Missing} = missing,
-        momentum::Union{AbstractVector,Missing} = missing)
+        electrons_energy::Union{AbstractVector,Missing}=missing,
+        electrons_power_inside::Union{AbstractVector,Missing}=missing,
+        total_ion_energy::Union{AbstractVector,Missing}=missing,
+        total_ion_power_inside::Union{AbstractVector,Missing}=missing,
+        electrons_particles::Union{AbstractVector,Missing}=missing,
+        electrons_particles_inside::Union{AbstractVector,Missing}=missing,
+        j_parallel::Union{AbstractVector,Missing}=missing,
+        current_parallel_inside::Union{AbstractVector,Missing}=missing,
+        momentum_tor::Union{AbstractVector,Missing}=missing,
+        torque_tor_inside::Union{AbstractVector,Missing}=missing
+    )
 
 Populates the IMAS.core_sources__source with given heating, particle, current, momentun profiles
 """
@@ -1142,25 +1148,25 @@ function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_
 
     return conductivity_parallel
 end
-"""
-    ohmic_current_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Determines what the steady-state ohmic current is based on conductivity_parallel and j_non_inductive
-Note: does not take q<1 into account
 """
-function ohmic_current_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+"""
+function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
     I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
-    return I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+    cp1d.j_ohmic = I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+    return cp1d.j_ohmic
 end
 
 """
     DT_fusion_source!(dd::IMAS.dd)
 
-Calculates DT fusion heating and modifies dd.core_sources with an estimation of the alpha slowing down to the ions and electrons
+Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons and modifies dd.core_sources
 """
 function DT_fusion_source!(dd::IMAS.dd)
-
     cp1d = dd.core_profiles.profiles_1d[]
 
     fast_helium_energy = 3.5e6 * 1.6022e-12 * 1e-7  # Joules
@@ -1240,7 +1246,7 @@ end
 """
     bremsstrahlung_source!(dd::IMAS.dd)
 
-Calculates Bremsstrahlung radiation source and adds it to dd.core_sources
+Calculates Bremsstrahlung radiation source and modifies dd.core_sources
 """
 function bremsstrahlung_source!(dd::IMAS.dd)
     # Plasma estimated at ellipsoid torus for volume contribution (triangularity is small correction)
@@ -1256,16 +1262,15 @@ function bremsstrahlung_source!(dd::IMAS.dd)
 end
 
 """
-    ohmic_power_steady_state!(dd::IMAS.dd)
+    ohmic_source!(dd::IMAS.dd)
 
-Calculates the ohmic power based on η * J_ohmic² and stores this in dd.core_sources.source[new]
+Calculates the ohmic source and modifies dd.core_sources
 """
-function ohmic_power_steady_state!(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
+function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    powerDensityOhm = ohmic_current_steady_state(eqt, cp1d).^2 ./ cp1d.conductivity_parallel
+    powerDensityOhm = cp1d.j_ohmic .^ 2 ./ cp1d.conductivity_parallel
     isource = resize!(dd.core_sources.source, "identifier.index" => 7)
-    new_source(isource, 7, "Ohmic heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm)
+    new_source(isource, 7, "Ohmic heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
     return dd
 end
 
@@ -1380,15 +1385,31 @@ function tau_e_thermal(dd::IMAS.dd)
     return tau_e_thermal(dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
-function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
-    # power losses due to radiation shouldn't be subtracted from tau_e_thermal
-    radiation_indices = [8, 10] # [brehm, line]  # note synchlotron radation gets reabsorbed
-    radiation_energy = 0.
+"""
+    radiation_losses(sources::IMAS.core_sources)
+
+Evaluate total plasma radiation losses [W] due to both bremsstrahlung and line radiation
+Synchlotron radation is not considered since it gets reabsorbed
+"""
+function radiation_losses(sources::IMAS.core_sources)
+    radiation_indices = [8, 10] # [brehm, line]
+    radiation_energy = 0.0
     for source in sources.source
         if source.identifier.index ∈ radiation_indices
             radiation_energy += source.profiles_1d[].electrons.power_inside[end]
         end
     end
+    return radiation_energy
+end
+
+"""
+    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+
+Evaluate thermal energy confinement time
+"""
+function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+    # power losses due to radiation shouldn't be subtracted from tau_e_thermal
+    radiation_energy = radiation_losses(sources)
     total_source = IMAS.total_sources(sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     return energy_thermal(cp1d) / (total_power_inside - radiation_energy)
