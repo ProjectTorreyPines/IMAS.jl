@@ -1142,6 +1142,17 @@ function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_
 
     return conductivity_parallel
 end
+"""
+    ohmic_current_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Determines what the steady-state ohmic current is based on conductivity_parallel and j_non_inductive
+Note: does not take q<1 into account
+"""
+function ohmic_current_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
+    I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
+    return I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+end
 
 """
     DT_fusion_source!(dd::IMAS.dd)
@@ -1241,6 +1252,20 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
     isource = resize!(dd.core_sources.source, "identifier.index" => 8)
     new_source(isource, 8, "Bremsstrahlung", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
+    return dd
+end
+
+"""
+    ohmic_power_steady_state!(dd::IMAS.dd)
+
+Calculates the ohmic power based on η * J_ohmic² and stores this in dd.core_sources.source[new]
+"""
+function ohmic_power_steady_state!(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    powerDensityOhm = ohmic_current_steady_state(eqt, cp1d).^2 ./ cp1d.conductivity_parallel
+    isource = resize!(dd.core_sources.source, "identifier.index" => 7)
+    new_source(isource, 7, "Ohmic heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm)
     return dd
 end
 
@@ -1356,9 +1381,17 @@ function tau_e_thermal(dd::IMAS.dd)
 end
 
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+    # power losses due to radiation shouldn't be subtracted from tau_e_thermal
+    radiation_indices = [8, 10] # [brehm, line]  # note synchlotron radation gets reabsorbed
+    radiation_energy = 0.
+    for source in sources.source
+        if source.identifier.index ∈ radiation_indices
+            radiation_energy += source.profiles_1d[].electrons.power_inside[end]
+        end
+    end
     total_source = IMAS.total_sources(sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    return energy_thermal(cp1d) / total_power_inside
+    return energy_thermal(cp1d) / (total_power_inside - radiation_energy)
 end
 
 function tau_e_h98(dd::IMAS.dd; time=missing)
