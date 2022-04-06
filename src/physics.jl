@@ -1150,21 +1150,37 @@ function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_
 end
 
 """
-    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic and j_total to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
 """
-function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
     I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
-    j_ohmic = I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
-    cp1d.j_total = cp1d.j_non_inductive + j_ohmic
-    if typeof(getfield(cp1d, :j_ohmic)) <: Function
-        @assert all(j_ohmic .≈ cp1d.j_ohmic)
-    else
-        cp1d.j_ohmic = j_ohmic
-    end
+    return I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+end
+
+"""
+    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+"""
+function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_ohmic = j_ohmic_steady_state(eqt, cp1d)
+    cp1d.j_ohmic = j_ohmic
+    empty!(cp1d, :j_total) # restore total as expression, to make things self-consistent
     return j_ohmic
+end
+
+"""
+    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Sets j_total in core_profiles to the total parallel current in the equilibirum
+"""
+function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(rho_tor_norm)
+    empty!(cp1d, :j_ohmic) # restore ohmic as expression, to make things self-consistent
+    return cp1d.j_total
 end
 
 """
@@ -1276,7 +1292,7 @@ function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     powerDensityOhm = cp1d.j_ohmic .^ 2 ./ cp1d.conductivity_parallel
     isource = resize!(dd.core_sources.source, "identifier.index" => 7)
-    new_source(isource, 7, "Ohmic heating", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
+    new_source(isource, 7, "Ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
     return dd
 end
 
@@ -1285,11 +1301,11 @@ function total_sources(dd)
 end
 
 """
-    core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+    total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
 
-Returns core_sources__source___profiles_1d with sources totals
+Returns core_sources__source___profiles_1d with sources totals and possiblity to explicitly include/exclude certain sources based on their unique index identifier.
 """
-function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
     total_source1d = IMAS.core_sources__source___profiles_1d()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     if !ismissing(cp1d.grid, :volume)
@@ -1303,7 +1319,9 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     all_indexes = [source.identifier.index for source in core_sources.source]
 
     for source in core_sources.source
-        if source.identifier.index in [0]
+        if include_indexes !== missing && source.identifier.index ∈ include_indexes
+            # pass
+        elseif source.identifier.index in [0]
             @warn "total_sources() skipping unspecified source with index $(source.identifier.index)"
             continue
         elseif 107 >= source.identifier.index >= 100
@@ -1314,6 +1332,9 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
             continue
         elseif (source.identifier.index) in [200] && any(300 > all_indexes > 200)
             @warn "total_sources() skipping total radiation source with index $(source.identifier.index)"
+            continue
+        elseif exclude_indexes !== missing && source.identifier.index ∈ exclude_indexes
+            @warn "total_sources() skipping excluded source with index $(source.identifier.index)"
             continue
         end
         source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
