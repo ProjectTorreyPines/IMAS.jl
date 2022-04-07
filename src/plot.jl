@@ -124,17 +124,17 @@ end
 
 Plots equilibrium cross-section
 """
-@recipe function plot_eqcx(eq::IMAS.equilibrium; psi_levels = nothing, psi_levels_out = nothing, lcfs = false)
+@recipe function plot_eqcx(eq::IMAS.equilibrium; psi_levels = nothing, psi_levels_out = nothing, lcfs = false, x_point=false)
     @series begin
         psi_levels --> psi_levels
         psi_levels_out --> psi_levels_out
         lcfs --> lcfs
+        x_point --> x_point
         return eq.time_slice[]
     end
 end
 
-@recipe function plot_eqtcx(eqt::IMAS.equilibrium__time_slice; psi_levels = nothing, psi_levels_out = nothing, lcfs = false)
-
+@recipe function plot_eqtcx(eqt::IMAS.equilibrium__time_slice; psi_levels = nothing, psi_levels_out = nothing, lcfs = false, x_point=false)
     label --> ""
     aspect_ratio --> :equal
     @series begin
@@ -211,6 +211,26 @@ end
             markershape --> :cross
             [(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)]
         end
+
+        if x_point
+            for xp in eqt.boundary.x_point
+                @series begin
+                    primary --> false
+                    xp
+                end
+            end
+        end
+    end
+
+end
+
+@recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
+    @series begin
+        seriestype := :scatter
+        marker --> :circle
+        markerstrokewidth --> 0
+        label --> ""
+        [(x_point.r,x_point.z)]
     end
 end
 
@@ -220,7 +240,6 @@ function join_outlines(r1, z1, r2, z2)
     p(x1, x2) = vcat(x1, x2[i2:end], x2[1:i2], x1[i1])
     return p(r1, r2), p(z1, z2)
 end
-
 
 @recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
     if !ismissing(rail.outline, :r)
