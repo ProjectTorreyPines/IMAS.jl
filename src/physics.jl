@@ -504,7 +504,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1e-2)
     end
 
     # x-point are minima in Bp
-    tmp = Bp(pr, pz) / eqt.global_quantities.ip * 1e6
+    tmp = Bp(pr, pz) / abs(eqt.global_quantities.ip / 1e6)
 
     # find minima in Bp wells that are below threshold
     in_well = false
@@ -525,6 +525,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1e-2)
             min_tmp = Inf
         end
     end
+
+    return eqt.boundary.x_point
 end
 
 
