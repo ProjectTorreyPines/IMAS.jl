@@ -490,11 +490,11 @@ function flux_surface(
 end
 
 """
-    function x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-3)
+    function x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-2)
 
 Set list of x-xpoints
 """
-function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-3)
+function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-2)
     pr, pz = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     Bp = IMAS.Bp_interpolant(eqt)
 
@@ -504,7 +504,11 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-3)
     end
 
     # x-point are minima in Bp
-    tmp = Bp(pr, pz) / eqt.global_quantities.ip * 1E6
+    tmp = Bp(pr, pz) / abs(eqt.global_quantities.ip / 1E6)
+
+    # p=plot(tmp)
+    # hline!([threshold],yscale=:log10)
+    # display(p)
 
     # find minima in Bp wells that are below threshold
     in_well = false
@@ -525,6 +529,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-3)
             min_tmp = Inf
         end
     end
+
+    return eqt.boundary.x_point
 end
 
 
