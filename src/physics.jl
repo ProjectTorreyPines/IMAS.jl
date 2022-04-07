@@ -499,6 +499,9 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-3)
     Bp = IMAS.Bp_interpolant(eqt)
 
     empty!(eqt.boundary.x_point)
+    if ismissing(eqt.global_quantities, :ip)
+        return eqt.boundary.x_point
+    end
 
     # x-point are minima in Bp
     tmp = Bp(pr, pz) / eqt.global_quantities.ip * 1E6
