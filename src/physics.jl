@@ -1163,24 +1163,32 @@ end
 """
     j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+Sets j_ohmic as expression in core_profiles that evaluates to what it would be at steady-state, based on parallel conductivity and j_non_inductive
 """
-function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    j_ohmic = j_ohmic_steady_state(eqt, cp1d)
-    cp1d.j_ohmic = j_ohmic
+function j_ohmic_steady_state!(cp1d::IMAS.core_profiles__profiles_1d)
+    function f(rho_tor_norm; dd, profiles_1d, _...)
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return j_ohmic_steady_state(eqt, cp1d)
+    end
+    cp1d.j_ohmic = f
     empty!(cp1d, :j_total) # restore total as expression, to make things self-consistent
-    return j_ohmic
+    return nothing
 end
 
 """
-    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_total_from_equilibrium!(cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_total in core_profiles to the total parallel current in the equilibirum
+Sets j_total as expression in core_profiles that evaluates to the total parallel current in the equilibirum
 """
-function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(rho_tor_norm)
+function j_total_from_equilibrium!(cp1d::IMAS.core_profiles__profiles_1d)
+    println("A")
+    function f(rho_tor_norm; dd, profiles_1d, _...)
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(rho_tor_norm)
+    end
+    cp1d.j_total = f
     empty!(cp1d, :j_ohmic) # restore ohmic as expression, to make things self-consistent
-    return cp1d.j_total
+    return nothing
 end
 
 """
