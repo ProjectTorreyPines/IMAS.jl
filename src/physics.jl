@@ -87,8 +87,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
 
-    # find xpoint
-    xpoint!(eqt)
+    find_x_point!(eqt)
 
     for item in [
         :b_field_average,
@@ -490,7 +489,7 @@ function flux_surface(
     end
 end
 
-function xpoint!(eqt::IMAS.equilibrium__time_slice)
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)
     pr, pz = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     Bp = IMAS.Bp_interpolant(eqt)
 
@@ -1175,7 +1174,7 @@ end
 """
     j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_total in core_profiles to the total parallel current in the equilibirum
+Sets j_total in core_profiles to the total parallel current in the equilibrium
 """
 function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(rho_tor_norm)

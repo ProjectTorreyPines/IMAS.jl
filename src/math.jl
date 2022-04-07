@@ -191,3 +191,15 @@ function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T} = n
     t = range(s[1], s[end]; length = n)
     return interp1d(s, x).(t), interp1d(s, y).(t)
 end
+
+"""
+    centraldiff(v::AbstractVector)
+
+Calculates central difference of a vector
+"""
+function centraldiff(v::AbstractVector)
+    dv = diff(v) / 2
+    a = [dv[1]; dv]
+    a .+= [dv; dv[end]]
+    return a
+end
