@@ -87,8 +87,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
 
-    # find xpoint
-    xpoint!(eqt)
+    # find x_point
+    x_point!(eqt)
 
     for item in [
         :b_field_average,
@@ -490,7 +490,7 @@ function flux_surface(
     end
 end
 
-function xpoint!(eqt::IMAS.equilibrium__time_slice)
+function x_point!(eqt::IMAS.equilibrium__time_slice)
     pr, pz = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     Bp = IMAS.Bp_interpolant(eqt)
 
