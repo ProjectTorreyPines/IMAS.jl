@@ -489,39 +489,39 @@ function flux_surface(
     end
 end
 
-function find_x_point!(eqt::IMAS.equilibrium__time_slice)
+"""
+    function x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-3)
+
+Set list of x-xpoints
+"""
+function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-3)
     pr, pz = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     Bp = IMAS.Bp_interpolant(eqt)
 
-    # first guess (typically pretty good)
-    tmp = Bp(pr, pz)
-    v1 = minimum(tmp)
-    i1 = argmin(tmp)
-    x1 = pr[i1]
-    z1 = pz[i1]
+    empty!(eqt.boundary.x_point)
 
-    # refine x-point location
-    if v1 < 1E-3
-        res = Optim.optimize(
-            x -> Bp([x[1]], [x[2]])[1],
-            [x1, z1],
-            Optim.NelderMead(),
-            Optim.Options(g_tol=1E-8)
-        )
-        x1, z1 = res.minimizer
-        v1 = res.minimum
+    # x-point are minima in Bp
+    tmp = Bp(pr, pz) / eqt.global_quantities.ip * 1E6
+
+    # find minima in Bp wells that are below threshold
+    in_well = false
+    min_tmp = Inf
+    for k in 1:length(tmp)
+        if tmp[k] < threshold
+            if !in_well
+                resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
+                in_well = true
+            end
+            if tmp[k] < min_tmp
+                eqt.boundary.x_point[end].r = pr[k]
+                eqt.boundary.x_point[end].z = pz[k]
+                min_tmp = tmp[k]
+            end
+        else
+            in_well = false
+            min_tmp = Inf
+        end
     end
-
-    # add x-point only if it was found
-    if v1 < 1E-3
-        resize!(eqt.boundary.x_point, 1)
-        eqt.boundary.x_point[1].r = x1
-        eqt.boundary.x_point[1].z = z1
-    else
-        empty!(eqt.boundary.x_point)
-    end
-
-    return eqt.boundary.x_point
 end
 
 
@@ -1162,24 +1162,31 @@ end
 """
     j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+Sets j_ohmic as expression in core_profiles that evaluates to what it would be at steady-state, based on parallel conductivity and j_non_inductive
 """
-function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    j_ohmic = j_ohmic_steady_state(eqt, cp1d)
-    cp1d.j_ohmic = j_ohmic
+function j_ohmic_steady_state!(cp1d::IMAS.core_profiles__profiles_1d)
+    function f(rho_tor_norm; dd, profiles_1d, _...)
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return j_ohmic_steady_state(eqt, cp1d)
+    end
+    cp1d.j_ohmic = f
     empty!(cp1d, :j_total) # restore total as expression, to make things self-consistent
-    return j_ohmic
+    return nothing
 end
 
 """
-    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_total_from_equilibrium!(cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_total in core_profiles to the total parallel current in the equilibrium
+Sets j_total as expression in core_profiles that evaluates to the total parallel current in the equilibrirum
 """
-function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(rho_tor_norm)
+function j_total_from_equilibrium!(cp1d::IMAS.core_profiles__profiles_1d)
+    function f(rho_tor_norm; dd, profiles_1d, _...)
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(rho_tor_norm)
+    end
+    cp1d.j_total = f
     empty!(cp1d, :j_ohmic) # restore ohmic as expression, to make things self-consistent
-    return cp1d.j_total
+    return nothing
 end
 
 """
