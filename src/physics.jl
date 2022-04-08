@@ -489,45 +489,42 @@ function flux_surface(
     end
 end
 
-"""
-    function x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-2)
-
-Set list of x-xpoints
-"""
-function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1E-2)
-    pr, pz = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
-    Bp = IMAS.Bp_interpolant(eqt)
-
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)
+    rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
+    private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
+    Z0 = sum(rlcfs) / length(rlcfs)
     empty!(eqt.boundary.x_point)
-    if ismissing(eqt.global_quantities, :ip)
-        return eqt.boundary.x_point
+    for (pr, pz) in private
+        if sign(pz[1] - Z0) != sign(pz[end] - Z0)
+            # open flux surface does not encicle the plasma
+            continue
+        elseif minimum_distance_two_shapes(pr, pz, rlcfs, zlcfs) > (maximum(zlcfs) - minimum(zlcfs)) / 20
+            # secondary Xpoint far away
+            continue
+        elseif (sum(pz) - Z0) < 0
+            # lower private region
+            index = argmax(pz)
+        else
+            # upper private region
+            index = argmin(pz)
+        end
+        indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
+        resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
+        eqt.boundary.x_point[end].r = (pr[index] + rlcfs[indexcfs]) / 2.0
+        eqt.boundary.x_point[end].z = (pz[index] + zlcfs[indexcfs]) / 2.0
     end
 
-    # x-point are minima in Bp
-    tmp = Bp(pr, pz) / abs(eqt.global_quantities.ip / 1E6)
-
-    # p=plot(tmp)
-    # hline!([threshold],yscale=:log10)
-    # display(p)
-
-    # find minima in Bp wells that are below threshold
-    in_well = false
-    min_tmp = Inf
-    for k in 1:length(tmp)
-        if tmp[k] < threshold
-            if !in_well
-                resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
-                in_well = true
-            end
-            if tmp[k] < min_tmp
-                eqt.boundary.x_point[end].r = pr[k]
-                eqt.boundary.x_point[end].z = pz[k]
-                min_tmp = tmp[k]
-            end
-        else
-            in_well = false
-            min_tmp = Inf
-        end
+    # refine x-point location
+    Bp = IMAS.Bp_interpolant(eqt)
+    for rz in eqt.boundary.x_point
+        res = Optim.optimize(
+            x -> Bp([rz.r + x[1]], [rz.z + x[2]])[1],
+            [0.0, 0.0],
+            Optim.NelderMead(),
+            Optim.Options(g_tol=1E-8)
+        )
+        rz.r += res.minimizer[1]
+        rz.z += res.minimizer[2]
     end
 
     return eqt.boundary.x_point
