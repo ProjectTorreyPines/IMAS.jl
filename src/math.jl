@@ -203,3 +203,22 @@ function centraldiff(v::AbstractVector)
     a .+= [dv; dv[end]]
     return a
 end
+
+"""
+    minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2)
+
+Returns minimum distance between two shapes
+"""
+function minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2)
+    R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
+    distance = Inf
+    for k1 in 1:length(R_obj1)
+        for k2 in 1:length(R_obj2)
+            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            if distance > d
+                distance = d
+            end
+        end
+    end
+    return sqrt(distance)
+end

@@ -490,40 +490,47 @@ function flux_surface(
 end
 
 """
-    function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1e-2)
+    function find_x_point!(eqt::IMAS.equilibrium__time_slice)
 
-Set list of x-x_points
+Finds and set list of x_points in place
 """
-function find_x_point!(eqt::IMAS.equilibrium__time_slice; threshold=1e-2)
-    pr, pz = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
-    Bp = IMAS.Bp_interpolant(eqt)
-
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)
+    rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
+    ll = sqrt((maximum(zlcfs) - minimum(zlcfs))*(maximum(rlcfs) - minimum(rlcfs))) / 20
+    private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
+    Z0 = sum(rlcfs) / length(rlcfs)
     empty!(eqt.boundary.x_point)
-    if ismissing(eqt.global_quantities, :ip)
-        return eqt.boundary.x_point
+    for (pr, pz) in private
+        if sign(pz[1] - Z0) != sign(pz[end] - Z0)
+            # open flux surface does not encicle the plasma
+            continue
+        elseif minimum_distance_two_shapes(pr, pz, rlcfs, zlcfs) > ll
+            # secondary Xpoint far away
+            continue
+        elseif (sum(pz) - Z0) < 0
+            # lower private region
+            index = argmax(pz)
+        else
+            # upper private region
+            index = argmin(pz)
+        end
+        indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
+        resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
+        eqt.boundary.x_point[end].r = (pr[index] + rlcfs[indexcfs]) / 2.0
+        eqt.boundary.x_point[end].z = (pz[index] + zlcfs[indexcfs]) / 2.0
     end
 
-    # x-point are minima in Bp
-    tmp = Bp(pr, pz) / abs(eqt.global_quantities.ip / 1e6)
-
-    # find minima in Bp wells that are below threshold
-    in_well = false
-    min_tmp = Inf
-    for k in 1:length(tmp)
-        if tmp[k] < threshold
-            if !in_well
-                resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
-                in_well = true
-            end
-            if tmp[k] < min_tmp
-                eqt.boundary.x_point[end].r = pr[k]
-                eqt.boundary.x_point[end].z = pz[k]
-                min_tmp = tmp[k]
-            end
-        else
-            in_well = false
-            min_tmp = Inf
-        end
+    # refine x-point location
+    Bp = IMAS.Bp_interpolant(eqt)
+    for rz in eqt.boundary.x_point
+        res = Optim.optimize(
+            x -> Bp([rz.r + x[1]], [rz.z + x[2]])[1],
+            [0.0, 0.0],
+            Optim.NelderMead(),
+            Optim.Options(g_tol=1E-8)
+        )
+        rz.r += res.minimizer[1]
+        rz.z += res.minimizer[2]
     end
 
     return eqt.boundary.x_point
@@ -1053,8 +1060,9 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
 
     equilibrium = top_ids(eqt)
     B0 = get_time_array(equilibrium.vacuum_toroidal_field, :b0, eqt.time)
-    j_boot = -I_psi .* cp1d.electrons.pressure .* sign(eqt.global_quantities.ip) .* (bra1 .+ bra2 .+ bra3) ./ B0
+    j_boot = -I_psi .* cp1d.electrons.pressure .* (bra1 .+ bra2 .+ bra3) ./ B0
 
+    j_boot = abs.(j_boot) .* sign(eqt.global_quantities.ip)
     return j_boot
 end
 
@@ -1169,27 +1177,19 @@ end
 
 Sets j_ohmic as expression in core_profiles that evaluates to what it would be at steady-state, based on parallel conductivity and j_non_inductive
 """
-function j_ohmic_steady_state!(cp1d::IMAS.core_profiles__profiles_1d)
-    function f(rho_tor_norm; dd, profiles_1d, _...)
-        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return j_ohmic_steady_state(eqt, cp1d)
-    end
-    cp1d.j_ohmic = f
+function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d)
     empty!(cp1d, :j_total) # restore total as expression, to make things self-consistent
     return nothing
 end
 
 """
-    j_total_from_equilibrium!(cp1d::IMAS.core_profiles__profiles_1d)
+    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Sets j_total as expression in core_profiles that evaluates to the total parallel current in the equilibrirum
 """
-function j_total_from_equilibrium!(cp1d::IMAS.core_profiles__profiles_1d)
-    function f(rho_tor_norm; dd, profiles_1d, _...)
-        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(rho_tor_norm)
-    end
-    cp1d.j_total = f
+function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(cp1d.grid.rho_tor_norm)
     empty!(cp1d, :j_ohmic) # restore ohmic as expression, to make things self-consistent
     return nothing
 end
@@ -1245,7 +1245,7 @@ function DT_fusion_source!(dd::IMAS.dd)
     new_source(
         isource,
         6,
-        "α heating",
+        "α",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
         electrons_energy=alpha_power .* (1 .- ion_electron_fraction),
@@ -1267,11 +1267,14 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
 
-    nu_exch = collision_frequencies(dd)[3]
-    delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
-
-    isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
-    new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+    if all(Te .≈ Ti)
+        deleteat!(dd.core_sources.source, "identifier.index" => 11)
+    else
+        nu_exch = collision_frequencies(dd)[3]
+        delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
+        isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
+        new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+    end
 
     return dd
 end
@@ -1290,7 +1293,7 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     # Bremsstrahlung radiation
     powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
     isource = resize!(dd.core_sources.source, "identifier.index" => 8)
-    new_source(isource, 8, "Bremsstrahlung", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
+    new_source(isource, 8, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
     return dd
 end
 
@@ -1303,8 +1306,33 @@ function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     powerDensityOhm = cp1d.j_ohmic .^ 2 ./ cp1d.conductivity_parallel
     isource = resize!(dd.core_sources.source, "identifier.index" => 7)
-    new_source(isource, 7, "Ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
+    new_source(isource, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
     return dd
+end
+
+"""
+    bootstrap_source!(dd::IMAS.dd)
+
+Calculates the bootsrap current source and modifies dd.core_sources
+"""
+function bootstrap_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    isource = resize!(dd.core_sources.source, "identifier.index" => 13)
+    new_source(isource, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=cp1d.j_bootstrap)
+    return dd
+end
+
+"""
+    sources!(dd::IMAS.dd)
+
+Calculates the plasma sources and sinks and adds them to dd.core_sources
+"""
+function sources!(dd)
+    IMAS.ohmic_source!(dd)
+    IMAS.bootstrap_source!(dd)
+    IMAS.collisional_exchange_source!(dd)
+    IMAS.bremsstrahlung_source!(dd)
+    IMAS.DT_fusion_source!(dd)
 end
 
 function total_sources(dd)
@@ -1345,7 +1373,6 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
             @warn "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
         elseif exclude_indexes !== missing && source.identifier.index ∈ exclude_indexes
-            @warn "total_sources() skipping excluded source with index $(source.identifier.index)"
             continue
         end
         source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
@@ -1362,12 +1389,11 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                 ids1 = getproperty(ids1, sub)
                 ids2 = getproperty(ids2, sub)
             end
-            for field in fieldnames(typeof(ids1))
+            for field in keys(ids1)
                 initialized = false
                 if !ismissing(ids2, field)
                     y = getproperty(ids2, field)
                     if typeof(y) <: AbstractVector{T} where {T<:Real}
-                        @debug((source_name, sub, field, typeof(getfield(ids1, field))))
                         if typeof(getfield(ids1, field)) <: Union{Missing,Function}
                             setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
                             initialized = true
@@ -1387,7 +1413,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         if sub !== nothing
             ids1 = getproperty(ids1, sub)
         end
-        for field in fieldnames(typeof(ids1))
+        for field in keys(ids1)
             if ismissing(ids1, field)
                 setproperty!(ids1, field, zeros(size(rho)))
             end

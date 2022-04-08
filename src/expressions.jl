@@ -72,7 +72,7 @@ expressions["core_profiles.profiles_1d[:].j_ohmic"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
 expressions["core_profiles.profiles_1d[:].j_non_inductive"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; exclude_indexes=[7]).j_parallel .+ profiles_1d.j_bootstrap
+    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; exclude_indexes=[7,13]).j_parallel .+ profiles_1d.j_bootstrap
 
 expressions["core_profiles.profiles_1d[:].j_total"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> profiles_1d.j_ohmic .+ profiles_1d.j_non_inductive
@@ -226,7 +226,7 @@ expressions["core_sources.source[:].profiles_1d[:].electrons.particles"] =
 expressions["core_sources.source[:].profiles_1d[:].current_parallel_inside"] =
     (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.area, profiles_1d.j_parallel)
 
-expressions["core_sources.source[:].profiles_1d[:]. "] =
+expressions["core_sources.source[:].profiles_1d[:].j_parallel"] =
     (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.area, profiles_1d.current_parallel_inside)
 
 
