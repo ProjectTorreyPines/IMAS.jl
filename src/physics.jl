@@ -1055,8 +1055,9 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
 
     equilibrium = top_ids(eqt)
     B0 = get_time_array(equilibrium.vacuum_toroidal_field, :b0, eqt.time)
-    j_boot = -I_psi .* cp1d.electrons.pressure .* sign(eqt.global_quantities.ip) .* (bra1 .+ bra2 .+ bra3) ./ B0
+    j_boot = -I_psi .* cp1d.electrons.pressure .* (bra1 .+ bra2 .+ bra3) ./ B0
 
+    j_boot = abs.(j_boot) .* sign(eqt.global_quantities.ip)
     return j_boot
 end
 
