@@ -1341,7 +1341,6 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
             @warn "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
         elseif exclude_indexes !== missing && source.identifier.index ∈ exclude_indexes
-            @warn "total_sources() skipping excluded source with index $(source.identifier.index)"
             continue
         end
         source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
@@ -1358,12 +1357,11 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                 ids1 = getproperty(ids1, sub)
                 ids2 = getproperty(ids2, sub)
             end
-            for field in fieldnames(typeof(ids1))
+            for field in keys(ids1)
                 initialized = false
                 if !ismissing(ids2, field)
                     y = getproperty(ids2, field)
                     if typeof(y) <: AbstractVector{T} where {T<:Real}
-                        @debug((source_name, sub, field, typeof(getfield(ids1, field))))
                         if typeof(getfield(ids1, field)) <: Union{Missing,Function}
                             setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
                             initialized = true
@@ -1383,7 +1381,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         if sub !== nothing
             ids1 = getproperty(ids1, sub)
         end
-        for field in fieldnames(typeof(ids1))
+        for field in keys(ids1)
             if ismissing(ids1, field)
                 setproperty!(ids1, field, zeros(size(rho)))
             end
