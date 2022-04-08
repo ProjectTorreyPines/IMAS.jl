@@ -491,6 +491,7 @@ end
 
 function find_x_point!(eqt::IMAS.equilibrium__time_slice)
     rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
+    ll = sqrt((maximum(zlcfs) - minimum(zlcfs))*(maximum(rlcfs) - minimum(rlcfs))) / 20
     private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     Z0 = sum(rlcfs) / length(rlcfs)
     empty!(eqt.boundary.x_point)
@@ -498,7 +499,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
         if sign(pz[1] - Z0) != sign(pz[end] - Z0)
             # open flux surface does not encicle the plasma
             continue
-        elseif minimum_distance_two_shapes(pr, pz, rlcfs, zlcfs) > (maximum(zlcfs) - minimum(zlcfs)) / 20
+        elseif minimum_distance_two_shapes(pr, pz, rlcfs, zlcfs) > ll
             # secondary Xpoint far away
             continue
         elseif (sum(pz) - Z0) < 0
@@ -1238,7 +1239,7 @@ function DT_fusion_source!(dd::IMAS.dd)
     new_source(
         isource,
         6,
-        "α heating",
+        "α",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
         electrons_energy=alpha_power .* (1 .- ion_electron_fraction),
@@ -1260,11 +1261,14 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
 
-    nu_exch = collision_frequencies(dd)[3]
-    delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
-
-    isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
-    new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+    if all(Te .≈ Ti)
+        deleteat!(dd.core_sources.source, "identifier.index" => 11)
+    else
+        nu_exch = collision_frequencies(dd)[3]
+        delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
+        isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
+        new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+    end
 
     return dd
 end
@@ -1283,7 +1287,7 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     # Bremsstrahlung radiation
     powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
     isource = resize!(dd.core_sources.source, "identifier.index" => 8)
-    new_source(isource, 8, "Bremsstrahlung", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
+    new_source(isource, 8, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
     return dd
 end
 
@@ -1296,8 +1300,33 @@ function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     powerDensityOhm = cp1d.j_ohmic .^ 2 ./ cp1d.conductivity_parallel
     isource = resize!(dd.core_sources.source, "identifier.index" => 7)
-    new_source(isource, 7, "Ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
+    new_source(isource, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
     return dd
+end
+
+"""
+    bootstrap_source!(dd::IMAS.dd)
+
+Calculates the bootsrap current source and modifies dd.core_sources
+"""
+function bootstrap_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    isource = resize!(dd.core_sources.source, "identifier.index" => 13)
+    new_source(isource, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=cp1d.j_bootstrap)
+    return dd
+end
+
+"""
+    sources!(dd::IMAS.dd)
+
+Calculates the plasma sources and sinks and adds them to dd.core_sources
+"""
+function sources!(dd)
+    IMAS.ohmic_source!(dd)
+    IMAS.bootstrap_source!(dd)
+    IMAS.collisional_exchange_source!(dd)
+    IMAS.bremsstrahlung_source!(dd)
+    IMAS.DT_fusion_source!(dd)
 end
 
 function total_sources(dd)

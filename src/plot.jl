@@ -468,7 +468,7 @@ end
     if dd !== missing
         @series begin
             integrated := integrated
-            name := "Total"
+            name := "total"
             linewidth := 2
             color := :black
             total_sources(dd)
