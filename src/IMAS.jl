@@ -37,6 +37,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export @ddtime, constants, ±, force_float
+export @ddtime, constants, ±, force_float, evalmissing
 
 end # module
