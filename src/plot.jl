@@ -439,7 +439,11 @@ Plot build cross-section or radial build
                     color --> :lightblue
                 end
                 seriestype --> :vspan
-                label --> l.name
+                if contains(l.name,"gap ")
+                    label --> ""
+                else
+                    label --> l.name
+                end
                 alpha --> 0.2
                 xlim --> [0, at]
                 [at, at + l.thickness]
