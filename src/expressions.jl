@@ -282,6 +282,9 @@ expressions["build.layer[:].area"] =
 expressions["build.layer[:].volume"] =
     (;layer, _...) -> volume(layer)
 
+expressions["build.tf.ripple"] =
+    (;build, _...) -> tf_ripple(get_build(build, type=_plasma_).end_radius, get_build(build, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
+
 #= ======= =#
 #  Summary  #
 #= ======= =#
