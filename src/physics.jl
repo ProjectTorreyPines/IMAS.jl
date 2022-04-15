@@ -1655,3 +1655,16 @@ function bunit(eqt::IMAS.equilibrium__time_slice)
     phi = eq1d.phi
     return centraldiff(phi) ./ centraldiff(2 * pi * rmin) ./ rmin
 end
+
+"""
+    first_wall(wall::IMAS.wall)
+
+return outline of first wall
+"""
+function first_wall(wall::IMAS.wall)
+    if (!ismissing(wall.description_2d, [1, :limiter, :unit, 1, :outline, :r])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 5)
+        return wall.description_2d[1].limiter.unit[1].outline
+    else
+        return missing
+    end
+end
