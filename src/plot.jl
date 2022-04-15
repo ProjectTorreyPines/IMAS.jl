@@ -670,7 +670,7 @@ end
     end
 
     smcs = parent(stress)
-    for radius in [smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[end]]
+    for radius in [smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end]]
         @series begin
             seriestype --> :vline
             linewidth --> 2
