@@ -1194,15 +1194,14 @@ function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS
 end
 
 """
-    DT_fusion_source!(dd::IMAS.dd)
+    alpha_power(cp1d::IMAS.core_profiles__profiles_1d)
 
-Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons and modifies dd.core_sources
+Volumetric heating source of α particles coming from DT reaction [W m⁻³]
+Based on Table VII of H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
 """
-function DT_fusion_source!(dd::IMAS.dd)
-    cp1d = dd.core_profiles.profiles_1d[]
-
+function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
     fast_helium_energy = 3.5e6 * 1.6022e-12 * 1e-7  # Joules
-    # Table VII of H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
+
     c1 = 1.17302e-9
     c2 = 1.51361e-2
     c3 = 7.51886e-2
@@ -1236,8 +1235,37 @@ function DT_fusion_source!(dd::IMAS.dd)
 
     reactivity = sigv / 1e6  # m^3/s
 
-    alpha_power = n_deuterium .* n_tritium .* reactivity .* fast_helium_energy  # J/m^3/s = W/m^3
+    return n_deuterium .* n_tritium .* reactivity .* fast_helium_energy  # J/m^3/s = W/m^3
+end
 
+"""
+    alpha_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Total power in α particles [W]
+"""
+function alpha_power(cp1d::IMAS.core_profiles__profiles_1d)
+    return integrate(cp1d.grid.volume, alpha_heating(cp1d))
+end
+
+
+"""
+    fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Total fusion power [W]
+"""
+function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+    return alpha_power(cp1d) * 5
+end
+
+"""
+    DT_fusion_source!(dd::IMAS.dd)
+
+Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons and modifies dd.core_sources
+"""
+function DT_fusion_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    α = alpha_heating(cp1d)
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
     isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
@@ -1247,8 +1275,8 @@ function DT_fusion_source!(dd::IMAS.dd)
         "α",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
-        electrons_energy=alpha_power .* (1 .- ion_electron_fraction),
-        total_ion_energy=alpha_power .* ion_electron_fraction
+        electrons_energy=α .* (1 .- ion_electron_fraction),
+        total_ion_energy=α .* ion_electron_fraction
     )
     @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
 
