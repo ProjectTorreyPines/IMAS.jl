@@ -491,7 +491,7 @@ end
 
 function find_x_point!(eqt::IMAS.equilibrium__time_slice)
     rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
-    ll = sqrt((maximum(zlcfs) - minimum(zlcfs))*(maximum(rlcfs) - minimum(rlcfs))) / 20
+    ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 20
     private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     Z0 = sum(rlcfs) / length(rlcfs)
     empty!(eqt.boundary.x_point)
@@ -599,9 +599,13 @@ function build_radii(bd::IMAS.build)
     return layers_radii
 end
 
+function get_build(bd::IMAS.build; kw...)
+    get_build(bd.layer; kw...)
+end
+
 """
     function get_build(
-        bd::IMAS.build;
+        layers::IMAS.IDSvector{T} where {T<:IMAS.build__layer};
         type::Union{Nothing,Int} = nothing,
         name::Union{Nothing,String} = nothing,
         identifier::Union{Nothing,UInt,Int} = nothing,
@@ -614,7 +618,7 @@ end
 Select layer(s) in build based on a series of selection criteria
 """
 function get_build(
-    bd::IMAS.build;
+    layers::IMAS.IDSvector{T} where {T<:IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
     name::Union{Nothing,String}=nothing,
     identifier::Union{Nothing,UInt,Int}=nothing,
@@ -637,7 +641,7 @@ function get_build(
     end
 
     valid_layers = []
-    for (k, l) in enumerate(bd.layer)
+    for (k, l) in enumerate(layers)
         if (name === nothing || l.name == name) &&
            (type === nothing || l.type == type) &&
            (identifier === nothing || l.identifier == identifier) &&
