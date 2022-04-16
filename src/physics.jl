@@ -1065,6 +1065,26 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     return j_boot
 end
 
+function collisionless_bootstrap_coefficient(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    collisionless_bootstrap_coefficient(eqt, cp1d)
+end
+
+"""
+    collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Returns the collisional bootstrap coefficient Cbs defines as `jbootfract = Cbs * sqrt(ϵ) * βp`
+See: Gi et al., Fus. Eng. Design 89 2709 (2014)
+See: Wilson et al., Nucl. Fusion 32 257 (1992)
+"""
+function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    βp = eqt.global_quantities.beta_pol
+    ϵ = eqt.boundary.minor_radius / eqt.boundary.geometric_axis.r
+    jbootfract = IMAS.integrate(cp1d.grid.area, cp1d.j_bootstrap) / eqt.global_quantities.ip
+    jbootfract / (sqrt(ϵ) * βp)
+end
+
 function nuestar(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
