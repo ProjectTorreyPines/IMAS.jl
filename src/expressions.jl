@@ -289,17 +289,59 @@ expressions["build.tf.ripple"] =
 #  Summary  #
 #= ======= =#
 
+expressions["summary.global_quantities.ip.value"] =
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.ip for time in summary.time]
+
+expressions["summary.global_quantities.beta_tor_mhd.value"] =
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_tor for time in summary.time]
+
+expressions["summary.global_quantities.beta_pol_mhd.value"] =
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_pol for time in summary.time]
+
+expressions["summary.global_quantities.beta_tor_norm_mhd.value"] =
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_normal for time in summary.time]
+
+expressions["summary.global_quantities.current_bootstrap.value"] =
+    (time; dd, summary, _...) -> begin
+        tmp = []
+        for time in summary.time
+            cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+            push!(tmp, integrate(cp1d.grid.area, cp1d.j_bootstrap))
+        end
+        return tmp
+    end
+
+expressions["summary.global_quantities.current_non_inductive.value"] =
+    (time; dd, summary, _...) -> begin
+        tmp = []
+        for time in summary.time
+            cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+            push!(tmp, integrate(cp1d.grid.area, cp1d.j_non_inductive))
+        end
+        return tmp
+    end
+
+expressions["summary.global_quantities.current_ohm.value"] =
+    (time; dd, summary, _...) -> begin
+        tmp = []
+        for time in summary.time
+            cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+            push!(tmp, integrate(cp1d.grid.area, cp1d.j_ohmic))
+        end
+        return tmp
+    end
+
 expressions["summary.global_quantities.beta_tor_thermal_norm.value"] =
-    (time ;dd, summary, _...) -> [calc_beta_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
+    (time; dd, summary, _...) -> [calc_beta_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
 
 expressions["summary.global_quantities.energy_thermal.value"] =
-    (time ;dd, summary, _...) ->  [energy_thermal(dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
+    (time; dd, summary, _...) ->  [energy_thermal(dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
 
 expressions["summary.global_quantities.tau_energy.value"] =
-    (time ;dd, summary, _...) -> [tau_e_thermal(dd.core_profiles.profiles_1d[Float64(time)], dd.core_sources) for time in summary.time]
+    (time; dd, summary, _...) -> [tau_e_thermal(dd.core_profiles.profiles_1d[Float64(time)], dd.core_sources) for time in summary.time]
 
 expressions["summary.global_quantities.tau_energy_98.value"] =
-    (time ;dd, summary, _...) -> [tau_e_h98(dd, time=time) for time in summary.time]
+    (time; dd, summary, _...) -> [tau_e_h98(dd, time=time) for time in summary.time]
 
 expressions["summary.global_quantities.h_98.value"] =
-    (time ;dd, summary, _...) -> summary.global_quantities.tau_energy.value ./ summary.global_quantities.tau_energy_98.value
+    (time; dd, summary, _...) -> summary.global_quantities.tau_energy.value ./ summary.global_quantities.tau_energy_98.value
