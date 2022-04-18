@@ -23,11 +23,11 @@ function to_range(vector::AbstractVector{T} where {T<:Real})
     if !(1 - sum(abs.(tmp .- tmp[1])) / length(vector) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
-    return range(vector[1], vector[end], length = length(vector))
+    return range(vector[1], vector[end], length=length(vector))
 end
 
 
-function interp1d(ids::IDS, field::Symbol, scheme::Symbol = :linear)
+function interp1d(ids::IDS, field::Symbol, scheme::Symbol=:linear)
     coord = coordinates(ids, field)
     if length(coord[:values]) > 1
         error("Cannot interpolate multi-dimensional $(f2i(ids)).$field that has coordinates $([k for k in coord[:names]])")
@@ -41,7 +41,7 @@ end
 
 One dimensional curve interpolations with sheme :constant, :linear, :quadratic, :cubic, :lagrange 
 """
-function interp1d(x, y, scheme::Symbol = :linear)
+function interp1d(x, y, scheme::Symbol=:linear)
     if scheme == :constant
         itp = DataInterpolations.ConstantInterpolation(y, x)
     elseif scheme == :linear
@@ -66,7 +66,7 @@ Gradient of a vector computed using second order accurate central differences in
 The returned gradient hence has the same shape as the input array.
 https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 """
-function gradient(arr::AbstractVector, coord = 1:length(arr))
+function gradient(arr::AbstractVector, coord=1:length(arr))
     np = size(arr)[1]
     out = similar(arr)
     dcoord = diff(coord)
@@ -90,7 +90,7 @@ function gradient(arr::AbstractVector, coord = 1:length(arr))
     return out
 end
 
-function gradient(arr::Matrix, coord1 = 1:size(arr)[1], coord2 = 1:size(arr)[2])
+function gradient(arr::Matrix, coord1=1:size(arr)[1], coord2=1:size(arr)[2])
     d1 = hcat(map(x -> gradient(x, coord1), eachcol(arr))...)
     d2 = transpose(hcat(map(x -> gradient(x, coord2), eachrow(arr))...))
     return d1, d2
@@ -119,7 +119,7 @@ function intersection(
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T};
-    as_list_of_points::Bool = true
+    as_list_of_points::Bool=true
 ) where {T}
     if as_list_of_points
         crossings = NTuple{2,T}[]
@@ -181,14 +181,14 @@ end
 
 Resample 2D line with uniform stepping
 """
-function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T} = nothing) where {T<:Real}
+function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T}=nothing) where {T<:Real}
     s = cumsum(sqrt.(gradient(x) .^ 2 + gradient(y) .^ 2))
     if step !== nothing
         n = Integer(ceil(s[end] / step))
     else
         n = length(x)
     end
-    t = range(s[1], s[end]; length = n)
+    t = range(s[1], s[end]; length=n)
     return interp1d(s, x).(t), interp1d(s, y).(t)
 end
 
@@ -209,16 +209,24 @@ end
 
 Returns minimum distance between two shapes
 """
-function minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2)
+function minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2; return_index=false)
     R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     distance = Inf
+    ik1 = 0
+    ik2 = 0
     for k1 in 1:length(R_obj1)
         for k2 in 1:length(R_obj2)
             @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
             if distance > d
+                ik1 = k1
+                ik2 = k2
                 distance = d
             end
         end
     end
-    return sqrt(distance)
+    if return_index
+        return ik1, ik2
+    else
+        return sqrt(distance)
+    end
 end
