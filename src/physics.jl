@@ -6,8 +6,8 @@ import PolygonOps
 import Optim
 import NumericalIntegration: integrate, cumul_integrate
 
-@enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_
-@enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_
+@enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_
+@enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
 @enum BuildLayerShape _convex_hull_ = -2 _offset_ _dummy_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _spline_
 
 function Bp_interpolant(eqt::equilibrium__time_slice)
@@ -684,14 +684,24 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     zmask = range(ylim[1], ylim[2], length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
+    # start from the first vacuum outside of the TF
+    start_from = -1
+    for k in IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)
+        if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) == 0
+            start_from = k
+            break
+        end
+    end
+
+    # assign boolean mask going through the layers
     valid = true
-    for layer in vcat(bd.layer[end], bd.layer)
+    for layer in vcat(bd.layer[start_from], bd.layer[1:start_from])
         if layer.type == Int(_plasma_)
             valid = false
         end
         if valid && !ismissing(layer.outline, :r)
             outline = collect(zip(layer.outline.r, layer.outline.z))
-            if lowercase(layer.material) == "vacuum"
+            if (layer.material == "Vacuum") && (layer.fs != Int(_in_))
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) != 0
@@ -1245,7 +1255,7 @@ function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
         n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
         Ti = cp1d.ion[DT_index].temperature .* 1e-3 # keV
     else
-        return dd
+        return cp1d.electrons.density .* 0.0
     end
 
     r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
@@ -1286,6 +1296,10 @@ function DT_fusion_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
 
     α = alpha_heating(cp1d)
+    if sum(α) == 0
+        deleteat!(dd.core_sources.source, "identifier.index" => 6)
+        return dd
+    end
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
     isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
@@ -1665,7 +1679,7 @@ function toroidal_volume(x::Vector{T}, y::Vector{T}) where {T<:Real}
 end
 
 function func_nested_layers(layer::IMAS.build__layer, func::Function)
-    if layer.fs == Int(_lhfs_)
+    if layer.fs ∉ [Int(_hfs_),Int(_lfs_)]
         return func(layer)
     else
         i = index(layer)
@@ -1693,7 +1707,12 @@ end
 Calculate volume of a build layer outline revolved around x=0
 """
 function volume(layer::IMAS.build__layer)
-    func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
+    if layer.type == Int(_tf_)
+        build = parent(parent(layer))
+        func_nested_layers(layer, l -> area(l.outline.r, l.outline.z)) * build.tf.wedge_thickness * build.tf.coils_n
+    else
+        func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
+    end
 end
 
 """

@@ -278,77 +278,101 @@ Plot build cross-section or radial build
     if cx
         rmax = maximum(bd.layer[end].outline.r)
 
-        # Cryostat
+        # everything after first vacuum in _out_
         if ((only_layers === nothing) || (:cryostat in only_layers)) && (!(:cryostat in exclude_layers))
-            if !outlines
+            for k in IMAS.get_build(bd, fs = _out_, return_only_one=false, return_index=true)[2:end]
+                if !outlines
+                    @series begin
+                        seriestype --> :shape
+                        linewidth --> 0.0
+                        color --> :lightgray
+                        label --> (!outlines ? "Cryostat" : "")
+                        xlim --> [0, rmax]
+                        join_outlines(
+                            bd.layer[k].outline.r,
+                            bd.layer[k].outline.z,
+                            bd.layer[k-1].outline.r,
+                            bd.layer[k-1].outline.z,
+                        )
+                    end
+                end
                 @series begin
-                    seriestype --> :shape
-                    linewidth --> 0.0
-                    color --> :white
+                    seriestype --> :path
+                    linewidth --> 1
+                    color --> :black
                     label --> ""
                     xlim --> [0, rmax]
-                    join_outlines(
-                        bd.layer[end].outline.r,
-                        bd.layer[end].outline.z,
-                        IMAS.get_build(bd, type = _plasma_).outline.r,
-                        IMAS.get_build(bd, type = _plasma_).outline.z,
-                    )
+                    bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
                 end
-            end
-
-            @series begin
-                seriestype --> :path
-                linewidth --> 1
-                color --> :black
-                label --> (!outlines ? "Cryostat" : "")
-                xlim --> [0, rmax]
-                bd.layer[end].outline.r[1:end-1], bd.layer[end].outline.z[1:end-1]
-            end
-
-            @series begin
-                seriestype --> :path
-                linewidth --> 1
-                label --> ""
-                linestyle --> :dash
-                color --> :black
-                [0.0, 0.0], [minimum(bd.layer[end].outline.z), maximum(bd.layer[end].outline.z)]
             end
         end
 
-        # OH
-        if ((only_layers === nothing) || (:oh in only_layers)) && (!(:oh in exclude_layers))
-            if !outlines
-                @series begin
-                    seriestype --> :shape
-                    linewidth --> 0.0
-                    color --> :gray
-                    label --> (!outlines ? IMAS.get_build(bd, type = _oh_).name : "")
-                    xlim --> [0, rmax]
-                    IMAS.get_build(bd, type = _oh_).outline.r, IMAS.get_build(bd, type = _oh_).outline.z
-                end
+        # first vacuum in _out_
+        if !outlines
+            k = IMAS.get_build(bd, fs = _out_, return_only_one=false, return_index=true)[1]
+            @series begin
+                seriestype --> :shape
+                linewidth --> 0.0
+                color --> :white
+                label --> ""
+                xlim --> [0, rmax]
+                join_outlines(
+                    bd.layer[k].outline.r,
+                    bd.layer[k].outline.z,
+                    IMAS.get_build(bd, type = _plasma_).outline.r,
+                    IMAS.get_build(bd, type = _plasma_).outline.z,
+                )
             end
             @series begin
                 seriestype --> :path
-                linewidth --> 0.5
+                linewidth --> 1
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                IMAS.get_build(bd, type = _oh_).outline.r, IMAS.get_build(bd, type = _oh_).outline.z
+                bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+            end
+        end
+
+        # axis of symmetry
+        @series begin
+            seriestype --> :path
+            linewidth --> 1
+            label --> ""
+            linestyle --> :dash
+            color --> :black
+            [0.0, 0.0], [minimum(bd.layer[end].outline.z), maximum(bd.layer[end].outline.z)]
+        end
+
+        # all layers inside of the TF
+        if ((only_layers === nothing) || (:oh in only_layers)) && (!(:oh in exclude_layers))
+            for k in IMAS.get_build(bd, fs = _in_, return_only_one=false, return_index=true)
+                layer = bd.layer[k]
+                if layer.material != "Vacuum"
+                    if !outlines
+                        @series begin
+                            seriestype --> :shape
+                            linewidth --> 0.0
+                            color --> :gray
+                            label --> (!outlines ? layer.name : "")
+                            xlim --> [0, rmax]
+                            layer.outline.r, layer.outline.z
+                        end
+                    end
+                    @series begin
+                        seriestype --> :path
+                        linewidth --> 0.5
+                        color --> :black
+                        label --> ""
+                        xlim --> [0, rmax]
+                        layer.outline.r, layer.outline.z
+                    end
+                end
             end
         end
 
         # all layers between the OH and the plasma
-        valid = false
-        for (k, l) in enumerate(bd.layer[1:end-1])
-            if (l.type == Int(_tf_)) && (l.fs == Int(_hfs_))
-                valid = true
-            end
-            if l.type == Int(_plasma_)
-                valid = false
-            end
-            if IMAS.ismissing(l.outline, :r) || !valid
-                continue
-            end
+        for k in IMAS.get_build(bd, fs = _hfs_, return_only_one=false, return_index=true)
+            l=bd.layer[k]
             l1 = bd.layer[k+1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
 
@@ -368,6 +392,8 @@ Plot build cross-section or radial build
                 color = :yellow
             elseif l.type == Int(_vessel_)
                 color = :lightblue
+            elseif l.type == Int(_cryostat_)
+                color = :lightgray
             end
             for nm in ["inner", "outer", "vacuum", "hfs", "lfs", "gap"]
                 name = replace(name, Regex("$(nm) ","i") => "")
@@ -437,6 +463,8 @@ Plot build cross-section or radial build
                     color --> :yellow
                 elseif l.type == Int(_vessel_)
                     color --> :lightblue
+                elseif l.type == Int(_cryostat_)
+                    color --> :lightgray
                 end
                 seriestype --> :vspan
                 if contains(l.name,"gap ")
