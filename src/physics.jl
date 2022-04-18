@@ -1679,16 +1679,34 @@ function toroidal_volume(x::Vector{T}, y::Vector{T}) where {T<:Real}
 end
 
 function func_nested_layers(layer::IMAS.build__layer, func::Function)
-    if layer.fs ∉ [Int(_hfs_),Int(_lfs_)]
+    i = index(layer)
+    layers = parent(layer)
+    # _in_ layers or plasma
+    if layer.fs ∈ [Int(_in_), Int(_lhfs_)]
         return func(layer)
-    else
+        # anular layers
+    elseif layer.fs ∈ [Int(_hfs_), Int(_lfs_)]
         i = index(layer)
         if layer.fs == Int(_hfs_)
-            layer_in = parent(layer)[i+1]
+            layer_in = layers[i+1]
         else
-            layer_in = parent(layer)[i-1]
+            layer_in = layers[i-1]
         end
         return func(layer) - func(layer_in)
+        # _out_ layers
+    elseif layer.fs == Int(_out_)
+        layer_in = layers[i-1]
+        if layer_in.fs == Int(_out_)
+            return func(layer) - func(layer_in)
+        elseif layer_in.fs == Int(_lfs_)
+            func_in = 0.0
+            for l in layers
+                if l.fs == Int(_in_)
+                    func_in += func(l)
+                end
+            end
+            return func(layer) - func(layer_in) - func_in
+        end
     end
 end
 
