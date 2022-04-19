@@ -247,7 +247,7 @@ function mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_d
                 distance = d
             end
         end
-        mean_distance_error += (distance - dtarget_distance0)^2
+        mean_distance_error += (distance - target_distance)^2
     end
     return sqrt(mean_distance_error)/length(R_obj1)
 end
