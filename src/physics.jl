@@ -640,6 +640,7 @@ function get_build(
         type = Int(type)
     end
 
+    name0 = name
     valid_layers = []
     for (k, l) in enumerate(layers)
         if (name === nothing || l.name == name) &&
@@ -651,11 +652,13 @@ function get_build(
             else
                 push!(valid_layers, l)
             end
+        elseif identifier !== nothing && l.identifier == identifier
+            name0 = l.name
         end
     end
     if length(valid_layers) == 0
         if raise_error_on_missing
-            error("Did not find build.layer: name=$name type=$type identifier=$identifier fs=$fs")
+            error("Did not find build.layer: name=$(repr(name0)) type=$type identifier=$identifier fs=$fs")
         else
             return nothing
         end
