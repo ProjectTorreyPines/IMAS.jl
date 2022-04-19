@@ -205,7 +205,7 @@ function centraldiff(v::AbstractVector)
 end
 
 """
-    minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2)
+    minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2; return_index=false)
 
 Returns minimum distance between two shapes
 """
@@ -229,4 +229,25 @@ function minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2; return_inde
     else
         return sqrt(distance)
     end
+end
+
+"""
+    mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_distance)
+
+Returns mean error distance between two shapes and a target distance
+"""
+function mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_distance)
+    R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
+    mean_distance_error = 0.0
+    for k1 in 1:length(R_obj1)
+        distance = Inf
+        for k2 in 1:length(R_obj2)
+            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            if distance > d
+                distance = d
+            end
+        end
+        mean_distance_error += (distance - dtarget_distance0)^2
+    end
+    return sqrt(mean_distance_error)/length(R_obj1)
 end
