@@ -5,6 +5,7 @@ import StaticArrays
 import PolygonOps
 import Optim
 import NumericalIntegration: integrate, cumul_integrate
+import PeriodicTable: elements
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
@@ -765,38 +766,42 @@ function calc_beta_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__
 end
 
 """
-    ion_element(species::Symbol)
+    ion_element(;ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
 
 returns a `core_profiles__profiles_1d___ion` structure populated with the element information
 """
-function ion_element(species::Symbol)
+function ion_element(;ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
     ion = IMAS.core_profiles__profiles_1d___ion()
     element = resize!(ion.element, 1)
-    if species == :H
-        element.z_n = 1
-        element.a = 1
-    elseif species == :D
-        element.z_n = 1
-        element.a = 2
-    elseif species == :DT
-        element.z_n = 1
-        element.a = 2.5
-    elseif species == :T
-        element.z_n = 1
-        element.a = 3
-    elseif species == :He
-        element.z_n = 2
-        element.a = 4
-    elseif species == :C
-        element.z_n = 6
-        element.a = 12
-    elseif species == :Ne
-        element.z_n = 10
-        element.a = 20
+    if !ismissing(ion_z)
+        element_ion = elements[ion_z]
+    elseif !ismissing(ion_symbol)
+        # exceptions: isotopes & lumped (only exceptions allowed for symbols)
+        if ion_symbol == :D
+            element.z_n = 1
+            element.a = 2
+            ion.label = String(ion_symbol)
+            return ion
+        elseif ion_symbol == :T
+            element.z_n = 1
+            element.a = 3
+            ion.label = String(ion_symbol)
+            return ion
+        elseif ion_symbol ∈ [:DT, :TD]
+            element.z_n = 1
+            element.a = 3
+            ion.label = String(ion_symbol)
+            return ion
+        end
+        element_ion = elements[ion_symbol]
+    elseif !ismissing(ion_name)
+        element_ion = elements[ion_name]
     else
-        error("Element $species is not recognized. Add it to the `IMAS.ion_element()` function.")
+        error("Specify either ion_z, ion_symbol or ion_name")
     end
-    ion.label = String(species)
+    element.z_n = element_ion.number
+    element.a = element_ion.atomic_mass.val
+    ion.label = String(element_ion.symbol)
     return ion
 end
 
@@ -1780,4 +1785,14 @@ toroidal field coils generate a given fraction of toroidal magnetic field ripple
 """
 function R_tf_ripple(r, ripple::Real, N_tf::Integer)
     return r .* (ripple ./ (ripple .+ 1.0)) .^ (-1 / N_tf)
+end
+
+"""
+    greenwald_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Simple greenwald line-averaged density limit"
+"""
+
+function greenwald_density(eqt::IMAS.equilibrium__time_slice)
+    return eqt.global_quantities.ip / (pi * eqt.boundary.minor_radius^2) * 1e20
 end
