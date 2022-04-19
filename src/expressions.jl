@@ -105,7 +105,7 @@ expressions["core_profiles.profiles_1d[:].time"] =
     (;core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
 
 expressions["core_profiles.vacuum_toroidal_field.b0"] =
-    (;dd, core_profiles, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant)(core_profiles.time)
+    (time; dd, core_profiles, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_profiles.time)
 
 expressions["core_profiles.vacuum_toroidal_field.r0"] =
     (;dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
@@ -262,7 +262,7 @@ expressions["core_sources.source[:].global_quantities[:].time"] =
     (;core_sources, global_quantities_index, _...) -> core_sources.time[global_quantities_index]
 
 expressions["core_sources.vacuum_toroidal_field.b0"] =
-    (;dd, core_sources, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant)(core_sources.time)
+    (time; dd, core_sources, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_sources.time)
 
 expressions["core_sources.vacuum_toroidal_field.r0"] =
     (;dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
