@@ -203,6 +203,12 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             # plot!([r_at_max_z], [max_z], marker = :cicle)
             # plot!([r_at_min_z], [min_z], marker = :cicle)
             # display(p)
+
+            # plasma boundary information
+            if k == length(eqt.profiles_1d.psi)
+                eqt.boundary.outline.r = pr
+                eqt.boundary.outline.z = pz
+            end
         end
 
         # geometric
