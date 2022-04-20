@@ -292,6 +292,15 @@ expressions["build.tf.ripple"] =
     (;build, _...) -> tf_ripple(get_build(build, type=_plasma_).end_radius, get_build(build, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
 
 #= ======= =#
+#  Costing  #
+#= ======= =#
+expressions["costing.cost"] =
+    (; costing, _...) -> sum([sys.cost for sys in costing.system])
+
+expressions["costing.system[:].cost"] =
+    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
+#= ======= =#
 #  Summary  #
 #= ======= =#
 
