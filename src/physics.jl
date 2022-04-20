@@ -1736,9 +1736,9 @@ Calculate volume of a build layer outline revolved around x=0
 function volume(layer::IMAS.build__layer)
     if layer.type == Int(_tf_)
         build = parent(parent(layer))
-        func_nested_layers(layer, l -> area(l.outline.r, l.outline.z)) * build.tf.wedge_thickness * build.tf.coils_n
+        return func_nested_layers(layer, l -> area(l.outline.r, l.outline.z)) * build.tf.wedge_thickness * build.tf.coils_n
     else
-        func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
+        return func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
     end
 end
 
