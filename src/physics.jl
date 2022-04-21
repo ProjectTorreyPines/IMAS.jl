@@ -789,7 +789,7 @@ function ion_element(;ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missi
             return ion
         elseif ion_symbol ∈ [:DT, :TD]
             element.z_n = 1
-            element.a = 3
+            element.a = 2.5
             ion.label = String(ion_symbol)
             return ion
         end
@@ -1790,7 +1790,7 @@ end
 """
     greenwald_density(eqt::IMAS.equilibrium__time_slice)
 
-Simple greenwald line-averaged density limit"
+Simple greenwald line-averaged density limit
 """
 
 function greenwald_density(eqt::IMAS.equilibrium__time_slice)
