@@ -1790,7 +1790,7 @@ end
 """
     greenwald_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Simple greenwald line-averaged density limit"
+Simple greenwald line-averaged density limit
 """
 
 function greenwald_density(eqt::IMAS.equilibrium__time_slice)
