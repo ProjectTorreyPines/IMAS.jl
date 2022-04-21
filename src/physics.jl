@@ -1788,11 +1788,13 @@ function R_tf_ripple(r, ripple::Real, N_tf::Integer)
 end
 
 """
-    greenwald_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    greenwald_density(eqt::IMAS.equilibrium__time_slice)
 
 Simple greenwald line-averaged density limit"
 """
 
 function greenwald_density(eqt::IMAS.equilibrium__time_slice)
-    return eqt.global_quantities.ip / (pi * eqt.boundary.minor_radius^2) * 1e20
+    return (eqt.global_quantities.ip/1e6) / (pi * eqt.boundary.minor_radius^2) * 1e20
+end
+
 end
