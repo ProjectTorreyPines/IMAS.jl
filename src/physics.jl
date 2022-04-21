@@ -800,7 +800,7 @@ function ion_element(;ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missi
         error("Specify either ion_z, ion_symbol or ion_name")
     end
     element.z_n = element_ion.number
-    element.a = element_ion.atomic_mass.val
+    element.a = element_ion.atomic_mass.val # This sets the atomic mass to the average isotope mass with respect to the abundence of that isotope i.e Neon: 20.179
     ion.label = String(element_ion.symbol)
     return ion
 end
