@@ -9,7 +9,7 @@ import PeriodicTable: elements
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
-@enum BuildLayerShape _convex_hull_ = -2 _offset_ _dummy_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _spline_ _silo_
+@enum BuildLayerShape _convex_hull_ _offset_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _spline_ _silo_
 
 function Bp_interpolant(eqt::equilibrium__time_slice)
     cc = cocos(11)

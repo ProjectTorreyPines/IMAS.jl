@@ -303,7 +303,6 @@ expressions["costing.system[:].cost"] =
 #= ======= =#
 #  Summary  #
 #= ======= =#
-
 expressions["summary.global_quantities.ip.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.ip for time in summary.time]
 
