@@ -4,12 +4,12 @@ import LinearAlgebra
 import StaticArrays
 
 """
-    norm01(x::Vector{T} where T<:Real)
+    norm01(x::Vector{<:Real})
 
 Normalize a vector so that the first item in the array is 0 and the last one is 1
 This is handy where psi_norm should be used (and IMAS does not define a psi_norm array)
 """
-function norm01(x::AbstractVector{T} where {T<:Real})
+function norm01(x::AbstractVector{<:Real})
     return (x .- x[1]) ./ (x[end] .- x[1])
 end
 
@@ -18,7 +18,7 @@ end
 
 Turn a vector into a range (if possible)
 """
-function to_range(vector::AbstractVector{T} where {T<:Real})
+function to_range(vector::AbstractVector{<:Real})
     tmp = diff(vector)
     if !(1 - sum(abs.(tmp .- tmp[1])) / length(vector) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
@@ -106,11 +106,12 @@ function meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVec
 end
 
 """
-intersection(l1_x::AbstractVector{T},
-             l1_y::AbstractVector{T},
-             l2_x::AbstractVector{T},
-             l2_y::AbstractVector{T};
-             as_list_of_points::Bool=true) where T
+    intersection(
+        l1_x::AbstractVector{<:Real},
+        l1_y::AbstractVector{<:Real},
+        l2_x::AbstractVector{<:Real},
+        l2_y::AbstractVector{<:Real};
+        as_list_of_points::Bool=true)
 
 Intersections between two 2D paths, returns list of (x,y) intersection points
 """
@@ -119,8 +120,8 @@ function intersection(
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T};
-    as_list_of_points::Bool=true
-) where {T}
+    as_list_of_points::Bool=true) where {T<:Real}
+
     if as_list_of_points
         crossings = NTuple{2,T}[]
     else

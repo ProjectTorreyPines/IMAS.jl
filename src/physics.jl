@@ -612,7 +612,7 @@ end
 
 """
     function get_build(
-        layers::IMAS.IDSvector{T} where {T<:IMAS.build__layer};
+        layers::IMAS.IDSvector{<:IMAS.build__layer};
         type::Union{Nothing,Int} = nothing,
         name::Union{Nothing,String} = nothing,
         identifier::Union{Nothing,UInt,Int} = nothing,
@@ -625,7 +625,7 @@ end
 Select layer(s) in build based on a series of selection criteria
 """
 function get_build(
-    layers::IMAS.IDSvector{T} where {T<:IMAS.build__layer};
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
     name::Union{Nothing,String}=nothing,
     identifier::Union{Nothing,UInt,Int}=nothing,
@@ -1468,7 +1468,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                 initialized = false
                 if !ismissing(ids2, field)
                     y = getproperty(ids2, field)
-                    if typeof(y) <: AbstractVector{T} where {T<:Real}
+                    if typeof(y) <: AbstractVector{<:Real}
                         if typeof(getfield(ids1, field)) <: Union{Missing,Function}
                             setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
                             initialized = true
@@ -1664,11 +1664,11 @@ function Jtor_2_Jpar(rho_tor_norm, Jtor, includes_bootstrap::Bool, eqt::IMAS.equ
 end
 
 """
-    centroid(x::Vector{T}, y::Vector{T}) where {T <: Real}
+    centroid(x::Vector{<:Real}, y::Vector{<:Real})
 
 Calculate centroid of polygon
 """
-function centroid(x::Vector{T}, y::Vector{T}) where {T<:Real}
+function centroid(x::Vector{<:Real}, y::Vector{<:Real})
     dy = diff(y)
     dx = diff(x)
     x0 = (x[2:end] .+ x[1:end-1]) .* 0.5
@@ -1680,11 +1680,11 @@ function centroid(x::Vector{T}, y::Vector{T}) where {T<:Real}
 end
 
 """
-    area(x::Vector{T}, y::Vector{T}) where {T <: Real}
+    area(x::Vector{<:Real}, y::Vector{<:Real})
 
 Calculate area of polygon
 """
-function area(x::Vector{T}, y::Vector{T}) where {T<:Real}
+function area(x::Vector{<:Real}, y::Vector{<:Real})
     x1 = x[1:end-1]
     x2 = x[2:end]
     y1 = y[1:end-1]
@@ -1693,11 +1693,11 @@ function area(x::Vector{T}, y::Vector{T}) where {T<:Real}
 end
 
 """
-    toroidal_volume(x::Vector{T}, y::Vector{T}) where {T <: Real}
+    toroidal_volume(x::Vector{<:Real}, y::Vector{<:Real})
 
 Calculate volume of polygon revolved around x=0
 """
-function toroidal_volume(x::Vector{T}, y::Vector{T}) where {T<:Real}
+function toroidal_volume(x::Vector{<:Real}, y::Vector{<:Real})
     return area(x, y) * 2pi * centroid(x, y)[1]
 end
 
