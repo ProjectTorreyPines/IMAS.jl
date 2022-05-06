@@ -709,6 +709,31 @@ end
     end
 end
 
+@recipe function plot_neutron_wall_loading_cx(ntt::IMAS.neutronics__time_slice,component::Symbol=:norm)
+    neutronics = parent(parent(ntt))
+    if component == :norm
+        nflux = sqrt.(ntt.wall_loading.flux_r.^2.0.+ntt.wall_loading.flux_z.^2.0)
+    elseif component == :r
+        nflux = ntt.wall_loading.flux_r
+    elseif component == :z
+        nflux = ntt.wall_loading.flux_z
+    end
+    @series begin
+        seriestype --> :path
+        line_z --> vcat(nflux,nflux[1])
+        aspect_ratio --> :equal
+        linewidth --> 10
+        label --> ""
+        if component == :norm
+            clim --> (0.0, maximum(nflux))
+        else
+            linecolor --> :seismic
+        end
+        colorbar_title --> "Neutron flux [1/s/m²]"
+        vcat(neutronics.first_wall.r,neutronics.first_wall.r[1]), vcat(neutronics.first_wall.z,neutronics.first_wall.z[1])
+    end
+end
+
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
