@@ -196,7 +196,7 @@ end
 """
     centraldiff(v::AbstractVector)
 
-Calculates central difference of a vector
+Calculates central difference of a vector assuming that the data is equally-spaced
 """
 function centraldiff(v::AbstractVector)
     dv = diff(v) / 2
@@ -250,5 +250,5 @@ function mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_d
         end
         mean_distance_error += (distance - target_distance)^2
     end
-    return sqrt(mean_distance_error)/length(R_obj1)
+    return sqrt(mean_distance_error) / length(R_obj1)
 end
