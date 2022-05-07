@@ -709,28 +709,45 @@ end
     end
 end
 
-@recipe function plot_neutron_wall_loading_cx(ntt::IMAS.neutronics__time_slice,component::Symbol=:norm)
-    neutronics = parent(parent(ntt))
+@recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading, component::Symbol=:norm; cx=true)
+    neutronics = top_ids(nwl)
     if component == :norm
-        nflux = sqrt.(ntt.wall_loading.flux_r.^2.0.+ntt.wall_loading.flux_z.^2.0)
+        nflux = sqrt.(nwl.flux_r .^ 2.0 .+ nwl.flux_z .^ 2.0)
     elseif component == :r
-        nflux = ntt.wall_loading.flux_r
+        nflux = nwl.flux_r
     elseif component == :z
-        nflux = ntt.wall_loading.flux_z
+        nflux = nwl.flux_z
     end
-    @series begin
-        seriestype --> :path
-        line_z --> vcat(nflux,nflux[1])
-        aspect_ratio --> :equal
-        linewidth --> 10
-        label --> ""
-        if component == :norm
-            clim --> (0.0, maximum(nflux))
-        else
-            linecolor --> :seismic
+    nflux = nflux ./ 1E6
+
+    if cx
+        @series begin
+            seriestype --> :path
+            line_z --> vcat(nflux, nflux[1])
+            aspect_ratio --> :equal
+            linewidth --> 8
+            label --> ""
+            if component == :norm
+                clim --> (0.0, maximum(nflux))
+            else
+                linecolor --> :seismic
+            end
+            colorbar_title --> "\nNeutron wall flux [MW/m²]"
+            vcat(neutronics.first_wall.r, neutronics.first_wall.r[1]), vcat(neutronics.first_wall.z, neutronics.first_wall.z[1])
         end
-        colorbar_title --> "Neutron flux [1/s/m²]"
-        vcat(neutronics.first_wall.r,neutronics.first_wall.r[1]), vcat(neutronics.first_wall.z,neutronics.first_wall.z[1])
+    else
+        wall_r = neutronics.first_wall.r
+        index = vcat(argmax(wall_r)+1:length(wall_r), 1:argmax(wall_r))
+        wall_r = wall_r[index]
+        wall_z = neutronics.first_wall.z
+        wall_z = wall_z[index]
+        d = cumsum(sqrt.(IMAS.diff(vcat(wall_r, wall_r[1])) .^ 2.0 .+ IMAS.diff(vcat(wall_z, wall_z[1])) .^ 2.0))
+        @series begin
+            xlabel --> "Clockwise distance along wall [m]"
+            ylabel --> "Neutron wall flux [MW/m²]"
+            label --> ""
+            d, nflux[index]
+        end
     end
 end
 
