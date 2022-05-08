@@ -183,7 +183,8 @@ end
 Resample 2D line with uniform stepping
 """
 function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T}=nothing) where {T<:Real}
-    s = cumsum(sqrt.(gradient(x) .^ 2 + gradient(y) .^ 2))
+    s = cumsum(sqrt.(diff(x) .^ 2 + diff(y) .^ 2))
+    s = vcat(0.0, s)
     if step !== nothing
         n = Integer(ceil(s[end] / step))
     else
