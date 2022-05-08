@@ -721,32 +721,53 @@ end
     nflux = nflux ./ 1E6
 
     if cx
-        @series begin
-            seriestype --> :path
-            line_z --> vcat(nflux, nflux[1])
-            aspect_ratio --> :equal
-            linewidth --> 8
-            label --> ""
-            if component == :norm
-                clim --> (0.0, maximum(nflux))
-            else
-                linecolor --> :seismic
-            end
-            colorbar_title --> "\nNeutron wall flux [MW/m²]"
-            vcat(neutronics.first_wall.r, neutronics.first_wall.r[1]), vcat(neutronics.first_wall.z, neutronics.first_wall.z[1])
+        seriestype --> :path
+        line_z --> vcat(nflux, nflux[1])
+        aspect_ratio --> :equal
+        linewidth --> 8
+        label --> ""
+        if component == :norm
+            clim --> (0.0, maximum(nflux))
+        else
+            linecolor --> :seismic
         end
+        colorbar_title --> "\nWall neutron flux [MW/m²]"
+        vcat(neutronics.first_wall.r, neutronics.first_wall.r[1]), vcat(neutronics.first_wall.z, neutronics.first_wall.z[1])
+
     else
         wall_r = neutronics.first_wall.r
         index = vcat(argmax(wall_r)+1:length(wall_r), 1:argmax(wall_r))
         wall_r = wall_r[index]
         wall_z = neutronics.first_wall.z
         wall_z = wall_z[index]
-        d = cumsum(sqrt.(IMAS.diff(vcat(wall_r, wall_r[1])) .^ 2.0 .+ IMAS.diff(vcat(wall_z, wall_z[1])) .^ 2.0))
+        d = sqrt.(IMAS.diff(vcat(wall_r, wall_r[1])) .^ 2.0 .+ IMAS.diff(vcat(wall_z, wall_z[1])) .^ 2.0)
+        l = cumsum(d)
+        legend_position --> :top
+
+        avg = sum(nflux[index].*d)/sum(d)
+        xlabel --> "Clockwise distance along wall [m]"
+        ylabel --> "Wall neutron flux [MW/m²]"
         @series begin
-            xlabel --> "Clockwise distance along wall [m]"
-            ylabel --> "Neutron wall flux [MW/m²]"
             label --> ""
-            d, nflux[index]
+            l, nflux[index]
+        end
+        @series begin
+            seriestype := :hline
+            style --> :dash
+            label --> @sprintf("Max: %3.3f [MW/m²]", maximum(nflux))
+            [maximum(nflux)]
+        end
+        @series begin
+            seriestype := :hline
+            style --> :dash
+            label --> @sprintf("Avg: %3.3f [MW/m²]", avg)
+            [avg]
+        end
+        @series begin
+            seriestype := :hline
+            style --> :dash
+            label --> @sprintf("Min: %3.3f [MW/m²]", minimum(nflux))
+            [minimum(nflux)]
         end
     end
 end
