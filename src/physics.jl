@@ -776,7 +776,7 @@ end
 
 returns a `core_profiles__profiles_1d___ion` structure populated with the element information
 """
-function ion_element(;ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
+function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
     ion = IMAS.core_profiles__profiles_1d___ion()
     element = resize!(ion.element, 1)
     if !ismissing(ion_z)
@@ -1765,7 +1765,7 @@ function bunit(eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
     rmin = 0.5 * (eq1d.r_outboard - eq1d.r_inboard)
     phi = eq1d.phi
-    return centraldiff(phi) ./ centraldiff(2 * pi * rmin) ./ rmin
+    return gradient(phi, 2pi * rmin) ./ rmin
 end
 
 """

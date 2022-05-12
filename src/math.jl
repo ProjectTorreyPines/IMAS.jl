@@ -97,6 +97,18 @@ function gradient(arr::Matrix, coord1=1:size(arr)[1], coord2=1:size(arr)[2])
 end
 
 """
+    centraldiff(y::AbstractVector)
+
+Calculates central difference of a vector assuming that the data is equally-spaced
+"""
+function centraldiff(y::AbstractVector)
+    dy = diff(y) / 2
+    a = [dy[1]; dy]
+    a .+= [dy; dy[end]]
+    return a
+end
+
+"""
     meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVector})
 
 Return coordinate matrices from coordinate vectors
@@ -192,18 +204,6 @@ function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T}=not
     end
     t = range(s[1], s[end]; length=n)
     return interp1d(s, x).(t), interp1d(s, y).(t)
-end
-
-"""
-    centraldiff(v::AbstractVector)
-
-Calculates central difference of a vector assuming that the data is equally-spaced
-"""
-function centraldiff(v::AbstractVector)
-    dv = diff(v) / 2
-    a = [dv[1]; dv]
-    a .+= [dv; dv[end]]
-    return a
 end
 
 """
