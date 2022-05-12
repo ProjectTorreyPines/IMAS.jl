@@ -993,10 +993,9 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     Zeff = cp1d.zeff
 
     psi_cp = cp1d.grid.psi ./ 2pi
-    dpsi = gradient(psi_cp)
-    dP_dpsi = gradient(pressure_thermal) ./ dpsi
-    dTi_dpsi = gradient(Ti) ./ dpsi
-    dTe_dpsi = gradient(Te) ./ dpsi
+    dP_dpsi = gradient(pressure_thermal, psi_cp)
+    dTi_dpsi = gradient(Ti, psi_cp)
+    dTe_dpsi = gradient(Te, psi_cp)
 
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
