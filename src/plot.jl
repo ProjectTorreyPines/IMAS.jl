@@ -134,7 +134,7 @@ Plots equilibrium cross-section
     end
 end
 
-@recipe function plot_eqtcx(eqt::IMAS.equilibrium__time_slice; psi_levels=nothing, psi_levels_out=nothing, lcfs=false, x_point=false)
+@recipe function plot_eqtcx(eqt::IMAS.equilibrium__time_slice; psi_levels_in=nothing, psi_levels_out=nothing, lcfs=false, x_point=false)
     label --> ""
     aspect_ratio --> :equal
     @series begin
@@ -157,18 +157,18 @@ end
             psi__boundary_level = tmp
         end
         if lcfs
-            psi_levels = [psi__boundary_level, psi__boundary_level]
+            psi_levels_in = [psi__boundary_level, psi__boundary_level]
             psi_levels_out = []
         else
             npsi = 11
-            if psi_levels === nothing
-                psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=npsi)
-            elseif isa(psi_levels, Int)
-                if psi_levels > 1
-                    npsi = psi_levels
-                    psi_levels = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels)
+            if psi_levels_in === nothing
+                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=npsi)
+            elseif isa(psi_levels_in, Int)
+                if psi_levels_in > 1
+                    npsi = psi_levels_in
+                    psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels_in)
                 else
-                    psi_levels = []
+                    psi_levels_in = []
                 end
             end
             delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
@@ -182,7 +182,7 @@ end
                 end
             end
         end
-        psi_levels = unique(vcat(psi_levels, psi_levels_out))
+        psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
         xlims --> eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end]
         ylims --> eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end]
@@ -197,9 +197,11 @@ end
                 @series begin
                     seriestype --> :path
                     if psi_level == psi__boundary_level
-                        linewidth --> 2
+                        linewidth --> 2.0
+                    elseif psi_level in psi_levels_in
+                        linewidth --> 1.0
                     else
-                        linewidth --> 1
+                        linewidth --> 0.5
                     end
                     pr, pz
                 end
