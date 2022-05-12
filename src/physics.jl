@@ -9,7 +9,7 @@ import PeriodicTable: elements
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
-@enum BuildLayerShape _convex_hull_ _offset_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _spline_ _silo_
+@enum BuildLayerShape _offset_ _negative_offset_ _convex_hull_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _spline_ _silo_
 
 function Bp_interpolant(eqt::equilibrium__time_slice)
     cc = cocos(11)
@@ -694,10 +694,10 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     zmask = range(ylim[1], ylim[2], length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
-    # start from the first vacuum outside of the TF
+    # start from the first vacuum that goes to zero outside of the TF
     start_from = -1
     for k in IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)
-        if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) == 0
+        if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
             start_from = k
             break
         end
@@ -1808,7 +1808,7 @@ end
 Simple greenwald line-averaged density limit
 """
 function greenwald_density(eqt::IMAS.equilibrium__time_slice)
-    return (eqt.global_quantities.ip/1e6) / (pi * eqt.boundary.minor_radius^2) * 1e20
+    return (eqt.global_quantities.ip / 1e6) / (pi * eqt.boundary.minor_radius^2) * 1e20
 end
 
 """
@@ -1818,5 +1818,5 @@ Calculates the line averaged density from a midplane horizantal line
 """
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     a_cp = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(cp1d.grid.rho_tor_norm)
-    return integrate(a_cp,cp1d.electrons.density)/a_cp[end]
+    return integrate(a_cp, cp1d.electrons.density) / a_cp[end]
 end
