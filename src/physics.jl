@@ -500,7 +500,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
     rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 20
     private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
-    Z0 = sum(rlcfs) / length(rlcfs)
+    Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
     for (pr, pz) in private
         if sign(pz[1] - Z0) != sign(pz[end] - Z0)
