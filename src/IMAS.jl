@@ -14,7 +14,7 @@ for n in names(IMASDD; all=true)
         @eval import IMASDD: $n
     end
 end
-import IMASDD:@ddtime
+import IMASDD: @ddtime, interp1d
 
 #= ===== =#
 #= UTILS =#
@@ -37,6 +37,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export @ddtime, constants, ±, force_float, evalmissing
+export @ddtime, constants, ±, force_float, evalmissing, interp1d
 
 end # module
