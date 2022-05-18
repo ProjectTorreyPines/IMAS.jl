@@ -265,12 +265,11 @@ end
 end
 
 """
-    plot_build_cx(bd::IMAS.build; cx = true, outlines = false, only_layers = nothing, exclude_layers = Symbol[])
+    plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=nothing, exclude_layers=Symbol[])
 
-Plot build cross-section or radial build
+Plot build cross-section
 """
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, outlines=false, only_layers=nothing, exclude_layers=Symbol[])
-
+@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=nothing, exclude_layers=Symbol[])
     legend_position --> :outerbottomright
     aspect_ratio --> :equal
     grid --> :none
@@ -280,14 +279,14 @@ Plot build cross-section or radial build
         rmax = maximum(bd.layer[end].outline.r)
 
         # everything after first vacuum in _out_
-        if ((only_layers === nothing) || (:cryostat in only_layers)) && (!(:cryostat in exclude_layers))
+        if ((only === nothing) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
             for k in IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)[2:end]
-                if !outlines
+                if !wireframe
                     @series begin
                         seriestype --> :shape
                         linewidth --> 0.0
                         color --> :lightgray
-                        label --> (!outlines ? "Cryostat" : "")
+                        label --> (!wireframe ? "Cryostat" : "")
                         xlim --> [0, rmax]
                         join_outlines(
                             bd.layer[k].outline.r,
@@ -309,7 +308,7 @@ Plot build cross-section or radial build
         end
 
         # first vacuum in _out_
-        if !outlines
+        if !wireframe
             k = IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)[1]
             @series begin
                 seriestype --> :shape
@@ -345,16 +344,16 @@ Plot build cross-section or radial build
         end
 
         # all layers inside of the TF
-        if ((only_layers === nothing) || (:oh in only_layers)) && (!(:oh in exclude_layers))
+        if ((only === nothing) || (:oh in only)) && (!(:oh in exclude_layers))
             for k in IMAS.get_build(bd, fs=_in_, return_only_one=false, return_index=true)
                 layer = bd.layer[k]
                 if layer.material != "Vacuum"
-                    if !outlines
+                    if !wireframe
                         @series begin
                             seriestype --> :shape
                             linewidth --> 0.0
                             color --> :gray
-                            label --> (!outlines ? layer.name : "")
+                            label --> (!wireframe ? layer.name : "")
                             xlim --> [0, rmax]
                             layer.outline.r, layer.outline.z
                         end
@@ -400,8 +399,8 @@ Plot build cross-section or radial build
                 name = replace(name, Regex("$(nm) ", "i") => "")
             end
 
-            if ((only_layers === nothing) || (Symbol(name) in only_layers)) && (!(Symbol(name) in exclude_layers))
-                if !outlines
+            if ((only === nothing) || (Symbol(name) in only)) && (!(Symbol(name) in exclude_layers))
+                if !wireframe
                     @series begin
                         seriestype --> :shape
                         linewidth --> 0.0
@@ -423,7 +422,7 @@ Plot build cross-section or radial build
         end
 
         # plasma
-        if ((only_layers === nothing) || (:plasma in only_layers)) && (!(:plasma in exclude_layers))
+        if ((only === nothing) || (:plasma in only)) && (!(:plasma in exclude_layers))
             @series begin
                 seriestype --> :path
                 linewidth --> 1.0
@@ -431,6 +430,31 @@ Plot build cross-section or radial build
                 label --> ""
                 xlim --> [0, rmax]
                 IMAS.get_build(bd, type=_plasma_).outline.r, IMAS.get_build(bd, type=_plasma_).outline.z
+            end
+        end
+
+        if any([structure.type == Int(_divertor_) for structure in bd.structure])
+            if ((only === nothing) || (:divertor in only)) && (!(:divertor in exclude_layers))
+                for (k, index) in enumerate(findall(x -> x.type == Int(_divertor_), bd.structure))
+                    if !wireframe
+                        @series begin
+                            seriestype --> :shape
+                            linewidth --> 0.0
+                            color --> :mediumpurple1
+                            label --> (!wireframe && k == 1 ? "Divertor" : "")
+                            xlim --> [0, rmax]
+                            bd.structure[index].outline.r, bd.structure[index].outline.z
+                        end
+                    end
+                    @series begin
+                        seriestype --> :path
+                        linewidth --> 0.5
+                        color --> :black
+                        label --> ""
+                        xlim --> [0, rmax]
+                        bd.structure[index].outline.r, bd.structure[index].outline.z
+                    end
+                end
             end
         end
 
@@ -746,7 +770,7 @@ end
         l = cumsum(d)
         legend_position --> :top
 
-        avg = sum(nflux[index].*d)/sum(d)
+        avg = sum(nflux[index] .* d) / sum(d)
         xlabel --> "Clockwise distance along wall [m]"
         ylabel --> "Wall neutron flux [MW/m²]"
         @series begin
