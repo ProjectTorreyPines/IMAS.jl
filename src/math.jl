@@ -1,5 +1,3 @@
-import Interpolations
-import DataInterpolations
 import LinearAlgebra
 import StaticArrays
 
@@ -24,39 +22,6 @@ function to_range(vector::AbstractVector{<:Real})
         error("to_range requires vector data to be equally spaced")
     end
     return range(vector[1], vector[end], length=length(vector))
-end
-
-
-function interp1d(ids::IDS, field::Symbol, scheme::Symbol=:linear)
-    coord = coordinates(ids, field)
-    if length(coord[:values]) > 1
-        error("Cannot interpolate multi-dimensional $(f2i(ids)).$field that has coordinates $([k for k in coord[:names]])")
-    end
-    return interp1d(coord[:values][1], getproperty(ids, field), scheme)
-end
-
-
-"""
-    interp1d(x, y, scheme::Symbol=:linear)
-
-One dimensional curve interpolations with sheme :constant, :linear, :quadratic, :cubic, :lagrange 
-"""
-function interp1d(x, y, scheme::Symbol=:linear)
-    if scheme == :constant
-        itp = DataInterpolations.ConstantInterpolation(y, x)
-    elseif scheme == :linear
-        itp = DataInterpolations.LinearInterpolation(y, x)
-    elseif scheme == :quadratic
-        itp = DataInterpolations.QuadraticSpline(y, x)
-    elseif scheme == :cubic
-        itp = DataInterpolations.CubicSpline(y, x)
-    elseif scheme == :lagrange
-        n = length(y) - 1
-        itp = DataInterpolations.LagrangeInterpolation(y, x, n)
-    else
-        error("interp1d scheme can only be :constant, :linear, :quadratic, :cubic, :lagrange")
-    end
-    return itp
 end
 
 """
