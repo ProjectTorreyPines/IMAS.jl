@@ -1434,7 +1434,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     for source in core_sources.source
         if include_indexes !== missing && source.identifier.index ∈ include_indexes
             # pass
-        else
+        elseif include_indexes !== missing
             continue
         end
 
