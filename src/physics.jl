@@ -1434,7 +1434,11 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     for source in core_sources.source
         if include_indexes !== missing && source.identifier.index ∈ include_indexes
             # pass
-        elseif source.identifier.index in [0]
+        else
+            continue
+        end
+
+        if source.identifier.index in [0]
             @warn "total_sources() skipping unspecified source with index $(source.identifier.index)"
             continue
         elseif 107 >= source.identifier.index >= 100
