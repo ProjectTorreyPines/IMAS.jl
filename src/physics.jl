@@ -1564,11 +1564,12 @@ function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core
     return energy_thermal(cp1d) / (total_power_inside - radiation_losses(sources))
 end
 
-function tau_e_h98(dd::IMAS.dd; time=missing)
-    if time === missing
-        time = dd.global_time
-    end
+"""
+    tau_e_h98(dd::IMAS.dd; time=dd.global_time)
 
+H98y2 ITER elmy H-mode confinement time scaling
+"""
+function tau_e_h98(dd::IMAS.dd; time=dd.global_time)
     eqt = dd.equilibrium.time_slice[Float64(time)]
     cp1d = dd.core_profiles.profiles_1d[Float64(time)]
 
@@ -1588,6 +1589,34 @@ function tau_e_h98(dd::IMAS.dd; time=missing)
         * (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius)^-0.58
         * eqt.boundary.elongation^0.78)
     return tau98
+end
+
+"""
+    tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
+
+Petty's 2003 confinement time scaling
+"""
+function tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
+    eqt = dd.equilibrium.time_slice[Float64(time)]
+    cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+
+    total_source = IMAS.total_sources(dd.core_sources, cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
+    isotope_factor = integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1])) /
+                     integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1]))
+
+    tauds03 = (
+        0.028
+        * abs(eqt.global_quantities.ip / 1e6)^0.83
+        * abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time))^0.07
+        * (total_power_inside / 1e6)^-0.55
+        * (ne_vol_avg(cp1d) / 1e19)^0.49
+        * isotope_factor^0.14
+        * dd.equilibrium.vacuum_toroidal_field.r0^2.11
+        * (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius)^-0.30
+        * eqt.boundary.elongation^0.75)
+
+    return tauds03
 end
 
 """
