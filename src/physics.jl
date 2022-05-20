@@ -1409,6 +1409,44 @@ function sources!(dd)
     IMAS.DT_fusion_source!(dd)
 end
 
+
+"""
+    total_power_source(isource::IMAS.core_sources__source___profiles_1d)
+
+Returns the total power of the isource
+"""
+function total_power_source(isource::IMAS.core_sources__source___profiles_1d)
+    power = 0
+    if !ismissing(IMAS.evalmissing(isource.electrons,:power_inside))
+        power += isource.electrons.power_inside[end]
+    end
+    if !ismissing(IMAS.evalmissing(isource,:total_ion_power_inside))
+        power += isource.total_ion_power_inside[end]
+    end
+    return power
+end
+
+"""
+    total_power_identifier_indexes(cs::IMAS.core_sources, indexes)
+
+Returns the total thermal power and time_array for given index (FLT1D_time, FLT1D_time,)
+"""
+
+function total_power_identifier_indexes(cs::IMAS.core_sources, indexes::Vector{<:Real})
+    isources = []
+    for index in indexes
+        append!(isources,findall(cs.source, "identifier.index" => index))
+    end
+    time_array = cs.time
+    total_power = zeros(length(time_array))
+    for isource in isources
+        total_power .+= [total_power_source(isource.profiles_1d[t]) for t in time_array]
+    end
+
+    return total_power, time_array
+end
+
+
 function total_sources(dd)
     total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
 end
