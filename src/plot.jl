@@ -736,7 +736,7 @@ end
 end
 @recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant; linewidth=2)
 
-    size --> (800, 600)    
+    size --> (800, 600)
     legend_position --> :outertopright
     ylabel --> "Electricity [Watts Electric]"
     xlabel --> "Time [s]"
@@ -747,7 +747,7 @@ end
         color := "Black"
         bop, :power_electric_net
     end
-    
+
     @series begin
         label := "Electricity generated"
         linewidth := linewidth + 1
@@ -755,7 +755,7 @@ end
         color := "Black"
         bop.thermal_cycle, :power_electric_generated
     end
-    
+
     for sys in bop.power_electric_plant_operation.system
         @series begin
             label := string(sys.name)

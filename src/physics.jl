@@ -1417,10 +1417,10 @@ Returns the total power of the isource
 """
 function total_power_source(isource::IMAS.core_sources__source___profiles_1d)
     power = 0
-    if !ismissing(IMAS.evalmissing(isource.electrons,:power_inside))
+    if !ismissing(IMAS.evalmissing(isource.electrons, :power_inside))
         power += isource.electrons.power_inside[end]
     end
-    if !ismissing(IMAS.evalmissing(isource,:total_ion_power_inside))
+    if !ismissing(IMAS.evalmissing(isource, :total_ion_power_inside))
         power += isource.total_ion_power_inside[end]
     end
     return power
@@ -1435,7 +1435,7 @@ Returns the total thermal power and time_array for given index (FLT1D_time, FLT1
 function total_power_identifier_indexes(cs::IMAS.core_sources, indexes::Vector{<:Real})
     isources = []
     for index in indexes
-        append!(isources,findall(cs.source, "identifier.index" => index))
+        append!(isources, findall(cs.source, "identifier.index" => index))
     end
     time_array = cs.time
     total_power = zeros(length(time_array))
