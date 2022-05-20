@@ -306,6 +306,21 @@ expressions["costing.cost"] =
 expressions["costing.system[:].cost"] =
     (; system, _...) -> sum([sub.cost for sub in system.subsystem])
 
+#= ============== =#
+#  BalanceOfPlant  #
+#= ============== =#
+expressions["balance_of_plant.Q_plant"] = 
+    (time ; balance_of_plant, _...) -> balance_of_plant.thermal_cycle.power_electric_generated ./ balance_of_plant.power_electric_plant_operation.total_power
+
+expressions["balance_of_plant.power_electric_net"] = 
+    (time; balance_of_plant, _...) -> balance_of_plant.thermal_cycle.power_electric_generated .- balance_of_plant.power_electric_plant_operation.total_power
+
+expressions["balance_of_plant.power_electric_plant_operation.total_power"] = 
+    (time ; power_electric_plant_operation, _...) -> sum([sys.power for sys in power_electric_plant_operation.system])
+
+expressions["balance_of_plant.thermal_cycle.power_electric_generated"] = 
+    (time; thermal_cycle, _...) -> thermal_cycle.thermal_electric_conversion_efficiency .* sum([sys.power_in for sys in thermal_cycle.system])
+
 #= ======= =#
 #  Summary  #
 #= ======= =#
