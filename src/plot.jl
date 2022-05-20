@@ -710,6 +710,36 @@ end
         end
     end
 end
+@recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant; linewidth=2)
+
+    size --> (800, 600)    
+    legend_position --> :outertopright
+    ylabel --> "Electricity [Watts Electric]"
+    xlabel --> "Time [s]"
+
+    @series begin
+        label := "Net electric"
+        linewidth := linewidth + 2
+        color := "Black"
+        bop, :power_electric_net
+    end
+    
+    @series begin
+        label := "Electricity generated"
+        linewidth := linewidth + 1
+        linestyle --> :dash
+        color := "Black"
+        bop.thermal_cycle, :power_electric_generated
+    end
+    
+    for sys in bop.power_electric_plant_operation.system
+        @series begin
+            label := string(sys.name)
+            linewidth := linewidth
+            sys, :power
+        end
+    end
+end
 
 @recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading, component::Symbol=:norm; cx=true)
     neutronics = top_ids(nwl)
