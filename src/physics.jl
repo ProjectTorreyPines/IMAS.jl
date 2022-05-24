@@ -1303,7 +1303,7 @@ end
 """
     DT_fusion_source!(dd::IMAS.dd)
 
-Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons and modifies dd.core_sources
+Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons, modifies dd.core_sources
 """
 function DT_fusion_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
