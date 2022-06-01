@@ -1431,7 +1431,6 @@ end
 
 Returns the total thermal power and time_array for given index (FLT1D_time, FLT1D_time,)
 """
-
 function total_power_identifier_indexes(cs::IMAS.core_sources, indexes::Vector{<:Real})
     isources = []
     for index in indexes
