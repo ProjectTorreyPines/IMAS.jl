@@ -734,6 +734,7 @@ end
         end
     end
 end
+
 @recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant; linewidth=2)
 
     size --> (800, 600)
