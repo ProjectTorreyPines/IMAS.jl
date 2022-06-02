@@ -394,7 +394,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
         end
     else
-        dRHOdR, dRHOdZ = gradient(RHO, collect(r), collect(z))
+        dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
         dPHI2_interpolant = Interpolations.CubicSplineInterpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
         for k = 1:length(eqt.profiles_1d.psi)
             dPHI2 = dPHI2_interpolant.(PR[k], PZ[k])
@@ -993,9 +993,9 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     Zeff = cp1d.zeff
 
     psi_cp = cp1d.grid.psi ./ 2pi
-    dP_dpsi = gradient(pressure_thermal, psi_cp)
-    dTi_dpsi = gradient(Ti, psi_cp)
-    dTe_dpsi = gradient(Te, psi_cp)
+    dP_dpsi = gradient(psi_cp, pressure_thermal)
+    dTi_dpsi = gradient(psi_cp, Ti)
+    dTe_dpsi = gradient(psi_cp, Te)
 
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
@@ -1797,7 +1797,7 @@ function bunit(eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
     rmin = 0.5 * (eq1d.r_outboard - eq1d.r_inboard)
     phi = eq1d.phi
-    return gradient(phi, 2pi * rmin) ./ rmin
+    return gradient(2pi * rmin, phi) ./ rmin
 end
 
 """
