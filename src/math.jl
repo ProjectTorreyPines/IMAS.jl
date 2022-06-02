@@ -24,14 +24,18 @@ function to_range(vector::AbstractVector{<:Real})
     return range(vector[1], vector[end], length=length(vector))
 end
 
+function gradient(arr::AbstractVector)
+    return gradient(1:length(arr), arr)
+end
+
 """
-    gradient(arr::AbstractVector, coord=1:length(arr))
+    gradient(coord::AbstractVector, arr::AbstractVector)
 
 Gradient of a vector computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backwards) differences at the boundaries
 The returned gradient hence has the same shape as the input array.
 https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 """
-function gradient(arr::AbstractVector, coord=1:length(arr))
+function gradient(coord::AbstractVector, arr::AbstractVector)
     np = size(arr)[1]
     out = similar(arr)
     dcoord = diff(coord)
@@ -55,9 +59,13 @@ function gradient(arr::AbstractVector, coord=1:length(arr))
     return out
 end
 
-function gradient(arr::Matrix, coord1=1:size(arr)[1], coord2=1:size(arr)[2])
-    d1 = hcat(map(x -> gradient(x, coord1), eachcol(arr))...)
-    d2 = transpose(hcat(map(x -> gradient(x, coord2), eachrow(arr))...))
+function gradient(arr::Matrix)
+    return gradient(1:size(arr)[1], 1:size(arr)[2], arr)
+end
+
+function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix)
+    d1 = hcat(map(x -> gradient(coord1, x), eachcol(arr))...)
+    d2 = transpose(hcat(map(x -> gradient(coord2, x), eachrow(arr))...))
     return d1, d2
 end
 
