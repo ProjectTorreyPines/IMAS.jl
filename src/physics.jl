@@ -778,7 +778,7 @@ returns a `core_profiles__profiles_1d___ion` structure populated with the elemen
 """
 function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
     ion = IMAS.core_profiles__profiles_1d___ion()
-    element = resize!(ion.element, 1)
+    element = resize!(ion.element, 1)[1]
     if !ismissing(ion_z)
         element_ion = elements[ion_z]
     elseif !ismissing(ion_symbol)
