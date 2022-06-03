@@ -447,8 +447,7 @@ function flux_surface(
     r0::Real,
     z0::Real,
     psi_level::Real,
-    closed::Union{Nothing,Bool},
-)
+    closed::Union{Nothing,Bool})
     # handle on axis value as the first flux surface
     if psi_level == psi[1]
         psi_level = psi[2]
@@ -612,7 +611,7 @@ end
 
 """
     function get_build(
-        layers::IMAS.IDSvector{<:IMAS.build__layer};
+        layers::IMAS.IDSvector{IMAS.build__layer};
         type::Union{Nothing,Int} = nothing,
         name::Union{Nothing,String} = nothing,
         identifier::Union{Nothing,UInt,Int} = nothing,
@@ -625,7 +624,7 @@ end
 Select layer(s) in build based on a series of selection criteria
 """
 function get_build(
-    layers::IMAS.IDSvector{<:IMAS.build__layer};
+    layers::IMAS.IDSvector{IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
     name::Union{Nothing,String}=nothing,
     identifier::Union{Nothing,UInt,Int}=nothing,
@@ -1441,10 +1440,8 @@ function total_power_identifier_indexes(cs::IMAS.core_sources, indexes::Vector{<
     for isource in isources
         total_power .+= [total_power_source(isource.profiles_1d[t]) for t in time_array]
     end
-
     return total_power, time_array
 end
-
 
 function total_sources(dd)
     total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
@@ -1814,7 +1811,7 @@ end
 """
     volume(layer::IMAS.build__layer)
 
-Calculate volume of a build layer outline revolved around x=0
+Calculate volume of a build layer outline revolved around z axis
 """
 function volume(layer::IMAS.build__layer)
     if layer.type == Int(_tf_)
