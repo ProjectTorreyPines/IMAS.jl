@@ -1314,9 +1314,9 @@ function DT_fusion_source!(dd::IMAS.dd)
     end
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
-    isource = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
+    source = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
     new_source(
-        isource,
+        source,
         6,
         "α",
         cp1d.grid.rho_tor_norm,
@@ -1324,7 +1324,7 @@ function DT_fusion_source!(dd::IMAS.dd)
         electrons_energy=α .* (1 .- ion_electron_fraction),
         total_ion_energy=α .* ion_electron_fraction
     )
-    @ddtime(dd.summary.fusion.power.value = isource.profiles_1d[].total_ion_power_inside[end] + isource.profiles_1d[].electrons.power_inside[end])
+    @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
 
     return dd
 end
@@ -1345,8 +1345,8 @@ function collisional_exchange_source!(dd::IMAS.dd)
     else
         nu_exch = collision_frequencies(dd)[3]
         delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
-        isource = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
-        new_source(isource, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+        source = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
+        new_source(source, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
     end
 
     return dd
@@ -1365,8 +1365,8 @@ function bremsstrahlung_source!(dd::IMAS.dd)
 
     # Bremsstrahlung radiation
     powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
-    isource = resize!(dd.core_sources.source, "identifier.index" => 8)
-    new_source(isource, 8, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
+    source = resize!(dd.core_sources.source, "identifier.index" => 8)
+    new_source(source, 8, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
     return dd
 end
 
@@ -1378,8 +1378,8 @@ Calculates the ohmic source and modifies dd.core_sources
 function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     powerDensityOhm = cp1d.j_ohmic .^ 2 ./ cp1d.conductivity_parallel
-    isource = resize!(dd.core_sources.source, "identifier.index" => 7)
-    new_source(isource, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
+    source = resize!(dd.core_sources.source, "identifier.index" => 7)
+    new_source(source, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
     return dd
 end
 
@@ -1390,8 +1390,8 @@ Calculates the bootsrap current source and modifies dd.core_sources
 """
 function bootstrap_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    isource = resize!(dd.core_sources.source, "identifier.index" => 13)
-    new_source(isource, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=cp1d.j_bootstrap)
+    source = resize!(dd.core_sources.source, "identifier.index" => 13)
+    new_source(source, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=cp1d.j_bootstrap)
     return dd
 end
 
@@ -1410,35 +1410,28 @@ end
 
 
 """
-    total_power_source(isource::IMAS.core_sources__source___profiles_1d)
+    total_power_source(source::IMAS.core_sources__source___profiles_1d)
 
-Returns the total power of the isource
+Returns the total power (electron + ion) for a single source
 """
-function total_power_source(isource::IMAS.core_sources__source___profiles_1d)
-    power = 0
-    if !ismissing(IMAS.evalmissing(isource.electrons, :power_inside))
-        power += isource.electrons.power_inside[end]
-    end
-    if !ismissing(IMAS.evalmissing(isource, :total_ion_power_inside))
-        power += isource.total_ion_power_inside[end]
-    end
-    return power
+function total_power_source(source::IMAS.core_sources__source___profiles_1d)
+    return getproperty(source.electrons, :power_inside, [0.0])[end] + getproperty(source, :total_ion_power_inside, [0.0])[end]
 end
 
 """
-    total_power_identifier_indexes(cs::IMAS.core_sources, indexes)
+    total_power_time(core_sources::IMAS.core_sources, include_indexes::Vector{<:Integer})
 
-Returns the total thermal power and time_array for given index (FLT1D_time, FLT1D_time,)
+Returns tuple of vectors with the total thermal power and time_array for given set of sources selected by identifier.index
 """
-function total_power_identifier_indexes(cs::IMAS.core_sources, indexes::Vector{<:Real})
-    isources = []
-    for index in indexes
-        append!(isources, findall(cs.source, "identifier.index" => index))
+function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vector{<:Integer})
+    sources = []
+    for index in include_indexes
+        append!(sources, findall(core_sources.source, "identifier.index" => index))
     end
-    time_array = cs.time
+    time_array = core_sources.time
     total_power = zeros(length(time_array))
-    for isource in isources
-        total_power .+= [total_power_source(isource.profiles_1d[t]) for t in time_array]
+    for source in sources
+        total_power .+= [total_power_source(source.profiles_1d[t]) for t in time_array]
     end
     return total_power, time_array
 end
