@@ -1752,11 +1752,11 @@ function area(x::Vector{<:Real}, y::Vector{<:Real})
 end
 
 """
-    toroidal_volume(x::Vector{<:Real}, y::Vector{<:Real})
+    revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
 
 Calculate volume of polygon revolved around x=0
 """
-function toroidal_volume(x::Vector{<:Real}, y::Vector{<:Real})
+function revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
     return area(x, y) * 2pi * centroid(x, y)[1]
 end
 
@@ -1811,8 +1811,22 @@ function volume(layer::IMAS.build__layer)
         build = parent(parent(layer))
         return func_nested_layers(layer, l -> area(l.outline.r, l.outline.z)) * build.tf.wedge_thickness * build.tf.coils_n
     else
-        return func_nested_layers(layer, l -> toroidal_volume(l.outline.r, l.outline.z))
+        return func_nested_layers(layer, l -> revolution_volume(l.outline.r, l.outline.z))
     end
+end
+
+"""
+    volume(layer::IMAS.build__structure)
+
+Calculate volume of a build structure outline revolved around z axis
+"""
+function volume(structure::IMAS.build__structure)
+    if structure.toroidal_extent == 2 * pi
+        toroidal_angles = [0.0]
+    else
+        toroidal_angles = structure.toroidal_angles
+    end
+    return area(structure.outline.r, structure.outline.z) * structure.toroidal_extent * length(toroidal_angles)
 end
 
 """
