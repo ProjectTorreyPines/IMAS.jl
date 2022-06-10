@@ -706,30 +706,51 @@ end
     ylabel --> "Stresses [MPa]"
     xlabel --> "Radius [m]"
 
+    center_stack = IMAS.parent(stress)
+
+    config = []
+    if center_stack.bucked == 1
+        push!(config, "bucked")
+    end
+    if center_stack.noslip == 1
+        push!(config, "noslip")
+    end
+    if center_stack.plug == 1
+        push!(config, "plug")
+    end
+    if length(config) > 0
+        config = " ($(join(config,",")))"
+    else
+        config = ""
+    end
+
     @series begin
-        label := "Von Mises"
+        label := "Von Mises" * config
         linewidth := linewidth + 2
+        linestyle := :solid
         stress.vonmises
     end
     @series begin
-        label := "Hoop"
+        label := "Hoop" * config
         linewidth := linewidth + 1
+        linestyle := :dash
         stress.hoop
     end
     @series begin
-        label := "Radial"
-        linewidth := linewidth + 2
+        label := "Radial" * config
+        linewidth := linewidth + 1
+        linestyle := :dashdot
         stress.radial
     end
 
     smcs = parent(stress)
     for radius in [smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end]]
         @series begin
-            seriestype --> :vline
-            linewidth --> 2
-            label --> ""
-            linestyle --> :dash
-            color --> :black
+            seriestype := :vline
+            linewidth := linewidth
+            label := ""
+            linestyle := :dash
+            color := :black
             [radius]
         end
     end
