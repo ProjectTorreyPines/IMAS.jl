@@ -768,27 +768,33 @@ end
 
 @recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading, component::Symbol=:norm; cx=true)
     neutronics = top_ids(nwl)
+    title = "Wall neutron flux"
+    units = "[MW/m²]"
     if component == :norm
-        nflux = sqrt.(nwl.flux_r .^ 2.0 .+ nwl.flux_z .^ 2.0)
+        data = sqrt.(nwl.flux_r .^ 2.0 .+ nwl.flux_z .^ 2.0)
     elseif component == :r
-        nflux = nwl.flux_r
+        data = nwl.flux_r
     elseif component == :z
-        nflux = nwl.flux_z
+        data = nwl.flux_z
+    elseif component == :power
+        data = nwl.power
+        title = "Wall neutron power"
+        units = "[MW]"
     end
-    nflux = nflux ./ 1E6
+    data = data ./ 1E6
 
     if cx
         seriestype --> :path
-        line_z --> vcat(nflux, nflux[1])
+        line_z --> vcat(data, data[1])
         aspect_ratio --> :equal
         linewidth --> 8
         label --> ""
-        if component == :norm
-            clim --> (0.0, maximum(nflux))
+        if component in [:norm, :power]
+            clim --> (0.0, maximum(data))
         else
             linecolor --> :seismic
         end
-        colorbar_title --> "\nWall neutron flux [MW/m²]"
+        colorbar_title --> "\n$title $units"
         vcat(neutronics.first_wall.r, neutronics.first_wall.r[1]), vcat(neutronics.first_wall.z, neutronics.first_wall.z[1])
 
     else
@@ -801,30 +807,30 @@ end
         l = cumsum(d)
         legend_position --> :top
 
-        avg = sum(nflux[index] .* d) / sum(d)
+        avg = sum(data[index] .* d) / sum(d)
         xlabel --> "Clockwise distance along wall [m]"
-        ylabel --> "Wall neutron flux [MW/m²]"
+        ylabel --> "$title $units"
         @series begin
             label --> ""
-            l, nflux[index]
+            l, data[index]
         end
         @series begin
             seriestype := :hline
             style --> :dash
-            label --> @sprintf("Max: %3.3f [MW/m²]", maximum(nflux))
-            [maximum(nflux)]
+            label --> @sprintf("Max: %3.3f %s", maximum(data), units)
+            [maximum(data)]
         end
         @series begin
             seriestype := :hline
             style --> :dash
-            label --> @sprintf("Avg: %3.3f [MW/m²]", avg)
+            label --> @sprintf("Avg: %3.3f %s", avg, units)
             [avg]
         end
         @series begin
             seriestype := :hline
             style --> :dash
-            label --> @sprintf("Min: %3.3f [MW/m²]", minimum(nflux))
-            [minimum(nflux)]
+            label --> @sprintf("Min: %3.3f %s", minimum(data), units)
+            [minimum(data)]
         end
     end
 end
