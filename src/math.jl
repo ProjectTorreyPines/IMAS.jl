@@ -105,14 +105,17 @@ function intersection(
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T};
-    as_list_of_points::Bool=true) where {T<:Real}
+    as_list_of_points::Bool=true,
+    return_indexes::Bool=false) where {T<:Real}
 
+    indexes = NTuple{2,Int}[]
     if as_list_of_points
         crossings = NTuple{2,T}[]
     else
         crossings_x = T[]
         crossings_y = T[]
     end
+
     for k1 = 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
         s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
@@ -121,6 +124,7 @@ function intersection(
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
             crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
             if crossing !== nothing
+                push!(indexes, (k1,k2))
                 if as_list_of_points
                     push!(crossings, (crossing[1], crossing[2]))
                 else
@@ -131,9 +135,17 @@ function intersection(
         end
     end
     if as_list_of_points
-        return crossings
+        if return_indexes
+            return indexes, crossings
+        else
+            return crossings
+        end
     else
-        return crossings_x, crossings_y
+        if return_indexes
+            return indexes, crossings_x, crossings_y
+        else
+            return crossings_x, crossings_y
+        end
     end
 end
 
