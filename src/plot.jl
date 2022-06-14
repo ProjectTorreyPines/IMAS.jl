@@ -856,6 +856,15 @@ end
     end
 end
 
+@recipe function plot_wall(wall::IMAS.wall)
+    @series begin
+        fw = IMAS.first_wall(wall)
+        color --> :gray
+        label --> ""
+        fw.r, fw.z
+    end
+end
+
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
