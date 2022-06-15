@@ -1,4 +1,4 @@
-import CoordinateConventions: cocos
+import CoordinateConventions: cocos, COCOS
 import Interpolations
 import Contour
 import StaticArrays
@@ -11,18 +11,37 @@ import PeriodicTable: elements
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
 @enum BuildLayerShape _offset_ _negative_offset_ _convex_hull_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _spline_ _silo_
 
-function Bp_interpolant(eqt::equilibrium__time_slice)
-    cc = cocos(11)
+"""
+    ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
 
+Returns r, z, and ψ interpolant
+"""
+function ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
     r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
     z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
-    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
+    return r, z, Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
+end
 
-    # Br and Bz evaluated through spline gradient
-    Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k in 1:length(x)]
-    Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k in 1:length(x)]
+"""
+    Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
 
-    return (x, y) -> sqrt.(Br_vector_interpolant(x, y) .^ 2 + Bz_vector_interpolant(x, y) .^ 2)
+Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
+"""
+function Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    grad = [IMAS.Interpolations.gradient(PSI_interpolant, r[k], z[k]) for k in 1:length(r)]
+    Br = [cc.sigma_RpZ * grad[k][2] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
+    Bz = [-cc.sigma_RpZ * grad[k][1] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
+    return Br, Bz
+end
+
+"""
+    Bp_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+
+Returns Bp evaluated at r and z starting from ψ interpolant
+"""
+function Bp_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, r, z)
+    return sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
 end
 
 """
@@ -59,24 +78,14 @@ The original psi grid can be upsampled by a `upsample_factor` to get higher reso
 function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
     cc = cocos(11)
 
-    r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
-    z_upsampled = z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
-    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
-    PSI_upsampled = eqt.profiles_2d[1].psi
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    PSI = eqt.profiles_2d[1].psi
 
     # upsampling for high-resolution r,z flux surface coordinates
     if upsample_factor > 1
-        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
-        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
-        PSI_upsampled = PSI_interpolant(r_upsampled, z_upsampled)
-    end
-
-    # Br and Bz evaluated through spline gradient
-    function Br_Bz_vector_interpolant(x, y)
-        grad = [IMAS.Interpolations.gradient(PSI_interpolant, x[k], y[k]) for k in 1:length(x)]
-        Br = [cc.sigma_RpZ * grad[k][2] / x[k] / (2 * pi)^cc.exp_Bp for k in 1:length(x)]
-        Bz = [-cc.sigma_RpZ * grad[k][1] / x[k] / (2 * pi)^cc.exp_Bp for k in 1:length(x)]
-        return Br, Bz
+        r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
+        z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
+        PSI = PSI_interpolant(r, z)
     end
 
     psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
@@ -152,16 +161,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
 
         else  # other flux surfaces
             # trace flux surface
-            pr, pz, psi_level = flux_surface(
-                r_upsampled,
-                z_upsampled,
-                PSI_upsampled,
-                eqt.profiles_1d.psi,
-                eqt.global_quantities.magnetic_axis.r,
-                eqt.global_quantities.magnetic_axis.z,
-                psi_level0,
-                true,
-            )
+            pr, pz, psi_level =
+                flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, true)
             if length(pr) == 0
                 error("Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
@@ -227,7 +228,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         eqt.profiles_1d.triangularity_lower[k] = (R - r_at_min_z) / a
 
         # poloidal magnetic field (with sign)
-        Br, Bz = Br_Bz_vector_interpolant(pr, pz)
+        Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, pr, pz)
         Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
         Bp_abs = sqrt.(Bp2)
         Bp = (
@@ -533,10 +534,16 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
         eqt.boundary.x_point[end].z = (pz[index] + zlcfs[indexcfs]) / 2.0
     end
 
+    cc = cocos(11)
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
     # refine x-point location
-    Bp = IMAS.Bp_interpolant(eqt)
     for rz in eqt.boundary.x_point
-        res = Optim.optimize(x -> Bp([rz.r + x[1]], [rz.z + x[2]])[1], [0.0, 0.0], Optim.NelderMead(), Optim.Options(g_tol=1E-8))
+        res = Optim.optimize(
+            x -> IMAS.Bp_vector_interpolant(PSI_interpolant, cc, [rz.r + x[1]], [rz.z + x[2]])[1],
+            [0.0, 0.0],
+            Optim.NelderMead(),
+            Optim.Options(g_tol=1E-8),
+        )
         rz.r += res.minimizer[1]
         rz.z += res.minimizer[2]
     end
@@ -592,27 +599,15 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
     R0 = eqt.global_quantities.magnetic_axis.r
     Z0 = eqt.global_quantities.magnetic_axis.z
 
-    psi__axis_level = eqt.profiles_1d.psi[1]
-    psi__boundary_level = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true)
-
     ############
     cc = IMAS.cocos(11)
 
-    r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
-    z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
-    PSI_interpolant = IMAS.Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
-
-    # Br and Bz evaluated through spline gradient
-    function Br_Bz_vector_interpolant(x, y)
-        grad = [IMAS.Interpolations.gradient(PSI_interpolant, x[k], y[k]) for k in 1:length(x)]
-        Br = [cc.sigma_RpZ * grad[k][2] / x[k] / (2 * pi)^cc.exp_Bp for k in 1:length(x)]
-        Bz = [-cc.sigma_RpZ * grad[k][1] / x[k] / (2 * pi)^cc.exp_Bp for k in 1:length(x)]
-        return Br, Bz
-    end
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
 
     r_wall_midplane, _ = IMAS.intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z; as_list_of_points=false)
     psi_wall_midplane = PSI_interpolant.(r_wall_midplane, Z0)[1]
-
+    psi__axis_level = eqt.profiles_1d.psi[1]
+    psi__boundary_level = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true)
     psi_sign = sign(psi__boundary_level - psi__axis_level)
     ############
 
@@ -627,7 +622,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
             if isempty(rr)
                 continue
             end
-            Br, Bz = Br_Bz_vector_interpolant(rr, zz)
+            Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, rr, zz)
             Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
             Bt = abs.(b0 .* r0 ./ rr)
             dp = sqrt.(IMAS.gradient(rr) .^ 2.0 .+ IMAS.gradient(zz) .^ 2.0)
@@ -638,7 +633,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
             push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index))
         end
     end
-    OFL
+    return OFL
 end
 
 """
