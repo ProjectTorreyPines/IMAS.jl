@@ -4,28 +4,39 @@ module IMAS
 
 using Printf
 
-#= ============== =#
-#= DATA STRUCTURE =#
-#= ============== =#
-include("real.jl")
-include("data.jl")
+#= ======= =#
+#= IMAS DD =#
+#= ======= =#
+import IMASDD
+# import all IMASDD.jl as if it was defined in IMAS.jl
+for n in names(IMASDD; all=true)
+    if Base.isidentifier(n) && n ∉ (Symbol(IMASDD), :eval, :include)
+        @eval import IMASDD: $n
+    end
+end
+import IMASDD: @ddtime, interp1d
 
-#= ================= =#
-#= PHYSICS FUNCTIONS =#
-#= ================= =#
+#= ===== =#
+#= UTILS =#
+#= ===== =#
+include("real.jl")
 include("constants.jl")
-include("time.jl")
+include("math.jl")
+
+#= ======= =#
+#= PHYSICS =#
+#= ======= =#
 include("physics.jl")
 include("expressions.jl")
 
-#= ================== =#
-#= PLOTTING FUNCTIONS =#
-#= ================== =#
+#= ======== =#
+#= PLOTTING =#
+#= ======== =#
 include("plot.jl")
 
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export is_missing, @ddtime, @coords, constants, ±, force_float
+export @ddtime, constants, ±, force_float
 
 end # module

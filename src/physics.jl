@@ -1,20 +1,49 @@
-import CoordinateConventions: cocos
+import CoordinateConventions: cocos, COCOS
 import Interpolations
 import Contour
 import StaticArrays
 import PolygonOps
 import Optim
 import NumericalIntegration: integrate, cumul_integrate
+import PeriodicTable: elements
+using RecipesBase
 
-function Br_Bz_interpolant(r::AbstractRange, z::AbstractRange, psi::AbstractMatrix; cocos_number::Int = 11)
-    cc = cocos(cocos_number)
-    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), psi)
-    Br_vector_interpolant = (x, y) -> cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x, y)[2] / x / (2 * pi)^cc.exp_Bp
-    Bz_vector_interpolant = (x, y) -> -cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x, y)[1] / x / (2 * pi)^cc.exp_Bp
-    Br_Bz_vector_interpolant = (x, y) -> (Br_vector_interpolant(x, y), Bz_vector_interpolant(x, y))
-    return Br_Bz_vector_interpolant
+@enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_
+@enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
+@enum BuildLayerShape _offset_ _negative_offset_ _convex_hull_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _spline_ _silo_
+
+"""
+    ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
+
+Returns r, z, and ψ interpolant
+"""
+function ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
+    r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
+    z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
+    return r, z, Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
 end
 
+"""
+    Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+
+Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
+"""
+function Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    grad = [IMAS.Interpolations.gradient(PSI_interpolant, r[k], z[k]) for k in 1:length(r)]
+    Br = [cc.sigma_RpZ * grad[k][2] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
+    Bz = [-cc.sigma_RpZ * grad[k][1] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
+    return Br, Bz
+end
+
+"""
+    Bp_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+
+Returns Bp evaluated at r and z starting from ψ interpolant
+"""
+function Bp_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, r, z)
+    return sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
+end
 
 """
     flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
@@ -22,8 +51,8 @@ end
 Update flux surface averaged and geometric quantities in the equilibrium IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eq::equilibrium; upsample_factor::Int = 1)
-    for time_index = 1:length(eq.time_slice)
+function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
+    for time_index in 1:length(eq.time_slice)
         flux_surfaces(eq.time_slice[time_index]; upsample_factor)
     end
     return eq
@@ -35,43 +64,50 @@ end
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int = 1)
-    R0 = eqt.boundary.geometric_axis.r
-    B0 = eqt.profiles_1d.f[end] / R0
-    return flux_surfaces(eqt, B0, R0; upsample_factor)
+function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
+    r0 = eqt.boundary.geometric_axis.r
+    b0 = eqt.profiles_1d.f[end] / r0
+    return flux_surfaces(eqt, b0, r0; upsample_factor)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
+    flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
 
-Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
+Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, b0 and r0
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int = 1)
+function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
     cc = cocos(11)
 
-    r_upsampled = r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length = length(eqt.profiles_2d[1].grid.dim1))
-    z_upsampled = z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length = length(eqt.profiles_2d[1].grid.dim2))
-    PSI_interpolant = Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
-    PSI_upsampled = eqt.profiles_2d[1].psi
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    PSI = eqt.profiles_2d[1].psi
 
     # upsampling for high-resolution r,z flux surface coordinates
     if upsample_factor > 1
-        r_upsampled = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length = length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
-        z_upsampled = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length = length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
-        PSI_upsampled = PSI_interpolant(r_upsampled, z_upsampled)
+        r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
+        z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
+        PSI = PSI_interpolant(r, z)
     end
 
-    # Br and Bz evaluated through spline gradient
-    Br_vector_interpolant = (x, y) -> [cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[2] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
-    Bz_vector_interpolant = (x, y) -> [-cc.sigma_RpZ * Interpolations.gradient(PSI_interpolant, x[k], y[k])[1] / x[k] / (2 * pi)^cc.exp_Bp for k = 1:length(x)]
+    psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
 
     # find magnetic axis
-    res = Optim.optimize(x -> PSI_interpolant(x[1], x[2]), [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+    res = Optim.optimize(
+        x -> PSI_interpolant(x[1], x[2]) * psi_sign,
+        [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
+        Optim.Newton(),
+        Optim.Options(g_tol=1E-8);
+        autodiff=:forward,
+    )
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
 
+    find_x_point!(eqt)
+
     for item in [
+        :b_field_average,
+        :b_field_max,
+        :b_field_min,
         :elongation,
         :triangularity_lower,
         :triangularity_upper,
@@ -89,7 +125,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         :gm8,
         :gm9,
         :phi,
-        :trapped_fraction
+        :trapped_fraction,
     ]
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
@@ -110,7 +146,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
             b = eqt.profiles_1d.elongation[1] * a
 
-            t = range(0, 2 * pi, length = 17)
+            t = range(0, 2 * pi, length=17)
             pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
             pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
 
@@ -126,16 +162,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
 
         else  # other flux surfaces
             # trace flux surface
-            pr, pz, psi_level = flux_surface(
-                r_upsampled,
-                z_upsampled,
-                PSI_upsampled,
-                eqt.profiles_1d.psi,
-                eqt.global_quantities.magnetic_axis.r,
-                eqt.global_quantities.magnetic_axis.z,
-                psi_level0,
-                true,
-            )
+            pr, pz, psi_level =
+                flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, true)
             if length(pr) == 0
                 error("Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
@@ -166,14 +194,14 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
                     return 100
                 end
             end
-            res = Optim.optimize(x -> fx(x, psi_level), [max_r, z_at_max_r], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+            res = Optim.optimize(x -> fx(x, psi_level), [max_r, z_at_max_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+            res = Optim.optimize(x -> fx(x, psi_level), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
             (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
             if psi_level0 != eqt.profiles_1d.psi[end]
-                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
                 (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol = 1E-8); autodiff = :forward)
+                res = Optim.optimize(x -> fz(x, psi_level), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
                 (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
             end
             # p = plot(pr, pz, label = "")
@@ -182,6 +210,12 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             # plot!([r_at_max_z], [max_z], marker = :cicle)
             # plot!([r_at_min_z], [min_z], marker = :cicle)
             # display(p)
+
+            # plasma boundary information
+            if k == length(eqt.profiles_1d.psi)
+                eqt.boundary.outline.r = pr
+                eqt.boundary.outline.z = pz
+            end
         end
 
         # geometric
@@ -202,8 +236,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         MXH_amplitudes = miller_extended_harmonic(pr, pz, Rm_, Zm_, a_, b_, 5)
 
         # poloidal magnetic field (with sign)
-        Br = Br_vector_interpolant(pr, pz)
-        Bz = Bz_vector_interpolant(pr, pz)
+        Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, pr, pz)
         Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
         Bp_abs = sqrt.(Bp2)
         Bp = (
@@ -233,6 +266,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         # trapped fraction
         Bt = eqt.profiles_1d.f[k] ./ pr
         Btot = sqrt.(Bp2 .+ Bt .^ 2)
+        Bmin = minimum(Btot)
         Bmax = maximum(Btot)
         Bratio = Btot ./ Bmax
         avg_Btot = flxAvg(Btot)
@@ -243,6 +277,15 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         ftu = 1.0 - h2 / (h^2) * (1.0 - sqrt(1.0 - h) * (1.0 + 0.5 * h))
         ftl = 1.0 - h2 * hf
         eqt.profiles_1d.trapped_fraction[k] = 0.75 * ftu + 0.25 * ftl
+
+        # Bavg
+        eqt.profiles_1d.b_field_average[k] = avg_Btot
+
+        # Bmax
+        eqt.profiles_1d.b_field_max[k] = Bmax
+
+        # Bmin
+        eqt.profiles_1d.b_field_min[k] = Bmin
 
         # gm1 = <1/R^2>
         eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2)
@@ -306,7 +349,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     end
 
     # integral quantities
-    for k = 2:length(eqt.profiles_1d.psi)
+    for k in 2:length(eqt.profiles_1d.psi)
         # area
         eqt.profiles_1d.area[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k] .* eqt.profiles_1d.gm9[1:k]) ./ 2pi
 
@@ -314,56 +357,62 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
 
         # phi
-        eqt.profiles_1d.phi[k] = (cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp))
+        eqt.profiles_1d.phi[k] = cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp)
     end
 
     R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
     a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
 
     # vacuum magnetic field at the geometric center
-    Btvac = B0 * R0 / R
+    Btvac = b0 * r0 / R
 
     # average poloidal magnetic field
     Bpave = eqt.global_quantities.ip * (4.0 * pi * 1e-7) / eqt.global_quantities.length_pol
 
     # li
     Bp2v = integrate(eqt.profiles_1d.psi, BPL * (2.0 * pi)^(1.0 - cc.exp_Bp))
-    eqt.global_quantities.li_3 = 2 * Bp2v / R0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
+    eqt.global_quantities.li_3 = 2 * Bp2v / r0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
 
     # beta_tor
-    eqt.global_quantities.beta_tor = abs(volume_integrate(eqt.profiles_1d.pressure) / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
+    avg_press = volume_integrate(eqt.profiles_1d.pressure)
+    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_pol
-    eqt.global_quantities.beta_pol = abs(volume_integrate(eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
+    eqt.global_quantities.beta_pol = abs(avg_press / eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
     eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # rho_tor_norm
-    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (pi * B0)))
+    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (pi * b0)))
     rho_meters = rho[end]
+    eqt.profiles_1d.rho_tor = rho
     eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
 
     # phi 2D
     eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(eqt.profiles_1d.psi, eqt.profiles_1d.phi, extrapolation_bc = Interpolations.Line()).(eqt.profiles_2d[1].psi)
+        Interpolations.CubicSplineInterpolation(
+            to_range(eqt.profiles_1d.psi) * psi_sign,
+            eqt.profiles_1d.phi,
+            extrapolation_bc=Interpolations.Line(),
+        ).(eqt.profiles_2d[1].psi * psi_sign)
 
     # rho 2D in meters
-    RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * B0)))
+    RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * b0)))
 
     # gm2: <∇ρ²/R²>
     if false
         RHO_interpolant = Interpolations.CubicSplineInterpolation((r, z), RHO)
-        for k = 1:length(eqt.profiles_1d.psi)
-            tmp = [Interpolations.gradient(RHO_interpolant, PR[k][j], PZ[k][j]) for j = 1:length(PR[k])]
+        for k in 1:length(eqt.profiles_1d.psi)
+            tmp = [Interpolations.gradient(RHO_interpolant, PR[k][j], PZ[k][j]) for j in 1:length(PR[k])]
             dPHI2 = [j[1] .^ 2.0 .+ j[2] .^ 2.0 for j in tmp]
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
         end
     else
-        dRHOdR, dRHOdZ = gradient(RHO, collect(r), collect(z))
+        dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
         dPHI2_interpolant = Interpolations.CubicSplineInterpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
-        for k = 1:length(eqt.profiles_1d.psi)
+        for k in 1:length(eqt.profiles_1d.psi)
             dPHI2 = dPHI2_interpolant.(PR[k], PZ[k])
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
         end
@@ -373,10 +422,10 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     for quantity in [:gm2]
         eqt.profiles_1d.gm2[1] =
             Interpolations.CubicSplineInterpolation(
-                eqt.profiles_1d.psi[2:end],
+                to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
                 getproperty(eqt.profiles_1d, quantity)[2:end],
-                extrapolation_bc = Interpolations.Line(),
-            ).(eqt.profiles_1d.psi[1])
+                extrapolation_bc=Interpolations.Line(),
+            ).(eqt.profiles_1d.psi[1] * psi_sign)
     end
 
     return eqt
@@ -401,9 +450,9 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Uni
     dim2 = eqt.profiles_2d[1].grid.dim2
     PSI = eqt.profiles_2d[1].psi
     psi = eqt.profiles_1d.psi
-    r0 = eqt.global_quantities.magnetic_axis.r
-    z0 = eqt.global_quantities.magnetic_axis.z
-    flux_surface(dim1, dim2, PSI, psi, r0, z0, psi_level, closed)
+    R0 = eqt.global_quantities.magnetic_axis.r
+    Z0 = eqt.global_quantities.magnetic_axis.z
+    flux_surface(dim1, dim2, PSI, psi, R0, Z0, psi_level, closed)
 end
 
 function flux_surface(
@@ -411,17 +460,19 @@ function flux_surface(
     dim2::Union{AbstractVector,AbstractRange},
     PSI::AbstractArray,
     psi::Union{AbstractVector,AbstractRange},
-    r0::Real,
-    z0::Real,
+    R0::Real,
+    Z0::Real,
     psi_level::Real,
     closed::Union{Nothing,Bool},
 )
-    # handle on axis value as the first flux surface
+
     if psi_level == psi[1]
+        # handle on axis value as the first flux surface
         psi_level = psi[2]
-        # handle boundary by finding accurate lcfs psi
+
     elseif psi_level == psi[end]
-        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; raise_error_on_not_open = false)
+        # handle boundary by finding accurate lcfs psi
+        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; raise_error_on_not_open=false)
         if psi__boundary_level !== nothing
             if abs(psi__boundary_level - psi_level) < abs(psi[end] - psi[end-1])
                 psi_level = psi__boundary_level
@@ -446,7 +497,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surface that close and contain magnetic axis
-            if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((r0, z0), collect(zip(pr, pz))) == 1)
+            if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) == 1)
                 reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
                 return pr, pz, psi_level
             end
@@ -457,7 +508,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surfaces that close or that do not contain magnetic axis
-            if (pr[1] != pr[end]) || (pz[1] != pz[end]) || (PolygonOps.inpolygon((r0, z0), collect(zip(pr, pz))) != 1)
+            if (pr[1] != pr[end]) || (pz[1] != pz[end]) || (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) != 1)
                 reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
                 push!(prpz, (pr, pz))
             end
@@ -531,30 +582,199 @@ function miller_extended_harmonic(pr, pz, Rm, Zm, a, b, MXH_modes)
     return MXH_amplitudes
 end
 
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)
+    rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
+    ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 20
+    private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
+    Z0 = sum(zlcfs) / length(zlcfs)
+    empty!(eqt.boundary.x_point)
+    for (pr, pz) in private
+        if sign(pz[1] - Z0) != sign(pz[end] - Z0)
+            # open flux surface does not encicle the plasma
+            continue
+        elseif minimum_distance_two_shapes(pr, pz, rlcfs, zlcfs) > ll
+            # secondary Xpoint far away
+            continue
+        elseif (sum(pz) - Z0) < 0
+            # lower private region
+            index = argmax(pz)
+        else
+            # upper private region
+            index = argmin(pz)
+        end
+        indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
+        resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
+        eqt.boundary.x_point[end].r = (pr[index] + rlcfs[indexcfs]) / 2.0
+        eqt.boundary.x_point[end].z = (pz[index] + zlcfs[indexcfs]) / 2.0
+    end
+
+    cc = cocos(11)
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    # refine x-point location
+    for rz in eqt.boundary.x_point
+        res = Optim.optimize(
+            x -> IMAS.Bp_vector_interpolant(PSI_interpolant, cc, [rz.r + x[1]], [rz.z + x[2]])[1],
+            [0.0, 0.0],
+            Optim.NelderMead(),
+            Optim.Options(g_tol=1E-8),
+        )
+        rz.r += res.minimizer[1]
+        rz.z += res.minimizer[2]
+    end
+
+    return eqt.boundary.x_point
+end
+
+struct OpenFieldLine
+    r::Vector{Float64}
+    z::Vector{Float64}
+    Br::Vector{Float64}
+    Bz::Vector{Float64}
+    Bp::Vector{Float64}
+    Bt::Vector{Float64}
+    pitch::Vector{Float64}
+    s::Vector{Float64}
+    midplane_index::Int
+end
+
+@recipe function plot_ofl(ofl::OpenFieldLine)
+    @series begin
+        aspect_ratio --> :equal
+        label --> ""
+        line_z := ofl.s
+        ofl.r, ofl.z
+    end
+end
+
+@recipe function plot_OFL(OFL::Vector{OpenFieldLine})
+    for ofl in OFL
+        @series begin
+            ofl
+        end
+    end
+end
+
+function sol(eq::IMAS.equilibrium, wall::IMAS.wall)
+    return sol(eq, IMAS.first_wall(wall).r, IMAS.first_wall(wall).z)
+end
+
+function sol(eq::IMAS.equilibrium, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+    r0 = eq.vacuum_toroidal_field.r0
+    b0 = @ddtime(eq.vacuum_toroidal_field.b0)
+    return sol(eq.time_slice[], r0, b0, wall_r, wall_z)
+end
+
+"""
+    sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+
+Trace open field lines up to wall
+"""
+function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+    R0 = eqt.global_quantities.magnetic_axis.r
+    Z0 = eqt.global_quantities.magnetic_axis.z
+
+    ############
+    cc = IMAS.cocos(11)
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    r_wall_midplane, _ = IMAS.intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z; as_list_of_points=false)
+    psi_wall_midplane = PSI_interpolant.(r_wall_midplane, Z0)[1]
+    psi__axis_level = eqt.profiles_1d.psi[1]
+    psi__boundary_level = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true)
+    psi_sign = sign(psi__boundary_level - psi__axis_level)
+    ############
+
+    # pack points near lcfs
+    levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-2, log10(abs(psi_wall_midplane - psi__boundary_level)), 22)[1:end-1]
+
+    OFL = OpenFieldLine[]
+    for level in levels
+        lines = IMAS.flux_surface(eqt, level, false)
+        for line in lines
+            rr, zz = line_wall_2_wall(line..., wall_r, wall_z, R0, Z0)
+            if isempty(rr)
+                continue
+            end
+            Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, rr, zz)
+            Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
+            Bt = abs.(b0 .* r0 ./ rr)
+            dp = sqrt.(IMAS.gradient(rr) .^ 2.0 .+ IMAS.gradient(zz) .^ 2.0)
+            pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2)
+            s = cumsum(pitch .* dp)
+            midplane_index = argmin(abs.(zz .- Z0) .+ (rr .< R0))
+            s = abs.(s .- s[midplane_index])
+            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index))
+        end
+    end
+    return OFL
+end
+
+"""
+    line_wall_2_wall(r, z, wall_r, wall_z, R0, Z0)
+
+Returns r, z coordinates of open field line contained within wall
+"""
+function line_wall_2_wall(r, z, wall_r, wall_z, R0, Z0)
+    indexes, crossings = IMAS.intersection(r, z, wall_r, wall_z; as_list_of_points=true, return_indexes=true)
+    indexes = [k[1] for k in indexes]
+    if length(indexes) == 0
+        return [], []
+    elseif length(indexes) == 1
+        return error("line_wall_2_wall: open field line should intersect wall at least twice")
+    elseif length(indexes) == 2
+        # pass
+    else
+        # closest midplane point (favoring low field side)
+        j0 = argmin(abs.(z .- Z0) .+ (r .< R0))
+        # the closest intersection point (in steps) to z=Z0
+        i1 = sortperm(abs.(indexes .- j0))[1]
+        # the intersection on the other size of the midplane
+        j1 = indexes[i1]
+        if j0 < j1
+            i2 = i1 - 1
+        else
+            i2 = i1 + 1
+        end
+        i = sort([i1, i2])
+        indexes = indexes[i]
+        crossings = crossings[i]
+    end
+
+    rr = vcat(crossings[1][1], r[indexes[1]+1:indexes[2]], crossings[2][1])
+    zz = vcat(crossings[1][2], z[indexes[1]+1:indexes[2]], crossings[2][2])
+
+    # sort clockwise (COCOS 11)
+    if atan(zz[1] - Z0, rr[1] - R0) > atan(zz[end] - Z0, rr[end] - R0)
+        rr = reverse(rr)
+        zz = reverse(zz)
+    end
+
+    rr, zz
+end
+
 """
     find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
 
 Find psi value of the last closed flux surface
 """
-function find_psi_boundary(eqt; precision = 1e-6, raise_error_on_not_open = true)
+function find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
     dim1 = eqt.profiles_2d[1].grid.dim1
     dim2 = eqt.profiles_2d[1].grid.dim2
     PSI = eqt.profiles_2d[1].psi
     psi = eqt.profiles_1d.psi
-    r0 = eqt.global_quantities.magnetic_axis.r
-    z0 = eqt.global_quantities.magnetic_axis.z
-    find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision, raise_error_on_not_open)
+    R0 = eqt.global_quantities.magnetic_axis.r
+    Z0 = eqt.global_quantities.magnetic_axis.z
+    find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision, raise_error_on_not_open)
 end
 
-function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision = 1e-6, raise_error_on_not_open)
+function find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision=1e-6, raise_error_on_not_open)
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
-    pr, pz = flux_surface(dim1, dim2, PSI, psi, r0, z0, psirange_init[1], true)
+    pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[1], true)
     if length(pr) == 0
         error("Flux surface at ψ=$(psirange_init[1]) is not closed")
     end
 
-    pr, pz = flux_surface(dim1, dim2, PSI, psi, r0, z0, psirange_init[end], true)
+    pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[end], true)
     if length(pr) > 0
         if raise_error_on_not_open
             error("Flux surface at ψ=$(psirange_init[end]) is not open")
@@ -564,9 +784,9 @@ function find_psi_boundary(dim1, dim2, PSI, psi, r0, z0; precision = 1e-6, raise
     end
 
     psirange = deepcopy(psirange_init)
-    for k = 1:100
+    for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
-        pr, pz = flux_surface(dim1, dim2, PSI, psi, r0, z0, psimid, true)
+        pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psimid, true)
         # closed flux surface
         if length(pr) > 0
             psirange[1] = psimid
@@ -598,9 +818,13 @@ function build_radii(bd::IMAS.build)
     return layers_radii
 end
 
+function get_build(bd::IMAS.build; kw...)
+    get_build(bd.layer; kw...)
+end
+
 """
     function get_build(
-        bd::IMAS.build;
+        layers::IMAS.IDSvector{IMAS.build__layer};
         type::Union{Nothing,Int} = nothing,
         name::Union{Nothing,String} = nothing,
         identifier::Union{Nothing,UInt,Int} = nothing,
@@ -613,36 +837,47 @@ end
 Select layer(s) in build based on a series of selection criteria
 """
 function get_build(
-    bd::IMAS.build;
-    type::Union{Nothing,Int} = nothing,
-    name::Union{Nothing,String} = nothing,
-    identifier::Union{Nothing,UInt,Int} = nothing,
-    hfs::Union{Nothing,Int,Array} = nothing,
-    return_only_one = true,
-    return_index = false,
-    raise_error_on_missing = true
+    layers::IMAS.IDSvector{IMAS.build__layer};
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,UInt,Int}=nothing,
+    fs::Union{Nothing,BuildLayerSide,Vector{BuildLayerSide}}=nothing,
+    return_only_one=true,
+    return_index=false,
+    raise_error_on_missing=true,
 )
 
-    if isa(hfs, Int)
-        hfs = [hfs]
+    if fs === nothing
+        #pass
+    else
+        if isa(fs, BuildLayerSide)
+            fs = [fs]
+        end
+        fs = collect(map(Int, fs))
+    end
+    if isa(type, BuildLayerType)
+        type = Int(type)
     end
 
+    name0 = name
     valid_layers = []
-    for (k, l) in enumerate(bd.layer)
+    for (k, l) in enumerate(layers)
         if (name === nothing || l.name == name) &&
            (type === nothing || l.type == type) &&
            (identifier === nothing || l.identifier == identifier) &&
-           (hfs === nothing || l.hfs in hfs)
+           (fs === nothing || l.fs in fs)
             if return_index
                 push!(valid_layers, k)
             else
                 push!(valid_layers, l)
             end
+        elseif identifier !== nothing && l.identifier == identifier
+            name0 = l.name
         end
     end
     if length(valid_layers) == 0
         if raise_error_on_missing
-            error("Did not find build.layer: name=$name type=$type identifier=$identifier hfs=$hfs")
+            error("Did not find build.layer: name=$(repr(name0)) type=$type identifier=$identifier fs=$fs")
         else
             return nothing
         end
@@ -651,7 +886,7 @@ function get_build(
         if length(valid_layers) == 1
             return valid_layers[1]
         else
-            error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier hfs:$hfs")
+            error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier fs:$fs")
         end
     else
         return valid_layers
@@ -663,25 +898,35 @@ end
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
+function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
-    rmask = range(xlim[1], xlim[2], length = ngrid)
-    zmask = range(ylim[1], ylim[2], length = ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    rmask = range(xlim[1], xlim[2], length=ngrid)
+    zmask = range(ylim[1], ylim[2], length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
+    # start from the first vacuum that goes to zero outside of the TF
+    start_from = -1
+    for k in IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)
+        if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
+            start_from = k
+            break
+        end
+    end
+
+    # assign boolean mask going through the layers
     valid = true
-    for layer in vcat(bd.layer[end], bd.layer)
-        if layer.type == -1
+    for layer in vcat(bd.layer[start_from], bd.layer[1:start_from])
+        if layer.type == Int(_plasma_)
             valid = false
         end
         if valid && !ismissing(layer.outline, :r)
-            outline = StaticArrays.SVector.(layer.outline.r, layer.outline.z)
-            if !ismissing(layer, :material) && layer.material == "vacuum"
+            outline = collect(zip(layer.outline.r, layer.outline.z))
+            if (layer.material == "Vacuum") && (layer.fs != Int(_in_))
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
-                        if PolygonOps.inpolygon((rr, zz), outline) == 1
+                        if PolygonOps.inpolygon((rr, zz), outline) != 0
                             mask[kr, kz] = 0.0
                         end
                     end
@@ -697,7 +942,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real
             end
         end
     end
-    rlim_oh = IMAS.get_build(bd, type = 1).start_radius
+    rlim_oh = IMAS.get_build(bd, type=_oh_).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr < rlim_oh
@@ -738,64 +983,70 @@ function reorder_flux_surface!(pr, pz, z0)
     end
 end
 
-function total_pressure_thermal!(core_profiles)
-    prof1d = core_profiles.profiles_1d[]
-    pressure = prof1d.electrons.density .* prof1d.electrons.temperature
-    for ion in prof1d.ion
+
+function total_pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+    pressure = cp1d.electrons.density .* cp1d.electrons.temperature
+    for ion in cp1d.ion
         pressure += ion.density .* ion.temperature
     end
     return pressure * constants.e
 end
 
-function calc_beta_thermal_norm!(summary::IMAS.summary, equilibrium::IMAS.equilibrium, core_profiles::IMAS.core_profiles)
-    eqt = equilibrium.time_slice[]
+function calc_beta_thermal_norm(dd::IMAS.dd)
+    return calc_beta_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[])
+end
+
+function calc_beta_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+    eqt = eq.time_slice[Float64(cp1d.time)]
     eq1d = eqt.profiles_1d
-    cp1d = core_profiles.profiles_1d[]
     pressure_thermal = cp1d.pressure_thermal
     rho = cp1d.grid.rho_tor_norm
-    Bt = @ddtime(equilibrium.vacuum_toroidal_field.b0)
+    Bt = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
     Ip = eqt.global_quantities.ip
-    volume_cp = IMAS.interp(eq1d.rho_tor_norm, eq1d.volume)[rho]
-
+    volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
     pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
-    beta_tor = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
-    @ddtime (summary.global_quantities.beta_tor.value = beta_tor)
-    @ddtime (summary.global_quantities.beta_tor_thermal_norm.value = beta_tor * eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2)
+    beta_tor_thermal = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
+    beta_tor_thermal_norm = beta_tor_thermal * eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2
+    return beta_tor_thermal_norm
 end
 
 """
-    ion_element(species::Symbol)
+    ion_element(;ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
 
 returns a `core_profiles__profiles_1d___ion` structure populated with the element information
 """
-function ion_element(species::Symbol)
+function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
     ion = IMAS.core_profiles__profiles_1d___ion()
-    element = resize!(ion.element, 1)
-    if species == :H
-        element.z_n = 1
-        element.a = 1
-    elseif species == :D
-        element.z_n = 1
-        element.a = 2
-    elseif species == :DT
-        element.z_n = 1
-        element.a = 2.5
-    elseif species == :T
-        element.z_n = 1
-        element.a = 3
-    elseif species == :He
-        element.z_n = 2
-        element.a = 4
-    elseif species == :C
-        element.z_n = 6
-        element.a = 12
-    elseif species == :Ne
-        element.z_n = 10
-        element.a = 20
+    element = resize!(ion.element, 1)[1]
+    if !ismissing(ion_z)
+        element_ion = elements[ion_z]
+    elseif !ismissing(ion_symbol)
+        # exceptions: isotopes & lumped (only exceptions allowed for symbols)
+        if ion_symbol == :D
+            element.z_n = 1
+            element.a = 2
+            ion.label = String(ion_symbol)
+            return ion
+        elseif ion_symbol == :T
+            element.z_n = 1
+            element.a = 3
+            ion.label = String(ion_symbol)
+            return ion
+        elseif ion_symbol ∈ [:DT, :TD]
+            element.z_n = 1
+            element.a = 2.5
+            ion.label = String(ion_symbol)
+            return ion
+        end
+        element_ion = elements[ion_symbol]
+    elseif !ismissing(ion_name)
+        element_ion = elements[ion_name]
     else
-        error("Element $species is not recognized. Add it to the `IMAS.ion_element()` function.")
+        error("Specify either ion_z, ion_symbol or ion_name")
     end
-    ion.label = String(species)
+    element.z_n = element_ion.number
+    element.a = element_ion.atomic_mass.val # This sets the atomic mass to the average isotope mass with respect to the abundence of that isotope i.e Neon: 20.179
+    ion.label = String(element_ion.symbol)
     return ion
 end
 
@@ -806,15 +1057,19 @@ end
         name::String,
         rho::Union{AbstractVector,AbstractRange},
         volume::Union{AbstractVector,AbstractRange};
-        qe::Union{AbstractVector,Missing} = missing,
-        qi::Union{AbstractVector,Missing} = missing,
-        se::Union{AbstractVector,Missing} = missing,
-        jpar::Union{AbstractVector,Missing} = missing,
-        momentum::Union{AbstractVector,Missing} = missing)
+        electrons_energy::Union{AbstractVector,Missing}=missing,
+        electrons_power_inside::Union{AbstractVector,Missing}=missing,
+        total_ion_energy::Union{AbstractVector,Missing}=missing,
+        total_ion_power_inside::Union{AbstractVector,Missing}=missing,
+        electrons_particles::Union{AbstractVector,Missing}=missing,
+        electrons_particles_inside::Union{AbstractVector,Missing}=missing,
+        j_parallel::Union{AbstractVector,Missing}=missing,
+        current_parallel_inside::Union{AbstractVector,Missing}=missing,
+        momentum_tor::Union{AbstractVector,Missing}=missing,
+        torque_tor_inside::Union{AbstractVector,Missing}=missing
+    )
 
 Populates the IMAS.core_sources__source with given heating, particle, current, momentun profiles
-
-
 """
 function new_source(
     source::IMAS.core_sources__source,
@@ -822,16 +1077,17 @@ function new_source(
     name::String,
     rho::Union{AbstractVector,AbstractRange},
     volume::Union{AbstractVector,AbstractRange};
-    electrons_energy::Union{AbstractVector,Missing} = missing,
-    electrons_power_inside::Union{AbstractVector,Missing} = missing,
-    total_ion_energy::Union{AbstractVector,Missing} = missing,
-    total_ion_power_inside::Union{AbstractVector,Missing} = missing,
-    electrons_particles::Union{AbstractVector,Missing} = missing,
-    electrons_particles_inside::Union{AbstractVector,Missing} = missing,
-    j_parallel::Union{AbstractVector,Missing} = missing,
-    current_parallel_inside::Union{AbstractVector,Missing} = missing,
-    momentum_tor::Union{AbstractVector,Missing} = missing,
-    torque_tor_inside::Union{AbstractVector,Missing} = missing)
+    electrons_energy::Union{AbstractVector,Missing}=missing,
+    electrons_power_inside::Union{AbstractVector,Missing}=missing,
+    total_ion_energy::Union{AbstractVector,Missing}=missing,
+    total_ion_power_inside::Union{AbstractVector,Missing}=missing,
+    electrons_particles::Union{AbstractVector,Missing}=missing,
+    electrons_particles_inside::Union{AbstractVector,Missing}=missing,
+    j_parallel::Union{AbstractVector,Missing}=missing,
+    current_parallel_inside::Union{AbstractVector,Missing}=missing,
+    momentum_tor::Union{AbstractVector,Missing}=missing,
+    torque_tor_inside::Union{AbstractVector,Missing}=missing,
+)
 
     source.identifier.name = name
     source.identifier.index = index
@@ -841,57 +1097,58 @@ function new_source(
     cs1d.grid.volume = volume
 
     if electrons_energy !== missing
-        cs1d.electrons.energy = IMAS.interp(LinRange(0, 1, length(electrons_energy)), electrons_energy)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.energy = interp1d(LinRange(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
     end
     if electrons_power_inside !== missing
-        cs1d.electrons.power_inside = IMAS.interp(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.power_inside = interp1d(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if total_ion_energy !== missing
-        cs1d.total_ion_energy = IMAS.interp(LinRange(0, 1, length(total_ion_energy)), total_ion_energy)(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_energy = interp1d(LinRange(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
     end
     if total_ion_power_inside !== missing
-        cs1d.total_ion_power_inside = IMAS.interp(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_power_inside = interp1d(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if electrons_particles !== missing
-        cs1d.electrons.particles = IMAS.interp(LinRange(0, 1, length(electrons_particles)), electrons_particles)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles = interp1d(LinRange(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
     end
     if electrons_particles_inside !== missing
-        cs1d.electrons.particles_inside = IMAS.interp(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles_inside = interp1d(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if j_parallel !== missing
-        cs1d.j_parallel = IMAS.interp(LinRange(0, 1, length(j_parallel)), j_parallel)(cs1d.grid.rho_tor_norm)
+        cs1d.j_parallel = interp1d(LinRange(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
     end
     if current_parallel_inside !== missing
-        cs1d.current_parallel_inside = IMAS.interp(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.current_parallel_inside = interp1d(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if momentum_tor !== missing
-        cs1d.momentum_tor = IMAS.interp(LinRange(0, 1, length(momentum_tor)), momentum_tor)(cs1d.grid.rho_tor_norm)
+        cs1d.momentum_tor = interp1d(LinRange(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
     end
     if torque_tor_inside !== missing
-        cs1d.torque_tor_inside = IMAS.interp(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside)(cs1d.grid.rho_tor_norm)
+        cs1d.torque_tor_inside = interp1d(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
     end
 
     return source
 end
 
 """
-    sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+    sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
 
 Compute a low-accuracy but fast approximation to the ion heating fraction (for alpha particles and beam particles).
 """
-function sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMAS.core_profiles__profiles_1d)
+function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density
     rho = cp1d.grid.rho_tor_norm
 
     particle_mass = particle_mass * constants.m_p
 
-    c_a = zeros(length(rho))
-    W_crit = similar(rho)
+    tp = typeof(promote(Te[1], ne[1], rho[1])[1])
+    c_a = zeros(tp, length(rho))
+    W_crit = similar(c_a)
     ion_elec_fraction = similar(W_crit)
     for ion in cp1d.ion
         ni = ion.density
@@ -912,65 +1169,944 @@ function sivukhin_fraction(particle_energy::Real, particle_mass::Real, cp1d::IMA
     return ion_elec_fraction
 end
 
+function spitzer_conductivity(ne, Te, Zeff)
+    return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e(ne, Te))
+end
+
+function collision_frequencies(dd::IMAS.dd)
+    # from TGYRO `collision_rates` subroutine
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    Te = cp1d.electrons.temperature # ev
+    ne = cp1d.electrons.density / 1E6 # cm^-3
+    me = constants.m_e * 1E3 # g
+    mp = constants.m_p * 1E3 # g
+    e = 4.8032e-10 # statcoul
+    k = 1.6022e-12 # erg/eV
+
+    loglam = 24.0 .- log.(sqrt.(ne) ./ Te)
+
+    # 1/tau_ee (Belli 2008) in 1/s
+    nue = sqrt(2) .* pi .* ne * e^4.0 .* loglam ./ (sqrt(me) * (k * Te) .^ 1.5)
+
+    # 1/tau_ii (Belli 2008) in 1/s
+    nui = zeros(length(Te))
+    for ion in cp1d.ion
+        Ti = ion.temperature
+        ni = ion.density / 1E6
+        Zi = ion.element[1].z_n
+        mi = ion.element[1].a * mp
+        nui += sqrt(2) .* pi .* ni .* Zi .* e^4.0 .* loglam ./ (sqrt.(mi) .* (k .* Ti) .^ 1.5)
+    end
+
+    # c_exch = 1.8e-19 is the formulary exch. coefficient
+    c_exch = 2.0 * (4.0 / 3) * sqrt(2.0 * pi) * e^4 / k^1.5
+
+    # nu_exch in 1/s
+    nu_exch = zeros(length(Te))
+    for ion in cp1d.ion
+        Ti = ion.temperature
+        ni = ion.density / 1E6
+        Zi = ion.element[1].z_n
+        mi = ion.element[1].a * mp
+        nu_exch .+= c_exch .* sqrt(me * mi) * Zi^2 .* ni .* loglam ./ (me .* Ti .+ mi .* Te) .^ 1.5
+    end
+
+    return nue, nui, nu_exch
+end
+
+function Sauter_neo2021_bootstrap(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    return Sauter_neo2021_bootstrap(eqt, cp1d)
+end
+
+function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    rho = cp1d.grid.rho_tor_norm
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+
+    Te = cp1d.electrons.temperature
+    Ti = cp1d.ion[1].temperature
+    pressure_thermal = cp1d.pressure_thermal
+    R_pe = cp1d.electrons.pressure ./ pressure_thermal
+    Zeff = cp1d.zeff
+
+    psi_cp = cp1d.grid.psi ./ 2pi
+    dP_dpsi = gradient(psi_cp, pressure_thermal)
+    dTi_dpsi = gradient(psi_cp, Ti)
+    dTe_dpsi = gradient(psi_cp, Te)
+
+    fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
+    I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
+
+    nue = nuestar(eqt, cp1d)
+    nui = nuistar(eqt, cp1d)
+
+    # neo 2021
+    f31teff =
+        fT ./ (
+            1 .+ (0.67 .* (1 .- 0.7 .* fT) .* sqrt.(nue)) ./ (0.56 .+ 0.44 .* Zeff) .+
+            (0.52 .+ 0.086 .* sqrt.(nue)) .* (1 .+ 0.87 .* fT) .* nue ./ (1 .+ 1.13 .* (Zeff .- 1) .^ 0.5)
+        )
+    X = f31teff
+    F31 = (
+        (1 .+ 0.15 ./ (Zeff .^ 1.2 .- 0.71)) .* X .- 0.22 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 2 .+ 0.01 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 3 .+
+        0.06 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 4
+    )
+
+    f32eeteff =
+        fT ./ (
+            1 .+ (0.23 .* (1 .- 0.96 .* fT) .* sqrt.(nue)) ./ Zeff .^ 0.5 .+
+            (0.13 .* (1 .- 0.38 .* fT) .* nue ./ Zeff .^ 2) .*
+            (sqrt.(1 .+ 2 .* (Zeff .- 1) .^ 0.5) .+ fT .^ 2 .* sqrt.((0.075 .+ 0.25 .* (Zeff .- 1) .^ 2) .* nue))
+        )
+
+    X = f32eeteff
+    F32ee = (0.1 .+ 0.6 .* Zeff) ./ (Zeff .* (0.77 .+ 0.63 .* (1 .+ (Zeff .- 1) .^ 1.1))) .* (X .- X .^ 4)
+    (.+0.7 ./ (1 .+ 0.2 .* Zeff) .* (X .^ 2 .- X .^ 4 .- 1.2 .* (X .^ 3 .- X .^ 4)) .+ 1.3 ./ (1 .+ 0.5 .* Zeff) .* X .^ 4)
+
+    f32eiteff =
+        fT ./
+        (1 .+ ((0.87 .* (1 .+ 0.39 .* fT) .* sqrt.(nue)) ./ (1 .+ 2.95 .* (Zeff .- 1) .^ 2)) .+ 1.53 .* (1 .- 0.37 .* fT) .* nue .* (2 .+ 0.375 .* (Zeff .- 1)))
+
+    Y = f32eiteff
+
+    F32ei = (
+        .-(0.4 .+ 1.93 .* Zeff) ./ (Zeff .* (0.8 .+ 0.6 .* Zeff)) .* (Y .- Y .^ 4) .+
+        5.5 ./ (1.5 .+ 2 .* Zeff) .* (Y .^ 2 .- Y .^ 4 .- 0.8 .* (Y .^ 3 .- Y .^ 4)) .- 1.3 ./ (1 .+ 0.5 .* Zeff) .* Y .^ 4
+    )
+
+    L_32 = F32ee .+ F32ei
+
+    f34teff = fT ./ ((1 .+ 0.25 .* (1 .- 0.7 .* fT) .* sqrt.(nue) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5)) .+ (0.61 .* (1 .- 0.41 .* fT) .* nue) ./ (Zeff .^ 0.5))
+
+    X = f34teff
+    L_34 = (
+        (1 .+ 0.15 ./ (Zeff .^ 1.2 .- 0.71)) .* X .- 0.22 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 2 .+ 0.01 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 3 .+
+        0.06 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 4
+    )
+    alpha0 = (.-(0.62 .+ 0.055 .* (Zeff .- 1)) ./ (0.53 .+ 0.17 .* (Zeff .- 1)) .* (1 .- fT) ./ (1 .- (0.31 .- 0.065 .* (Zeff .- 1)) .* fT .- 0.25 .* fT .^ 2))
+    alpha =
+        ((alpha0 .+ 0.7 .* Zeff .* fT .^ 0.5 .* sqrt.(nui)) ./ (1 .+ 0.18 .* sqrt.(nui)) .- 0.002 .* nui .^ 2 .* fT .^ 6) .*
+        (1 ./ (1 .+ 0.004 .* nui .^ 2 .* fT .^ 6))
+
+    bra1 = F31 .* dP_dpsi ./ cp1d.electrons.pressure
+    bra2 = L_32 .* dTe_dpsi ./ Te
+    bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* dTi_dpsi ./ Ti
+
+    equilibrium = top_ids(eqt)
+    B0 = get_time_array(equilibrium.vacuum_toroidal_field, :b0, eqt.time)
+    j_boot = -I_psi .* cp1d.electrons.pressure .* (bra1 .+ bra2 .+ bra3) ./ B0
+
+    j_boot = abs.(j_boot) .* sign(eqt.global_quantities.ip)
+    return j_boot
+end
+
+function collisionless_bootstrap_coefficient(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    collisionless_bootstrap_coefficient(eqt, cp1d)
+end
+
 """
-    nclass_conductivity!(dd::IMAS.dd)
+    collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Returns the collisional bootstrap coefficient Cbs defines as `jbootfract = Cbs * sqrt(ϵ) * βp`
+See: Gi et al., Fus. Eng. Design 89 2709 (2014)
+See: Wilson et al., Nucl. Fusion 32 257 (1992)
+"""
+function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    βp = eqt.global_quantities.beta_pol
+    ϵ = eqt.boundary.minor_radius / eqt.boundary.geometric_axis.r
+    jbootfract = IMAS.integrate(cp1d.grid.area, cp1d.j_bootstrap) / eqt.global_quantities.ip
+    jbootfract / (sqrt(ϵ) * βp)
+end
+
+function nuestar(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    return nuestar(eqt, cp1d)
+end
+
+function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    rho = cp1d.grid.rho_tor_norm
+    Te = cp1d.electrons.temperature
+    ne = cp1d.electrons.density
+    Zeff = cp1d.zeff
+
+    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
+    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+    a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
+
+    eps = a ./ R
+
+    q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
+
+    return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
+end
+
+function nuistar(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    return nuistar(eqt, cp1d)
+end
+
+function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    rho = cp1d.grid.rho_tor_norm
+    Zeff = cp1d.zeff
+
+    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
+    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+    a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
+
+    eps = a ./ R
+
+    q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
+    ne = cp1d.electrons.density
+    ni = sum([ion.density for ion in cp1d.ion])
+    Ti = cp1d.ion[1].temperature
+
+    Zavg = ne ./ ni
+
+    return 4.90e-18 .* abs.(q) .* R .* ni .* Zeff .^ 4 .* lnLambda_i(ni, Ti, Zavg) ./ (Ti .^ 2 .* eps .^ 1.5)
+end
+
+function lnLambda_e(ne, Te)
+    return 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
+end
+
+function lnLambda_i(ni, Ti, Zavg)
+    return 30.0 .- log.(Zavg .^ 3 .* sqrt.(ni) ./ (Ti .^ 1.5))
+end
+
+function nclass_conductivity(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    cp1d = dd.core_profiles.profiles_1d[]
+    return nclass_conductivity(eqt, cp1d)
+end
+
+"""
+    nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
 More info see omfit_classes.utils_fusion.py nclass_conductivity function
 """
-function nclass_conductivity!(dd::IMAS.dd; time::AbstractFloat = dd.global_time)
-    eqt = dd.equilibrium.time_slice[time]
-    cp1d = dd.core_profiles.profiles_1d[time]
-
+function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density
-    Ti = cp1d.ion[1].temperature
     Zeff = cp1d.zeff
 
-    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
-    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+    trapped_fraction = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
 
-    eps = a ./ R
-
-    volume = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume)(rho)
-    q = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)(rho)
-    trapped_fraction = IMAS.interp(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction)(rho)
-
-    nis = [ion.density for ion in cp1d.ion]
-    zis = [ion.element[1].z_n for ion in cp1d.ion]
-    ni = sum(nis)
-    Nis = zeros(length(nis))
-    for (idx, ion_density) in enumerate(nis)
-        Nis[idx] = integrate(volume, ion_density)
-    end
-
-    Zdom = zis[argmax(Nis)]
-
-    Zavg = ne ./ ni
-    Zion = (Zdom .^ 2 .* Zavg .* Zeff) .^ 0.25
-
-    Zions = [(Zi .^ 2 .* Zavg .* Zeff) .^ 0.25 for Zi in zis]
-    Zions_avg = sum(Zions) / length(Zions)
-
-    Zi_use_L = Zavg
-    Zi_use_C = Zion
-
-    lnLambda_i = 30.0 .- log.(Zi_use_L .^ 3 .* sqrt.(ni) ./ (Ti .^ 1.5))
-    lnLambda_e = 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
-
-    nuestar = 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e ./ (Te .^ 2 .* eps .^ 1.5)
-    nuistar = 4.90e-18 .* abs.(q) .* R .* ni .* Zi_use_C .^ 4 .* lnLambda_i ./ (Ti .^ 2 .* eps .^ 1.5)
-
-    function spitzer_conductivity(Te, Zeff, lnLambda_e)
-        return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e)
-    end
+    nue = nuestar(eqt, cp1d)
 
     # neo 2021
-    f33teff = trapped_fraction ./ (1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nuestar) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+ 0.61 .* (1 .- 0.41 .* trapped_fraction) .* nuestar ./ Zeff .^ 0.5)
+    f33teff =
+        trapped_fraction ./ (
+            1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nue) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+
+            0.61 .* (1 .- 0.41 .* trapped_fraction) .* nue ./ Zeff .^ 0.5
+        )
+
     F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
 
-    cp1d.conductivity_parallel = spitzer_conductivity(Te, Zeff, lnLambda_e) .* F33
+    conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
 
-    return cp1d.conductivity_parallel
+    return conductivity_parallel
+end
+
+"""
+    j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+"""
+function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
+    I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
+    return I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+end
+
+"""
+    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Sets j_ohmic as expression in core_profiles that evaluates to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+"""
+function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d)
+    empty!(cp1d, :j_total) # restore total as expression, to make things self-consistent
+    return nothing
+end
+
+"""
+    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Sets j_total as expression in core_profiles that evaluates to the total parallel current in the equilibrirum
+"""
+function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(cp1d.grid.rho_tor_norm)
+    empty!(cp1d, :j_ohmic) # restore ohmic as expression, to make things self-consistent
+    return nothing
+end
+
+"""
+    alpha_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Volumetric heating source of α particles coming from DT reaction [W m⁻³]
+Based on Table VII of H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
+"""
+function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
+    fast_helium_energy = 3.5e6 * 1.6022e-12 * 1e-7  # Joules
+
+    c1 = 1.17302e-9
+    c2 = 1.51361e-2
+    c3 = 7.51886e-2
+    c4 = 4.60643e-3
+    c5 = 1.3500e-2
+    c6 = -1.06750e-4
+    c7 = 1.36600e-5
+    bg = 34.3827
+    er = 1.124656e6
+
+    # Find the right D-T density
+    ion_list = [ion.label for ion in cp1d.ion]
+    if "D" in ion_list && "T" in ion_list && length(findall(ion -> isequal(ion, "T"), ion_list)) < 2
+        D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
+        n_deuterium = cp1d.ion[D_index].density
+        T_index = findfirst(ion -> isequal(ion, "T"), ion_list)
+        n_tritium = cp1d.ion[T_index].density
+        Ti = (cp1d.ion[D_index].temperature + cp1d.ion[T_index].temperature) ./ 2.0 .* 1e-3 # keV
+    elseif "DT" in ion_list
+        DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
+        n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
+        Ti = cp1d.ion[DT_index].temperature .* 1e-3 # keV
+    else
+        return cp1d.electrons.density .* 0.0
+    end
+
+    r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
+    theta = Ti ./ (1.0 .- r0)
+    xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
+    sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
+
+    reactivity = sigv / 1e6  # m^3/s
+
+    return n_deuterium .* n_tritium .* reactivity .* fast_helium_energy  # J/m^3/s = W/m^3
+end
+
+"""
+    alpha_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Total power in α particles [W]
+"""
+function alpha_power(cp1d::IMAS.core_profiles__profiles_1d)
+    return integrate(cp1d.grid.volume, alpha_heating(cp1d))
+end
+
+
+"""
+    fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Total fusion power [W]
+"""
+function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+    return alpha_power(cp1d) * 5
+end
+
+"""
+    DT_fusion_source!(dd::IMAS.dd)
+
+Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons, modifies dd.core_sources
+"""
+function DT_fusion_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    α = alpha_heating(cp1d)
+    if sum(α) == 0
+        deleteat!(dd.core_sources.source, "identifier.index" => 6)
+        return dd
+    end
+    ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
+
+    source = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
+    new_source(
+        source,
+        6,
+        "α",
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume;
+        electrons_energy=α .* (1 .- ion_electron_fraction),
+        total_ion_energy=α .* ion_electron_fraction,
+    )
+    @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
+
+    return dd
+end
+
+"""
+    collisional_exchange_source!(dd::IMAS.dd)
+
+Calculates collisional exchange source and modifies dd.core_sources
+"""
+function collisional_exchange_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    ne = cp1d.electrons.density
+    Te = cp1d.electrons.temperature
+    Ti = cp1d.ion[1].temperature
+
+    if all(Te .≈ Ti)
+        deleteat!(dd.core_sources.source, "identifier.index" => 11)
+    else
+        nu_exch = collision_frequencies(dd)[3]
+        delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
+        source = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
+        new_source(source, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+    end
+
+    return dd
+end
+
+"""
+    bremsstrahlung_source!(dd::IMAS.dd)
+
+Calculates Bremsstrahlung radiation source and modifies dd.core_sources
+"""
+function bremsstrahlung_source!(dd::IMAS.dd)
+    # Plasma estimated at ellipsoid torus for volume contribution (triangularity is small correction)
+    cp1d = dd.core_profiles.profiles_1d[]
+    ne = cp1d.electrons.density
+    Te = cp1d.electrons.temperature
+
+    # Bremsstrahlung radiation
+    powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
+    source = resize!(dd.core_sources.source, "identifier.index" => 8)
+    new_source(source, 8, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
+    return dd
+end
+
+"""
+    ohmic_source!(dd::IMAS.dd)
+
+Calculates the ohmic source and modifies dd.core_sources
+"""
+function ohmic_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    powerDensityOhm = cp1d.j_ohmic .^ 2 ./ cp1d.conductivity_parallel
+    source = resize!(dd.core_sources.source, "identifier.index" => 7)
+    new_source(source, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
+    return dd
+end
+
+"""
+    bootstrap_source!(dd::IMAS.dd)
+
+Calculates the bootsrap current source and modifies dd.core_sources
+"""
+function bootstrap_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    source = resize!(dd.core_sources.source, "identifier.index" => 13)
+    new_source(source, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=cp1d.j_bootstrap)
+    return dd
+end
+
+"""
+    sources!(dd::IMAS.dd)
+
+Calculates the plasma sources and sinks and adds them to dd.core_sources
+"""
+function sources!(dd)
+    IMAS.ohmic_source!(dd)
+    IMAS.bootstrap_source!(dd)
+    IMAS.collisional_exchange_source!(dd)
+    IMAS.bremsstrahlung_source!(dd)
+    IMAS.DT_fusion_source!(dd)
+end
+
+
+"""
+    total_power_source(source::IMAS.core_sources__source___profiles_1d)
+
+Returns the total power (electron + ion) for a single source
+"""
+function total_power_source(source::IMAS.core_sources__source___profiles_1d)
+    return getproperty(source.electrons, :power_inside, [0.0])[end] + getproperty(source, :total_ion_power_inside, [0.0])[end]
+end
+
+"""
+    total_power_time(core_sources::IMAS.core_sources, include_indexes::Vector{<:Integer})
+
+Returns tuple of vectors with the total thermal power and time_array for given set of sources selected by identifier.index
+"""
+function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vector{<:Integer})
+    sources = []
+    for index in include_indexes
+        append!(sources, findall(core_sources.source, "identifier.index" => index))
+    end
+    time_array = core_sources.time
+    total_power = zeros(length(time_array))
+    for source in sources
+        total_power .+= [total_power_source(source.profiles_1d[t]) for t in time_array]
+    end
+    return total_power, time_array
+end
+
+function total_sources(dd)
+    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
+end
+
+"""
+    total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
+
+Returns core_sources__source___profiles_1d with sources totals and possiblity to explicitly include/exclude certain sources based on their unique index identifier.
+"""
+function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
+    total_source1d = IMAS.core_sources__source___profiles_1d()
+    total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
+    if !ismissing(cp1d.grid, :volume)
+        total_source1d.grid.volume = cp1d.grid.volume
+    end
+    if !ismissing(cp1d.grid, :area)
+        total_source1d.grid.area = cp1d.grid.area
+    end
+    total_source1d.time = cp1d.time
+
+    all_indexes = [source.identifier.index for source in core_sources.source]
+
+    for source in core_sources.source
+        if include_indexes !== missing && source.identifier.index ∈ include_indexes
+            # pass
+        elseif include_indexes !== missing
+            continue
+        end
+
+        if source.identifier.index in [0]
+            @warn "total_sources() skipping unspecified source with index $(source.identifier.index)"
+            continue
+        elseif 107 >= source.identifier.index >= 100
+            @warn "total_sources() skipping combination source with index $(source.identifier.index)"
+            continue
+        elseif (source.identifier.index) in [1] && any(all_indexes .> 1)
+            @warn "total_sources() skipping total source with index $(source.identifier.index)"
+            continue
+        elseif (source.identifier.index) in [200] && any(300 > all_indexes > 200)
+            @warn "total_sources() skipping total radiation source with index $(source.identifier.index)"
+            continue
+        elseif exclude_indexes !== missing && source.identifier.index ∈ exclude_indexes
+            continue
+        end
+        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
+
+        if isempty(source.profiles_1d)
+            continue
+        end
+        @debug "total_sources() including $source_name source with index $(source.identifier.index)"
+        source1d = source.profiles_1d[Float64(cp1d.time)]
+        for sub in [nothing, :electrons]
+            ids1 = total_source1d
+            ids2 = source1d
+            if sub !== nothing
+                ids1 = getproperty(ids1, sub)
+                ids2 = getproperty(ids2, sub)
+            end
+            for field in keys(ids1)
+                initialized = false
+                if !ismissing(ids2, field)
+                    y = getproperty(ids2, field)
+                    if typeof(y) <: AbstractVector{<:Real}
+                        if typeof(getfield(ids1, field)) <: Union{Missing,Function}
+                            setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
+                            initialized = true
+                        end
+                        old_value = getproperty(ids1, field)
+                        x = source1d.grid.rho_tor_norm
+                        setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
+                    end
+                end
+            end
+        end
+    end
+
+    # assign zeros to missing fields of total_sources
+    for sub in [nothing, :electrons]
+        ids1 = total_source1d
+        if sub !== nothing
+            ids1 = getproperty(ids1, sub)
+        end
+        for field in keys(ids1)
+            if ismissing(ids1, field)
+                setproperty!(ids1, field, zeros(size(rho)))
+            end
+        end
+    end
+
+    return total_source1d
+end
+
+"""
+    area(coil::IMAS.pf_active__coil)
+
+returns cross sectional area of PF coils
+"""
+function area(coil::IMAS.pf_active__coil)
+    return coil.element[1].geometry.rectangle.width * coil.element[1].geometry.rectangle.height
+end
+
+"""
+    volume(coil::IMAS.pf_active__coil)
+
+returns volume of PF coils
+"""
+function volume(coil::IMAS.pf_active__coil)
+    return area(coil) * 2pi * coil.element[1].geometry.rectangle.r
+end
+
+function energy_thermal(dd::IMAS.dd)
+    return energy_thermal(dd.core_profiles.profiles_1d[])
+end
+
+function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+    return 3 / 2 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
+end
+
+function ne_vol_avg(dd::IMAS.dd)
+    return ne_vol_avg(dd.core_profiles.profiles_1d[])
+end
+
+function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
+    return integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
+end
+
+function tau_e_thermal(dd::IMAS.dd)
+    return tau_e_thermal(dd.core_profiles.profiles_1d[], dd.core_sources)
+end
+
+"""
+    radiation_losses(sources::IMAS.core_sources)
+
+Evaluate total plasma radiation losses [W] due to both bremsstrahlung and line radiation
+Synchlotron radation is not considered since it gets reabsorbed
+"""
+function radiation_losses(sources::IMAS.core_sources)
+    radiation_indices = [8, 10] # [brehm, line]
+    radiation_energy = 0.0
+    for source in sources.source
+        if source.identifier.index ∈ radiation_indices
+            radiation_energy += source.profiles_1d[].electrons.power_inside[end]
+        end
+    end
+    return radiation_energy
+end
+
+"""
+    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+
+Evaluate thermal energy confinement time
+"""
+function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+    # power losses due to radiation shouldn't be subtracted from tau_e_thermal
+    total_source = IMAS.total_sources(sources, cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
+    return energy_thermal(cp1d) / (total_power_inside - radiation_losses(sources))
+end
+
+"""
+    tau_e_h98(dd::IMAS.dd; time=dd.global_time)
+
+H98y2 ITER elmy H-mode confinement time scaling
+"""
+function tau_e_h98(dd::IMAS.dd; time=dd.global_time)
+    eqt = dd.equilibrium.time_slice[Float64(time)]
+    cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+
+    total_source = IMAS.total_sources(dd.core_sources, cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
+    isotope_factor =
+        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1]))
+
+    tau98 = (
+        0.0562 *
+        abs(eqt.global_quantities.ip / 1e6)^0.93 *
+        abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time))^0.15 *
+        (total_power_inside / 1e6)^-0.69 *
+        (ne_vol_avg(cp1d) / 1e19)^0.41 *
+        isotope_factor^0.19 *
+        dd.equilibrium.vacuum_toroidal_field.r0^1.97 *
+        (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius)^-0.58 *
+        eqt.boundary.elongation^0.78
+    )
+    return tau98
+end
+
+"""
+    tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
+
+Petty's 2003 confinement time scaling
+"""
+function tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
+    eqt = dd.equilibrium.time_slice[Float64(time)]
+    cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+
+    total_source = IMAS.total_sources(dd.core_sources, cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
+    isotope_factor =
+        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1]))
+
+    tauds03 = (
+        0.028 *
+        abs(eqt.global_quantities.ip / 1e6)^0.83 *
+        abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time))^0.07 *
+        (total_power_inside / 1e6)^-0.55 *
+        (ne_vol_avg(cp1d) / 1e19)^0.49 *
+        isotope_factor^0.14 *
+        dd.equilibrium.vacuum_toroidal_field.r0^2.11 *
+        (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius)^-0.30 *
+        eqt.boundary.elongation^0.75
+    )
+
+    return tauds03
+end
+
+"""
+    JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap, eqt::IMAS.equilibrium__time_slice)
+
+Given <Jt/R> returns <J⋅B>
+Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))
+Includes_bootstrap set to true if input current includes bootstrap
+NOTE: Jtor ≂̸ JtoR
+JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+NOTE: Jpar ≂̸ JparB
+JparB = Jpar * B0
+"""
+function JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5).(rho_tor_norm)
+    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm)
+    f = interp1d(rho_eq, eqt.profiles_1d.f).(rho_tor_norm)
+    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi).(rho_tor_norm)
+    if includes_bootstrap
+        # diamagnetic term to get included with bootstrap currrent
+        JtoR_dia = dpdpsi .* (1.0 .- fsa_invR2 .* f .^ 2 ./ fsa_B2) .* 2pi
+        return fsa_B2 .* (JtoR .+ JtoR_dia) ./ (f .* fsa_invR2)
+    else
+        return fsa_B2 * JtoR / (f * fsa_invR2)
+    end
+end
+
+"""
+    JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt::IMAS.equilibrium__time_slice)
+
+Given <J⋅B> returns <Jt/R>
+Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))
+Includes_bootstrap set to true if input current includes bootstrap
+NOTE: Jtor ≂̸ JtoR
+JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+NOTE: Jpar ≂̸ JparB
+JparB = Jpar * B0
+"""
+function JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5).(rho_tor_norm)
+    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm)
+    f = interp1d(rho_eq, eqt.profiles_1d.f).(rho_tor_norm)
+    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi).(rho_tor_norm)
+    if includes_bootstrap
+        # diamagnetic term to get included with bootstrap currrent
+        JtoR_dia = dpdpsi .* (1.0 .- fsa_invR2 .* f .^ 2 ./ fsa_B2) .* 2pi
+        return f .* fsa_invR2 .* JparB ./ fsa_B2 .- JtoR_dia
+    else
+        return f .* fsa_invR2 .* JparB ./ fsa_B2
+    end
+end
+
+function Jpar_2_Jtor(rho_tor_norm, Jpar, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+    eq = top_ids(eqt)
+    B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
+    JparB = Jpar .* B0
+    JtoR = JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt)
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    Jtor = JtoR ./ interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
+    return Jtor
+end
+
+function Jtor_2_Jpar(rho_tor_norm, Jtor, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    JtoR = Jtor .* interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
+    JparB = JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap, eqt)
+    eq = top_ids(eqt)
+    B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
+    Jpar = JparB ./ B0
+    return Jpar
+end
+
+"""
+    centroid(x::Vector{<:Real}, y::Vector{<:Real})
+
+Calculate centroid of polygon
+"""
+function centroid(x::Vector{<:Real}, y::Vector{<:Real})
+    dy = diff(y)
+    dx = diff(x)
+    x0 = (x[2:end] .+ x[1:end-1]) .* 0.5
+    y0 = (y[2:end] .+ y[1:end-1]) .* 0.5
+    A = sum(dy .* x0)
+    x_c = -sum(dx .* y0 .* x0) ./ A
+    y_c = sum(dy .* x0 .* y0) ./ A
+    return x_c, y_c
+end
+
+"""
+    area(x::Vector{<:Real}, y::Vector{<:Real})
+
+Calculate area of polygon
+"""
+function area(x::Vector{<:Real}, y::Vector{<:Real})
+    x1 = x[1:end-1]
+    x2 = x[2:end]
+    y1 = y[1:end-1]
+    y2 = y[2:end]
+    return abs.(sum(x1 .* y2) - sum(y1 .* x2)) ./ 2
+end
+
+"""
+    revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
+
+Calculate volume of polygon revolved around x=0
+"""
+function revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
+    return area(x, y) * 2pi * centroid(x, y)[1]
+end
+
+function func_nested_layers(layer::IMAS.build__layer, func::Function)
+    i = index(layer)
+    layers = parent(layer)
+    # _in_ layers or plasma
+    if layer.fs ∈ [Int(_in_), Int(_lhfs_)]
+        return func(layer)
+        # anular layers
+    elseif layer.fs ∈ [Int(_hfs_), Int(_lfs_)]
+        i = index(layer)
+        if layer.fs == Int(_hfs_)
+            layer_in = layers[i+1]
+        else
+            layer_in = layers[i-1]
+        end
+        return func(layer) - func(layer_in)
+        # _out_ layers
+    elseif layer.fs == Int(_out_)
+        layer_in = layers[i-1]
+        if layer_in.fs == Int(_out_)
+            return func(layer) - func(layer_in)
+        elseif layer_in.fs == Int(_lfs_)
+            func_in = 0.0
+            for l in layers
+                if l.fs == Int(_in_)
+                    func_in += func(l)
+                end
+            end
+            return func(layer) - func(layer_in) - func_in
+        end
+    end
+end
+
+"""
+    area(layer::IMAS.build__layer)
+
+Calculate area of a build layer outline
+"""
+function area(layer::IMAS.build__layer)
+    func_nested_layers(layer, l -> area(l.outline.r, l.outline.z))
+end
+
+"""
+    volume(layer::IMAS.build__layer)
+
+Calculate volume of a build layer outline revolved around z axis
+"""
+function volume(layer::IMAS.build__layer)
+    if layer.type == Int(_tf_)
+        build = parent(parent(layer))
+        return func_nested_layers(layer, l -> area(l.outline.r, l.outline.z)) * build.tf.wedge_thickness * build.tf.coils_n
+    else
+        return func_nested_layers(layer, l -> revolution_volume(l.outline.r, l.outline.z))
+    end
+end
+
+"""
+    volume(layer::IMAS.build__structure)
+
+Calculate volume of a build structure outline revolved around z axis
+"""
+function volume(structure::IMAS.build__structure)
+    if structure.toroidal_extent == 2 * pi
+        toroidal_angles = [0.0]
+    else
+        toroidal_angles = structure.toroidal_angles
+    end
+    return area(structure.outline.r, structure.outline.z) * structure.toroidal_extent * length(toroidal_angles)
+end
+
+"""
+    bunit(eqt::IMAS.equilibrium__time_slice)
+
+Calculate bunit from equilibrium
+"""
+function bunit(eqt::IMAS.equilibrium__time_slice)
+    eq1d = eqt.profiles_1d
+    rmin = 0.5 * (eq1d.r_outboard - eq1d.r_inboard)
+    phi = eq1d.phi
+    return gradient(2pi * rmin, phi) ./ rmin
+end
+
+"""
+    first_wall(wall::IMAS.wall)
+
+return outline of first wall
+"""
+function first_wall(wall::IMAS.wall)
+    if (!ismissing(wall.description_2d, [1, :limiter, :unit, 1, :outline, :r])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 5)
+        return wall.description_2d[1].limiter.unit[1].outline
+    else
+        return missing
+    end
+end
+
+"""
+    tf_ripple(r, R_tf::Real, N_tf::Integer)
+
+Evaluate fraction of toroidal magnetic field ripple at `r` [m]
+generated from `N_tf` toroidal field coils with outer leg at `R_tf` [m]
+"""
+function tf_ripple(r, R_tf::Real, N_tf::Integer)
+    eta = (r ./ R_tf) .^ N_tf
+    return eta ./ (1.0 .- eta)
+end
+
+"""
+    R_tf_ripple(r, ripple::Real, N_tf::Integer)
+
+Evaluate location of toroidal field coils outer leg `R_tf`` [m] at which `N_tf`
+toroidal field coils generate a given fraction of toroidal magnetic field ripple at `r` [m]
+"""
+function R_tf_ripple(r, ripple::Real, N_tf::Integer)
+    return r .* (ripple ./ (ripple .+ 1.0)) .^ (-1 / N_tf)
+end
+
+"""
+    greenwald_density(eqt::IMAS.equilibrium__time_slice)
+
+Simple greenwald line-averaged density limit
+"""
+function greenwald_density(eqt::IMAS.equilibrium__time_slice)
+    return (eqt.global_quantities.ip / 1e6) / (pi * eqt.boundary.minor_radius^2) * 1e20
+end
+
+"""
+    geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculates the line averaged density from a midplane horizantal line
+"""
+function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    a_cp = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(cp1d.grid.rho_tor_norm)
+    return integrate(a_cp, cp1d.electrons.density) / a_cp[end]
 end
