@@ -6,6 +6,7 @@ import PolygonOps
 import Optim
 import NumericalIntegration: integrate, cumul_integrate
 import PeriodicTable: elements
+using RecipesBase
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_
 @enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
@@ -601,9 +602,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
 
     ############
     cc = IMAS.cocos(11)
-
     r, z, PSI_interpolant = ψ_interpolant(eqt)
-
     r_wall_midplane, _ = IMAS.intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z; as_list_of_points=false)
     psi_wall_midplane = PSI_interpolant.(r_wall_midplane, Z0)[1]
     psi__axis_level = eqt.profiles_1d.psi[1]
