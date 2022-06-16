@@ -219,21 +219,21 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         end
 
         # geometric
-        a_ = 0.5 * (pr[imaxr] - pr[iminr])
         a = 0.5 * (max_r - min_r)
-        b_ = 0.5 * (pz[imaxz] - pz[iminz])
         b = 0.5 * (max_z - min_z)
-        Rm_ = 0.5 * (pr[imaxr] + pr[iminr])
         Rm = 0.5 * (max_r + min_r)
-        Zm_ = 0.5 * (pz[imaxz] + pz[iminz])
-        Zm = 0.5 * (max_z + min_z)
         eqt.profiles_1d.r_outboard[k] = max_r
         eqt.profiles_1d.r_inboard[k] = min_r
-        eqt.profiles_1d.elongation[k] = κ = b / a
+        eqt.profiles_1d.elongation[k] = b / a
         eqt.profiles_1d.triangularity_upper[k] = (Rm - r_at_max_z) / a
         eqt.profiles_1d.triangularity_lower[k] = (Rm - r_at_min_z) / a
 
-        MXH_amplitudes = miller_extended_harmonic(pr, pz, Rm_, Zm_, a_, b_, 5)
+        # Miller Extended Harmonic representation
+        # a_ = 0.5 * (pr[imaxr] - pr[iminr])
+        # b_ = 0.5 * (pz[imaxz] - pz[iminz])
+        # Rm_ = 0.5 * (pr[imaxr] + pr[iminr])
+        # Zm_ = 0.5 * (pz[imaxz] + pz[iminz])
+        # MXH_amplitudes = miller_extended_harmonic(pr, pz, Rm_, Zm_, a_, b_, 5)
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, pr, pz)
@@ -488,7 +488,9 @@ function flux_surface(
         # if no open/closed check, then return all contours
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
-            reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
+            R0 = 0.5 * (maximum(pr) + minimum(pr))
+            Z0 = 0.5 * (maximum(pz) + minimum(pz))
+            reorder_flux_surface!(pr, pz, R0, Z0)
             push!(prpz, (pr, pz))
         end
         return prpz
@@ -498,7 +500,9 @@ function flux_surface(
             pr, pz = Contour.coordinates(line)
             # pick flux surface that close and contain magnetic axis
             if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) == 1)
-                reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
+                R0 = 0.5 * (maximum(pr) + minimum(pr))
+                Z0 = 0.5 * (maximum(pz) + minimum(pz))
+                reorder_flux_surface!(pr, pz, R0, Z0)
                 return pr, pz, psi_level
             end
         end
@@ -509,7 +513,9 @@ function flux_surface(
             pr, pz = Contour.coordinates(line)
             # pick flux surfaces that close or that do not contain magnetic axis
             if (pr[1] != pr[end]) || (pz[1] != pz[end]) || (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) != 1)
-                reorder_flux_surface!(pr, pz, 0.5 * (maximum(pz) + minimum(pz)))
+                R0 = 0.5 * (maximum(pr) + minimum(pr))
+                Z0 = 0.5 * (maximum(pz) + minimum(pz))
+                reorder_flux_surface!(pr, pz, R0, Z0)
                 push!(prpz, (pr, pz))
             end
         end
@@ -517,9 +523,13 @@ function flux_surface(
     end
 end
 
+"""
+    MXH_moment(f, w, d)
+
+This does Int[f.w]/Int[w.w]
+If w is a pure Fourier mode, this gives the Fourier coefficient
+"""
 function MXH_moment(f, w, d)
-    # This does Int[f.w]/Int[w.w];
-    # If w is a pure Fourier mode, this gives the Fourier coefficient
     # Could probably be replaced by some Julia trapz
     s0 = sum((f[1:end-1] .* w[1:end-1] .+ f[2:end] .* w[2:end]) .* d[1:end-1])
     s1 = sum((w[1:end-1] .* w[1:end-1] .+ w[2:end] .* w[2:end]) .* d[1:end-1])
@@ -527,13 +537,18 @@ function MXH_moment(f, w, d)
 end
 
 """
-    miller_extended_harmonic()
+    miller_extended_harmonic(pr::Vector{T}, pz::Vector{T}, Rm::T, Zm::T, a::T, b::T, MXH_modes::Integer) where {T<:Real}
 
-Compute Fourier coefficients for Miller-extended-harmonic representation
+Compute Fourier coefficients for Miller-extended-harmonic representation:
+
     R(r,θ) = R(r) + a(r)*cos(θᵣ(r,θ)) where θᵣ(r,θ) = θ + C₀(r) + sum[Cᵢ(r)*cos(i*θ) + Sᵢ(r)*sin(i*θ)]
     Z(r,θ) = Z(r) + κ(r)*a(r)*sin(θ)
+
+Where pr,pz are the flux surface coordinates around the Rm,Zm magnetic axis.
+a and b are the minor radius and the major radius of the flux surface ellipse,
+and MXH_modes is the number of modes
 """
-function miller_extended_harmonic(pr, pz, Rm, Zm, a, b, MXH_modes)
+function miller_extended_harmonic(pr::Vector{T}, pz::Vector{T}, Rm::T, Zm::T, a::T, b::T, MXH_modes::Integer) where {T<:Real}
     MXH_amplitudes = zeros(2 * MXH_modes + 1)
     th = 0.0
     th_old = 0.0
@@ -962,7 +977,7 @@ end
 
 Reorder so clockwise and starting from first point
 """
-function reorder_flux_surface!(pr, pz, z0)
+function reorder_flux_surface!(pr, pz, R0, Z0)
     # flip to counterclockwise so θ will increase
     istart = argmax(pr[1:end-1])
     if pz[istart+1] < pz[istart]
@@ -971,11 +986,9 @@ function reorder_flux_surface!(pr, pz, z0)
         istart = length(pr) + 1 - istart
     end
 
-    # start from point above z0 (only if flux surface closes)
+    # start from low-field side point above z0 (only if flux surface closes)
     if (pr[1] == pr[end]) && (pz[1] == pz[end])
-        while pz[istart] < z0
-            istart += 1
-        end
+        istart = argmin(abs.(pz[1:end-1] .- Z0) .+ (pr[1:end-1] .< R0) .+ (pz[1:end-1] .< Z0))
         pr[1:end-1] = circshift(pr[1:end-1], 1 - istart)
         pz[1:end-1] = circshift(pz[1:end-1], 1 - istart)
         pr[end] = pr[1]
