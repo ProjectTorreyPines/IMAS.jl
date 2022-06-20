@@ -1,3 +1,5 @@
+import Interact
+
 mutable struct MXH
     R0::Real          # Major Radius
     Z0::Real          # Elevation
@@ -8,8 +10,8 @@ mutable struct MXH
     s::Vector{<:Real} # Sine coefficients asin.([triangularity,-squareness,...]
 end
 
-function MXH(n_coeffs::Integer)
-    return MXH(0.0, 0.0, 0.0, 0.0, 0.0, zeros(n_coeffs), zeros(n_coeffs))
+function MXH(R0::Real, n_coeffs::Integer)
+    return MXH(R0, 0.0, 0.3, 1.0, 0.0, zeros(n_coeffs), zeros(n_coeffs))
 end
 
 function flat_coeffs(mxh::MXH)
@@ -112,7 +114,7 @@ function MXH(pr::Vector{T}, pz::Vector{T}, R0::T, Z0::T, a::T, b::T, MXH_modes::
 end
 
 function (mxh::MXH)(adaptive_grid_N::Integer=100)
-    step = mxh.R0/adaptive_grid_N
+    step = mxh.R0 / adaptive_grid_N
     a = mxh.ϵ * mxh.R0
     N = Int(ceil(2π * a * mxh.κ / step))
     Θ = LinRange(0, 2π, N)
@@ -121,12 +123,12 @@ end
 
 function (mxh::MXH)(θ::Real)
     a = mxh.ϵ * mxh.R0
-    if length(mxh.c)>0
+    if length(mxh.c) > 0
         c_sum = sum(mxh.c[n] * cos(n * θ) for n in 1:length(mxh.c))
     else
         c_sum = 0.0
     end
-    if length(mxh.s)>0
+    if length(mxh.s) > 0
         s_sum = sum(mxh.s[n] * sin(n * θ) for n in 1:length(mxh.s))
     else
         s_sum = 0.0
@@ -153,4 +155,42 @@ function Base.show(io::IO, mxh::MXH)
     println(io, "c0: $(mxh.c0)")
     println(io, "c: $(mxh.c)")
     println(io, "s: $(mxh.s)")
+end
+
+function boundary_shape(R0::Real; p=nothing)
+    return boundary_shape(MXH(R0,3);p=p)
+end
+
+function boundary_shape(mxh::IMAS.MXH; p=nothing)
+    n = 101
+    Interact.@manipulate for 
+        ϵ in Interact.slider(LinRange(0.0, 1.0, n), value=mxh.ϵ, label="ϵ"),
+        κ in Interact.slider(LinRange(1, 3, n), value=mxh.κ, label="κ"),
+        #tilt in Interact.slider(LinRange(-1,1,n);value=mxh.c0,label="tilt"),
+        #ovality in Interact.slider(LinRange(-1,1,n);value=mxh.c[1],label="ovality"),
+        triangularity in Interact.slider(LinRange(-1, 1, n), value=mxh.s[1], label="δ"),
+        #s_shape in Interact.slider(LinRange(-1,1,n);value=mxh.c[2],label="s1"),
+        #squareness in Interact.slider(LinRange(-1, 1, n), value=-(mxh.s[2] + mxh.s[3]) / 2.0, label="ζ"),
+        squareness in Interact.slider(LinRange(-1, 1, n), value=-mxh.s[2], label="ζ"),
+        #c3 in Interact.slider(LinRange(-1,1,n);value=mxh.c[3],label="s2"),
+        pentagonnes in Interact.slider(LinRange(-1,1,n);value=mxh.s[3],label="⬠")
+
+        mxh.ϵ = ϵ
+        mxh.κ = κ
+        #mxh.c0=tilt
+        #mxh.c[1]=ovality
+        mxh.s[1] = triangularity
+        #mxh.c[2]=s_shape
+        mxh.s[2] = -squareness
+        #mxh.c[3]=c3
+        mxh.s[3] = -pentagonnes
+
+        if p === nothing
+            q = plot()
+        else
+            q = deepcopy(p)
+            plot(q)
+        end
+        plot!(q, mxh, color=:black, linewidth=2)
+    end
 end
