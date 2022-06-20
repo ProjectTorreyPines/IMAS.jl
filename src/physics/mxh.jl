@@ -56,8 +56,6 @@ function MXH(pr::Vector{T}, pz::Vector{T}, MXH_modes::Integer=5) where {T<:Real}
     return MXH(pr, pz, R0, Z0, a, b, MXH_modes)
 end
 
-using Plots
-
 function MXH(pr::Vector{T}, pz::Vector{T}, R0::T, Z0::T, a::T, b::T, MXH_modes::Integer) where {T<:Real}
     L = length(pr)
     θ = zeros(L)
