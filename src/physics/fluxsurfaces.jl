@@ -256,9 +256,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         end
 
         # geometric
+        Rm = 0.5 * (max_r + min_r)
         a = 0.5 * (max_r - min_r)
         b = 0.5 * (max_z - min_z)
-        Rm = 0.5 * (max_r + min_r)
         eqt.profiles_1d.r_outboard[k] = max_r
         eqt.profiles_1d.r_inboard[k] = min_r
         eqt.profiles_1d.elongation[k] = b / a
@@ -266,11 +266,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         eqt.profiles_1d.triangularity_lower[k] = (Rm - r_at_min_z) / a
 
         # Miller Extended Harmonic representation
-        # a_ = 0.5 * (pr[imaxr] - pr[iminr])
-        # b_ = 0.5 * (pz[imaxz] - pz[iminz])
-        # Rm_ = 0.5 * (pr[imaxr] + pr[iminr])
-        # Zm_ = 0.5 * (pz[imaxz] + pz[iminz])
-        # MXH_amplitudes = miller_extended_harmonic(pr, pz, Rm_, Zm_, a_, b_, 5)
+        # mxh = MXH(pr, pz, 5)
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, pr, pz)
