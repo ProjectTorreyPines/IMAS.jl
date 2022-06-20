@@ -91,6 +91,44 @@ function meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVec
 end
 
 """
+    centroid(x::Vector{<:Real}, y::Vector{<:Real})
+
+Calculate centroid of polygon
+"""
+function centroid(x::Vector{<:Real}, y::Vector{<:Real})
+    dy = diff(y)
+    dx = diff(x)
+    x0 = (x[2:end] .+ x[1:end-1]) .* 0.5
+    y0 = (y[2:end] .+ y[1:end-1]) .* 0.5
+    A = sum(dy .* x0)
+    x_c = -sum(dx .* y0 .* x0) ./ A
+    y_c = sum(dy .* x0 .* y0) ./ A
+    return x_c, y_c
+end
+
+"""
+    area(x::Vector{<:Real}, y::Vector{<:Real})
+
+Calculate area of polygon
+"""
+function area(x::Vector{<:Real}, y::Vector{<:Real})
+    x1 = x[1:end-1]
+    x2 = x[2:end]
+    y1 = y[1:end-1]
+    y2 = y[2:end]
+    return abs.(sum(x1 .* y2) - sum(y1 .* x2)) ./ 2
+end
+
+"""
+    revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
+
+Calculate volume of polygon revolved around x=0
+"""
+function revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
+    return area(x, y) * 2pi * centroid(x, y)[1]
+end
+
+"""
     intersection(
         l1_x::AbstractVector{<:Real},
         l1_y::AbstractVector{<:Real},
