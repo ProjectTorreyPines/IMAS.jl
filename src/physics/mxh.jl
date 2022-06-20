@@ -1,5 +1,3 @@
-import Interact
-
 mutable struct MXH
     R0::Real          # Major Radius
     Z0::Real          # Elevation
