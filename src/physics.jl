@@ -6,6 +6,7 @@ import PolygonOps
 import Optim
 import NumericalIntegration: integrate, cumul_integrate
 import PeriodicTable: elements
+import MillerExtendedHarmonic: MXH, flat_coeffs
 using RecipesBase
 
 @enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_
@@ -16,7 +17,6 @@ include("physics/build.jl")
 include("physics/currents.jl")
 include("physics/fluxsurfaces.jl")
 include("physics/misc.jl")
-include("physics/mxh.jl")
 include("physics/neoclassical.jl")
 include("physics/profiles.jl")
 include("physics/sol.jl")
