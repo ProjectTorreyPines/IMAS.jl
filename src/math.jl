@@ -213,19 +213,21 @@ function _seg_intersect(a1, a2, b1, b2)
 end
 
 """
-    resample_2d_line(x, y, step)
+    resample_2d_line(x::Vector{T}, y::Vector{T}; step::Union{Nothing,T}=nothing, npoints=::Union{Nothing,Integer}=nothing)
 
 Resample 2D line with uniform stepping
 """
-function resample_2d_line(x::Vector{T}, y::Vector{T}, step::Union{Nothing,T}=nothing) where {T<:Real}
+function resample_2d_line(x::Vector{T}, y::Vector{T}; step::Union{Nothing,T}=nothing, npoints::Union{Nothing,Integer}=nothing) where {T<:Real}
     s = cumsum(sqrt.(diff(x) .^ 2 + diff(y) .^ 2))
     s = vcat(0.0, s)
-    if step !== nothing
-        n = Integer(ceil(s[end] / step))
-    else
-        n = length(x)
+    if npoints === nothing
+        if step !== nothing
+            npoints = Integer(ceil(s[end] / step))
+        else
+            npoints = length(x)
+        end
     end
-    t = range(s[1], s[end]; length=n)
+    t = range(s[1], s[end]; length=npoints)
     return interp1d(s, x).(t), interp1d(s, y).(t)
 end
 
