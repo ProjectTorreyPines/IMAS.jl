@@ -162,7 +162,7 @@ function intersection(
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
             crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
             if crossing !== nothing
-                push!(indexes, (k1,k2))
+                push!(indexes, (k1, k2))
                 if as_list_of_points
                     push!(crossings, (crossing[1], crossing[2]))
                 else
@@ -275,4 +275,21 @@ function mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_d
         mean_distance_error += (distance - target_distance)^2
     end
     return sqrt(mean_distance_error) / length(R_obj1)
+end
+
+"""
+    curvature(pr::Vector{<:Real}, pz::Vector{<:Real})
+
+Returns curvature of a circular 2D line
+"""
+function curvature(pr::Vector{<:Real}, pz::Vector{<:Real})
+    @assert (pr[1] == pr[end]) & (pz[1] == pz[end]) "curvature: 1st and last point must be the same"
+    dr = diff(vcat(pr[end-1], pr, pr[2]))
+    dz = diff(vcat(pz[end-1], pz, pz[2]))
+    a = sqrt.(dr .^ 2.0 .+ dz .^ 2.0)
+    dr1 = dr[1:end-1] ./ a[1:end-1]
+    dz1 = dz[1:end-1] ./ a[1:end-1]
+    dr2 = dr[2:end] ./ a[2:end]
+    dz2 = dz[2:end] ./ a[2:end]
+    return dr1 .* dz2 .- dr2 .* dz1
 end
