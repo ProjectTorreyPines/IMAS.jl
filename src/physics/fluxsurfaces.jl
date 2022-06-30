@@ -71,7 +71,11 @@ function find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision=1e-6, raise_e
         if length(pr) > 0
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
-                return psimid
+                if any(abs.([(minimum(pr)-minimum(dim1)),(maximum(pr)-maximum(dim1)),(minimum(pz)-minimum(dim2)),(maximum(pz)-maximum(dim2))]).<10*precision)
+                    return psi[end]
+                else
+                    return psimid
+                end
             end
             # open flux surface
         else
