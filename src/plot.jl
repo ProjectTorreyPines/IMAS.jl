@@ -871,15 +871,15 @@ end
 @recipe function plot_field(ids::IMAS.IDS, field::Symbol, norm::Real=1.0)
     coords = coordinates(ids, field)
     @series begin
-        xlabel --> nice_field(i2p(coords[:names][1])[end]) * nice_units(units(coords[:names][1]))
+        xlabel --> nice_field(i2p(coords.names[1])[end]) * nice_units(units(coords.names[1]))
         ylabel --> nice_units(units(ids, field))
         title --> nice_field(field)
 
-        if endswith(coords[:names][1], "rho_tor_norm")
+        if endswith(coords.names[1], "rho_tor_norm")
             xlim --> (0.0, 1.0)
         end
 
-        xvalue = coords[:values][1]
+        xvalue = coords.values[1]
         yvalue = getproperty(ids, field) * norm
 
         # plot 1D Measurements with ribbon
