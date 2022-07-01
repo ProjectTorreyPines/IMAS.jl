@@ -49,6 +49,8 @@ end
 function find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision=1e-6, raise_error_on_not_open)
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
+    dd = sqrt((dim1[2] - dim1[1]) * (dim2[2] - dim2[1]))
+
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[1], true)
     if length(pr) == 0
         error("Flux surface at ψ=$(psirange_init[1]) is not closed")
@@ -71,7 +73,7 @@ function find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision=1e-6, raise_e
         if length(pr) > 0
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
-                if any(abs.([(minimum(pr)-minimum(dim1)),(maximum(pr)-maximum(dim1)),(minimum(pz)-minimum(dim2)),(maximum(pz)-maximum(dim2))]).<10*precision)
+                if any(abs.([(minimum(pr) - minimum(dim1)), (maximum(pr) - maximum(dim1)), (minimum(pz) - minimum(dim2)), (maximum(pz) - maximum(dim2))]) .< 2 * dd)
                     return psi[end]
                 else
                     return psimid
@@ -138,7 +140,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
         Optim.Newton(),
         Optim.Options(g_tol=1E-8);
-        autodiff=:forward,
+        autodiff=:forward
     )
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
@@ -205,7 +207,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
             # trace flux surface
             pr, pz, psi_level =
                 flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, true)
-            if length(pr) == 0
+            if isempty(pr)
                 error("Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
 
