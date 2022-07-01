@@ -3,6 +3,7 @@ __precompile__()
 module IMAS
 
 using Printf
+import BSON
 
 #= ======= =#
 #= IMAS DD =#
@@ -15,6 +16,27 @@ for n in names(IMASDD; all=true)
     end
 end
 import IMASDD: @ddtime, interp1d
+
+#= ========= =#
+#= SAVE/LOAD =#
+#= ========= =#
+"""
+    save(@nospecialize(ids::IDS), filename::AbstractString)
+
+Save IDS data to BSON file
+"""
+function save(@nospecialize(ids::IDS), filename::AbstractString)
+    BSON.bson(filename, Dict(:data=>ids))
+end
+
+"""
+    load(filename::AbstractString)
+
+Load IDS data from BSON file
+"""
+function load(filename::AbstractString)
+    BSON.load(filename, @__MODULE__)[:data]
+end
 
 #= ===== =#
 #= UTILS =#
