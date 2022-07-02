@@ -3,7 +3,7 @@ __precompile__()
 module IMAS
 
 using Printf
-import BSON
+import JLD2
 
 #= ======= =#
 #= IMAS DD =#
@@ -23,19 +23,21 @@ import IMASDD: @ddtime, interp1d
 """
     save(@nospecialize(ids::IDS), filename::AbstractString)
 
-Save IDS data to BSON file
+Save IDS data to file (JLD2 format)
 """
 function save(@nospecialize(ids::IDS), filename::AbstractString)
-    BSON.bson(filename, Dict(:data=>ids))
+    JLD2.jldsave(filename; ids)
 end
 
 """
     load(filename::AbstractString)
 
-Load IDS data from BSON file
+Load IDS data from file (JLD2 format)
 """
 function load(filename::AbstractString)
-    BSON.load(filename, @__MODULE__)[:data]
+    JLD2.jldopen(filename, "r") do file
+        file["ids"]
+    end
 end
 
 #= ===== =#
