@@ -119,7 +119,7 @@ function DT_fusion_source!(dd::IMAS.dd)
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
         electrons_energy=α .* (1 .- ion_electron_fraction),
-        total_ion_energy=α .* ion_electron_fraction,
+        total_ion_energy=α .* ion_electron_fraction
     )
     @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
 
@@ -191,9 +191,12 @@ Calculates the ohmic source and modifies dd.core_sources
 """
 function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    powerDensityOhm = cp1d.j_ohmic .^ 2 ./ cp1d.conductivity_parallel
-    source = resize!(dd.core_sources.source, "identifier.index" => 7)
-    new_source(source, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
+    j_ohmic = getproperty(cp1d, :j_ohmic, missing)
+    if j_ohmic !== missing
+        powerDensityOhm = j_ohmic .^ 2 ./ cp1d.conductivity_parallel
+        source = resize!(dd.core_sources.source, "identifier.index" => 7)
+        new_source(source, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
+    end
     return dd
 end
 
@@ -204,8 +207,11 @@ Calculates the bootsrap current source and modifies dd.core_sources
 """
 function bootstrap_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    source = resize!(dd.core_sources.source, "identifier.index" => 13)
-    new_source(source, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=cp1d.j_bootstrap)
+    j_bootstrap = getproperty(cp1d, :j_bootstrap, missing)
+    if j_bootstrap !== missing
+        source = resize!(dd.core_sources.source, "identifier.index" => 13)
+        new_source(source, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=j_bootstrap)
+    end
     return dd
 end
 
@@ -214,7 +220,7 @@ end
 
 Calculates the plasma sources and sinks and adds them to dd.core_sources
 """
-function sources!(dd)
+function sources!(dd::IMAS.dd)
     IMAS.ohmic_source!(dd)
     IMAS.bootstrap_source!(dd)
     IMAS.collisional_exchange_source!(dd)
@@ -377,7 +383,7 @@ function new_source(
     j_parallel::Union{AbstractVector,Missing}=missing,
     current_parallel_inside::Union{AbstractVector,Missing}=missing,
     momentum_tor::Union{AbstractVector,Missing}=missing,
-    torque_tor_inside::Union{AbstractVector,Missing}=missing,
+    torque_tor_inside::Union{AbstractVector,Missing}=missing
 )
 
     source.identifier.name = name
