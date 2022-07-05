@@ -203,10 +203,10 @@ function beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
 end
 
 """
-    pressure_avg_from_betan(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
+    pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
 
 Calculates average pressure from BetaN
 """
-function pressure_avg_from_betan(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
+function pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
     return beta_n * abs(Bt) * abs(Ip/1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
 end
