@@ -185,28 +185,28 @@ function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_sl
 end
 
 """
-    Beta_estimate(pressure_average::Real, Bt::Real)
+    beta_tor(pressure_average::Real, Bt::Real)
 
 Calculates Beta_tor from pressure and Bt
 """
-function Beta_tor_estimate(pressure_average::Real, Bt::Real)
+function beta_tor(pressure_average::Real, Bt::Real)
     return pi * 8.0e-7 * pressure_average / Bt^2
 end
 
 """
-    BetaN(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
+    beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
 
 Calculates BetaN from beta_tor
 """
-function BetaN(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
+function beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
     return beta_tor * minor_radius * abs(Bt) / abs(Ip/ 1e6) * 1.0e2 # [%]
 end
 
 """
-    pressure_avg_estimate(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
+    pressure_avg_from_betan(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
 
-Estimates average pressure from BetaN
+Calculates average pressure from BetaN
 """
-function pressure_avg_estimate(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
+function pressure_avg_from_betan(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
     return beta_n * abs(Bt) * abs(Ip/1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
 end
