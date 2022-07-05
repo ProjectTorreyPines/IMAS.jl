@@ -183,3 +183,30 @@ function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_sl
     a_cp = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(cp1d.grid.rho_tor_norm)
     return integrate(a_cp, cp1d.electrons.density) / a_cp[end]
 end
+
+"""
+    beta_tor(pressure_average::Real, Bt::Real)
+
+Calculates Beta_tor from pressure and Bt
+"""
+function beta_tor(pressure_average::Real, Bt::Real)
+    return pi * 8.0e-7 * pressure_average / Bt^2
+end
+
+"""
+    beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
+
+Calculates BetaN from beta_tor
+"""
+function beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
+    return beta_tor * minor_radius * abs(Bt) / abs(Ip/ 1e6) * 1.0e2 # [%]
+end
+
+"""
+    pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
+
+Calculates average pressure from BetaN
+"""
+function pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
+    return beta_n * abs(Bt) * abs(Ip/1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
+end
