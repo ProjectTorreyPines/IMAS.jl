@@ -1,6 +1,7 @@
 import PlotUtils
 using RecipesBase
 using LaTeXStrings
+import Measures
 
 """
     plot_pf_active_cx(pfa::pf_active)
@@ -543,7 +544,8 @@ end
 
 @recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", integrated=false)
     layout := (1, 4)
-    size := (1100, 290)
+    size --> (1100, 290)
+    margin --> 5 * Measures.mm
 
     @series begin
         subplot := 1
@@ -626,7 +628,8 @@ end
 
 @recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d)
     layout := (1, 3)
-    size := (1100, 290)
+    size --> (1100, 290)
+    margin --> 5 * Measures.mm
 
     # temperatures
     @series begin
