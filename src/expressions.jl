@@ -83,6 +83,9 @@ expressions["core_profiles.profiles_1d[:].j_tor"] =
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
+expressions["core_profiles.profiles_1d[:].grid.psi_norm"] =
+    (rho_tor_norm; grid, _...) -> norm01(grid.psi)
+
 expressions["core_profiles.profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
@@ -199,6 +202,8 @@ expressions["equilibrium.time_slice[:].profiles_1d.j_parallel"] =
 expressions["equilibrium.time_slice[:].time"] =
     (; equilibrium, time_slice_index, _...) -> equilibrium.time[time_slice_index]
 
+expressions["equilibrium.time_slice[:].profiles_1d.psi_norm"] = (psi; _...) -> norm01(psi)
+
 #= ============ =#
 #  core_sources  #
 #= ============ =#
@@ -236,6 +241,9 @@ expressions["core_sources.source[:].profiles_1d[:].torque_tor_inside"] =
 expressions["core_sources.source[:].profiles_1d[:].momentum_tor"] =
     (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.torque_tor_inside)
 
+
+expressions["core_sources.source[:].profiles_1d[:].grid.psi_norm"] =
+    (rho_tor_norm; grid, _...) -> norm01(grid.psi)
 
 expressions["core_sources.source[:].profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
