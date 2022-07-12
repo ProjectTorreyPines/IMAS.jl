@@ -10,6 +10,8 @@ Plots pf active cross-section
 NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
 """
 @recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time=nothing, cname=:roma)
+    @assert typeof(time) <: Union{Nothing,Float64}
+    @assert typeof(cname) <: Symbol
 
     if time === nothing
         time = global_time(pfa)
@@ -95,6 +97,8 @@ end
 Plots cross-section of individual coils
 """
 @recipe function plot_coil_cx(coil::pf_active__coil; color=:black)
+    @assert typeof(color) <: Symbol
+
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
             color --> color
@@ -120,22 +124,96 @@ Plots cross-section of individual coils
     end
 end
 
-"""
-    plot_eqcx(eqt::IMAS.equilibrium__time_slice; psi_levels=nothing, psi_levels_out=nothing, lcfs=false)
-
-Plots equilibrium cross-section
-"""
-@recipe function plot_eqcx(eq::IMAS.equilibrium; psi_levels=nothing, psi_levels_out=nothing, lcfs=false, x_point=false)
+@recipe function plot_eq(eq::IMAS.equilibrium)
     @series begin
-        psi_levels --> psi_levels
-        psi_levels_out --> psi_levels_out
-        lcfs --> lcfs
-        x_point --> x_point
         return eq.time_slice[]
     end
 end
 
-@recipe function plot_eqtcx(eqt::IMAS.equilibrium__time_slice; psi_levels_in=nothing, psi_levels_out=nothing, lcfs=false, x_point=false)
+@recipe function plot_eqt(eqt::IMAS.equilibrium__time_slice; cx=false, coordinate=:psi_norm)
+    @assert typeof(cx) <: Bool
+    @assert typeof(coordinate) <: Symbol
+
+    if !cx
+        layout := @layout [a{0.35w} [a b; c d]]
+        size --> (800, 500)
+    end
+
+    @series begin
+        label := ""
+        subplot := 1
+        eqt.profiles_2d
+    end
+
+    if !cx
+        coordinate := coordinate
+
+        # pressure
+        @series begin
+            label := ""
+            xlabel := ""
+            subplot := 2
+            normalization := 1E-6
+            ylabel := ""
+            title := L"P~~[MPa]"
+            eqt.profiles_1d, :pressure
+        end
+
+        # jpar
+        @series begin
+            label := ""
+            xlabel := ""
+            subplot := 3
+            normalization := 1E-6
+            ylabel := ""
+            title := L"J_\parallel~[MA/m^2]"
+            eqt.profiles_1d, :j_parallel
+        end
+
+        # psi or rho_tor_norm
+        @series begin
+            label := ""
+            subplot := 4
+            if contains(string(coordinate), "rho")
+                eqt.profiles_1d, :rho_tor_norm
+            else
+                eqt.profiles_1d, :psi
+            end
+        end
+
+        # q
+        @series begin
+            label := ""
+            subplot := 5
+            title := L"q"
+            eqt.profiles_1d, :q
+        end
+    end
+
+end
+
+@recipe function plot_eqt2dv(eqt2dv::IDSvector{IMAS.equilibrium__time_slice___profiles_2d})
+    if (length(eqt2dv) == 0) || ismissing(eqt2dv[1], :psi)
+        @series begin
+            eqt.boundary
+        end
+    else
+        return eqt2dv[1]
+    end
+end
+
+@recipe function plot_eqt2(
+    eqt2d::IMAS.equilibrium__time_slice___profiles_2d;
+    psi_levels_in=nothing,
+    psi_levels_out=nothing,
+    lcfs=false,
+    x_point=false)
+
+    @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
+    @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
+    @assert typeof(lcfs) <: Bool
+    @assert typeof(x_point) <: Bool
+
     label --> ""
     aspect_ratio --> :equal
     @series begin
@@ -143,88 +221,89 @@ end
     end
     primary --> false
 
-    if (length(eqt.profiles_2d) == 0) || ismissing(eqt.profiles_2d[1], :psi)
-        # if there is no psi map then plot the boundary
-        @series begin
-            eqt.boundary.outline.r, eqt.boundary.outline.z
-        end
+    eqt = parent(parent(eqt2d))
 
+    # plot cx
+    # handle psi levels
+    psi__boundary_level = eqt.profiles_1d.psi[end]
+    tmp = find_psi_boundary(eqt, raise_error_on_not_open=false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    if tmp !== nothing
+        psi__boundary_level = tmp
+    end
+    if lcfs
+        psi_levels_in = [psi__boundary_level, psi__boundary_level]
+        psi_levels_out = []
     else
-        # plot cx
-        # handle psi levels
-        psi__boundary_level = eqt.profiles_1d.psi[end]
-        tmp = find_psi_boundary(eqt, raise_error_on_not_open=false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
-        if tmp !== nothing
-            psi__boundary_level = tmp
+        npsi = 11
+        if psi_levels_in === nothing
+            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=npsi)
+        elseif isa(psi_levels_in, Int)
+            if psi_levels_in > 1
+                npsi = psi_levels_in
+                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels_in)
+            else
+                psi_levels_in = []
+            end
         end
-        if lcfs
-            psi_levels_in = [psi__boundary_level, psi__boundary_level]
-            psi_levels_out = []
-        else
-            npsi = 11
-            if psi_levels_in === nothing
-                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=npsi)
-            elseif isa(psi_levels_in, Int)
-                if psi_levels_in > 1
-                    npsi = psi_levels_in
-                    psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels_in)
+        delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
+        if psi_levels_out === nothing
+            psi_levels_out = delta_psi .* range(0, 1, length=npsi) .+ psi__boundary_level
+        elseif isa(psi_levels_out, Int)
+            if psi_levels_out > 1
+                psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
+            else
+                psi_levels_out = []
+            end
+        end
+    end
+    psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
+
+    xlims --> eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end]
+    ylims --> eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end]
+
+    # @series begin
+    #     seriestype --> :contour
+    #     levels --> psi_levels
+    #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
+    # end
+    for psi_level in psi_levels
+        for (pr, pz) in IMAS.flux_surface(eqt, psi_level, nothing)
+            @series begin
+                seriestype --> :path
+                if psi_level == psi__boundary_level
+                    linewidth --> 2.0
+                elseif psi_level in psi_levels_in
+                    linewidth --> 1.0
                 else
-                    psi_levels_in = []
+                    linewidth --> 0.5
                 end
-            end
-            delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
-            if psi_levels_out === nothing
-                psi_levels_out = delta_psi .* range(0, 1, length=npsi) .+ psi__boundary_level
-            elseif isa(psi_levels_out, Int)
-                if psi_levels_out > 1
-                    psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
-                else
-                    psi_levels_out = []
-                end
-            end
-        end
-        psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
-
-        xlims --> eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end]
-        ylims --> eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end]
-
-        # @series begin
-        #     seriestype --> :contour
-        #     levels --> psi_levels
-        #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
-        # end
-        for psi_level in psi_levels
-            for (pr, pz) in IMAS.flux_surface(eqt, psi_level, nothing)
-                @series begin
-                    seriestype --> :path
-                    if psi_level == psi__boundary_level
-                        linewidth --> 2.0
-                    elseif psi_level in psi_levels_in
-                        linewidth --> 1.0
-                    else
-                        linewidth --> 0.5
-                    end
-                    pr, pz
-                end
-            end
-        end
-
-        @series begin
-            seriestype --> :scatter
-            markershape --> :cross
-            [(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)]
-        end
-
-        if x_point
-            for xp in eqt.boundary.x_point
-                @series begin
-                    primary --> false
-                    xp
-                end
+                pr, pz
             end
         end
     end
 
+    @series begin
+        primary --> false
+        eqt.global_quantities.magnetic_axis
+    end
+
+    if x_point
+        for xp in eqt.boundary.x_point
+            @series begin
+                primary --> false
+                xp
+            end
+        end
+    end
+
+end
+
+@recipe function plot_eqtb(eqtb::IMAS.equilibrium__time_slice___boundary)
+    label --> ""
+    aspect_ratio --> :equal
+    @series begin
+        eqtb.outline.r, eqtb.outline.z
+    end
 end
 
 @recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
@@ -237,7 +316,16 @@ end
     end
 end
 
-function join_outlines(r1, z1, r2, z2)
+@recipe function plot_mag_axis(mag_axis::IMAS.equilibrium__time_slice___global_quantities__magnetic_axis)
+    @series begin
+        seriestype --> :scatter
+        markershape --> :cross
+        label --> ""
+        [(mag_axis.r, mag_axis.z)]
+    end
+end
+
+function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::AbstractVector{T}, z2::AbstractVector{T}) where {T<:Real}
     i1, i2 = minimum_distance_two_shapes(r1, z1, r2, z2; return_index=true)
     p(x1, x2) = vcat(x1[i1:end], x2[i2:end], x2[1:i2], x1[1:i1])
     return p(r1, r2), p(z1, z2)
@@ -266,11 +354,17 @@ end
 end
 
 """
-    plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=nothing, exclude_layers=Symbol[])
+    plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
 
 Plot build cross-section
 """
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=nothing, exclude_layers=Symbol[])
+@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
+
+    @assert typeof(cx) <: Bool
+    @assert typeof(wireframe) <: Bool
+    @assert typeof(only) <: AbstractVector{Symbol}
+    @assert typeof(exclude_layers) <: AbstractVector{Symbol}
+
     legend_position --> :outerbottomright
     aspect_ratio --> :equal
     grid --> :none
@@ -280,7 +374,7 @@ Plot build cross-section
         rmax = maximum(bd.layer[end].outline.r)
 
         # everything after first vacuum in _out_
-        if ((only === nothing) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
+        if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
             for k in IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)[2:end]
                 if !wireframe
                     @series begin
@@ -345,7 +439,7 @@ Plot build cross-section
         end
 
         # all layers inside of the TF
-        if ((only === nothing) || (:oh in only)) && (!(:oh in exclude_layers))
+        if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
             for k in IMAS.get_build(bd, fs=_in_, return_only_one=false, return_index=true)
                 layer = bd.layer[k]
                 if layer.material != "Vacuum"
@@ -400,7 +494,7 @@ Plot build cross-section
                 name = replace(name, Regex("$(nm) ", "i") => "")
             end
 
-            if ((only === nothing) || (Symbol(name) in only)) && (!(Symbol(name) in exclude_layers))
+            if (isempty(only) || (Symbol(name) in only)) && (!(Symbol(name) in exclude_layers))
                 if !wireframe
                     @series begin
                         seriestype --> :shape
@@ -423,7 +517,7 @@ Plot build cross-section
         end
 
         # plasma
-        if ((only === nothing) || (:plasma in only)) && (!(:plasma in exclude_layers))
+        if (isempty(only) || (:plasma in only)) && (!(:plasma in exclude_layers))
             @series begin
                 seriestype --> :path
                 linewidth --> 1.0
@@ -435,7 +529,7 @@ Plot build cross-section
         end
 
         if any([structure.type == Int(_divertor_) for structure in bd.structure])
-            if ((only === nothing) || (:divertor in only)) && (!(:divertor in exclude_layers))
+            if (isempty(only) || (:divertor in only)) && (!(:divertor in exclude_layers))
                 for (k, index) in enumerate(findall(x -> x.type == Int(_divertor_), bd.structure))
                     if !wireframe
                         @series begin
@@ -515,17 +609,15 @@ Plot build cross-section
     end
 end
 
-@recipe function plot_core_sources(cs::IMAS.core_sources; integrated=false)
+@recipe function plot_core_sources(cs::IMAS.core_sources)
     for source in cs.source
         @series begin
-            integrated := integrated
             source
         end
     end
     dd = top_dd(cs)
     if dd !== missing
         @series begin
-            integrated := integrated
             name := "total"
             linewidth := 2
             color := :black
@@ -534,15 +626,17 @@ end
     end
 end
 
-@recipe function plot_source(source::IMAS.core_sources__source; integrated=false)
+@recipe function plot_source(source::IMAS.core_sources__source)
     @series begin
         name := source.identifier.name
-        integrated := integrated
         source.profiles_1d[]
     end
 end
 
 @recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", integrated=false)
+
+    @assert typeof(integrated) <: Bool
+
     layout := (1, 4)
     size --> (1100, 290)
     margin --> 5 * Measures.mm
@@ -666,7 +760,8 @@ end
             end
             linestyle --> :dash
             ylim --> (0.0, Inf)
-            ion, :density, Z
+            normalization --> Z
+            ion, :density
         end
     end
 
@@ -704,6 +799,8 @@ end
 end
 
 @recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress}; linewidth=1)
+
+    @assert typeof(linewidth) <: Real
 
     legend_position --> :outerbottomright
     ylabel --> "Stresses [MPa]"
@@ -761,6 +858,8 @@ end
 
 @recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant; linewidth=2)
 
+    @assert typeof(linewidth) <: Real
+
     size --> (800, 600)
     legend_position --> :outertopright
     ylabel --> "Electricity [Watts Electric]"
@@ -791,6 +890,9 @@ end
 end
 
 @recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading, component::Symbol=:norm; cx=true)
+
+    @assert typeof(cx) <: Bool
+
     neutronics = top_ids(nwl)
     title = "Wall neutron flux"
     units = "[MW/m²]"
@@ -871,19 +973,26 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol, norm::Real=1.0)
-    coords = coordinates(ids, field)
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing)
+
+    @assert typeof(normalization) <: Real
+    @assert typeof(coordinate) <: Union{Nothing,Symbol}
+
+    coords = coordinates(ids, field; coord_leaves=[coordinate])
+    coordinate_name = coords.names[1]
+    coordinate_value = coords.values[1]
+
     @series begin
-        xlabel --> nice_field(i2p(coords.names[1])[end]) * nice_units(units(coords.names[1]))
+        xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
         ylabel --> nice_units(units(ids, field))
         title --> nice_field(field)
 
-        if endswith(coords.names[1], "rho_tor_norm")
+        if endswith(coordinate_name, "_norm")
             xlim --> (0.0, 1.0)
         end
 
-        xvalue = coords.values[1]
-        yvalue = getproperty(ids, field) * norm
+        xvalue = coordinate_value
+        yvalue = getproperty(ids, field) .* normalization
 
         # plot 1D Measurements with ribbon
         if (eltype(yvalue) <: Measurement) && !((eltype(xvalue) <: Measurement))
@@ -901,6 +1010,7 @@ end
 nice_field_symbols = Dict()
 nice_field_symbols["rho_tor_norm"] = L"\rho"
 nice_field_symbols["psi"] = L"\psi"
+nice_field_symbols["psi_norm"] = L"\psi_N"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
 
 function nice_field(field::String)
@@ -909,7 +1019,9 @@ function nice_field(field::String)
     else
         field = replace(field, r"_tor" => " toroidal")
         field = replace(field, r"_pol" => " poloidal")
-        field = uppercasefirst(replace(field, "_" => " "))
+        if length(field) > 1
+            field = uppercasefirst(replace(field, "_" => " "))
+        end
     end
     return field
 end
