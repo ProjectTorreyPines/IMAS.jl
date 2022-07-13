@@ -140,7 +140,6 @@ end
     end
 
     @series begin
-        label := ""
         subplot := 1
         eqt.profiles_2d
     end
@@ -633,9 +632,14 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", integrated=false)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label=nothing, integrated=false)
 
+    @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
+    @assert typeof(label) <: Union{Nothing,AbstractString}
+    if label === nothing
+        label = ""
+    end
 
     layout := (1, 4)
     size --> (1100, 290)
@@ -647,14 +651,14 @@ end
         title := "Electron Power"
         if !ismissing(cs1d.electrons, :energy)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
-            label --> "$name " * @sprintf("[%.3g MW]", tot / 1E6)
+            label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
         end
         if !integrated && !ismissing(cs1d.electrons, :energy)
             cs1d.electrons, :energy
         elseif integrated && !ismissing(cs1d.electrons, :power_inside)
             cs1d.electrons, :power_inside
         else
-            label --> ""
+            label := ""
             [NaN], [NaN]
         end
     end
@@ -665,14 +669,14 @@ end
         title := "Ion Power"
         if !ismissing(cs1d, :total_ion_energy)
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
-            label --> "$name " * @sprintf("[%.3g MW]", tot / 1E6)
+            label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
         end
         if !integrated && !ismissing(cs1d, :total_ion_energy)
             cs1d, :total_ion_energy
         elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
             cs1d, :total_ion_power_inside
         else
-            label --> ""
+            label := ""
             [NaN], [NaN]
         end
     end
@@ -683,14 +687,14 @@ end
         title := "Electron Particle"
         if !ismissing(cs1d.electrons, :particles)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
-            label --> "$name " * @sprintf("[%.3g s⁻¹]", tot)
+            label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
         end
         if !integrated && !ismissing(cs1d.electrons, :particles)
             cs1d.electrons, :particles
         elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
             cs1d.electrons, :particles_inside
         else
-            label --> ""
+            label := ""
             [NaN], [NaN]
         end
     end
@@ -701,14 +705,14 @@ end
         title := "Parallel Current"
         if !ismissing(cs1d, :j_parallel)
             tot = integrate(cs1d.grid.area, cs1d.j_parallel)
-            label --> "$name " * @sprintf("[%.3g MA]", tot / 1E6)
+            label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
         end
         if !integrated && !ismissing(cs1d, :j_parallel)
             cs1d, :j_parallel
         elseif integrated && !ismissing(cs1d, :current_parallel_inside)
             cs1d, :current_parallel_inside
         else
-            label --> ""
+            label := ""
             [NaN], [NaN]
         end
     end
@@ -720,7 +724,13 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing)
+
+    @assert typeof(label) <: Union{Nothing,AbstractString}
+    if label === nothing
+        label = ""
+    end
+
     layout := (1, 3)
     size --> (1100, 290)
     margin --> 5 * Measures.mm
@@ -728,14 +738,14 @@ end
     # temperatures
     @series begin
         subplot := 1
-        label --> "e"
+        label := "e" * label
         ylim --> (0, Inf)
         cpt.electrons, :temperature
     end
     for ion in cpt.ion
         @series begin
             subplot := 1
-            label --> ion.label
+            label := ion.label * label
             linestyle --> :dash
             ylim --> (0, Inf)
             ion, :temperature
@@ -745,7 +755,7 @@ end
     # densities
     @series begin
         subplot := 2
-        label --> "e"
+        label := "e" * label
         ylim --> (0.0, Inf)
         cpt.electrons, :density
     end
@@ -754,9 +764,9 @@ end
             Z = ion.element[1].z_n
             subplot := 2
             if Z == 1.0
-                label --> ion.label
+                label := ion.label * label
             else
-                label --> "$(ion.label) × " * @sprintf("%.3g", Z)
+                label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
             end
             linestyle --> :dash
             ylim --> (0.0, Inf)
@@ -768,7 +778,7 @@ end
     # rotation
     @series begin
         subplot := 3
-        label --> ""
+        label := "" * label
         cpt, :rotation_frequency_tor_sonic
     end
 
