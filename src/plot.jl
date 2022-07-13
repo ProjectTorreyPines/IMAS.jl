@@ -173,7 +173,7 @@ end
         @series begin
             label := ""
             subplot := 4
-            if contains(string(coordinate), "rho")
+            if contains(string(coordinate), "psi")
                 eqt.profiles_1d, :rho_tor_norm
             else
                 eqt.profiles_1d, :psi
