@@ -995,7 +995,7 @@ end
     @series begin
         xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
         ylabel --> nice_units(units(ids, field))
-        title --> nice_field(field)
+        label --> nice_field(field)
 
         if endswith(coordinate_name, "_norm")
             xlim --> (0.0, 1.0)
