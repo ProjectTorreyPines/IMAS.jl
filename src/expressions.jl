@@ -5,7 +5,7 @@ expressions = Dict{String,Function}()
     assign_expressions(ids::IDS)
 
 Assign expressions to an IDS
-NOTE: This is done not recursively
+NOTE: This is not done recursively
 """
 function assign_expressions(ids::IDS)
     struct_name = f2u(ids)
@@ -38,29 +38,59 @@ end
 #= =========== =#
 # Core Profiles #
 #= =========== =#
-expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
-    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * constants.e
-
 expressions["core_profiles.profiles_1d[:].electrons.density"] =
-    (rho_tor_norm; electrons, _...) -> begin
-        tmp = electrons.density_thermal
-        if !ismissing(electrons, :density_fast)
-            tmp += electrons.density_fast
-        end
-        return tmp
-    end
+    (rho_tor_norm; electrons, _...) -> electrons.density_thermal .+ electrons.density_fast
+
+expressions["core_profiles.profiles_1d[:].electrons.density_fast"] =
+    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+
+expressions["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density .* constants.e
+
+expressions["core_profiles.profiles_1d[:].electrons.pressure_fast_parallel"] =
+    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+
+expressions["core_profiles.profiles_1d[:].electrons.pressure_fast_perpendicular"] =
+    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+
+expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
+    (rho_tor_norm; electrons, _...) -> electrons.pressure_thermal .+ electrons.pressure_fast_parallel .+ electrons.pressure_fast_perpendicular .* 2.0
+
 
 expressions["core_profiles.profiles_1d[:].ion[:].density"] =
-    (rho_tor_norm; ion, _...) -> begin
-        tmp = ion.density_thermal
-        if !ismissing(ion, :density_fast)
-            tmp += ion.density_fast
-        end
-        return tmp
-    end
+    (rho_tor_norm; ion, _...) -> ion.density_thermal .+ ion.density_fast
+
+expressions["core_profiles.profiles_1d[:].ion[:].density_fast"] =
+    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+
+expressions["core_profiles.profiles_1d[:].ion[:].pressure_thermal"] =
+    (rho_tor_norm; ion, _...) -> ion.temperature .* ion.density .* constants.e
+
+expressions["core_profiles.profiles_1d[:].ion[:].pressure_fast_parallel"] =
+    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+
+expressions["core_profiles.profiles_1d[:].ion[:].pressure_fast_perpendicular"] =
+    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+
+expressions["core_profiles.profiles_1d[:]..ion[:].pressure"] =
+    (rho_tor_norm; ion, _...) -> ion.pressure_thermal .+ ion.pressure_fast_parallel .+ ion.pressure_fast_perpendicular .* 2.0
+
+
+expressions["core_profiles.profiles_1d[:].pressure_ion_total"] =
+    (rho_tor_norm; profiles_1d, _...) -> sum([ion.pressure_thermal for ion in profiles_1d.ion])
 
 expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
-    (rho_tor_norm; profiles_1d, _...) -> total_pressure_thermal(profiles_1d)
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.electrons.pressure_thermal .+ profiles_1d.pressure_ion_total
+
+expressions["core_profiles.profiles_1d[:].pressure_parallel"] =
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_parallel .+ sum([ion.pressure_fast_parallel for ion in profiles_1d.ion])
+
+expressions["core_profiles.profiles_1d[:].pressure_perpendicular"] =
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_perpendicular .+ sum([ion.pressure_fast_perpendicular for ion in profiles_1d.ion])
+
+expressions["core_profiles.profiles_1d[:].pressure"] =
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_perpendicular .* 2.0 .+ profiles_1d.pressure_parallel
+
 
 expressions["core_profiles.profiles_1d[:].conductivity_parallel"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> nclass_conductivity(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)

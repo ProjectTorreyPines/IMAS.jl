@@ -1,11 +1,3 @@
-function total_pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
-    pressure = cp1d.electrons.density .* cp1d.electrons.temperature
-    for ion in cp1d.ion
-        pressure += ion.density .* ion.temperature
-    end
-    return pressure * constants.e
-end
-
 function calc_beta_thermal_norm(dd::IMAS.dd)
     return calc_beta_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[])
 end
