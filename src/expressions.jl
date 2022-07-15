@@ -13,7 +13,7 @@ function assign_expressions(ids::IDS)
         if typeof(getfield(ids, item)) <: IDS
             continue
         elseif "$(struct_name).$(item)" in keys(expressions)
-            setproperty!(ids, item, expressions["$(struct_name).$(item)"])
+            setfield!(ids, item, expressions["$(struct_name).$(item)"])
         end
     end
     return ids
