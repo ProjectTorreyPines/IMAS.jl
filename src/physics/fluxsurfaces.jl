@@ -604,27 +604,3 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
 
     return eqt.boundary.x_point
 end
-
-"""
-    reorder_flux_surface!(pr, pz, z0)
-
-Reorder so clockwise and starting from first point
-"""
-function reorder_flux_surface!(pr, pz, R0, Z0)
-    # flip to counterclockwise so θ will increase
-    istart = argmax(pr[1:end-1])
-    if pz[istart+1] < pz[istart]
-        reverse!(pr)
-        reverse!(pz)
-        istart = length(pr) + 1 - istart
-    end
-
-    # start from low-field side point above z0 (only if flux surface closes)
-    if (pr[1] == pr[end]) && (pz[1] == pz[end])
-        istart = argmin(abs.(pz[1:end-1] .- Z0) .+ (pr[1:end-1] .< R0) .+ (pz[1:end-1] .< Z0))
-        pr[1:end-1] = circshift(pr[1:end-1], 1 - istart)
-        pz[1:end-1] = circshift(pz[1:end-1], 1 - istart)
-        pr[end] = pr[1]
-        pz[end] = pz[1]
-    end
-end
