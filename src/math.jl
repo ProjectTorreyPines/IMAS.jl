@@ -70,11 +70,11 @@ function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix)
 end
 
 """
-    centraldiff(y::AbstractVector)
+    centraldiff(y::AbstractVector{<:Real})
 
 Calculates central difference of a vector assuming that the data is equally-spaced
 """
-function centraldiff(y::AbstractVector)
+function centraldiff(y::AbstractVector{<:Real})
     dy = diff(y) / 2
     a = [dy[1]; dy]
     a .+= [dy; dy[end]]
@@ -91,11 +91,11 @@ function meshgrid(x1::Union{Number,AbstractVector}, x2::Union{Number,AbstractVec
 end
 
 """
-    centroid(x::Vector{<:Real}, y::Vector{<:Real})
+    centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
 
 Calculate centroid of polygon
 """
-function centroid(x::Vector{<:Real}, y::Vector{<:Real})
+function centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
     dy = diff(y)
     dx = diff(x)
     x0 = (x[2:end] .+ x[1:end-1]) .* 0.5
@@ -107,11 +107,11 @@ function centroid(x::Vector{<:Real}, y::Vector{<:Real})
 end
 
 """
-    area(x::Vector{<:Real}, y::Vector{<:Real})
+    area(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
 
 Calculate area of polygon
 """
-function area(x::Vector{<:Real}, y::Vector{<:Real})
+function area(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
     x1 = x[1:end-1]
     x2 = x[2:end]
     y1 = y[1:end-1]
@@ -120,11 +120,11 @@ function area(x::Vector{<:Real}, y::Vector{<:Real})
 end
 
 """
-    revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
+    revolution_volume(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
 
 Calculate volume of polygon revolved around x=0
 """
-function revolution_volume(x::Vector{<:Real}, y::Vector{<:Real})
+function revolution_volume(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
     return area(x, y) * 2pi * centroid(x, y)[1]
 end
 
@@ -199,7 +199,7 @@ function _perp(a)
     return [-a[2], a[1]]
 end
 
-function _seg_intersect(a1, a2, b1, b2)
+function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:Real}
     if !_intersect(a1, a2, b1, b2)
         return nothing
     end
@@ -217,7 +217,12 @@ end
 
 Resample 2D line with uniform stepping
 """
-function resample_2d_line(x::Vector{T}, y::Vector{T}; step::Union{Nothing,T}=nothing, n_points::Union{Nothing,Integer}=nothing) where {T<:Real}
+function resample_2d_line(
+    x::AbstractVector{T},
+    y::AbstractVector{T};
+    step::Union{Nothing,T}=nothing,
+    n_points::Union{Nothing,Integer}=nothing) where {T<:Real}
+
     s = cumsum(sqrt.(diff(x) .^ 2 + diff(y) .^ 2))
     s = vcat(0.0, s)
     if n_points === nothing
@@ -232,11 +237,22 @@ function resample_2d_line(x::Vector{T}, y::Vector{T}; step::Union{Nothing,T}=not
 end
 
 """
-    minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2; return_index=false)
+    minimum_distance_two_shapes(
+        R_obj1::AbstractVector{<:T},
+        Z_obj1::AbstractVector{<:T},
+        R_obj2::AbstractVector{<:T},
+        Z_obj2::AbstractVector{<:T};
+        return_index::Bool=false) where {T<:Real}
 
 Returns minimum distance between two shapes
 """
-function minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2; return_index=false)
+function minimum_distance_two_shapes(
+    R_obj1::AbstractVector{<:T},
+    Z_obj1::AbstractVector{<:T},
+    R_obj2::AbstractVector{<:T},
+    Z_obj2::AbstractVector{<:T};
+    return_index::Bool=false) where {T<:Real}
+
     R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     distance = Inf
     ik1 = 0
@@ -259,11 +275,22 @@ function minimum_distance_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2; return_inde
 end
 
 """
-    mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_distance)
+    mean_distance_error_two_shapes(
+        R_obj1::AbstractVector{<:T},
+        Z_obj1::AbstractVector{<:T},
+        R_obj2::AbstractVector{<:T},
+        Z_obj2::AbstractVector{<:T},
+        target_distance::T) where {T<:Real}
 
 Returns mean error distance between two shapes and a target distance
 """
-function mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_distance)
+function mean_distance_error_two_shapes(
+    R_obj1::AbstractVector{<:T},
+    Z_obj1::AbstractVector{<:T},
+    R_obj2::AbstractVector{<:T},
+    Z_obj2::AbstractVector{<:T},
+    target_distance::T) where {T<:Real}
+
     R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     mean_distance_error = 0.0
     for k1 in 1:length(R_obj1)
@@ -280,11 +307,11 @@ function mean_distance_error_two_shapes(R_obj1, Z_obj1, R_obj2, Z_obj2, target_d
 end
 
 """
-    curvature(pr::Vector{<:Real}, pz::Vector{<:Real})
+    curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:Real}
 
 Returns curvature of a circular 2D line
 """
-function curvature(pr::Vector{<:Real}, pz::Vector{<:Real})
+function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:Real}
     @assert (pr[1] == pr[end]) & (pz[1] == pz[end]) "curvature: 1st and last point must be the same"
     dr = diff(vcat(pr[end-1], pr, pr[2]))
     dz = diff(vcat(pz[end-1], pz, pz[2]))
