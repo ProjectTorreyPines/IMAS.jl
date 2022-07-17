@@ -310,6 +310,7 @@ end
         eqtb.outline
     end
     @series begin
+        primary --> false
         eqtb.x_point
     end
 end

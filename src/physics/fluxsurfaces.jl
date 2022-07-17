@@ -533,6 +533,7 @@ function flux_surface(
             push!(prpz, (pr, pz))
         end
         return prpz
+
     elseif closed
         # look for closed flux-surface
         for line in Contour.lines(cl)
@@ -546,12 +547,13 @@ function flux_surface(
             end
         end
         return [], [], psi_level
+
     elseif !closed
         # look for open flux-surfaces
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
-            # pick flux surfaces that close or that do not contain magnetic axis
-            if (pr[1] != pr[end]) || (pz[1] != pz[end]) || (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) != 1)
+            # pick flux surfaces that do not close
+            if (pr[1] != pr[end]) || (pz[1] != pz[end])
                 R0 = 0.5 * (maximum(pr) + minimum(pr))
                 Z0 = 0.5 * (maximum(pz) + minimum(pz))
                 reorder_flux_surface!(pr, pz, R0, Z0)
