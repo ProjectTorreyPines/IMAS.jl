@@ -218,7 +218,7 @@ end
 """
     sources!(dd::IMAS.dd)
 
-Calculates the plasma sources and sinks and adds them to dd.core_sources
+Calculates intrisic sources and sinks and adds them to dd.core_sources
 """
 function sources!(dd::IMAS.dd)
     IMAS.ohmic_source!(dd)

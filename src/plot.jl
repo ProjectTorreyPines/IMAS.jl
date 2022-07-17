@@ -194,7 +194,7 @@ end
 @recipe function plot_eqt2dv(eqt2dv::IDSvector{IMAS.equilibrium__time_slice___profiles_2d})
     if (length(eqt2dv) == 0) || ismissing(eqt2dv[1], :psi)
         @series begin
-            eqt.boundary
+            eqt.boundary.outline
         end
     else
         return eqt2dv[1]
@@ -287,26 +287,42 @@ end
     end
 
     if x_point
-        for xp in eqt.boundary.x_point
-            @series begin
-                primary --> false
-                xp
-            end
+        @series begin
+            eqt.boundary.x_point
+            primary --> false
         end
     end
 
 end
 
 @recipe function plot_eqtb(eqtb::IMAS.equilibrium__time_slice___boundary)
+    @series begin
+        eqtb.outline
+    end
+    @series begin
+        eqtb.x_point
+    end
+end
+
+@recipe function plot_eqtb(eqtbo::IMAS.equilibrium__time_slice___boundary__outline)
     label --> ""
     aspect_ratio --> :equal
     @series begin
-        eqtb.outline.r, eqtb.outline.z
+        eqtbo.r, eqtbo.z
+    end
+end
+
+@recipe function plot_x_points(x_points::IDSvector{IMAS.equilibrium__time_slice___boundary__x_point})
+    for x_point in x_points
+        @series begin
+            x_point
+        end
     end
 end
 
 @recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
     @series begin
+        aspect_ratio --> :equal
         seriestype := :scatter
         marker --> :circle
         markerstrokewidth --> 0
@@ -320,6 +336,7 @@ end
         seriestype --> :scatter
         markershape --> :cross
         label --> ""
+        aspect_ratio --> :equal
         [(mag_axis.r, mag_axis.z)]
     end
 end
