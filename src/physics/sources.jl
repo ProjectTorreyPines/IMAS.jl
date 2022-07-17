@@ -221,8 +221,8 @@ end
 Calculates intrisic sources and sinks and adds them to dd.core_sources
 """
 function sources!(dd::IMAS.dd)
-    IMAS.ohmic_source!(dd)
     IMAS.bootstrap_source!(dd)
+    IMAS.ohmic_source!(dd)
     IMAS.collisional_exchange_source!(dd)
     IMAS.bremsstrahlung_source!(dd)
     IMAS.DT_fusion_source!(dd)

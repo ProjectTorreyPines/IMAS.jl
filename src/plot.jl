@@ -148,56 +148,66 @@ end
         coordinate := coordinate
 
         # pressure
-        @series begin
-            label := ""
-            xlabel := ""
-            subplot := 2
-            normalization := 1E-6
-            ylabel := ""
-            title := L"P~~[MPa]"
-            eqt.profiles_1d, :pressure
+        if !ismissing(eqt.profiles_1d, :pressure)
+            @series begin
+                label := ""
+                xlabel := ""
+                subplot := 2
+                normalization := 1E-6
+                ylabel := ""
+                title := L"P~~[MPa]"
+                eqt.profiles_1d, :pressure
+            end
         end
 
         # jpar
-        @series begin
-            label := ""
-            xlabel := ""
-            subplot := 3
-            normalization := 1E-6
-            ylabel := ""
-            title := L"J_\parallel~[MA/m^2]"
-            eqt.profiles_1d, :j_parallel
+        if !ismissing(eqt.profiles_1d, :j_parallel)
+            @series begin
+                label := ""
+                xlabel := ""
+                subplot := 3
+                normalization := 1E-6
+                ylabel := ""
+                title := L"J_\parallel~[MA/m^2]"
+                eqt.profiles_1d, :j_parallel
+            end
         end
 
         # psi or rho_tor_norm
-        @series begin
-            label := ""
-            subplot := 4
-            if contains(string(coordinate), "psi")
-                eqt.profiles_1d, :rho_tor_norm
-            else
-                eqt.profiles_1d, :psi
+        if !ismissing(eqt.profiles_1d, :rho_tor_norm)
+            @series begin
+                label := ""
+                subplot := 4
+                if contains(string(coordinate), "psi")
+                    eqt.profiles_1d, :rho_tor_norm
+                else
+                    eqt.profiles_1d, :psi
+                end
             end
         end
 
         # q
-        @series begin
-            label := ""
-            subplot := 5
-            title := L"q"
-            eqt.profiles_1d, :q
+        if !ismissing(eqt.profiles_1d, :q)
+            @series begin
+                label := ""
+                subplot := 5
+                title := L"q"
+                eqt.profiles_1d, :q
+            end
         end
     end
 
 end
 
 @recipe function plot_eqt2dv(eqt2dv::IDSvector{IMAS.equilibrium__time_slice___profiles_2d})
-    if (length(eqt2dv) == 0) || ismissing(eqt2dv[1], :psi)
-        @series begin
-            eqt.boundary.outline
+    if !isempty(eqt2dv)
+        if ismissing(eqt2dv[1], :psi)
+            @series begin
+                eqt2dv[1].boundary.outline
+            end
+        else
+            return eqt2dv[1]
         end
-    else
-        return eqt2dv[1]
     end
 end
 
