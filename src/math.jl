@@ -199,7 +199,7 @@ function _perp(a)
     return [-a[2], a[1]]
 end
 
-function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:Real}
+function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:Real}}
     if !_intersect(a1, a2, b1, b2)
         return nothing
     end
