@@ -102,7 +102,7 @@ Plots cross-section of individual coils
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
             color --> color
-            linewidth --> 0.0
+            linewidth := 0.0
             seriestype --> :scatter
             markershape --> :star
             colorbar --> :right
@@ -409,7 +409,7 @@ Plot build cross-section
                 if !wireframe
                     @series begin
                         seriestype --> :shape
-                        linewidth --> 0.0
+                        linewidth := 0.0
                         color --> :lightgray
                         label --> (!wireframe ? "Cryostat" : "")
                         xlim --> [0, rmax]
@@ -437,7 +437,7 @@ Plot build cross-section
             k = IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)[1]
             @series begin
                 seriestype --> :shape
-                linewidth --> 0.0
+                linewidth := 0.0
                 color --> :white
                 label --> ""
                 xlim --> [0, rmax]
@@ -476,7 +476,7 @@ Plot build cross-section
                     if !wireframe
                         @series begin
                             seriestype --> :shape
-                            linewidth --> 0.0
+                            linewidth := 0.0
                             color --> :gray
                             label --> (!wireframe ? layer.name : "")
                             xlim --> [0, rmax]
@@ -528,7 +528,7 @@ Plot build cross-section
                 if !wireframe
                     @series begin
                         seriestype --> :shape
-                        linewidth --> 0.0
+                        linewidth := 0.0
                         color --> color
                         label --> uppercasefirst(name)
                         xlim --> [0, rmax]
@@ -564,7 +564,7 @@ Plot build cross-section
                     if !wireframe
                         @series begin
                             seriestype --> :shape
-                            linewidth --> 0.0
+                            linewidth := 0.0
                             color --> :mediumpurple1
                             label --> (!wireframe && k == 1 ? "Divertor" : "")
                             xlim --> [0, rmax]
