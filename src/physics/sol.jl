@@ -83,19 +83,36 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
 end
 
 """
-    line_wall_2_wall(r, z, wall_r, wall_z, R0, Z0)
+    line_wall_2_wall(
+        r::AbstractVector{T},
+        z::AbstractVector{T},
+        wall_r::AbstractVector{T},
+        wall_z::AbstractVector{T},
+        R0::Real,
+        Z0::Real) where {T<:Real}
 
 Returns r, z coordinates of open field line contained within wall
 """
-function line_wall_2_wall(r, z, wall_r, wall_z, R0, Z0)
+function line_wall_2_wall(
+    r::AbstractVector{T},
+    z::AbstractVector{T},
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T},
+    R0::Real,
+    Z0::Real) where {T<:Real}
+
     indexes, crossings = IMAS.intersection(r, z, wall_r, wall_z; as_list_of_points=true, return_indexes=true)
     indexes = [k[1] for k in indexes]
     if length(indexes) == 0
         return [], []
+
     elseif length(indexes) == 1
-        return error("line_wall_2_wall: open field line should intersect wall at least twice")
+        error("line_wall_2_wall: open field line should intersect wall at least twice.
+               If it does not it's likely because the equilibrium grid was too small.")
+
     elseif length(indexes) == 2
         # pass
+
     else
         # closest midplane point (favoring low field side)
         j0 = argmin(abs.(z .- Z0) .+ (r .< R0))
