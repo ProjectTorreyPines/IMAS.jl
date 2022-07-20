@@ -473,7 +473,7 @@ end
 """
     flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
 
-returns r,z coordiates of closed flux surface at given psi_level
+Returns r,z coordiates of closed flux surface at given psi_level
 """
 function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
     return flux_surface(eqt, psi_level, true)
@@ -482,7 +482,12 @@ end
 """
     flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
 
-returns r,z coordiates of open or closed flux surface at given psi_level
+Returns r,z coordiates of open or closed flux surface at given psi_level
+
+The `closed` parameter:
+* nothing: return all contours
+* true: all closed flux-surface that encircle the magnetic axis
+* false: all open flux-surfaces
 """
 function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
     dim1 = eqt.profiles_2d[1].grid.dim1

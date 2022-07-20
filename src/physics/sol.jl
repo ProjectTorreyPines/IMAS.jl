@@ -58,14 +58,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
     ############
 
     # pack points near lcfs
-    levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-1, log10(abs(psi_wall_midplane - psi__boundary_level)), 22)[1:end-1]
+    levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi__boundary_level)), 22)[1:end-1]
 
     OFL = OpenFieldLine[]
     for level in levels
         lines = IMAS.flux_surface(eqt, level, false)
         for line in lines
             rr, zz = line_wall_2_wall(line..., wall_r, wall_z, R0, Z0)
-            if isempty(rr)
+            if isempty(rr) || all(zz.>Z0) || all(zz.<Z0)
                 continue
             end
             Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, rr, zz)
