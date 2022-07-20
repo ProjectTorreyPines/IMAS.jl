@@ -178,9 +178,12 @@ end
             @series begin
                 label := ""
                 subplot := 4
+                ylabel := ""
                 if contains(string(coordinate), "psi")
+                    title := L"\rho"
                     eqt.profiles_1d, :rho_tor_norm
                 else
+                    title := L"\psi~~[Wb]"
                     eqt.profiles_1d, :psi
                 end
             end
@@ -766,6 +769,7 @@ end
     # temperatures
     @series begin
         subplot := 1
+        title := "Temperatures"
         label := "e" * label
         ylim --> (0, Inf)
         cpt.electrons, :temperature
@@ -773,6 +777,7 @@ end
     for ion in cpt.ion
         @series begin
             subplot := 1
+            title := "Temperatures"
             label := ion.label * label
             linestyle --> :dash
             ylim --> (0, Inf)
@@ -783,6 +788,7 @@ end
     # densities
     @series begin
         subplot := 2
+        title := "Densities"
         label := "e" * label
         ylim --> (0.0, Inf)
         cpt.electrons, :density
@@ -791,6 +797,7 @@ end
         @series begin
             Z = ion.element[1].z_n
             subplot := 2
+            title := "Densities"
             if Z == 1.0
                 label := ion.label * label
             else
@@ -806,6 +813,7 @@ end
     # rotation
     @series begin
         subplot := 3
+        title := "Rotation"
         label := "" * label
         cpt, :rotation_frequency_tor_sonic
     end
@@ -1025,6 +1033,8 @@ end
         ylabel --> nice_units(units(ids, field))
         label --> nice_field(field)
 
+        background_color_legend := PlotUtils.Colors.RGBA(1.0,1.0,1.0,0.6)
+        
         if endswith(coordinate_name, "_norm")
             xlim --> (0.0, 1.0)
         end

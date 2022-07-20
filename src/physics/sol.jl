@@ -14,6 +14,7 @@ end
     @series begin
         aspect_ratio --> :equal
         label --> ""
+        colorbar_title := "Connection length [m]"
         line_z := ofl.s
         ofl.r, ofl.z
     end
@@ -57,7 +58,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
     ############
 
     # pack points near lcfs
-    levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-2, log10(abs(psi_wall_midplane - psi__boundary_level)), 22)[1:end-1]
+    levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-1, log10(abs(psi_wall_midplane - psi__boundary_level)), 22)[1:end-1]
 
     OFL = OpenFieldLine[]
     for level in levels
