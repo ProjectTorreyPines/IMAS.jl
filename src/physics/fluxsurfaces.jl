@@ -566,7 +566,7 @@ end
 
 function find_x_point!(eqt::IMAS.equilibrium__time_slice)
     rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
-    ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 20
+    ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 5.0
     private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
@@ -577,12 +577,14 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
         elseif minimum_distance_two_shapes(pr, pz, rlcfs, zlcfs) > ll
             # secondary Xpoint far away
             continue
-        elseif (sum(pz) - Z0) < 0
+        elseif (sum(pz) < Z0) && (maximum(pz) < minimum(zlcfs))
             # lower private region
             index = argmax(pz)
-        else
+        elseif (sum(pz) > Z0) && (minimum(pz) > maximum(zlcfs))
             # upper private region
             index = argmin(pz)
+        else
+            error("find_x_point: X-points detection problem")
         end
         indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
         resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
