@@ -589,7 +589,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
             # upper private region
             index = argmin(pz)
         else
-            error("find_x_point: X-points detection problem")
+            continue
         end
         indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
         resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
