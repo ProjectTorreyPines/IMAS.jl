@@ -193,6 +193,15 @@ end
         if !ismissing(eqt.profiles_1d, :q)
             @series begin
                 label := ""
+                primary := false
+                subplot := 5
+                seriestype --> :hline
+                color := :gray
+                linestyle := :dash
+                [sum(eqt.profiles_1d.q) > 0 ? 1.0 : -1.0]
+            end
+            @series begin
+                label := ""
                 subplot := 5
                 title := L"q"
                 eqt.profiles_1d, :q
@@ -1033,8 +1042,8 @@ end
         ylabel --> nice_units(units(ids, field))
         label --> nice_field(field)
 
-        background_color_legend := PlotUtils.Colors.RGBA(1.0,1.0,1.0,0.6)
-        
+        background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
+
         if endswith(coordinate_name, "_norm")
             xlim --> (0.0, 1.0)
         end
