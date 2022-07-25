@@ -279,9 +279,6 @@ end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
-    xlims --> eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end]
-    ylims --> eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end]
-
     # @series begin
     #     seriestype --> :contour
     #     levels --> psi_levels
