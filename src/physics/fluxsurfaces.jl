@@ -144,6 +144,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     )
     eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
+    psi_axix = PSI_interpolant(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)
+    eqt.profiles_1d.psi = (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (eqt.profiles_1d.psi[end] - psi_axix) .+ psi_axix
 
     find_x_point!(eqt)
 
@@ -208,7 +210,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
             pr, pz, psi_level =
                 flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, true)
             if isempty(pr)
-                error("Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
+                error("IMAS: Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
 
             # Extrema on array indices
@@ -582,10 +584,9 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
         elseif minimum_distance_two_shapes(pr, pz, rlcfs, zlcfs) > ll
             # secondary Xpoint far away
             continue
-        elseif (sum(pz) < Z0) && (maximum(pz) < minimum(zlcfs))
-            # lower private region
+        elseif (sum(pz) < Z0)
             index = argmax(pz)
-        elseif (sum(pz) > Z0) && (minimum(pz) > maximum(zlcfs))
+        elseif (sum(pz) > Z0)
             # upper private region
             index = argmin(pz)
         else
