@@ -19,16 +19,15 @@ function get_build(bd::IMAS.build; kw...)
 end
 
 """
-    function get_build(
+    get_build(
         layers::IMAS.IDSvector{IMAS.build__layer};
-        type::Union{Nothing,Int} = nothing,
-        name::Union{Nothing,String} = nothing,
-        identifier::Union{Nothing,UInt,Int} = nothing,
-        hfs::Union{Nothing,Int,Array} = nothing,
-        return_only_one = true,
-        return_index = false,
-        raise_error_on_missing = true
-    )
+        type::Union{Nothing,BuildLayerType}=nothing,
+        name::Union{Nothing,String}=nothing,
+        identifier::Union{Nothing,Integer}=nothing,
+        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing,
+        return_only_one::Bool=true,
+        return_index::Bool=false,
+        raise_error_on_missing::Bool=true)
 
 Select layer(s) in build based on a series of selection criteria
 """
@@ -36,32 +35,23 @@ function get_build(
     layers::IMAS.IDSvector{IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
     name::Union{Nothing,String}=nothing,
-    identifier::Union{Nothing,UInt,Int}=nothing,
-    fs::Union{Nothing,BuildLayerSide,Vector{BuildLayerSide}}=nothing,
-    return_only_one=true,
-    return_index=false,
-    raise_error_on_missing=true,
-)
-
-    if fs === nothing
-        #pass
-    else
-        if isa(fs, BuildLayerSide)
-            fs = [fs]
-        end
-        fs = collect(map(Int, fs))
-    end
-    if isa(type, BuildLayerType)
-        type = Int(type)
-    end
+    identifier::Union{Nothing,Integer}=nothing,
+    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing,
+    return_only_one::Bool=true,
+    return_index::Bool=false,
+    raise_error_on_missing::Bool=true)
 
     name0 = name
-    valid_layers = []
+    if return_index
+        valid_layers = Int[]
+    else
+        valid_layers = IMAS.build__layer[]
+    end
     for (k, l) in enumerate(layers)
         if (name === nothing || l.name == name) &&
-           (type === nothing || l.type == type) &&
+           (type === nothing || l.type == Int(type)) &&
            (identifier === nothing || l.identifier == identifier) &&
-           (fs === nothing || l.fs in fs)
+           (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.fs in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.fs == Int(fs)))
             if return_index
                 push!(valid_layers, k)
             else
@@ -71,7 +61,7 @@ function get_build(
             name0 = l.name
         end
     end
-    if length(valid_layers) == 0
+    if isempty(valid_layers)
         if raise_error_on_missing
             error("Did not find build.layer: name=$(repr(name0)) type=$type identifier=$identifier fs=$fs")
         else
