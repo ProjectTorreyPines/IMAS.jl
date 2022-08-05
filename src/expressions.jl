@@ -344,6 +344,24 @@ expressions["costing.cost"] =
 expressions["costing.system[:].cost"] =
     (; system, _...) -> sum([sub.cost for sub in system.subsystem])
 
+expressions["costing.cost_direct_capital.cost"] =
+    (; costing, _...) -> sum([sys.cost for sys in costing.system])
+
+expressions["costing.cost_direct_capital.system[:].cost"] =
+    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
+expressions["costing.cost_decommissioning.cost"] =
+    (; costing, _...) -> sum([sys.cost for sys in costing.system])
+
+expressions["costing.cost_decommissioning.system[:].cost"] =
+    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
+expressions["costing.cost_operations.cost"] =
+    (; costing, _...) -> sum([sys.cost for sys in costing.system])
+
+expressions["costing.cost_operations.system[:].cost"] =
+    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
 #= ============== =#
 #  BalanceOfPlant  #
 #= ============== =#
