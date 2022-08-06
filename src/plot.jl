@@ -365,7 +365,7 @@ function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::Abstrac
     i1, i2 = minimum_distance_two_shapes(r1, z1, r2, z2; return_index=true)
     r = vcat(reverse(r1[i1:end]), r2[i2:end], r2[1:i2], reverse(r1[1:i1]))
     z = vcat(reverse(z1[i1:end]), z2[i2:end], z2[1:i2], reverse(z1[1:i1]))
-    return r,z
+    return r, z
 end
 
 @recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
@@ -389,6 +389,30 @@ end
         end
     end
 end
+
+@recipe function plot_pf_passive(pf_passive::IMAS.pf_passive)
+    @series begin
+        pf_passive.loop
+    end
+end
+
+@recipe function plot_pf_passive(loops::IMAS.IDSvector{<:IMAS.pf_passive__loop})
+    for loop in loops
+        @series begin
+            loop
+        end
+    end
+end
+
+@recipe function plot_pf_passive(loop::IMAS.pf_passive__loop)
+    @series begin
+        aspect_ratio --> :equal
+        label --> loop.name
+        seriestype --> :shape
+        loop.element[1].geometry.outline.r, loop.element[1].geometry.outline.z
+    end
+end
+
 
 """
     plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
