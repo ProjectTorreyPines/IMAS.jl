@@ -30,6 +30,7 @@ end
         raise_error_on_missing::Bool=true)
 
 Select layer(s) in build based on a series of selection criteria
+With `raise_error_on_missing=false` will returns `missing` if layer is missing
 """
 function get_build(
     layers::IMAS.IDSvector{IMAS.build__layer};
@@ -65,7 +66,7 @@ function get_build(
         if raise_error_on_missing
             error("Did not find build.layer: name=$(repr(name0)) type=$type identifier=$identifier fs=$fs")
         else
-            return nothing
+            return missing
         end
     end
     if return_only_one
