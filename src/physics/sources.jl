@@ -315,17 +315,15 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
             end
             for field in keys(ids1)
                 initialized = false
-                if !ismissing(ids2, field)
-                    y = getproperty(ids2, field)
-                    if typeof(y) <: AbstractVector{<:Real}
-                        if typeof(getfield(ids1, field)) <: Union{Missing,Function}
-                            setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
-                            initialized = true
-                        end
-                        old_value = getproperty(ids1, field)
-                        x = source1d.grid.rho_tor_norm
-                        setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
+                y = getproperty(ids2, field, missing)
+                if typeof(y) <: AbstractVector{<:Real}
+                    if !initialized
+                        setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
+                        initialized = true
                     end
+                    old_value = getproperty(ids1, field)
+                    x = source1d.grid.rho_tor_norm
+                    setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
                 end
             end
         end
