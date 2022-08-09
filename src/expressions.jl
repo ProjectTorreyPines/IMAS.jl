@@ -338,29 +338,24 @@ expressions["build.tf.ripple"] =
 #= ======= =#
 #  Costing  #
 #= ======= =#
-expressions["costing.cost"] =
-    (; costing, _...) -> sum([sys.cost for sys in costing.system])
-
-expressions["costing.system[:].cost"] =
-    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
-
-expressions["costing.cost_direct_capital.cost"] =
-    (; costing, _...) -> sum([sys.cost for sys in costing.system])
 
 expressions["costing.cost_direct_capital.system[:].cost"] =
     (; system, _...) -> sum([sub.cost for sub in system.subsystem])
 
-expressions["costing.cost_decommissioning.cost"] =
-    (; costing, _...) -> sum([sys.cost for sys in costing.system])
+expressions["costing.cost_direct_capital.cost"] =
+    (; cost_direct_capital, _...) -> sum([sys.cost for sys in cost_direct_capital.system])
+
+expressions["costing.cost_operations.system[:].cost"] =
+    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
+expressions["costing.cost_operations.cost"] =
+    (; cost_operations, _...) -> sum([sys.cost for sys in cost_operations.system])
 
 expressions["costing.cost_decommissioning.system[:].cost"] =
     (; system, _...) -> sum([sub.cost for sub in system.subsystem])
 
-expressions["costing.cost_operations.cost"] =
-    (; costing, _...) -> sum([sys.cost for sys in costing.system])
-
-expressions["costing.cost_operations.system[:].cost"] =
-    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+expressions["costing.cost_decommissioning.cost"] =
+    (; cost_decommissioning, _...) -> sum([sys.cost for sys in cost_decommissioning.system])
 
 #= ============== =#
 #  BalanceOfPlant  #
