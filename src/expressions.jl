@@ -369,6 +369,9 @@ expressions["balance_of_plant.power_electric_net"] =
 expressions["balance_of_plant.power_electric_plant_operation.total_power"] =
     (time; power_electric_plant_operation, _...) -> sum([sys.power for sys in power_electric_plant_operation.system])
 
+expressions["balance_of_plant.thermal_cycle.power_thermal_convertable_total"] = 
+    (time; thermal_cycle, _...) -> sum([sys.power_in for sys in thermal_cycle.system])
+
 expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; thermal_cycle, _...) -> thermal_cycle.thermal_electric_conversion_efficiency .* sum([sys.power_in for sys in thermal_cycle.system])
 
