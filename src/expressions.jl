@@ -338,11 +338,24 @@ expressions["build.tf.ripple"] =
 #= ======= =#
 #  Costing  #
 #= ======= =#
-expressions["costing.cost"] =
-    (; costing, _...) -> sum([sys.cost for sys in costing.system])
 
-expressions["costing.system[:].cost"] =
+expressions["costing.cost_direct_capital.system[:].cost"] =
     (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
+expressions["costing.cost_direct_capital.cost"] =
+    (; cost_direct_capital, _...) -> sum([sys.cost for sys in cost_direct_capital.system])
+
+expressions["costing.cost_operations.system[:].cost"] =
+    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
+expressions["costing.cost_operations.cost"] =
+    (; cost_operations, _...) -> sum([sys.cost for sys in cost_operations.system])
+
+expressions["costing.cost_decommissioning.system[:].cost"] =
+    (; system, _...) -> sum([sub.cost for sub in system.subsystem])
+
+expressions["costing.cost_decommissioning.cost"] =
+    (; cost_decommissioning, _...) -> sum([sys.cost for sys in cost_decommissioning.system])
 
 #= ============== =#
 #  BalanceOfPlant  #
@@ -355,6 +368,9 @@ expressions["balance_of_plant.power_electric_net"] =
 
 expressions["balance_of_plant.power_electric_plant_operation.total_power"] =
     (time; power_electric_plant_operation, _...) -> sum([sys.power for sys in power_electric_plant_operation.system])
+
+expressions["balance_of_plant.thermal_cycle.power_thermal_convertable_total"] = 
+    (time; thermal_cycle, _...) -> sum([sys.power_in for sys in thermal_cycle.system])
 
 expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; thermal_cycle, _...) -> thermal_cycle.thermal_electric_conversion_efficiency .* sum([sys.power_in for sys in thermal_cycle.system])
