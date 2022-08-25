@@ -331,6 +331,8 @@ function det(a, b)
 end
 
 """
+    line_intersection(line1::Array{Float64, 2}, line2::Array{Float64, 2})
+
 Returns the intersection of two lines. 
 Each line is defined by two x,y points. 
 """
