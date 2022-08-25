@@ -159,6 +159,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         :r_inboard,
         :r_outboard,
         :q,
+        :surface,
         :dvolume_dpsi,
         :j_tor,
         :area,
@@ -286,7 +287,8 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         )
 
         # flux expansion
-        ll = cumsum(vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2)))
+        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
+        ll = cumsum(dl)
         fluxexpansion = 1.0 ./ Bp_abs
         int_fluxexpansion_dl = integrate(ll, fluxexpansion)
         Bpl = integrate(ll, Bp)
@@ -352,6 +354,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
 
         # dvolume_dpsi
         eqt.profiles_1d.dvolume_dpsi[k] = (cc.sigma_rhotp * cc.sigma_Bp * sign(flxAvg(Bp)) * int_fluxexpansion_dl * (2.0 * pi)^(1.0 - cc.exp_Bp))
+
+        # surface area
+        eqt.profiles_1d.surface[k] = 2 * pi * sum(pr .* dl)
 
         # q
         eqt.profiles_1d.q[k] = (

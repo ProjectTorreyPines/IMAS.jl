@@ -273,6 +273,9 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     if !ismissing(cp1d.grid, :area)
         total_source1d.grid.area = cp1d.grid.area
     end
+    if !ismissing(cp1d.grid, :surface)
+        total_source1d.grid.surface = cp1d.grid.surface
+    end
     total_source1d.time = cp1d.time
 
     all_indexes = [source.identifier.index for source in core_sources.source]
