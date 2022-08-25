@@ -334,7 +334,7 @@ end
 Returns the intersection of two lines. 
 Each line is defined by two x,y points. 
 """
-function line_intersection(line1,line2)
+function line_intersection(line1::Array{Float64, 2}, line2::Array{Float64, 2})
     xdiff = (line1[1,1] - line1[2,1], line2[1,1] - line2[2,1])
     ydiff = (line1[1,2] - line1[2,2], line2[1,2] - line2[2,2])
 
