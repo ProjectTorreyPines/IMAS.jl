@@ -322,3 +322,90 @@ function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:R
     dz2 = dz[2:end] ./ a[2:end]
     return dr1 .* dz2 .- dr2 .* dz1
 end
+
+"""
+Returns determinant of 2x2 matrix
+"""
+function det(a, b)
+    return a[1] * b[2] - a[2] * b[1]
+end
+
+"""
+Returns the intersection of two lines. 
+Each line is defined by two x,y points. 
+"""
+function line_intersection(line1,line2)
+    xdiff = (line1[1,1] - line1[2,1], line2[1,1] - line2[2,1])
+    ydiff = (line1[1,2] - line1[2,2], line2[1,2] - line2[2,2])
+
+    xmax = round(max(line2[1,1],line2[2,1]), digits=9)
+    xmin = round(min(line2[1,1],line2[2,1]), digits=9)
+    ymax = round(max(line2[1,2],line2[2,2]), digits=9)
+    ymin = round(min(line2[1,2],line2[2,2]), digits=9)
+
+    seg_xmax = round(max(line1[1,1],line1[2,1]), digits=9)
+    seg_xmin = round(min(line1[1,1],line1[2,1]), digits=9)
+    seg_ymax = round(max(line1[1,2],line1[2,2]), digits=9)
+    seg_ymin = round(min(line1[1,2],line1[2,2]), digits=9)
+
+    div = det(xdiff, ydiff)
+    if div == 0
+       return nothing
+    end
+    d = (det(line1[1,:],line1[2,:]), det(line2[1,:],line2[2,:]))
+    x = round(det(d, xdiff) / div, digits=9)
+    y = round(det(d, ydiff) / div, digits=9)
+    if x==xmax && x==xmin && y<ymax && y>ymin && x<=seg_xmax && x>=seg_xmin && y<=seg_ymax && y>=seg_ymin
+        return [x y]
+    elseif x<xmax && x>xmin && y==ymax && y==ymin && x<=seg_xmax && x>=seg_xmin &&y<=seg_ymax && y>=seg_ymin
+        return [x y]
+    elseif x<=xmax && x>xmin && y<=ymax && y>ymin && x<=seg_xmax && x>=seg_xmin && y<=seg_ymax && y>=seg_ymin
+        return [x y]
+    else
+        return nothing
+    end
+end
+
+
+"""
+Iterates through two lists of coordinates, finds intersection points between
+those two coordinates.
+"""
+function layer_intersections(coord_list1, coord_list2)
+    intersections=[]
+    line1_already_done=false
+    for (coord1_index, coord1) in enumerate(coord_list1[:,1])
+        if coord1_index == length(coord_list1[:,1]) || length(coord_list1[:,1]) <= 2
+            if line1_already_done==true
+                continue
+            end
+            line1=transpose(hcat(coord_list1[1,:], coord_list1[length(coord_list1[:,1]),:]))
+            line1_already_done=true
+        else
+            line1 = transpose(hcat(coord_list1[coord1_index,:], coord_list1[coord1_index+1,:]))
+        end
+        for (coord2_index, coord2) in enumerate(coord_list2[:,1])
+            if coord2_index == length(coord_list2[:,1]) || length(coord_list2[:,1]) <= 2
+                line2=transpose(hcat(coord_list2[1,:], coord_list2[length(coord_list2[:,1]),:]))
+            else
+                line2 = transpose(hcat(coord_list2[coord2_index,:], coord_list2[coord2_index+1,:]))
+            end
+            result_point=line_intersection(line1, line2)
+            if !(result_point === nothing)
+                intersections=push!(intersections,result_point)
+            end
+        end
+    end
+    return intersections
+end
+
+"""
+Finds distance between two points.
+"""
+function find_distance(point1, point2)
+    if length(point1)==0 || length(point2)==0
+        return nothing
+    else
+        return sqrt((point1[1]-point2[1])^2 + (point1[2]-point2[2])^2)
+    end
+end
