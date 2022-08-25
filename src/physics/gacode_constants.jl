@@ -1,8 +1,9 @@
 const gacode_units = (
     e=4.8032e-10, # stacoul
     k=1.6022e-12, # erg/eV
-    me=9.1094e-28, #g
+    me=9.1094e-28, # g
     c=2.9979e10, # cm/s
+    mp=1.6726e-24 # g
     m_to_cm=1e2,
     T_to_Gauss=1e4,
     Erg_to_J=1e-7,
@@ -10,12 +11,12 @@ const gacode_units = (
 )
 
 function c_s(cp1d::IMAS.core_profiles__profiles_1d)
-    return sqrt.(gacode_units.k .* cp1d.electrons.temperature ./ (cp1d.ion[1].element[1].a .* 1.6726e-24))
+    return sqrt.(gacode_units.k .* cp1d.electrons.temperature ./ (cp1d.ion[1].element[1].a .* gacode_units.mp))
 end
 
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     bunit = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, abs.(IMAS.bunit(eqt)) .* gacode_units.T_to_Gauss).(cp1d.grid.rho_tor_norm)
-    return c_s(cp1d) ./ (gacode_units.e .* bunit) .* (cp1d.ion[1].element[1].a .* 1.6726e-24 .* gacode_units.c)
+    return c_s(cp1d) ./ (gacode_units.e .* bunit) .* (cp1d.ion[1].element[1].a .* gacode_units.mp .* gacode_units.c)
 end
 
 function r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
