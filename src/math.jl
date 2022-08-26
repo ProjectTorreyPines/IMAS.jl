@@ -322,3 +322,13 @@ function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:R
     dz2 = dz[2:end] ./ a[2:end]
     return dr1 .* dz2 .- dr2 .* dz1
 end
+
+"""
+    calcz(x::Vector{<:Real},f::Vector{<:Real})
+
+Returns the gradient scale lengths of vector f on x
+"""
+function calcz(x::Vector{<:Real},f::Vector{<:Real})
+    f[findall(i -> i < 1e-32, f)] .= 1e-32
+    return IMAS.gradient(x,f)./ f 
+end
