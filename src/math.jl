@@ -324,11 +324,11 @@ function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:R
 end
 
 """
-    calcz(x::Vector{<:Real},f::Vector{<:Real})
+    calc_z(x::Vector{<:Real},f::Vector{<:Real})
 
 Returns the gradient scale lengths of vector f on x
 """
-function calcz(x::Vector{<:Real},f::Vector{<:Real})
+function calc_z(x::Vector{<:Real},f::Vector{<:Real})
     f[findall(i -> i < 1e-32, f)] .= 1e-32
     return IMAS.gradient(x,f)./ f 
 end
