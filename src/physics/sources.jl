@@ -34,23 +34,76 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
 end
 
 """
+    reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
+
+Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
+"""
+function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
+    if model == "D-T"
+        # Table VII
+        c1 = 1.17302e-9
+        c2 = 1.51361e-2
+        c3 = 7.51886e-2
+        c4 = 4.60643e-3
+        c5 = 1.3500e-2
+        c6 = -1.06750e-4
+        c7 = 1.36600e-5
+        bg = 34.3827
+        er = 1.124656e6
+    elseif model == "D-He3"
+        bg = 68.7508
+        mc2 = 1124572.0
+        c1 = 5.51036e-10
+        c2 = 6.41918e-3
+        c3 = -2.02896e-3
+        c4 = -1.91080e-5
+        c5 = 1.35776e-4
+        c6 = 0.0
+        c7 = 0.0
+        er = 18.3e6
+    elseif model == "D-DtoT"
+        bg = 31.3970
+        mc2 = 937814.0
+        c1 = 5.65718e-12
+        c2 = 3.41267e-3
+        c3 = 1.99167e-3
+        c4 = 0.0
+        c5 = 1.05060e-5
+        c6 = 0.0
+        c7 = 0.0
+        er = 4.03e6
+    elseif model == "D-DtoHe3"
+        bg = 31.3970
+        mc2 = 937814.0
+        c1 = 5.43360e-12
+        c2 = 5.85778e-3
+        c3 = 7.68222e-3
+        c4 = 0.0
+        c5 = -2.96400e-6
+        c6 = 0.0
+        c7 = 0.0
+        er = 0.82e6
+    else
+        error("Reactivity model can be either [\"D-T\",\"D-He3\",\"D-DtoT\", \"D-DtoHe3\"]")
+    end
+
+    Ti = Ti ./ 1e3  # from eV to keV
+
+    r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
+    theta = Ti ./ (1.0 .- r0)
+    xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
+    sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
+
+    return sigv / 1e6  # m^3/s
+end
+
+"""
     alpha_power(cp1d::IMAS.core_profiles__profiles_1d)
 
 Volumetric heating source of α particles coming from DT reaction [W m⁻³]
-Based on Table VII of H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
 """
 function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
     fast_helium_energy = 3.5e6 * 1.6022e-12 * 1e-7  # Joules
-
-    c1 = 1.17302e-9
-    c2 = 1.51361e-2
-    c3 = 7.51886e-2
-    c4 = 4.60643e-3
-    c5 = 1.3500e-2
-    c6 = -1.06750e-4
-    c7 = 1.36600e-5
-    bg = 34.3827
-    er = 1.124656e6
 
     # Find the right D-T density
     ion_list = [ion.label for ion in cp1d.ion]
@@ -59,23 +112,18 @@ function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
         n_deuterium = cp1d.ion[D_index].density
         T_index = findfirst(ion -> isequal(ion, "T"), ion_list)
         n_tritium = cp1d.ion[T_index].density
-        Ti = (cp1d.ion[D_index].temperature + cp1d.ion[T_index].temperature) ./ 2.0 .* 1e-3 # keV
+        Ti = (cp1d.ion[D_index].temperature + cp1d.ion[T_index].temperature) ./ 2.0
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
         n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
-        Ti = cp1d.ion[DT_index].temperature .* 1e-3 # keV
+        Ti = cp1d.ion[DT_index].temperature
     else
         return cp1d.electrons.density .* 0.0
     end
 
-    r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
-    theta = Ti ./ (1.0 .- r0)
-    xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
-    sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
+    sigv = reactivity(Ti, "D-T")
 
-    reactivity = sigv / 1e6  # m^3/s
-
-    return n_deuterium .* n_tritium .* reactivity .* fast_helium_energy  # J/m^3/s = W/m^3
+    return n_deuterium .* n_tritium .* sigv .* fast_helium_energy  # J/m^3/s = W/m^3
 end
 
 """
