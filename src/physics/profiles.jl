@@ -202,3 +202,51 @@ Calculates average pressure from BetaN
 function pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
     return beta_n * abs(Bt) * abs(Ip/1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
 end
+
+"""
+    Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+
+Generate H-mode density and temperature profiles evenly spaced in your favorite radial coordinate
+
+:param edge: separatrix height
+
+:param ped: pedestal height
+
+:param core: on-axis profile height
+
+:param ngrid: number of radial grid points
+
+:param expin: inner core exponent for H-mode pedestal profile
+
+:param expout: outer core exponent for H-mode pedestal profile
+
+:param width: width of pedestal
+"""
+function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    w_E1 = 0.5 * widthp  # width as defined in eped
+    xphalf = 1.0 - w_E1
+
+    xped = xphalf - w_E1
+
+    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
+
+    coretanh = 0.5 * a_t * (1.0 - tanh(-xphalf / w_E1) - pconst) + edge
+
+    xpsi = LinRange(0, 1, ngrid)
+
+    # tanh part
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge * 1.0 + core * 0.0
+
+    xtoped = xpsi / xped
+    grid = LinRange(0, 1, ngrid)
+    for (i, ival) in enumerate(grid)
+        if xtoped[i] < 0
+            @inbounds val[i] = val[i] + (core - coretanh)
+        elseif xtoped[i]^expin < 1.0
+            @inbounds val[i] = val[i] + (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+        end
+    end
+
+    return val
+end
