@@ -72,7 +72,7 @@ function blend_core_pedestal_Hmode(dd::IMAS.dd)
         ion_fractions[ii,:] = ion.density_thermal ./ cp1d.electrons.density
     end
     cp1d.electrons.temperature = blend_core_pedestal_Hmode(cp1d.electrons.temperature, rho, @ddtime(dd_ped.t_e.value),w_ped, 0.8, do_plot=true)
-    cp1d.electrons.density = blend_core_pedestal_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value),w_ped, 0.8, do_plot=true)
+    cp1d.electrons.density_thermal = blend_core_pedestal_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value),w_ped, 0.8, do_plot=true)
     ti_avg_new  = blend_core_pedestal_Hmode(cp1d.ion[1].temperature, rho, @ddtime(dd_ped.t_i_average.value),w_ped, 0.8, do_plot=true)
 
     for (ii,ion) in enumerate(cp1d.ion)
