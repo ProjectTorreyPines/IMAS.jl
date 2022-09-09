@@ -40,6 +40,9 @@ function gradient(coord::AbstractVector, arr::AbstractVector)
     out = similar(arr)
     dcoord = diff(coord)
 
+    if length(coord) != length(arr)
+        error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
+    end
     # Forward difference at the beginning
     out[1] = (arr[2] - arr[1]) / dcoord[1]
 
