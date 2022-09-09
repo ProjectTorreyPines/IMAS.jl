@@ -175,6 +175,19 @@ function DT_fusion_source!(dd::IMAS.dd)
 end
 
 """
+    D_D_to_He3_reactions(dd::IMAS.dd)
+
+Calculates the number of D-D thermal fusion reactions to He3 in [reactions/m³/s]
+"""
+function D_D_to_He3_reactions(dd::IMAS.dd)
+    dd_deut = dd.core_profiles.profiles_1d[].ion[findfirst(ion.label == "D" for ion in dd.core_profiles.profiles_1d[1].ion)]
+    if isnothing(dd_deut)
+        error("There is no Deuterium only species in dd.core_profiles")
+    end
+    return dd_deut.density_thermal.^2 .* reactivity(dd_deut.temperature, "D-DtoHe3") #  reactions/m³/s
+end
+
+"""
     collisional_exchange_source!(dd::IMAS.dd)
 
 Calculates collisional exchange source and modifies dd.core_sources
