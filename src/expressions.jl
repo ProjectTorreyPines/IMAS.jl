@@ -119,13 +119,15 @@ expressions["core_profiles.profiles_1d[:].grid.psi_norm"] =
 expressions["core_profiles.profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume, :cubic).(rho_tor_norm)
+        volume = eqt.profiles_1d.volume
+        return interp1d(eqt.profiles_1d.rho_tor_norm, volume, :cubic).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].grid.area"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area, :cubic).(rho_tor_norm)
+        area = eqt.profiles_1d.area
+        return interp1d(eqt.profiles_1d.rho_tor_norm, area, :cubic).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].grid.surface"] =
@@ -230,10 +232,16 @@ expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
     (; time_slice, _...) -> time_slice.profiles_1d.squareness_upper_outer[end]
 
 expressions["equilibrium.time_slice[:].profiles_1d.j_tor"] =
-    (psi; profiles_1d, _...) -> Jpar_2_Jtor(profiles_1d.rho_tor_norm, profiles_1d.j_parallel, true, time_slice)
+    (psi; profiles_1d, _...) -> begin
+    j_parallel = profiles_1d.j_parallel
+    Jpar_2_Jtor(profiles_1d.rho_tor_norm, j_parallel, true, time_slice)
+end
 
 expressions["equilibrium.time_slice[:].profiles_1d.j_parallel"] =
-    (psi; time_slice, profiles_1d, _...) -> Jtor_2_Jpar(profiles_1d.rho_tor_norm, profiles_1d.j_tor, true, time_slice)
+    (psi; time_slice, profiles_1d, _...) -> begin
+    j_tor = profiles_1d.j_tor
+    Jtor_2_Jpar(profiles_1d.rho_tor_norm, j_tor, true, time_slice)
+end
 
 expressions["equilibrium.time_slice[:].time"] =
     (; equilibrium, time_slice_index, _...) -> equilibrium.time[time_slice_index]
@@ -244,38 +252,68 @@ expressions["equilibrium.time_slice[:].profiles_1d.psi_norm"] = (psi; _...) -> n
 #  core_sources  #
 #= ============ =#
 expressions["core_sources.source[:].profiles_1d[:].electrons.power_inside"] =
-    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.electrons.energy)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    energy = profiles_1d.electrons.energy
+    cumul_integrate(profiles_1d.grid.volume, energy)
+end
 
 expressions["core_sources.source[:].profiles_1d[:].electrons.energy"] =
-    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.electrons.power_inside)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    power_inside = profiles_1d.electrons.power_inside
+    gradient(profiles_1d.grid.volume, power_inside)
+end
 
 
 expressions["core_sources.source[:].profiles_1d[:].total_ion_power_inside"] =
-    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.total_ion_energy)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    total_ion_energy = profiles_1d.total_ion_energy
+    cumul_integrate(profiles_1d.grid.volume, total_ion_energy)
+end
 
 expressions["core_sources.source[:].profiles_1d[:].total_ion_energy"] =
-    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.total_ion_power_inside)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    total_ion_power_inside = profiles_1d.total_ion_power_inside
+    gradient(profiles_1d.grid.volume, total_ion_power_inside)
+end
 
 
 expressions["core_sources.source[:].profiles_1d[:].electrons.particles_inside"] =
-    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.electrons.particles)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    particles = profiles_1d.electrons.particles
+    cumul_integrate(profiles_1d.grid.volume, particles)
+end
 
 expressions["core_sources.source[:].profiles_1d[:].electrons.particles"] =
-    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.electrons.particles_inside)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    particles_inside = profiles_1d.electrons.particles_inside
+    gradient(profiles_1d.grid.volume, particles_inside)
+end
 
 
 expressions["core_sources.source[:].profiles_1d[:].current_parallel_inside"] =
-    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.area, profiles_1d.j_parallel)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    j_parallel = profiles_1d.j_parallel
+    cumul_integrate(profiles_1d.grid.area, j_parallel)
+end
 
 expressions["core_sources.source[:].profiles_1d[:].j_parallel"] =
-    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.area, profiles_1d.current_parallel_inside)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    current_parallel_inside = profiles_1d.current_parallel_inside
+    gradient(profiles_1d.grid.area, current_parallel_inside)
+end
 
 
 expressions["core_sources.source[:].profiles_1d[:].torque_tor_inside"] =
-    (rho_tor_norm; profiles_1d, _...) -> cumul_integrate(profiles_1d.grid.volume, profiles_1d.momentum_tor)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    momentum_tor = profiles_1d.momentum_tor
+    cumul_integrate(profiles_1d.grid.volume, momentum_tor)
+end
 
 expressions["core_sources.source[:].profiles_1d[:].momentum_tor"] =
-    (rho_tor_norm; profiles_1d, _...) -> gradient(profiles_1d.grid.volume, profiles_1d.torque_tor_inside)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+    torque_tor_inside = profiles_1d.torque_tor_inside
+    gradient(profiles_1d.grid.volume, torque_tor_inside)
+end
 
 
 expressions["core_sources.source[:].profiles_1d[:].grid.psi_norm"] =
@@ -284,13 +322,15 @@ expressions["core_sources.source[:].profiles_1d[:].grid.psi_norm"] =
 expressions["core_sources.source[:].profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.volume, :cubic).(rho_tor_norm)
+        volume = eqt.profiles_1d.volume
+        return interp1d(eqt.profiles_1d.rho_tor_norm, volume, :cubic).(rho_tor_norm)
     end
 
 expressions["core_sources.source[:].profiles_1d[:].grid.area"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.area, :cubic).(rho_tor_norm)
+        area = eqt.profiles_1d.area
+        return interp1d(eqt.profiles_1d.rho_tor_norm, area, :cubic).(rho_tor_norm)
     end
 
 expressions["core_sources.source[:].profiles_1d[:].grid.surface"] =
@@ -302,7 +342,8 @@ expressions["core_sources.source[:].profiles_1d[:].grid.surface"] =
 expressions["core_sources.source[:].profiles_1d[:].grid.psi"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.psi, :cubic).(rho_tor_norm)
+        psi = eqt.profiles_1d.psi
+        return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
     end
 
 expressions["core_sources.source[:].profiles_1d[:].time"] =
