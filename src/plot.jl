@@ -1092,7 +1092,7 @@ nice_field_symbols["psi"] = L"\psi"
 nice_field_symbols["psi_norm"] = L"\psi_N"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
 
-function nice_field(field::String)
+function nice_field(field::AbstractString)
     if field in keys(nice_field_symbols)
         field = nice_field_symbols[field]
     else
