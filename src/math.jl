@@ -330,8 +330,9 @@ end
     calc_z(x::Vector{<:Real},f::Vector{<:Real})
 
 Returns the gradient scale lengths of vector f on x
+Note, positive inverse scale length for normal profiles
 """
 function calc_z(x::Vector{<:Real},f::Vector{<:Real})
     f[findall(i -> i < 1e-32, f)] .= 1e-32
-    return IMAS.gradient(x,f)./ f 
+    return IMAS.gradient(x,f)./ f
 end
