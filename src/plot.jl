@@ -640,7 +640,7 @@ Plot build cross-section
                     color --> :red
                 elseif l.type == Int(_blanket_)
                     color --> :orange
-                elseif l.type == Int(_wall_)
+                elseif l.type == Int(_wall_) 
                     color --> :yellow
                 elseif l.type == Int(_vessel_)
                     color --> :lightblue
@@ -767,41 +767,6 @@ end
         else
             label := ""
             [NaN], [NaN]
-        end
-    end
-end
-
-@recipe function plot_core_transport(ct::IMAS.core_transport)
-    for model in ct.model
-        @series begin
-            label := model.identifier.name
-            if model.identifier.index == 5
-                markershape := :cross
-                color := :blue
-            elseif model.identifier.index == 6
-                markershape := :diamond
-                color := :red
-            end
-            model.profiles_1d[]#,name="test"
-        end
-    end
-    dd = IMAS.top_dd(ct)
-    if dd !== missing && dd.core_sources !== missing
-        @series begin
-            linewidth := 2
-            color := :green
-            label := "Total source"
-            flux := true
-            IMAS.total_sources(dd)
-        end
-    end
-
-    if dd !== missing
-        @series begin
-            linewidth := 2
-            color := :black
-            label := "" #"Total transport"
-            IMAS.total_fluxes(dd)
         end
     end
 end

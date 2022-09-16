@@ -66,7 +66,6 @@ Sums up all the fluxes and returns it as a core_transport.model IDS
 function total_fluxes(ct::IMAS.core_transport,rho_total_fluxes::AbstractVector{<:Real} = collect(0.0:0.05:1.0))
     total_fluxes = IMAS.core_transport__model___profiles_1d()
     total_fluxes.grid_flux.rho_tor_norm = rho_total_fluxes
-
     skip_flux_list = [0, 1, 25]
     for model in ct.model
         if model.identifier.index ∈ skip_flux_list
@@ -97,10 +96,15 @@ function total_fluxes(ct::IMAS.core_transport,rho_total_fluxes::AbstractVector{<
                     x_1 = argmin(abs.(rho_total_fluxes .- x[1]))
                     x_2 = argmin(abs.(rho_total_fluxes .- x[end]))
                     if !ismissing(getproperty(ids2,field,missing))
-                        setproperty!(getproperty(ids2,field), :flux, 
-                            vcat(old_value[1:x_1-1],
-                                old_value[x_1:x_2] .+  IMAS.interp1d(x, y,:cubic).(rho_total_fluxes)[x_1:x_2],
-                                old_value[x_2+1:end]))
+                        if length(x) == 1
+                            old_value[x_1] += y[1]
+                            setproperty!(getproperty(ids2,field), :flux, old_value)
+                        else
+                            setproperty!(getproperty(ids2,field), :flux, 
+                                vcat(old_value[1:x_1-1],
+                                    old_value[x_1:x_2] .+  IMAS.interp1d(x, y,:cubic).(rho_total_fluxes)[x_1:x_2],
+                                    old_value[x_2+1:end]))
+                        end
                     end
                 end
             end
