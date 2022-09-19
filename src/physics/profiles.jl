@@ -250,3 +250,46 @@ function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
 
     return val
 end
+
+"""
+    is_quasi_neutral(dd::IMAS.dd)
+"""
+function is_quasi_neutral(dd::IMAS.dd; rtol::Float64=0.001)
+    return is_quasi_neutral(dd.core_profiles.profiles_1d[]; rtol)
+end
+
+"""
+    is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
+
+Checks quasi neutrality within a relative tolerance
+"""
+function is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
+    # Allow within rtol
+    Nis = sum(sum([ion.density .* ion.z_ion for ion in cp1d.ion]))
+    Ne = sum(cp1d.electrons.density)
+    if 1 + rtol > Ne / Nis > 1 - rtol
+        return true
+    else
+        return false
+    end
+end
+
+"""
+    enforce_quasi_neutrality!(dd::IMAS.dd, specie::Symbol)
+"""
+function enforce_quasi_neutrality!(dd::IMAS.dd, specie::Symbol)
+    return enforce_quasi_neutrality!(dd.core_profiles.profiles_1d[], specie)
+end
+
+"""
+    enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie::Symbol)
+
+Enforce quasi neutrality by using density_thermal of specie
+"""
+function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie::Symbol)
+    specie_indx = findfirst(Symbol(ion.label) == specie for ion in cp1d.ion)
+    @assert specie_indx !== nothing
+    cp1d.ion[specie_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[specie_indx].density .* cp1d.ion[specie_indx].z_ion  .- sum([ion.density .* ion.z_ion for ion in cp1d.ion])) ./ cp1d.ion[specie_indx].z_ion
+    # Make sure expression is used for density
+    empty!(cp1d.ion[specie_indx], :density)
+end

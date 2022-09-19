@@ -24,7 +24,7 @@ function r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.eq
     return IMAS.interp1d(eq1d.rho_tor_norm, gacode_units.m_to_cm * 0.5 * (eq1d.r_outboard - eq1d.r_inboard)).(cp1d.grid.rho_tor_norm)
 end
 
-##### Gyrobohm normalizations
+##### Gyrobohm normalizations from gacode
 function gyrobohm_particle_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     return cp1d.electrons.density_thermal .* gacode_units.m³_to_cm³ .* c_s(cp1d) .*
            (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.m_to_cm^2

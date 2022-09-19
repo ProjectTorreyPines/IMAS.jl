@@ -27,10 +27,18 @@ const constants = (
     m_u = convert(Float64, PCs.m_u).val
 )
 
+"""
+    index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
+"""
 function index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
     return index_2_name(ids, Val(field))
 end
 
+"""
+    index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
+
+returns dict of IMAS indentifier.index to it's name
+"""
 function index_2_name(ids::IDSvector{core_transport__model}, field::Val{:identifier})
     return Dict(0 => :unspecified,
     1 => :combined, 2 => :transport_solver,
@@ -40,6 +48,11 @@ function index_2_name(ids::IDSvector{core_transport__model}, field::Val{:identif
     24 => :pedestal, 25 => :unknown)
 end
 
+"""
+    name_2_index(ids::Union{IDS, IDSvector}, field::Any)
+
+returns dict of name to IMAS indentifier.index
+"""
 function name_2_index(ids::Union{IDS, IDSvector}, field::Any)
     dict = index_2_name(ids,field)
     return Dict(v=>k for (k,v) in dict)
