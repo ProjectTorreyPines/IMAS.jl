@@ -62,6 +62,45 @@ function gradient(coord::AbstractVector, arr::AbstractVector)
     return out
 end
 
+function gradient(coord::AbstractVector, arr::AbstractVector, difference_method::Symbol)
+    np = size(arr)[1]
+    out = similar(arr)
+    dcoord = diff(coord)
+
+    if length(coord) != length(arr)
+        error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
+    end
+    # Forward difference at the beginning
+    out[1] = (arr[2] - arr[1]) / dcoord[1]
+
+    # Central difference in interior using numpy method
+    if difference_method == :central 
+        for p = 2:np-1
+            dp1 = dcoord[p-1]
+            dp2 = dcoord[p]
+            a = -dp2 / (dp1 * (dp1 + dp2))
+            b = (dp2 - dp1) / (dp1 * dp2)
+            c = dp1 / (dp2 * (dp1 + dp2))
+            out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
+        end
+    elseif difference_method == :backwards
+        for p = 2:np-1
+            out[p] = (arr[p] - arr[p-1]) / dcoord[p]
+        end
+    elseif difference_method == :forward
+        for p = 2:np-1
+            out[p] = (arr[p+1] - arr[p]) / dcoord[p]
+        end        
+    else
+        error("difference method $(difference_method) doesn't excist in gradient function")
+    end
+
+    # Backwards difference at the end
+    out[end] = (arr[end] - arr[end-1]) / dcoord[end]
+
+    return out
+end
+
 function gradient(arr::Matrix)
     return gradient(1:size(arr)[1], 1:size(arr)[2], arr)
 end
@@ -334,5 +373,5 @@ Note, positive inverse scale length for normal profiles
 """
 function calc_z(x::Vector{<:Real},f::Vector{<:Real})
     f[findall(i -> i < 1e-32, f)] .= 1e-32
-    return IMAS.gradient(x,f)./ f
+    return IMAS.gradient(x,f, :backwards)./ f
 end

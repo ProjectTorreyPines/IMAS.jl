@@ -284,12 +284,15 @@ end
 """
     enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie::Symbol)
 
-Enforce quasi neutrality by using density_thermal of specie
+Enforce quasi neutrality by using density_thermal of specie and makes sure density is set to the original expression
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie::Symbol)
+    empty!(cp1d.electrons, :density)
+    for ion in cp1d.ion
+        empty!(ion, :density)
+    end
     specie_indx = findfirst(Symbol(ion.label) == specie for ion in cp1d.ion)
     @assert specie_indx !== nothing
     cp1d.ion[specie_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[specie_indx].density .* cp1d.ion[specie_indx].z_ion  .- sum([ion.density .* ion.z_ion for ion in cp1d.ion])) ./ cp1d.ion[specie_indx].z_ion
     # Make sure expression is used for density
-    empty!(cp1d.ion[specie_indx], :density)
 end
