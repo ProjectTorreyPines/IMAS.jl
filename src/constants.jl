@@ -34,11 +34,6 @@ function index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
     return index_2_name(ids, Val(field))
 end
 
-"""
-    index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
-
-returns dict of IMAS indentifier.index to it's name
-"""
 function index_2_name(ids::IDSvector{core_transport__model}, field::Val{:identifier})
     return Dict(0 => :unspecified,
     1 => :combined, 2 => :transport_solver,
