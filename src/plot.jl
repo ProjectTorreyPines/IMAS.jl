@@ -922,9 +922,26 @@ end
         ylim --> (0, Inf)
         cpt.electrons, :temperature
     end
+
+    temps_the_same = false
+    if length(cpt.ion) > 1
+        temps_the_same = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end]])
+        if temps_the_same
+            @series begin
+                subplot := 1
+                title := "Temperatures"
+                label := "Ions"
+                linestyle --> :dash
+                ylim --> (0, Inf)
+                cpt.ion[1], :temperature
+            end
+        end
+    end
+
     for ion in cpt.ion
-        # To not clutter the core_profiles plot we only plot one ion temperature (they are the same anyways)
-        if ion.label ∈ ["D", "DT", "T"] 
+        if temps_the_same
+            nothing
+        else
             @series begin
                 subplot := 1
                 title := "Temperatures"
