@@ -1,7 +1,7 @@
 """
     blend_core_pedestal_Hmode(
-            profile::Vector{<:Real},
-            rho::Vector{<:Real},
+            profile::AbstractVector{<:Real},
+            rho::AbstractVector{<:Real},
             ped_height::Real,
             ped_width::Real,
             rho_bound::Real)

@@ -640,7 +640,7 @@ Plot build cross-section
                     color --> :red
                 elseif l.type == Int(_blanket_)
                     color --> :orange
-                elseif l.type == Int(_wall_) 
+                elseif l.type == Int(_wall_)
                     color --> :yellow
                 elseif l.type == Int(_vessel_)
                     color --> :lightblue
@@ -706,10 +706,7 @@ end
 end
 
 
-@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; name="", label=nothing, markershape=:none, color=:green)
-    if label === nothing
-        label = ""
-    end
+@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; name="", label="", markershape=:none, color=:green)
 
     layout := (2, 2)
     size --> (800, 600)
@@ -788,7 +785,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label=nothing, integrated=false, flux=false)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false)
 
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool

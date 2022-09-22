@@ -261,13 +261,12 @@ end
 """
     is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
 
-Checks quasi neutrality within a relative tolerance
+Returns true if quasi neutrality is satisfied within a relative tolerance
 """
 function is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
-    # Allow within rtol
     Nis = sum(sum([ion.density .* ion.z_ion for ion in cp1d.ion]))
     Ne = sum(cp1d.electrons.density)
-    if 1 + rtol > Ne / Nis > 1 - rtol
+    if (1 + rtol) > (Ne / Nis) > (1 - rtol)
         return true
     else
         return false
