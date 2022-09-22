@@ -681,7 +681,7 @@ end
                 markershape := :diamond
                 color := :red
             end
-            model.profiles_1d[]#,name="test"
+            model.profiles_1d[]
         end
     end
     dd = IMAS.top_dd(ct)
@@ -713,60 +713,53 @@ end
 
     layout := (2, 2)
     size --> (800, 600)
-
     margin --> 5 * Measures.mm
-    @series begin
-        subplot := 1
-        color := color
-        markershape := markershape
-        title := "Electron energy flux"
-        label := :none
-        if !ismissing(ct1d.electrons.energy, :flux)
-            ct1d.electrons.energy, :flux
-        else
-            label := ""
-            [NaN], [NaN]
-        end    end
-    
-    @series begin
-        subplot := 2
-        color := color
-        markershape := markershape
-       
-        title := "Ion energy flux"
-        label := label
-        if !ismissing(ct1d.total_ion_energy, :flux)
-            ct1d.total_ion_energy, :flux
-        else
-            label := ""
-            [NaN], [NaN]
-        end    end
-    
-    @series begin
-        subplot := 3
-        color := color
-        markershape := markershape
-        title := "Electron particle flux"
-        label := :none
-        if !ismissing(ct1d.electrons.particles, :flux)
-            ct1d.electrons.particles, :flux
-        else
-            label := ""
-            [NaN], [NaN]
-        end    end
-    
-    @series begin
-        subplot := 4
-        color := color
-        markershape := markershape
-        title := "Toroidal momentum flux"
-        label := :none
 
-        if !ismissing(ct1d.momentum_tor, :flux)
+    if !ismissing(ct1d.electrons.energy, :flux)
+        @series begin
+            subplot := 1
+            color := color
+            markershape := markershape
+            title := "Electron energy flux"
+            label := :none
+        
+            ct1d.electrons.energy, :flux
+        end
+    end
+    
+    if !ismissing(ct1d.total_ion_energy, :flux)
+        @series begin
+            subplot := 2
+            color := color
+            markershape := markershape
+            title := "Ion energy flux"
+            label := label
+
+            ct1d.total_ion_energy, :flux
+        end
+    end
+
+    if !ismissing(ct1d.electrons.particles, :flux)
+        @series begin
+            subplot := 3
+            color := color
+            markershape := markershape
+            title := "Electron particle flux"
+            label := :none
+
+            ct1d.electrons.particles, :flux    
+        end
+    end
+
+    if !ismissing(ct1d.momentum_tor, :flux)
+        @series begin
+            subplot := 4
+            color := color
+            markershape := markershape
+            title := "Toroidal momentum flux"
+            label := :none
+
             ct1d.momentum_tor, :flux
-        else
-            label := ""
-            [NaN], [NaN]
         end
     end
 end
