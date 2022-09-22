@@ -61,15 +61,15 @@ function blend_core_pedestal_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped
     w_ped = 1 - @ddtime(dd_ped.position.rho_tor_norm)
 
     ion_fractions = zeros(Float64, length(cp1d.ion), length(cp1d.electrons.density))
-    for (ii,ion) in enumerate(cp1d.ion)
-        ion_fractions[ii,:] = ion.density_thermal ./ cp1d.electrons.density
+    for (ii, ion) in enumerate(cp1d.ion)
+        ion_fractions[ii, :] = ion.density_thermal ./ cp1d.electrons.density
     end
-    cp1d.electrons.temperature = blend_core_pedestal_Hmode(cp1d.electrons.temperature, rho, @ddtime(dd_ped.t_e.value),w_ped, 0.8)
-    cp1d.electrons.density_thermal = blend_core_pedestal_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value),w_ped, 0.8)
-    ti_avg_new  = blend_core_pedestal_Hmode(cp1d.ion[1].temperature, rho, @ddtime(dd_ped.t_i_average.value),w_ped, 0.8)
+    cp1d.electrons.temperature = blend_core_pedestal_Hmode(cp1d.electrons.temperature, rho, @ddtime(dd_ped.t_e.value), w_ped, 0.8)
+    cp1d.electrons.density_thermal = blend_core_pedestal_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value), w_ped, 0.8)
+    ti_avg_new = blend_core_pedestal_Hmode(cp1d.ion[1].temperature, rho, @ddtime(dd_ped.t_i_average.value), w_ped, 0.8)
 
-    for (ii,ion) in enumerate(cp1d.ion)
-        ion.density_thermal = ion_fractions[ii,:] .*  cp1d.electrons.density
+    for (ii, ion) in enumerate(cp1d.ion)
+        ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
         ion.temperature = ti_avg_new
     end
 end

@@ -49,6 +49,5 @@ end
 returns dict of name to IMAS indentifier.index
 """
 function name_2_index(ids::Union{IDS, IDSvector}, field::Any)
-    dict = index_2_name(ids,field)
-    return Dict(v=>k for (k,v) in dict)
+    return Dict(v=>k for (k,v) in index_2_name(ids,field))
 end

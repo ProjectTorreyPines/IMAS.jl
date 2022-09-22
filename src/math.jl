@@ -49,7 +49,7 @@ function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:ce
     out[1] = (arr[2] - arr[1]) / dcoord[1]
 
     # Central difference in interior using numpy method
-    if method == :central 
+    if method == :central
         for p = 2:np-1
             dp1 = dcoord[p-1]
             dp2 = dcoord[p]
@@ -65,7 +65,7 @@ function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:ce
     elseif method == :forward
         for p = 2:np-1
             out[p] = (arr[p+1] - arr[p]) / dcoord[p]
-        end        
+        end
     else
         error("difference method $(difference_method) doesn't excist in gradient function")
     end
@@ -346,7 +346,7 @@ end
 Returns the gradient scale lengths of vector f on x
 Note, positive inverse scale length for normal profiles
 """
-function calc_z(x::Vector{<:Real},f::Vector{<:Real})
+function calc_z(x::Vector{<:Real}, f::Vector{<:Real})
     f[findall(i -> i < 1e-32, f)] .= 1e-32
-    return IMAS.gradient(x,f, method=:backwards)./ f
+    return IMAS.gradient(x, f, method=:backwards) ./ f
 end

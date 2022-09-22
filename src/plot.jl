@@ -719,11 +719,11 @@ end
             markershape := markershape
             title := "Electron energy flux"
             label := :none
-        
+
             ct1d.electrons.energy, :flux
         end
     end
-    
+
     if !ismissing(ct1d.total_ion_energy, :flux)
         @series begin
             subplot := 2
@@ -744,7 +744,7 @@ end
             title := "Electron particle flux"
             label := :none
 
-            ct1d.electrons.particles, :flux    
+            ct1d.electrons.particles, :flux
         end
     end
 
@@ -871,7 +871,7 @@ end
         title := "Momentum Tor"
         if !ismissing(cs1d, :torque_tor_inside)
             label := :none
-            cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside ./ cs1d.grid.surface)[2:end]
+            cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
         else
             label := ""
             [NaN], [NaN]

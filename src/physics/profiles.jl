@@ -191,7 +191,7 @@ end
 Calculates BetaN from beta_tor
 """
 function beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
-    return beta_tor * minor_radius * abs(Bt) / abs(Ip/ 1e6) * 1.0e2 # [%]
+    return beta_tor * minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2 # [%]
 end
 
 """
@@ -200,7 +200,7 @@ end
 Calculates average pressure from BetaN
 """
 function pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
-    return beta_n * abs(Bt) * abs(Ip/1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
+    return beta_n * abs(Bt) * abs(Ip / 1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
 end
 
 """
@@ -293,5 +293,5 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
     end
     species_indx = findfirst(Symbol(ion.label) == species for ion in cp1d.ion)
     @assert species_indx !== nothing
-    cp1d.ion[species_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion  .- sum([ion.density .* ion.z_ion for ion in cp1d.ion])) ./ cp1d.ion[species_indx].z_ion
+    cp1d.ion[species_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum([ion.density .* ion.z_ion for ion in cp1d.ion])) ./ cp1d.ion[species_indx].z_ion
 end
