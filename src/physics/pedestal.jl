@@ -4,9 +4,7 @@
             rho::Vector{<:Real},
             ped_height::Real,
             ped_width::Real,
-            rho_bound::Real,
-            ; do_plot=false)
-
+            rho_bound::Real)
 Blends the core and pedestal for given profile to match ped_height, ped_width using rho_bound as blending boundary
 """
 function blend_core_pedestal_Hmode(
@@ -14,8 +12,7 @@ function blend_core_pedestal_Hmode(
     rho::Vector{<:Real},
     ped_height::Real,
     ped_width::Real,
-    rho_bound::Real,
-    ; do_plot=false)
+    rho_bound::Real)
 
     ngrid = length(rho)
     profile_ped = Hmode_profiles(profile[end], ped_height, profile[1], ngrid, 2.0, 1.4, ped_width)
@@ -45,25 +42,21 @@ function blend_core_pedestal_Hmode(
     for i in irho_bound-1:-1:1
         profile_new[i] = profile_new[i+1] * exp(0.5 * (z_profile[i] + z_profile[i+1]) * (-rho[i] + rho[i+1]))
     end
-    """ got to make this to recipes
-    if do_plot
-        plot(rho, profile, label="old profile")
-        plot!(rho[irho_bound:end], profile_ped[irho_bound:end], lw=2.5, linestyle=:dash, label="new pedestal to blend")
-        display(plot!(rho, profile_new, label="blended profile"))
-    end
-    """
 
     return profile_new
 end
+
+function blend_core_pedestal_Hmode(dd::IMAS.dd)
+    return blend_core_pedestal_Hmode(dd.core_profiles.profiles_1d[], dd.summary.local.pedestal)
+end
+
 
 """
     blend_core_pedestal_Hmode(dd::IMAS.dd)
 
 Blends Te,Ti, ne, nis core_pedestal for Hmodeprofiles
 """
-function blend_core_pedestal_Hmode(dd::IMAS.dd)
-    dd_ped = dd.summary.local.pedestal
-    cp1d = dd.core_profiles.profiles_1d[]
+function blend_core_pedestal_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped::IMAS.summary__local__pedestal)
     rho = cp1d.grid.rho_tor_norm
     w_ped = 1 - @ddtime(dd_ped.position.rho_tor_norm)
 
@@ -71,9 +64,9 @@ function blend_core_pedestal_Hmode(dd::IMAS.dd)
     for (ii,ion) in enumerate(cp1d.ion)
         ion_fractions[ii,:] = ion.density_thermal ./ cp1d.electrons.density
     end
-    cp1d.electrons.temperature = blend_core_pedestal_Hmode(cp1d.electrons.temperature, rho, @ddtime(dd_ped.t_e.value),w_ped, 0.8, do_plot=true)
-    cp1d.electrons.density_thermal = blend_core_pedestal_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value),w_ped, 0.8, do_plot=true)
-    ti_avg_new  = blend_core_pedestal_Hmode(cp1d.ion[1].temperature, rho, @ddtime(dd_ped.t_i_average.value),w_ped, 0.8, do_plot=true)
+    cp1d.electrons.temperature = blend_core_pedestal_Hmode(cp1d.electrons.temperature, rho, @ddtime(dd_ped.t_e.value),w_ped, 0.8)
+    cp1d.electrons.density_thermal = blend_core_pedestal_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value),w_ped, 0.8)
+    ti_avg_new  = blend_core_pedestal_Hmode(cp1d.ion[1].temperature, rho, @ddtime(dd_ped.t_i_average.value),w_ped, 0.8)
 
     for (ii,ion) in enumerate(cp1d.ion)
         ion.density_thermal = ion_fractions[ii,:] .*  cp1d.electrons.density
