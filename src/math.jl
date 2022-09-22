@@ -29,13 +29,15 @@ function gradient(arr::AbstractVector)
 end
 
 """
-    gradient(coord::AbstractVector, arr::AbstractVector)
+    gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
 
 Gradient of a vector computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backwards) differences at the boundaries
-The returned gradient hence has the same shape as the input array.
-https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+
+Method options are : [:central, :backwards, :forward] for using the central, backwards or forward method
 """
-function gradient(coord::AbstractVector, arr::AbstractVector)
+
+function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
     np = size(arr)[1]
     out = similar(arr)
     dcoord = diff(coord)
@@ -47,34 +49,7 @@ function gradient(coord::AbstractVector, arr::AbstractVector)
     out[1] = (arr[2] - arr[1]) / dcoord[1]
 
     # Central difference in interior using numpy method
-    for p = 2:np-1
-        dp1 = dcoord[p-1]
-        dp2 = dcoord[p]
-        a = -dp2 / (dp1 * (dp1 + dp2))
-        b = (dp2 - dp1) / (dp1 * dp2)
-        c = dp1 / (dp2 * (dp1 + dp2))
-        out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
-    end
-
-    # Backwards difference at the end
-    out[end] = (arr[end] - arr[end-1]) / dcoord[end]
-
-    return out
-end
-
-function gradient(coord::AbstractVector, arr::AbstractVector, difference_method::Symbol)
-    np = size(arr)[1]
-    out = similar(arr)
-    dcoord = diff(coord)
-
-    if length(coord) != length(arr)
-        error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
-    end
-    # Forward difference at the beginning
-    out[1] = (arr[2] - arr[1]) / dcoord[1]
-
-    # Central difference in interior using numpy method
-    if difference_method == :central 
+    if method == :central 
         for p = 2:np-1
             dp1 = dcoord[p-1]
             dp2 = dcoord[p]
@@ -83,11 +58,11 @@ function gradient(coord::AbstractVector, arr::AbstractVector, difference_method:
             c = dp1 / (dp2 * (dp1 + dp2))
             out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
         end
-    elseif difference_method == :backwards
+    elseif method == :backwards
         for p = 2:np-1
             out[p] = (arr[p] - arr[p-1]) / dcoord[p]
         end
-    elseif difference_method == :forward
+    elseif method == :forward
         for p = 2:np-1
             out[p] = (arr[p+1] - arr[p]) / dcoord[p]
         end        
