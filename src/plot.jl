@@ -930,7 +930,7 @@ end
             @series begin
                 subplot := 1
                 title := "Temperatures"
-                label := "Ions"
+                label := "Ions" * label
                 linestyle --> :dash
                 ylim --> (0, Inf)
                 cpt.ion[1], :temperature
