@@ -923,13 +923,16 @@ end
         cpt.electrons, :temperature
     end
     for ion in cpt.ion
-        @series begin
-            subplot := 1
-            title := "Temperatures"
-            label := ion.label * label
-            linestyle --> :dash
-            ylim --> (0, Inf)
-            ion, :temperature
+        # To not clutter the core_profiles plot we only plot one ion temperature (they are the same anyways)
+        if ion.label ∈ ["D", "DT", "T"] 
+            @series begin
+                subplot := 1
+                title := "Temperatures"
+                label := ion.label * label
+                linestyle --> :dash
+                ylim --> (0, Inf)
+                ion, :temperature
+            end
         end
     end
 
