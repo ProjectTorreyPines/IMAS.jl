@@ -15,7 +15,7 @@ function blend_core_pedestal_Hmode(
     rho_bound::Real)
 
     ngrid = length(rho)
-    profile_ped = Hmode_profiles(profile[end], ped_height, profile[1], ngrid, 1.15, 1.3, ped_width)
+    profile_ped = Hmode_profiles(profile[end], ped_height, profile[1], ngrid, 2.0, 1.4, ped_width)
 
     rho_top = 1.0 - 1.5 * ped_width
 
