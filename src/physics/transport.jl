@@ -1,27 +1,4 @@
 """
-    setup_transport_grid!(m1d::IMAS.core_transport__model___profiles_1d, rho_gridpoints::AbstractVector{<:Real};
-     setup_grid_for::AbstractVector{Symbol}=[:electrons_energy, :electrons_particles, :total_ion_energy, :momentum_tor])
-
-Sets up the transport grid of core_transport.model and initializes the fluxes
-"""
-function setup_transport_grid!(m1d::IMAS.core_transport__model___profiles_1d, rho_gridpoints::AbstractVector{<:Real};
-     setup_grid_for::AbstractVector{Symbol}=[:electrons_energy, :electrons_particles, :total_ion_energy, :momentum_tor])
-    m1d.grid_flux.rho_tor_norm = rho_gridpoints
-    if :electrons_particles ∈ setup_grid_for
-        m1d.electrons.particles.flux = zeros(length(rho_gridpoints))
-    end
-    if :electrons_energy ∈ setup_grid_for
-        m1d.electrons.energy.flux = zeros(length(rho_gridpoints))
-    end
-    if :total_ion_energy ∈ setup_grid_for
-        m1d.total_ion_energy.flux = zeros(length(rho_gridpoints))
-    end
-    if :momentum_tor ∈ setup_grid_for
-        m1d.momentum_tor.flux = zeros(length(rho_gridpoints))
-    end
-end
-
-"""
     profile_from_z_transport(
         profile_old::AbstractVector{<:Real},
         rho::AbstractVector{<:Real},
@@ -65,7 +42,7 @@ end
 
 Sums up all the fluxes and returns it as a core_transport.model IDS
 """
-function total_fluxes(ct::IMAS.core_transport, rho_total_fluxes::AbstractVector{<:Real} = 0.0:0.05:1.0)
+function total_fluxes(ct::IMAS.core_transport, rho_total_fluxes::AbstractVector{<:Real}=0.0:0.05:1.0)
     total_fluxes = IMAS.core_transport__model___profiles_1d()
     total_fluxes.grid_flux.rho_tor_norm = rho_total_fluxes
     skip_flux_list = [:unknown, :unspecified, :combined]
