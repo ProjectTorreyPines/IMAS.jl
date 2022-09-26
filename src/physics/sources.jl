@@ -316,7 +316,7 @@ function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vect
 end
 
 function total_sources(dd::IMAS.dd)
-    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[1])
+    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
 end
 
 """
