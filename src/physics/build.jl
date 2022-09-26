@@ -5,7 +5,7 @@ Return list of radii in the build
 """
 function build_radii(bd::IMAS.build)
     layers_radii = Real[]
-    layer_start = 0
+    layer_start = 0.0
     for l in bd.layer
         push!(layers_radii, layer_start)
         layer_start = layer_start + l.thickness
