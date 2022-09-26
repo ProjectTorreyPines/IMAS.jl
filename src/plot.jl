@@ -211,7 +211,7 @@ end
 
 end
 
-@recipe function plot_eqt2dv(eqt2dv::IDSvector{IMAS.equilibrium__time_slice___profiles_2d})
+@recipe function plot_eqt2dv(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
     if !isempty(eqt2dv)
         if ismissing(eqt2dv[1], :psi)
             @series begin
@@ -332,7 +332,7 @@ end
     end
 end
 
-@recipe function plot_x_points(x_points::IDSvector{IMAS.equilibrium__time_slice___boundary__x_point})
+@recipe function plot_x_points(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point})
     for x_point in x_points
         @series begin
             x_point
@@ -378,7 +378,7 @@ end
     end
 end
 
-@recipe function plot_pf_active_rail(rails::IDSvector{IMAS.build__pf_active__rail})
+@recipe function plot_pf_active_rail(rails::IDSvector{<:IMAS.build__pf_active__rail})
     for (krail, rail) in enumerate(rails)
         if !ismissing(rail.outline, :r)
             @series begin

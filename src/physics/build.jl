@@ -20,7 +20,7 @@ end
 
 """
     get_build(
-        layers::IMAS.IDSvector{IMAS.build__layer};
+        layers::IMAS.IDSvector{<:IMAS.build__layer};
         type::Union{Nothing,BuildLayerType}=nothing,
         name::Union{Nothing,String}=nothing,
         identifier::Union{Nothing,Integer}=nothing,
@@ -33,7 +33,7 @@ Select layer(s) in build based on a series of selection criteria
 With `raise_error_on_missing=false` will returns `missing` if layer is missing
 """
 function get_build(
-    layers::IMAS.IDSvector{IMAS.build__layer};
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
     name::Union{Nothing,String}=nothing,
     identifier::Union{Nothing,Integer}=nothing,
