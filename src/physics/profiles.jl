@@ -29,17 +29,17 @@ function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Miss
     elseif !ismissing(ion_symbol)
         # exceptions: isotopes & lumped (only exceptions allowed for symbols)
         if ion_symbol == :D
-            element.z_n = 1
-            element.a = 2
+            element.z_n = 1.0
+            element.a = 2.0
             ion.label = String(ion_symbol)
             return ion
         elseif ion_symbol == :T
-            element.z_n = 1
-            element.a = 3
+            element.z_n = 1.0
+            element.a = 3.0
             ion.label = String(ion_symbol)
             return ion
         elseif ion_symbol ∈ [:DT, :TD]
-            element.z_n = 1
+            element.z_n = 1.0
             element.a = 2.5
             ion.label = String(ion_symbol)
             return ion
@@ -50,7 +50,7 @@ function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Miss
     else
         error("Specify either ion_z, ion_symbol or ion_name")
     end
-    element.z_n = element_ion.number
+    element.z_n = float(element_ion.number)
     element.a = element_ion.atomic_mass.val # This sets the atomic mass to the average isotope mass with respect to the abundence of that isotope i.e Neon: 20.179
     ion.label = String(element_ion.symbol)
     return ion
@@ -100,7 +100,7 @@ function tau_e_h98(dd::IMAS.dd; time=dd.global_time)
     total_source = IMAS.total_sources(dd.core_sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1]))
+        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
 
     tau98 = (
         0.0562 *
