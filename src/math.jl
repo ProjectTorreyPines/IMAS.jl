@@ -24,8 +24,8 @@ function to_range(vector::AbstractVector{<:Real})
     return range(vector[1], vector[end], length=length(vector))
 end
 
-function gradient(arr::AbstractVector)
-    return gradient(1:length(arr), arr)
+function gradient(arr::AbstractVector; method::Symbol=:central)
+    return gradient(1:length(arr), arr; method)
 end
 
 """
@@ -76,13 +76,13 @@ function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:ce
     return out
 end
 
-function gradient(arr::Matrix)
-    return gradient(1:size(arr)[1], 1:size(arr)[2], arr)
+function gradient(arr::Matrix; method::Symbol=:central)
+    return gradient(1:size(arr)[1], 1:size(arr)[2], arr; method)
 end
 
-function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix)
-    d1 = hcat(map(x -> gradient(coord1, x), eachcol(arr))...)
-    d2 = transpose(hcat(map(x -> gradient(coord2, x), eachrow(arr))...))
+function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:central)
+    d1 = hcat(map(x -> gradient(coord1, x; method), eachcol(arr))...)
+    d2 = transpose(hcat(map(x -> gradient(coord2, x; method), eachrow(arr))...))
     return d1, d2
 end
 
@@ -347,6 +347,6 @@ Returns the gradient scale lengths of vector f on x
 Note, positive inverse scale length for normal profiles
 """
 function calc_z(x::Vector{<:Real}, f::Vector{<:Real})
-    f[findall(i -> i < 1e-32, f)] .= 1e-32
+    f[findall(ff -> (ff < 1e-32), f)] .= 1e-32
     return IMAS.gradient(x, f, method=:backwards) ./ f
 end

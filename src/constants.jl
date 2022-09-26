@@ -34,7 +34,7 @@ function index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
     return index_2_name(ids, Val(field))
 end
 
-function index_2_name(ids::IDSvector{core_transport__model}, field::Val{:identifier})
+function index_2_name(ids::IDSvector{<:core_transport__model}, field::Val{:identifier})
     return Dict(0 => :unspecified,
     1 => :combined, 2 => :transport_solver,
     3 => :background, 4 => :database, 5 => :neoclassical,

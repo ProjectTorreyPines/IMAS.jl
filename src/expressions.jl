@@ -36,7 +36,7 @@ end
 #               (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
 
 #= =========== =#
-# Core Profiles #
+# core_profiles #
 #= =========== =#
 expressions["core_profiles.profiles_1d[:].electrons.density"] =
     (rho_tor_norm; electrons, _...) -> electrons.density_thermal .+ electrons.density_fast
@@ -132,8 +132,9 @@ expressions["core_profiles.profiles_1d[:].grid.area"] =
 
 expressions["core_profiles.profiles_1d[:].grid.surface"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        surface = eqt.profiles_1d.surface
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
-        return interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.surface, :cubic).(rho_tor_norm)
+        return interp1d(eqt.profiles_1d.rho_tor_norm, surface, :cubic).(rho_tor_norm)
     end
 
 expressions["core_profiles.profiles_1d[:].grid.psi"] =
@@ -152,7 +153,7 @@ expressions["core_profiles.vacuum_toroidal_field.r0"] =
     (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
 
 #= ========= =#
-# Equilibrium #
+# equilibrium #
 #= ========= =#
 # IMAS does not hold B0 information in a given time slice, but we can get that info from `B0=f/R0`
 # This trick propagates the B0 information to a time_slice even when that time_slice has not been initialized with profiles_1d data
@@ -360,7 +361,7 @@ expressions["core_sources.vacuum_toroidal_field.r0"] =
     (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
 
 #= ===== =#
-#  Build  #
+#  build  #
 #= ===== =#
 expressions["build.layer[:].outline.r"] =
     (x; build, layer, _...) -> IMAS.get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
@@ -390,7 +391,7 @@ expressions["build.tf.ripple"] =
     (; build, _...) -> tf_ripple(get_build(build, type=_plasma_).end_radius, get_build(build, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
 
 #= ======= =#
-#  Costing  #
+#  costing  #
 #= ======= =#
 
 expressions["costing.cost_direct_capital.system[:].cost"] =
@@ -429,8 +430,23 @@ expressions["balance_of_plant.thermal_cycle.power_thermal_convertable_total"] =
 expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; thermal_cycle, _...) -> thermal_cycle.thermal_electric_conversion_efficiency .* sum([sys.power_in for sys in thermal_cycle.system])
 
+#= ============== =#
+#  core_transport  #
+#= ============== =#
+expressions["core_transport.model[:].profiles_1d[:].electrons.particles.flux"] =
+    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
+
+expressions["core_transport.model[:].profiles_1d[:].electrons.energy.flux"] =
+    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
+
+expressions["core_transport.model[:].profiles_1d[:].total_ion_energy.flux"] =
+    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
+
+expressions["core_transport.model[:].profiles_1d[:].momentum_tor.flux"] =
+    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
+
 #= ======= =#
-#  Summary  #
+#  summary  #
 #= ======= =#
 expressions["summary.global_quantities.ip.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.ip for time in summary.time]

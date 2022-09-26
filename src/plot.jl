@@ -685,7 +685,7 @@ end
         end
     end
     dd = IMAS.top_dd(ct)
-    if dd !== missing && dd.core_sources !== missing
+    if dd !== missing
         @series begin
             linewidth := 2
             color := :green
@@ -695,13 +695,11 @@ end
         end
     end
 
-    if dd !== missing
-        @series begin
-            linewidth := 2
-            color := :black
-            label := "Total transport"
-            IMAS.total_fluxes(dd)
-        end
+    @series begin
+        linewidth := 2
+        color := :black
+        label := "Total transport"
+        IMAS.total_fluxes(ct)
     end
 end
 
@@ -831,7 +829,6 @@ end
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
             label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
         end
-
         if !ismissing(cs1d, :total_ion_power_inside) && flux
             cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
         elseif !integrated && !ismissing(cs1d, :total_ion_energy)
@@ -923,10 +920,10 @@ end
         cpt.electrons, :temperature
     end
 
-    temps_the_same = false
+    same_temps = false
     if length(cpt.ion) > 1
-        temps_the_same = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end]])
-        if temps_the_same
+        same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end]])
+        if same_temps
             @series begin
                 subplot := 1
                 title := "Temperatures"
@@ -939,7 +936,7 @@ end
     end
 
     for ion in cpt.ion
-        if temps_the_same
+        if same_temps
             nothing
         else
             @series begin

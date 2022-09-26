@@ -17,7 +17,7 @@ function blend_core_pedestal_Hmode(
     ngrid = length(rho)
     profile_ped = Hmode_profiles(profile[end], ped_height, profile[1], ngrid, 2.0, 1.4, ped_width)
 
-    rho_top = 1 - 1.5 * ped_width
+    rho_top = 1.0 - 1.5 * ped_width
 
     if rho_top < rho_bound
         error("Unable to blend the core-pedestal becuase the rho_bound $rho_bound > rho_pedestal top $rho_top")
@@ -34,7 +34,6 @@ function blend_core_pedestal_Hmode(
 
     profile_new = deepcopy(profile_ped)
 
-
     for i in irho_bound:irho_top
         profile_new[i] = profile_ped[irho_top] * exp(0.5 * z_top / drho_nml * (drho_nml^2 - (rho[i] - rho[irho_bound])^2) + 0.5 * z_bound / drho_nml * (rho[i] - rho[irho_top])^2)
     end
@@ -46,15 +45,10 @@ function blend_core_pedestal_Hmode(
     return profile_new
 end
 
-function blend_core_pedestal_Hmode(dd::IMAS.dd)
-    return blend_core_pedestal_Hmode(dd.core_profiles.profiles_1d[], dd.summary.local.pedestal)
-end
-
-
 """
-    blend_core_pedestal_Hmode(dd::IMAS.dd)
+    blend_core_pedestal_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped::IMAS.summary__local__pedestal)
 
-Blends Te,Ti, ne, nis core_pedestal for Hmodeprofiles
+Blends Te, Ti, ne, and nis in core_profiles
 """
 function blend_core_pedestal_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped::IMAS.summary__local__pedestal)
     rho = cp1d.grid.rho_tor_norm
