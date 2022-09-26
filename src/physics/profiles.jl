@@ -191,7 +191,7 @@ end
 Calculates BetaN from beta_tor
 """
 function beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
-    return beta_tor * minor_radius * abs(Bt) / abs(Ip/ 1e6) * 1.0e2 # [%]
+    return beta_tor * minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2 # [%]
 end
 
 """
@@ -200,5 +200,98 @@ end
 Calculates average pressure from BetaN
 """
 function pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
-    return beta_n * abs(Bt) * abs(Ip/1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
+    return beta_n * abs(Bt) * abs(Ip / 1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
+end
+
+"""
+    Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+
+Generate H-mode density and temperature profiles evenly spaced in your favorite radial coordinate
+
+:param edge: separatrix height
+
+:param ped: pedestal height
+
+:param core: on-axis profile height
+
+:param ngrid: number of radial grid points
+
+:param expin: inner core exponent for H-mode pedestal profile
+
+:param expout: outer core exponent for H-mode pedestal profile
+
+:param width: width of pedestal
+"""
+function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    w_E1 = 0.5 * widthp  # width as defined in eped
+    xphalf = 1.0 - w_E1
+
+    xped = xphalf - w_E1
+
+    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
+
+    coretanh = 0.5 * a_t * (1.0 - tanh(-xphalf / w_E1) - pconst) + edge
+
+    xpsi = LinRange(0, 1, ngrid)
+
+    # tanh part
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge * 1.0 + core * 0.0
+
+    xtoped = xpsi / xped
+    grid = LinRange(0, 1, ngrid)
+    for (i, ival) in enumerate(grid)
+        if xtoped[i] < 0
+            @inbounds val[i] = val[i] + (core - coretanh)
+        elseif xtoped[i]^expin < 1.0
+            @inbounds val[i] = val[i] + (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+        end
+    end
+
+    return val
+end
+
+"""
+    is_quasi_neutral(dd::IMAS.dd)
+"""
+function is_quasi_neutral(dd::IMAS.dd; rtol::Float64=0.001)
+    return is_quasi_neutral(dd.core_profiles.profiles_1d[]; rtol)
+end
+
+"""
+    is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
+
+Returns true if quasi neutrality is satisfied within a relative tolerance
+"""
+function is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
+    Nis = sum(sum([ion.density .* ion.z_ion for ion in cp1d.ion]))
+    Ne = sum(cp1d.electrons.density)
+    if (1 + rtol) > (Ne / Nis) > (1 - rtol)
+        return true
+    else
+        return false
+    end
+end
+
+"""
+    enforce_quasi_neutrality!(dd::IMAS.dd, species::Symbol)
+"""
+function enforce_quasi_neutrality!(dd::IMAS.dd, species::Symbol)
+    return enforce_quasi_neutrality!(dd.core_profiles.profiles_1d[], species)
+end
+
+"""
+    enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
+
+Enforce quasi neutrality by using density_thermal of species and makes sure density is set to the original expression
+"""
+function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
+    # Make sure expression is used for density
+    empty!(cp1d.electrons, :density)
+    for ion in cp1d.ion
+        empty!(ion, :density)
+    end
+    species_indx = findfirst(Symbol(ion.label) == species for ion in cp1d.ion)
+    @assert species_indx !== nothing
+    cp1d.ion[species_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum([ion.density .* ion.z_ion for ion in cp1d.ion])) ./ cp1d.ion[species_indx].z_ion
 end

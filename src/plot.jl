@@ -670,6 +670,97 @@ Plot build cross-section
     end
 end
 
+@recipe function plot_core_transport(ct::IMAS.core_transport)
+    for model in ct.model
+        @series begin
+            label := model.identifier.name
+            if model.identifier.index == 5
+                markershape := :cross
+                color := :blue
+            elseif model.identifier.index == 6
+                markershape := :diamond
+                color := :red
+            end
+            model.profiles_1d[]
+        end
+    end
+    dd = IMAS.top_dd(ct)
+    if dd !== missing && dd.core_sources !== missing
+        @series begin
+            linewidth := 2
+            color := :green
+            label := "Total source"
+            flux := true
+            IMAS.total_sources(dd)
+        end
+    end
+
+    if dd !== missing
+        @series begin
+            linewidth := 2
+            color := :black
+            label := "Total transport"
+            IMAS.total_fluxes(dd)
+        end
+    end
+end
+
+
+@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; name="", label="", markershape=:none, color=:green)
+
+    layout := (2, 2)
+    size --> (800, 600)
+    margin --> 5 * Measures.mm
+
+    if !ismissing(ct1d.electrons.energy, :flux)
+        @series begin
+            subplot := 1
+            color := color
+            markershape := markershape
+            title := "Electron energy flux"
+            label := :none
+
+            ct1d.electrons.energy, :flux
+        end
+    end
+
+    if !ismissing(ct1d.total_ion_energy, :flux)
+        @series begin
+            subplot := 2
+            color := color
+            markershape := markershape
+            title := "Ion energy flux"
+            label := label
+
+            ct1d.total_ion_energy, :flux
+        end
+    end
+
+    if !ismissing(ct1d.electrons.particles, :flux)
+        @series begin
+            subplot := 3
+            color := color
+            markershape := markershape
+            title := "Electron particle flux"
+            label := :none
+
+            ct1d.electrons.particles, :flux
+        end
+    end
+
+    if !ismissing(ct1d.momentum_tor, :flux)
+        @series begin
+            subplot := 4
+            color := color
+            markershape := markershape
+            title := "Toroidal momentum flux"
+            label := :none
+
+            ct1d.momentum_tor, :flux
+        end
+    end
+end
+
 @recipe function plot_core_sources(cs::IMAS.core_sources)
     for source in cs.source
         @series begin
@@ -694,7 +785,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label=nothing, integrated=false)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false)
 
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
@@ -703,19 +794,26 @@ end
         label = ""
     end
 
-    layout := (1, 4)
-    size --> (1100, 290)
-    margin --> 5 * Measures.mm
-
+    if flux
+        layout := (2, 2)
+        size --> (800, 600)
+    else
+        layout := (1, 4)
+        size --> (1100, 290)
+        margin --> 5 * Measures.mm
+    end
     @series begin
         subplot := 1
         color := objectid(cs1d) % Int
-        title := "Electron Power"
-        if !ismissing(cs1d.electrons, :energy)
+        title := "Electron Energy"
+        if !ismissing(cs1d.electrons, :energy) && !flux
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
             label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
         end
-        if !integrated && !ismissing(cs1d.electrons, :energy)
+        if !ismissing(cs1d.electrons, :power_inside) && flux
+            label := :none
+            cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
+        elseif !integrated && !ismissing(cs1d.electrons, :energy)
             cs1d.electrons, :energy
         elseif integrated && !ismissing(cs1d.electrons, :power_inside)
             cs1d.electrons, :power_inside
@@ -728,12 +826,15 @@ end
     @series begin
         subplot := 2
         color := objectid(cs1d) % Int
-        title := "Ion Power"
-        if !ismissing(cs1d, :total_ion_energy)
+        title := "Ion Energy"
+        if !ismissing(cs1d, :total_ion_energy) && !flux
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
             label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
         end
-        if !integrated && !ismissing(cs1d, :total_ion_energy)
+
+        if !ismissing(cs1d, :total_ion_power_inside) && flux
+            cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
+        elseif !integrated && !ismissing(cs1d, :total_ion_energy)
             cs1d, :total_ion_energy
         elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
             cs1d, :total_ion_power_inside
@@ -747,11 +848,14 @@ end
         subplot := 3
         color := objectid(cs1d) % Int
         title := "Electron Particle"
-        if !ismissing(cs1d.electrons, :particles)
+        if !ismissing(cs1d.electrons, :particles) && !flux
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
             label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
         end
-        if !integrated && !ismissing(cs1d.electrons, :particles)
+        if !ismissing(cs1d.electrons, :particles_inside) && flux
+            label := :none
+            cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
+        elseif !integrated && !ismissing(cs1d.electrons, :particles)
             cs1d.electrons, :particles
         elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
             cs1d.electrons, :particles_inside
@@ -761,21 +865,34 @@ end
         end
     end
 
-    @series begin
+    if flux
         subplot := 4
         color := objectid(cs1d) % Int
-        title := "Parallel Current"
-        if !ismissing(cs1d, :j_parallel)
-            tot = integrate(cs1d.grid.area, cs1d.j_parallel)
-            label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
-        end
-        if !integrated && !ismissing(cs1d, :j_parallel)
-            cs1d, :j_parallel
-        elseif integrated && !ismissing(cs1d, :current_parallel_inside)
-            cs1d, :current_parallel_inside
+        title := "Momentum Tor"
+        if !ismissing(cs1d, :torque_tor_inside)
+            label := :none
+            cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
         else
             label := ""
             [NaN], [NaN]
+        end
+    else
+        @series begin
+            subplot := 4
+            color := objectid(cs1d) % Int
+            title := "Parallel Current"
+            if !ismissing(cs1d, :j_parallel)
+                tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+                label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
+            end
+            if !integrated && !ismissing(cs1d, :j_parallel)
+                cs1d, :j_parallel
+            elseif integrated && !ismissing(cs1d, :current_parallel_inside)
+                cs1d, :current_parallel_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
         end
     end
 end
@@ -805,14 +922,34 @@ end
         ylim --> (0, Inf)
         cpt.electrons, :temperature
     end
+
+    temps_the_same = false
+    if length(cpt.ion) > 1
+        temps_the_same = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end]])
+        if temps_the_same
+            @series begin
+                subplot := 1
+                title := "Temperatures"
+                label := "Ions" * label
+                linestyle --> :dash
+                ylim --> (0, Inf)
+                cpt.ion[1], :temperature
+            end
+        end
+    end
+
     for ion in cpt.ion
-        @series begin
-            subplot := 1
-            title := "Temperatures"
-            label := ion.label * label
-            linestyle --> :dash
-            ylim --> (0, Inf)
-            ion, :temperature
+        if temps_the_same
+            nothing
+        else
+            @series begin
+                subplot := 1
+                title := "Temperatures"
+                label := ion.label * label
+                linestyle --> :dash
+                ylim --> (0, Inf)
+                ion, :temperature
+            end
         end
     end
 

@@ -315,11 +315,17 @@ Returns core_sources__source___profiles_1d with sources totals and possiblity to
 function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
     total_source1d = IMAS.core_sources__source___profiles_1d()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
-    if !ismissing(cp1d.grid, :volume)
-        total_source1d.grid.volume = cp1d.grid.volume
+    volume = getproperty(cp1d.grid, :volume, missing)
+    if volume !== missing
+        total_source1d.grid.volume = volume
     end
-    if !ismissing(cp1d.grid, :area)
-        total_source1d.grid.area = cp1d.grid.area
+    area = getproperty(cp1d.grid, :area, missing)
+    if area !== missing
+        total_source1d.grid.area = area
+    end
+    surface = getproperty(cp1d.grid, :surface, missing)
+    if surface !== missing
+        total_source1d.grid.surface = surface
     end
     total_source1d.time = cp1d.time
 

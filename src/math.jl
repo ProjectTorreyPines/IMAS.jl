@@ -29,28 +29,45 @@ function gradient(arr::AbstractVector)
 end
 
 """
-    gradient(coord::AbstractVector, arr::AbstractVector)
+    gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
 
 Gradient of a vector computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backwards) differences at the boundaries
-The returned gradient hence has the same shape as the input array.
-https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+
+Method options are : [:central, :backwards, :forward] for using the central, backwards or forward method
 """
-function gradient(coord::AbstractVector, arr::AbstractVector)
+
+function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
     np = size(arr)[1]
     out = similar(arr)
     dcoord = diff(coord)
 
+    if length(coord) != length(arr)
+        error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
+    end
     # Forward difference at the beginning
     out[1] = (arr[2] - arr[1]) / dcoord[1]
 
     # Central difference in interior using numpy method
-    for p = 2:np-1
-        dp1 = dcoord[p-1]
-        dp2 = dcoord[p]
-        a = -dp2 / (dp1 * (dp1 + dp2))
-        b = (dp2 - dp1) / (dp1 * dp2)
-        c = dp1 / (dp2 * (dp1 + dp2))
-        out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
+    if method == :central
+        for p = 2:np-1
+            dp1 = dcoord[p-1]
+            dp2 = dcoord[p]
+            a = -dp2 / (dp1 * (dp1 + dp2))
+            b = (dp2 - dp1) / (dp1 * dp2)
+            c = dp1 / (dp2 * (dp1 + dp2))
+            out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
+        end
+    elseif method == :backwards
+        for p = 2:np-1
+            out[p] = (arr[p] - arr[p-1]) / dcoord[p]
+        end
+    elseif method == :forward
+        for p = 2:np-1
+            out[p] = (arr[p+1] - arr[p]) / dcoord[p]
+        end
+    else
+        error("difference method $(difference_method) doesn't excist in gradient function")
     end
 
     # Backwards difference at the end
@@ -321,4 +338,15 @@ function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:R
     dr2 = dr[2:end] ./ a[2:end]
     dz2 = dz[2:end] ./ a[2:end]
     return dr1 .* dz2 .- dr2 .* dz1
+end
+
+"""
+    calc_z(x::Vector{<:Real},f::Vector{<:Real})
+
+Returns the gradient scale lengths of vector f on x
+Note, positive inverse scale length for normal profiles
+"""
+function calc_z(x::Vector{<:Real}, f::Vector{<:Real})
+    f[findall(i -> i < 1e-32, f)] .= 1e-32
+    return IMAS.gradient(x, f, method=:backwards) ./ f
 end

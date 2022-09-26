@@ -65,7 +65,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
         lines = IMAS.flux_surface(eqt, level, false)
         for line in lines
             rr, zz = line_wall_2_wall(line..., wall_r, wall_z, R0, Z0)
-            if isempty(rr) || all(zz.>Z0) || all(zz.<Z0)
+            if isempty(rr) || all(zz .> Z0) || all(zz .< Z0)
                 continue
             end
             Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, rr, zz)

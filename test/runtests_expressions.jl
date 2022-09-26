@@ -27,7 +27,7 @@ end
     resize!(dd.core_profiles.profiles_1d)
     profiles_1d = dd.core_profiles.profiles_1d[1]
     profiles_1d.grid.rho_tor_norm = range(0.0, 1.0, length = 21)
-    profiles_1d.electrons.density = ne0 .* (1.0 .- profiles_1d.grid.rho_tor_norm .^ 2)
+    profiles_1d.electrons.density_thermal = ne0 .* (1.0 .- profiles_1d.grid.rho_tor_norm .^ 2)
     profiles_1d.electrons.temperature = (x; _...) -> Te0 .* (1.0 .- x .^ 2)
     @test profiles_1d.electrons.pressure[1] ≈ pe0
 

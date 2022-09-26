@@ -7,7 +7,7 @@ function collision_frequencies(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
 
     Te = cp1d.electrons.temperature # ev
-    ne = cp1d.electrons.density / 1E6 # cm^-3
+    ne = cp1d.electrons.density_thermal / 1E6 # cm^-3
     me = constants.m_e * 1E3 # g
     mp = constants.m_p * 1E3 # g
     e = 4.8032e-10 # statcoul
