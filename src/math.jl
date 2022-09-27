@@ -230,7 +230,12 @@ function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:R
 end
 
 """
-    resample_2d_line(x::Vector{T}, y::Vector{T}; step::Union{Nothing,T}=nothing, n_points=::Union{Nothing,Integer}=nothing)
+    resample_2d_line(
+        x::AbstractVector{T},
+        y::AbstractVector{T};
+        step::Union{Nothing,T}=nothing,
+        n_points::Union{Nothing,Integer}=nothing,
+        curvature_weight::Float64=0.0) where {T<:Real}
 
 Resample 2D line with uniform stepping
 """
@@ -238,10 +243,22 @@ function resample_2d_line(
     x::AbstractVector{T},
     y::AbstractVector{T};
     step::Union{Nothing,T}=nothing,
-    n_points::Union{Nothing,Integer}=nothing) where {T<:Real}
+    n_points::Union{Nothing,Integer}=nothing,
+    curvature_weight::Float64=0.0) where {T<:Real}
 
     s = cumsum(sqrt.(diff(x) .^ 2 + diff(y) .^ 2))
     s = vcat(0.0, s)
+
+    if curvature_weight > 0.0
+        s0 = s[end]
+        s ./= s[end]
+        c = cumsum(abs.(curvature(x,y)))
+        c ./ c[end]
+        s .+= (c .* curvature_weight)
+        s ./= s[end]
+        s .*= s0
+    end
+
     if n_points === nothing
         if step !== nothing
             n_points = Integer(ceil(s[end] / step))
@@ -249,6 +266,7 @@ function resample_2d_line(
             n_points = length(x)
         end
     end
+
     t = range(s[1], s[end]; length=n_points)
     return interp1d(s, x).(t), interp1d(s, y).(t)
 end
