@@ -431,21 +431,6 @@ expressions["balance_of_plant.thermal_cycle.power_thermal_convertable_total"] =
 expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; thermal_cycle, _...) -> thermal_cycle.thermal_electric_conversion_efficiency .* sum([sys.power_in for sys in thermal_cycle.system])
 
-#= ============== =#
-#  core_transport  #
-#= ============== =#
-expressions["core_transport.model[:].profiles_1d[:].electrons.particles.flux"] =
-    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
-
-expressions["core_transport.model[:].profiles_1d[:].electrons.energy.flux"] =
-    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
-
-expressions["core_transport.model[:].profiles_1d[:].total_ion_energy.flux"] =
-    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
-
-expressions["core_transport.model[:].profiles_1d[:].momentum_tor.flux"] =
-    (rho_tor_norm; _...) -> rho_tor_norm .* 0.0
-
 #= ======= =#
 #  summary  #
 #= ======= =#
