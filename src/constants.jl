@@ -27,14 +27,7 @@ const constants = (
     m_u = convert(Float64, PCs.m_u).val
 )
 
-"""
-    index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
-"""
-function index_2_name(ids::Union{IDS, IDSvector}, field::Symbol)
-    return index_2_name(ids, Val(field))
-end
-
-function index_2_name(ids::IDSvector{<:core_transport__model}, field::Val{:identifier})
+function index_2_name(ids::IDSvector{<:core_transport__model})
     return Dict(0 => :unspecified,
     1 => :combined, 2 => :transport_solver,
     3 => :background, 4 => :database, 5 => :neoclassical,
@@ -44,10 +37,17 @@ function index_2_name(ids::IDSvector{<:core_transport__model}, field::Val{:ident
 end
 
 """
-    name_2_index(ids::Union{IDS, IDSvector}, field::Any)
+    name_2_index(ids::Union{IDS, IDSvector})
 
 returns dict of name to IMAS indentifier.index
 """
-function name_2_index(ids::Union{IDS, IDSvector}, field::Any)
-    return Dict(v=>k for (k,v) in index_2_name(ids,field))
+function name_2_index(ids::Union{IDS, IDSvector})
+    return Dict(v=>k for (k,v) in index_2_name(ids))
+end
+
+
+function Base.findfirst(needle::Symbol, haystack::IDSvector)
+    i = IMAS.name_2_index(haystack)[needle]
+    index = findfirst(idx->idx.identifier.index==i, haystack)
+    return haystack[index]
 end
