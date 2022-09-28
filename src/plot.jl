@@ -413,7 +413,6 @@ end
     end
 end
 
-
 """
     plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
 
@@ -702,7 +701,6 @@ end
         IMAS.total_fluxes(ct)
     end
 end
-
 
 @recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; name="", label="", markershape=:none, color=:green)
 

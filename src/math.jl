@@ -252,7 +252,7 @@ function resample_2d_line(
     if curvature_weight > 0.0
         s0 = s[end]
         s ./= s[end]
-        c = cumsum(abs.(curvature(x,y)))
+        c = cumsum(abs.(curvature(x, y)))
         c ./ c[end]
         s .+= (c .* curvature_weight)
         s ./= s[end]
@@ -347,14 +347,19 @@ end
 Returns curvature of a circular 2D line
 """
 function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:Real}
-    @assert (pr[1] == pr[end]) & (pz[1] == pz[end]) "curvature: 1st and last point must be the same"
-    dr = diff(vcat(pr[end-1], pr, pr[2]))
-    dz = diff(vcat(pz[end-1], pz, pz[2]))
-    a = sqrt.(dr .^ 2.0 .+ dz .^ 2.0)
+    if (pr[1] == pr[end]) && (pz[1] == pz[end])
+        dr = diff(vcat(pr[end-1], pr, pr[2]))
+        dz = diff(vcat(pz[end-1], pz, pz[2]))
+    else
+        dr = vcat(0.0, diff(pr), 0.0)
+        dz = vcat(0.0, diff(pz), 0.0)
+    end
+    a = sqrt.(dr .^ 2.0 .+ dz .^ 2.0) .+ 1E-32
     dr1 = dr[1:end-1] ./ a[1:end-1]
-    dz1 = dz[1:end-1] ./ a[1:end-1]
     dr2 = dr[2:end] ./ a[2:end]
+    dz1 = dz[1:end-1] ./ a[1:end-1]
     dz2 = dz[2:end] ./ a[2:end]
+
     return dr1 .* dz2 .- dr2 .* dz1
 end
 
