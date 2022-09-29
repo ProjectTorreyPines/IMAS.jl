@@ -60,7 +60,13 @@ expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
 
 
 expressions["core_profiles.profiles_1d[:].ion[:].z_ion"] =
-    (; ion, _...) -> sum([element.z_n for element in ion.element]) / length(ion.element)
+    (; ion, _...) -> begin
+        if length(ion.element) == 1
+            return ion.element[1].z_n
+        else
+            error("z_ion expression does not yet handle multiple charge states")
+        end
+    end
 
 expressions["core_profiles.profiles_1d[:].ion[:].density"] =
     (rho_tor_norm; ion, _...) -> ion.density_thermal .+ ion.density_fast
