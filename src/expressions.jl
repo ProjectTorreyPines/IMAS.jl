@@ -59,6 +59,9 @@ expressions["core_profiles.profiles_1d[:].electrons.pressure"] =
     (rho_tor_norm; electrons, _...) -> electrons.pressure_thermal .+ electrons.pressure_fast_parallel .+ electrons.pressure_fast_perpendicular .* 2.0
 
 
+expressions["core_profiles.profiles_1d[:].ion[:].z_ion"] =
+    (; ion, _...) -> sum([element.z_n for element in ion.element]) / length(ion.element)
+
 expressions["core_profiles.profiles_1d[:].ion[:].density"] =
     (rho_tor_norm; ion, _...) -> ion.density_thermal .+ ion.density_fast
 
