@@ -9,8 +9,10 @@ NOTE: This is not done recursively
 """
 function assign_expressions(ids::IDS)
     struct_name = f2u(ids)
-    for item in children(ids)
-        if typeof(getfield(ids, item)) <: IDS
+    for item in fieldnames(typeof(ids))
+        if item == :_parent
+            continue
+        elseif typeof(getfield(ids, item)) <: IDS
             continue
         elseif "$(struct_name).$(item)" in keys(expressions)
             setfield!(ids, item, expressions["$(struct_name).$(item)"])
