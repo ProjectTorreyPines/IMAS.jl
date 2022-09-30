@@ -670,19 +670,25 @@ Plot build cross-section
 end
 
 @recipe function plot_core_transport(ct::IMAS.core_transport)
+
+    model_type = name_2_index(ct.model)
     for model in ct.model
+        if model.identifier.index ∈ [model_type[k] for k in [:combined, :unspecified, :transport_solver, :unknown]]
+            continue
+        end
         @series begin
             label := model.identifier.name
-            if model.identifier.index == 5
+            if model.identifier.index == model_type[:neoclassical]
                 markershape := :cross
                 color := :blue
-            elseif model.identifier.index == 6
+            elseif model.identifier.index == model_type[:anomalous]
                 markershape := :diamond
                 color := :red
             end
             model.profiles_1d[]
         end
     end
+
     dd = IMAS.top_dd(ct)
     if dd !== missing
         @series begin
@@ -700,59 +706,78 @@ end
         label := "Total transport"
         IMAS.total_fluxes(ct)
     end
+
 end
 
-@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; name="", label="", markershape=:none, color=:green)
+@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; label="", markershape=:none, color=:green, only=nothing)
 
-    layout := (2, 2)
-    size --> (800, 600)
-    margin --> 5 * Measures.mm
+    if only === nothing
+        layout := (2, 2)
+        size --> (800, 600)
+        margin --> 5 * Measures.mm
+    end
 
-    if !ismissing(ct1d.electrons.energy, :flux)
-        @series begin
-            subplot := 1
-            color := color
-            markershape := markershape
-            title := "Electron energy flux"
-            label := :none
+    if only === nothing || only == 1
+        if !ismissing(ct1d.electrons.energy, :flux)
+            @series begin
+                if only === nothing
+                    subplot := 1
+                end
+                color := color
+                markershape := markershape
+                title := "Electron energy flux"
+                label := :none
 
-            ct1d.electrons.energy, :flux
+                ct1d.electrons.energy, :flux
+            end
         end
     end
 
-    if !ismissing(ct1d.total_ion_energy, :flux)
-        @series begin
-            subplot := 2
-            color := color
-            markershape := markershape
-            title := "Ion energy flux"
-            label := label
+    if only === nothing || only == 2
+        if !ismissing(ct1d.total_ion_energy, :flux)
+            @series begin
+                if only === nothing
+                    subplot := 2
+                end
+                color := color
+                markershape := markershape
+                title := "Ion energy flux"
+                label := label
 
-            ct1d.total_ion_energy, :flux
+                ct1d.total_ion_energy, :flux
+            end
         end
     end
 
-    if !ismissing(ct1d.electrons.particles, :flux)
-        @series begin
-            subplot := 3
-            color := color
-            markershape := markershape
-            title := "Electron particle flux"
-            label := :none
+    if only === nothing || only == 3
+        if !ismissing(ct1d.electrons.particles, :flux)
+            @series begin
+                if only === nothing
+                    subplot := 3
+                end
+                color := color
+                markershape := markershape
+                title := "Electron particle flux"
+                label := :none
 
-            ct1d.electrons.particles, :flux
+                ct1d.electrons.particles, :flux
+            end
         end
     end
 
-    if !ismissing(ct1d.momentum_tor, :flux)
-        @series begin
-            subplot := 4
-            color := color
-            markershape := markershape
-            title := "Toroidal momentum flux"
-            label := :none
+    if only === nothing || only == 4
+        if !ismissing(ct1d.momentum_tor, :flux)
+            @series begin
+                if only === nothing
+                    subplot := 4
+                end
+                color := color
+                markershape := markershape
+                title := "Toroidal momentum flux"
+                label := :none
 
-            ct1d.momentum_tor, :flux
+                ct1d.momentum_tor, :flux
+            end
         end
     end
 end
@@ -763,6 +788,7 @@ end
             source
         end
     end
+
     dd = top_dd(cs)
     if dd !== missing
         @series begin
@@ -781,7 +807,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing)
 
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
@@ -790,103 +816,125 @@ end
         label = ""
     end
 
-    if flux
-        layout := (2, 2)
-        size --> (800, 600)
-    else
-        layout := (1, 4)
-        size --> (1100, 290)
-        margin --> 5 * Measures.mm
-    end
-    @series begin
-        subplot := 1
-        color := objectid(cs1d) % Int
-        title := "Electron Energy"
-        if !ismissing(cs1d.electrons, :energy) && !flux
-            tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
-            label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-        end
-        if !ismissing(cs1d.electrons, :power_inside) && flux
-            label := :none
-            cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
-        elseif !integrated && !ismissing(cs1d.electrons, :energy)
-            cs1d.electrons, :energy
-        elseif integrated && !ismissing(cs1d.electrons, :power_inside)
-            cs1d.electrons, :power_inside
+    if only === nothing
+        if flux
+            layout := (2, 2)
+            size --> (800, 600)
         else
-            label := ""
-            [NaN], [NaN]
+            layout := (1, 4)
+            size --> (1100, 290)
+            margin --> 5 * Measures.mm
         end
     end
 
-    @series begin
-        subplot := 2
-        color := objectid(cs1d) % Int
-        title := "Ion Energy"
-        if !ismissing(cs1d, :total_ion_energy) && !flux
-            tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
-            label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-        end
-        if !ismissing(cs1d, :total_ion_power_inside) && flux
-            cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
-        elseif !integrated && !ismissing(cs1d, :total_ion_energy)
-            cs1d, :total_ion_energy
-        elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
-            cs1d, :total_ion_power_inside
-        else
-            label := ""
-            [NaN], [NaN]
-        end
-    end
-
-    @series begin
-        subplot := 3
-        color := objectid(cs1d) % Int
-        title := "Electron Particle"
-        if !ismissing(cs1d.electrons, :particles) && !flux
-            tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
-            label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
-        end
-        if !ismissing(cs1d.electrons, :particles_inside) && flux
-            label := :none
-            cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
-        elseif !integrated && !ismissing(cs1d.electrons, :particles)
-            cs1d.electrons, :particles
-        elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
-            cs1d.electrons, :particles_inside
-        else
-            label := ""
-            [NaN], [NaN]
-        end
-    end
-
-    if flux
-        subplot := 4
-        color := objectid(cs1d) % Int
-        title := "Momentum Tor"
-        if !ismissing(cs1d, :torque_tor_inside)
-            label := :none
-            cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
-        else
-            label := ""
-            [NaN], [NaN]
-        end
-    else
+    if only === nothing || only == 1
         @series begin
-            subplot := 4
-            color := objectid(cs1d) % Int
-            title := "Parallel Current"
-            if !ismissing(cs1d, :j_parallel)
-                tot = integrate(cs1d.grid.area, cs1d.j_parallel)
-                label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
+            if only === nothing
+                subplot := 1
             end
-            if !integrated && !ismissing(cs1d, :j_parallel)
-                cs1d, :j_parallel
-            elseif integrated && !ismissing(cs1d, :current_parallel_inside)
-                cs1d, :current_parallel_inside
+            color := objectid(cs1d) % Int
+            title := "Electron Energy"
+            if !ismissing(cs1d.electrons, :energy) && !flux
+                tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
+                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
+            end
+            if !ismissing(cs1d.electrons, :power_inside) && flux
+                label := :none
+                cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
+            elseif !integrated && !ismissing(cs1d.electrons, :energy)
+                cs1d.electrons, :energy
+            elseif integrated && !ismissing(cs1d.electrons, :power_inside)
+                cs1d.electrons, :power_inside
             else
                 label := ""
                 [NaN], [NaN]
+            end
+        end
+    end
+
+    if only === nothing || only == 2
+        @series begin
+            if only === nothing
+                subplot := 2
+            end
+            color := objectid(cs1d) % Int
+            title := "Ion Energy"
+            if !ismissing(cs1d, :total_ion_energy) && !flux
+                tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
+                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
+            end
+            if !ismissing(cs1d, :total_ion_power_inside) && flux
+                cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
+            elseif !integrated && !ismissing(cs1d, :total_ion_energy)
+                cs1d, :total_ion_energy
+            elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
+                cs1d, :total_ion_power_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        end
+    end
+
+    if only === nothing || only == 3
+        @series begin
+            if only === nothing
+                subplot := 3
+            end
+            color := objectid(cs1d) % Int
+            title := "Electron Particle"
+            if !ismissing(cs1d.electrons, :particles) && !flux
+                tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
+                label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
+            end
+            if !ismissing(cs1d.electrons, :particles_inside) && flux
+                label := :none
+                cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
+            elseif !integrated && !ismissing(cs1d.electrons, :particles)
+                cs1d.electrons, :particles
+            elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
+                cs1d.electrons, :particles_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        end
+    end
+
+    # current or momentum (if plotting flux)
+    if only === nothing || only == 4
+        if flux
+            if only === nothing
+                subplot := 4
+            end
+            color := objectid(cs1d) % Int
+            title := "Momentum Tor"
+            if !ismissing(cs1d, :torque_tor_inside)
+                label := :none
+                cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        else
+            @series begin
+                if only === nothing
+                    subplot := 4
+                end
+                color := objectid(cs1d) % Int
+                title := "Parallel Current"
+                if !ismissing(cs1d, :j_parallel)
+                    tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+                    label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
+                end
+                if !integrated && !ismissing(cs1d, :j_parallel)
+                    cs1d, :j_parallel
+                elseif integrated && !ismissing(cs1d, :current_parallel_inside)
+                    cs1d, :current_parallel_inside
+                else
+                    label := ""
+                    [NaN], [NaN]
+                end
             end
         end
     end
@@ -898,87 +946,107 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing)
 
     @assert typeof(label) <: Union{Nothing,AbstractString}
     if label === nothing
         label = ""
     end
 
-    layout := (1, 3)
-    size --> (1100, 290)
-    margin --> 5 * Measures.mm
+    if only === nothing
+        layout := (1, 3)
+        size --> (1100, 290)
+        margin --> 5 * Measures.mm
+    end
 
     # temperatures
-    @series begin
-        subplot := 1
-        title := "Temperatures"
-        label := "e" * label
-        ylim --> (0, Inf)
-        cpt.electrons, :temperature
-    end
-
-    same_temps = false
-    if length(cpt.ion) > 1
-        same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end]])
-        if same_temps
-            @series begin
+    if only === nothing || only == 1
+        @series begin
+            if only === nothing
                 subplot := 1
-                title := "Temperatures"
-                label := "Ions" * label
-                linestyle --> :dash
-                ylim --> (0, Inf)
-                cpt.ion[1], :temperature
+            end
+            title := "Temperatures"
+            label := "e" * label
+            ylim --> (0, Inf)
+            cpt.electrons, :temperature
+        end
+
+        same_temps = false
+        if length(cpt.ion) > 1
+            same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end]])
+            if same_temps
+                @series begin
+                    if only === nothing
+                        subplot := 1
+                    end
+                    title := "Temperatures"
+                    label := "Ions" * label
+                    linestyle --> :dash
+                    ylim --> (0, Inf)
+                    cpt.ion[1], :temperature
+                end
             end
         end
-    end
 
-    for ion in cpt.ion
-        if same_temps
-            nothing
-        else
-            @series begin
-                subplot := 1
-                title := "Temperatures"
-                label := ion.label * label
-                linestyle --> :dash
-                ylim --> (0, Inf)
-                ion, :temperature
+        for ion in cpt.ion
+            if same_temps
+                nothing
+            else
+                @series begin
+                    if only === nothing
+                        subplot := 1
+                    end
+                    title := "Temperatures"
+                    label := ion.label * label
+                    linestyle --> :dash
+                    ylim --> (0, Inf)
+                    ion, :temperature
+                end
             end
         end
     end
 
     # densities
-    @series begin
-        subplot := 2
-        title := "Densities"
-        label := "e" * label
-        ylim --> (0.0, Inf)
-        cpt.electrons, :density
-    end
-    for ion in cpt.ion
+    if only === nothing || only == 2
         @series begin
-            Z = ion.element[1].z_n
-            subplot := 2
-            title := "Densities"
-            if Z == 1.0
-                label := ion.label * label
-            else
-                label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
+            if only === nothing
+                subplot := 2
             end
-            linestyle --> :dash
+            title := "Densities"
+            label := "e" * label
             ylim --> (0.0, Inf)
-            normalization --> Z
-            ion, :density
+            cpt.electrons, :density
+        end
+        for ion in cpt.ion
+            @series begin
+                Z = ion.element[1].z_n
+                if only === nothing
+                    subplot := 2
+                end
+                title := "Densities"
+                if Z == 1.0
+                    label := ion.label * label
+                else
+                    label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
+                end
+                linestyle --> :dash
+                ylim --> (0.0, Inf)
+                normalization --> Z
+                ion, :density
+            end
         end
     end
 
     # rotation
-    @series begin
-        subplot := 3
-        title := "Rotation"
-        label := "" * label
-        cpt, :rotation_frequency_tor_sonic
+    if only === nothing || only == 3
+        @series begin
+            if only === nothing
+                subplot := 3
+            end
+            title := "Rotation"
+            label := "" * label
+            cpt, :rotation_frequency_tor_sonic
+        end
     end
 
 end
