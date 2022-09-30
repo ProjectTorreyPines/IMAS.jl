@@ -352,16 +352,16 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         end
 
         if source.identifier.index in [0]
-            @warn "total_sources() skipping unspecified source with index $(source.identifier.index)"
+            @debug "total_sources() skipping unspecified source with index $(source.identifier.index)"
             continue
         elseif 107 >= source.identifier.index >= 100
-            @warn "total_sources() skipping combination source with index $(source.identifier.index)"
+            @debug "total_sources() skipping combination source with index $(source.identifier.index)"
             continue
         elseif (source.identifier.index) in [1] && any(all_indexes .> 1)
-            @warn "total_sources() skipping total source with index $(source.identifier.index)"
+            @debug "total_sources() skipping total source with index $(source.identifier.index)"
             continue
         elseif (source.identifier.index) in [200] && any(300 > all_indexes > 200)
-            @warn "total_sources() skipping total radiation source with index $(source.identifier.index)"
+            @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
         elseif exclude_indexes !== missing && source.identifier.index ∈ exclude_indexes
             continue
