@@ -47,7 +47,7 @@ end
 
 
 function Base.findfirst(needle::Symbol, haystack::IDSvector)
-    i = IMAS.name_2_index(haystack)[needle]
+    i = name_2_index(haystack)[needle]
     index = findfirst(idx->idx.identifier.index==i, haystack)
     return haystack[index]
 end

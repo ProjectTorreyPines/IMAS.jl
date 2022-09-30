@@ -151,12 +151,6 @@ function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, 
     jbootfract / (sqrt(ϵ) * βp)
 end
 
-function nuestar(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
-    return nuestar(eqt, cp1d)
-end
-
 function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
@@ -173,12 +167,6 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
     return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
-end
-
-function nuistar(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
-    return nuistar(eqt, cp1d)
 end
 
 function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
@@ -203,17 +191,11 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 end
 
 function lnLambda_e(ne, Te)
-    return 23.5 .- log.(sqrt.(ne ./ 1e6) .* Te .^ (-5.0 ./ 4.0)) .- (1e-5 .+ (log.(Te) .- 2) .^ 2 ./ 16.0) .^ 0.5
+    return @. 23.5 - log(sqrt(ne / 1e6) * Te ^ (-5.0 / 4.0)) - sqrt(1e-5 + (log(Te) - 2) ^ 2 / 16.0)
 end
 
 function lnLambda_i(ni, Ti, Zavg)
-    return 30.0 .- log.(Zavg .^ 3 .* sqrt.(ni) ./ (Ti .^ 1.5))
-end
-
-function nclass_conductivity(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    cp1d = dd.core_profiles.profiles_1d[]
-    return nclass_conductivity(eqt, cp1d)
+    return @. 30.0 - log(Zavg ^ 3 * sqrt(ni) / (Ti ^ 1.5))
 end
 
 """
