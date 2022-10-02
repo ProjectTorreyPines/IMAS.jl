@@ -1,30 +1,10 @@
 import NumericalIntegration: integrate, cumul_integrate
-expressions = Dict{String,Function}()
 
-"""
-    assign_expressions(ids::IDS)
-
-Assign expressions to an IDS
-NOTE: This is not done recursively
-"""
-function assign_expressions(ids::IDS)
-    struct_name = f2u(ids)
-    for item in fieldnames(typeof(ids))
-        if item == :_parent
-            continue
-        elseif typeof(getfield(ids, item)) <: IDS
-            continue
-        elseif "$(struct_name).$(item)" in keys(expressions)
-            setfield!(ids, item, expressions["$(struct_name).$(item)"])
-        end
-    end
-    return ids
+function IMASDD.get_expressions()
+    return expressions
 end
 
-function assign_expressions(ids::IDS, field::Symbol)
-    struct_name = f2u(ids)
-    return get(expressions, "$(struct_name).$(field)", missing)
-end
+const expressions = Dict{String,Function}()
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
@@ -88,7 +68,13 @@ expressions["core_profiles.profiles_1d[:]..ion[:].pressure"] =
 
 
 expressions["core_profiles.profiles_1d[:].pressure_ion_total"] =
-    (rho_tor_norm; profiles_1d, _...) -> sum([ion.pressure_thermal for ion in profiles_1d.ion])
+    (rho_tor_norm; profiles_1d, _...) -> begin
+        tmp = zero(rho_tor_norm)
+        for ion in profiles_1d.ion
+            tmp .+= ion.pressure_thermal
+        end
+        return tmp
+    end
 
 expressions["core_profiles.profiles_1d[:].pressure_thermal"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.electrons.pressure_thermal .+ profiles_1d.pressure_ion_total
@@ -259,7 +245,8 @@ end
 expressions["equilibrium.time_slice[:].time"] =
     (; equilibrium, time_slice_index, _...) -> equilibrium.time[time_slice_index]
 
-expressions["equilibrium.time_slice[:].profiles_1d.psi_norm"] = (psi; _...) -> norm01(psi)
+expressions["equilibrium.time_slice[:].profiles_1d.psi_norm"] =
+    (psi; _...) -> norm01(psi)
 
 #= ============ =#
 #  core_sources  #
