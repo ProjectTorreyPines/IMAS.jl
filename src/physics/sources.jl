@@ -383,7 +383,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
             for field in keys(ids1)
                 y = getproperty(ids2, field, missing)
                 if typeof(y) <: AbstractVector{<:Real}
-                    if typeof(getfield(ids1, field)) <: Union{Missing,Function}
+                    if typeof(getraw(ids1, field)) <: Union{Missing,Function}
                         setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
                     end
                     old_value = getproperty(ids1, field)

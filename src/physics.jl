@@ -9,9 +9,9 @@ import PeriodicTable: elements
 import MillerExtendedHarmonic: MXH, flat_coeffs, reorder_flux_surface!
 using RecipesBase
 
-@enum BuildLayerType _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_
-@enum BuildLayerSide _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
-@enum BuildLayerShape _offset_ _negative_offset_ _convex_hull_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _square_miller_ _spline_ _silo_
+@enum BuildLayerType::Int _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_
+@enum BuildLayerSide::Int _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
+@enum BuildLayerShape::Int _offset_ _negative_offset_ _convex_hull_ _princeton_D_exact_ _princeton_D_ _princeton_D_scaled_ _rectangle_ _triple_arc_ _miller_ _square_miller_ _spline_ _silo_
 
 include("physics/build.jl")
 include("physics/currents.jl")

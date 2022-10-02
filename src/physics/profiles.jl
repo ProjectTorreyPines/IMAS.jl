@@ -295,3 +295,73 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
     @assert species_indx !== nothing
     cp1d.ion[species_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum([ion.density .* ion.z_ion for ion in cp1d.ion])) ./ cp1d.ion[species_indx].z_ion
 end
+
+"""
+    lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion})
+
+Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities 
+"""
+function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
+    if length(ions) < 2
+        error("TAUENN requires two ion species to run")
+        # elseif any(!ismissing(ion, :density_fast) for ion in ions)
+        #     error("lump_ions_as_bulk_and_impurity! is not setup for handling fast ions")
+    elseif length(ions) == 2
+        return ions
+    end
+
+    zs = [ion.element[1].z_n for ion in ions]
+    as = [ion.element[1].a for ion in ions]
+
+    bulk_index = findall(zs .== 1)
+    impu_index = findall(zs .!= 1)
+
+    ratios = zeros(length(ions[1].density_thermal), length(ions))
+    for index in [bulk_index, impu_index]
+        ntot = zeros(length(ions[1].density_thermal))
+        for ix in index
+            ratios[:, ix] = ions[ix].density_thermal * zs[ix]
+            ntot .+= ions[ix].density_thermal * zs[ix]
+        end
+        for ix in index
+            ratios[:, ix] ./= ntot
+        end
+    end
+
+    # bulk ions
+    push!(ions, IMAS.core_profiles__profiles_1d___ion())
+    bulk = ions[end]
+    resize!(bulk.element, 1)
+    bulk.label = "bulk"
+
+    # impurity ions
+    push!(ions, IMAS.core_profiles__profiles_1d___ion())
+    impu = ions[end]
+    resize!(impu.element, 1)
+    impu.label = "impurity"
+
+    # weight different ion quantities based on 
+    for (index, ion) in [(bulk_index, bulk), (impu_index, impu)]
+        ion.element[1].z_n = 0.0
+        ion.element[1].a = 0.0
+        for ix in index # z_average is tricky since it's a single constant for the whole profile
+            ion.element[1].z_n += sum(zs[ix] .* ratios[:, ix]) / length(ratios[:, ix])
+            ion.element[1].a += sum(as[ix] .* ratios[:, ix]) / length(ratios[:, ix])
+        end
+        for item in [:density_thermal, :temperature, :rotation_frequency_tor]
+            value = rho_tor_norm .* 0.0
+            IMAS.setraw!(ion, item, value)
+            for ix in index
+                if ! ismissing(ions[ix], item)
+                    value .+= getproperty(ions[ix], item) .* ratios[:, ix]
+                end
+            end
+        end
+    end
+
+    for k in reverse(1:length(ions)-2)
+        deleteat!(ions, k)
+    end
+
+    return ions
+end
