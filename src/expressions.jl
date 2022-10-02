@@ -1,6 +1,6 @@
 import NumericalIntegration: integrate, cumul_integrate
 
-function IMASDD.get_expressions()
+function IMASDD.get_expressions(::Val{:IMAS})
     return expressions
 end
 
@@ -392,7 +392,6 @@ expressions["build.tf.ripple"] =
 #= ======= =#
 #  costing  #
 #= ======= =#
-
 expressions["costing.cost_direct_capital.system[:].cost"] =
     (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum([sub.cost for sub in system.subsystem])
 
