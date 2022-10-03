@@ -159,10 +159,11 @@ function DT_fusion_source!(dd::IMAS.dd)
     end
     ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
-    source = resize!(dd.core_sources.source, "identifier.index" => 6; allow_multiple_matches=true)
+    index = name_2_index(dd.core_sources.source)[:fusion]
+    source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
     new_source(
         source,
-        6,
+        index,
         "α",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
@@ -197,51 +198,17 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
 
+    index = name_2_index(dd.core_sources.source)[:collisional_equipartition]
     if all(Te .≈ Ti)
-        deleteat!(dd.core_sources.source, "identifier.index" => 11)
+        deleteat!(dd.core_sources.source, "identifier.index" => index)
     else
         nu_exch = collision_frequencies(dd)[3]
         delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
-        source = resize!(dd.core_sources.source, "identifier.index" => 11; allow_multiple_matches=true)
-        new_source(source, 11, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+        source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
+        new_source(source, index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
     end
 
     return dd
-end
-
-"""
-    bremsstrahlung_source!(dd::IMAS.dd)
-
-Calculates Bremsstrahlung radiation source and modifies dd.core_sources
-"""
-function bremsstrahlung_source!(dd::IMAS.dd)
-    # Plasma estimated at ellipsoid torus for volume contribution (triangularity is small correction)
-    cp1d = dd.core_profiles.profiles_1d[]
-    ne = cp1d.electrons.density
-    Te = cp1d.electrons.temperature
-
-    # Bremsstrahlung radiation
-    powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
-    source = resize!(dd.core_sources.source, "identifier.index" => 8)
-    new_source(source, 8, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityBrem)
-    return dd
-end
-
-"""
-    radiation_losses(sources::IMAS.core_sources)
-
-Evaluate total plasma radiation losses [W] due to both bremsstrahlung and line radiation
-Synchlotron radation is not considered since it gets reabsorbed
-"""
-function radiation_losses(sources::IMAS.core_sources)
-    radiation_indices = [8, 10] # [brehm, line]
-    radiation_energy = 0.0
-    for source in sources.source
-        if source.identifier.index ∈ radiation_indices
-            radiation_energy += source.profiles_1d[].electrons.power_inside[end]
-        end
-    end
-    return radiation_energy
 end
 
 """
@@ -254,8 +221,9 @@ function ohmic_source!(dd::IMAS.dd)
     j_ohmic = getproperty(cp1d, :j_ohmic, missing)
     if j_ohmic !== missing
         powerDensityOhm = j_ohmic .^ 2 ./ cp1d.conductivity_parallel
-        source = resize!(dd.core_sources.source, "identifier.index" => 7)
-        new_source(source, 7, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
+        index = name_2_index(dd.core_sources.source)[:ohmic]
+        source = resize!(dd.core_sources.source, "identifier.index" => index)
+        new_source(source, index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
     end
     return dd
 end
@@ -269,8 +237,9 @@ function bootstrap_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     j_bootstrap = getproperty(cp1d, :j_bootstrap, missing)
     if j_bootstrap !== missing
-        source = resize!(dd.core_sources.source, "identifier.index" => 13)
-        new_source(source, 13, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=j_bootstrap)
+        index = name_2_index(dd.core_sources.source)[:bootstrap_current]
+        source = resize!(dd.core_sources.source, "identifier.index" => index)
+        new_source(source, index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=j_bootstrap)
     end
     return dd
 end
@@ -285,6 +254,7 @@ function sources!(dd::IMAS.dd)
     IMAS.ohmic_source!(dd)
     IMAS.collisional_exchange_source!(dd)
     IMAS.bremsstrahlung_source!(dd)
+    IMAS.synchrotron_source!(dd)
     IMAS.DT_fusion_source!(dd)
 end
 
