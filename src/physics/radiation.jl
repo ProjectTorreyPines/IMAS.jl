@@ -1,8 +1,7 @@
 """
     radiation_losses(sources::IMAS.core_sources)
 
-Evaluate total plasma radiation losses [W] due to both bremsstrahlung and line radiation
-Synchlotron radation is not considered since it gets reabsorbed
+Evaluate total plasma radiation losses [W] due to bremsstrahlung, synchrotron, and line radiation
 """
 function radiation_losses(sources::IMAS.core_sources)
     n2i = name_2_index(sources.source)
@@ -35,12 +34,13 @@ function bremsstrahlung_source!(dd::IMAS.dd)
 end
 
 """
-    rad_sync(aspect_rat::T, r_min::T, b_ref::T, ne::T, Te::T; reflection_coefficient = 0.8) where {T<:Real}
+    rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient=0.8) where {T<:Real}
 
 Synchrotron radiation from Trubnikov, JETP Lett. 16 (1972) 25.0
 Transpiled from gacode/tgyro/src/tgyro_rad.f90
+See also: Study of heat and synchrotron radiation transport in fusion tokamak plasmas (C. Villar 1997)
 """
-function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; reflection_coefficient=0.8) where {T<:Real}
+function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient=0.8) where {T<:Real}
     #---------------------------------------------------
     # MKS to CGS
     aspect_ratio = 1 / ϵ
@@ -56,7 +56,7 @@ function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; reflection_coefficient=0.8) 
     wpe = sqrt(4.0 * pi * ne * e^2 / m_e)
     wce = e * abs(b_ref) / (m_e * c)
     g = k * Te / (m_e * c^2)
-    phi = 60.0 * g^1.5 * sqrt((1.0 - reflection_coefficient) * (1.0 + 1.0 / aspect_ratio / sqrt(g)) / (r_min * wpe^2 / c / wce))
+    phi = 60.0 * g^1.5 * sqrt((1.0 - wall_reflection_coefficient) * (1.0 + 1.0 / aspect_ratio / sqrt(g)) / (r_min * wpe^2 / c / wce))
     qsync = m_e / (3.0 * pi * c) * g * (wpe * wce)^2 * phi # [erg/cm^3/s]
     return -qsync * 1E-7 * 1E6 #[W/m^3]
 end
@@ -66,7 +66,7 @@ end
 
 Calculates Synchrotron radiation source and modifies dd.core_sources
 """
-function synchrotron_source!(dd::IMAS.dd; reflection_coefficient=0.8)
+function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
     cp1d = dd.core_profiles.profiles_1d[]
     ne = cp1d.electrons.density
     Te = cp1d.electrons.temperature
@@ -82,7 +82,7 @@ function synchrotron_source!(dd::IMAS.dd; reflection_coefficient=0.8)
     ϵ = a ./ R
 
     # Synchrotron radiation
-    powerDensitySync = rad_sync.(ϵ, a, B0, ne, Te; reflection_coefficient)
+    powerDensitySync = rad_sync.(ϵ, a, B0, ne, Te; wall_reflection_coefficient)
 
     index = name_2_index(dd.core_sources.source)[:synchrotron_radiation]
     source = resize!(dd.core_sources.source, "identifier.index" => index)
