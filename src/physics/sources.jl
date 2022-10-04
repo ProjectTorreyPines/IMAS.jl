@@ -13,7 +13,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     tp = typeof(promote(Te[1], ne[1], rho[1])[1])
     c_a = zeros(tp, length(rho))
     W_crit = similar(c_a)
-    ion_elec_fraction = similar(W_crit)
+    electron_ion_fraction = similar(W_crit)
     for ion in cp1d.ion
         ni = ion.density
         Zi = ion.element[1].z_n
@@ -27,10 +27,10 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     for (idx, x_i) in enumerate(x)
         y = x_i .* rho
         f = integrate(y, 1.0 ./ (1.0 .+ y .^ 1.5))
-        ion_elec_fraction[idx] = f / x_i
+        electron_ion_fraction[idx] = f / x_i
     end
 
-    return ion_elec_fraction
+    return electron_ion_fraction
 end
 
 """
@@ -157,7 +157,7 @@ function DT_fusion_source!(dd::IMAS.dd)
         deleteat!(dd.core_sources.source, "identifier.index" => 6)
         return dd
     end
-    ion_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
+    electron_ion_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
     index = name_2_index(dd.core_sources.source)[:fusion]
     source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
@@ -167,8 +167,8 @@ function DT_fusion_source!(dd::IMAS.dd)
         "α",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
-        electrons_energy=α .* (1 .- ion_electron_fraction),
-        total_ion_energy=α .* ion_electron_fraction
+        electrons_energy=α .* electron_ion_fraction,
+        total_ion_energy=α .* (1.0 .- electron_ion_fraction)
     )
     @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
 
