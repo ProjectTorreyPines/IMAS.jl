@@ -40,7 +40,8 @@ const index_2_name__core_transport__model = Dict(
         21 => :sawteeth, #Transport arising from the presence of sawteeth
         22 => :elm_continuous, #Continuous ELM model --- gives the ELM averaged profile
         23 => :elm_resolved, #Time resolved ELM model
-        24 => :pedestal) #Transport level to give edge pedestal
+        24 => :pedestal, #Transport level to give edge pedestal
+        25 => :unknown) #Unknown transport type
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:core_transport__model}
     return index_2_name__core_transport__model

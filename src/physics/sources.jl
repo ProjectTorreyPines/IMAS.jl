@@ -12,8 +12,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
 
     tp = typeof(promote(Te[1], ne[1], rho[1])[1])
     c_a = zeros(tp, length(rho))
-    W_crit = similar(c_a)
-    electron_ion_fraction = similar(W_crit)
+
     for ion in cp1d.ion
         ni = ion.density
         Zi = ion.element[1].z_n
@@ -23,6 +22,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
 
     W_crit = Te .* (4.0 .* sqrt.(constants.m_e / particle_mass) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)
 
+    electron_ion_fraction = similar(W_crit)
     x = particle_energy ./ W_crit
     for (idx, x_i) in enumerate(x)
         y = x_i .* rho
@@ -184,7 +184,7 @@ function D_D_to_He3_reactions(dd::IMAS.dd)
     index = findfirst(ion.label == "D" for ion in dd.core_profiles.profiles_1d[].ion)
     @assert index !== nothing "There is no Deuterium only species in dd.core_profiles"
     dd_deut = dd.core_profiles.profiles_1d[].ion[index]
-    return dd_deut.density_thermal.^2 .* reactivity(dd_deut.temperature, "D-DtoHe3") #  reactions/m³/s
+    return dd_deut.density_thermal .^ 2 .* reactivity(dd_deut.temperature, "D-DtoHe3") #  reactions/m³/s
 end
 
 """
