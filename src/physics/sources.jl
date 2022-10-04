@@ -172,7 +172,7 @@ function DT_fusion_source!(dd::IMAS.dd)
     )
     @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
 
-    return dd
+    return source
 end
 
 """
@@ -206,9 +206,8 @@ function collisional_exchange_source!(dd::IMAS.dd)
         delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
         source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
         new_source(source, index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+        return source
     end
-
-    return dd
 end
 
 """
@@ -224,8 +223,8 @@ function ohmic_source!(dd::IMAS.dd)
         index = name_2_index(dd.core_sources.source)[:ohmic]
         source = resize!(dd.core_sources.source, "identifier.index" => index)
         new_source(source, index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
+        return source
     end
-    return dd
 end
 
 """
@@ -240,8 +239,8 @@ function bootstrap_source!(dd::IMAS.dd)
         index = name_2_index(dd.core_sources.source)[:bootstrap_current]
         source = resize!(dd.core_sources.source, "identifier.index" => index)
         new_source(source, index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=j_bootstrap)
+        return source
     end
-    return dd
 end
 
 """
@@ -254,6 +253,7 @@ function sources!(dd::IMAS.dd)
     IMAS.ohmic_source!(dd)
     IMAS.collisional_exchange_source!(dd)
     IMAS.bremsstrahlung_source!(dd)
+    IMAS.line_radiation_source!(dd)
     IMAS.synchrotron_source!(dd)
     IMAS.DT_fusion_source!(dd)
 end
