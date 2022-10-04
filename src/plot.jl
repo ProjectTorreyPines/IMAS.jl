@@ -785,6 +785,7 @@ end
 @recipe function plot_core_sources(cs::IMAS.core_sources)
     for source in cs.source
         @series begin
+            nozeros := true
             source
         end
     end
@@ -807,7 +808,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing, nozeros=false)
 
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
@@ -834,17 +835,23 @@ end
             end
             color := objectid(cs1d) % Int
             title := "Electron Energy"
+            tot = 0.0
             if !ismissing(cs1d.electrons, :energy) && !flux
                 tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
             end
-            if !ismissing(cs1d.electrons, :power_inside) && flux
-                label := :none
-                cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
-            elseif !integrated && !ismissing(cs1d.electrons, :energy)
-                cs1d.electrons, :energy
-            elseif integrated && !ismissing(cs1d.electrons, :power_inside)
-                cs1d.electrons, :power_inside
+            if !nozeros || abs(tot) > 0.0
+                if !ismissing(cs1d.electrons, :power_inside) && flux
+                    label := :none
+                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
+                elseif !integrated && !ismissing(cs1d.electrons, :energy)
+                    cs1d.electrons, :energy
+                elseif integrated && !ismissing(cs1d.electrons, :power_inside)
+                    cs1d.electrons, :power_inside
+                else
+                    label := ""
+                    [NaN], [NaN]
+                end
             else
                 label := ""
                 [NaN], [NaN]
@@ -859,16 +866,22 @@ end
             end
             color := objectid(cs1d) % Int
             title := "Ion Energy"
+            tot = 0.0
             if !ismissing(cs1d, :total_ion_energy) && !flux
                 tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
             end
-            if !ismissing(cs1d, :total_ion_power_inside) && flux
-                cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
-            elseif !integrated && !ismissing(cs1d, :total_ion_energy)
-                cs1d, :total_ion_energy
-            elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
-                cs1d, :total_ion_power_inside
+            if !nozeros || abs(tot) > 0.0
+                if !ismissing(cs1d, :total_ion_power_inside) && flux
+                    cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
+                elseif !integrated && !ismissing(cs1d, :total_ion_energy)
+                    cs1d, :total_ion_energy
+                elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
+                    cs1d, :total_ion_power_inside
+                else
+                    label := ""
+                    [NaN], [NaN]
+                end
             else
                 label := ""
                 [NaN], [NaN]
@@ -883,17 +896,23 @@ end
             end
             color := objectid(cs1d) % Int
             title := "Electron Particle"
+            tot = 0.0
             if !ismissing(cs1d.electrons, :particles) && !flux
                 tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
                 label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
             end
-            if !ismissing(cs1d.electrons, :particles_inside) && flux
-                label := :none
-                cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
-            elseif !integrated && !ismissing(cs1d.electrons, :particles)
-                cs1d.electrons, :particles
-            elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
-                cs1d.electrons, :particles_inside
+            if !nozeros || abs(tot) > 0.0
+                if !ismissing(cs1d.electrons, :particles_inside) && flux
+                    label := :none
+                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
+                elseif !integrated && !ismissing(cs1d.electrons, :particles)
+                    cs1d.electrons, :particles
+                elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
+                    cs1d.electrons, :particles_inside
+                else
+                    label := ""
+                    [NaN], [NaN]
+                end
             else
                 label := ""
                 [NaN], [NaN]
@@ -923,14 +942,20 @@ end
                 end
                 color := objectid(cs1d) % Int
                 title := "Parallel Current"
+                tot = 0.0
                 if !ismissing(cs1d, :j_parallel)
                     tot = integrate(cs1d.grid.area, cs1d.j_parallel)
                     label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
                 end
-                if !integrated && !ismissing(cs1d, :j_parallel)
-                    cs1d, :j_parallel
-                elseif integrated && !ismissing(cs1d, :current_parallel_inside)
-                    cs1d, :current_parallel_inside
+                if !nozeros || abs(tot) > 0.0
+                    if !integrated && !ismissing(cs1d, :j_parallel)
+                        cs1d, :j_parallel
+                    elseif integrated && !ismissing(cs1d, :current_parallel_inside)
+                        cs1d, :current_parallel_inside
+                    else
+                        label := ""
+                        [NaN], [NaN]
+                    end
                 else
                     label := ""
                     [NaN], [NaN]
