@@ -8,29 +8,35 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     ne = cp1d.electrons.density
     rho = cp1d.grid.rho_tor_norm
 
-    particle_mass = particle_mass * constants.m_p
-
     tp = typeof(promote(Te[1], ne[1], rho[1])[1])
     c_a = zeros(tp, length(rho))
-
     for ion in cp1d.ion
-        ni = ion.density
+        ni = ion.density_thermal
         Zi = ion.element[1].z_n
-        mi = ion.element[1].a * constants.m_p
+        mi = ion.element[1].a
         c_a .+= (ni ./ ne) .* Zi .^ 2 .* (mi ./ particle_mass)
     end
 
-    W_crit = Te .* (4.0 .* sqrt.(constants.m_e / particle_mass) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)
+    W_crit = Te .* (4.0 .* sqrt.(constants.m_e / (constants.m_p * particle_mass)) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)# / 5
 
-    electron_ion_fraction = similar(W_crit)
+    ion_to_electron_fraction = similar(W_crit)
     x = particle_energy ./ W_crit
     for (idx, x_i) in enumerate(x)
-        y = x_i .* rho
-        f = integrate(y, 1.0 ./ (1.0 .+ y .^ 1.5))
-        electron_ion_fraction[idx] = f / x_i
+        if x_i > 4.0
+            # Large-x asymptotic formula
+            f = (2 * pi / 3) / sin(2 * pi / 3) - 2.0 / sqrt(x_i) + 0.5 / x_i^2
+            ion_to_electron_fraction[idx] = f / x_i
+        elseif x_i < 0.1
+            # Small-x asymptotic series
+            ion_to_electron_fraction[idx] = 1.0 - 0.4 * x_i^1.5
+        else
+            y = x_i .* LinRange(0, 1, 12)
+            f = integrate(y, 1.0 ./ (1.0 .+ y .^ 1.5))
+            ion_to_electron_fraction[idx] = f / x_i
+        end
     end
 
-    return electron_ion_fraction
+    return ion_to_electron_fraction
 end
 
 """
@@ -103,7 +109,7 @@ end
 Volumetric heating source of α particles coming from DT reaction [W m⁻³]
 """
 function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
-    fast_helium_energy = 3.5e6 * 1.6022e-12 * 1e-7  # Joules
+    fast_helium_energy = 3.5e6 * 1.6022e-19  # Joules
 
     # Find the right D-T density
     ion_list = [ion.label for ion in cp1d.ion]
@@ -157,7 +163,7 @@ function DT_fusion_source!(dd::IMAS.dd)
         deleteat!(dd.core_sources.source, "identifier.index" => 6)
         return dd
     end
-    electron_ion_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
     index = name_2_index(dd.core_sources.source)[:fusion]
     source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
@@ -167,8 +173,8 @@ function DT_fusion_source!(dd::IMAS.dd)
         "α",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume;
-        electrons_energy=α .* electron_ion_fraction,
-        total_ion_energy=α .* (1.0 .- electron_ion_fraction)
+        electrons_energy=α .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=α .* ion_to_electron_fraction
     )
     @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
 
