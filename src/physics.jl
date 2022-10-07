@@ -7,6 +7,7 @@ import Optim
 import NumericalIntegration: integrate, cumul_integrate
 import PeriodicTable: elements
 import MillerExtendedHarmonic: MXH, flat_coeffs, reorder_flux_surface!
+import Memoize
 using RecipesBase
 
 @enum BuildLayerType::Int _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_

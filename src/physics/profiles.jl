@@ -128,7 +128,7 @@ function tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
     total_source = IMAS.total_sources(dd.core_sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1]))
+        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
 
     tauds03 = (
         0.028 *
@@ -320,8 +320,9 @@ function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profil
     for index in [bulk_index, impu_index]
         ntot = zeros(length(ions[1].density_thermal))
         for ix in index
-            ratios[:, ix] = ions[ix].density_thermal * zs[ix]
-            ntot .+= ions[ix].density_thermal * zs[ix]
+            tmp = ions[ix].density_thermal * sum(avgZ(zs[ix], ions[ix].temperature)) / length(ions[ix].temperature)
+            ratios[:, ix] = tmp
+            ntot .+= tmp
         end
         for ix in index
             ratios[:, ix] ./= ntot
@@ -340,7 +341,7 @@ function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profil
     resize!(impu.element, 1)
     impu.label = "impurity"
 
-    # weight different ion quantities based on 
+    # weight different ion quantities based on their density
     for (index, ion) in [(bulk_index, bulk), (impu_index, impu)]
         ion.element[1].z_n = 0.0
         ion.element[1].a = 0.0
@@ -352,7 +353,7 @@ function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profil
             value = rho_tor_norm .* 0.0
             IMAS.setraw!(ion, item, value)
             for ix in index
-                if ! ismissing(ions[ix], item)
+                if !ismissing(ions[ix], item)
                     value .+= getproperty(ions[ix], item) .* ratios[:, ix]
                 end
             end
@@ -364,4 +365,43 @@ function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profil
     end
 
     return ions
+end
+
+"""
+    avgZ(Z::Float64,Ti::T)::T
+
+Returns average ionization state of an ion at a given temperature
+"""
+function avgZ(Z::Float64, Ti::T,)::T where {T}
+    return 10.0 .^ (avgZinterpolator(joinpath(dirname(dirname(pathof(@__MODULE__))), "data", "Zavg_z_t.dat")).(log10.(Ti ./ 1E3), Z)) .- 1.0
+end
+
+Memoize.@memoize function avgZinterpolator(filename::String)
+    txt = open(filename, "r") do io
+        strip(read(io, String))
+    end
+
+    iion = Vector{Int}()
+    Ti = Vector{Float64}()
+    for (k, line) in enumerate(split(txt, "\n"))
+        if k == 1
+            continue
+        elseif k == 2
+            continue
+        elseif k == 3
+            append!(iion, collect(map(x -> parse(Int, x), split(line))))
+        elseif k == 4
+            append!(Ti, collect(map(x -> parse(Float64, x), split(line))))
+        end
+    end
+
+    data = zeros(length(Ti), length(iion))
+    for (k, line) in enumerate(split(txt, "\n"))
+        if k > 4
+            data[k-4, :] = map(x -> parse(Float64, x), split(line))
+        end
+    end
+
+    return Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear()))
+
 end

@@ -10,22 +10,22 @@ function collision_frequencies(dd::IMAS.dd)
     ne = cp1d.electrons.density_thermal / 1E6 # cm^-3
     me = constants.m_e * 1E3 # g
     mp = constants.m_p * 1E3 # g
-    e = 4.8032e-10 # statcoul
-    k = 1.6022e-12 # erg/eV
+    e = gacode_units.e # statcoul
+    k = gacode_units.k # erg/eV
 
     loglam = 24.0 .- log.(sqrt.(ne) ./ Te)
 
     # 1/tau_ee (Belli 2008) in 1/s
-    nue = sqrt(2) .* pi .* ne * e^4.0 .* loglam ./ (sqrt(me) * (k * Te) .^ 1.5)
+    nue = @. sqrt(2) * pi * ne * e^4.0 * loglam / (sqrt(me) * (k * Te) ^ 1.5)
 
     # 1/tau_ii (Belli 2008) in 1/s
     nui = zeros(length(Te))
     for ion in cp1d.ion
         Ti = ion.temperature
         ni = ion.density / 1E6
-        Zi = ion.element[1].z_n
+        Zi = avgZ(ion.element[1].z_n, Ti)
         mi = ion.element[1].a * mp
-        nui += sqrt(2) .* pi .* ni .* Zi .* e^4.0 .* loglam ./ (sqrt.(mi) .* (k .* Ti) .^ 1.5)
+        nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti) ^ 1.5)
     end
 
     # c_exch = 1.8e-19 is the formulary exch. coefficient
@@ -36,9 +36,9 @@ function collision_frequencies(dd::IMAS.dd)
     for ion in cp1d.ion
         Ti = ion.temperature
         ni = ion.density / 1E6
-        Zi = ion.element[1].z_n
+        Zi = avgZ(ion.element[1].z_n, Ti)
         mi = ion.element[1].a * mp
-        nu_exch .+= c_exch .* sqrt(me * mi) * Zi^2 .* ni .* loglam ./ (me .* Ti .+ mi .* Te) .^ 1.5
+        nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te) ^ 1.5
     end
 
     return nue, nui, nu_exch
