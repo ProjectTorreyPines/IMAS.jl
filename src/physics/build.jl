@@ -95,7 +95,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
 
     # start from the first vacuum that goes to zero outside of the TF
     start_from = -1
-    for k in IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)
+    for k in get_build(bd, fs=_out_, return_only_one=false, return_index=true)
         if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
             start_from = k
             break
@@ -129,7 +129,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
             end
         end
     end
-    rlim_oh = IMAS.get_build(bd, type=_oh_).start_radius
+    rlim_oh = get_build(bd, type=_oh_).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr < rlim_oh

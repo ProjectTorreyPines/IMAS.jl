@@ -363,16 +363,16 @@ expressions["core_sources.vacuum_toroidal_field.r0"] =
 #  build  #
 #= ===== =#
 expressions["build.layer[:].outline.r"] =
-    (x; build, layer, _...) -> IMAS.get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
+    (x; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
 
 expressions["build.layer[:].outline.z"] =
-    (x; build, layer, _...) -> IMAS.get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
+    (x; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
 
 expressions["build.layer[:].shape"] =
-    (; build, layer, _...) -> IMAS.get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape
+    (; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape
 
 expressions["build.layer[:].shape_parameters"] =
-    (; build, layer, _...) -> IMAS.get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
+    (; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
 
 expressions["build.layer[:].start_radius"] =
     (; build, layer_index, _...) -> build_radii(build)[1:end-1][layer_index]

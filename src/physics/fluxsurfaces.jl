@@ -15,7 +15,7 @@ end
 Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
 """
 function Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
-    grad = [IMAS.Interpolations.gradient(PSI_interpolant, r[k], z[k]) for k in 1:length(r)]
+    grad = [Interpolations.gradient(PSI_interpolant, r[k], z[k]) for k in 1:length(r)]
     Br = [cc.sigma_RpZ * grad[k][2] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
     Bz = [-cc.sigma_RpZ * grad[k][1] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
     return Br, Bz
@@ -577,9 +577,9 @@ function flux_surface(
 end
 
 function find_x_point!(eqt::IMAS.equilibrium__time_slice)
-    rlcfs, zlcfs = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], true)
+    rlcfs, zlcfs = flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 5.0
-    private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
+    private = flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
     for (pr, pz) in private
@@ -608,7 +608,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
     # refine x-point location
     for rz in eqt.boundary.x_point
         res = Optim.optimize(
-            x -> IMAS.Bp_vector_interpolant(PSI_interpolant, cc, [rz.r + x[1]], [rz.z + x[2]])[1],
+            x -> Bp_vector_interpolant(PSI_interpolant, cc, [rz.r + x[1]], [rz.z + x[2]])[1],
             [0.0, 0.0],
             Optim.NelderMead(),
             Optim.Options(g_tol=1E-8),

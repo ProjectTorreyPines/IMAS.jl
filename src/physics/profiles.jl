@@ -83,7 +83,7 @@ Evaluate thermal energy confinement time
 """
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
     # power losses due to radiation shouldn't be subtracted from tau_e_thermal
-    total_source = IMAS.total_sources(sources, cp1d)
+    total_source = total_sources(sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     return energy_thermal(cp1d) / (total_power_inside - radiation_losses(sources))
 end
@@ -97,7 +97,7 @@ function tau_e_h98(dd::IMAS.dd; time=dd.global_time)
     eqt = dd.equilibrium.time_slice[Float64(time)]
     cp1d = dd.core_profiles.profiles_1d[Float64(time)]
 
-    total_source = IMAS.total_sources(dd.core_sources, cp1d)
+    total_source = total_sources(dd.core_sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
     isotope_factor =
         integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
@@ -125,7 +125,7 @@ function tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
     eqt = dd.equilibrium.time_slice[Float64(time)]
     cp1d = dd.core_profiles.profiles_1d[Float64(time)]
 
-    total_source = IMAS.total_sources(dd.core_sources, cp1d)
+    total_source = total_sources(dd.core_sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
     isotope_factor =
         integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
@@ -172,7 +172,7 @@ end
 Calculates the line averaged density from a midplane horizantal line
 """
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    a_cp = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(cp1d.grid.rho_tor_norm)
+    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(cp1d.grid.rho_tor_norm)
     return integrate(a_cp, cp1d.electrons.density) / a_cp[end]
 end
 

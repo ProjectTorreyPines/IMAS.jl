@@ -71,7 +71,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, r0::T, b0::T, wall_r::Vector{T},
             Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, rr, zz)
             Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
             Bt = abs.(b0 .* r0 ./ rr)
-            dp = sqrt.(IMAS.gradient(rr) .^ 2.0 .+ IMAS.gradient(zz) .^ 2.0)
+            dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0)
             pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2)
             s = cumsum(pitch .* dp)
             midplane_index = argmin(abs.(zz .- Z0) .+ (rr .< R0))

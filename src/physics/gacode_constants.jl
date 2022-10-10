@@ -15,13 +15,13 @@ function c_s(cp1d::IMAS.core_profiles__profiles_1d)
 end
 
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    bunit = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, abs.(IMAS.bunit(eqt)) .* gacode_units.T_to_Gauss).(cp1d.grid.rho_tor_norm)
+    bunit = interp1d(eqt.profiles_1d.rho_tor_norm, abs.(IMAS.bunit(eqt)) .* gacode_units.T_to_Gauss).(cp1d.grid.rho_tor_norm)
     return c_s(cp1d) ./ (gacode_units.e .* bunit) .* (cp1d.ion[1].element[1].a .* gacode_units.mp .* gacode_units.c)
 end
 
 function r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
-    return IMAS.interp1d(eq1d.rho_tor_norm, gacode_units.m_to_cm * 0.5 * (eq1d.r_outboard - eq1d.r_inboard)).(cp1d.grid.rho_tor_norm)
+    return interp1d(eq1d.rho_tor_norm, gacode_units.m_to_cm * 0.5 * (eq1d.r_outboard - eq1d.r_inboard)).(cp1d.grid.rho_tor_norm)
 end
 
 ##### Gyrobohm normalizations from gacode

@@ -285,7 +285,7 @@ end
     #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
     # end
     for psi_level in psi_levels
-        for (pr, pz) in IMAS.flux_surface(eqt, psi_level, nothing)
+        for (pr, pz) in flux_surface(eqt, psi_level, nothing)
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
@@ -435,7 +435,7 @@ Plot build cross-section
 
         # everything after first vacuum in _out_
         if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
-            for k in IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)[2:end]
+            for k in get_build(bd, fs=_out_, return_only_one=false, return_index=true)[2:end]
                 if !wireframe
                     @series begin
                         seriestype --> :shape
@@ -464,7 +464,7 @@ Plot build cross-section
 
         # first vacuum in _out_
         if !wireframe
-            k = IMAS.get_build(bd, fs=_out_, return_only_one=false, return_index=true)[1]
+            k = get_build(bd, fs=_out_, return_only_one=false, return_index=true)[1]
             @series begin
                 seriestype --> :shape
                 linewidth := 0.0
@@ -474,8 +474,8 @@ Plot build cross-section
                 join_outlines(
                     bd.layer[k].outline.r,
                     bd.layer[k].outline.z,
-                    IMAS.get_build(bd, type=_plasma_).outline.r,
-                    IMAS.get_build(bd, type=_plasma_).outline.z,
+                    get_build(bd, type=_plasma_).outline.r,
+                    get_build(bd, type=_plasma_).outline.z,
                 )
             end
             @series begin
@@ -500,7 +500,7 @@ Plot build cross-section
 
         # all layers inside of the TF
         if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
-            for k in IMAS.get_build(bd, fs=_in_, return_only_one=false, return_index=true)
+            for k in get_build(bd, fs=_in_, return_only_one=false, return_index=true)
                 layer = bd.layer[k]
                 if layer.material != "Vacuum"
                     if !wireframe
@@ -526,7 +526,7 @@ Plot build cross-section
         end
 
         # all layers between the OH and the plasma
-        for k in IMAS.get_build(bd, fs=_hfs_, return_only_one=false, return_index=true)
+        for k in get_build(bd, fs=_hfs_, return_only_one=false, return_index=true)
             l = bd.layer[k]
             l1 = bd.layer[k+1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
@@ -584,7 +584,7 @@ Plot build cross-section
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                IMAS.get_build(bd, type=_plasma_).outline.r, IMAS.get_build(bd, type=_plasma_).outline.z
+                get_build(bd, type=_plasma_).outline.r, get_build(bd, type=_plasma_).outline.z
             end
         end
 
@@ -689,14 +689,14 @@ end
         end
     end
 
-    dd = IMAS.top_dd(ct)
+    dd = top_dd(ct)
     if dd !== missing
         @series begin
             linewidth := 2
             color := :green
             label := "Total source"
             flux := true
-            IMAS.total_sources(dd)
+            total_sources(dd)
         end
     end
 
@@ -704,7 +704,7 @@ end
         linewidth := 2
         color := :black
         label := "Total transport"
-        IMAS.total_fluxes(ct)
+        total_fluxes(ct)
     end
 
 end
@@ -1108,7 +1108,7 @@ end
     ylabel --> "Stresses [MPa]"
     xlabel --> "Radius [m]"
 
-    center_stack = IMAS.parent(stress)
+    center_stack = parent(stress)
 
     config = []
     if center_stack.bucked == 1
@@ -1231,7 +1231,7 @@ end
         wall_r = wall_r[index]
         wall_z = neutronics.first_wall.z
         wall_z = wall_z[index]
-        d = sqrt.(IMAS.diff(vcat(wall_r, wall_r[1])) .^ 2.0 .+ IMAS.diff(vcat(wall_z, wall_z[1])) .^ 2.0)
+        d = sqrt.(diff(vcat(wall_r, wall_r[1])) .^ 2.0 .+ diff(vcat(wall_z, wall_z[1])) .^ 2.0)
         l = cumsum(d)
         legend_position --> :top
 
@@ -1265,7 +1265,7 @@ end
 
 @recipe function plot_wall(wall::IMAS.wall)
     @series begin
-        fw = IMAS.first_wall(wall)
+        fw = first_wall(wall)
         color --> :gray
         label --> ""
         fw.r, fw.z

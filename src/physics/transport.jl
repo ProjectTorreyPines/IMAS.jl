@@ -20,7 +20,7 @@ function profile_from_z_transport(
     rho_transport_grid = rho[transport_idices]
 
     z = -calc_z(rho, profile_old)
-    z[1:transport_idices[end]] = .-IMAS.interp1d(rho_transport_grid, z_transport_grid).(rho[1:transport_idices[end]])
+    z[1:transport_idices[end]] = .-interp1d(rho_transport_grid, z_transport_grid).(rho[1:transport_idices[end]])
 
     profile_new = similar(profile_old)
     profile_new[transport_idices[end]:end] = profile_old[transport_idices[end]:end]
@@ -76,7 +76,7 @@ function total_fluxes(ct::IMAS.core_transport, rho_total_fluxes::AbstractVector{
                         else
                             setproperty!(getproperty(ids2, field), :flux,
                                 vcat(old_value[1:x_1-1],
-                                    old_value[x_1:x_2] .+ IMAS.interp1d(x, y, :cubic).(rho_total_fluxes)[x_1:x_2],
+                                    old_value[x_1:x_2] .+ interp1d(x, y, :cubic).(rho_total_fluxes)[x_1:x_2],
                                     old_value[x_2+1:end]))
                         end
                     end
