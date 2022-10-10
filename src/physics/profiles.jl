@@ -223,28 +223,25 @@ Generate H-mode density and temperature profiles evenly spaced in your favorite 
 :param width: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    xpsi = LinRange(0.0, 1.0, ngrid)
+
     w_E1 = 0.5 * widthp  # width as defined in eped
     xphalf = 1.0 - w_E1
-
-    xped = xphalf - w_E1
-
     pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
     a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
-
     coretanh = 0.5 * a_t * (1.0 - tanh(-xphalf / w_E1) - pconst) + edge
 
-    xpsi = LinRange(0, 1, ngrid)
+    # edge tanh part
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge + core * 0.0
 
-    # tanh part
-    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge * 1.0 + core * 0.0
-
-    xtoped = xpsi / xped
-    grid = LinRange(0, 1, ngrid)
-    for (i, ival) in enumerate(grid)
-        if xtoped[i] < 0
-            @inbounds val[i] = val[i] + (core - coretanh)
-        elseif xtoped[i]^expin < 1.0
-            @inbounds val[i] = val[i] + (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+    # core tanh+polynomial part
+    if core >= 0.0
+        xped = xphalf - w_E1
+        xtoped = xpsi ./ xped
+        for i in 1:ngrid
+            if xtoped[i] < 1.0
+                @inbounds val[i] += (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+            end
         end
     end
 
