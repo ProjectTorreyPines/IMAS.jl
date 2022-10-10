@@ -399,6 +399,6 @@ Memoize.@memoize function avgZinterpolator(filename::String)
         end
     end
 
-    return Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear()))
+    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear())),Interpolations.Flat())
 
 end

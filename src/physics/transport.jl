@@ -19,16 +19,12 @@ function profile_from_z_transport(
 
     rho_transport_grid = rho[transport_idices]
 
-    z_old = calc_z(rho, profile_old)
-    z_new = similar(z_old)
-    z_new[transport_idices[end]:end] = z_old[transport_idices[end]:end]
+    z = -calc_z(rho, profile_old)
+    z[1:transport_idices[end]] = .-IMAS.interp1d(rho_transport_grid, z_transport_grid).(rho[1:transport_idices[end]])
 
-    z_new[1:transport_idices[end]] = IMAS.interp1d(rho_transport_grid, z_transport_grid).(rho[1:transport_idices[end]])
     profile_new = similar(profile_old)
     profile_new[transport_idices[end]:end] = profile_old[transport_idices[end]:end]
-    for i in transport_idices[end]-1:-1:1
-        profile_new[i] = profile_new[i+1] * exp(0.5 * (z_new[i] + z_new[i+1]) * (rho[i] - rho[i+1]))
-    end
+    profile_new[1:transport_idices[end]] = integ_z(rho[1:transport_idices[end]], z[1:transport_idices[end]], profile_new[transport_idices[end]])
     return profile_new
 end
 

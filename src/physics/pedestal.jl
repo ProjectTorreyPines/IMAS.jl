@@ -22,22 +22,20 @@ function blend_core_pedestal_Hmode(
     iped = argmin(abs.(rho .- ped_bound))
     inml = argmin(abs.(rho .- nml_bound))
 
-    z_profile = -IMAS.calc_z(rho, profile; method=:central)
+    z_profile = -IMAS.calc_z(rho, profile)
     z_nml = z_profile[inml]
 
     # H-mode profile used for pedestal
     profile_ped = IMAS.Hmode_profiles(profile[end], ped_height, -1.0, length(rho), expin, expout, ped_width)
 
     # linear z between nml and pedestal
-    z_profile_ped = -IMAS.calc_z(rho, profile_ped; method=:central)
+    z_profile_ped = -IMAS.calc_z(rho, profile_ped)
     z_ped = z_profile_ped[iped]
     z_profile[inml:iped] = (z_nml - z_ped) ./ (rho[inml] - rho[iped]) .* (rho[inml:iped] .- rho[inml]) .+ z_nml
 
     # integrate from pedestal inward
     profile_new = deepcopy(profile_ped)
-    for i in iped-1:-1:1
-        profile_new[i] = profile_new[i+1] * exp(0.5 * (z_profile[i] + z_profile[i+1]) * (-rho[i] + rho[i+1]))
-    end
+    profile_new[1:iped] = integ_z(rho[1:iped], z_profile[1:iped], profile_ped[iped])
 
     return profile_new
 end

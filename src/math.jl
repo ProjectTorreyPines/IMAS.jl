@@ -1,5 +1,6 @@
 import LinearAlgebra
 import StaticArrays
+import DataInterpolations
 
 """
     norm01(x::T)::T where {T<:AbstractVector{<:Real}}
@@ -366,15 +367,35 @@ function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:R
 end
 
 """
-    calc_z(x::Vector{<:Real},f::Vector{<:Real})
+    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
 
 Returns the gradient scale lengths of vector f on x
 
-NOTE: positive inverse scale length for normal profiles
-
-Finite difference method of the gradient: [:central, :backward, :forward]
+NOTE: negative inverse scale length for typical density/temperature profiles
 """
-function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method=:backward)
+function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
     f[findall(ff -> (ff < 1e-32), f)] .= 1e-32
-    return IMAS.gradient(x, f; method) ./ f
+    itp = interp1d(x, f, :cubic)
+    g = [DataInterpolations.derivative(itp, x0) for x0 in x]
+    return g ./ f
+end
+
+"""
+    integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
+
+Backward integration of inverse scale length vector with given edge boundary condition
+"""
+function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
+    f = interp1d(rho, z_profile, :quadratic)
+    profile_new = similar(rho)
+    profile_new[end] = bc
+    for i in length(rho)-1:-1:1
+        a = rho[i]
+        fa = z_profile[i]
+        b = rho[i+1]
+        fb = z_profile[i+1]
+        simpson_integral = (b - a) / 6 * (fa + 4 * f((a + b) * 0.5) + fb)
+        profile_new[i] = profile_new[i+1] * exp(simpson_integral)
+    end
+    return profile_new
 end
