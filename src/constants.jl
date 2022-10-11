@@ -114,3 +114,14 @@ function Base.findfirst(identifier_name::Symbol, haystack::IDSvector)
     index = findfirst(idx -> idx.identifier.index == i, haystack)
     return haystack[index]
 end
+
+"""
+    findall(identifier_name::Symbol, haystack::IDSvector)
+
+return items from IDSvector based on identifier.index of index_2_name
+"""
+function Base.findall(identifier_name::Symbol, haystack::IDSvector)
+    i = name_2_index(haystack)[identifier_name]
+    indexes = findall(idx -> idx.identifier.index == i, haystack)
+    return [haystack[index] for index in indexes]
+end
