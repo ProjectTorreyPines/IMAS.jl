@@ -113,23 +113,24 @@ function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
 
     # Find the right D-T density
     ion_list = [ion.label for ion in cp1d.ion]
+    result = zero(cp1d.electrons.density)
     if "D" in ion_list && "T" in ion_list && length(findall(ion -> isequal(ion, "T"), ion_list)) < 2
         D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
         n_deuterium = cp1d.ion[D_index].density
         T_index = findfirst(ion -> isequal(ion, "T"), ion_list)
         n_tritium = cp1d.ion[T_index].density
         Ti = (cp1d.ion[D_index].temperature + cp1d.ion[T_index].temperature) ./ 2.0
+        sigv = reactivity(Ti, "D-T")
+        result .= n_deuterium .* n_tritium .* sigv .* fast_helium_energy  # J/m^3/s = W/m^3
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
         n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
         Ti = cp1d.ion[DT_index].temperature
-    else
-        return cp1d.electrons.density .* 0.0
+        sigv = reactivity(Ti, "D-T")
+        result .= n_deuterium .* n_tritium .* sigv .* fast_helium_energy  # J/m^3/s = W/m^3
     end
 
-    sigv = reactivity(Ti, "D-T")
-
-    return n_deuterium .* n_tritium .* sigv .* fast_helium_energy  # J/m^3/s = W/m^3
+    return result
 end
 
 """
