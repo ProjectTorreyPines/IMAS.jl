@@ -72,12 +72,9 @@ function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
 
     eq = dd.equilibrium
     eqt = eq.time_slice[]
-    eq1d = eqt.profiles_1d
-    R = (eq1d.r_outboard + eq1d.r_inboard) / 2.0
-    R = interp1d(eq1d.rho_tor_norm, R).(cp1d.grid.rho_tor_norm)
-    a = (eq1d.r_outboard - eq1d.r_inboard) / 2.0
-    a = interp1d(eq1d.rho_tor_norm, a).(cp1d.grid.rho_tor_norm)
-    B0 = abs(@ddtime(eq.vacuum_toroidal_field.b0))
+    a = eqt.boundary.minor_radius
+    R = eqt.global_quantities.magnetic_axis.r
+    B0 = abs(@ddtime(eq.vacuum_toroidal_field.b0))*eq.vacuum_toroidal_field.r0/R
     ϵ = a ./ R
 
     # Synchrotron radiation
