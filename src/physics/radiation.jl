@@ -74,7 +74,7 @@ function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
     eqt = eq.time_slice[]
     a = eqt.boundary.minor_radius
     R = eqt.global_quantities.magnetic_axis.r
-    B0 = abs(@ddtime(eq.vacuum_toroidal_field.b0))*eq.vacuum_toroidal_field.r0/R
+    B0 = abs(@ddtime(eq.vacuum_toroidal_field.b0)) * eq.vacuum_toroidal_field.r0 / R
     ϵ = a ./ R
 
     # Synchrotron radiation
@@ -113,6 +113,7 @@ end
 function rad_ion_adas(Te, ne, ni, zi, namei)
     ne = ne ./ 1E6 # [1 / cm^3]
     ni = ni ./ 1E6 # [1 / cm^3]
+    Te = Te ./ 1E3 # [keV]
 
     # * Approximate * NRL Bremsstrahlung radiation [erg / cm^3 / s]
     qbremi = @. 1e7 * 1.69e-32 * ne * ni * zi^2 * sqrt(Te)
@@ -129,12 +130,14 @@ function rad_ion_adas(Te, ne, ni, zi, namei)
     qline .*= -1e-7 .* 1e6 # in W/m^3
     qcool .*= -1e-7 .* 1e6 # in W/m^3
 
-    return qcool
+    return qline
 end
 
 
 """
     adas21(Te, name)
+
+NOTE: Te in [keV] and output is in [erg cm^3 / s]
 
 Chebyshev polynomial fits to ADAS data
 - Transpiled from gacode/tgyro/src/tgyro_rad.f90
@@ -146,8 +149,6 @@ Chebyshev polynomial fits to ADAS data
 - Supports ["W","Xe","Mo","Kr","Ni","Fe","Ca","Ar","Si","Al","Ne","F","N","O","C","Be","He","H","T","D","DT"]
 """
 function adas21(Te, name)
-    Te = Te / 1000.0 # from eV to keV
-
     # Min and max values of Te
     t0 = 0.05 # keV
     t1 = 50.0 # keV
@@ -207,10 +208,8 @@ function adas21(Te, name)
         s = s .+ (coefficients[i] .* cos.((i - 1) .* acos.(x)))
     end
 
-    # Lz (cooling rate) in erg cm^3 / s
+    # Lz (cooling rate) in [erg cm^3 / s]
     Lz = exp.(s)
-
-    Lz .*= 1e-7 .* 1e6 # in W/m^3
 
     return Lz
 end
