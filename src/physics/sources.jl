@@ -114,14 +114,15 @@ function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d)
     # Find the right D-T density
     ion_list = [ion.label for ion in cp1d.ion]
     result = zero(cp1d.electrons.density)
-    if "D" in ion_list && "T" in ion_list && length(findall(ion -> isequal(ion, "T"), ion_list)) < 2
+    if "D" in ion_list && "T" in ion_list
         D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
         n_deuterium = cp1d.ion[D_index].density
         T_index = findfirst(ion -> isequal(ion, "T"), ion_list)
         n_tritium = cp1d.ion[T_index].density
-        Ti = (cp1d.ion[D_index].temperature + cp1d.ion[T_index].temperature) ./ 2.0
+        Ti = (cp1d.ion[D_index].temperature .+ cp1d.ion[T_index].temperature) ./ 2.0
         sigv = reactivity(Ti, "D-T")
         result .= n_deuterium .* n_tritium .* sigv .* fast_helium_energy  # J/m^3/s = W/m^3
+
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
         n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
@@ -306,17 +307,19 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = cp1d.time
 
-    volume = getproperty(cp1d.grid, :volume, missing)
-    if volume !== missing
-        total_source1d.grid.volume = volume
-    end
-    area = getproperty(cp1d.grid, :area, missing)
-    if area !== missing
-        total_source1d.grid.area = area
-    end
-    surface = getproperty(cp1d.grid, :surface, missing)
-    if surface !== missing
-        total_source1d.grid.surface = surface
+    for prop in [:volume, :area, :surface]
+        value = getproperty(cp1d.grid, prop, missing)
+        if value === missing
+            for source in core_sources.source
+                value = getproperty(source.profiles_1d[Float64(cp1d.time)].grid, prop, missing)
+                if value !== missing
+                    break
+                end
+            end
+        end
+        if value !== missing
+            setproperty!(total_source1d.grid, prop, value)
+        end
     end
 
     all_indexes = [source.identifier.index for source in core_sources.source]
@@ -428,8 +431,7 @@ function new_source(
 
     source.identifier.name = name
     source.identifier.index = index
-    resize!(source.profiles_1d)
-    cs1d = source.profiles_1d[]
+    cs1d = resize!(source.profiles_1d)
     cs1d.grid.rho_tor_norm = rho
     cs1d.grid.volume = volume
 
