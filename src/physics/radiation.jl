@@ -113,13 +113,12 @@ end
 function rad_ion_adas(Te, ne, ni, zi, namei)
     ne = ne ./ 1E6 # [1 / cm^3]
     ni = ni ./ 1E6 # [1 / cm^3]
-    Te = Te ./ 1E3 # [keV]
 
     # * Approximate * NRL Bremsstrahlung radiation [erg / cm^3 / s]
     qbremi = @. 1e7 * 1.69e-32 * ne * ni * zi^2 * sqrt(Te)
 
     # Chebyshev interpolation of ADAS data
-    Lz = adas21(Te, namei)
+    Lz = adas21(Te/1E3, namei)
 
     # ADAS returns combined qcool = qbrem + qline
     qcool = @. ne * ni * Lz
