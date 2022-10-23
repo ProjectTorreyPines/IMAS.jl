@@ -141,3 +141,84 @@ function line_wall_2_wall(
 
     rr, zz
 end
+
+"""
+    Bpol(a::T, κ::T, Ip::T) where {T<:Real}
+
+Average poloidal magnetic field magnitude
+"""
+function Bpol(a::T, κ::T, Ip::T) where {T<:Real}
+    return (constants.μ_0 * Ip) / (2π * a * sqrt((1.0 + κ^2) / 2.0))
+end
+
+function widthSOL_sieglin(dd::IMAS.dd)
+    return widthSOL_sieglin(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
+end
+
+function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+    eq1d = eqt.profiles_1d
+    R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
+    a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
+    κ = eq1d.elongation[end]
+    Ip = eqt.global_quantities.ip
+    tot_src = IMAS.total_sources(core_sources, cp1d)
+    Psol = tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
+    ne_ped = IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
+    return widthSOL_sieglin(R0, a, κ, Ip, Psol, ne_ped)
+end
+
+"""
+    widthSOL_sieglin(R0::T, a::T, κ::T, Ip::T, Psol::T, ne_ped::T) where {T<:Real}
+
+Returns integral power decay length λ_int in meters
+Eich scaling(NF 53 093031) & B. Sieglin PPCF 55 (2013) 124039
+"""
+function widthSOL_sieglin(R0::T, a::T, κ::T, Ip::T, Psol::T, ne_ped::T) where {T<:Real}
+    λ_q = widthSOL_eich(R0, a, κ, Ip, Psol)
+
+    # From B. Sieglin PPCF 55 (2013) 124039
+    # S includes the geometrical effects of the divertor assembly itself
+    ne_ped /= 1.e19
+    S = 0.09 * 1E-3 * ne_ped^1.02 * Bpol(a, κ, Ip)^-1.01
+
+    # extrapolate S from ASDEX results
+    S *= (R0 / 1.65)
+
+    # This is a valid approximation when S/λ_q < 10
+    if S / λ_q > 10
+        @warn "S/λ_q = $(S/λ_q) > 10 integral power decay approximation is inaccurate"
+    end
+    λ_int = λ_q + 1.64 * S
+
+    return λ_int
+end
+
+function widthSOL_eich(dd::IMAS.dd)
+    return widthSOL_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
+end
+
+function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+    eq1d = eqt.profiles_1d
+    R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
+    a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
+    κ = eq1d.elongation[end]
+    Ip = eqt.global_quantities.ip
+    tot_src = IMAS.total_sources(core_sources, cp1d)
+    Psol = tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
+    return widthSOL_eich(R0, a, κ, Ip, Psol)
+end
+
+"""
+    widthSOL_eich(R0::T, a::T, κ::T, Ip::T, Psol::T) where {T<:Real}
+
+Returns midplane power decay length λ_q in meters
+Eich scaling (NF 53 093031)
+"""
+function widthSOL_eich(R0::T, a::T, κ::T, Ip::T, Psol::T) where {T<:Real}
+    if Psol < 0.0
+        return 0.0
+    end
+    Psol /= 1E6
+    λ_q = 1.35 * 1E-3 * Psol^-0.02 * R0^0.04 * Bpol(a, κ, Ip)^-0.92 * (a / R0)^0.42
+    return λ_q
+end
