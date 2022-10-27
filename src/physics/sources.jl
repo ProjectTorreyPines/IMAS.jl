@@ -14,11 +14,10 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
         ni = ion.density_thermal
         Zi = avgZ(ion.element[1].z_n, ion.temperature)
         mi = ion.element[1].a
-        c_a .+= (ni ./ ne) .* Zi .^ 2 .* (mi ./ particle_mass)
+        c_a .+= (ni ./ ne) .* Zi .^ 2 ./ (mi ./ particle_mass)
     end
 
     W_crit = Te .* (4.0 .* sqrt.(constants.m_e / (constants.m_p * particle_mass)) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)
-
     ion_to_electron_fraction = similar(W_crit)
     x = particle_energy ./ W_crit
     for (idx, x_i) in enumerate(x)
