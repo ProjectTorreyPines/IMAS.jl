@@ -194,6 +194,26 @@ function D_D_to_He3_reactions(dd::IMAS.dd)
     return dd_deut.density_thermal .^ 2 .* reactivity(dd_deut.temperature, "D-DtoHe3") #  reactions/m³/s
 end
 
+function D_D_to_He3_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    he3_energy = 0.82e6 * 1.6022e-19 # eV to Joules
+    reactivity = D_D_to_He3_reactions(dd)
+    energy =  reactivity .* he3_energy 
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, 0.82e6, 3.0)
+    index = name_2_index(dd.core_sources.source)[:fusion]
+    source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
+    new_source(
+        source,
+        index,
+        "He3",
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume;
+        electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=energy .* ion_to_electron_fraction
+    )
+    return source
+end
+
 """
     collisional_exchange_source!(dd::IMAS.dd)
 
