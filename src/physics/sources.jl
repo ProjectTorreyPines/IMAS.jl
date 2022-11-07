@@ -187,11 +187,36 @@ end
 
 Calculates the number of D-D thermal fusion reactions to He3 in [reactions/m³/s]
 """
-function D_D_to_He3_reactions(dd::IMAS.dd)
-    index = findfirst(ion.label == "D" for ion in dd.core_profiles.profiles_1d[].ion)
+function D_D_to_He3_reactions(cp1d::IMAS.core_profiles__profiles_1d)
+    index = findfirst(ion.label == "D" for ion in cp1d.ion)
     @assert index !== nothing "There is no Deuterium only species in dd.core_profiles"
-    dd_deut = dd.core_profiles.profiles_1d[].ion[index]
+    dd_deut = cp1d.ion[index]
     return dd_deut.density_thermal .^ 2 .* reactivity(dd_deut.temperature, "D-DtoHe3") #  reactions/m³/s
+end
+
+"""
+    D_D_to_He3_source!(dd::IMAS.dd)
+
+Calculates the He-3 heating source from D-D fusion reactions, estimates energy transfer to ions and electrons, modifies dd.core_sources
+"""
+function D_D_to_He3_source!(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    he3_energy = 0.82e6 * constants.e  # eV to Joules
+    reactivity = D_D_to_He3_reactions(cp1d)
+    energy =  reactivity .* he3_energy 
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, 0.82e6, 3.0)
+    index = name_2_index(dd.core_sources.source)[:fusion]
+    source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
+    new_source(
+        source,
+        index,
+        "He3",
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume;
+        electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=energy .* ion_to_electron_fraction
+    )
+    return source
 end
 
 """
