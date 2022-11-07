@@ -196,7 +196,7 @@ end
 
 function D_D_to_He3_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    he3_energy = 0.82e6 * 1.6022e-19 # eV to Joules
+    he3_energy = 0.82e6 * constants.e  # eV to Joules
     reactivity = D_D_to_He3_reactions(dd)
     energy =  reactivity .* he3_energy 
     ion_to_electron_fraction = sivukhin_fraction(cp1d, 0.82e6, 3.0)
