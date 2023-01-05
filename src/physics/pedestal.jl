@@ -116,10 +116,9 @@ end
     pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real}; return_profile_fit=false)
 
 Finds the pedetal height and width using the EPED1 definition
-returns ped_height, ped_width (if return_profile_fit = false)
-returns profile_fit (if return_profile_fit = true)
+returns ped_height, ped_width
 """
-function pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real}; return_profile_fit=false)
+function pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
     function cost_function(params)
         if any(x -> (x < 0.0),params)
             return 1e10
@@ -140,8 +139,5 @@ function pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVect
     guess = [interp1d(psi_norm,profile)(1 - 2 * width0),width0]
     res = Optim.optimize(cost_function, guess, Optim.NelderMead(), Optim.Options(g_tol=1E-5))
 
-    if return_profile_fit
-        return Hmode_profiles(profile[end], res.minimizer[1], profile[1], length(profile), 2.0, 2.0, res.minimizer[2])
-    end            
     return res.minimizer
 end
