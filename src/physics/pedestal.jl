@@ -113,7 +113,7 @@ function blend_core_edge_Lmode(cp1d::IMAS.core_profiles__profiles_1d, edge_bound
 end
 
 """
-    pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real}; return_profile_fit=false)
+    pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
 
 Finds the pedetal height and width using the EPED1 definition
 returns ped_height, ped_width
