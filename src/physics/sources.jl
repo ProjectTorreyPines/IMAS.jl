@@ -45,7 +45,7 @@ Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 
 """
 
 function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fuel::Bool=false)
-    spf = 1 #default value for non spin polarized fuel 
+    spf = 1.0 #default value for non spin polarized fuel 
     if model == "D-T"
         # Table VII
         c1 = 1.17302e-9
