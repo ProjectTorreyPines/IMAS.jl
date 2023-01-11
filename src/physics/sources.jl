@@ -39,13 +39,13 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
 end
 
 """
-    reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
+    reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_fraction::Real=0.0)
 
 Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
 """
 
-function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fuel::Bool=false)
-    spf = 1.0 #default value for non spin polarized fuel 
+function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_fraction::Real=0.0)
+    spf = 1 #default value for non spin polarized fuel 
     if model == "D-T"
         # Table VII
         c1 = 1.17302e-9
@@ -57,7 +57,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fu
         c7 = 1.36600e-5
         bg = 34.3827
         er = 1.124656e6
-        if spin_pol_fuel
+        if polarized_fraction > 0.0
             spf = 1.5 #spin polarization factor - 1.5 chosen according to GACP 20010393
         end
     elseif model == "D-He3"
@@ -71,7 +71,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fu
         c6 = 0.0
         c7 = 0.0
         er = 18.3e6
-        if spin_pol_fuel
+        if polarized_fraction > 0.0
             spf = 1.5 #also 1.5 for D-He3 according to Kulsrud (1982), PRL 49(17), 1248-1251
         end
     elseif model == "D-DtoT"
@@ -85,7 +85,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fu
         c6 = 0.0
         c7 = 0.0
         er = 4.03e6
-        if spin_pol_fuel
+        if polarized_fraction > 0.0
             error("Sorry, spin polarized fuel option is not available for $(model)")
         end
     elseif model == "D-DtoHe3"
@@ -99,7 +99,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fu
         c6 = 0.0
         c7 = 0.0
         er = 0.82e6
-        if spin_pol_fuel
+        if polarized_fraction > 0.0
             error("Sorry, spin polarized fuel option is not available for $(model)")
         end
     else
@@ -113,7 +113,8 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fu
     xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
     sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
 
-    return sigv .* spf / 1e6  # m^3/s
+    @assert 0.0 <= polarized_fraction <= 1.0 "Polarized fraction should be between 0.0 and 1.0"
+    return ((1.0 .- polarized_fraction) .+ spf * polarized_fraction) .* sigv / 1e6  # m^3/s
 end
 
 """
