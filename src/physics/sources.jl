@@ -43,7 +43,9 @@ end
 
 Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
 """
-function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
+
+function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; spin_pol_fuel::Bool=false)
+    spf = 1 #default value for non spin polarized fuel 
     if model == "D-T"
         # Table VII
         c1 = 1.17302e-9
@@ -55,6 +57,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
         c7 = 1.36600e-5
         bg = 34.3827
         er = 1.124656e6
+        if spin_pol_fuel
+            spf = 1.5 #spin polarization factor - 1.5 chosen according to GACP 20010393
+        end
     elseif model == "D-He3"
         bg = 68.7508
         mc2 = 1124572.0
@@ -66,6 +71,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
         c6 = 0.0
         c7 = 0.0
         er = 18.3e6
+        if spin_pol_fuel
+            spf = 1.5 #also 1.5 for D-He3 according to Kulsrud (1982), PRL 49(17), 1248-1251
+        end
     elseif model == "D-DtoT"
         bg = 31.3970
         mc2 = 937814.0
@@ -77,6 +85,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
         c6 = 0.0
         c7 = 0.0
         er = 4.03e6
+        if spin_pol_fuel
+            error("Sorry, spin polarized fuel option is not available for $(model)")
+        end
     elseif model == "D-DtoHe3"
         bg = 31.3970
         mc2 = 937814.0
@@ -88,6 +99,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
         c6 = 0.0
         c7 = 0.0
         er = 0.82e6
+        if spin_pol_fuel
+            error("Sorry, spin polarized fuel option is not available for $(model)")
+        end
     else
         error("Reactivity model can be either [\"D-T\",\"D-He3\",\"D-DtoT\", \"D-DtoHe3\"]")
     end
@@ -99,7 +113,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T")
     xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
     sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
 
-    return sigv / 1e6  # m^3/s
+    return sigv .* spf / 1e6  # m^3/s
 end
 
 """
