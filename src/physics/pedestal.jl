@@ -111,3 +111,33 @@ function blend_core_edge_Lmode(cp1d::IMAS.core_profiles__profiles_1d, edge_bound
         ion.temperature = ti_avg_new
     end
 end
+
+"""
+    pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
+
+Finds the pedetal height and width using the EPED1 definition
+returns ped_height, ped_width
+"""
+function pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
+    function cost_function(params)
+        if any(x -> (x < 0.0),params)
+            return 1e10
+        end
+        profile_fit = Hmode_profiles(profile[end], params[1], profile[1], length(profile), 2.0, 2.0, params[2])
+        return sqrt(sum(((profile .- profile_fit).^2  ./ profile[1]^2) .* weight_func))
+    end
+    ngrid = length(profile)
+    half_grid = Int(floor(ngrid/2))
+
+    inversion_point = argmin(gradient(psi_norm[half_grid:end],profile[half_grid:end])) + half_grid
+    inversion_point_margin = inversion_point - Int(floor(0.1*ngrid))
+
+    weight_func = zeros(ngrid)
+    weight_func[inversion_point_margin:end] .+= 1.0
+
+    width0 = 1 - psi_norm[inversion_point]
+    guess = [interp1d(psi_norm,profile)(1 - 2 * width0),width0]
+    res = Optim.optimize(cost_function, guess, Optim.NelderMead(), Optim.Options(g_tol=1E-5))
+
+    return res.minimizer
+end
