@@ -176,7 +176,7 @@ function DT_fusion_source!(dd::IMAS.dd)
     cp = dd.core_profiles
     cp1d = cp.profiles_1d[]
 
-    polarized_fuel_fraction = getproperty!(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
 
     α = alpha_heating(cp1d; polarized_fuel_fraction)
     if sum(α) == 0
