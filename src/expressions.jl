@@ -230,6 +230,12 @@ expressions["equilibrium.time_slice[:].boundary.squareness_lower_outer"] =
 expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
     (; time_slice, _...) -> time_slice.profiles_1d.squareness_upper_outer[end]
 
+expressions["equilibrium.time_slice[:].boundary.squareness"] =
+    (; time_slice, _...) -> (time_slice.profiles_1d.squareness_lower_inner[end] + 
+                             time_slice.profiles_1d.squareness_upper_inner[end] +
+                             time_slice.profiles_1d.squareness_lower_outer[end] +
+                             time_slice.profiles_1d.squareness_upper_outer[end]) / 4
+
 expressions["equilibrium.time_slice[:].profiles_1d.j_tor"] =
     (psi; profiles_1d, _...) -> begin
     j_parallel = profiles_1d.j_parallel
