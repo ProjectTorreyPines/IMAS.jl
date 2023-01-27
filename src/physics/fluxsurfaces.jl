@@ -102,24 +102,24 @@ function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
+    flux_surfaces(eqt::IMAS.equilibrium__time_slice; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
+function flux_surfaces(eqt::IMAS.equilibrium__time_slice; upsample_factor::Int=1)
     r0 = eqt.boundary.geometric_axis.r
     b0 = eqt.profiles_1d.f[end] / r0
     return flux_surfaces(eqt, b0, r0; upsample_factor)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
+    flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, b0 and r0
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
+function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
     cc = cocos(11)
 
     r, z, PSI_interpolant = ψ_interpolant(eqt)
@@ -488,16 +488,16 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
 end
 
 """
-    flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
+    flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real)
 
 Returns r,z coordiates of closed flux surface at given psi_level
 """
-function flux_surface(eqt::equilibrium__time_slice, psi_level::Real)
+function flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real)
     return flux_surface(eqt, psi_level, true)
 end
 
 """
-    flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
+    flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
 
 Returns r,z coordiates of open or closed flux surface at given psi_level
 
@@ -506,7 +506,8 @@ The `closed` parameter:
 * true: all closed flux-surface that encircle the magnetic axis
 * false: all open flux-surfaces
 """
-function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
+
+function flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
     dim1 = eqt.profiles_2d[1].grid.dim1
     dim2 = eqt.profiles_2d[1].grid.dim2
     PSI = eqt.profiles_2d[1].psi
@@ -543,7 +544,6 @@ function flux_surface(
 
     # contouring routine
     cl = Contour.contour(dim1, dim2, PSI, psi_level)
-
     prpz = []
     if closed === nothing
         # if no open/closed check, then return all contours
@@ -561,7 +561,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surface that close and contain magnetic axis
-            if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) == 1)
+            if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) == 1) 
                 R0 = 0.5 * (maximum(pr) + minimum(pr))
                 Z0 = 0.5 * (maximum(pz) + minimum(pz))
                 reorder_flux_surface!(pr, pz, R0, Z0)
@@ -586,12 +586,18 @@ function flux_surface(
     end
 end
 
+
+find_x_point!(eq::IMAS.equilibrium) = find_x_point!.(eq.time_slice)
 function find_x_point!(eqt::IMAS.equilibrium__time_slice)
+    
+    empty!(eqt.boundary.x_point)
+    if isempty(eqt.profiles_2d) || isempty(eqt.profiles_1d); return; end 
+
     rlcfs, zlcfs = flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 5.0
     private = flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     Z0 = sum(zlcfs) / length(zlcfs)
-    empty!(eqt.boundary.x_point)
+   
     for (pr, pz) in private
         if sign(pz[1] - Z0) != sign(pz[end] - Z0)
             # open flux surface does not encicle the plasma
