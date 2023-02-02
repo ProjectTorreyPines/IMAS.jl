@@ -342,11 +342,11 @@ end
 
 @recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
     @series begin
-        aspect_ratio --> :equal
         seriestype := :scatter
         marker --> :circle
         markerstrokewidth --> 0
         label --> ""
+        aspect_ratio --> :equal
         [(x_point.r, x_point.z)]
     end
 end
