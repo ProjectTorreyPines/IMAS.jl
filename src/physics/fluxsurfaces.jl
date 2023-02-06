@@ -593,7 +593,7 @@ end
 
 Firnd X-points on the last closed flux surface
 """
-function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:equilibrium__time_slice___boundary__x_point}
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
     rlcfs, zlcfs = flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 5.0
     private = flux_surface(eqt, eqt.profiles_1d.psi[end], false)
