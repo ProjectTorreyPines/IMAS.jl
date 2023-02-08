@@ -8,7 +8,7 @@ Returns r, z, and ψ interpolant
 function ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
     r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
     z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
-    return r, z, Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
+    return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt.profiles_2d[1].psi)
 end
 
 """
@@ -51,7 +51,7 @@ end
 function find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision=1e-6, raise_error_on_not_open)
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
-    dd = sqrt((dim1[2] - dim1[1]) * (dim2[2] - dim2[1]))
+    dd = sqrt((dim1[2] - dim1[1])^2 + (dim2[2] - dim2[1])^2)
 
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[1], true)
     if length(pr) == 0
@@ -148,8 +148,6 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
     psi_axix = PSI_interpolant(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)
     eqt.profiles_1d.psi = (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (eqt.profiles_1d.psi[end] - psi_axix) .+ psi_axix
-
-    find_x_point!(eqt)
 
     for item in [
         :b_field_average,
@@ -409,7 +407,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
 
     # phi 2D
     eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(
+        Interpolations.cubic_spline_interpolation(
             to_range(eqt.profiles_1d.psi) * psi_sign,
             eqt.profiles_1d.phi,
             extrapolation_bc=Interpolations.Line(),
@@ -420,7 +418,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
 
     # gm2: <∇ρ²/R²>
     if false
-        RHO_interpolant = Interpolations.CubicSplineInterpolation((r, z), RHO)
+        RHO_interpolant = Interpolations.cubic_spline_interpolation((r, z), RHO)
         for k in 1:length(eqt.profiles_1d.psi)
             tmp = [Interpolations.gradient(RHO_interpolant, PR[k][j], PZ[k][j]) for j in 1:length(PR[k])]
             dPHI2 = [j[1] .^ 2.0 .+ j[2] .^ 2.0 for j in tmp]
@@ -428,7 +426,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         end
     else
         dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
-        dPHI2_interpolant = Interpolations.CubicSplineInterpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
+        dPHI2_interpolant = Interpolations.cubic_spline_interpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
         for k in 1:length(eqt.profiles_1d.psi)
             dPHI2 = dPHI2_interpolant.(PR[k], PZ[k])
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
@@ -438,12 +436,15 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     # fix quantities on axis
     for quantity in [:gm2]
         eqt.profiles_1d.gm2[1] =
-            Interpolations.CubicSplineInterpolation(
+            Interpolations.cubic_spline_interpolation(
                 to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
                 getproperty(eqt.profiles_1d, quantity)[2:end],
                 extrapolation_bc=Interpolations.Line(),
             ).(eqt.profiles_1d.psi[1] * psi_sign)
     end
+
+    # find quantities on separatrix
+    find_x_point!(eqt)
 
     return eqt
 end

@@ -64,7 +64,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
                 b_max = get_time_array(c.b_field_max_timed, :data, time)
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
-                #Icrit = Interpolations.CubicSplineInterpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
+                #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
                 Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * c.element[1].turns_with_sign)(b_max)
                 push!(Imax, Icrit)
             else
@@ -342,11 +342,11 @@ end
 
 @recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
     @series begin
-        aspect_ratio --> :equal
         seriestype := :scatter
         marker --> :circle
         markerstrokewidth --> 0
         label --> ""
+        aspect_ratio --> :equal
         [(x_point.r, x_point.z)]
     end
 end
