@@ -27,7 +27,6 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 Ratios = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
-Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
