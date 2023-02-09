@@ -228,12 +228,14 @@ end
     psi_levels_in=nothing,
     psi_levels_out=nothing,
     lcfs=false,
-    x_point=false)
+    x_points=false,
+    magnetic_axis=true)
 
     @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(lcfs) <: Bool
-    @assert typeof(x_point) <: Bool
+    @assert typeof(x_points) <: Bool
+    @assert typeof(magnetic_axis) <: Bool
 
     label --> ""
     aspect_ratio --> :equal
@@ -300,15 +302,17 @@ end
         end
     end
 
-    @series begin
-        primary --> false
-        eqt.global_quantities.magnetic_axis
+    if magnetic_axis
+        @series begin
+            primary --> false
+            eqt.global_quantities.magnetic_axis
+        end
     end
 
-    if x_point
+    if x_points
         @series begin
-            eqt.boundary.x_point
             primary --> false
+            eqt.boundary.x_point
         end
     end
 
