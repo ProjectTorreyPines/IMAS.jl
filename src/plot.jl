@@ -694,7 +694,7 @@ end
     end
 
     dd = top_dd(ct)
-    if dd !== missing
+    if dd !== nothing
         @series begin
             linewidth := 2
             color := :green
@@ -795,7 +795,7 @@ end
     end
 
     dd = top_dd(cs)
-    if dd !== missing
+    if dd !== nothing
         @series begin
             name := "total"
             linewidth := 2
@@ -1084,10 +1084,7 @@ end
     smcs = parent(parent(stress))
     r_oh = smcs.grid.r_oh
     r_tf = smcs.grid.r_tf
-    r_pl = missing
-    if !ismissing(smcs.grid, :r_pl)
-        r_pl = smcs.grid.r_pl
-    end
+    r_pl = getproperty(smcs.grid, :r_pl, missing)
 
     @series begin
         r_oh, stress.oh ./ 1E6
