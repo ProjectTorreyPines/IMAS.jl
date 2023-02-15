@@ -236,18 +236,21 @@ end
     resample_2d_line(
         x::AbstractVector{T},
         y::AbstractVector{T};
-        step::Union{Nothing,T}=nothing,
-        n_points::Union{Nothing,Integer}=nothing,
-        curvature_weight::Float64=0.0) where {T<:Real}
+        step::Float64=0.0,
+        n_points::Integer=0,
+        curvature_weight::Float64=0.0,
+        method::Symbol=:cubic) where {T<:Real}
 
-Resample 2D line with uniform stepping
+Resample 2D line with uniform stepping (or number of points)
+and with option to add more points where curvature is highest
 """
 function resample_2d_line(
     x::AbstractVector{T},
     y::AbstractVector{T};
-    step::Union{Nothing,T}=nothing,
-    n_points::Union{Nothing,Integer}=nothing,
-    curvature_weight::Float64=0.0) where {T<:Real}
+    step::Float64=0.0,
+    n_points::Integer=0,
+    curvature_weight::Float64=0.0,
+    method::Symbol=:cubic) where {T<:Real}
 
     s = cumsum(sqrt.(diff(x) .^ 2 + diff(y) .^ 2))
     s = vcat(0.0, s)
@@ -262,8 +265,8 @@ function resample_2d_line(
         s .*= s0
     end
 
-    if n_points === nothing
-        if step !== nothing
+    if n_points === 0
+        if step !== 0.0
             n_points = Integer(ceil(s[end] / step))
         else
             n_points = length(x)
@@ -271,7 +274,7 @@ function resample_2d_line(
     end
 
     t = range(s[1], s[end]; length=n_points)
-    return interp1d(s, x).(t), interp1d(s, y).(t)
+    return interp1d(s, x, method).(t), interp1d(s, y, method).(t)
 end
 
 """
