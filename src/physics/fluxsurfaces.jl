@@ -548,7 +548,7 @@ function flux_surface(
     end
 end
 
-function flxAvg(input::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T):: T where {T<:Real}
+function flxAvg(input::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
     return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
 end
 
@@ -708,4 +708,25 @@ function luce_squareness(
     zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     return zetaou, zetaol, zetail, zetaiu
+end
+
+"""
+    symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
+
+Update equilibrium time slice in place to be symmetric with respect to its magnetic axis.
+This is done by averaging the upper and lower parts of the equilibrium.
+Flux surfaces should re-traced after this operation.
+"""
+function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+
+    Z1 = (maximum(z) + minimum(z)) / 2.0
+    Z0 = eqt.global_quantities.magnetic_axis.z
+    zz = z .- Z1 .+ Z0
+    zz = LinRange(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
+
+    psi = PSI_interpolant(r, zz)
+
+    eqt.profiles_2d[1].grid.dim2 = zz
+    eqt.profiles_2d[1].psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
 end
