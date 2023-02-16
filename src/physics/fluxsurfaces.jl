@@ -492,8 +492,8 @@ end
 
 Returns r,z coordiates of closed flux surface at given psi_level
 """
-function flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real)
-    return flux_surface(eqt, psi_level, true)
+function flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real; kwargs...)
+    return flux_surface(eqt, psi_level, true; kwargs...)
 end
 
 """
@@ -507,14 +507,14 @@ The `closed` parameter:
 * false: all open flux-surfaces
 """
 
-function flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
+function flux_surface(eqt::IMAS.equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool}; kwargs...)
     dim1 = eqt.profiles_2d[1].grid.dim1
     dim2 = eqt.profiles_2d[1].grid.dim2
     PSI = eqt.profiles_2d[1].psi
     psi = eqt.profiles_1d.psi
     R0 = eqt.global_quantities.magnetic_axis.r
     Z0 = eqt.global_quantities.magnetic_axis.z
-    flux_surface(dim1, dim2, PSI, psi, R0, Z0, psi_level, closed)
+    flux_surface(dim1, dim2, PSI, psi, R0, Z0, psi_level, closed; kwargs...)
 end
 
 function flux_surface(
@@ -525,7 +525,8 @@ function flux_surface(
     R0::Real,
     Z0::Real,
     psi_level::Real,
-    closed::Union{Nothing,Bool},
+    closed::Union{Nothing,Bool}; 
+    reorder=true
 )
 
     if psi_level == psi[1]
@@ -551,7 +552,9 @@ function flux_surface(
             pr, pz = Contour.coordinates(line)
             R0 = 0.5 * (maximum(pr) + minimum(pr))
             Z0 = 0.5 * (maximum(pz) + minimum(pz))
-            reorder_flux_surface!(pr, pz, R0, Z0)
+            if reorder
+                reorder_flux_surface!(pr, pz, R0, Z0)
+            end
             push!(prpz, (pr, pz))
         end
         return prpz
@@ -564,7 +567,9 @@ function flux_surface(
             if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) == 1) 
                 R0 = 0.5 * (maximum(pr) + minimum(pr))
                 Z0 = 0.5 * (maximum(pz) + minimum(pz))
-                reorder_flux_surface!(pr, pz, R0, Z0)
+                if reorder 
+                    reorder_flux_surface!(pr, pz, R0, Z0)
+                end
                 return pr, pz, psi_level
             end
         end
@@ -578,7 +583,9 @@ function flux_surface(
             if (pr[1] != pr[end]) || (pz[1] != pz[end])
                 R0 = 0.5 * (maximum(pr) + minimum(pr))
                 Z0 = 0.5 * (maximum(pz) + minimum(pz))
-                reorder_flux_surface!(pr, pz, R0, Z0)
+                if reorder 
+                    reorder_flux_surface!(pr, pz, R0, Z0)
+                end
                 push!(prpz, (pr, pz))
             end
         end
