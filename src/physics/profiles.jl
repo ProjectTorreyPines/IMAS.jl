@@ -7,13 +7,12 @@ function calc_beta_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__
     eq1d = eqt.profiles_1d
     pressure_thermal = cp1d.pressure_thermal
     rho = cp1d.grid.rho_tor_norm
-    Bt = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
+    B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
     Ip = eqt.global_quantities.ip
     volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
     pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
-    beta_tor_thermal = 2 * constants.μ_0 * pressure_thermal_avg / Bt^2
-    beta_tor_thermal_norm = beta_tor_thermal * eqt.boundary.minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2
-    return beta_tor_thermal_norm
+    beta_tor_thermal = 2.0 * constants.μ_0 * pressure_thermal_avg / B0^2
+    return beta_tor_thermal * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
 end
 
 """

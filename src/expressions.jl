@@ -162,7 +162,7 @@ expressions["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (; time_slice, _...) -> 3 / 2 * integrate(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
 expressions["equilibrium.time_slice[:].global_quantities.q_95"] =
-    (; time_slice, _...) -> Interpolations.LinearInterpolation(norm01(time_slice.profiles_1d.psi), time_slice.profiles_1d.q)(0.95)
+    (; time_slice, _...) -> Interpolations.linear_interpolation(norm01(time_slice.profiles_1d.psi), time_slice.profiles_1d.q)(0.95)
 
 expressions["equilibrium.time_slice[:].global_quantities.q_axis"] =
     (; time_slice, _...) -> time_slice.profiles_1d.q[1]
@@ -204,10 +204,10 @@ expressions["equilibrium.time_slice[:].boundary.elongation"] =
     (; time_slice, _...) -> (time_slice.boundary.elongation_lower + time_slice.boundary.elongation_upper) * 0.5
 
 expressions["equilibrium.time_slice[:].boundary.elongation_lower"] =
-    (; time_slice, _...) -> time_slice.profiles_1d.elongation[end] # <======= IMAS 3.30.0 limitation
+    (; time_slice, _...) -> time_slice.profiles_1d.elongation[end] # <======= IMAS limitation
 
 expressions["equilibrium.time_slice[:].boundary.elongation_upper"] =
-    (; time_slice, _...) -> time_slice.profiles_1d.elongation[end] # <======= IMAS 3.30.0 limitation
+    (; time_slice, _...) -> time_slice.profiles_1d.elongation[end] # <======= IMAS limitation
 
 expressions["equilibrium.time_slice[:].boundary.triangularity"] =
     (; time_slice, _...) -> (time_slice.boundary.triangularity_lower + time_slice.boundary.triangularity_upper) * 0.5
@@ -229,6 +229,12 @@ expressions["equilibrium.time_slice[:].boundary.squareness_lower_outer"] =
 
 expressions["equilibrium.time_slice[:].boundary.squareness_upper_outer"] =
     (; time_slice, _...) -> time_slice.profiles_1d.squareness_upper_outer[end]
+
+expressions["equilibrium.time_slice[:].boundary.squareness"] =
+    (; time_slice, _...) -> begin
+        mxh = MXH(time_slice.boundary.outline.r, time_slice.boundary.outline.z, 2)
+        return -mxh.s[2]
+    end
 
 expressions["equilibrium.time_slice[:].profiles_1d.j_tor"] =
     (psi; profiles_1d, _...) -> begin

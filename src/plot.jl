@@ -64,7 +64,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
                 b_max = get_time_array(c.b_field_max_timed, :data, time)
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
-                #Icrit = Interpolations.CubicSplineInterpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
+                #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
                 Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * c.element[1].turns_with_sign)(b_max)
                 push!(Imax, Icrit)
             else
@@ -228,12 +228,14 @@ end
     psi_levels_in=nothing,
     psi_levels_out=nothing,
     lcfs=false,
-    x_point=false)
+    x_points=false,
+    magnetic_axis=true)
 
     @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(lcfs) <: Bool
-    @assert typeof(x_point) <: Bool
+    @assert typeof(x_points) <: Bool
+    @assert typeof(magnetic_axis) <: Bool
 
     label --> ""
     aspect_ratio --> :equal
@@ -300,15 +302,17 @@ end
         end
     end
 
-    @series begin
-        primary --> false
-        eqt.global_quantities.magnetic_axis
+    if magnetic_axis
+        @series begin
+            primary --> false
+            eqt.global_quantities.magnetic_axis
+        end
     end
 
-    if x_point
+    if x_points
         @series begin
-            eqt.boundary.x_point
             primary --> false
+            eqt.boundary.x_point
         end
     end
 
@@ -342,11 +346,11 @@ end
 
 @recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
     @series begin
-        aspect_ratio --> :equal
         seriestype := :scatter
         marker --> :circle
         markerstrokewidth --> 0
         label --> ""
+        aspect_ratio --> :equal
         [(x_point.r, x_point.z)]
     end
 end
@@ -690,7 +694,7 @@ end
     end
 
     dd = top_dd(ct)
-    if dd !== missing
+    if dd !== nothing
         @series begin
             linewidth := 2
             color := :green
@@ -791,7 +795,7 @@ end
     end
 
     dd = top_dd(cs)
-    if dd !== missing
+    if dd !== nothing
         @series begin
             name := "total"
             linewidth := 2
@@ -1080,10 +1084,7 @@ end
     smcs = parent(parent(stress))
     r_oh = smcs.grid.r_oh
     r_tf = smcs.grid.r_tf
-    r_pl = missing
-    if !ismissing(smcs.grid, :r_pl)
-        r_pl = smcs.grid.r_pl
-    end
+    r_pl = getproperty(smcs.grid, :r_pl, missing)
 
     @series begin
         r_oh, stress.oh ./ 1E6

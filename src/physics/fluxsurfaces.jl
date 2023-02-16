@@ -1,3 +1,5 @@
+using LinearAlgebra
+
 """
     ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
 
@@ -6,7 +8,7 @@ Returns r, z, and ψ interpolant
 function ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
     r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
     z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
-    return r, z, Interpolations.CubicSplineInterpolation((r, z), eqt.profiles_2d[1].psi)
+    return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt.profiles_2d[1].psi)
 end
 
 """
@@ -49,7 +51,7 @@ end
 function find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision=1e-6, raise_error_on_not_open)
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
-    dd = sqrt((dim1[2] - dim1[1]) * (dim2[2] - dim2[1]))
+    dd = sqrt((dim1[2] - dim1[1])^2 + (dim2[2] - dim2[1])^2)
 
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[1], true)
     if length(pr) == 0
@@ -147,8 +149,6 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
     psi_axix = PSI_interpolant(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)
     eqt.profiles_1d.psi = (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (eqt.profiles_1d.psi[end] - psi_axix) .+ psi_axix
 
-    find_x_point!(eqt)
-
     for item in [
         :b_field_average,
         :b_field_max,
@@ -201,14 +201,7 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
             pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
 
             # Extrema on array indices
-            _, imaxr = findmax(pr)
-            _, iminr = findmin(pr)
-            _, imaxz = findmax(pz)
-            _, iminz = findmin(pz)
-            r_at_max_z, max_z = pr[imaxz], pz[imaxz]
-            r_at_min_z, min_z = pr[iminz], pz[iminz]
-            z_at_max_r, max_r = pz[imaxr], pr[imaxr]
-            z_at_min_r, min_r = pz[iminr], pr[iminr]
+            (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
 
         else  # other flux surfaces
             # trace flux surface
@@ -219,14 +212,7 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
             end
 
             # Extrema on array indices
-            _, imaxr = findmax(pr)
-            _, iminr = findmin(pr)
-            _, imaxz = findmax(pz)
-            _, iminz = findmin(pz)
-            r_at_max_z, max_z = pr[imaxz], pz[imaxz]
-            r_at_min_z, min_z = pr[iminz], pz[iminz]
-            z_at_max_r, max_r = pz[imaxr], pr[imaxr]
-            z_at_min_r, min_r = pz[iminr], pr[iminr]
+            (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
 
             # accurate geometric quantities by finding geometric extrema as optimization problem
             w = 1E-4 # push away from magnetic axis
@@ -278,14 +264,12 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
         eqt.profiles_1d.triangularity_upper[k] = (Rm - r_at_max_z) / a
         eqt.profiles_1d.triangularity_lower[k] = (Rm - r_at_min_z) / a
 
-        # Miller Extended Harmonic representation
-        mxh = MXH(pr, pz, 2)
-
-        # squareness from MXH
-        eqt.profiles_1d.squareness_lower_inner[k] = -mxh.s[2]
-        eqt.profiles_1d.squareness_lower_outer[k] = -mxh.s[2]
-        eqt.profiles_1d.squareness_upper_inner[k] = -mxh.s[2]
-        eqt.profiles_1d.squareness_upper_outer[k] = -mxh.s[2]
+        # Luce Squareness
+        zetaou, zetaol, zetail, zetaiu = luce_squareness(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+        eqt.profiles_1d.squareness_upper_outer[k] = zetaou
+        eqt.profiles_1d.squareness_lower_outer[k] = zetaol
+        eqt.profiles_1d.squareness_upper_inner[k] = zetail
+        eqt.profiles_1d.squareness_lower_inner[k] = zetaiu
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, pr, pz)
@@ -311,20 +295,15 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
         INT_FLUXEXPANSION_DL[k] = int_fluxexpansion_dl
         BPL[k] = Bpl
 
-        # flux-surface averaging function
-        function flxAvg(input)
-            return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
-        end
-
         # trapped fraction
         Bt = eqt.profiles_1d.f[k] ./ pr
         Btot = sqrt.(Bp2 .+ Bt .^ 2)
         Bmin = minimum(Btot)
         Bmax = maximum(Btot)
         Bratio = Btot ./ Bmax
-        avg_Btot = flxAvg(Btot)
-        avg_Btot2 = flxAvg(Btot .^ 2)
-        hf = flxAvg((1.0 .- sqrt.(1.0 .- Bratio) .* (1.0 .+ Bratio ./ 2.0)) ./ Bratio .^ 2)
+        avg_Btot = flxAvg(Btot, ll, fluxexpansion, int_fluxexpansion_dl)
+        avg_Btot2 = flxAvg(Btot .^ 2, ll, fluxexpansion, int_fluxexpansion_dl)
+        hf = flxAvg((1.0 .- sqrt.(1.0 .- Bratio) .* (1.0 .+ Bratio ./ 2.0)) ./ Bratio .^ 2, ll, fluxexpansion, int_fluxexpansion_dl)
         h = avg_Btot / Bmax
         h2 = avg_Btot2 / Bmax^2
         ftu = 1.0 - h2 / (h^2) * (1.0 - sqrt(1.0 - h) * (1.0 + 0.5 * h))
@@ -341,19 +320,19 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
         eqt.profiles_1d.b_field_min[k] = Bmin
 
         # gm1 = <1/R^2>
-        eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2)
+        eqt.profiles_1d.gm1[k] = flxAvg(1.0 ./ pr .^ 2, ll, fluxexpansion, int_fluxexpansion_dl)
 
         # gm4 = <1/B^2>
-        eqt.profiles_1d.gm4[k] = flxAvg(1.0 ./ Btot .^ 2)
+        eqt.profiles_1d.gm4[k] = flxAvg(1.0 ./ Btot .^ 2, ll, fluxexpansion, int_fluxexpansion_dl)
 
         # gm5 = <B^2>
         eqt.profiles_1d.gm5[k] = avg_Btot2
 
         # gm8 = <R>
-        eqt.profiles_1d.gm8[k] = flxAvg(pr)
+        eqt.profiles_1d.gm8[k] = flxAvg(pr, ll, fluxexpansion, int_fluxexpansion_dl)
 
         # gm9 = <1/R>
-        eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr)
+        eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr, ll, fluxexpansion, int_fluxexpansion_dl)
 
         # j_tor = <j_tor/R> / <1/R>
         eqt.profiles_1d.j_tor[k] =
@@ -363,7 +342,7 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
             ) / eqt.profiles_1d.gm9[k]
 
         # dvolume_dpsi
-        eqt.profiles_1d.dvolume_dpsi[k] = (cc.sigma_rhotp * cc.sigma_Bp * sign(flxAvg(Bp)) * int_fluxexpansion_dl * (2.0 * pi)^(1.0 - cc.exp_Bp))
+        eqt.profiles_1d.dvolume_dpsi[k] = (cc.sigma_rhotp * cc.sigma_Bp * sign(flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)) * int_fluxexpansion_dl * (2.0 * pi)^(1.0 - cc.exp_Bp))
 
         # surface area
         eqt.profiles_1d.surface[k] = 2 * pi * sum(pr .* dl)
@@ -382,26 +361,6 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
             # perimeter
             eqt.global_quantities.length_pol = ll[end]
         end
-    end
-
-    function flxAvg(input, ll, fluxexpansion, int_fluxexpansion_dl)
-        return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
-    end
-
-    function volume_integrate(what)
-        return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
-    end
-
-    function surface_integrate(what)
-        return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
-    end
-
-    function cumlul_volume_integrate(what)
-        return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
-    end
-
-    function cumlul_surface_integrate(what)
-        return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
     end
 
     # integral quantities
@@ -430,7 +389,7 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
     eqt.global_quantities.li_3 = 2 * Bp2v / r0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
 
     # beta_tor
-    avg_press = volume_integrate(eqt.profiles_1d.pressure)
+    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure)
     eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
 
     # beta_pol
@@ -448,7 +407,7 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
 
     # phi 2D
     eqt.profiles_2d[1].phi =
-        Interpolations.CubicSplineInterpolation(
+        Interpolations.cubic_spline_interpolation(
             to_range(eqt.profiles_1d.psi) * psi_sign,
             eqt.profiles_1d.phi,
             extrapolation_bc=Interpolations.Line(),
@@ -459,7 +418,7 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
 
     # gm2: <∇ρ²/R²>
     if false
-        RHO_interpolant = Interpolations.CubicSplineInterpolation((r, z), RHO)
+        RHO_interpolant = Interpolations.cubic_spline_interpolation((r, z), RHO)
         for k in 1:length(eqt.profiles_1d.psi)
             tmp = [Interpolations.gradient(RHO_interpolant, PR[k][j], PZ[k][j]) for j in 1:length(PR[k])]
             dPHI2 = [j[1] .^ 2.0 .+ j[2] .^ 2.0 for j in tmp]
@@ -467,7 +426,7 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
         end
     else
         dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
-        dPHI2_interpolant = Interpolations.CubicSplineInterpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
+        dPHI2_interpolant = Interpolations.cubic_spline_interpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
         for k in 1:length(eqt.profiles_1d.psi)
             dPHI2 = dPHI2_interpolant.(PR[k], PZ[k])
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
@@ -477,12 +436,15 @@ function flux_surfaces(eqt::IMAS.equilibrium__time_slice, b0::Real, r0::Real; up
     # fix quantities on axis
     for quantity in [:gm2]
         eqt.profiles_1d.gm2[1] =
-            Interpolations.CubicSplineInterpolation(
+            Interpolations.cubic_spline_interpolation(
                 to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
                 getproperty(eqt.profiles_1d, quantity)[2:end],
                 extrapolation_bc=Interpolations.Line(),
             ).(eqt.profiles_1d.psi[1] * psi_sign)
     end
+
+    # find quantities on separatrix
+    find_x_point!(eqt)
 
     return eqt
 end
@@ -595,11 +557,54 @@ end
 
 
 find_x_point!(eq::IMAS.equilibrium) = find_x_point!.(eq.time_slice)
-function find_x_point!(eqt::IMAS.equilibrium__time_slice)
-    
-    empty!(eqt.boundary.x_point)
-    if isempty(eqt.profiles_2d) || isempty(eqt.profiles_1d); return; end 
 
+
+function flxAvg(input::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
+    return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
+end
+
+"""
+    volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+
+Integrate quantity over volume
+"""
+function volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::T where {T<:Real}
+    return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+end
+
+"""
+    volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+
+Cumulative integrate quantity over volume
+"""
+function cumlul_volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+    return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+end
+
+"""
+    surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+
+Integrate quantity over surface
+"""
+function surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::T where {T<:Real}
+    return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+end
+
+"""
+    surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+
+Cumulative integrate quantity over surface
+"""
+function cumlul_surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+    return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+end
+
+"""
+    find_x_point!(eqt::IMAS.equilibrium__time_slice)::eqt.boundary.x_point
+
+Firnd X-points on the last closed flux surface
+"""
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
     rlcfs, zlcfs = flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     ll = sqrt((maximum(zlcfs) - minimum(zlcfs)) * (maximum(rlcfs) - minimum(rlcfs))) / 5.0
     private = flux_surface(eqt, eqt.profiles_1d.psi[end], false)
@@ -641,4 +646,98 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)
     end
 
     return eqt.boundary.x_point
+end
+
+"""
+    fluxsurface_extrema(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
+
+Returns extrema indexes and values of R,Z flux surfaces vectors
+    imaxr, iminr,
+    imaxz, iminz,
+    r_at_max_z, max_z,
+    r_at_min_z, min_z,
+    z_at_max_r, max_r,
+    z_at_min_r, min_r
+"""
+function fluxsurface_extrema(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
+    _, imaxr = findmax(pr)
+    _, iminr = findmin(pr)
+    _, imaxz = findmax(pz)
+    _, iminz = findmin(pz)
+    r_at_max_z, max_z = pr[imaxz], pz[imaxz]
+    r_at_min_z, min_z = pr[iminz], pz[iminz]
+    z_at_max_r, max_r = pz[imaxr], pr[imaxr]
+    z_at_min_r, min_r = pz[iminr], pr[iminr]
+    return (imaxr, iminr, imaxz, iminz,
+        r_at_max_z, max_z,
+        r_at_min_z, min_z,
+        z_at_max_r, max_r,
+        z_at_min_r, min_r)
+end
+
+"""
+    luce_squareness(pr::AbstractVector{T}, pz::AbstractVector{T}, r_at_max_z::T, max_z::T, r_at_min_z::T, min_z::T, z_at_max_r::T, max_r::T, z_at_min_r::T, min_r::T) where {T<:Real}
+
+Squareness from: "An analytic functional form for characterization and generation of axisymmetric plasma boundaries"
+T.C. Luce, Plasma Phys. Control. Fusion 55 (2013) http://dx.doi.org/10.1088/0741-3335/55/9/095009
+
+Returns: zetaou, zetaol, zetail, zetaiu
+"""
+function luce_squareness(
+    pr::AbstractVector{T}, pz::AbstractVector{T},
+    r_at_max_z::T, max_z::T,
+    r_at_min_z::T, min_z::T,
+    z_at_max_r::T, max_r::T,
+    z_at_min_r::T, min_r::T) where {T<:Real}
+
+    # zetaou
+    PO = (r_at_max_z, z_at_max_r)
+    PE = (max_r, max_z)
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    zetaou = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
+
+    # zetaol
+    PO = (r_at_min_z, z_at_max_r)
+    PE = (max_r, min_z)
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    zetaol = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
+
+    # zetaiu
+    PO = (r_at_max_z, z_at_min_r)
+    PE = (min_r, max_z)
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    zetaiu = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
+
+    # zetail
+    PO = (r_at_min_z, z_at_min_r)
+    PE = (min_r, min_z)
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
+
+    return zetaou, zetaol, zetail, zetaiu
+end
+
+"""
+    symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
+
+Update equilibrium time slice in place to be symmetric with respect to its magnetic axis.
+This is done by averaging the upper and lower parts of the equilibrium.
+Flux surfaces should re-traced after this operation.
+"""
+function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+
+    Z1 = (maximum(z) + minimum(z)) / 2.0
+    Z0 = eqt.global_quantities.magnetic_axis.z
+    zz = z .- Z1 .+ Z0
+    zz = LinRange(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
+
+    psi = PSI_interpolant(r, zz)
+
+    eqt.profiles_2d[1].grid.dim2 = zz
+    eqt.profiles_2d[1].psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
 end
