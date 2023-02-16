@@ -22,13 +22,9 @@ end
 returns elongation limit due to control limit from simple aspect ratio scaling
 """
 function elongation_limit(A::Real)
-     return 2.43 + 65 * exp(-A / 0.376)
+     return 2.43 + 65.0 * exp(-A / 0.376)
 end
 
 function elongation_limit(eqt::IMAS.equilibrium__time_slice)
     return elongation_limit(eqt.global_quantities.magnetic_axis.r/eqt.boundary.minor_radius)
-end
-
-function elongation_limit(dd::IMAS.dd)
-    return elongation_limit(dd.equilibrium.time_slice[])
 end

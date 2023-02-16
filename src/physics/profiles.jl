@@ -165,6 +165,17 @@ function greenwald_density(eqt::IMAS.equilibrium__time_slice)
     return (eqt.global_quantities.ip / 1e6) / (pi * eqt.boundary.minor_radius^2) * 1e20
 end
 
+"""
+    greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Greewald fraction
+"""
+function greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    nel = IMAS.geometric_midplane_line_averaged_density(eqt, cp1d)
+    ngw = greenwald_density(eqt)
+    return nel / ngw
+end
+
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
     a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
     return integrate(a_cp, ne_profile / a_cp[end])
@@ -402,6 +413,6 @@ Memoize.@memoize function avgZinterpolator(filename::String)
         end
     end
 
-    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear())),Interpolations.Flat())
+    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
 
 end
