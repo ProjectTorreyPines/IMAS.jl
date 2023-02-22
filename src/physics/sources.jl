@@ -1,8 +1,129 @@
+
+
+"""
+Calculates the slowing down time taus [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
+
+:param ne: electron density [m^-3]
+
+:param te: electron temperature [eV]
+
+:param efast: energy of birth ion [eV]
+
+:param mfast: mass of fast ion [AMU]
+
+:param zfast: fast  ion charge
+
+:return: taus: slowing down time
+""" 
+function slowing_down_time(ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, efast, mfast, zfast)
+
+    ne_cm3 = 1e-6 .* ne
+    
+    loglam = 24.0 .- log.(sqrt.(ne_cm3) ./ te)
+
+    taus = 6.27e8 .* mfast .* (te.^1.5) ./ (ne_cm3 .* loglam .* zfast^2)
+    
+    return taus
+end
+
+
+"""
+Alpha heating coefficients [Stix, Plasma Phys. 14 (1972) 367]
+See in particular Eqs. 15 and 17.
+This function is a direct translation to Python of what in is in TGYRO
+
+:param ni: list with thermal ions densities [m^-3]
+
+:param zi: list with thermal ions charges
+
+:param mi: list with thermal ions masses [AMU]
+
+:param ne: electron density [m^-3]
+
+:param te: electron temperature [eV]
+
+:param efast: energy of birth ion [eV]
+
+:param mfast: mass of fast ion [AMU]
+
+:return: ecrit, the critical energy
+"""
+
+function critical_energy(ni, zi, mi, ne, te, efast, mfast)
+    me = constants.m_e
+    #ni = reshape(ni, (length(ni), 1))  # Ensure ni is a column vector
+    #mi = reshape(mi, (length(mi), 1))  # Ensure mi is a column vector
+    #zi = reshape(zi, (length(zi), 1))  # Ensure zi is a column vector
+
+    c_a =  zeros(size(ne))
+    for k in 1:size(ni, 1)
+        c_a += (ni[k,:] ./ ne) .* (zi[k] .^ 2) ./ (mi[k] .* constants.m_p ./ mfast)
+    end
+
+    ecrit = te .* (4.0 .* sqrt.(me ./ mfast) ./ (3.0 .* sqrt.(pi) .* c_a)) .^ (-2.0 / 3.0)
+
+    return ecrit
+end
+
+
+"""
+Calculates the fast ion density, and adds it to the dd
+
+:param particle_energy: particle energy [eV]
+
+:param particle_specie: particle specie 
+"""
+function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, particle_specie::String="He")
+
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    rho = cp1d.grid.rho_tor_norm
+    ne = cp1d.electrons.density_thermal
+    Te = cp1d.electrons.temperature
+
+    ion_index = findfirst(ion.label == particle_specie for ion in cp1d.ion)
+    println(particle_specie,ion_index)
+
+    particle_mass = cp1d.ion[ion_index].element[1].a
+    particle_charge = cp1d.ion[ion_index].element[1].z_n
+
+    ni = zeros((length(cp1d.ion),length(cp1d.electrons.density)))
+    Zi = zeros(length(cp1d.ion))
+    mi = zeros(length(cp1d.ion))
+
+    for (idx,ion) in enumerate(cp1d.ion)
+        println(ion.density_thermal)
+        ni[idx,:] = ion.density_thermal
+        Zi[idx] = ion.element[1].z_n
+        mi[idx] = ion.element[1].a
+    end
+
+    taus = slowing_down_time(ne, Te, particle_energy, particle_charge, particle_mass)
+    Ecrit = critical_energy(ni, Zi, mi, ne, Te, particle_energy, particle_mass*constants.m_p)
+
+    vfrac = sqrt.(Ecrit ./ particle_energy)
+
+    encapf = log.(1.0 .+ 1.0 ./ vfrac.^3) ./ 3.0  # assume no neutrals
+
+    fast_index = findfirst(source.identifier.name == "α" for source in dd.core_sources.source)
+    cs1d = dd.core_sources.source[fast_index]
+
+    qfaste = dd.core_sources.source[fast_index].profiles_1d[].electrons.energy
+    qfasti = dd.core_sources.source[fast_index].profiles_1d[].total_ion_energy
+    pressa = taus .* 2.0 ./ 3.0 .* qfaste
+
+    nfast = (qfaste .+ qfasti) ./ (constants.e .* particle_energy) .* encapf .* taus
+    cp1d.ion[ion_index].pressure_fast_parallel = pressa ./ 3.0
+    cp1d.ion[ion_index].pressure_fast_perpendicular = pressa ./ 3.0
+    cp1d.ion[ion_index].density_fast = nfast
+end
+
 """
     sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
 
 Compute a low-accuracy but fast approximation to the ion heating fraction (for alpha particles and beam particles).
 """
+
 function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density
@@ -125,7 +246,6 @@ Volumetric heating source of α particles coming from DT reaction [W m⁻³]
 function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
 
     fast_helium_energy = 3.5e6 * 1.6022e-19  # Joules
-
     # Find the right D-T density
     ion_list = [ion.label for ion in cp1d.ion]
     result = zero(cp1d.electrons.density)
