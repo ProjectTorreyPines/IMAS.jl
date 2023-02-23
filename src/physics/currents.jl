@@ -1,7 +1,7 @@
 """
     j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
 function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
@@ -12,7 +12,7 @@ end
 """
     j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic as expression in core_profiles that evaluates to what it would be at steady-state, based on parallel conductivity and j_non_inductive
+Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
 function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d)

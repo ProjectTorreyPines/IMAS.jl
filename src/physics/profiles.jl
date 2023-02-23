@@ -151,9 +151,9 @@ Calculate bunit from equilibrium
 """
 function bunit(eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
-    rmin = 0.5 * (eq1d.r_outboard - eq1d.r_inboard)
+    rmin = 0.5 .* (eq1d.r_outboard .- eq1d.r_inboard)
     phi = eq1d.phi
-    return gradient(2pi * rmin, phi) ./ rmin
+    return gradient(2π * rmin, phi) ./ rmin
 end
 
 """
