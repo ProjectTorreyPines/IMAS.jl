@@ -150,6 +150,50 @@ expressions["core_profiles.vacuum_toroidal_field.b0"] =
 expressions["core_profiles.vacuum_toroidal_field.r0"] =
     (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
 
+#= ============ =#
+# core_transport #
+#= ============ =#
+
+expressions["core_transport.model[:].profiles_1d[:].grid_flux.psi_norm"] =
+    (rho_tor_norm; grid_flux, _...) -> norm01(grid_flux.psi)
+
+expressions["core_transport.model[:].profiles_1d[:].grid_flux.volume"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        volume = eqt.profiles_1d.volume
+        return interp1d(eqt.profiles_1d.rho_tor_norm, volume, :cubic).(rho_tor_norm)
+    end
+
+expressions["core_transport.model[:].profiles_1d[:].grid_flux.area"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        area = eqt.profiles_1d.area
+        return interp1d(eqt.profiles_1d.rho_tor_norm, area, :cubic).(rho_tor_norm)
+    end
+
+expressions["core_transport.model[:].profiles_1d[:].grid_flux.surface"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        surface = eqt.profiles_1d.surface
+        return interp1d(eqt.profiles_1d.rho_tor_norm, surface, :cubic).(rho_tor_norm)
+    end
+
+expressions["core_transport.model[:].profiles_1d[:].grid_flux.psi"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        psi = eqt.profiles_1d.psi
+        return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
+    end
+
+expressions["core_profiles.profiles_1d[:].time"] =
+    (; core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
+
+expressions["core_profiles.vacuum_toroidal_field.b0"] =
+    (time; dd, core_profiles, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_profiles.time)
+
+expressions["core_profiles.vacuum_toroidal_field.r0"] =
+    (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
+
 #= ========= =#
 # equilibrium #
 #= ========= =#
