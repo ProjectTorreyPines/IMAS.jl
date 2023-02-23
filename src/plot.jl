@@ -228,13 +228,13 @@ end
     psi_levels_in=nothing,
     psi_levels_out=nothing,
     lcfs=false,
-    x_points=false,
+    show_x_points=false,
     magnetic_axis=true)
 
     @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(lcfs) <: Bool
-    @assert typeof(x_points) <: Bool
+    @assert typeof(show_x_points) <: Bool
     @assert typeof(magnetic_axis) <: Bool
 
     label --> ""
@@ -309,7 +309,7 @@ end
         end
     end
 
-    if x_points
+    if show_x_points
         @series begin
             primary --> false
             eqt.boundary.x_point
@@ -1266,10 +1266,41 @@ end
 
 @recipe function plot_wall(wall::IMAS.wall)
     @series begin
-        fw = first_wall(wall)
-        color --> :gray
-        label --> ""
-        fw.r, fw.z
+        color := :gray
+        return wall.description_2d
+    end
+end
+
+@recipe function plot_wd2d_list(wd2d_list::IDSvector{<:IMAS.wall__description_2d})
+    label := ""
+    lw := 3
+    for wd2d in wd2d_list
+        @series begin
+            return wd2d
+        end
+    end
+end
+
+@recipe function plot_wd2d(wd2d::IMAS.wall__description_2d)
+    @series begin
+        return wd2d.limiter.unit
+    end
+end
+
+@recipe function plot_wd2du_list(wd2du_list::IDSvector{<:IMAS.wall__description_2d___limiter__unit})
+    for wd2du in wd2du_list
+        @series begin
+            return wd2du
+        end
+    end
+end
+
+@recipe function plot_wd2du(wd2du::IMAS.wall__description_2d___limiter__unit)
+    @series begin
+        label --> getproperty(wd2du, :name, "")
+        aspect_ratio := :equal
+        xlim := (0.0, Inf)
+        wd2du.outline.r, wd2du.outline.z
     end
 end
 
