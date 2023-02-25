@@ -38,7 +38,6 @@ The returned gradient hence has the same shape as the input array. https://numpy
 
 For central difference, the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries
 """
-
 function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
     np = size(arr)[1]
     out = similar(arr)
@@ -233,7 +232,7 @@ function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:R
 end
 
 """
-    resample_2d_line(
+    resample_2d_path(
         x::AbstractVector{T},
         y::AbstractVector{T};
         step::Float64=0.0,
@@ -244,7 +243,7 @@ end
 Resample 2D line with uniform stepping (or number of points)
 and with option to add more points where curvature is highest
 """
-function resample_2d_line(
+function resample_2d_path(
     x::AbstractVector{T},
     y::AbstractVector{T};
     step::Float64=0.0,
@@ -350,7 +349,7 @@ end
 """
     curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:Real}
 
-Returns curvature of a circular 2D line
+Returns curvature of a 2D closed contour 2D path
 """
 function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:Real}
     if (pr[1] == pr[end]) && (pz[1] == pz[end])
@@ -365,7 +364,6 @@ function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:R
     dr2 = dr[2:end] ./ a[2:end]
     dz1 = dz[1:end-1] ./ a[1:end-1]
     dz2 = dz[2:end] ./ a[2:end]
-
     return dr1 .* dz2 .- dr2 .* dz1
 end
 
