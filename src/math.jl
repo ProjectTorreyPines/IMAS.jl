@@ -232,6 +232,107 @@ function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:R
 end
 
 """
+    rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
+
+Simplifies a 2D line represented by arrays of x and y coordinates using the
+Ramer-Douglas-Peucker algorithm. The `epsilon` parameter controls the maximum distance
+allowed between a point on the original line and its simplified representation.
+"""
+function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
+    n = length(x)
+    if n < 3 || n != length(y)
+        error("Input arrays must have at least 3 elements and the same length")
+    end
+
+    function point_to_line_distance(x0, y0, x1, y1, x2, y2)
+        return abs((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1) / sqrt((y2-y1)^2 + (x2-x1)^2)
+    end    
+
+    if n == 3
+        return x, y
+    else
+        # Find the point with the maximum distance from the line between the first and last points
+        dmax = 0
+        index = 0
+        for i in 2:n-1
+            d = point_to_line_distance(x[i], y[i], x[1], y[1], x[end], y[end])
+            if d > dmax
+                index = i
+                dmax = d
+            end
+        end
+
+        # If the maximum distance is greater than epsilon, recursively simplify
+        if dmax > epsilon
+            # Recursive call to simplify the line segments
+            left_points = rdp_simplify_2d_path(x[1:index], y[1:index], epsilon)
+            right_points = rdp_simplify_2d_path(x[index:end], y[index:end], epsilon)
+
+            # Combine the simplified line segments
+            x_simplified = [left_points[1]; right_points[1][2:end]]
+            y_simplified = [left_points[2]; right_points[2][2:end]]
+            return (x_simplified, y_simplified)
+        else
+            # If the maximum distance is less than epsilon, return the original line segment
+            return x[[1, end]], y[[1, end]]
+        end
+    end
+end
+
+"""
+    rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
+
+Simplifies a 2D line represented by arrays of x and y coordinates using the Reumann-Witkam Algorithm algorithm.
+This algorithm uses a threshold value to determine which points to keep in the path.
+Points are kept if the angle between the previous and next line segments is greater than the threshold,
+and removed if it is less than or equal to the threshold.
+"""
+function rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, threshold::T) where {T <: Real}
+    points = [(x[i], y[i]) for i in eachindex(x)]
+    simplified_points = [points[1]]
+    prev_angle = 0
+    for i in 2:length(points)-1
+        angle = calculate_angle(points[i-1], points[i], points[i+1])
+        if abs(angle - prev_angle) > threshold
+            push!(simplified_points, points[i])
+            prev_angle = angle
+        end
+    end
+    push!(simplified_points, points[end])
+    simplified_x = [p[1] for p in simplified_points]
+    simplified_y = [p[2] for p in simplified_points]
+    return simplified_x, simplified_y
+end
+
+"""
+    calculate_angle(p1::T, p2::T, p3::T) where {T<:AbstractVector{<:Real}}
+
+Calculate the angle between three points
+"""
+function calculate_angle(p1::T, p2::T, p3::T) where {T<:AbstractVector{<:Real}}
+    v1 = [p2[1]-p1[1], p2[2]-p1[2]]
+    v2 = [p3[1]-p2[1], p3[2]-p2[2]]
+    dot_product = dot(v1, v2)
+    magnitude_product = norm(v1) * norm(v2)
+    return acosd(dot_product / magnitude_product)
+end
+
+"""
+    simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:curvature)
+
+Simplify 2D path by `:curvature` (Reumann-Witkam Algorithm) or `:distance` (Ramer-Douglas-Peucker) algorithms
+"""
+function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:curvature) where {T<:Real}
+    if model == :curvature
+        return rwa_simplify_2d_path(x, y, simplification_factor)
+    elseif model == :distance
+        return rdp_simplify_2d_path(x, y, simplification_factor)
+    else
+        error("simplify_2d_line model can be either :curvature or :distance")
+    end
+end
+
+"""
     resample_2d_path(
         x::AbstractVector{T},
         y::AbstractVector{T};
