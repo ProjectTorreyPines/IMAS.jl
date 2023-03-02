@@ -1,18 +1,36 @@
-function calc_beta_thermal_norm(dd::IMAS.dd)
-    return calc_beta_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[])
+"""
+    beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+
+Normalised toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA] 
+"""
+function beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+    beta_tor(eq, cp1d; norm=true, thermal=true)
 end
 
-function calc_beta_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+"""
+    beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool=false, thermal::Bool=false)
+
+Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
+"""
+function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool=false, thermal::Bool=false)
     eqt = eq.time_slice[Float64(cp1d.time)]
     eq1d = eqt.profiles_1d
-    pressure_thermal = cp1d.pressure_thermal
+    if thermal
+        pressure = cp1d.pressure_thermal
+    else
+        pressure = cp1d.pressure
+    end
     rho = cp1d.grid.rho_tor_norm
     B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
     Ip = eqt.global_quantities.ip
     volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
-    pressure_thermal_avg = integrate(volume_cp, pressure_thermal) / volume_cp[end]
-    beta_tor_thermal = 2.0 * constants.μ_0 * pressure_thermal_avg / B0^2
-    return beta_tor_thermal * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
+    pressure_avg = integrate(volume_cp, pressure) / volume_cp[end]
+    beta_tor = 2.0 * constants.μ_0 * pressure_avg / B0^2
+    if norm
+        return beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
+    else
+        return beta_tor
+    end
 end
 
 """
