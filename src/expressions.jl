@@ -489,7 +489,8 @@ expressions["summary.global_quantities.b0.value"] =
 
 expressions["summary.global_quantities.current_bootstrap.value"] =
     (time; dd, summary, _...) -> begin
-        tmp = []
+        type = typeof(summary).parameters[1]
+        tmp = type[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
             push!(tmp, integrate(cp1d.grid.area, cp1d.j_bootstrap))
@@ -499,7 +500,8 @@ expressions["summary.global_quantities.current_bootstrap.value"] =
 
 expressions["summary.global_quantities.current_non_inductive.value"] =
     (time; dd, summary, _...) -> begin
-        tmp = []
+        type = typeof(summary).parameters[1]
+        tmp = type[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
             push!(tmp, integrate(cp1d.grid.area, cp1d.j_non_inductive))
@@ -509,7 +511,8 @@ expressions["summary.global_quantities.current_non_inductive.value"] =
 
 expressions["summary.global_quantities.current_ohm.value"] =
     (time; dd, summary, _...) -> begin
-        tmp = []
+        type = typeof(summary).parameters[1]
+        tmp = type[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
             push!(tmp, integrate(cp1d.grid.area, cp1d.j_ohmic))
