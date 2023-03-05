@@ -1,12 +1,12 @@
-struct DDigestField
+mutable struct DDigestField
     tag::String
     ids::IMAS.IDS
     field::Symbol
     value::Any
 end
 
-function digest(ids::Union{IMAS.IDS,IMAS.IDSvector})
-    out = digest!(Dict{String,String}(), ids)
+function digest(ids::Union{IMAS.IDS,IMAS.IDSvector}; reverse::Bool=true, join_with::String=".")
+    out = digest!(Dict{String,Any}(), ids)
 
     # generate all possible tags
     tmp = Dict{String,Vector{String}}()
@@ -15,11 +15,15 @@ function digest(ids::Union{IMAS.IDS,IMAS.IDSvector})
         if skey[end] == "value"
             skey = skey[1:end-1]
         end
-        tmp[key] = [join(skey[end:-1:end-k+1], "__") for k in eachindex(skey)]
+        if reverse
+            tmp[key] = [join(skey[end:-1:end-k+1], join_with) for k in eachindex(skey)]
+        else
+            tmp[key] = [join(skey[end-k+1:end], join_with) for k in eachindex(skey)]
+        end
     end
 
     # find shortest tag
-    result_strings = Dict{String,String}()
+    result = Dict{Symbol,Any}()
     l = 1
     while !isempty(out)
         for key1 in keys(out)
@@ -30,26 +34,15 @@ function digest(ids::Union{IMAS.IDS,IMAS.IDSvector})
                 end
             end
             if !collision
-                result_strings[tmp[key1][l]] = pop!(out, key1)
+                tag = tmp[key1][l]
+                result[Symbol(tag)] = pop!(out, key1)
+                result[Symbol(tag)].tag = tag
             end
         end
         l += 1
     end
 
-    # evaluate locations
-    result_values = Dict{String,Any}()
-    for (key, location) in result_strings
-        parent_location = p2i(i2p(location)[2:end-1])
-        parent_ids = goto(ids, parent_location; f2=f2fs)
-        field = Symbol(i2p(location)[end])
-
-        value = getproperty(parent_ids, field, missing)
-        if value !== missing
-            result_values[key] = DDigestField(key, parent_ids, field, get_time_array(parent_ids, field))
-        end
-    end
-
-    return result_values
+    return result
 end
 
 function Base.show(io::IO, node::DDigestField)
@@ -60,7 +53,7 @@ function Base.show(io::IO, node::DDigestField)
     end
 end
 
-function digest!(out::Dict{String,String}, ids::Union{IMAS.IDS,IMAS.IDSvector})
+function digest!(out::Dict{String,Any}, ids::Union{IMAS.IDS,IMAS.IDSvector})
     for field in keys(ids)
         if typeof(ids) <: IMAS.IDS
             value = getraw(ids, field)
@@ -75,7 +68,10 @@ function digest!(out::Dict{String,String}, ids::Union{IMAS.IDS,IMAS.IDSvector})
             digest!(out, value)
         else
             fname = string(IMAS.f2i(ids)) * ".$field"
-            out[fname] = fname
+            value = getproperty(ids, field, missing)
+            if value !== missing
+                out[fname] = DDigestField(fname, ids, field, get_time_array(ids, field))
+            end
         end
     end
     return out
