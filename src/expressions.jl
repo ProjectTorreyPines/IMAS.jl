@@ -520,6 +520,15 @@ expressions["summary.global_quantities.current_ohm.value"] =
         return tmp
     end
 
+expressions["summary.fusion.power.value"] = # NOTE: This is α power
+    (time; dd, summary, _...) -> begin
+        type = typeof(summary).parameters[1]
+        tmp = type[]
+        for time in summary.time
+            push!(tmp, alpha_power(dd.core_profiles.profiles_1d[]))
+        end
+        return tmp
+    end
 
 #expressions["summary.global_quantities.beta_pol.value"] =
 

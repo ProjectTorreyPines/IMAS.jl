@@ -284,7 +284,7 @@ end
 Total fusion power [W]
 """
 function fusion_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
-    return alpha_power(cp1d; polarized_fuel_fraction) * 5
+    return alpha_power(cp1d; polarized_fuel_fraction) * 5.0
 end
 
 """
