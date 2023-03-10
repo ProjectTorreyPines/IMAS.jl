@@ -474,7 +474,7 @@ expressions["balance_of_plant.power_electric_plant_operation.total_power"] =
 
 expressions["balance_of_plant.thermal_cycle.total_useful_heat_power"] =
     (time; balance_of_plant, _...) -> balance_of_plant.heat_transfer.wall.heat_delivered .+ balance_of_plant.heat_transfer.divertor.heat_delivered .+ balance_of_plant.heat_transfer.breeder.heat_delivered
-    
+
 expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; thermal_cycle, _...) -> thermal_cycle.thermal_electric_conversion_efficiency .* sum([sys.power_in for sys in thermal_cycle.system])
 
@@ -536,8 +536,6 @@ expressions["summary.fusion.power.value"] = # NOTE: This is α power
         return tmp
     end
 
-#expressions["summary.global_quantities.beta_pol.value"] =
-
 expressions["summary.global_quantities.beta_pol_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_pol for time in summary.time]
 
@@ -546,8 +544,6 @@ expressions["summary.global_quantities.beta_tor.value"] =
 
 expressions["summary.global_quantities.beta_tor_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_tor for time in summary.time]
-
-#expressions["summary.global_quantities.beta_tor_norm.value"] =
 
 expressions["summary.global_quantities.beta_tor_norm_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_normal for time in summary.time]
@@ -568,13 +564,13 @@ expressions["summary.global_quantities.h_98.value"] =
     (time; dd, summary, _...) -> summary.global_quantities.tau_energy.value ./ summary.global_quantities.tau_energy_98.value
 
 expressions["summary.volume_average.zeff.value"] =
-    (time; dd, summary, _...) -> [integrate(dd.core_profiles.profiles_1d[Float64(time)].grid.volume, dd.core_profiles.profiles_1d[Float64(time)].zeff)  ./ dd.core_profiles.profiles_1d[Float64(time)].grid.volume[end] for time in summary.time]
+    (time; dd, summary, _...) -> [integrate(dd.core_profiles.profiles_1d[Float64(time)].grid.volume, dd.core_profiles.profiles_1d[Float64(time)].zeff) ./ dd.core_profiles.profiles_1d[Float64(time)].grid.volume[end] for time in summary.time]
 
 expressions["summary.heating_current_drive.power_launched_ec.value"] =
     (time; dd, summary, _...) -> sum([interp1d(beam.power_launched.time, beam.power_launched.data, :constant).(summary.time) for beam in dd.ec_launchers.beam])
 
 expressions["summary.heating_current_drive.power_launched_ic.value"] =
-    (time; dd, summary, _...) -> sum([interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.ic_antennas.antenna])    
+    (time; dd, summary, _...) -> sum([interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.ic_antennas.antenna])
 
 expressions["summary.heating_current_drive.power_launched_lh.value"] =
     (time; dd, summary, _...) -> sum([interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.lh_antennas.antenna])
