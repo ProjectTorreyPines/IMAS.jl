@@ -487,6 +487,12 @@ expressions["summary.global_quantities.ip.value"] =
 expressions["summary.global_quantities.b0.value"] =
     (time; dd, summary, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(summary.time)
 
+expressions["summary.global_quantities.beta_tor_norm.value"] =
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_normal for time in summary.time]
+
+expressions["summary.global_quantities.r0.value"] =
+    (; dd, summary, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
+
 expressions["summary.global_quantities.current_bootstrap.value"] =
     (time; dd, summary, _...) -> begin
         type = typeof(summary).parameters[1]
@@ -549,7 +555,6 @@ expressions["summary.global_quantities.beta_tor_norm_mhd.value"] =
 expressions["summary.global_quantities.beta_tor_thermal_norm.value"] =
     (time; dd, summary, _...) -> [beta_tor_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
 
-
 expressions["summary.global_quantities.energy_thermal.value"] =
     (time; dd, summary, _...) -> [energy_thermal(dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
 
@@ -561,3 +566,21 @@ expressions["summary.global_quantities.tau_energy_98.value"] =
 
 expressions["summary.global_quantities.h_98.value"] =
     (time; dd, summary, _...) -> summary.global_quantities.tau_energy.value ./ summary.global_quantities.tau_energy_98.value
+
+expressions["summary.volume_average.zeff.value"] =
+    (time; dd, summary, _...) -> [integrate(dd.core_profiles.profiles_1d[Float64(time)].grid.volume, dd.core_profiles.profiles_1d[Float64(time)].zeff)  ./ dd.core_profiles.profiles_1d[Float64(time)].grid.volume[end] for time in summary.time]
+
+expressions["summary.heating_current_drive.power_launched_ec.value"] =
+    (time; dd, summary, _...) -> sum([interp1d(beam.power_launched.time, beam.power_launched.data, :constant).(summary.time) for beam in dd.ec_launchers.beam])
+
+expressions["summary.heating_current_drive.power_launched_ic.value"] =
+    (time; dd, summary, _...) -> sum([interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.ic_antennas.antenna])    
+
+expressions["summary.heating_current_drive.power_launched_lh.value"] =
+    (time; dd, summary, _...) -> sum([interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.lh_antennas.antenna])
+
+expressions["summary.heating_current_drive.power_launched_nbi.value"] =
+    (time; dd, summary, _...) -> sum([interp1d(unit.power_launched.time, unit.power_launched.data, :constant).(summary.time) for unit in dd.nbi.unit])
+
+expressions["summary.heating_current_drive.power_launched_total.value"] =
+    (time; dd, summary, _...) -> getproperty(dd.summary.heating_current_drive.power_launched_nbi, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ec, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ic, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_lh, :value, zeros(length(summary.time)))
