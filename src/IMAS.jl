@@ -3,7 +3,6 @@ __precompile__()
 module IMAS
 
 using Printf
-import JLD2
 
 #= ======= =#
 #= IMAS DD =#
@@ -16,29 +15,6 @@ for n in names(IMASDD; all=true)
     end
 end
 import IMASDD: @ddtime, interp1d
-
-#= ========= =#
-#= SAVE/LOAD =#
-#= ========= =#
-"""
-    save(@nospecialize(ids::IDS), filename::AbstractString)
-
-Save IDS data to file (JLD2 format)
-"""
-function save(@nospecialize(ids::IDS), filename::AbstractString)
-    JLD2.jldsave(filename; ids)
-end
-
-"""
-    load(filename::AbstractString)
-
-Load IDS data from file (JLD2 format)
-"""
-function load(filename::AbstractString)
-    JLD2.jldopen(filename, "r") do file
-        file["ids"]
-    end
-end
 
 #= ===== =#
 #= UTILS =#
