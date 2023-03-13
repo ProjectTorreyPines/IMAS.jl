@@ -29,11 +29,6 @@ include("math.jl")
 include("physics.jl")
 include("expressions.jl")
 
-#= ====== =#
-#= DIGEST =#
-#= ====== =#
-include("digest.jl")
-
 #= ======== =#
 #= PLOTTING =#
 #= ======== =#
