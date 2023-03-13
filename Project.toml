@@ -26,13 +26,6 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Ratios = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Interpolations = "^0.14.7"
-
-[extras]
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-
-[targets]
-test = ["Test"]
