@@ -49,7 +49,7 @@ This function is a direct translation to Python of what in is in TGYRO
 :return: ecrit, the critical energy
 """
 
-function critical_energy(ni::AbstractVector{<:Real}, zi::Real, mi::Real, ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real)
+function critical_energy(ni::AbstractMatrix{<:Real}, zi::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real)
     me = constants.m_e
 
     c_a =  zeros(size(ne))
@@ -82,7 +82,6 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::String
         particle_specie = "He"
     end
     ion_index = findfirst(ion.label == particle_specie for ion in cp1d.ion)
-    println(particle_specie,ion_index)
 
     particle_mass = cp1d.ion[ion_index].element[1].a
     particle_charge = cp1d.ion[ion_index].element[1].z_n
@@ -92,7 +91,6 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::String
     mi = zeros(length(cp1d.ion))
 
     for (idx,ion) in enumerate(cp1d.ion)
-        println(ion.density_thermal)
         ni[idx,:] = ion.density_thermal
         Zi[idx] = ion.element[1].z_n
         mi[idx] = ion.element[1].a
@@ -318,6 +316,7 @@ function DT_fusion_source!(dd::IMAS.dd)
     )
     @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
 
+    fast_density(dd)
     return source
 end
 
