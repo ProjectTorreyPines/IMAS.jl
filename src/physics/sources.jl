@@ -15,7 +15,7 @@ Calculates the slowing down time taus [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :return: taus: slowing down time
 """ 
-function slowing_down_time(ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, efast, mfast, zfast)
+function slowing_down_time(ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real, zfast::Real)
 
     ne_cm3 = 1e-6 .* ne
     
@@ -49,11 +49,8 @@ This function is a direct translation to Python of what in is in TGYRO
 :return: ecrit, the critical energy
 """
 
-function critical_energy(ni, zi, mi, ne, te, efast, mfast)
+function critical_energy(ni::AbstractVector{<:Real}, zi::Real, mi::Real, ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real)
     me = constants.m_e
-    #ni = reshape(ni, (length(ni), 1))  # Ensure ni is a column vector
-    #mi = reshape(mi, (length(mi), 1))  # Ensure mi is a column vector
-    #zi = reshape(zi, (length(zi), 1))  # Ensure zi is a column vector
 
     c_a =  zeros(size(ne))
     for k in 1:size(ni, 1)
@@ -73,7 +70,7 @@ Calculates the fast ion density, and adds it to the dd
 
 :param particle_specie: particle specie 
 """
-function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, particle_specie::String="He")
+function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::String="α")
 
     cp1d = dd.core_profiles.profiles_1d[]
 
@@ -81,6 +78,9 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, particle_specie:
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
+    if sourceid == "α"
+        particle_specie = "He"
+    end
     ion_index = findfirst(ion.label == particle_specie for ion in cp1d.ion)
     println(particle_specie,ion_index)
 
@@ -98,18 +98,18 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, particle_specie:
         mi[idx] = ion.element[1].a
     end
 
-    taus = slowing_down_time(ne, Te, particle_energy, particle_charge, particle_mass)
-    Ecrit = critical_energy(ni, Zi, mi, ne, Te, particle_energy, particle_mass*constants.m_p)
+    taus = slowing_down_time(ne, Te, particle_charge, particle_mass)
+    Ecrit = critical_energy(ni, Zi, mi, ne, Te, particle_mass*constants.m_p)
 
     vfrac = sqrt.(Ecrit ./ particle_energy)
 
     encapf = log.(1.0 .+ 1.0 ./ vfrac.^3) ./ 3.0  # assume no neutrals
+    
+    fast_index = findfirst(source.identifier.name == sourceid for source in dd.core_sources.source)
 
-    fast_index = findfirst(source.identifier.name == "α" for source in dd.core_sources.source)
     cs1d = dd.core_sources.source[fast_index]
-
-    qfaste = dd.core_sources.source[fast_index].profiles_1d[].electrons.energy
-    qfasti = dd.core_sources.source[fast_index].profiles_1d[].total_ion_energy
+    qfaste = cs1d.profiles_1d[].electrons.energy
+    qfasti = cs1d.profiles_1d[].total_ion_energy
     pressa = taus .* 2.0 ./ 3.0 .* qfaste
 
     nfast = (qfaste .+ qfasti) ./ (constants.e .* particle_energy) .* encapf .* taus
