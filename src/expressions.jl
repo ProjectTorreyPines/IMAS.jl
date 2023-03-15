@@ -478,9 +478,6 @@ expressions["balance_of_plant.thermal_cycle.total_useful_heat_power"] =
 expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; balance_of_plant, thermal_cycle, _...) -> thermal_cycle.net_work .* thermal_cycle.generator_conversion_efficiency
 
-expressions["balance_of_plant.thermal_cycle.total_useful_heat_power"] =
-    (time; balance_of_plant, thermal_cycle, _...) -> balance_of_plant.heat_transfer.wall.heat_delivered .+ balance_of_plant.heat_transfer.heat_transfer.divertor.heat_delivered .+ balance_of_plant.heat_transfer.heat_transfer.breeder.heat_delivered
-
 #= ======= =#
 #  summary  #
 #= ======= =#
