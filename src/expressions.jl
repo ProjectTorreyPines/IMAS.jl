@@ -153,6 +153,11 @@ expressions["core_profiles.vacuum_toroidal_field.r0"] =
 #= ============ =#
 # core_transport #
 #= ============ =#
+expressions["core_transport.model[:].profiles_1d[:].grid_flux.rho_tor_norm"] =
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d[profiles_1d_index].grid_d.rho_tor_norm
+
+expressions["core_transport.model[:].profiles_1d[:].grid_d.rho_tor_norm"] =
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d[profiles_1d_index].grid_flux.rho_tor_norm
 
 expressions["core_transport.model[:].profiles_1d[:].grid_flux.psi_norm"] =
     (rho_tor_norm; grid_flux, _...) -> norm01(grid_flux.psi)
