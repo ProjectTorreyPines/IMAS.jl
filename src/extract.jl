@@ -17,7 +17,7 @@ end
 
 function ExtractLibFunction(group::Symbol, name::Symbol, units::String, func::Function)
     xfun = ExtractFunction(group, name, units, func)
-    ExtractFunctionsLibrary[name] = xfun
+    ExtractFunctionsLibrary[Symbol("$(group)_$name")] = xfun
     return xfun
 end
 
@@ -27,41 +27,55 @@ function update_ExtractFunctionsLibrary!()
     empty!(EFL)
     ExtractLibFunction(:geometry, :R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r)
     ExtractLibFunction(:geometry, :a, "m", dd -> dd.equilibrium.time_slice[].boundary.minor_radius)
-    ExtractLibFunction(:geometry, Symbol("1/ϵ"), "m", dd -> EFL[:R0](dd) / EFL[:a](dd))
+    ExtractLibFunction(:geometry, Symbol("1/ϵ"), "m", dd -> EFL[:geometry_R0](dd) / EFL[:geometry_a](dd))
     ExtractLibFunction(:geometry, :κ, "-", dd -> dd.equilibrium.time_slice[].boundary.elongation)
     ExtractLibFunction(:geometry, :δ, "-", dd -> dd.equilibrium.time_slice[].boundary.triangularity)
     ExtractLibFunction(:geometry, :ζ, "-", dd -> dd.equilibrium.time_slice[].boundary.squareness)
 
     ExtractLibFunction(:equilibrium, :B0, "T", dd -> @ddtime(dd.summary.global_quantities.b0.value))
     ExtractLibFunction(:equilibrium, :ip, "MA", dd -> @ddtime(dd.summary.global_quantities.ip.value) / 1e6)
-    ExtractLibFunction(:equilibrium, :q95, "MA", dd -> equilibrium.time_slice[:].global_quantities.q_95)
+    ExtractLibFunction(:equilibrium, :q95, "-", dd -> dd.equilibrium.time_slice[].global_quantities.q_95)
     ExtractLibFunction(:equilibrium, :βpol, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_pol)
     ExtractLibFunction(:equilibrium, :βtor, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_tor)
     ExtractLibFunction(:equilibrium, :βn, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_normal)
 
-    ExtractLibFunction(:profiles, :Te0, "keV", dd -> dd.core_profiles.profiles_1d[].electrons.temperature[1] / 1E3)
-    ExtractLibFunction(:profiles, :Ti0, "keV", dd -> dd.core_profiles.profiles_1d[].ion[1].temperature[1] / 1E3)
-    ExtractLibFunction(:profiles, :ne0, "m⁻³", dd -> dd.core_profiles.profiles_1d[].electrons.density[1])
-    ExtractLibFunction(:profiles, :zeff, "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
+    ExtractLibFunction(:profiles, :Te0, "keV", dd -> @ddtime(dd.summary.local.magnetic_axis.t_e.value) / 1E3)
+    ExtractLibFunction(:profiles, :Ti0, "keV", dd -> @ddtime(dd.summary.local.magnetic_axis.t_i_average.value) / 1E3)
+    ExtractLibFunction(:profiles, :ne0, "m⁻³", dd -> @ddtime(dd.summary.local.magnetic_axis.n_e.value))
     ExtractLibFunction(:profiles, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
+
+    ExtractLibFunction(:profiles, Symbol("<Te>"), "keV", dd -> @ddtime(dd.summary.volume_average.t_e.value) / 1E3)
+    ExtractLibFunction(:profiles, Symbol("<Ti>"), "keV", dd -> @ddtime(dd.summary.volume_average.t_i_average.value) / 1E3)
+    ExtractLibFunction(:profiles, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
+    ExtractLibFunction(:profiles, Symbol("<P>"), "MPa", dd -> begin
+        cp1d = dd.core_profiles.profiles_1d[]
+        integrate(cp1d.grid.volume, cp1d.pressure) / cp1d.grid.volume[end] / 1E6
+    end)
+
+    ExtractLibFunction(:profiles, Symbol("Te0/<Te>"), "-", dd -> EFL[:profiles_Te0](dd) / EFL[Symbol("profiles_<Te>")](dd))
+    ExtractLibFunction(:profiles, Symbol("Ti0/<Ti>"), "-", dd -> EFL[:profiles_Ti0](dd) / EFL[Symbol("profiles_<Ti>")](dd))
+    ExtractLibFunction(:profiles, Symbol("ne0/<ne>"), "-", dd -> EFL[:profiles_ne0](dd) / EFL[Symbol("profiles_<ne>")](dd))
+    ExtractLibFunction(:profiles, Symbol("P0/<P>"), "-", dd -> EFL[:profiles_P0](dd) / EFL[Symbol("profiles_<P>")](dd))
+    ExtractLibFunction(:profiles, :zeff, "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
 
     ExtractLibFunction(:transport, :τe, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy.value))
     ExtractLibFunction(:transport, :τe98, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy_98.value))
-    ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / EFL[:τe98](dd))
+    ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:transport_τe](dd) / EFL[:transport_τe98](dd))
 
     ExtractLibFunction(:hcd, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
     ExtractLibFunction(:hcd, :Pnbi, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_nbi.value) / 1E6)
     ExtractLibFunction(:hcd, :Pic, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ic.value) / 1E6)
     ExtractLibFunction(:hcd, :Plh, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_lh.value) / 1E6)
     ExtractLibFunction(:hcd, :Paux_tot, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_total.value) / 1E6)
+    ExtractLibFunction(:hcd, :ip, "MA", dd -> (EFL[:hcd_ip_ni](dd) + EFL[:hcd_ip_aux](dd) + EFL[:hcd_ip_ohm](dd)))
     ExtractLibFunction(:hcd, :ip_ni, "MA", dd -> @ddtime(dd.summary.global_quantities.current_non_inductive.value) / 1E6)
     ExtractLibFunction(:hcd, :ip_bs, "MA", dd -> @ddtime(dd.summary.global_quantities.current_bootstrap.value) / 1E6)
-    ExtractLibFunction(:hcd, :ip_aux, "MA", dd -> EFL[:ip_ni](dd) - EFL[:ip_bs](dd))
+    ExtractLibFunction(:hcd, :ip_aux, "MA", dd -> EFL[:hcd_ip_ni](dd) - EFL[:hcd_ip_bs](dd))
     ExtractLibFunction(:hcd, :ip_ohm, "MA", dd -> @ddtime(dd.summary.global_quantities.current_ohm.value) / 1E6)
     ExtractLibFunction(:hcd, :flattop, "Hours", dd -> dd.build.oh.flattop_duration / 3600.0)
 
     ExtractLibFunction(:bop, :Pfusion, "MW", dd -> IMAS.fusion_power(dd.core_profiles.profiles_1d[]) / 1E6)
-    ExtractLibFunction(:bop, :Qfusion, "-", dd -> EFL[:Pfusion](dd) / EFL[:Paux_total](dd))
+    ExtractLibFunction(:bop, :Qfusion, "-", dd -> EFL[:bop_Pfusion](dd) / EFL[:hcd_Paux_tot](dd))
     ExtractLibFunction(:bop, :Pelectric_net, "MWe", dd -> @ddtime(dd.balance_of_plant.power_electric_net) / 1E6)
     ExtractLibFunction(:bop, :Qplant, "-", dd -> @ddtime(dd.balance_of_plant.Q_plant))
 
@@ -106,7 +120,7 @@ function extract(dd::IMAS.dd, xtract::AbstractVector{ExtractFunction}=values(Ext
     return results
 end
 
-function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)
+function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)::Vector{ExtractFunction}
     return extract(dd, collect(values(xtract)))
 end
 
@@ -154,13 +168,17 @@ end
 function print_tiled(xtract::Vector{ExtractFunction}, terminal_width::Int=160)
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
     for xfun in xtract
-        if !isnan(xfun.value)
-            group = xfun.group
-            if group ∉ keys(lists)
-                lists[group] = ExtractFunction[]
-            end
-            push!(lists[group], xfun)
+        #if !isnan(xfun.value)
+        group = xfun.group
+        if group ∉ keys(lists)
+            lists[group] = ExtractFunction[]
         end
+        push!(lists[group], xfun)
+        #end
+    end
+
+    if isempty(lists)
+        return
     end
 
     function length_(xfun::ExtractFunction)
@@ -185,12 +203,12 @@ function print_tiled(xtract::Vector{ExtractFunction}, terminal_width::Int=160)
             printstyled(title, " "^(max_width - length(string(title))); bold=true)
         end
         println()
-        for list_row in 1:(max_height-1)
+        for list_row in 1:max_height
             for col in idxs
                 list = collect(values(lists))[col]
                 if list_row == 1
-                    print(("="^max_item_width * " "^(max_width - max_item_width)))
-                elseif list_row - 1 < length(list)
+                    print(("─"^max_item_width * " "^(max_width - max_item_width)))
+                elseif list_row - 1 <= length(list)
                     item = list[list_row-1]
                     show(stdout, item; group=false)
                     print(" "^(max_width - length_(item)))

@@ -48,6 +48,9 @@ expressions["core_profiles.profiles_1d[:].ion[:].z_ion"] =
         end
     end
 
+expressions["core_profiles.profiles_1d[:].t_i_average"] =
+    (rho_tor_norm; profiles_1d, _...) -> t_i_average(profiles_1d)
+
 expressions["core_profiles.profiles_1d[:].ion[:].density"] =
     (rho_tor_norm; ion, _...) -> ion.density_thermal .+ ion.density_fast
 
@@ -486,6 +489,16 @@ expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
 #= ======= =#
 #  summary  #
 #= ======= =#
+expressions["summary.fusion.power.value"] = # NOTE: This is α power
+    (time; dd, summary, _...) -> begin
+        type = typeof(summary).parameters[1]
+        tmp = type[]
+        for time in summary.time
+            push!(tmp, alpha_power(dd.core_profiles.profiles_1d[]))
+        end
+        return tmp
+    end
+
 expressions["summary.global_quantities.ip.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.ip for time in summary.time]
 
@@ -531,15 +544,6 @@ expressions["summary.global_quantities.current_ohm.value"] =
         return tmp
     end
 
-expressions["summary.fusion.power.value"] = # NOTE: This is α power
-    (time; dd, summary, _...) -> begin
-        type = typeof(summary).parameters[1]
-        tmp = type[]
-        for time in summary.time
-            push!(tmp, alpha_power(dd.core_profiles.profiles_1d[]))
-        end
-        return tmp
-    end
 
 expressions["summary.global_quantities.beta_pol_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_pol for time in summary.time]
@@ -568,8 +572,6 @@ expressions["summary.global_quantities.tau_energy_98.value"] =
 expressions["summary.global_quantities.h_98.value"] =
     (time; dd, summary, _...) -> summary.global_quantities.tau_energy.value ./ summary.global_quantities.tau_energy_98.value
 
-expressions["summary.volume_average.zeff.value"] =
-    (time; dd, summary, _...) -> [integrate(dd.core_profiles.profiles_1d[Float64(time)].grid.volume, dd.core_profiles.profiles_1d[Float64(time)].zeff) ./ dd.core_profiles.profiles_1d[Float64(time)].grid.volume[end] for time in summary.time]
 
 expressions["summary.heating_current_drive.power_launched_ec.value"] =
     (time; dd, summary, _...) -> sum([interp1d(beam.power_launched.time, beam.power_launched.data, :constant).(summary.time) for beam in dd.ec_launchers.beam])
@@ -585,3 +587,74 @@ expressions["summary.heating_current_drive.power_launched_nbi.value"] =
 
 expressions["summary.heating_current_drive.power_launched_total.value"] =
     (time; dd, summary, _...) -> getproperty(dd.summary.heating_current_drive.power_launched_nbi, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ec, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ic, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_lh, :value, zeros(length(summary.time)))
+
+
+expressions["summary.local.magnetic_axis.t_e.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].electrons.temperature[1] for time in summary.time]
+
+expressions["summary.local.magnetic_axis.n_e.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].electrons.density[1] for time in summary.time]
+
+expressions["summary.local.magnetic_axis.t_i_average.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].t_i_average[1] for time in summary.time]
+
+expressions["summary.local.magnetic_axis.zeff.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].zeff[1] for time in summary.time]
+
+
+expressions["summary.local.separatrix.t_e.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].electrons.temperature[end] for time in summary.time]
+
+expressions["summary.local.separatrix.n_e.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].electrons.density[end] for time in summary.time]
+
+expressions["summary.local.separatrix.t_i_average.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].t_i_average[end] for time in summary.time]
+
+expressions["summary.local.separatrix.zeff.value"] =
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time)].zeff[end] for time in summary.time]
+
+
+expressions["summary.volume_average.t_e.value"] =
+    (time; dd, summary, _...) -> begin
+        type = typeof(summary).parameters[1]
+        tmp = type[]
+        for time in summary.time
+            cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+            push!(tmp, integrate(cp1d.grid.volume, cp1d.electrons.temperature) / cp1d.grid.volume[end])
+        end
+        return tmp
+    end
+
+expressions["summary.volume_average.n_e.value"] =
+    (time; dd, summary, _...) -> begin
+        type = typeof(summary).parameters[1]
+        tmp = type[]
+        for time in summary.time
+            cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+            push!(tmp, integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end])
+        end
+        return tmp
+    end
+
+expressions["summary.volume_average.t_i_average.value"] =
+    (time; dd, summary, _...) -> begin
+        type = typeof(summary).parameters[1]
+        tmp = type[]
+        for time in summary.time
+            cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+            push!(tmp, integrate(cp1d.grid.volume, cp1d.t_i_average) / cp1d.grid.volume[end])
+        end
+        return tmp
+    end
+
+expressions["summary.volume_average.zeff.value"] =
+    (time; dd, summary, _...) -> begin
+        type = typeof(summary).parameters[1]
+        tmp = type[]
+        for time in summary.time
+            cp1d = dd.core_profiles.profiles_1d[Float64(time)]
+            push!(tmp, integrate(cp1d.grid.volume, cp1d.zeff) / cp1d.grid.volume[end])
+        end
+        return tmp
+    end

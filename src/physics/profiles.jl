@@ -423,3 +423,18 @@ Memoize.@memoize function avgZinterpolator(filename::String)
     return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
 
 end
+
+"""
+    t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
+
+Returns the average ion temperature weighted by each species density over the total number of ion particles
+"""
+function t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
+    t_i_a = zeros(length(cp1d.ion[1].density_thermal))
+    ntot = zeros(length(cp1d.ion[1].density_thermal))
+    for ion in cp1d.ion
+        t_i_a += ion.density_thermal .* ion.temperature
+        ntot += ion.density_thermal
+    end
+    return t_i_a ./= ntot
+end
