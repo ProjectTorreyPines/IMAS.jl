@@ -17,7 +17,7 @@ end
 
 function ExtractLibFunction(group::Symbol, name::Symbol, units::String, func::Function)
     xfun = ExtractFunction(group, name, units, func)
-    ExtractFunctionsLibrary[Symbol("$(group)_$name")] = xfun
+    ExtractFunctionsLibrary[Symbol(name)] = xfun
     return xfun
 end
 
@@ -27,7 +27,7 @@ function update_ExtractFunctionsLibrary!()
     empty!(EFL)
     ExtractLibFunction(:geometry, :R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r)
     ExtractLibFunction(:geometry, :a, "m", dd -> dd.equilibrium.time_slice[].boundary.minor_radius)
-    ExtractLibFunction(:geometry, Symbol("1/ϵ"), "m", dd -> EFL[:geometry_R0](dd) / EFL[:geometry_a](dd))
+    ExtractLibFunction(:geometry, Symbol("1/ϵ"), "m", dd -> EFL[:R0](dd) / EFL[:a](dd))
     ExtractLibFunction(:geometry, :κ, "-", dd -> dd.equilibrium.time_slice[].boundary.elongation)
     ExtractLibFunction(:geometry, :δ, "-", dd -> dd.equilibrium.time_slice[].boundary.triangularity)
     ExtractLibFunction(:geometry, :ζ, "-", dd -> dd.equilibrium.time_slice[].boundary.squareness)
@@ -39,43 +39,44 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:equilibrium, :βtor, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_tor)
     ExtractLibFunction(:equilibrium, :βn, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_normal)
 
-    ExtractLibFunction(:profiles, :Te0, "keV", dd -> @ddtime(dd.summary.local.magnetic_axis.t_e.value) / 1E3)
-    ExtractLibFunction(:profiles, :Ti0, "keV", dd -> @ddtime(dd.summary.local.magnetic_axis.t_i_average.value) / 1E3)
-    ExtractLibFunction(:profiles, :ne0, "m⁻³", dd -> @ddtime(dd.summary.local.magnetic_axis.n_e.value))
-    ExtractLibFunction(:profiles, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
+    ExtractLibFunction(:temperatures, :Te0, "keV", dd -> @ddtime(dd.summary.local.magnetic_axis.t_e.value) / 1E3)
+    ExtractLibFunction(:temperatures, :Ti0, "keV", dd -> @ddtime(dd.summary.local.magnetic_axis.t_i_average.value) / 1E3)
+    ExtractLibFunction(:temperatures, Symbol("<Te>"), "keV", dd -> @ddtime(dd.summary.volume_average.t_e.value) / 1E3)
+    ExtractLibFunction(:temperatures, Symbol("<Ti>"), "keV", dd -> @ddtime(dd.summary.volume_average.t_i_average.value) / 1E3)
+    ExtractLibFunction(:temperatures, Symbol("Te0/<Te>"), "-", dd -> EFL[:Te0](dd) / EFL[Symbol("<Te>")](dd))
+    ExtractLibFunction(:temperatures, Symbol("Ti0/<Ti>"), "-", dd -> EFL[:Ti0](dd) / EFL[Symbol("<Ti>")](dd))
 
-    ExtractLibFunction(:profiles, Symbol("<Te>"), "keV", dd -> @ddtime(dd.summary.volume_average.t_e.value) / 1E3)
-    ExtractLibFunction(:profiles, Symbol("<Ti>"), "keV", dd -> @ddtime(dd.summary.volume_average.t_i_average.value) / 1E3)
-    ExtractLibFunction(:profiles, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
-    ExtractLibFunction(:profiles, Symbol("<P>"), "MPa", dd -> begin
+    ExtractLibFunction(:densities, :ne0, "m⁻³", dd -> @ddtime(dd.summary.local.magnetic_axis.n_e.value))
+    ExtractLibFunction(:densities, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
+    ExtractLibFunction(:densities, Symbol("ne0/<ne>"), "-", dd -> EFL[:ne0](dd) / EFL[Symbol("<ne>")](dd))
+    ExtractLibFunction(:densities, :zeff, "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
+
+    ExtractLibFunction(:pressures, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
+    ExtractLibFunction(:pressures, Symbol("<P>"), "MPa", dd -> begin
         cp1d = dd.core_profiles.profiles_1d[]
         integrate(cp1d.grid.volume, cp1d.pressure) / cp1d.grid.volume[end] / 1E6
     end)
-
-    ExtractLibFunction(:profiles, Symbol("Te0/<Te>"), "-", dd -> EFL[:profiles_Te0](dd) / EFL[Symbol("profiles_<Te>")](dd))
-    ExtractLibFunction(:profiles, Symbol("Ti0/<Ti>"), "-", dd -> EFL[:profiles_Ti0](dd) / EFL[Symbol("profiles_<Ti>")](dd))
-    ExtractLibFunction(:profiles, Symbol("ne0/<ne>"), "-", dd -> EFL[:profiles_ne0](dd) / EFL[Symbol("profiles_<ne>")](dd))
-    ExtractLibFunction(:profiles, Symbol("P0/<P>"), "-", dd -> EFL[:profiles_P0](dd) / EFL[Symbol("profiles_<P>")](dd))
-    ExtractLibFunction(:profiles, :zeff, "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
+    ExtractLibFunction(:pressures, Symbol("P0/<P>"), "-", dd -> EFL[:P0](dd) / EFL[Symbol("<P>")](dd))
 
     ExtractLibFunction(:transport, :τe, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy.value))
     ExtractLibFunction(:transport, :τe98, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy_98.value))
-    ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:transport_τe](dd) / EFL[:transport_τe98](dd))
+    ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / EFL[:τe98](dd))
 
-    ExtractLibFunction(:hcd, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
-    ExtractLibFunction(:hcd, :Pnbi, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_nbi.value) / 1E6)
-    ExtractLibFunction(:hcd, :Pic, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ic.value) / 1E6)
-    ExtractLibFunction(:hcd, :Plh, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_lh.value) / 1E6)
-    ExtractLibFunction(:hcd, :Paux_tot, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_total.value) / 1E6)
-    ExtractLibFunction(:hcd, :ip, "MA", dd -> (EFL[:hcd_ip_ni](dd) + EFL[:hcd_ip_aux](dd) + EFL[:hcd_ip_ohm](dd)))
-    ExtractLibFunction(:hcd, :ip_ni, "MA", dd -> @ddtime(dd.summary.global_quantities.current_non_inductive.value) / 1E6)
-    ExtractLibFunction(:hcd, :ip_bs, "MA", dd -> @ddtime(dd.summary.global_quantities.current_bootstrap.value) / 1E6)
-    ExtractLibFunction(:hcd, :ip_aux, "MA", dd -> EFL[:hcd_ip_ni](dd) - EFL[:hcd_ip_bs](dd))
-    ExtractLibFunction(:hcd, :ip_ohm, "MA", dd -> @ddtime(dd.summary.global_quantities.current_ohm.value) / 1E6)
-    ExtractLibFunction(:hcd, :flattop, "Hours", dd -> dd.build.oh.flattop_duration / 3600.0)
+    ExtractLibFunction(:sources, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
+    ExtractLibFunction(:sources, :Pnbi, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_nbi.value) / 1E6)
+    ExtractLibFunction(:sources, :Pic, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ic.value) / 1E6)
+    ExtractLibFunction(:sources, :Plh, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_lh.value) / 1E6)
+    ExtractLibFunction(:sources, :Paux_tot, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_total.value) / 1E6)
+
+    ExtractLibFunction(:currents, :ip_bs_aux_ohm, "MA", dd -> (EFL[:ip_bs](dd) + EFL[:ip_aux](dd) + EFL[:ip_ohm](dd)))
+    ExtractLibFunction(:currents, :ip_ni, "MA", dd -> @ddtime(dd.summary.global_quantities.current_non_inductive.value) / 1E6)
+    ExtractLibFunction(:currents, :ip_bs, "MA", dd -> @ddtime(dd.summary.global_quantities.current_bootstrap.value) / 1E6)
+    ExtractLibFunction(:currents, :ip_aux, "MA", dd -> EFL[:ip_ni](dd) - EFL[:ip_bs](dd))
+    ExtractLibFunction(:currents, :ip_ohm, "MA", dd -> @ddtime(dd.summary.global_quantities.current_ohm.value) / 1E6)
+    ExtractLibFunction(:currents, :flattop, "Hours", dd -> dd.build.oh.flattop_duration / 3600.0)
 
     ExtractLibFunction(:bop, :Pfusion, "MW", dd -> IMAS.fusion_power(dd.core_profiles.profiles_1d[]) / 1E6)
-    ExtractLibFunction(:bop, :Qfusion, "-", dd -> EFL[:bop_Pfusion](dd) / EFL[:hcd_Paux_tot](dd))
+    ExtractLibFunction(:bop, :Qfusion, "-", dd -> EFL[:Pfusion](dd) / EFL[:Paux_tot](dd))
     ExtractLibFunction(:bop, :Pelectric_net, "MWe", dd -> @ddtime(dd.balance_of_plant.power_electric_net) / 1E6)
     ExtractLibFunction(:bop, :Qplant, "-", dd -> @ddtime(dd.balance_of_plant.Q_plant))
 
@@ -94,14 +95,15 @@ NOTE: NaN is assigned on error
 function (xfun::ExtractFunction)(dd::IMAS.dd)
     try
         xfun.value = xfun.func(dd)
-    catch
+    catch e
+        #display(e)
         xfun.value = NaN
     end
     return xfun.value
 end
 
 """
-    extract(dd::IMAS.dd, xtract::Vector{ExtractFunction}=ExtractFunctionsLibrary)::Vector{ExtractFunction}
+    extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)::Vector{ExtractFunction}
 
 Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as input, like this:
 
@@ -112,16 +114,12 @@ Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as inpu
 
 By default, the `ExtractFunctionsLibrary` is used.
 """
-function extract(dd::IMAS.dd, xtract::AbstractVector{ExtractFunction}=values(ExtractFunctionsLibrary))::Vector{ExtractFunction}
+function extract(dd::IMAS.dd, xtract::T=ExtractFunctionsLibrary)::T where {T<:AbstractDict{Symbol,<:ExtractFunction}}
     results = deepcopy(xtract)
-    for xfun in xtract
+    for xfun in values(xtract)
         xfun(dd)
     end
     return results
-end
-
-function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)::Vector{ExtractFunction}
-    return extract(dd, collect(values(xtract)))
 end
 
 # ================= #
@@ -144,9 +142,9 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", xtract::Vector{ExtractFunction})
+function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction})
     last_group = ""
-    for xfun in xtract
+    for xfun in values(xtract)
         if !isnan(xfun.value)
             if last_group != xfun.group
                 if last_group != ""
@@ -161,13 +159,9 @@ function Base.show(io::IO, ::MIME"text/plain", xtract::Vector{ExtractFunction})
     end
 end
 
-function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction})
-    return Base.show(io, x, collect(values(xtract)))
-end
-
-function print_tiled(xtract::Vector{ExtractFunction}, terminal_width::Int=160)
+function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}, terminal_width::Int=160)
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
-    for xfun in xtract
+    for xfun in values(xtract)
         #if !isnan(xfun.value)
         group = xfun.group
         if group ∉ keys(lists)
@@ -190,10 +184,22 @@ function print_tiled(xtract::Vector{ExtractFunction}, terminal_width::Int=160)
     max_title_width = maximum([length(string(title)) for title in keys(lists)])
     max_item_width = maximum([maximum([length_(item) for item in list]) for list in values(lists)])
     max_width = max(max_title_width, max_item_width) + 4  # Add some padding
-    max_height = maximum([length(list) for list in values(lists)]) + 2  # Add space for the title and separator
 
     ncols = max(1, floor(Int, terminal_width / max_width))
     nrows = ceil(Int, length(lists) / ncols)
+
+    idx = 1
+    max_heights = []
+    for row in 1:nrows
+        idxs = idx:min(idx + ncols - 1, length(lists))
+        max_height = 0
+        for col in idxs
+            list = collect(values(lists))[col]
+            max_height = max(max_height, length(list))
+        end
+        push!(max_heights, max_height)
+        idx += ncols
+    end
 
     idx = 1
     for row in 1:nrows
@@ -203,7 +209,7 @@ function print_tiled(xtract::Vector{ExtractFunction}, terminal_width::Int=160)
             printstyled(title, " "^(max_width - length(string(title))); bold=true)
         end
         println()
-        for list_row in 1:max_height
+        for list_row in 1:max_heights[row]+2
             for col in idxs
                 list = collect(values(lists))[col]
                 if list_row == 1
