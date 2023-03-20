@@ -158,40 +158,43 @@ function alpha_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fract
     return integrate(cp1d.grid.volume, alpha_heating(cp1d; polarized_fuel_fraction))
 end
 
-"""
-    fusion_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+function fusion_power(dd::IMAS.dd)
+    return fusion_power(dd.core_profiles)
+end
 
-Total fusion power [W]
 """
-function fusion_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+    fusion_power(cp::IMAS.core_profiles)
+
+Calculates the fusion power in [W]
+"""
+function fusion_power(cp::IMAS.core_profiles)
+    cp1d = cp.profiles_1d[]
+    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
     return alpha_power(cp1d; polarized_fuel_fraction) * 5.0
 end
 
-function fusion_power(dd::IMAS.dd; polarized_fuel_fraction::Real=0.0)
-    cp1d = dd.core_profiles.profiles_1d[]
-    return fusion_power(cp1d; polarized_fuel_fraction)
+function DT_fusion_source!(dd::IMAS.dd)
+    return DT_fusion_source!(dd.core_sources, dd.core_profiles)
 end
 
 """
-    DT_fusion_source!(dd::IMAS.dd)
+    DT_fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
 
 Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons, modifies dd.core_sources
 """
-function DT_fusion_source!(dd::IMAS.dd)
-    cp = dd.core_profiles
+function DT_fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     cp1d = cp.profiles_1d[]
 
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
-
     α = alpha_heating(cp1d; polarized_fuel_fraction)
     if sum(α) == 0
-        deleteat!(dd.core_sources.source, "identifier.index" => 6)
-        return dd
+        deleteat!(cs.source, "identifier.index" => 6)
+        return cs
     end
     ion_to_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
-    index = name_2_index(dd.core_sources.source)[:fusion]
-    source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
+    index = name_2_index(cs.source)[:fusion]
+    source = resize!(cs.source, "identifier.index" => index; allow_multiple_matches=true)
     new_source(
         source,
         index,
@@ -201,8 +204,6 @@ function DT_fusion_source!(dd::IMAS.dd)
         electrons_energy=α .* (1.0 .- ion_to_electron_fraction),
         total_ion_energy=α .* ion_to_electron_fraction
     )
-    @ddtime(dd.summary.fusion.power.value = source.profiles_1d[].total_ion_power_inside[end] + source.profiles_1d[].electrons.power_inside[end])
-
     return source
 end
 
