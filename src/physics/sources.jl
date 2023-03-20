@@ -167,6 +167,11 @@ function fusion_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_frac
     return alpha_power(cp1d; polarized_fuel_fraction) * 5.0
 end
 
+function fusion_power(dd::IMAS.dd; polarized_fuel_fraction::Real=0.0)
+    cp1d = dd.core_profiles.profiles_1d[]
+    return fusion_power(cp1d; polarized_fuel_fraction)
+end
+
 """
     DT_fusion_source!(dd::IMAS.dd)
 
