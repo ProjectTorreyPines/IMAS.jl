@@ -115,11 +115,11 @@ Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as inpu
 By default, the `ExtractFunctionsLibrary` is used.
 """
 function extract(dd::IMAS.dd, xtract::T=ExtractFunctionsLibrary)::T where {T<:AbstractDict{Symbol,<:ExtractFunction}}
-    results = deepcopy(xtract)
+    xtract = deepcopy(xtract)
     for xfun in values(xtract)
         xfun(dd)
     end
-    return results
+    return xtract
 end
 
 # ================= #
@@ -143,6 +143,10 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
 end
 
 function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction})
+    return print_tiled(io, xtract)
+end
+
+function print_vertical(io, xtract::AbstractDict{Symbol,ExtractFunction})
     last_group = ""
     for xfun in values(xtract)
         if !isnan(xfun.value)
@@ -160,6 +164,10 @@ function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,Extr
 end
 
 function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}, terminal_width::Int=160)
+    return print_tiled(stdout, xtract, terminal_width)
+end
+
+function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}, terminal_width::Int=160)
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
     for xfun in values(xtract)
         #if !isnan(xfun.value)
@@ -206,23 +214,23 @@ function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}, terminal_widt
         idxs = idx:min(idx + ncols - 1, length(lists))
         for title_row in idxs
             title = collect(keys(lists))[title_row]
-            printstyled(title, " "^(max_width - length(string(title))); bold=true)
+            printstyled(io,title, " "^(max_width - length(string(title))); bold=true)
         end
-        println()
+        println(io)
         for list_row in 1:max_heights[row]+2
             for col in idxs
                 list = collect(values(lists))[col]
                 if list_row == 1
-                    print(("─"^max_item_width * " "^(max_width - max_item_width)))
+                    print(io,("─"^max_item_width * " "^(max_width - max_item_width)))
                 elseif list_row - 1 <= length(list)
                     item = list[list_row-1]
-                    show(stdout, item; group=false)
-                    print(" "^(max_width - length_(item)))
+                    show(io, item; group=false)
+                    print(io," "^(max_width - length_(item)))
                 else
-                    print(" "^max_width)
+                    print(io, " "^max_width)
                 end
             end
-            println()
+            println(io)
         end
         idx += ncols
     end
