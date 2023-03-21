@@ -80,7 +80,7 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::Symbol
     if sourceid == :fusion
         particle_specie = "He"
     elseif sourceid == :nbi
-        particle_species = ["D","DT"]
+        particle_species = ["D", "DT"]
         ion_index = findfirst(ion.label in particle_species for ion in cp1d.ion)
         particle_specie = cp1d.ion[ion_index].label
     end
@@ -106,18 +106,21 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::Symbol
 
     encapf = log.(1.0 .+ 1.0 ./ vfrac.^3) ./ 3.0  # assume no neutrals
 
-    source_index = name_2_index(dd.core_sources.source)[sourceid]
-    isource = findfirst(source.identifier.index== source_index for source in dd.core_sources.source)
+    cs1ds = findall(sourceid, dd.core_sources.source)
+    cp1d.ion[ion_index].pressure_fast_parallel  = zeros(length(cp1d.electrons.density))
+    cp1d.ion[ion_index].pressure_fast_perpendicular  = zeros(length(cp1d.electrons.density))
+    cp1d.ion[ion_index].density_fast  = zeros(length(cp1d.electrons.density))
 
-    cs1d = dd.core_sources.source[isource]
-    qfaste = cs1d.profiles_1d[].electrons.energy
-    qfasti = cs1d.profiles_1d[].total_ion_energy
-    pressa = taus .* 2.0 ./ 3.0 .* qfaste
+    for cs1d in cs1ds
+        qfaste = cs1d.profiles_1d[].electrons.energy
+        qfasti = cs1d.profiles_1d[].total_ion_energy
+        pressa = taus .* 2.0 ./ 3.0 .* qfaste
 
-    nfast = (qfaste .+ qfasti) ./ (constants.e .* particle_energy) .* encapf .* taus
-    cp1d.ion[ion_index].pressure_fast_parallel = pressa ./ 3.0
-    cp1d.ion[ion_index].pressure_fast_perpendicular = pressa ./ 3.0
-    cp1d.ion[ion_index].density_fast = nfast
+        nfast = (qfaste .+ qfasti) ./ (constants.e .* particle_energy) .* encapf .* taus
+        cp1d.ion[ion_index].pressure_fast_parallel += pressa ./ 3.0
+        cp1d.ion[ion_index].pressure_fast_perpendicular += pressa ./ 3.0
+        cp1d.ion[ion_index].density_fast += nfast
+    end
 end
 
 """
