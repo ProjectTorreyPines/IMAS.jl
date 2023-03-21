@@ -70,16 +70,19 @@ Calculates the fast ion density, and adds it to the dd
 
 :param particle_specie: particle specie 
 """
-function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::String="α")
+function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::Symbol=:fusion)
 
     cp1d = dd.core_profiles.profiles_1d[]
 
-    rho = cp1d.grid.rho_tor_norm
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
-    if sourceid == "α"
+    if sourceid == :fusion
         particle_specie = "He"
+    elseif sourceid == :nbi
+        particle_species = ["D","DT"]
+        ion_index = findfirst(ion.label in particle_species for ion in cp1d.ion)
+        particle_specie = cp1d.ion[ion_index].label
     end
     ion_index = findfirst(ion.label == particle_specie for ion in cp1d.ion)
 
@@ -102,10 +105,11 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::String
     vfrac = sqrt.(Ecrit ./ particle_energy)
 
     encapf = log.(1.0 .+ 1.0 ./ vfrac.^3) ./ 3.0  # assume no neutrals
-    
-    fast_index = findfirst(source.identifier.name == sourceid for source in dd.core_sources.source)
 
-    cs1d = dd.core_sources.source[fast_index]
+    source_index = name_2_index(dd.core_sources.source)[sourceid]
+    isource = findfirst(source.identifier.index== source_index for source in dd.core_sources.source)
+
+    cs1d = dd.core_sources.source[isource]
     qfaste = cs1d.profiles_1d[].electrons.energy
     qfasti = cs1d.profiles_1d[].total_ion_energy
     pressa = taus .* 2.0 ./ 3.0 .* qfaste
