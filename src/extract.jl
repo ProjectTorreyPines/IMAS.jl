@@ -61,6 +61,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:transport, :τe, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy.value))
     ExtractLibFunction(:transport, :τe98, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy_98.value))
     ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / EFL[:τe98](dd))
+    ExtractLibFunction(:transport, :ds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
 
     ExtractLibFunction(:sources, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
     ExtractLibFunction(:sources, :Pnbi, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_nbi.value) / 1E6)
@@ -142,8 +143,8 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
     end
 end
 
-function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction})
-    return print_tiled(io, xtract)
+function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=140)
+    return print_tiled(io, xtract; terminal_width)
 end
 
 function print_vertical(io, xtract::AbstractDict{Symbol,ExtractFunction})
@@ -163,11 +164,11 @@ function print_vertical(io, xtract::AbstractDict{Symbol,ExtractFunction})
     end
 end
 
-function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}, terminal_width::Int=160)
-    return print_tiled(stdout, xtract, terminal_width)
+function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int)
+    return print_tiled(stdout, xtract; terminal_width)
 end
 
-function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}, terminal_width::Int=160)
+function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int)
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
     for xfun in values(xtract)
         #if !isnan(xfun.value)
