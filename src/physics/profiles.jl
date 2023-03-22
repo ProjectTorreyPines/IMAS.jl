@@ -73,33 +73,22 @@ function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Miss
     return ion
 end
 
-function energy_thermal(dd::IMAS.dd)
-    return energy_thermal(dd.core_profiles.profiles_1d[])
-end
-
 function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
     return 3 / 2 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
-end
-
-function ne_vol_avg(dd::IMAS.dd)
-    return ne_vol_avg(dd.core_profiles.profiles_1d[])
 end
 
 function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
     return integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
 end
 
-function tau_e_thermal(dd::IMAS.dd)
-    return tau_e_thermal(dd.core_profiles.profiles_1d[], dd.core_sources)
-end
-
 """
     tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
 
 Evaluate thermal energy confinement time
+
+NOTE: power losses due to radiation are neglected, as done for tau_e_h98 scaling
 """
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
-    # power losses due to radiation shouldn't be subtracted from tau_e_thermal
     total_source = total_sources(sources, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     return energy_thermal(cp1d) / (total_power_inside - radiation_losses(sources))
@@ -433,4 +422,19 @@ Memoize.@memoize function avgZinterpolator(filename::String)
 
     return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
 
+end
+
+"""
+    t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
+
+Returns the average ion temperature weighted by each species density over the total number of ion particles
+"""
+function t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
+    t_i_a = zeros(length(cp1d.ion[1].density_thermal))
+    ntot = zeros(length(cp1d.ion[1].density_thermal))
+    for ion in cp1d.ion
+        t_i_a += ion.density_thermal .* ion.temperature
+        ntot += ion.density_thermal
+    end
+    return t_i_a ./= ntot
 end

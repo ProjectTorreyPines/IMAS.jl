@@ -22,6 +22,7 @@ import IMASDD: @ddtime, interp1d
 include("real.jl")
 include("constants.jl")
 include("math.jl")
+include("extract.jl")
 
 #= ======= =#
 #= PHYSICS =#
@@ -37,6 +38,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export @ddtime, constants, ±, force_float
+export @ddtime, constants, ±, force_float, extract
 
 end # module
