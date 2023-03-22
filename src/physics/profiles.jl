@@ -172,6 +172,10 @@ function greenwald_density(eqt::IMAS.equilibrium__time_slice)
     return (eqt.global_quantities.ip / 1e6) / (pi * eqt.boundary.minor_radius^2) * 1e20
 end
 
+function greenwald_fraction(dd::IMAS.dd)
+    return greenwald_fraction(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
+end
+
 """
     greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 

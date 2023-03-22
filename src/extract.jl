@@ -47,9 +47,12 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:temperatures, Symbol("Ti0/<Ti>"), "-", dd -> EFL[:Ti0](dd) / EFL[Symbol("<Ti>")](dd))
 
     ExtractLibFunction(:densities, :ne0, "m⁻³", dd -> @ddtime(dd.summary.local.magnetic_axis.n_e.value))
+    ExtractLibFunction(:densities, :ne_ped, "m⁻³", dd -> @ddtime(dd.summary.local.pedestal.n_e.value))
     ExtractLibFunction(:densities, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
     ExtractLibFunction(:densities, Symbol("ne0/<ne>"), "-", dd -> EFL[:ne0](dd) / EFL[Symbol("<ne>")](dd))
-    ExtractLibFunction(:densities, :zeff, "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
+    ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> IMAS.greenwald_fraction(dd))
+    ExtractLibFunction(:densities, :zeff_ped, "-", dd -> @ddtime(dd.summary.local.pedestal.zeff.value))
+    ExtractLibFunction(:densities, Symbol("<zeff>"), "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
 
     ExtractLibFunction(:pressures, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
     ExtractLibFunction(:pressures, Symbol("<P>"), "MPa", dd -> begin
@@ -143,7 +146,7 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
     end
 end
 
-function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=140)
+function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=136)
     return print_tiled(io, xtract; terminal_width)
 end
 
