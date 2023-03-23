@@ -3,6 +3,9 @@ using RecipesBase
 using LaTeXStrings
 import Measures
 
+# ========= #
+# pf_active #
+# ========= #
 """
     plot_pf_active_cx(pfa::pf_active)
 
@@ -124,6 +127,57 @@ Plots cross-section of individual coils
     end
 end
 
+@recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
+    if !ismissing(rail.outline, :r)
+        @series begin
+            color --> :gray
+            linestyle --> :dash
+            rail.outline.r, rail.outline.z
+        end
+    end
+end
+
+@recipe function plot_pf_active_rail(rails::IDSvector{<:IMAS.build__pf_active__rail})
+    for (krail, rail) in enumerate(rails)
+        if !ismissing(rail.outline, :r)
+            @series begin
+                label --> "Coil opt. rail"
+                primary --> krail == 1 ? true : false
+                rail
+            end
+        end
+    end
+end
+
+# ========== #
+# pf_passive #
+# ========== #
+@recipe function plot_pf_passive(pf_passive::IMAS.pf_passive)
+    @series begin
+        pf_passive.loop
+    end
+end
+
+@recipe function plot_pf_passive(loops::IMAS.IDSvector{<:IMAS.pf_passive__loop})
+    for loop in loops
+        @series begin
+            loop
+        end
+    end
+end
+
+@recipe function plot_pf_passive(loop::IMAS.pf_passive__loop)
+    @series begin
+        aspect_ratio --> :equal
+        label --> loop.name
+        seriestype --> :shape
+        loop.element[1].geometry.outline.r, loop.element[1].geometry.outline.z
+    end
+end
+
+# ======= #
+# costing #
+# ======= #
 @recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
     costs = [sys_cst.cost for sys_cst in cst]
     names = ["$(round(sys_cst.cost/sum(costs)*100))% $(sys_cst.name)" for sys_cst in cst]
@@ -155,12 +209,21 @@ end
    
 end
 
+@recipe function plot_costing(cst::IMAS.costing__cost_direct_capital)
+    @series begin
+        return cst.system
+    end
+end
+
 @recipe function plot_costing(cst::IMAS.costing)
     @series begin
         return cst.cost_direct_capital.system
     end
 end
 
+# =========== #
+# equilibrium #
+# =========== #
 @recipe function plot_eq(eq::IMAS.equilibrium)
     @series begin
         return eq.time_slice[]
@@ -402,56 +465,14 @@ end
     end
 end
 
+# ===== #
+# build #
+# ===== #
 function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::AbstractVector{T}, z2::AbstractVector{T}) where {T<:Real}
     i1, i2 = minimum_distance_two_shapes(r1, z1, r2, z2; return_index=true)
     r = vcat(reverse(r1[i1:end]), r2[i2:end], r2[1:i2], reverse(r1[1:i1]))
     z = vcat(reverse(z1[i1:end]), z2[i2:end], z2[1:i2], reverse(z1[1:i1]))
     return r, z
-end
-
-@recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
-    if !ismissing(rail.outline, :r)
-        @series begin
-            color --> :gray
-            linestyle --> :dash
-            rail.outline.r, rail.outline.z
-        end
-    end
-end
-
-@recipe function plot_pf_active_rail(rails::IDSvector{<:IMAS.build__pf_active__rail})
-    for (krail, rail) in enumerate(rails)
-        if !ismissing(rail.outline, :r)
-            @series begin
-                label --> "Coil opt. rail"
-                primary --> krail == 1 ? true : false
-                rail
-            end
-        end
-    end
-end
-
-@recipe function plot_pf_passive(pf_passive::IMAS.pf_passive)
-    @series begin
-        pf_passive.loop
-    end
-end
-
-@recipe function plot_pf_passive(loops::IMAS.IDSvector{<:IMAS.pf_passive__loop})
-    for loop in loops
-        @series begin
-            loop
-        end
-    end
-end
-
-@recipe function plot_pf_passive(loop::IMAS.pf_passive__loop)
-    @series begin
-        aspect_ratio --> :equal
-        label --> loop.name
-        seriestype --> :shape
-        loop.element[1].geometry.outline.r, loop.element[1].geometry.outline.z
-    end
 end
 
 """
@@ -710,8 +731,10 @@ Plot build cross-section
     end
 end
 
+# ========= #
+# transport #
+# ========= #
 @recipe function plot_core_transport(ct::IMAS.core_transport)
-
     model_type = name_2_index(ct.model)
     for model in ct.model
         if model.identifier.index ∈ [model_type[k] for k in [:combined, :unspecified, :transport_solver, :unknown]]
@@ -747,11 +770,9 @@ end
         label := "Total transport"
         total_fluxes(ct)
     end
-
 end
 
 @recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; label="", markershape=:none, color=:green, only=nothing)
-
     if only === nothing
         layout := (2, 2)
         size --> (800, 600)
@@ -823,6 +844,9 @@ end
     end
 end
 
+# ======= #
+# sources #
+# ======= #
 @recipe function plot_core_sources(cs::IMAS.core_sources)
     for source in cs.source
         @series begin
@@ -1006,6 +1030,9 @@ end
     end
 end
 
+# ======== #
+# profiles #
+# ======== #
 @recipe function plot_core_profiles(cp::IMAS.core_profiles)
     @series begin
         return cp.profiles_1d[]
@@ -1117,6 +1144,9 @@ end
 
 end
 
+# =============== #
+# solid_mechanics #
+# =============== #
 @recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises})
     smcs = parent(parent(stress))
     r_oh = smcs.grid.r_oh
@@ -1196,8 +1226,10 @@ end
     end
 end
 
+# ================ #
+# balance_of_plant #
+# ================ #
 @recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant; linewidth=2)
-
     @assert typeof(linewidth) <: Real
 
     size --> (800, 600)
@@ -1229,6 +1261,9 @@ end
     end
 end
 
+# ========== #
+# neutronics #
+# ========== #
 @recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading, component::Symbol=:norm; cx=true)
 
     @assert typeof(cx) <: Bool
@@ -1301,6 +1336,9 @@ end
     end
 end
 
+# ==== #
+# wall #
+# ==== #
 @recipe function plot_wall(wall::IMAS.wall)
     @series begin
         color := :gray
