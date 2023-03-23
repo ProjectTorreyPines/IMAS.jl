@@ -124,6 +124,99 @@ Plots cross-section of individual coils
     end
 end
 
+@recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
+    function get_system(cst)
+        costs = []
+        names = []
+
+        for sys in range(1,length(cst))
+            push!(costs,cst[sys].cost)
+            push!(names,cst[sys].name)
+        end 
+
+    return costs, names 
+    end 
+    
+    costs, names = get_system(cst)
+
+    name_series = []
+    cost_series = []
+
+    for sys in range(1, length(costs))
+        sub_names = []
+        sub_costs = []
+
+        for sub in range(1, length(cst[sys].subsystem))
+                sub_cost = cst[sys].subsystem[sub].cost 
+                sub_name = cst[sys].subsystem[sub].name
+
+                push!(sub_names, sub_name)
+                push!(sub_costs, sub_cost)
+        end
+
+        push!(name_series, sub_names)
+        push!(cost_series, sub_costs)
+
+    end
+
+    name_series = filter!(!isempty, name_series)
+    cost_series = filter!(!isempty, cost_series)
+
+    if length(cost_series) == 1
+        size --> (800,600)
+        layout := @layout [a{0.7w} b]
+    
+        @series begin 
+            subplot := 1 
+            seriestype := :pie 
+            title := "Total Direct Capital Cost"
+            names, costs 
+        end 
+    
+        @series begin 
+            subplot := 2 
+            seriestype := :pie 
+            title := string(names[1])
+            name_series[1], cost_series[1]
+        end 
+    
+
+    elseif length(cost_series) == 2 
+        size --> (1100, 800)
+        layout := @layout [a{0.5w} b c]
+
+        @series begin 
+            subplot := 1 
+            seriestype := :pie 
+            title := "Total Direct Capital Cost"
+            names, costs 
+        end
+
+        @series begin 
+            subplot := 2
+            seriestype := :pie 
+            title := string(names[1])
+            name_series[1], cost_series[1]
+        end
+
+        @series begin 
+            subplot := 3
+            seriestype := :pie 
+            title := string(names[2])
+            titlefontsize := 9
+            name_series[2], cost_series[2]
+        end
+
+    end
+   
+end
+
+@recipe function plot_costing(cst::IMAS.costing)
+    @series begin
+        return cst.cost_direct_capital.system
+    end
+end
+
 @recipe function plot_eq(eq::IMAS.equilibrium)
     @series begin
         return eq.time_slice[]
