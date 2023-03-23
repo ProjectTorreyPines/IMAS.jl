@@ -181,32 +181,32 @@ end
 @recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
     costs = [sys_cst.cost for sys_cst in cst]
     names = ["$(round(sys_cst.cost/sum(costs)*100))% $(sys_cst.name)" for sys_cst in cst]
-    
+
     name_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)% $(sub_cst.name)" for sub_cst in sys_cst.subsystem] for sys_cst in cst]
     cost_series = [[sub_cst.cost for sub_cst in sys_cst.subsystem] for sys_cst in cst]
 
-    size --> (900,750)
+    size --> (900, 750)
     layout := @layout (1, 1 + length(filter!(!isempty, cost_series)))
 
     @series begin
-        subplot := 1 
-        seriestype := :pie 
-        title := "Total Direct Capital Cost"
-        names, costs 
-    end 
+        subplot := 1
+        seriestype := :pie
+        title := "Total Direct Capital Cost\n" * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
+        names, costs
+    end
 
-    for (k,(sub_names, sub_costs)) in enumerate(zip(name_series,cost_series))
+    for (k, (sub_names, sub_costs)) in enumerate(zip(name_series, cost_series))
         if !isempty(sub_costs)
-            @series begin 
-                subplot := k+1
-                seriestype := :pie 
-                title := word_wrap(string(names[k]), 30)
-                titlefontsize := 9
+            @series begin
+                subplot := k + 1
+                seriestype := :pie
+                title := word_wrap(string(names[k]), 30) * "\n" * @sprintf("[%.3g \$\$B]", sum(sub_costs) / 1E3)
+                titlefontsize := 10
                 sub_names, sub_costs
             end
         end
     end
-   
+
 end
 
 @recipe function plot_costing(cst::IMAS.costing__cost_direct_capital)
