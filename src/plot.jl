@@ -131,7 +131,7 @@ end
     name_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)% $(sub_cst.name)" for sub_cst in sys_cst.subsystem] for sys_cst in cst]
     cost_series = [[sub_cst.cost for sub_cst in sys_cst.subsystem] for sys_cst in cst]
 
-    size --> (1200,900)
+    size --> (900,750)
     layout := @layout (1, 1 + length(filter!(!isempty, cost_series)))
 
     @series begin
@@ -146,7 +146,7 @@ end
             @series begin 
                 subplot := k+1
                 seriestype := :pie 
-                title := string(names[k])
+                title := word_wrap(string(names[k]), 30)
                 titlefontsize := 9
                 sub_names, sub_costs
             end
