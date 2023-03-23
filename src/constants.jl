@@ -28,20 +28,20 @@ const constants = (
 )
 
 const index_2_name__core_transport__model = Dict(
-        0 => :unspecified, #Unspecified transport type
-        1 => :combined, #Combination of data from available transport models. Representation of the total transport in the system
-        2 => :transport_solver, #Output from a transport solver
-        3 => :background, #Background transport level, ad-hoc transport model not directly related to a physics model
-        4 => :database, #Transport specified by a database entry external to the dynamic evolution of the plasma
-        5 => :neoclassical, #Neoclassical
-        6 => :anomalous, #Representation of turbulent transport
-        19 => :mhd, #Transport arising from MHD frequency modes
-        20 => :ntm, #Transport arising from the presence of NTMs
-        21 => :sawteeth, #Transport arising from the presence of sawteeth
-        22 => :elm_continuous, #Continuous ELM model --- gives the ELM averaged profile
-        23 => :elm_resolved, #Time resolved ELM model
-        24 => :pedestal, #Transport level to give edge pedestal
-        25 => :unknown) #Unknown transport type
+    0 => :unspecified, #Unspecified transport type
+    1 => :combined, #Combination of data from available transport models. Representation of the total transport in the system
+    2 => :transport_solver, #Output from a transport solver
+    3 => :background, #Background transport level, ad-hoc transport model not directly related to a physics model
+    4 => :database, #Transport specified by a database entry external to the dynamic evolution of the plasma
+    5 => :neoclassical, #Neoclassical
+    6 => :anomalous, #Representation of turbulent transport
+    19 => :mhd, #Transport arising from MHD frequency modes
+    20 => :ntm, #Transport arising from the presence of NTMs
+    21 => :sawteeth, #Transport arising from the presence of sawteeth
+    22 => :elm_continuous, #Continuous ELM model --- gives the ELM averaged profile
+    23 => :elm_resolved, #Time resolved ELM model
+    24 => :pedestal, #Transport level to give edge pedestal
+    25 => :unknown) #Unknown transport type
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.core_transport__model}
     return index_2_name__core_transport__model
@@ -95,6 +95,12 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:core_sources__source
     return index_2_name__core_sources__source
 end
 
+const index_2_name__balance_of_plant__power_electric_plant_operation = Dict((k - 1) => item for (k, item) in enumerate([:total, :HCD, :cryostat, :tritium_handling, :pumping, :pf_active]))
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:balance_of_plant__power_electric_plant_operation__system}
+    return index_2_name__balance_of_plant__power_electric_plant_operation
+end
+
 """
     name_2_index(ids::Union{IDS, IDSvector})
 
@@ -111,7 +117,11 @@ return item from IDSvector based on identifier.index of index_2_name
 """
 function Base.findfirst(identifier_name::Symbol, haystack::IDSvector)
     i = name_2_index(haystack)[identifier_name]
-    index = findfirst(idx -> idx.identifier.index == i, haystack)
+    if :identifier in fieldnames(typeof(haystack))
+        index = findfirst(idx -> idx.identifier.index == i, haystack)
+    else
+        index = findfirst(idx -> idx.index == i, haystack)
+    end
     return haystack[index]
 end
 
