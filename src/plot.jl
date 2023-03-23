@@ -124,6 +124,43 @@ Plots cross-section of individual coils
     end
 end
 
+@recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
+    costs = [sys_cst.cost for sys_cst in cst]
+    names = ["$(round(sys_cst.cost/sum(costs)*100))% $(sys_cst.name)" for sys_cst in cst]
+    
+    name_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)% $(sub_cst.name)" for sub_cst in sys_cst.subsystem] for sys_cst in cst]
+    cost_series = [[sub_cst.cost for sub_cst in sys_cst.subsystem] for sys_cst in cst]
+
+    size --> (1200,900)
+    layout := @layout (1, 1 + length(filter!(!isempty, cost_series)))
+
+    @series begin
+        subplot := 1 
+        seriestype := :pie 
+        title := "Total Direct Capital Cost"
+        names, costs 
+    end 
+
+    for (k,(sub_names, sub_costs)) in enumerate(zip(name_series,cost_series))
+        if !isempty(sub_costs)
+            @series begin 
+                subplot := k+1
+                seriestype := :pie 
+                title := string(names[k])
+                titlefontsize := 9
+                sub_names, sub_costs
+            end
+        end
+    end
+   
+end
+
+@recipe function plot_costing(cst::IMAS.costing)
+    @series begin
+        return cst.cost_direct_capital.system
+    end
+end
+
 @recipe function plot_eq(eq::IMAS.equilibrium)
     @series begin
         return eq.time_slice[]
