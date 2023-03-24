@@ -6,7 +6,7 @@ import PolygonOps
 import Optim
 import NumericalIntegration: integrate, cumul_integrate
 import PeriodicTable: elements
-import MillerExtendedHarmonic: MXH, flat_coeffs, reorder_flux_surface!
+import MillerExtendedHarmonic: MXH, MXH!, flat_coeffs, reorder_flux_surface!
 import Memoize
 using RecipesBase
 
