@@ -167,11 +167,11 @@ function print_vertical(io, xtract::AbstractDict{Symbol,ExtractFunction})
     end
 end
 
-function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int)
-    return print_tiled(stdout, xtract; terminal_width)
+function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char="─")
+    return print_tiled(stdout, xtract; terminal_width, line_char)
 end
 
-function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int)
+function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char="─")
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
     for xfun in values(xtract)
         #if !isnan(xfun.value)
@@ -217,19 +217,19 @@ function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; termi
     for row in 1:nrows
         idxs = idx:min(idx + ncols - 1, length(lists))
         for title_row in idxs
-            title = collect(keys(lists))[title_row]
-            printstyled(io,title, " "^(max_width - length(string(title))); bold=true)
+            title = uppercase(string(collect(keys(lists))[title_row]))
+            printstyled(io, rpad(title, max_width); bold=true)
         end
         println(io)
         for list_row in 1:max_heights[row]+2
             for col in idxs
                 list = collect(values(lists))[col]
                 if list_row == 1
-                    print(io,("─"^max_item_width * " "^(max_width - max_item_width)))
+                    print(io, (line_char^max_item_width * " "^(max_width - max_item_width)))
                 elseif list_row - 1 <= length(list)
                     item = list[list_row-1]
                     show(io, item; group=false)
-                    print(io," "^(max_width - length_(item)))
+                    print(io, " "^(max_width - length_(item)))
                 else
                     print(io, " "^max_width)
                 end

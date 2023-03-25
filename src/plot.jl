@@ -1173,8 +1173,9 @@ end
     @assert typeof(linewidth) <: Real
 
     legend_position --> :outerbottomright
-    ylabel --> "Stresses [MPa]"
-    xlabel --> "Radius [m]"
+    ylabel := "Stresses [MPa]"
+    xlabel := "Radius [m]"
+    title := "CS stresses"
 
     center_stack = parent(stress)
 
