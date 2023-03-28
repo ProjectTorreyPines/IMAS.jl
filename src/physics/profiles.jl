@@ -189,7 +189,7 @@ end
 
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
     a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
-    return integrate(a_cp, ne_profile / a_cp[end])
+    return integrate(a_cp, ne_profile) / a_cp[end]
 end
 
 """

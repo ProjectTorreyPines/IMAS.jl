@@ -874,7 +874,6 @@ end
 end
 
 @recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing, nozeros=false)
-
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
     @assert typeof(label) <: Union{Nothing,AbstractString}
@@ -1039,7 +1038,7 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false)
 
     @assert typeof(label) <: Union{Nothing,AbstractString}
     if label === nothing
@@ -1109,6 +1108,17 @@ end
             label := "e" * label
             ylim --> (0.0, Inf)
             cpt.electrons, :density
+        end
+        if greenwald
+            @series begin
+                if only === nothing
+                    subplot := 2
+                end
+                seriestype := :hline
+                primary := false
+                style := :dashdotdot
+                [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
+            end
         end
         for ion in cpt.ion
             @series begin
