@@ -117,7 +117,7 @@ return item from IDSvector based on identifier.index of index_2_name
 """
 function Base.findfirst(identifier_name::Symbol, haystack::IDSvector)
     i = name_2_index(haystack)[identifier_name]
-    if :identifier in fieldnames(typeof(haystack))
+    if :identifier in fieldnames(eltype(haystack))
         index = findfirst(idx -> idx.identifier.index == i, haystack)
     else
         index = findfirst(idx -> idx.index == i, haystack)
@@ -132,6 +132,10 @@ return items from IDSvector based on identifier.index of index_2_name
 """
 function Base.findall(identifier_name::Symbol, haystack::IDSvector)
     i = name_2_index(haystack)[identifier_name]
-    indexes = findall(idx -> idx.identifier.index == i, haystack)
-    return [haystack[index] for index in indexes]
+    if :identifier in fieldnames(eltype(haystack))
+        indexes = findall(idx -> idx.identifier.index == i, haystack)
+    else
+        indexes = findall(idx -> idx.index == i, haystack)
+    end
+    return eltype(haystack)[haystack[index] for index in indexes]
 end
