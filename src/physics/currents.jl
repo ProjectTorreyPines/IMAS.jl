@@ -1,33 +1,55 @@
 """
     j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
+Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
 function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_oh_par_norm = cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+
     j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
-    I_ohmic = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
-    return I_ohmic .* cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
+    I_ohmic_tor = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
+    I_tor_2_par = integrate(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, fill(I_ohmic_tor, size(cp1d.grid.rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
+    I_ohmic_par_guess = I_ohmic_tor .* I_tor_2_par
+
+    j_oh_par_norm .*= sign(I_ohmic_par_guess)
+    I_ohmic_par_guess = abs(I_ohmic_par_guess)
+
+    function cost(x)
+        j_ohmic = x[1] .* j_oh_par_norm
+        j_total = j_ohmic .+ cp1d.j_non_inductive
+        j_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, j_total, true, eqt)
+        return abs(eqt.global_quantities.ip - IMAS.integrate(cp1d.grid.area, j_tor)) .^ 2
+    end
+
+    res = Optim.optimize(cost, [I_ohmic_par_guess], Optim.Newton(); autodiff=:forward)
+    I_ohmic_par = res.minimizer
+
+    return I_ohmic_par .* j_oh_par_norm
 end
 
 """
     j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_ohmic to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
+Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
 function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d)
-    empty!(cp1d, :j_total) # restore total as expression, to make things self-consistent
+    # restore j_total and j_tor as expression, to make sure things are self-consistent
+    empty!(cp1d, :j_total)
+    empty!(cp1d, :j_tor)
     return nothing
 end
 
 """
     j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_total as expression in core_profiles that evaluates to the total parallel current in the equilibrirum
+Sets j_total parallel current density as expression in core_profiles that evaluates to the total parallel current in the equilibrirum
 """
 function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(cp1d.grid.rho_tor_norm)
-    empty!(cp1d, :j_ohmic) # restore ohmic as expression, to make things self-consistent
+    # restore j_ohmic and j_tor as expression, to make sure things are self-consistent
+    empty!(cp1d, :j_ohmic)
+    empty!(cp1d, :j_tor)
     return nothing
 end
 
