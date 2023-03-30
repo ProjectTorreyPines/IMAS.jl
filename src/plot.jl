@@ -230,7 +230,7 @@ end
     end
 end
 
-@recipe function plot_eqt(eqt::IMAS.equilibrium__time_slice; cx=false, coordinate=:psi_norm)
+@recipe function plot_eqt(eqt::IMAS.equilibrium__time_slice; cx=false, coordinate=:psi_norm, core_profiles_overlay=false)
     @assert typeof(cx) <: Bool
     @assert typeof(coordinate) <: Symbol
 
@@ -259,17 +259,51 @@ end
                 eqt.profiles_1d, :pressure
             end
         end
+        if core_profiles_overlay
+            cp1d = top_dd(eqt).core_profiles.profiles_1d[eqt.time]
+            if !ismissing(cp1d, :pressure)
+                @series begin
+                    primary := false
+                    ls := :dash
+                    lw := 2
+                    label := ""
+                    xlabel := ""
+                    subplot := 2
+                    normalization := 1E-6
+                    ylabel := ""
+                    title := L"P~~[MPa]"
+                    cp1d, :pressure
+                end
+            end
+        end
 
-        # jpar
-        if !ismissing(eqt.profiles_1d, :j_parallel)
+        # j_tor
+        if !ismissing(eqt.profiles_1d, :j_tor)
             @series begin
                 label := ""
                 xlabel := ""
                 subplot := 3
                 normalization := 1E-6
                 ylabel := ""
-                title := L"J_\parallel~[MA/m^2]"
-                eqt.profiles_1d, :j_parallel
+                title := L"J_{tor}~[MA/m^2]"
+                eqt.profiles_1d, :j_tor
+            end
+        end
+        if core_profiles_overlay
+            cp1d = top_dd(eqt).core_profiles.profiles_1d[eqt.time]
+            if !ismissing(cp1d, :pressure)
+                @series begin
+                    primary := false
+                    ls := :dash
+                    lw := 2
+                    label := ""
+                    xlabel := ""
+                    subplot := 3
+                    normalization := 1E-6
+                    ylabel := ""
+                    title := L"J_{tor}~[MA/m^2]"
+                    cp1d, :j_tor
+                end
             end
         end
 
