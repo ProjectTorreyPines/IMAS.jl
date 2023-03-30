@@ -714,8 +714,12 @@ end
     symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
 
 Update equilibrium time slice in place to be symmetric with respect to its magnetic axis.
+
 This is done by averaging the upper and lower parts of the equilibrium.
+
 Flux surfaces should re-traced after this operation.
+
+NOTE: Use with care! This operation will change the flux surfaces (LCFS included) and as such quantities may change
 """
 function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
     r, z, PSI_interpolant = ψ_interpolant(eqt)
