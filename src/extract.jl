@@ -168,11 +168,11 @@ function print_vertical(io, xtract::AbstractDict{Symbol,ExtractFunction})
     end
 end
 
-function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char="─")
+function print_tiled(xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char::Char='─')
     return print_tiled(stdout, xtract; terminal_width, line_char)
 end
 
-function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char="─")
+function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char::Char='─')
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
     for xfun in values(xtract)
         #if !isnan(xfun.value)

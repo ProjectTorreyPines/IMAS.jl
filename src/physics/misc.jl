@@ -1,7 +1,7 @@
 """
     area(coil::IMAS.pf_active__coil)
 
-returns cross sectional area of PF coils
+Returns cross sectional area of PF coils
 """
 function area(coil::IMAS.pf_active__coil)
     return coil.element[1].geometry.rectangle.width * coil.element[1].geometry.rectangle.height
@@ -10,21 +10,26 @@ end
 """
     volume(coil::IMAS.pf_active__coil)
 
-returns volume of PF coils
+Returns volume of PF coils
 """
 function volume(coil::IMAS.pf_active__coil)
-    return area(coil) * 2pi * coil.element[1].geometry.rectangle.r
+    return area(coil) * 2π * coil.element[1].geometry.rectangle.r
 end
 
 """
-    elongation_limit(A::Real)
+    elongation_limit(R0_over_a::Real)
 
-returns elongation limit due to control limit from simple aspect ratio scaling
+Returns elongation limit due to control limit from simple aspect ratio scaling
 """
-function elongation_limit(A::Real)
-     return 2.43 + 65.0 * exp(-A / 0.376)
+function elongation_limit(R0_over_a::Real)
+    return 2.43 + 65.0 * exp(-R0_over_a / 0.376)
 end
 
+"""
+    elongation_limit(eqt::IMAS.equilibrium__time_slice)
+
+Returns elongation limit due to control limit from simple aspect ratio scaling
+"""
 function elongation_limit(eqt::IMAS.equilibrium__time_slice)
-    return elongation_limit(eqt.global_quantities.magnetic_axis.r/eqt.boundary.minor_radius)
+    return elongation_limit(eqt.global_quantities.magnetic_axis.r / eqt.boundary.minor_radius)
 end
