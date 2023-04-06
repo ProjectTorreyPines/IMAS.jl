@@ -1,6 +1,8 @@
 
 
 """
+    function slowing_down_time(ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real, zfast::Real)
+
 Calculates the slowing down time taus [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :param ne: electron density [m^-3]
@@ -28,6 +30,8 @@ end
 
 
 """
+    function critical_energy(ni::AbstractMatrix{<:Real}, zi::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real)
+
 Alpha heating coefficients [Stix, Plasma Phys. 14 (1972) 367]
 See in particular Eqs. 15 and 17.
 This function is a direct translation to Python of what in is in TGYRO
