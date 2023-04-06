@@ -74,9 +74,10 @@ Calculates the fast ion density, and adds it to the dd
 
 :param particle_specie: particle specie 
 """
-function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::Symbol=:fusion)
+function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_energy::Real=3.5e6, sourceid::Symbol=:fusion)
 
-    cp1d = dd.core_profiles.profiles_1d[]
+    cp1d = cp.profiles_1d[]
+    css = cs.source
 
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
@@ -110,7 +111,7 @@ function fast_density(dd::IMAS.dd; particle_energy::Real=3.5e6, sourceid::Symbol
 
     encapf = log.(1.0 .+ 1.0 ./ vfrac.^3) ./ 3.0  # assume no neutrals
 
-    cs1ds = findall(sourceid, dd.core_sources.source)
+    cs1ds = findall(sourceid, css)
     cp1d.ion[ion_index].pressure_fast_parallel  = zeros(length(cp1d.electrons.density))
     cp1d.ion[ion_index].pressure_fast_perpendicular  = zeros(length(cp1d.electrons.density))
     cp1d.ion[ion_index].density_fast  = zeros(length(cp1d.electrons.density))
@@ -333,7 +334,7 @@ function DT_fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=α .* ion_to_electron_fraction
     )
 
-    fast_density(dd)
+    fast_density(cs, cp)
     
     return source
 end
