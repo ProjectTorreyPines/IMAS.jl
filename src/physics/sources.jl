@@ -16,15 +16,15 @@ Calculates the slowing down time taus [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 :param zfast: fast  ion charge
 
 :return: taus: slowing down time
-""" 
+"""
 function slowing_down_time(ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real, zfast::Real)
 
     ne_cm3 = 1e-6 .* ne
-    
+
     loglam = 24.0 .- log.(sqrt.(ne_cm3) ./ te)
 
-    taus = 6.27e8 .* mfast .* (te.^1.5) ./ (ne_cm3 .* loglam .* zfast^2)
-    
+    taus = 6.27e8 .* mfast .* (te .^ 1.5) ./ (ne_cm3 .* loglam .* zfast^2)
+
     return taus
 end
 
@@ -56,9 +56,9 @@ This function is a direct translation to Python of what in is in TGYRO
 function critical_energy(ni::AbstractMatrix{<:Real}, zi::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, ne::AbstractVector{<:Real}, te::AbstractVector{<:Real}, mfast::Real)
     me = constants.m_e
 
-    c_a =  zeros(size(ne))
+    c_a = zeros(size(ne))
     for k in 1:size(ni, 1)
-        c_a += (ni[k,:] ./ ne) .* (zi[k] .^ 2) ./ (mi[k] .* constants.m_p ./ mfast)
+        c_a += (ni[k, :] ./ ne) .* (zi[k] .^ 2) ./ (mi[k] .* constants.m_p ./ mfast)
     end
 
     ecrit = te .* (4.0 .* sqrt.(me ./ mfast) ./ (3.0 .* sqrt.(pi) .* c_a)) .^ (-2.0 / 3.0)
@@ -94,27 +94,27 @@ function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_en
     particle_mass = cp1d.ion[ion_index].element[1].a
     particle_charge = cp1d.ion[ion_index].element[1].z_n
 
-    ni = zeros((length(cp1d.ion),length(cp1d.electrons.density)))
+    ni = zeros((length(cp1d.ion), length(cp1d.electrons.density)))
     Zi = zeros(length(cp1d.ion))
     mi = zeros(length(cp1d.ion))
 
-    for (idx,ion) in enumerate(cp1d.ion)
-        ni[idx,:] = ion.density_thermal
+    for (idx, ion) in enumerate(cp1d.ion)
+        ni[idx, :] = ion.density_thermal
         Zi[idx] = ion.element[1].z_n
         mi[idx] = ion.element[1].a
     end
 
     taus = slowing_down_time(ne, Te, particle_charge, particle_mass)
-    Ecrit = critical_energy(ni, Zi, mi, ne, Te, particle_mass*constants.m_p)
+    Ecrit = critical_energy(ni, Zi, mi, ne, Te, particle_mass * constants.m_p)
 
     vfrac = sqrt.(Ecrit ./ particle_energy)
 
-    encapf = log.(1.0 .+ 1.0 ./ vfrac.^3) ./ 3.0  # assume no neutrals
+    encapf = log.(1.0 .+ 1.0 ./ vfrac .^ 3) ./ 3.0  # assume no neutrals
 
     cs1ds = findall(sourceid, css)
-    cp1d.ion[ion_index].pressure_fast_parallel  = zeros(length(cp1d.electrons.density))
-    cp1d.ion[ion_index].pressure_fast_perpendicular  = zeros(length(cp1d.electrons.density))
-    cp1d.ion[ion_index].density_fast  = zeros(length(cp1d.electrons.density))
+    cp1d.ion[ion_index].pressure_fast_parallel = zeros(length(cp1d.electrons.density))
+    cp1d.ion[ion_index].pressure_fast_perpendicular = zeros(length(cp1d.electrons.density))
+    cp1d.ion[ion_index].density_fast = zeros(length(cp1d.electrons.density))
 
     for cs1d in cs1ds
         qfaste = cs1d.profiles_1d[].electrons.energy
@@ -329,13 +329,14 @@ function DT_fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         index,
         "α",
         cp1d.grid.rho_tor_norm,
-        cp1d.grid.volume;
+        cp1d.grid.volume,
+        cp1d.grid.area;
         electrons_energy=α .* (1.0 .- ion_to_electron_fraction),
         total_ion_energy=α .* ion_to_electron_fraction
     )
 
     fast_density(cs, cp)
-    
+
     return source
 end
 
@@ -360,7 +361,7 @@ function D_D_to_He3_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     he3_energy = 0.82e6 * constants.e  # eV to Joules
     reactivity = D_D_to_He3_reactions(cp1d)
-    energy =  reactivity .* he3_energy 
+    energy = reactivity .* he3_energy
     ion_to_electron_fraction = sivukhin_fraction(cp1d, 0.82e6, 3.0)
     index = name_2_index(dd.core_sources.source)[:fusion]
     source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
@@ -369,7 +370,8 @@ function D_D_to_He3_source!(dd::IMAS.dd)
         index,
         "He3",
         cp1d.grid.rho_tor_norm,
-        cp1d.grid.volume;
+        cp1d.grid.volume,
+        cp1d.grid.area;
         electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
         total_ion_energy=energy .* ion_to_electron_fraction
     )
@@ -394,7 +396,7 @@ function collisional_exchange_source!(dd::IMAS.dd)
         nu_exch = collision_frequencies(dd)[3]
         delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
         source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
-        new_source(source, index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=-delta, total_ion_energy=delta)
+        new_source(source, index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=-delta, total_ion_energy=delta)
         return source
     end
 end
@@ -411,7 +413,7 @@ function ohmic_source!(dd::IMAS.dd)
         powerDensityOhm = j_ohmic .^ 2 ./ cp1d.conductivity_parallel
         index = name_2_index(dd.core_sources.source)[:ohmic]
         source = resize!(dd.core_sources.source, "identifier.index" => index)
-        new_source(source, index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
+        new_source(source, index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
         return source
     end
 end
@@ -427,7 +429,7 @@ function bootstrap_source!(dd::IMAS.dd)
     if j_bootstrap !== missing
         index = name_2_index(dd.core_sources.source)[:bootstrap_current]
         source = resize!(dd.core_sources.source, "identifier.index" => index)
-        new_source(source, index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume; j_parallel=j_bootstrap)
+        new_source(source, index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; j_parallel=j_bootstrap)
         return source
     end
 end
@@ -577,7 +579,8 @@ end
         index::Int,
         name::String,
         rho::Union{AbstractVector,AbstractRange},
-        volume::Union{AbstractVector,AbstractRange};
+        volume::Union{AbstractVector,AbstractRange},
+        area::Union{AbstractVector,AbstractRange};
         electrons_energy::Union{AbstractVector,Missing}=missing,
         electrons_power_inside::Union{AbstractVector,Missing}=missing,
         total_ion_energy::Union{AbstractVector,Missing}=missing,
@@ -597,7 +600,8 @@ function new_source(
     index::Int,
     name::String,
     rho::Union{AbstractVector,AbstractRange},
-    volume::Union{AbstractVector,AbstractRange};
+    volume::Union{AbstractVector,AbstractRange},
+    area::Union{AbstractVector,AbstractRange};
     electrons_energy::Union{AbstractVector,Missing}=missing,
     electrons_power_inside::Union{AbstractVector,Missing}=missing,
     total_ion_energy::Union{AbstractVector,Missing}=missing,
@@ -615,6 +619,7 @@ function new_source(
     cs1d = resize!(source.profiles_1d)
     cs1d.grid.rho_tor_norm = rho
     cs1d.grid.volume = volume
+    cs1d.grid.area = area
 
     if electrons_energy !== missing
         cs1d.electrons.energy = interp1d(LinRange(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
