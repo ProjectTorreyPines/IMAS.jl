@@ -110,8 +110,7 @@ Update flux surface averaged and geometric quantities for a given equilibrum IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
 function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
-    r0 = eqt.boundary.geometric_axis.r
-    b0 = eqt.profiles_1d.f[end] / r0
+    r0, b0 = vacuum_r0_b0(eqt)
     return flux_surfaces(eqt, b0, r0; upsample_factor)
 end
 
@@ -733,4 +732,21 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
 
     eqt.profiles_2d[1].grid.dim2 = zz
     eqt.profiles_2d[1].psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
+end
+
+"""
+    vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice) 
+
+Returns vacuum R0 and B0
+"""
+function vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice)
+    eq = top_ids(IMAS.equilibrium__time_slice())
+    if eq !== nothing
+        r0 = eq.vacuum_toroidal_field.r0
+        b0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
+    else
+        r0 = eqt.boundary.geometric_axis.r
+        b0 = eqt.profiles_1d.f[end] / r0
+    end
+    return r0, b0
 end

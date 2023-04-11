@@ -151,8 +151,14 @@ function Bpol(a::T, κ::T, Ip::T) where {T<:Real}
     return (constants.μ_0 * Ip) / (2π * a * sqrt((1.0 + κ^2) / 2.0))
 end
 
-function widthSOL_sieglin(dd::IMAS.dd)
-    return widthSOL_sieglin(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
+"""
+    power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+
+Total power coming out of the SOL [W]
+"""
+function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+    tot_src = IMAS.total_sources(core_sources, cp1d)
+    return tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
 end
 
 function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
@@ -161,10 +167,13 @@ function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
     a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
     κ = eq1d.elongation[end]
     Ip = eqt.global_quantities.ip
-    tot_src = IMAS.total_sources(core_sources, cp1d)
-    Psol = tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
+    Psol = power_sol(core_sources, cp1d)
     ne_ped = IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
     return widthSOL_sieglin(R0, a, κ, Ip, Psol, ne_ped)
+end
+
+function widthSOL_sieglin(dd::IMAS.dd)
+    return widthSOL_sieglin(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
 """
@@ -193,19 +202,18 @@ function widthSOL_sieglin(R0::T, a::T, κ::T, Ip::T, Psol::T, ne_ped::T) where {
     return λ_int
 end
 
-function widthSOL_eich(dd::IMAS.dd)
-    return widthSOL_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
-end
-
 function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     eq1d = eqt.profiles_1d
     R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
     a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
     κ = eq1d.elongation[end]
     Ip = eqt.global_quantities.ip
-    tot_src = IMAS.total_sources(core_sources, cp1d)
-    Psol = tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
+    Psol = power_sol(core_sources, cp1d)
     return widthSOL_eich(R0, a, κ, Ip, Psol)
+end
+
+function widthSOL_eich(dd::IMAS.dd)
+    return widthSOL_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
 """
