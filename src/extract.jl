@@ -87,6 +87,8 @@ function update_ExtractFunctionsLibrary!()
 
     ExtractLibFunction(:costing, :levelized_CoE, "\$/kWh", dd -> dd.costing.levelized_CoE)
     ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
+
+    return ExtractFunctionsLibrary
 end
 update_ExtractFunctionsLibrary!()
 
