@@ -21,8 +21,8 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :return: τ_s: slowing down time
 """
-function slowing_down_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int)
-         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
+function slowing_down_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int) where
+                           {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
 
     lnΛ = lnΛ_ei(ne, Te, ni, Ti, mi, Zi)
 
@@ -47,8 +47,7 @@ Calculates the slowing down time τ_s for Ti*me/mi < 10Zi^2 eV < Te [Stix, Plasm
 
 :return: τ_s: slowing down time
 """
-function slowing_down_time(ne::S, Te::P, mf::Q, Zf::Int)
-         where {S<:Real,P<:Real,Q<:Real}
+function slowing_down_time(ne::S, Te::P, mf::Q, Zf::Int) where {S<:Real,P<:Real,Q<:Real}
 
     lnΛ = lnΛ_ei(ne, Te)
 
@@ -106,8 +105,8 @@ Calculates the difference of the electron and ion drag terms in the collision op
 
 :return ΔD: drag difference
 """
-function _electron_ion_drag_difference(ne::S,Te::P,ni::Vector{Q},Ti::Vector{R},mi::Vector{O},Zi::Vector{Int}, Ef::T, mf::U, Zf::Int)
-         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
+function _electron_ion_drag_difference(ne::S,Te::P,ni::Vector{Q},Ti::Vector{R},mi::Vector{O},Zi::Vector{Int}, Ef::T, mf::U, Zf::Int) where
+                                       {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
     m_e = constants.m_e
     m_i = mi .* constants.m_u
     m_f = mf * constants.m_u
@@ -119,7 +118,7 @@ function _electron_ion_drag_difference(ne::S,Te::P,ni::Vector{Q},Ti::Vector{R},m
     Γ_fe = _drag_coefficient(ne, -1, mf, Zf, lnΛ_fe)
     electron_drag = ((8*Γ_fe*m_f)/(3*sqrt(pi)*m_e*v_e^3))*v_f^3
 
-    lnΛ_fis = lnΛ_fi(ne, Te, ni, Ti, mi, Zi, v_f/contants.c, mf, Zf)
+    lnΛ_fis = lnΛ_fi(ne, Te, ni, Ti, mi, Zi, v_f/constants.c, mf, Zf; verbose=false)
     Γ_fi = _drag_coefficient.(ni, Zi, mf, Zf, lnΛ_fis)
     ion_drag = 2*m_f*sum(Γ_fi ./ m_i)
 
@@ -148,8 +147,8 @@ Calculate the critical energy by finding the root of the difference between the 
 :param Zf: fast  ion charge
 
 """
-function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int)
-         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
+function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int) where
+                         {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
 
     Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf),
                    (0.0, 3.5e6)) #upperbound is birth energy of alpha particle
@@ -197,8 +196,8 @@ Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2
 
 :param Zf: fast ion charge
 """
-function thermalization_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, Ef::T, mf::U, Zf::Int)
-         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
+function thermalization_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, Ef::T, mf::U, Zf::Int) where
+                             {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
 
     m_f = mf*constants.m_u
 

@@ -33,8 +33,8 @@ Calculate Couloumb logarithm for thermal electron-ion collisions [NRL Plasma For
 
 :return lnΛ: list of Coloumb logarithms for each provided ion
 """
-function lnΛ_ei(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int})
-         where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
+function lnΛ_ei(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int}) where
+               {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
     ne *= 1e-6  #cm^-3
     ni *= 1e-6 #cm^-3
 
@@ -94,8 +94,8 @@ Calculate Couloumb logarithm for mixed thermal ion-ion collisions [NRL Plasma Fo
 
 :return lnΛ: matrix of Coloumb logarithms for each provided ion
 """
-function lnΛ_ii(ne::S, Te::Q, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int}; beta_D::Union{Nothing,Matrix{<:Real}} = nothing)
-         where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
+function lnΛ_ii(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int}; beta_D::Union{Nothing,Matrix{<:Real}} = nothing) where
+                {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
     ni *= 1e-6 #cm^-3
     ne *= 1e-6 #cm^-3
 
@@ -165,9 +165,8 @@ Calculate Couloumb logarithm for beam/fast ion in the presence of warm electrons
 
 :return lnΛ: list of Coloumb logarithms for each provided thermal ion species
 """
-function lnΛ_fi(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, beta_f::T, mf::V, Zf::Int)
-         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,V<:Real}
-    ni *= 1e-6 #cm^-3
+function lnΛ_fi(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, beta_f::T, mf::V, Zf::Int; verbose=true) where
+                {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,V<:Real}
     ne *= 1e-6 #cm^-3
 
     c = constants.c
@@ -185,11 +184,13 @@ function lnΛ_fi(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::
         Z_i = Zi[i]
         m_i = mi[i]*m_u
         T_i = Ti[i]
-        L = T_i/m_i
+        L = T_i*e/m_i
         if L < (beta_f*c)^2 < U
-            lnΛ[i] = 43 - log((Zf*Z_i*(m_f + m_i)/(m_f*m_i*beta_f^2))*sqrt(ne/Te))
+            lnΛ[i] = 43 - log((Zf*Z_i*(mf + mi[i])/(mf*mi[i]*beta_f^2))*sqrt(ne/Te))
         else
-            @warn "Fast ion velocity outside of applicable range"
+            verbose && @warn "Fast ion velocity outside of applicable range: $L < $((beta_f*c)^2) < $U. Assuming Ef=Ti"
+            lnΛ[i] = lnΛ_ii(ne*1e6, Te, [ni[i],ni[i]], [Ti[i],Ti[i]], [mf,mi[i]], [Zf,Zi[i]])[1,2]
         end
     end
+    return lnΛ
 end
