@@ -1,5 +1,5 @@
 """
-    function slowing_down_time(ne, Te, ni::Vector, Ti::Vector, mi::Vector, Zi::Vector, mf, Zf::Int)
+    slowing_down_time(ne, Te, ni::Vector, Ti::Vector, mi::Vector, Zi::Vector, mf, Zf::Int)
 
 Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
@@ -21,12 +21,38 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :return: τ_s: slowing down time
 """
-function slowing_down_time(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector{Int}, mf, Zf::Int) where {Q,R,S}
-
-    ne_cm3 = 1e-6 * ne
+function slowing_down_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int)
+         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
 
     lnΛ = lnΛ_ei(ne, Te, ni, Ti, mi, Zi)
 
+    ne_cm3 = 1e-6 * ne
+    τ_s = 6.27e8 * mf * (Te^1.5) ./ (ne_cm3 * lnΛ * Zf^2)
+
+    return τ_s
+end
+
+"""
+    slowing_down_time(ne, Te, mf, Zf::Int)
+
+Calculates the slowing down time τ_s for Ti*me/mi < 10Zi^2 eV < Te [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
+
+:param ne: electron density [m^-3]
+
+:param Te: electron temperature [eV]
+
+:param mf: mass of fast ion [AMU]
+
+:param Zf: fast  ion charge
+
+:return: τ_s: slowing down time
+"""
+function slowing_down_time(ne::S, Te::P, mf::Q, Zf::Int)
+         where {S<:Real,P<:Real,Q<:Real}
+
+    lnΛ = lnΛ_ei(ne, Te)
+
+    ne_cm3 = 1e-6 * ne
     τ_s = 6.27e8 * mf * (Te^1.5) / (ne_cm3 * lnΛ * Zf^2)
 
     return τ_s
@@ -49,7 +75,7 @@ Drag coefficient (Γ) for a fast-ions interacting with a thermal species as defi
 
 :return Γ: drag coefficient
 """
-function _drag_coefficient(n, Z::Int, mf, Zf::Int, lnΛ)
+function _drag_coefficient(n::S, Z::Int, mf::P, Zf::Int, lnΛ::Q) where {S<:Real,P<:Real,Q<:Real}
     n *= 1e-6 #cm^-3
     mf *= constants.m_u # kg
     Γ = (2*pi*n*(constants.e)^4 * Z^2 * Zf^2 * lnΛ)/(mf^2)
@@ -80,7 +106,8 @@ Calculates the difference of the electron and ion drag terms in the collision op
 
 :return ΔD: drag difference
 """
-function _electron_ion_drag_difference(ne,Te,ni::Vector{Q},Ti::Vector{R},mi::Vector{S},Zi::Vector{Int}, Ef, mf, Zf::Int) where {Q,R,S}
+function _electron_ion_drag_difference(ne::S,Te::P,ni::Vector{Q},Ti::Vector{R},mi::Vector{O},Zi::Vector{Int}, Ef::T, mf::U, Zf::Int)
+         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
     m_e = constants.m_e
     m_i = mi .* constants.m_u
     m_f = mf * constants.m_u
@@ -88,7 +115,7 @@ function _electron_ion_drag_difference(ne,Te,ni::Vector{Q},Ti::Vector{R},mi::Vec
     v_f = sqrt(2*Ef*constants.e/m_f)
     v_e = sqrt(2*Te*constants.e/m_e)
 
-    lnΛ_fe = sum(lnΛ_ei(ne, Te, ni, Ti, mi, Zi) .* ni)/sum(ni) # weighted average over ion species. usually all the same anyway but for some temperatures it depends on ni
+    lnΛ_fe = lnΛ_ei(ne, Te)
     Γ_fe = _drag_coefficient(ne, -1, mf, Zf, lnΛ_fe)
     electron_drag = ((8*Γ_fe*m_f)/(3*sqrt(pi)*m_e*v_e^3))*v_f^3
 
@@ -121,9 +148,10 @@ Calculate the critical energy by finding the root of the difference between the 
 :param Zf: fast  ion charge
 
 """
-function critical_energy(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector{Int}, mf, Zf::Int) where {Q,R,S}
+function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int)
+         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
 
-    Ec = find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf),
+    Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf),
                    (0.0, 3.5e6)) #upperbound is birth energy of alpha particle
 
     return Ec
@@ -140,7 +168,7 @@ Calculate thermalization time
 
 :param tau_s: slowing down time
 """
-function thermalization_time(v_f, v_c, tau_s)
+function thermalization_time(v_f::Q, v_c::R, tau_s::S) where {Q<:Real,R<:Real,S<:Real}
     vf3 = v_f^3
     vc3 = v_c^3
     return tau_s*log((vf3 + vc3)/vc3)/3
@@ -149,7 +177,7 @@ end
 """
     thermalization_time(ne, Te, ni::Vector{Q}, Ti::Vector{Q}, mi::Vector{S}, Zi::Vector{Int}, Ef, mf, Zf::Int)
 
-Calculate thermalization time of a fast ion with energy Ef
+Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2 eV < Te
 
 :param ne: electron density [m^-3]
 
@@ -169,11 +197,12 @@ Calculate thermalization time of a fast ion with energy Ef
 
 :param Zf: fast ion charge
 """
-function thermalization_time(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector{Int}, Ef, mf, Zf::Int) where {Q,R,S}
+function thermalization_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, Ef::T, mf::U, Zf::Int)
+         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
 
     m_f = mf*constants.m_u
 
-    tau_s = slowing_down_time(ne, Te, ni, Ti, mi, Zi, mf, Zf)
+    tau_s = slowing_down_time(ne, Te, mf, Zf)
     Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
 
     v_f = sqrt(2*constants.e*Ef/m_f)
@@ -226,7 +255,7 @@ function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_en
     taus = zeros(Npsi)
     Ecrit = zeros(Npsi)
     for i=1:Npsi
-        taus[i] = slowing_down_time(ne[i],Te[i],ni[:,i],Ti[:,i],mi,Zi,particle_mass,particle_charge)
+        taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
         Ecrit[i] = critical_energy(ne[i],Te[i],ni[:,i],Ti[:,i],mi,Zi,particle_mass,particle_charge)
     end
 

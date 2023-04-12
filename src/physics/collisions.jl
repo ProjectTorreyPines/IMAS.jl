@@ -9,7 +9,7 @@ Calculate Couloumb logarithm for thermal electron-electron collisions [NRL Plasm
 
 :return lnΛ: Coloumb logarithm
 """
-function lnΛ_ee(ne, Te)
+function lnΛ_ee(ne::S, Te::T) where {S<:Real,T<:Real}
     ne *= 1e-6 # cm^-3
     return 23.5 - log(sqrt(ne)*(Te^(-5/4))) - sqrt(1e-5 + ((log(Te) - 2)^2)/16)
 end
@@ -33,11 +33,12 @@ Calculate Couloumb logarithm for thermal electron-ion collisions [NRL Plasma For
 
 :return lnΛ: list of Coloumb logarithms for each provided ion
 """
-function lnΛ_ei(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector{Int}) where {Q,R,S}
+function lnΛ_ei(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int})
+         where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
     ne *= 1e-6  #cm^-3
     ni *= 1e-6 #cm^-3
 
-    lnΛ = zeros(promote_type(Q,R,S),ni)
+    lnΛ = zeros(promote_type(S,P,Q,R,T),ni)
     m_e = constants.m_e/constants.m_u
 
     for i=1:length(ni)
@@ -54,6 +55,22 @@ function lnΛ_ei(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector
     end
 
     return lnΛ
+end
+
+"""
+    lnΛ_ei(ne, T)
+
+Calculate Couloumb logarithm for thermal electron-ion collisions where Ti*me/mi < 10Zi^2 eV < Te [NRL Plasma Formulary]
+
+:param ne: electron density [m^-3]
+
+:param Te: electron temperature [eV]
+
+:return lnΛ: Coloumb logarithm
+"""
+function lnΛ_ei(ne::S, Te::P) where {S<:Real,P<:Real}
+    ne *= 1e-6  #cm^-3
+    return 24 - log(sqrt(ne)/Te)
 end
 
 """
@@ -77,7 +94,8 @@ Calculate Couloumb logarithm for mixed thermal ion-ion collisions [NRL Plasma Fo
 
 :return lnΛ: matrix of Coloumb logarithms for each provided ion
 """
-function lnΛ_ii(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector{Int}; beta_D = nothing) where {Q,R,S}
+function lnΛ_ii(ne::S, Te::Q, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int}; beta_D::Union{Nothing,Matrix{<:Real}} = nothing)
+         where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
     ni *= 1e-6 #cm^-3
     ne *= 1e-6 #cm^-3
 
@@ -89,18 +107,17 @@ function lnΛ_ii(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector
     U = Te*e/m_e
 
     N = length(ni)
-    T = promote_type(Q,R,S)
+    type = promote_type(S,P,Q,R,T)
 
     if beta_D == nothing
-        betaD = zeros(T,N,N)
+        beta_D = zeros(type,N,N)
     else
         if size(beta_D) != (N,N)
             @error "Incorrect size of relative drift velocity matrix: beta_D($N,$N) expected."
         end
-        betaD = beta_D
     end
 
-    lnΛ = zeros(T,N,N)
+    lnΛ = zeros(type,N,N)
     for i=1:N
         ni1 = ni[i]
         Z1 = Zi[i]
@@ -113,8 +130,8 @@ function lnΛ_ii(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector
             mu2 = mi[j]
             Ti2 = Ti[j]
             L2 = Ti2*e/(mu2*m_u)
-            if max(L1, L2) < (betaD[i,j]*c)^2 < U
-                lnΛ[i,j] = 43 - log((Z1*Z2*(mu1 + mu2)/(mu1*mu2*betaD[i,j]^2))*sqrt(ne/Te))
+            if max(L1, L2) < (beta_D[i,j]*c)^2 < U
+                lnΛ[i,j] = 43 - log((Z1*Z2*(mu1 + mu2)/(mu1*mu2*beta_D[i,j]^2))*sqrt(ne/Te))
             else
                 lnΛ[i,j] = 23 - log(((Z1*Z2*(mu1 + mu2))/(mu1*Ti2 + mu2*Ti1))*sqrt((ni1*Z1^2)/Ti1 + (ni2*Z2^2)/Ti2))
             end
@@ -148,7 +165,8 @@ Calculate Couloumb logarithm for beam/fast ion in the presence of warm electrons
 
 :return lnΛ: list of Coloumb logarithms for each provided thermal ion species
 """
-function lnΛ_fi(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector{Int}, beta_f, mf, Zf::Int) where {Q,R,S}
+function lnΛ_fi(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, beta_f::T, mf::V, Zf::Int)
+         where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,V<:Real}
     ni *= 1e-6 #cm^-3
     ne *= 1e-6 #cm^-3
 
@@ -162,7 +180,7 @@ function lnΛ_fi(ne, Te, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{S}, Zi::Vector
     m_f = constants.m_u*mf
 
     N = length(ni)
-    lnΛ = zeros(promote_type(Q,R,S),N)
+    lnΛ = zeros(promote_type(S,P,Q,R,O,T,V),N)
     for i=1:N
         Z_i = Zi[i]
         m_i = mi[i]*m_u
