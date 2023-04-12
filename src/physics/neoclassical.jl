@@ -16,7 +16,7 @@ function collision_frequencies(dd::IMAS.dd)
     loglam = 24.0 .- log.(sqrt.(ne) ./ Te)
 
     # 1/tau_ee (Belli 2008) in 1/s
-    nue = @. sqrt(2) * pi * ne * e^4.0 * loglam / (sqrt(me) * (k * Te) ^ 1.5)
+    nue = @. sqrt(2) * pi * ne * e^4.0 * loglam / (sqrt(me) * (k * Te)^1.5)
 
     # 1/tau_ii (Belli 2008) in 1/s
     nui = zeros(length(Te))
@@ -25,7 +25,7 @@ function collision_frequencies(dd::IMAS.dd)
         ni = ion.density / 1E6
         Zi = avgZ(ion.element[1].z_n, Ti)
         mi = ion.element[1].a * mp
-        nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti) ^ 1.5)
+        nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
     end
 
     # c_exch = 1.8e-19 is the formulary exch. coefficient
@@ -38,7 +38,7 @@ function collision_frequencies(dd::IMAS.dd)
         ni = ion.density / 1E6
         Zi = avgZ(ion.element[1].z_n, Ti)
         mi = ion.element[1].a * mp
-        nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te) ^ 1.5
+        nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
     end
 
     return nue, nui, nu_exch
@@ -123,8 +123,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     bra2 = L_32 .* dTe_dpsi ./ Te
     bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* dTi_dpsi ./ Ti
 
-    equilibrium = top_ids(eqt)
-    B0 = get_time_array(equilibrium.vacuum_toroidal_field, :b0, eqt.time)
+    R0, B0 = vacuum_r0_b0(eqt)
     j_boot = -I_psi .* cp1d.electrons.pressure .* (bra1 .+ bra2 .+ bra3) ./ B0
 
     j_boot = abs.(j_boot) .* sign(eqt.global_quantities.ip)
@@ -191,11 +190,11 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 end
 
 function lnLambda_e(ne, Te)
-    return @. 23.5 - log(sqrt(ne / 1e6) * Te ^ (-5.0 / 4.0)) - sqrt(1e-5 + (log(Te) - 2) ^ 2 / 16.0)
+    return @. 23.5 - log(sqrt(ne / 1e6) * Te^(-5.0 / 4.0)) - sqrt(1e-5 + (log(Te) - 2)^2 / 16.0)
 end
 
 function lnLambda_i(ni, Ti, Zavg)
-    return @. 30.0 - log(Zavg ^ 3 * sqrt(ni) / (Ti ^ 1.5))
+    return @. 30.0 - log(Zavg^3 * sqrt(ni) / (Ti^1.5))
 end
 
 """

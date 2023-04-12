@@ -13,7 +13,7 @@ end
 Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
 """
 function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool=false, thermal::Bool=false)
-    eqt = eq.time_slice[Float64(cp1d.time)]
+    eqt = eq.time_slice[cp1d.time]
     eq1d = eqt.profiles_1d
     if thermal
         pressure = cp1d.pressure_thermal
@@ -94,57 +94,70 @@ function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core
     return energy_thermal(cp1d) / (total_power_inside - radiation_losses(sources))
 end
 
+
+function tau_e_h98(dd::IMAS.dd; time::Float64=dd.global_time)
+    eqt = dd.equilibrium.time_slice[time]
+    cp1d = dd.core_profiles.profiles_1d[time]
+    cs = dd.core_sources
+    return tau_e_h98(eqt, cp1d, cs)
+end
+
 """
-    tau_e_h98(dd::IMAS.dd; time=dd.global_time)
+    tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.plot_core_sources)
 
 H98y2 ITER elmy H-mode confinement time scaling
 """
-function tau_e_h98(dd::IMAS.dd; time=dd.global_time)
-    eqt = dd.equilibrium.time_slice[Float64(time)]
-    cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-
-    total_source = total_sources(dd.core_sources, cp1d)
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
+function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+    total_source = total_sources(cs, cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
         integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
+
+    R0, B0 = vacuum_r0_b0(eqt)
 
     tau98 = (
         0.0562 *
         abs(eqt.global_quantities.ip / 1e6)^0.93 *
-        abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time))^0.15 *
+        abs(B0)^0.15 *
         (total_power_inside / 1e6)^-0.69 *
         (ne_vol_avg(cp1d) / 1e19)^0.41 *
         isotope_factor^0.19 *
-        dd.equilibrium.vacuum_toroidal_field.r0^1.97 *
-        (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius)^-0.58 *
+        R0^1.97 *
+        (R0 / eqt.boundary.minor_radius)^-0.58 *
         eqt.boundary.elongation^0.78
     )
     return tau98
 end
 
+function tau_e_ds03(dd::IMAS.dd; time::Float64=dd.global_time)
+    eqt = dd.equilibrium.time_slice[time]
+    cp1d = dd.core_profiles.profiles_1d[time]
+    cs = dd.core_sources
+    return tau_e_ds03(eqt, cp1d, cs)
+end
+
 """
-    tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
+    tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
 
 Petty's 2003 confinement time scaling
 """
-function tau_e_ds03(dd::IMAS.dd; time=dd.global_time)
-    eqt = dd.equilibrium.time_slice[Float64(time)]
-    cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-
-    total_source = total_sources(dd.core_sources, cp1d)
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(dd.core_sources)
+function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+    total_source = total_sources(cs, cp1d)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
         integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
+
+    R0, B0 = vacuum_r0_b0(eqt)
 
     tauds03 = (
         0.028 *
         abs(eqt.global_quantities.ip / 1e6)^0.83 *
-        abs(get_time_array(dd.equilibrium.vacuum_toroidal_field, :b0, time))^0.07 *
+        abs(B0)^0.07 *
         (total_power_inside / 1e6)^-0.55 *
         (ne_vol_avg(cp1d) / 1e19)^0.49 *
         isotope_factor^0.14 *
-        dd.equilibrium.vacuum_toroidal_field.r0^2.11 *
-        (dd.equilibrium.vacuum_toroidal_field.r0 / eqt.boundary.minor_radius)^-0.30 *
+        R0^2.11 *
+        (R0 / eqt.boundary.minor_radius)^-0.30 *
         eqt.boundary.elongation^0.75
     )
 
