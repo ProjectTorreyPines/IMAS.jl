@@ -58,7 +58,7 @@ end
 * same_ne_ni: assume same inverse scale length for electrons and ions
 """
 function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=false, same_ne_ni::Bool=false)
-    psi = cp1d.grid.psi 
+    psi = cp1d.grid.psi
 
     ne = cp1d.electrons.density
     Te = cp1d.electrons.temperature
@@ -77,7 +77,14 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     nuestar = IMAS.nuestar(eqt, cp1d)
     nuistar = IMAS.nuistar(eqt, cp1d)
 
-    psi = psi./ 2π # COCOS 11 to COCOS 1 --> 1/2π
+    R0, B0 = vacuum_r0_b0(eqt)
+    ip = eqt.global_quantities.ip
+
+    return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, nuestar, nuistar, ip, B0; neo_2021, same_ne_ni)
+end
+
+function Sauter_neo2021_bootstrap(psi::T, ne::T, Te::T, Ti::T, pe::T, p::T, Zeff::T, fT::T, I_psi::T, nuestar::T, nuistar::T, ip::Real, B0::Real; neo_2021::Bool=false, same_ne_ni::Bool=false) where {T<:AbstractVector{<:Real}}
+    psi = psi ./ 2π # COCOS 11 to COCOS 1 --> 1/2π
     dP_dpsi = gradient(psi, p)
     dTi_dpsi = gradient(psi, Ti)
     dTe_dpsi = gradient(psi, Te)
@@ -258,8 +265,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
         j_boot = @. front * (bra1 + bra2 + bra3)
     end
 
-    R0, B0 = vacuum_r0_b0(eqt)
-    return abs.(j_boot) .* sign(eqt.global_quantities.ip) ./ B0
+    return abs.(j_boot) .* sign(ip) ./ abs(B0)
 end
 
 function collisionless_bootstrap_coefficient(dd::IMAS.dd)
@@ -358,4 +364,3 @@ function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_
 
     return conductivity_parallel
 end
-
