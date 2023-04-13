@@ -57,7 +57,7 @@ end
 
 * same_ne_ni: assume same inverse scale length for electrons and ions
 """
-function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=true, same_ne_ni::Bool=false)
+function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=false, same_ne_ni::Bool=false)
     psi = cp1d.grid.psi 
 
     ne = cp1d.electrons.density
