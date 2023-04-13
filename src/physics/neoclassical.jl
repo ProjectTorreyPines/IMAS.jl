@@ -78,7 +78,8 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
             (0.52 .+ 0.086 .* sqrt.(nue)) .* (1 .+ 0.87 .* fT) .* nue ./ (1 .+ 1.13 .* (Zeff .- 1) .^ 0.5)
         )
     X = f31teff
-    F31 = (
+
+    L_31 = (
         (1 .+ 0.15 ./ (Zeff .^ 1.2 .- 0.71)) .* X .- 0.22 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 2 .+ 0.01 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 3 .+
         0.06 ./ (Zeff .^ 1.2 .- 0.71) .* X .^ 4
     )
@@ -91,8 +92,9 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
         )
 
     X = f32eeteff
-    F32ee = (0.1 .+ 0.6 .* Zeff) ./ (Zeff .* (0.77 .+ 0.63 .* (1 .+ (Zeff .- 1) .^ 1.1))) .* (X .- X .^ 4)
-    (.+0.7 ./ (1 .+ 0.2 .* Zeff) .* (X .^ 2 .- X .^ 4 .- 1.2 .* (X .^ 3 .- X .^ 4)) .+ 1.3 ./ (1 .+ 0.5 .* Zeff) .* X .^ 4)
+    F32ee = ((0.1 .+ 0.6 .* Zeff) ./ (Zeff .* (0.77 .+ 0.63 .* (1 .+ (Zeff .- 1) .^ 1.1))) .* (X .- X .^ 4)
+             .+
+             0.7 ./ (1 .+ 0.2 .* Zeff) .* (X .^ 2 .- X .^ 4 .- 1.2 .* (X .^ 3 .- X .^ 4)) .+ 1.3 ./ (1 .+ 0.5 .* Zeff) .* X .^ 4)
 
     f32eiteff =
         fT ./
@@ -119,7 +121,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
         ((alpha0 .+ 0.7 .* Zeff .* fT .^ 0.5 .* sqrt.(nui)) ./ (1 .+ 0.18 .* sqrt.(nui)) .- 0.002 .* nui .^ 2 .* fT .^ 6) .*
         (1 ./ (1 .+ 0.004 .* nui .^ 2 .* fT .^ 6))
 
-    bra1 = F31 .* dP_dpsi ./ cp1d.electrons.pressure
+    bra1 = L_31 .* dP_dpsi ./ cp1d.electrons.pressure
     bra2 = L_32 .* dTe_dpsi ./ Te
     bra3 = L_34 .* alpha .* (1 .- R_pe) ./ R_pe .* dTi_dpsi ./ Ti
 
