@@ -111,7 +111,7 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
     total_source = total_sources(cs, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
+        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) / integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = vacuum_r0_b0(eqt)
 
@@ -145,7 +145,7 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
     total_source = total_sources(cs, cp1d)
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum([ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0])) / integrate(cp1d.grid.volume, sum([ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0]))
+        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) / integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = vacuum_r0_b0(eqt)
 
@@ -299,7 +299,7 @@ end
 Returns true if quasi neutrality is satisfied within a relative tolerance
 """
 function is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
-    Nis = sum(sum([ion.density .* ion.z_ion for ion in cp1d.ion]))
+    Nis = sum(sum(ion.density .* ion.z_ion for ion in cp1d.ion))
     Ne = sum(cp1d.electrons.density)
     if (1 + rtol) > (Ne / Nis) > (1 - rtol)
         return true
@@ -328,7 +328,7 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
     end
     species_indx = findfirst(Symbol(ion.label) == species for ion in cp1d.ion)
     @assert species_indx !== nothing
-    cp1d.ion[species_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum([ion.density .* ion.z_ion for ion in cp1d.ion])) ./ cp1d.ion[species_indx].z_ion
+    cp1d.ion[species_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum(ion.density .* ion.z_ion for ion in cp1d.ion)) ./ cp1d.ion[species_indx].z_ion
 end
 
 """

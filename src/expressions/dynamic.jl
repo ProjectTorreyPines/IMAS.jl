@@ -83,10 +83,10 @@ dyexp["core_profiles.profiles_1d[:].pressure_thermal"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.electrons.pressure_thermal .+ profiles_1d.pressure_ion_total
 
 dyexp["core_profiles.profiles_1d[:].pressure_parallel"] =
-    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_parallel .+ sum([ion.pressure_fast_parallel for ion in profiles_1d.ion])
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_parallel .+ sum(ion.pressure_fast_parallel for ion in profiles_1d.ion)
 
 dyexp["core_profiles.profiles_1d[:].pressure_perpendicular"] =
-    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_perpendicular .+ sum([ion.pressure_fast_perpendicular for ion in profiles_1d.ion])
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_perpendicular .+ sum(ion.pressure_fast_perpendicular for ion in profiles_1d.ion)
 
 dyexp["core_profiles.profiles_1d[:].pressure"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_perpendicular .* 2.0 .+ profiles_1d.pressure_parallel
@@ -351,22 +351,22 @@ dyexp["build.tf.ripple"] =
 #  costing  #
 #= ======= =#
 dyexp["costing.cost_direct_capital.system[:].cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum([sub.cost for sub in system.subsystem])
+    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.cost for sub in system.subsystem)
 
 dyexp["costing.cost_direct_capital.cost"] =
-    (; cost_direct_capital, _...) -> isempty(cost_direct_capital.system) ? 0.0 : sum([sys.cost for sys in cost_direct_capital.system])
+    (; cost_direct_capital, _...) -> isempty(cost_direct_capital.system) ? 0.0 : sum(sys.cost for sys in cost_direct_capital.system)
 
 dyexp["costing.cost_operations.system[:].yearly_cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum([sub.yearly_cost for sub in system.subsystem])
+    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.yearly_cost for sub in system.subsystem)
 
 dyexp["costing.cost_operations.yearly_cost"] =
-    (; cost_operations, _...) -> isempty(cost_operations.system) ? 0.0 : sum([sys.yearly_cost for sys in cost_operations.system])
+    (; cost_operations, _...) -> isempty(cost_operations.system) ? 0.0 : sum(sys.yearly_cost for sys in cost_operations.system)
 
 dyexp["costing.cost_decommissioning.system[:].cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum([sub.cost for sub in system.subsystem])
+    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.cost for sub in system.subsystem)
 
 dyexp["costing.cost_decommissioning.cost"] =
-    (; cost_decommissioning, _...) -> isempty(cost_decommissioning.system) ? 0.0 : sum([sys.cost for sys in cost_decommissioning.system])
+    (; cost_decommissioning, _...) -> isempty(cost_decommissioning.system) ? 0.0 : sum(sys.cost for sys in cost_decommissioning.system)
 
 #= ============== =#
 #  BalanceOfPlant  #
@@ -378,7 +378,7 @@ dyexp["balance_of_plant.power_electric_net"] =
     (time; balance_of_plant, _...) -> balance_of_plant.thermal_cycle.power_electric_generated .- balance_of_plant.power_electric_plant_operation.total_power
 
 dyexp["balance_of_plant.power_electric_plant_operation.total_power"] =
-    (time; power_electric_plant_operation, _...) -> sum([sys.power for sys in power_electric_plant_operation.system])
+    (time; power_electric_plant_operation, _...) -> sum(sys.power for sys in power_electric_plant_operation.system)
 
 dyexp["balance_of_plant.thermal_cycle.total_useful_heat_power"] =
     (time; balance_of_plant, _...) -> balance_of_plant.heat_transfer.wall.heat_delivered .+ balance_of_plant.heat_transfer.divertor.heat_delivered .+ balance_of_plant.heat_transfer.breeder.heat_delivered
@@ -474,16 +474,16 @@ dyexp["summary.global_quantities.h_98.value"] =
 
 
 dyexp["summary.heating_current_drive.power_launched_ec.value"] =
-    (time; dd, summary, _...) -> sum([interp1d(beam.power_launched.time, beam.power_launched.data, :constant).(summary.time) for beam in dd.ec_launchers.beam])
+    (time; dd, summary, _...) -> sum(interp1d(beam.power_launched.time, beam.power_launched.data, :constant).(summary.time) for beam in dd.ec_launchers.beam)
 
 dyexp["summary.heating_current_drive.power_launched_ic.value"] =
-    (time; dd, summary, _...) -> sum([interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.ic_antennas.antenna])
+    (time; dd, summary, _...) -> sum(interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.ic_antennas.antenna)
 
 dyexp["summary.heating_current_drive.power_launched_lh.value"] =
-    (time; dd, summary, _...) -> sum([interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.lh_antennas.antenna])
+    (time; dd, summary, _...) -> sum(interp1d(antenna.power_launched.time, antenna.power_launched.data, :constant).(summary.time) for antenna in dd.lh_antennas.antenna)
 
 dyexp["summary.heating_current_drive.power_launched_nbi.value"] =
-    (time; dd, summary, _...) -> sum([interp1d(unit.power_launched.time, unit.power_launched.data, :constant).(summary.time) for unit in dd.nbi.unit])
+    (time; dd, summary, _...) -> sum(interp1d(unit.power_launched.time, unit.power_launched.data, :constant).(summary.time) for unit in dd.nbi.unit)
 
 dyexp["summary.heating_current_drive.power_launched_total.value"] =
     (time; dd, summary, _...) -> getproperty(dd.summary.heating_current_drive.power_launched_nbi, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ec, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ic, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_lh, :value, zeros(length(summary.time)))
