@@ -179,29 +179,47 @@ end
 # costing #
 # ======= #
 @recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
+    names = ["$(sys_cst.name)" for sys_cst in cst]
     costs = [sys_cst.cost for sys_cst in cst]
-    names = ["$(round(sys_cst.cost/sum(costs)*100))% $(sys_cst.name)" for sys_cst in cst]
+    perc = ["$(round(sys_cst.cost/sum(costs)*100))%" for sys_cst in cst]
 
-    name_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)% $(sub_cst.name)" for sub_cst in sys_cst.subsystem] for sys_cst in cst]
+    name_series = [["$(sub_cst.name)" for sub_cst in sys_cst.subsystem] for sys_cst in cst]
     cost_series = [[sub_cst.cost for sub_cst in sys_cst.subsystem] for sys_cst in cst]
+    perc_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)%" for sub_cst in sys_cst.subsystem] for sys_cst in cst]
 
-    size --> (900, 750)
+    size --> (1000, 500)
     layout := @layout (1, 1 + length(filter!(!isempty, cost_series)))
 
     @series begin
         subplot := 1
-        seriestype := :pie
+        seriestype := :bar
         title := "Total Direct Capital Cost\n" * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
+        xrotation := 90
+        label := ""
+        annotation := [(kk-0.5,0.0,("   $x  $n", :left, 12)) for (kk,(c,x,n)) in enumerate(zip(costs, perc, names))]
+        annotationrotation := 90
+        annotationvalign := :center
+        label := ""
+        xaxis := nothing
+        alpha := 0.5
+        color := [PlotUtils.palette(:tab10)[c] for c in 1:length(costs)]
         names, costs
     end
 
-    for (k, (sub_names, sub_costs)) in enumerate(zip(name_series, cost_series))
+    for (k, (sub_names, sub_perc, sub_costs)) in enumerate(zip(name_series, perc_series, cost_series))
         if !isempty(sub_costs)
             @series begin
                 subplot := k + 1
-                seriestype := :pie
+                seriestype := :bar
                 title := word_wrap(string(names[k]), 30) * "\n" * @sprintf("[%.3g \$\$B]", sum(sub_costs) / 1E3)
                 titlefontsize := 10
+                annotation := [(kk-0.5,0.0,("   $x  $n", :left, 8)) for (kk,(c,x,n)) in enumerate(zip(sub_costs, sub_perc, sub_names))]
+                annotationrotation := 90
+                annotationvalign := :center
+                label := ""
+                xaxis := nothing
+                alpha := 0.5
+                color := PlotUtils.palette(:tab10)[k]
                 sub_names, sub_costs
             end
         end
