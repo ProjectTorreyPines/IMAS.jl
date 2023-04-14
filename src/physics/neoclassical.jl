@@ -294,37 +294,41 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     ne = cp1d.electrons.density
     Zeff = cp1d.zeff
 
-    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    R = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
     R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
-    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+    a = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
     eps = a ./ R
 
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
-    return 6.921e-18 .* abs.(q) .* R .* ne .* Zeff .* lnLambda_e(ne, Te) ./ (Te .^ 2 .* eps .^ 1.5)
+    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * eps^1.5)
 end
 
 function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
-    Zeff = cp1d.zeff
 
-    R = (eqt.profiles_1d.r_outboard + eqt.profiles_1d.r_inboard) / 2.0
+    R = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
     R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
-    a = (eqt.profiles_1d.r_outboard - eqt.profiles_1d.r_inboard) / 2.0
+    a = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
     eps = a ./ R
 
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
-    ni = sum([ion.density for ion in cp1d.ion])
+    nis = hcat([ion.density for ion in cp1d.ion]...)
+    ni = sum(nis; dims=2)[:, 1]
     Ti = cp1d.ion[1].temperature
+
+    # dominant ion (the one with the most particles)
+    Zs = [ion.z_ion for ion in cp1d.ion]
+    Zdom = [Zs[dom[2]] for dom in argmax(nis; dims=2)[:, 1]]
 
     Zavg = ne ./ ni
 
-    return 4.90e-18 .* abs.(q) .* R .* ni .* Zeff .^ 4 .* lnLambda_i(ni, Ti, Zavg) ./ (Ti .^ 2 .* eps .^ 1.5)
+    return @. 4.90e-18 * abs(q) * R * ni * Zdom^4 * lnLambda_i(ni, Ti, Zavg) / (Ti^2 * eps^1.5)
 end
 
 function lnLambda_e(ne, Te)
