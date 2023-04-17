@@ -486,6 +486,27 @@ expressions["balance_of_plant.thermal_cycle.total_useful_heat_power"] =
 expressions["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; balance_of_plant, thermal_cycle, _...) -> thermal_cycle.net_work .* thermal_cycle.generator_conversion_efficiency
 
+#= ========= =#
+#  stability  #
+#= ========= =#
+
+expressions["stability.model[:].cleared"] =
+    (time; stability, model_index, _...) -> stability.model[model_index].cleared = Vector{Int64}(stability.model[model_index].fraction .<= 1.0)
+
+expressions["stability.all_cleared"] =
+    (time; stability, _...) -> begin
+        all_cleared = Vector{Int64}([])
+        for (time_index, time) in enumerate(stability.time)
+            cleared = []
+            for model in stability.model
+                append!(cleared, model.cleared[time_index])
+            end
+            append!(all_cleared,prod(cleared))
+        end
+        stability.all_cleared = all_cleared
+    end
+
+
 #= ======= =#
 #  summary  #
 #= ======= =#

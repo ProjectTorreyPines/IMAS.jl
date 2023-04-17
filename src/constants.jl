@@ -95,6 +95,33 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:core_sources__source
     return index_2_name__core_sources__source
 end
 
+const index_2_name__stability__model = Dict(
+    0 => :force_fail, #Instantly causes the actor to fail
+    1 => :default,
+    11 => :scenario_a, 
+    12 => :scenario_b,
+    100 => :beta_limits, #Generic for beta limit models
+    101 => :troyon_1984, #Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
+    102 => :troyon_1985, #Beta limit defined by
+    103 => :bA3, #Beta limit defined by
+    104 => :bA4, #Beta limit defined by
+    105 => :bB1, #Beta limit defined by
+    106 => :bB2, #Beta limit defined by
+    200 => :current_limit, #Generic for current limit models
+    201 => :cA1, #Current limit defined by
+    202 => :cA2, #Current limit defined by
+    203 => :cA3, #Current limit defined by
+    300 => :density_limit, #Generic for density limit models
+    301 => :dA1, #Density limit defined by
+    302 => :dA2, #Density limit defined by
+    303 => :dA3, #Density limit defined by
+    999 => :unknown) #Unknown model type
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__model}
+    return index_2_name__stability__model
+end
+
+
 const index_2_name__balance_of_plant__power_electric_plant_operation = Dict((k - 1) => item for (k, item) in enumerate([:total, :HCD, :cryostat, :tritium_handling, :pumping, :pf_active]))
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:balance_of_plant__power_electric_plant_operation__system}
