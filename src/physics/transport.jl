@@ -76,7 +76,7 @@ function total_fluxes(ct::IMAS.core_transport, rho_total_fluxes::AbstractVector{
                         else
                             setproperty!(getproperty(ids2, field), :flux,
                                 vcat(old_value[1:x_1-1],
-                                    old_value[x_1:x_2] .+ interp1d(x, y, :cubic).(rho_total_fluxes)[x_1:x_2],
+                                    old_value[x_1:x_2] .+ interp1d(x, y, :linear).(rho_total_fluxes)[x_1:x_2],
                                     old_value[x_2+1:end]))
                         end
                     end

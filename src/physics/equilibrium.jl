@@ -92,3 +92,45 @@ function p_jtor_2_pprime_ffprim_f!(eqt1::IMAS.equilibrium__time_slice___profiles
     eqt1.f = f
     return pprime, ffprim, f
 end
+
+"""
+    symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
+
+Update equilibrium time slice in place to be symmetric with respect to its magnetic axis.
+
+This is done by averaging the upper and lower parts of the equilibrium.
+
+Flux surfaces should re-traced after this operation.
+
+NOTE: Use with care! This operation will change the flux surfaces (LCFS included) and as such quantities may change
+"""
+function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+
+    Z1 = (maximum(z) + minimum(z)) / 2.0
+    Z0 = eqt.global_quantities.magnetic_axis.z
+    zz = z .- Z1 .+ Z0
+    zz = LinRange(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
+
+    psi = PSI_interpolant(r, zz)
+
+    eqt.profiles_2d[1].grid.dim2 = zz
+    eqt.profiles_2d[1].psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
+end
+
+"""
+    vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice) 
+
+Returns vacuum R0 and B0
+"""
+function vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice)
+    eq = top_ids(IMAS.equilibrium__time_slice())
+    if eq !== nothing
+        r0 = eq.vacuum_toroidal_field.r0
+        b0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
+    else
+        r0 = eqt.boundary.geometric_axis.r
+        b0 = eqt.profiles_1d.f[end] / r0
+    end
+    return r0, b0
+end

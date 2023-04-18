@@ -26,7 +26,8 @@ include("extract.jl")
 #= PHYSICS =#
 #= ======= =#
 include("physics.jl")
-include("expressions.jl")
+include(joinpath(["expressions", "onetime.jl"]))
+include(joinpath(["expressions", "dynamic.jl"]))
 
 #= ======== =#
 #= PLOTTING =#

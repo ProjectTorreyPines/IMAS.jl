@@ -245,8 +245,8 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
     end
 
     function point_to_line_distance(x0, y0, x1, y1, x2, y2)
-        return abs((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1) / sqrt((y2-y1)^2 + (x2-x1)^2)
-    end    
+        return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / sqrt((y2 - y1)^2 + (x2 - x1)^2)
+    end
 
     if n == 3
         return x, y
@@ -287,7 +287,7 @@ This algorithm uses a threshold value to determine which points to keep in the p
 Points are kept if the angle between the previous and next line segments is greater than the threshold,
 and removed if it is less than or equal to the threshold.
 """
-function rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, threshold::T) where {T <: Real}
+function rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, threshold::T) where {T<:Real}
     points = [(x[i], y[i]) for i in eachindex(x)]
     simplified_points = [points[1]]
     prev_angle = 0
@@ -310,8 +310,8 @@ end
 Calculate the angle between three points
 """
 function calculate_angle(p1::T, p2::T, p3::T) where {T<:AbstractVector{<:Real}}
-    v1 = [p2[1]-p1[1], p2[2]-p1[2]]
-    v2 = [p3[1]-p2[1], p3[2]-p2[2]]
+    v1 = [p2[1] - p1[1], p2[2] - p1[2]]
+    v2 = [p3[1] - p2[1], p3[2] - p2[2]]
     dot_product = dot(v1, v2)
     magnitude_product = norm(v1) * norm(v2)
     return acosd(dot_product / magnitude_product)
@@ -508,7 +508,11 @@ end
 Wraps a string at spaces at `n` characters
 """
 function word_wrap(s::String, n=92; i=n, p=1, w=1)
-    s=deepcopy(s)
-    for c=s; (i-=1)<-1 && (i=w-p+n; unsafe_store!(pointer(s,w),10)); c==' ' && (w=p); p+=1 end
+    s = deepcopy(s)
+    for c = s
+        (i -= 1) < -1 && (i = w - p + n; unsafe_store!(pointer(s, w), 10))
+        c == ' ' && (w = p)
+        p += 1
+    end
     return s
 end
