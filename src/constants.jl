@@ -97,24 +97,27 @@ end
 
 const index_2_name__stability__model = Dict(
     0 => :force_fail, #Instantly causes the actor to fail
+    # 000s: Collections of Models
     1 => :default,
-    11 => :scenario_a, 
-    12 => :scenario_b,
-    100 => :beta_limits, #Generic for beta limit models
+    11 => :beta_limits, #Run all beta limits
+    12 => :current_limit, #Run all current limits
+    13 => :density_limit, #Run all density limits
+    # 100s: Beta Limit Models
     101 => :troyon_1984, #Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
     102 => :troyon_1985, #Beta limit defined by
     103 => :bA3, #Beta limit defined by
     104 => :bA4, #Beta limit defined by
     105 => :bB1, #Beta limit defined by
     106 => :bB2, #Beta limit defined by
-    200 => :current_limit, #Generic for current limit models
+    # 200s: Current Limit Models
     201 => :cA1, #Current limit defined by
     202 => :cA2, #Current limit defined by
     203 => :cA3, #Current limit defined by
-    300 => :density_limit, #Generic for density limit models
+    # 300s: Density Limit Models
     301 => :dA1, #Density limit defined by
     302 => :dA2, #Density limit defined by
     303 => :dA3, #Density limit defined by
+    # 900s: Stability Codes
     999 => :unknown) #Unknown model type
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__model}
