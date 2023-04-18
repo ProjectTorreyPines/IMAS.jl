@@ -112,6 +112,8 @@ const index_2_name__stability__model = Dict(
     201 => :model_201, #Current limit defined by
     # 300s: Density Limit Models
     301 => :model_301, #Density limit defined by
+    # 400s: Shaping Limit Models
+    401 => :model_401, #Elongation limit defined by
     # 900s: Stability Codes
     999 => :unknown) #Unknown model type
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__model}
