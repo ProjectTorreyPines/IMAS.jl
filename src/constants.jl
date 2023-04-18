@@ -103,11 +103,11 @@ const index_2_name__stability__model = Dict(
     12 => :current_limit, #Run all current limits
     13 => :density_limit, #Run all density limits
     # 100s: Beta Limit Models
-    101 => :troyon_1984, #Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
-    102 => :troyon_1985, #Beta limit defined by
-    103 => :tuda_1985, #Beta limit defined by
-    104 => :bernard_1983, #Beta limit defined by
-    105 => :model_105, #Beta limit defined by
+    101 => :beta_troyon_1984, #Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
+    102 => :beta_troyon_1985, #Beta limit defined by
+    103 => :beta_tuda_1985, #Beta limit defined by
+    104 => :beta_bernard_1983, #Beta limit defined by
+    105 => :beta_model_105, #Beta limit defined by
     # 200s: Current Limit Models
     201 => :model_201, #Current limit defined by
     # 300s: Density Limit Models
