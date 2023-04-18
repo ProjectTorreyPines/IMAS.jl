@@ -105,21 +105,15 @@ const index_2_name__stability__model = Dict(
     # 100s: Beta Limit Models
     101 => :troyon_1984, #Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
     102 => :troyon_1985, #Beta limit defined by
-    103 => :bA3, #Beta limit defined by
-    104 => :bA4, #Beta limit defined by
-    105 => :bB1, #Beta limit defined by
-    106 => :bB2, #Beta limit defined by
+    103 => :tuda_1985, #Beta limit defined by
+    104 => :bernard_1983, #Beta limit defined by
+    105 => :model_105, #Beta limit defined by
     # 200s: Current Limit Models
-    201 => :cA1, #Current limit defined by
-    202 => :cA2, #Current limit defined by
-    203 => :cA3, #Current limit defined by
+    201 => :model_201, #Current limit defined by
     # 300s: Density Limit Models
-    301 => :dA1, #Density limit defined by
-    302 => :dA2, #Density limit defined by
-    303 => :dA3, #Density limit defined by
+    301 => :model_301, #Density limit defined by
     # 900s: Stability Codes
     999 => :unknown) #Unknown model type
-
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__model}
     return index_2_name__stability__model
 end
