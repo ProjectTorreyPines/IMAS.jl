@@ -200,4 +200,21 @@ function Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol;
     else
         return resize!(ids, "index" => i; allow_multiple_matches)
     end
+    return eltype(haystack)[haystack[index] for index in indexes]
+end
+
+"""
+    Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol)::T where {T<:IDSvector}
+
+If one or more entries are found based on `ids.identifier.index` of `index_2_name(ids)`, then their content is emptied
+"""
+function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol)::T where {T<:IDSvector}
+    i = get(name_2_index(ids), identifier_name, nothing)
+    if i === nothing
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
+    elseif :identifier in fieldnames(eltype(ids))
+        return deleteat!(ids, "identifier.index" => i)
+    else
+        return deleteat!(ids, "index" => i)
+    end
 end
