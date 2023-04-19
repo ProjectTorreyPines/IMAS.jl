@@ -258,15 +258,13 @@ function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_en
     end
 
     taus = zeros(Npsi)
+    taut = zeros(Npsi)
     Ecrit = zeros(Npsi)
     for i=1:Npsi
         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
+        taut[i] = thermalization_time(ne[i],Te[i],ni[:,i],Ti[:,i],mi,Zi,particle_energy,particle_mass,particle_charge)
         Ecrit[i] = critical_energy(ne[i],Te[i],ni[:,i],Ti[:,i],mi,Zi,particle_mass,particle_charge)
     end
-
-    vfrac = sqrt.(Ecrit ./ particle_energy)
-
-    encapf = log.(1.0 .+ 1.0 ./ vfrac .^ 3) ./ 3.0  # assume no neutrals
 
     cs1ds = findall(sourceid, css)
     cp1d.ion[ion_index].pressure_fast_parallel  = zeros(Npsi)
@@ -278,7 +276,7 @@ function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_en
         qfasti = cs1d.profiles_1d[].total_ion_energy
         pressa = taus .* 2.0 ./ 3.0 .* qfaste
 
-        nfast = (qfaste .+ qfasti) ./ (constants.e .* particle_energy) .* encapf .* taus
+        nfast = (qfaste .+ qfasti) ./ (constants.e .* particle_energy) .* taut
         cp1d.ion[ion_index].pressure_fast_parallel += pressa ./ 3.0
         cp1d.ion[ion_index].pressure_fast_perpendicular += pressa ./ 3.0
         cp1d.ion[ion_index].density_fast += nfast
