@@ -386,6 +386,21 @@ dyexp["balance_of_plant.thermal_cycle.total_useful_heat_power"] =
 dyexp["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; balance_of_plant, thermal_cycle, _...) -> thermal_cycle.net_work .* thermal_cycle.generator_conversion_efficiency
 
+#= ========= =#
+#  stability  #
+#= ========= =#
+dyexp["stability.model[:].cleared"] =
+    (time; model, _...) -> Int.(model.fraction .<= 1.0)
+
+dyexp["stability.all_cleared"] =
+    (time; stability, _...) -> begin
+        all_cleared = ones(Int, length(time))
+        for model in stability.model
+            all_cleared .= all_cleared .* model.cleared
+        end
+        return all_cleared
+    end
+
 #= ======= =#
 #  summary  #
 #= ======= =#
