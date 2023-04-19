@@ -389,19 +389,14 @@ dyexp["balance_of_plant.thermal_cycle.power_electric_generated"] =
 #= ========= =#
 #  stability  #
 #= ========= =#
-
 dyexp["stability.model[:].cleared"] =
-    (time; model, _...) -> model.fraction .<= 1.0
+    (time; model, _...) -> Int.(model.fraction .<= 1.0)
 
 dyexp["stability.all_cleared"] =
     (time; stability, _...) -> begin
-        all_cleared = Vector{Int64}([])
-        for (time_index, time) in enumerate(stability.time)
-            cleared = []
-            for model in stability.model
-                append!(cleared, model.cleared[time_index])
-            end
-            append!(all_cleared, prod(cleared))
+        all_cleared = ones(Int, length(time))
+        for model in stability.model
+            all_cleared .= all_cleared .* model.cleared
         end
         return all_cleared
     end
