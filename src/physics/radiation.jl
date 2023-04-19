@@ -27,9 +27,8 @@ function bremsstrahlung_source!(dd::IMAS.dd)
 
     powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
 
-    index = name_2_index(dd.core_sources.source)[:bremsstrahlung]
-    source = resize!(dd.core_sources.source, "identifier.index" => index)
-    new_source(source, index, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensityBrem)
+    source = resize!(dd.core_sources.source, :bremsstrahlung)
+    new_source(source, source.identifier.index, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensityBrem)
     return dd
 end
 
@@ -80,9 +79,8 @@ function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
     # Synchrotron radiation
     powerDensitySync = rad_sync.(ϵ, a, B0, ne, Te; wall_reflection_coefficient)
 
-    index = name_2_index(dd.core_sources.source)[:synchrotron_radiation]
-    source = resize!(dd.core_sources.source, "identifier.index" => index)
-    new_source(source, index, "synch", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensitySync)
+    source = resize!(dd.core_sources.source, :synchrotron_radiation)
+    new_source(source, source.identifier.index, "synch", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensitySync)
     return source
 end
 
@@ -104,9 +102,8 @@ function line_radiation_source!(dd::IMAS.dd)
         linerad .+= rad_ion_adas(Te, ne, ni, zi, namei)
     end
 
-    index = name_2_index(dd.core_sources.source)[:line_radiation]
-    source = resize!(dd.core_sources.source, "identifier.index" => index)
-    new_source(source, index, "line", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=linerad)
+    source = resize!(dd.core_sources.source, :line_radiation)
+    new_source(source, source.identifier.index, "line", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=linerad)
     return source
 end
 
