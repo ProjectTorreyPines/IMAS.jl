@@ -17,7 +17,7 @@ end
 
 function ExtractLibFunction(group::Symbol, name::Symbol, units::String, func::Function)
     xfun = ExtractFunction(group, name, units, func)
-    ExtractFunctionsLibrary[Symbol(name)] = xfun
+    ExtractFunctionsLibrary[name] = xfun
     return xfun
 end
 
@@ -88,7 +88,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:costing, :levelized_CoE, "\$/kWh", dd -> dd.costing.levelized_CoE)
     ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
 
-    return ExtractFunctionsLibrary
+    return EFL
 end
 update_ExtractFunctionsLibrary!()
 
@@ -101,12 +101,10 @@ NOTE: NaN is assigned on error
 """
 function (xfun::ExtractFunction)(dd::IMAS.dd)
     try
-        xfun.value = xfun.func(dd)
+        return xfun.func(dd)
     catch e
-        #display(e)
-        xfun.value = NaN
+        return NaN
     end
-    return xfun.value
 end
 
 """
@@ -124,8 +122,8 @@ By default, the `ExtractFunctionsLibrary` is used.
 function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)
     xtract_out = OrderedCollections.OrderedDict{Symbol,ExtractFunction}()
     for xfun in values(xtract)
-        xtract_out[Symbol(xfun.name)] = deepcopy(xfun)
-        xtract_out[Symbol(xfun.name)](dd)
+        xtract_out[xfun.name] = deepcopy(xfun)
+        xtract_out[xfun.name].value = xfun(dd)
     end
     return xtract_out
 end
