@@ -110,7 +110,7 @@ function (xfun::ExtractFunction)(dd::IMAS.dd)
 end
 
 """
-    extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)::Vector{ExtractFunction}
+    extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)
 
 Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as input, like this:
 
@@ -121,12 +121,12 @@ Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as inpu
 
 By default, the `ExtractFunctionsLibrary` is used.
 """
-function extract(dd::IMAS.dd, xtract::T=ExtractFunctionsLibrary)::T where {T<:AbstractDict{Symbol,<:ExtractFunction}}
-    xtract = deepcopy(xtract)
+function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)
+    xtract_out = OrderedCollections.OrderedDict{Symbol,ExtractFunction}()
     for xfun in values(xtract)
-        xfun(dd)
+        xtract_out[Symbol(xfun.name)] = deepcopy(xfun)(dd)
     end
-    return xtract
+    return xtract_out
 end
 
 # ================= #
