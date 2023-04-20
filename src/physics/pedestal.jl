@@ -1,32 +1,39 @@
 """
     blend_core_edge_Hmode(
-            profile::AbstractVector{<:Real},
-            rho::AbstractVector{<:Real},
-            ped_height::Real,
-            ped_width::Real,
-            nml_bound::Real)
+        profile0::AbstractVector{<:Real},
+        rho0::AbstractVector{<:Real},
+        ped_height::Real,
+        ped_width::Real,
+        nml_bound::Real,
+        ped_bound::Real=1.0 - 1.5 * ped_width;
+        expin::Real,
+        expout::Real)
 
 Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound as blending boundary
 """
 function blend_core_edge_Hmode(
-    profile::AbstractVector{<:Real},
-    rho::AbstractVector{<:Real},
+    profile0::AbstractVector{<:Real},
+    rho0::AbstractVector{<:Real},
     ped_height::Real,
     ped_width::Real,
     nml_bound::Real,
-    ped_bound::Real=0.9;
+    ped_bound::Real=1.0 - 1.5 * ped_width;
     expin::Real,
     expout::Real)
 
     @assert nml_bound < ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
-    iped = argmin(abs.(rho .- ped_bound))
+
+    rho = sort(unique([rho0; [nml_bound, ped_bound]]))
+    profile = interp1d(rho0, profile0, :cubic).(rho)
+
     inml = argmin(abs.(rho .- nml_bound))
+    iped = argmin(abs.(rho .- ped_bound))
 
     z_profile = -calc_z(rho, profile)
     z_nml = z_profile[inml]
 
     # H-mode profile used for pedestal
-    profile_ped = Hmode_profiles(profile[end], ped_height, -1.0, length(rho), expin, expout, ped_width)
+    profile_ped = Hmode_profiles(profile[end], ped_height, 2.0 * ped_height, rho, expin, expout, ped_width)
 
     # linear z between nml and pedestal
     z_profile_ped = -calc_z(rho, profile_ped)
@@ -37,7 +44,7 @@ function blend_core_edge_Hmode(
     profile_new = deepcopy(profile_ped)
     profile_new[1:iped] = integ_z(rho[1:iped], z_profile[1:iped], profile_ped[iped])
 
-    return profile_new
+    return interp1d(rho, profile_new, :cubic).(rho0)
 end
 
 """
@@ -120,23 +127,23 @@ returns ped_height, ped_width
 """
 function pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
     function cost_function(params)
-        if any(x -> (x < 0.0),params)
+        if any(x -> (x < 0.0), params)
             return 1e10
         end
         profile_fit = Hmode_profiles(profile[end], params[1], profile[1], length(profile), 2.0, 2.0, params[2])
-        return sqrt(sum(((profile .- profile_fit).^2  ./ profile[1]^2) .* weight_func))
+        return sqrt(sum(((profile .- profile_fit) .^ 2 ./ profile[1]^2) .* weight_func))
     end
     ngrid = length(profile)
-    half_grid = Int(floor(ngrid/2))
+    half_grid = Int(floor(ngrid / 2))
 
-    inversion_point = argmin(gradient(psi_norm[half_grid:end],profile[half_grid:end])) + half_grid
-    inversion_point_margin = inversion_point - Int(floor(0.1*ngrid))
+    inversion_point = argmin(gradient(psi_norm[half_grid:end], profile[half_grid:end])) + half_grid
+    inversion_point_margin = inversion_point - Int(floor(0.1 * ngrid))
 
     weight_func = zeros(ngrid)
     weight_func[inversion_point_margin:end] .+= 1.0
 
     width0 = 1 - psi_norm[inversion_point]
-    guess = [interp1d(psi_norm,profile)(1 - 2 * width0),width0]
+    guess = [interp1d(psi_norm, profile)(1 - 2 * width0), width0]
     res = Optim.optimize(cost_function, guess, Optim.NelderMead(), Optim.Options(g_tol=1E-5))
 
     return res.minimizer
