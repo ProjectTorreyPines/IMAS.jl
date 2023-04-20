@@ -124,7 +124,8 @@ By default, the `ExtractFunctionsLibrary` is used.
 function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)
     xtract_out = OrderedCollections.OrderedDict{Symbol,ExtractFunction}()
     for xfun in values(xtract)
-        xtract_out[Symbol(xfun.name)] = deepcopy(xfun)(dd)
+        xtract_out[Symbol(xfun.name)] = deepcopy(xfun)
+        xtract_out[Symbol(xfun.name)](dd)
     end
     return xtract_out
 end
