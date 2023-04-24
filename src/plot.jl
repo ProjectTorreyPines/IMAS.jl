@@ -179,6 +179,7 @@ end
 # costing #
 # ======= #
 @recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
+    costing = top_ids(cst)
     names = ["$(sys_cst.name)" for sys_cst in cst]
     costs = [sys_cst.cost for sys_cst in cst]
     perc = ["$(round(sys_cst.cost/sum(costs)*100))%" for sys_cst in cst]
@@ -196,7 +197,7 @@ end
         subplot := 1
         seriestype := :bar
         orientation := :horizontal
-        title := "\n" * "Total Direct Capital Cost " * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
+        title := "\n" * "Direct Capital Cost in $(costing.construction_start_year) " * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
         titlefontsize := 10
         ylim := (0, length(costs))
         label := ""
