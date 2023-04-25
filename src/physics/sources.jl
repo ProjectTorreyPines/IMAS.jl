@@ -259,11 +259,9 @@ function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_en
 
     taus = zeros(Npsi)
     taut = zeros(Npsi)
-    Ecrit = zeros(Npsi)
     for i=1:Npsi
         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
         taut[i] = thermalization_time(ne[i],Te[i],ni[:,i],Ti[:,i],mi,Zi,particle_energy,particle_mass,particle_charge)
-        Ecrit[i] = critical_energy(ne[i],Te[i],ni[:,i],Ti[:,i],mi,Zi,particle_mass,particle_charge)
     end
 
     cs1ds = findall(sourceid, css)
