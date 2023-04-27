@@ -85,6 +85,10 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:bop, :Qplant, "-", dd -> @ddtime(dd.balance_of_plant.Q_plant))
     ExtractLibFunction(:bop, :ηthermal_cycle, "-", dd -> @ddtime(dd.balance_of_plant.thermal_cycle.thermal_efficiency))
 
+    ExtractLibFunction(:build, :PF_material, "-", dd -> dd.build.pf_active.technology.material)
+    ExtractLibFunction(:build, :OH_material, "-", dd -> dd.build.oh.technology.material)
+    ExtractLibFunction(:build, :TF_material, "-", dd -> dd.build.tf.technology.material)
+
     ExtractLibFunction(:costing, :levelized_CoE, "\$/kWh", dd -> dd.costing.levelized_CoE)
     ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
 
@@ -138,7 +142,9 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
     end
     printstyled(io, xfun.name; bold=true, color=:blue)
     printstyled(io, " → ")
-    if any(isnan.(xfun.value))
+    if !(typeof(xfun.value) <: Real)
+        printstyled(io, xfun.value)
+    elseif any(isnan.(xfun.value))
         printstyled(io, xfun.value; color=:red)
     else
         printstyled(io, @sprintf("%.3g", xfun.value))
