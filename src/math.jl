@@ -502,17 +502,3 @@ function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real},
     return profile_new
 end
 
-"""
-    word_wrap(s::String, n=92; i=n, p=1, w=1)
-
-Wraps a string at spaces at `n` characters
-"""
-function word_wrap(s::String, n=92; i=n, p=1, w=1)
-    s = deepcopy(s)
-    for c = s
-        (i -= 1) < -1 && (i = w - p + n; unsafe_store!(pointer(s, w), 10))
-        c == ' ' && (w = p)
-        p += 1
-    end
-    return s
-end
