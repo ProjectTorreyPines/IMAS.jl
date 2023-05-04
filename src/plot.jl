@@ -1459,6 +1459,15 @@ end
     end
 end
 
+#= ============== =#
+#  pulse_schedule  #
+#= ============== =#
+@recipe function plot_field(pc::IMAS.pulse_schedule__position_control; time_index=0)
+    @series begin
+        boundary(pc; time_index)
+    end
+end
+
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
