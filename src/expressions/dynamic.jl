@@ -347,6 +347,9 @@ dyexp["build.layer[:].volume"] =
 dyexp["build.tf.ripple"] =
     (; build, _...) -> tf_ripple(get_build(build, type=_plasma_).end_radius, get_build(build, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
 
+dyexp["build.tf.wedge_thickness"] =
+    (; build, _...) -> 2π * IMAS.get_build(build, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
+
 #= ======= =#
 #  costing  #
 #= ======= =#
