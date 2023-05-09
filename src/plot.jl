@@ -534,6 +534,16 @@ end
     end
 end
 
+# ==== #
+# wall #
+# ==== #
+@recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
+    @series begin
+        :aspect_ratio := :equal
+        outline.r,outline.z
+    end
+end
+
 # ===== #
 # build #
 # ===== #
