@@ -119,7 +119,7 @@ function _electron_ion_drag_difference(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R
 end
 
 """
-    critical_energy(ne, Te, ni::Vector, Ti::Vector, mi::Vector, Zi::Vector mf, Zf; approximate=false)
+    critical_energy(ne, Te, ni::Vector, Ti::Vector, mi::Vector, Zi::Vector mf, Zf; approximate=true)
 
 Calculate the critical energy by finding the root of the difference between the electron and ion drag
 
@@ -141,7 +141,7 @@ Calculate the critical energy by finding the root of the difference between the 
 
 :param approximate: calculate critical energy assuming lnΛ_fe == lnΛ_fi. For DIII-D a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2 can be used.
 """
-function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int; approximate::Bool=false) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
+function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int; approximate::Bool=true) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
     if !(approximate)
         Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf),
             (0.0, 3.5e6)) #upperbound is birth energy of alpha particle
