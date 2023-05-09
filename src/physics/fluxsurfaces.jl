@@ -444,6 +444,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
 
     # find quantities on separatrix
     find_x_point!(eqt)
+    find_strike_points!(eqt)
 
     return eqt
 end

@@ -95,6 +95,38 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:core_sources__source
     return index_2_name__core_sources__source
 end
 
+const index_2_name__stability__collection = Dict(
+    1 => :default_limits,
+    11 => :beta_limits, #Run all beta limits
+    12 => :current_limit, #Run all current limits
+    13 => :density_limit, #Run all density limits
+)
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__collection}
+    return index_2_name__stability__collection
+end
+
+const index_2_name__stability__model = Dict(
+    0 => :force_fail, #Instantly causes the actor to fail
+    # 100s: Beta Limit Models
+    101 => :beta_troyon_1984, #Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
+    102 => :beta_troyon_1985, #Beta limit defined by
+    103 => :beta_tuda_1985, #Beta limit defined by
+    104 => :beta_bernard_1983, #Beta limit defined by
+    105 => :beta_model_105, #Beta limit defined by
+    # 200s: Current Limit Models
+    201 => :model_201, #Current limit defined by
+    # 300s: Density Limit Models
+    301 => :model_301, #Density limit defined by
+    # 400s: Shaping Limit Models
+    401 => :model_401, #Elongation limit defined by
+    # 900s: Stability Codes
+    999 => :unknown) #Unknown model type
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__model}
+    return index_2_name__stability__model
+end
+
 const index_2_name__balance_of_plant__power_electric_plant_operation = Dict((k - 1) => item for (k, item) in enumerate([:total, :HCD, :cryostat, :tritium_handling, :pumping, :pf_active]))
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:balance_of_plant__power_electric_plant_operation__system}
@@ -111,31 +143,78 @@ function name_2_index(ids::Union{IDS,IDSvector})
 end
 
 """
-    findfirst(identifier_name::Symbol, haystack::IDSvector)
+    findfirst(identifier_name::Symbol, ids::IDSvector)
 
-return item from IDSvector based on identifier.index of index_2_name
+return item from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
 """
-function Base.findfirst(identifier_name::Symbol, haystack::IDSvector)
-    i = name_2_index(haystack)[identifier_name]
-    if :identifier in fieldnames(eltype(haystack))
-        index = findfirst(idx -> idx.identifier.index == i, haystack)
+function Base.findfirst(identifier_name::Symbol, ids::IDSvector)
+    i = get(name_2_index(ids), identifier_name, nothing)
+    if i === nothing
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
+    elseif :identifier in fieldnames(eltype(ids))
+        index = findfirst(idx -> idx.identifier.index == i, ids)
     else
-        index = findfirst(idx -> idx.index == i, haystack)
+        index = findfirst(idx -> idx.index == i, ids)
     end
-    return haystack[index]
+    if index === nothing
+        return nothing
+    else
+        return ids[index]
+    end
 end
 
 """
-    findall(identifier_name::Symbol, haystack::IDSvector)
+    findall(identifier_name::Symbol, ids::IDSvector)
 
-return items from IDSvector based on identifier.index of index_2_name
+return items from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
 """
-function Base.findall(identifier_name::Symbol, haystack::IDSvector)
-    i = name_2_index(haystack)[identifier_name]
-    if :identifier in fieldnames(eltype(haystack))
-        indexes = findall(idx -> idx.identifier.index == i, haystack)
+function Base.findall(identifier_name::Symbol, ids::IDSvector)
+    i = get(name_2_index(ids), identifier_name, nothing)
+    if i === nothing
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
+    elseif :identifier in fieldnames(eltype(ids))
+        indexes = findall(idx -> idx.identifier.index == i, ids)
     else
-        indexes = findall(idx -> idx.index == i, haystack)
+        indexes = findall(idx -> idx.index == i, ids)
+    end
+    return eltype(ids)[ids[index] for index in indexes]
+end
+
+"""
+    Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol; allow_multiple_matches=false)::T where {T<:IDSvectorElement}
+
+Resize ids if `identifier_name` is not found based on `ids.identifier.index` of `index_2_name(ids)`
+
+If an entry matching the condition is found, then the content of the matching IDS is emptied, and the IDS is populated with the conditions.
+
+NOTE: `allow_multiple_matches` will delete all entries matching the conditions.
+
+Returns selected IDS(s)
+"""
+function Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol; allow_multiple_matches=false)::T where {T<:IDSvectorElement}
+    i = get(name_2_index(ids), identifier_name, nothing)
+    if i === nothing
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
+    elseif :identifier in fieldnames(eltype(ids))
+        return resize!(ids, "identifier.index" => i; allow_multiple_matches)
+    else
+        return resize!(ids, "index" => i; allow_multiple_matches)
     end
     return eltype(haystack)[haystack[index] for index in indexes]
+end
+
+"""
+    Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol)::T where {T<:IDSvector}
+
+If one or more entries are found based on `ids.identifier.index` of `index_2_name(ids)`, then their content is emptied
+"""
+function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol)::T where {T<:IDSvector}
+    i = get(name_2_index(ids), identifier_name, nothing)
+    if i === nothing
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
+    elseif :identifier in fieldnames(eltype(ids))
+        return deleteat!(ids, "identifier.index" => i)
+    else
+        return deleteat!(ids, "index" => i)
+    end
 end

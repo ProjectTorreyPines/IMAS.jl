@@ -475,11 +475,10 @@ function DT_fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     end
     ion_to_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
 
-    index = name_2_index(cs.source)[:fusion]
-    source = resize!(cs.source, "identifier.index" => index; allow_multiple_matches=true)
+    source = resize!(cs.source, :fusion; allow_multiple_matches=true)
     new_source(
         source,
-        index,
+        source.identifier.index,
         "α",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume,
@@ -516,11 +515,11 @@ function D_D_to_He3_source!(dd::IMAS.dd)
     reactivity = D_D_to_He3_reactions(cp1d)
     energy = reactivity .* he3_energy
     ion_to_electron_fraction = sivukhin_fraction(cp1d, 0.82e6, 3.0)
-    index = name_2_index(dd.core_sources.source)[:fusion]
-    source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
+
+    source = resize!(dd.core_sources.source, :fusion; allow_multiple_matches=true)
     new_source(
         source,
-        index,
+        source.identifier.index,
         "He3",
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume,
@@ -542,14 +541,13 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
 
-    index = name_2_index(dd.core_sources.source)[:collisional_equipartition]
     if all(Te .≈ Ti)
-        deleteat!(dd.core_sources.source, "identifier.index" => index)
+        deleteat!(dd.core_sources.source, :collisional_equipartition)
     else
         nu_exch = collision_frequencies(dd)[3]
         delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
-        source = resize!(dd.core_sources.source, "identifier.index" => index; allow_multiple_matches=true)
-        new_source(source, index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=-delta, total_ion_energy=delta)
+        source = resize!(dd.core_sources.source, :collisional_equipartition; allow_multiple_matches=true)
+        new_source(source, source.identifier.index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=-delta, total_ion_energy=delta)
         return source
     end
 end
@@ -564,9 +562,8 @@ function ohmic_source!(dd::IMAS.dd)
     j_ohmic = getproperty(cp1d, :j_ohmic, missing)
     if j_ohmic !== missing
         powerDensityOhm = j_ohmic .^ 2 ./ cp1d.conductivity_parallel
-        index = name_2_index(dd.core_sources.source)[:ohmic]
-        source = resize!(dd.core_sources.source, "identifier.index" => index)
-        new_source(source, index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
+        source = resize!(dd.core_sources.source, :ohmic)
+        new_source(source, source.identifier.index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
         return source
     end
 end
@@ -580,9 +577,8 @@ function bootstrap_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     j_bootstrap = getproperty(cp1d, :j_bootstrap, missing)
     if j_bootstrap !== missing
-        index = name_2_index(dd.core_sources.source)[:bootstrap_current]
-        source = resize!(dd.core_sources.source, "identifier.index" => index)
-        new_source(source, index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; j_parallel=j_bootstrap)
+        source = resize!(dd.core_sources.source, :bootstrap_current)
+        new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; j_parallel=j_bootstrap)
         return source
     end
 end

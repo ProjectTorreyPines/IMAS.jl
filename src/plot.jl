@@ -179,29 +179,64 @@ end
 # costing #
 # ======= #
 @recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
+    costing = top_ids(cst)
+    names = ["$(sys_cst.name)" for sys_cst in cst]
     costs = [sys_cst.cost for sys_cst in cst]
-    names = ["$(round(sys_cst.cost/sum(costs)*100))% $(sys_cst.name)" for sys_cst in cst]
+    perc = ["$(round(sys_cst.cost/sum(costs)*100))%" for sys_cst in cst]
 
-    name_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)% $(sub_cst.name)" for sub_cst in sys_cst.subsystem] for sys_cst in cst]
-    cost_series = [[sub_cst.cost for sub_cst in sys_cst.subsystem] for sys_cst in cst]
+    name_series = [["$(sub_cst.name)" for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    cost_series = [[sub_cst.cost for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    perc_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)%" for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
 
-    size --> (900, 750)
-    layout := @layout (1, 1 + length(filter!(!isempty, cost_series)))
+    size --> (1000, 300)
+    cols = 1 + length(filter!(!isempty, cost_series))
+    layout := @layout (1, cols)
+    margin --> 5 * Measures.mm
 
     @series begin
         subplot := 1
-        seriestype := :pie
-        title := "Total Direct Capital Cost\n" * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
-        names, costs
+        seriestype := :bar
+        orientation := :horizontal
+        title := "\n" * "Direct Capital Cost in $(costing.construction_start_year) " * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
+        titlefontsize := 10
+        ylim := (0, length(costs))
+        label := ""
+        annotation := [(0.0, kk - 0.5, ("   $x  $(titlecase(n,strict=false))", :left, 12)) for (kk, (c, x, n)) in enumerate(reverse(collect(zip(costs, perc, names))))]
+        annotationvalign := :center
+        label := ""
+        xticks := 0:1000:1000E3
+        xlabel := "[\$M]"
+        showaxis := :x
+        yaxis := nothing
+        alpha := 0.5
+        linecolor := :match
+        color := [PlotUtils.palette(:tab10)[c] for c in length(costs):-1:1]
+        reverse(names), reverse(costs)
     end
 
-    for (k, (sub_names, sub_costs)) in enumerate(zip(name_series, cost_series))
+    for (k, (sub_names, sub_perc, sub_costs)) in enumerate(zip(name_series, perc_series, cost_series))
         if !isempty(sub_costs)
             @series begin
-                subplot := k + 1
-                seriestype := :pie
-                title := word_wrap(string(names[k]), 30) * "\n" * @sprintf("[%.3g \$\$B]", sum(sub_costs) / 1E3)
+                subplot := 1 + k
+                seriestype := :bar
+                orientation := :horizontal
+                title := titlecase("\n" * word_wrap(string(names[k]), 30) * " " * @sprintf("[%.3g \$\$B]", sum(sub_costs) / 1E3))
                 titlefontsize := 10
+                annotation := [(0.0, kk - 0.5, ("   $x  $(titlecase(n,strict=false))", :left, 8)) for (kk, (c, x, n)) in enumerate(zip(sub_costs, sub_perc, sub_names))]
+                annotationvalign := :center
+                label := ""
+                yaxis := nothing
+                if maximum(sub_costs) > 1E3
+                    xticks := 0:500:1000E3
+                else
+                    xticks := 0:100:1000E3
+                end
+                xlabel := "[\$M]"
+                showaxis := :x
+                ylim := (0, length(sub_costs))
+                alpha := 0.5
+                linecolor := :match
+                color := PlotUtils.palette(:tab10)[k]
                 sub_names, sub_costs
             end
         end
@@ -1421,6 +1456,15 @@ end
         aspect_ratio := :equal
         xlim := (0.0, Inf)
         wd2du.outline.r, wd2du.outline.z
+    end
+end
+
+#= ============== =#
+#  pulse_schedule  #
+#= ============== =#
+@recipe function plot_field(pc::IMAS.pulse_schedule__position_control; time_index=0)
+    @series begin
+        boundary(pc; time_index)
     end
 end
 

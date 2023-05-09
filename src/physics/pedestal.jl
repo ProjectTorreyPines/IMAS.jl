@@ -14,7 +14,7 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     nml_bound::Real,
-    ped_bound::Real=1.0 - 1.5 * ped_width;
+    ped_bound::Real=0.9;
     expin::Real,
     expout::Real)
 

@@ -230,3 +230,44 @@ function widthSOL_eich(R0::T, a::T, κ::T, Ip::T, Psol::T) where {T<:Real}
     λ_q = 1.35 * 1E-3 * Psol^-0.02 * R0^0.04 * Bpol(a, κ, Ip)^-0.92 * (a / R0)^0.42
     return λ_q
 end
+"""
+    find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+
+Finds equilibrium strike points and adds them to eqt.boundary_separatrix.strike_point
+"""
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+    Rx = Float64[]
+    Zx = Float64[]
+
+    private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
+    for (pr, pz) in private
+        pvx, pvy = IMAS.intersection(wall_outline_r, wall_outline_z, pr, pz; as_list_of_points=false)
+        append!(Rx, pvx)
+        append!(Zx, pvy)
+    end
+
+    resize!(eqt.boundary_separatrix.strike_point, length(Rx))
+    for (k, strike_point) in enumerate(eqt.boundary_separatrix.strike_point)
+        strike_point.r = Rx[k]
+        strike_point.z = Zx[k]
+    end
+
+    return Rx, Zx
+end
+
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, bd::IMAS.build)
+    wall_outline = IMAS.get_build(bd, type=_plasma_).outline
+    return find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline.r, wall_outline.z)
+end
+
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall)
+    wall_outline = IMAS.first_wall(wall)
+    if wall_outline !== missing
+        return find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline.r, wall_outline.z)
+    end
+end
+
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice)
+    dd = IMAS.top_dd(eqt)
+    return find_strike_points!(eqt, dd.wall)
+end

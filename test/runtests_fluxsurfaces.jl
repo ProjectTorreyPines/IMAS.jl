@@ -17,5 +17,5 @@ end
     ids_orig = dd_orig.equilibrium
     ids = dd.equilibrium
 
-    diff(ids_orig, ids; tol = 1E-1, plot_function = do_plot ? plot : nothing)
+    diff(ids_orig, ids; tol = 1E-1)
 end
