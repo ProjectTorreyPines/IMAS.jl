@@ -115,7 +115,7 @@ function rad_ion_adas(Te, ne, ni, zi, namei)
     qbremi = @. 1e7 * 1.69e-32 * ne * ni * zi^2 * sqrt(Te)
 
     # Chebyshev interpolation of ADAS data
-    Lz = adas21(Te/1E3, namei)
+    Lz = adas21(Te / 1E3, namei)
 
     # ADAS returns combined qcool = qbrem + qline
     qcool = @. ne * ni * Lz

@@ -21,14 +21,10 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :return: τ_s: slowing down time
 """
-function slowing_down_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int) where
-                           {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
-
+function slowing_down_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int) where{S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
     lnΛ = lnΛ_ei(ne, Te, ni, Ti, mi, Zi)
-
     ne_cm3 = 1e-6 * ne
     τ_s = 6.27e8 * mf * (Te^1.5) ./ (ne_cm3 * lnΛ * Zf^2)
-
     return τ_s
 end
 
@@ -48,17 +44,14 @@ Calculates the slowing down time τ_s for Ti*me/mi < 10Zi^2 eV < Te [Stix, Plasm
 :return: τ_s: slowing down time
 """
 function slowing_down_time(ne::S, Te::P, mf::Q, Zf::Int) where {S<:Real,P<:Real,Q<:Real}
-
     lnΛ = lnΛ_ei(ne, Te)
-
     ne_cm3 = 1e-6 * ne
     τ_s = 6.27e8 * mf * (Te^1.5) / (ne_cm3 * lnΛ * Zf^2)
-
     return τ_s
 end
 
 """
-    _drag_coefficient(n, Z, mf, Zf, lnΛ)
+    _drag_coefficient(n::S, Z::Int, mf::P, Zf::Int, lnΛ::Q) where {S<:Real,P<:Real,Q<:Real}
 
 Drag coefficient (Γ) for a fast-ions interacting with a thermal species as defined Eq. 8 in [Gaffey, J. D. (1976). Energetic ion distribution resulting from neutral beam injection in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
 
@@ -77,7 +70,8 @@ Drag coefficient (Γ) for a fast-ions interacting with a thermal species as defi
 function _drag_coefficient(n::S, Z::Int, mf::P, Zf::Int, lnΛ::Q) where {S<:Real,P<:Real,Q<:Real}
     n *= 1e-6 #cm^-3
     mf *= constants.m_u # kg
-    Γ = (2*pi*n*(constants.e)^4 * Z^2 * Zf^2 * lnΛ)/(mf^2)
+    Γ = (2 * pi * n * (constants.e)^4 * Z^2 * Zf^2 * lnΛ) / (mf^2)
+    return Γ
 end
 
 """
@@ -105,22 +99,21 @@ Calculates the difference of the electron and ion drag terms in the collision op
 
 :return ΔD: drag difference
 """
-function _electron_ion_drag_difference(ne::S,Te::P,ni::Vector{Q},Ti::Vector{R},mi::Vector{O},Zi::Vector{Int}, Ef::T, mf::U, Zf::Int) where
-                                       {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
+function _electron_ion_drag_difference(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, Ef::T, mf::U, Zf::Int) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
     m_e = constants.m_e
     m_i = mi .* constants.m_u
     m_f = mf * constants.m_u
 
-    v_f = sqrt(2*Ef*constants.e/m_f)
-    v_e = sqrt(2*Te*constants.e/m_e)
+    v_f = sqrt(2 * Ef * constants.e / m_f)
+    v_e = sqrt(2 * Te * constants.e / m_e)
 
     lnΛ_fe = lnΛ_ei(ne, Te)
     Γ_fe = _drag_coefficient(ne, -1, mf, Zf, lnΛ_fe)
-    electron_drag = ((8*Γ_fe*m_f)/(3*sqrt(pi)*m_e*v_e^3))*v_f^3
+    electron_drag = ((8 * Γ_fe * m_f) / (3 * sqrt(pi) * m_e * v_e^3)) * v_f^3
 
-    lnΛ_fis = lnΛ_fi(ne, Te, ni, Ti, mi, Zi, v_f/constants.c, mf, Zf; verbose=false)
+    lnΛ_fis = lnΛ_fi(ne, Te, ni, Ti, mi, Zi, v_f / constants.c, mf, Zf; verbose=false)
     Γ_fi = _drag_coefficient.(ni, Zi, mf, Zf, lnΛ_fis)
-    ion_drag = 2*m_f*sum(Γ_fi ./ m_i)
+    ion_drag = 2 * m_f * sum(Γ_fi ./ m_i)
 
     return electron_drag - ion_drag
 end
@@ -148,17 +141,14 @@ Calculate the critical energy by finding the root of the difference between the 
 
 :param approximate: calculate critical energy assuming lnΛ_fe == lnΛ_fi. For DIII-D a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2 can be used.
 """
-function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int; approximate::Bool=false) where
-                         {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
-
+function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int; approximate::Bool=false) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
     if !(approximate)
         Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf),
-                       (0.0, 3.5e6)) #upperbound is birth energy of alpha particle
+            (0.0, 3.5e6)) #upperbound is birth energy of alpha particle
     else
-        avg_cmr = sum(ni .* (Zi.^2)./mi)/ne
-        Ec = 14.8 * mf * Te * avg_cmr^(2.0/3.0)
+        avg_cmr = sum(ni .* (Zi .^ 2) ./ mi) / ne
+        Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     end
-
     return Ec
 end
 
@@ -176,7 +166,7 @@ Calculate thermalization time
 function thermalization_time(v_f::Q, v_c::R, tau_s::S) where {Q<:Real,R<:Real,S<:Real}
     vf3 = v_f^3
     vc3 = v_c^3
-    return tau_s*log((vf3 + vc3)/vc3)/3
+    return tau_s * log((vf3 + vc3) / vc3) / 3
 end
 
 """
@@ -202,18 +192,16 @@ Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2
 
 :param Zf: fast ion charge
 """
-function thermalization_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, Ef::T, mf::U, Zf::Int) where
-                             {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
-
-    m_f = mf*constants.m_u
+function thermalization_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, Ef::T, mf::U, Zf::Int) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,U<:Real}
+    m_f = mf * constants.m_u
 
     tau_s = slowing_down_time(ne, Te, mf, Zf)
     Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
 
-    v_f = sqrt(2*constants.e*Ef/m_f)
-    v_c = sqrt(2*constants.e*Ec/m_f)
+    v_f = sqrt(2 * constants.e * Ef / m_f)
+    v_c = sqrt(2 * constants.e * Ec / m_f)
 
-    return thermalization_time(v_f,v_c,tau_s)
+    return thermalization_time(v_f, v_c, tau_s)
 end
 
 """
@@ -224,7 +212,6 @@ Calculates the fast ion density, and adds it to the dd
 :param particle_specie: particle specie
 """
 function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_energy::Real=3.5e6, sourceid::Symbol=:fusion)
-
     cp1d = cp.profiles_1d[]
     css = cs.source
 
@@ -245,29 +232,29 @@ function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_en
     particle_mass = cp1d.ion[ion_index].element[1].a
     particle_charge = Int(cp1d.ion[ion_index].element[1].z_n)
 
-    ni = zeros(Nions,Npsi)
-    Ti = zeros(Nions,Npsi)
-    Zi = zeros(Int,Nions)
+    ni = zeros(Nions, Npsi)
+    Ti = zeros(Nions, Npsi)
+    Zi = zeros(Int, Nions)
     mi = zeros(Nions)
 
-    for (idx,ion) in enumerate(cp1d.ion)
-        ni[idx,:] = ion.density_thermal
-        Ti[idx,:] = ion.temperature
+    for (idx, ion) in enumerate(cp1d.ion)
+        ni[idx, :] = ion.density_thermal
+        Ti[idx, :] = ion.temperature
         Zi[idx] = Int(ion.element[1].z_n)
         mi[idx] = ion.element[1].a
     end
 
     taus = zeros(Npsi)
     taut = zeros(Npsi)
-    for i=1:Npsi
+    for i = 1:Npsi
         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
-        taut[i] = thermalization_time(ne[i],Te[i],ni[:,i],Ti[:,i],mi,Zi,particle_energy,particle_mass,particle_charge)
+        taut[i] = thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
     end
 
     cs1ds = findall(sourceid, css)
-    cp1d.ion[ion_index].pressure_fast_parallel  = zeros(Npsi)
-    cp1d.ion[ion_index].pressure_fast_perpendicular  = zeros(Npsi)
-    cp1d.ion[ion_index].density_fast  = zeros(Npsi)
+    cp1d.ion[ion_index].pressure_fast_parallel = zeros(Npsi)
+    cp1d.ion[ion_index].pressure_fast_perpendicular = zeros(Npsi)
+    cp1d.ion[ion_index].density_fast = zeros(Npsi)
 
     for cs1d in cs1ds
         qfaste = cs1d.profiles_1d[].electrons.energy
