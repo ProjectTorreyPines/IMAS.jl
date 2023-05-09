@@ -26,6 +26,7 @@ PolygonOps = "647866c9-e3ac-4575-94e7-e3d426903924"
 Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Ratios = "c84ed2f1-dad5-54f0-aa8e-dbefe2724439"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
+Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]

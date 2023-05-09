@@ -8,6 +8,7 @@ import NumericalIntegration: integrate, cumul_integrate
 import PeriodicTable: elements
 import MillerExtendedHarmonic: MXH, MXH!, flat_coeffs, reorder_flux_surface!
 import Memoize
+import Roots
 using RecipesBase
 
 @enum BuildLayerType::Int _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_
@@ -27,4 +28,5 @@ include("physics/gacode_constants.jl")
 include("physics/transport.jl")
 include("physics/pedestal.jl")
 include("physics/radiation.jl")
+include("physics/collisions.jl")
 include("physics/boundary.jl")
