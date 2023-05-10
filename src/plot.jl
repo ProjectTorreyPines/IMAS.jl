@@ -544,6 +544,67 @@ end
     end
 end
 
+# ========= #
+# divertors #
+# ========= #
+@recipe function plot_divertors(divertors::IMAS.divertors)
+    @series begin
+        divertors.divertor
+    end
+end
+
+@recipe function plot_divertors(divertors::IDSvector{<:IMAS.divertors__divertor})
+    for divertor in divertors
+        @series begin
+            divertor
+        end
+    end
+end
+
+@recipe function plot_divertors(divertor::IMAS.divertors__divertor)
+    @series begin
+        divertor.target
+    end
+end
+
+@recipe function plot_divertors(targets::IDSvector{<:IMAS.divertors__divertor___target})
+    for target in targets
+        @series begin
+            target
+        end
+    end
+end
+
+@recipe function plot_divertors(target::IMAS.divertors__divertor___target)
+    @series begin
+        :label --> target.name
+        target.tile
+    end
+end
+
+@recipe function plot_divertors(tiles::IDSvector{<:IMAS.divertors__divertor___target___tile})
+    for tile in tiles
+        @series begin
+            tile
+        end
+    end
+end
+
+@recipe function plot_divertors(tile::IMAS.divertors__divertor___target___tile)
+    @series begin
+        :label --> tile.name
+        tile.surface_outline
+    end
+end
+
+@recipe function plot_divertors(surface_outline::IMAS.divertors__divertor___target___tile___surface_outline)
+    @series begin
+        :linewidth --> 2
+        :aspect_ratio := :equal
+        surface_outline.r,surface_outline.z
+    end
+end
+
 # ===== #
 # build #
 # ===== #
