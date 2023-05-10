@@ -513,7 +513,7 @@ function flux_surface(
             pr, pz = Contour.coordinates(line)
             R0 = 0.5 * (maximum(pr) + minimum(pr))
             Z0 = 0.5 * (maximum(pz) + minimum(pz))
-            reorder_flux_surface!(pr, pz, R0, Z0)
+            reorder_flux_surface!(pr, pz, R0, Z0; force_close=false)
             push!(prpz, (pr, pz))
         end
         return prpz
@@ -526,7 +526,7 @@ function flux_surface(
             if (pr[1] == pr[end]) && (pz[1] == pz[end]) && (PolygonOps.inpolygon((R0, Z0), collect(zip(pr, pz))) == 1)
                 R0 = 0.5 * (maximum(pr) + minimum(pr))
                 Z0 = 0.5 * (maximum(pz) + minimum(pz))
-                reorder_flux_surface!(pr, pz, R0, Z0)
+                reorder_flux_surface!(pr, pz, R0, Z0; force_close=false)
                 return pr, pz, psi_level
             end
         end
@@ -540,7 +540,7 @@ function flux_surface(
             if (pr[1] != pr[end]) || (pz[1] != pz[end])
                 R0 = 0.5 * (maximum(pr) + minimum(pr))
                 Z0 = 0.5 * (maximum(pz) + minimum(pz))
-                reorder_flux_surface!(pr, pz, R0, Z0)
+                reorder_flux_surface!(pr, pz, R0, Z0; force_close=false)
                 push!(prpz, (pr, pz))
             end
         end
