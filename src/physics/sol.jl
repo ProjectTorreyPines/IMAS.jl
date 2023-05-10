@@ -230,20 +230,63 @@ function widthSOL_eich(R0::T, a::T, κ::T, Ip::T, Psol::T) where {T<:Real}
     λ_q = 1.35 * 1E-3 * Psol^-0.02 * R0^0.04 * Bpol(a, κ, Ip)^-0.92 * (a / R0)^0.42
     return λ_q
 end
-"""
-    find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
 
-Finds equilibrium strike points and adds them to eqt.boundary_separatrix.strike_point
 """
-function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+    find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+
+Finds equilibrium strike points and angle between wall and strike leg
+"""
+function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
     Rx = Float64[]
     Zx = Float64[]
+    θx = Float64[]
 
     private = IMAS.flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     for (pr, pz) in private
-        pvx, pvy = IMAS.intersection(wall_outline_r, wall_outline_z, pr, pz; as_list_of_points=false)
+        indexes, pvx, pvy = IMAS.intersection(wall_outline_r, wall_outline_z, pr, pz; as_list_of_points=false, return_indexes=true)
+
+        angles = Float64[]
+        for index in indexes
+            line_wall_p1 = [wall_outline_r[index[1]], wall_outline_z[index[1]]]
+            line_wall_p2 = [wall_outline_r[index[1]+1], wall_outline_z[index[1]+1]]
+            line_priv_p1 = [pr[index[2]], pz[index[2]]]
+            line_priv_p2 = [pr[index[2]+1], pz[index[2]+1]]
+
+            angle = mod(IMAS.angle_between_two_vectors(line_wall_p1, line_wall_p2, line_priv_p1, line_priv_p2), π)
+            if angle > (π / 2.0)
+                angle = π - angle
+            end
+            push!(angles, angle)
+        end
+
         append!(Rx, pvx)
         append!(Zx, pvy)
+        append!(θx, angles)
+    end
+
+    return Rx, Zx, θx
+end
+
+"""
+    find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors)
+
+Adds strike points location to equilibrium IDS and the tilt_angle_pol in the divertors IDS
+"""
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors)
+    Rx = Float64[]
+    Zx = Float64[]
+    θx = Float64[]
+
+    time = eqt.time
+
+    for divertor in dv.divertor
+        for target in divertor.target
+            Rx0, Zx0, θx0 = find_strike_points(eqt, target.tile[1].surface_outline.r, target.tile[1].surface_outline.z)
+            push!(Rx, Rx0[1])
+            push!(Zx, Zx0[1])
+            push!(θx, θx0[1])
+            set_time_array(target.tilt_angle_pol, :data, time, θx0[1])
+        end
     end
 
     resize!(eqt.boundary_separatrix.strike_point, length(Rx))
@@ -252,22 +295,39 @@ function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::
         strike_point.z = Zx[k]
     end
 
-    return Rx, Zx
+    return Rx, Zx, θx
+end
+
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+    Rx, Zx, θx = find_strike_points(eqt, wall_outline_r, wall_outline_z)
+
+    resize!(eqt.boundary_separatrix.strike_point, length(Rx))
+    for (k, strike_point) in enumerate(eqt.boundary_separatrix.strike_point)
+        strike_point.r = Rx[k]
+        strike_point.z = Zx[k]
+    end
+
+    return Rx, Zx, θx
 end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, bd::IMAS.build)
     wall_outline = IMAS.get_build(bd, type=_plasma_).outline
-    return find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline.r, wall_outline.z)
+    find_strike_points!(eqt, wall_outline.r, wall_outline.z)
 end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall)
     wall_outline = IMAS.first_wall(wall)
     if wall_outline !== missing
-        return find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline.r, wall_outline.z)
+        return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
     end
 end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice)
     dd = IMAS.top_dd(eqt)
-    return find_strike_points!(eqt, dd.wall)
+    wall_outline = IMAS.first_wall(dd.wall)
+    if wall_outline !== missing
+        return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
+    elseif !isempty(dd.build.layer)
+        return find_strike_points!(eqt, dd.build)
+    end
 end

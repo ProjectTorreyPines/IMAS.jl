@@ -502,3 +502,25 @@ function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real},
     return profile_new
 end
 
+"""
+    angle_between_two_vectors(
+        v1_p1::Vector{T},
+        v1_p2::Vector{T},
+        v2_p1::Vector{T},
+        v2_p2::Vector{T}) where {T<:Real}
+
+Returns angle in radiants between two vectors defined by their start and end points
+"""
+function angle_between_two_vectors(
+    v1_p1::Vector{T},
+    v1_p2::Vector{T},
+    v2_p1::Vector{T},
+    v2_p2::Vector{T}) where {T<:Real}
+
+    v1_x = v1_p2[1] - v1_p1[1]
+    v1_y = v1_p2[2] - v1_p1[2]
+    v2_x = v2_p2[1] - v2_p1[1]
+    v2_y = v2_p2[2] - v2_p1[2]
+
+    return acos((v1_x * v2_x + v1_y * v2_y) / (sqrt(v1_x^2 + v1_y^2) * sqrt(v2_x^2 + v2_y^2)))
+end
