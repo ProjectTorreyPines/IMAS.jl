@@ -8,7 +8,7 @@ struct OpenFieldLine
     pitch::Vector{Float64}
     s::Vector{Float64}
     midplane_index::Int
-    strike_angles::Vector{Float64}
+    strike_angles::Vector{Float64} # poloidal strike angle measured from the normal
 end
 
 @recipe function plot_ofl(ofl::OpenFieldLine)
@@ -53,7 +53,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     Z0 = eqt.global_quantities.magnetic_axis.z
 
     ############
-    cc = cocos(11)
     r, z, PSI_interpolant = ψ_interpolant(eqt)
     r_wall_midplane, _ = intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z; as_list_of_points=false)
     psi_wall_midplane = PSI_interpolant.(r_wall_midplane, Z0)[1]
@@ -74,7 +73,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             if isempty(rr) || all(zz .> Z0) || all(zz .< Z0)
                 continue
             end
-            Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, rr, zz)
+            Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, rr, zz)
             Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
             Bt = abs.(b0 .* r0 ./ rr)
             dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0)
@@ -157,6 +156,20 @@ function Bpol(a::T, κ::T, Ip::T) where {T<:Real}
 end
 
 """
+    Bpol_omp(eqt::IMAS.equilibrium__time_slice)
+
+Poloidal magnetic field magnitude evaluated at the outer midplane
+"""
+function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
+    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    eq1d = eqt.profiles_1d
+    R_omp = eq1d.r_outboard[end]
+    Z_omp = eqt.global_quantities.magnetic_axis.z
+    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, [R_omp], [Z_omp])
+    return sqrt(Br[1] ^ 2.0 + Bz[1] ^ 2.0)
+end
+
+"""
     power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
 
 Total power coming out of the SOL [W]
@@ -190,11 +203,9 @@ function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
     eq1d = eqt.profiles_1d
     R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
     a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
-    κ = eq1d.elongation[end]
-    Ip = eqt.global_quantities.ip
     Psol = power_sol(core_sources, cp1d)
     ne_ped = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
-    return widthSOL_sieglin(R0, a, κ, Ip, Psol, ne_ped)
+    return widthSOL_sieglin(R0, a, Bpol_omp(eqt), Psol, ne_ped)
 end
 
 function widthSOL_sieglin(dd::IMAS.dd)
@@ -202,18 +213,18 @@ function widthSOL_sieglin(dd::IMAS.dd)
 end
 
 """
-    widthSOL_sieglin(R0::T, a::T, κ::T, Ip::T, Psol::T, ne_ped::T) where {T<:Real}
+    widthSOL_sieglin(R0::T, a::T, Bpol_omp::T, Psol::T, ne_ped::T) where {T<:Real}
 
 Returns integral power decay length λ_int in meters
 Eich scaling(NF 53 093031) & B. Sieglin PPCF 55 (2013) 124039
 """
-function widthSOL_sieglin(R0::T, a::T, κ::T, Ip::T, Psol::T, ne_ped::T) where {T<:Real}
-    λ_q = widthSOL_eich(R0, a, κ, Ip, Psol)
+function widthSOL_sieglin(R0::T, a::T, Bpol_omp::T, Psol::T, ne_ped::T) where {T<:Real}
+    λ_q = widthSOL_eich(R0, a, Bpol_omp, Psol)
 
     # From B. Sieglin PPCF 55 (2013) 124039
     # S includes the geometrical effects of the divertor assembly itself
     ne_ped /= 1.e19
-    S = 0.09 * 1E-3 * ne_ped^1.02 * Bpol(a, κ, Ip)^-1.01
+    S = 0.09 * 1E-3 * ne_ped^1.02 * Bpol_omp^-1.01
 
     # extrapolate S from ASDEX results
     S *= (R0 / 1.65)
@@ -231,10 +242,8 @@ function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profil
     eq1d = eqt.profiles_1d
     R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
     a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
-    κ = eq1d.elongation[end]
-    Ip = eqt.global_quantities.ip
     Psol = power_sol(core_sources, cp1d)
-    return widthSOL_eich(R0, a, κ, Ip, Psol)
+    return widthSOL_eich(R0, a, Bpol_omp(eqt), Psol)
 end
 
 function widthSOL_eich(dd::IMAS.dd)
@@ -242,17 +251,16 @@ function widthSOL_eich(dd::IMAS.dd)
 end
 
 """
-    widthSOL_eich(R0::T, a::T, κ::T, Ip::T, Psol::T) where {T<:Real}
+    widthSOL_eich(R0::T, a::T, Bpol_omp::T, Psol::T) where {T<:Real}
 
 Returns midplane power decay length λ_q in meters
 Eich scaling (NF 53 093031)
 """
-function widthSOL_eich(R0::T, a::T, κ::T, Ip::T, Psol::T) where {T<:Real}
+function widthSOL_eich(R0::T, a::T, Bpol_omp::T, Psol::T) where {T<:Real}
     if Psol < 0.0
         return 0.0
     end
-    Psol /= 1E6
-    λ_q = 1.35 * 1E-3 * Psol^-0.02 * R0^0.04 * Bpol(a, κ, Ip)^-0.92 * (a / R0)^0.42
+    λ_q = 1.35 * 1E-3 * (Psol / 1E6)^-0.02 * R0^0.04 * Bpol_omp^-0.92 * (a / R0)^0.42
     return λ_q
 end
 

@@ -12,11 +12,11 @@ function ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
 end
 
 """
-    Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Br_Bz_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11))
 
 Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
 """
-function Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+function Br_Bz_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11)) where {T<:Real}
     grad = [Interpolations.gradient(PSI_interpolant, r[k], z[k]) for k in 1:length(r)]
     Br = [cc.sigma_RpZ * grad[k][2] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
     Bz = [-cc.sigma_RpZ * grad[k][1] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
@@ -24,12 +24,12 @@ function Br_Bz_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::V
 end
 
 """
-    Bp_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11))}
 
 Returns Bp evaluated at r and z starting from ψ interpolant
 """
-function Bp_vector_interpolant(PSI_interpolant, cc::COCOS, r::Vector{T}, z::Vector{T}) where {T<:Real}
-    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, r, z)
+function Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11)) where {T<:Real}
+    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, r, z; cc)
     return sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
 end
 
@@ -271,7 +271,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         eqt.profiles_1d.squareness_lower_inner[k] = zetaiu
 
         # poloidal magnetic field (with sign)
-        Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, cc, pr, pz)
+        Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, pr, pz)
         Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
         Bp_abs = sqrt.(Bp2)
         Bp = (
@@ -620,12 +620,11 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         eqt.boundary.x_point[end].z = (pz[index] + zlcfs[indexcfs]) / 2.0
     end
 
-    cc = cocos(11)
     r, z, PSI_interpolant = ψ_interpolant(eqt)
     # refine x-point location
     for rz in eqt.boundary.x_point
         res = Optim.optimize(
-            x -> Bp_vector_interpolant(PSI_interpolant, cc, [rz.r + x[1]], [rz.z + x[2]])[1],
+            x -> Bp_vector_interpolant(PSI_interpolant, [rz.r + x[1]], [rz.z + x[2]])[1],
             [0.0, 0.0],
             Optim.NelderMead(),
             Optim.Options(g_tol=1E-8),
