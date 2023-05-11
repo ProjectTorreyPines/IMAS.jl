@@ -127,7 +127,7 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__mode
     return index_2_name__stability__model
 end
 
-const index_2_name__balance_of_plant__power_electric_plant_operation = Dict((k - 1) => item for (k, item) in enumerate([:total, :HCD, :cryostat, :tritium_handling, :pumping, :pf_active]))
+const index_2_name__balance_of_plant__power_electric_plant_operation = Dict((k - 1) => item for (k, item) in enumerate([:total, :HCD, :plant, :cryostat, :tritium_handling, :pumping, :pf_active]))
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:balance_of_plant__power_electric_plant_operation__system}
     return index_2_name__balance_of_plant__power_electric_plant_operation
