@@ -148,12 +148,34 @@ function revolution_volume(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where
 end
 
 """
+    intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int, Int}}) where {T<:AbstractVector{<:Real}}
+
+returns angles of intersections between two paths and intersection_indexes given by intersection() function
+"""
+function intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int, Int}}) where {T<:AbstractVector{<:Real}}
+    angles = Float64[]
+    for index in intersection_indexes
+        path1_p1 = [path1_r[index[1]], path1_z[index[1]]]
+        path1_p2 = [path1_r[index[1]+1], path1_z[index[1]+1]]
+        path2_p1 = [path2_r[index[2]], path2_z[index[2]]]
+        path2_p2 = [path2_r[index[2]+1], path2_z[index[2]+1]]
+        angle = mod(IMAS.angle_between_two_vectors(path1_p1, path1_p2, path2_p1, path2_p2), π)
+        if angle > (π / 2.0)
+            angle = π - angle
+        end
+        push!(angles, angle)
+    end
+    return angles
+end
+
+"""
     intersection(
-        l1_x::AbstractVector{<:Real},
-        l1_y::AbstractVector{<:Real},
-        l2_x::AbstractVector{<:Real},
-        l2_y::AbstractVector{<:Real};
-        as_list_of_points::Bool=true)
+        l1_x::AbstractVector{T},
+        l1_y::AbstractVector{T},
+        l2_x::AbstractVector{T},
+        l2_y::AbstractVector{T};
+        as_list_of_points::Bool=true,
+        return_indexes::Bool=false) where {T<:Real}
 
 Intersections between two 2D paths, returns list of (x,y) intersection points
 """
