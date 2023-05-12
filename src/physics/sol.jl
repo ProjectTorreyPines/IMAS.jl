@@ -166,7 +166,7 @@ function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z
     Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, [R_omp], [Z_omp])
-    return sqrt(Br[1] ^ 2.0 + Bz[1] ^ 2.0)
+    return sqrt(Br[1]^2.0 + Bz[1]^2.0)
 end
 
 """
@@ -311,6 +311,10 @@ function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.diverto
     for divertor in dv.divertor
         for target in divertor.target
             Rx0, Zx0, θx0 = find_strike_points(eqt, target.tile[1].surface_outline.r, target.tile[1].surface_outline.z)
+            # allow for strike points to miss the divertors
+            if isempty(Rx0)
+                continue
+            end
             push!(Rx, Rx0[1])
             push!(Zx, Zx0[1])
             push!(θx, θx0[1])
