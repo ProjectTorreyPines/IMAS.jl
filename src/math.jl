@@ -152,7 +152,7 @@ end
 
 returns angles of intersections between two paths and intersection_indexes given by intersection() function
 """
-function intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int, Int}}) where {T<:AbstractVector{<:Real}}
+function intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:AbstractVector{<:Real}}
     angles = Float64[]
     for index in intersection_indexes
         path1_p1 = [path1_r[index[1]], path1_z[index[1]]]
@@ -420,8 +420,8 @@ function minimum_distance_two_shapes(
     distance = Inf
     ik1 = 0
     ik2 = 0
-    for k1 in 1:length(R_obj1)
-        for k2 in 1:length(R_obj2)
+    for k1 in eachindex(R_obj1)
+        for k2 in eachindex(R_obj2)
             @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
             if distance > d
                 ik1 = k1
@@ -443,7 +443,8 @@ end
         Z_obj1::AbstractVector{<:T},
         R_obj2::AbstractVector{<:T},
         Z_obj2::AbstractVector{<:T},
-        target_distance::T) where {T<:Real}
+        target_distance::T,
+        above_target::Bool=true)
 
 Returns mean error distance between two shapes and a target distance
 """
@@ -452,21 +453,33 @@ function mean_distance_error_two_shapes(
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
     Z_obj2::AbstractVector{<:T},
-    target_distance::T) where {T<:Real}
+    target_distance::T;
+    above_target::Bool=false,
+    below_target::Bool=false) where {T<:Real}
 
     R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     mean_distance_error = 0.0
-    for k1 in 1:length(R_obj1)
+    n = 0
+    for k1 in eachindex(R_obj1)
         distance = Inf
-        for k2 in 1:length(R_obj2)
+        for k2 in eachindex(R_obj2)
             @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
-            if distance > d
+            if d < distance
                 distance = d
             end
         end
-        mean_distance_error += (distance - target_distance)^2
+        if above_target && distance > target_distance
+            mean_distance_error += (distance - target_distance)^2
+            n += 1
+        elseif below_target && distance < target_distance
+            mean_distance_error += (distance - target_distance)^2
+            n += 1
+        else
+            mean_distance_error += (distance - target_distance)^2
+            n += 1
+        end
     end
-    return sqrt(mean_distance_error) / length(R_obj1)
+    return sqrt(mean_distance_error) / n
 end
 
 """
