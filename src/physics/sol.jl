@@ -73,15 +73,23 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             if isempty(rr) || all(zz .> Z0) || all(zz .< Z0)
                 continue
             end
+
+            # add a point exactly at the midplane
+            crossing_index, r_midplane, z_midplane = intersection([minimum(wall_r), maximum(wall_r)], [Z0, Z0], rr, zz; as_list_of_points=false, return_indexes=true)
+            rr = [rr[1:crossing_index[1][2]]; r_midplane; rr[crossing_index[1][2]+1:end]]
+            zz = [zz[1:crossing_index[1][2]]; z_midplane; zz[crossing_index[1][2]+1:end]]
+            midplane_index = crossing_index[1][2] + 1
+
+            # calculate quantities along field line
             Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, rr, zz)
             Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
             Bt = abs.(b0 .* r0 ./ rr)
             dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0)
             pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2)
             s = cumsum(pitch .* dp)
-            midplane_index = argmin(abs.(zz .- Z0) .+ (rr .< R0))
             s = abs.(s .- s[midplane_index])
 
+            # select HFS or LFS and add line to the list
             if rr[midplane_index] < R0
                 OFL = OFL_hfs
             else
