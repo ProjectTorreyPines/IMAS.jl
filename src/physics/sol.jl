@@ -184,7 +184,12 @@ Total power coming out of the SOL [W]
 """
 function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
     tot_src = total_sources(core_sources, cp1d)
-    return tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
+    p_sol = tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
+    if p_sol < 0.0
+        return 0.0
+    else
+        return p_sol
+    end
 end
 
 function widthSOL_loarte(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
