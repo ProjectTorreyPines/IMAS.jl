@@ -137,7 +137,17 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
 
     # find magnetic axis
     res = Optim.optimize(
-        x -> PSI_interpolant(x[1], x[2]) * psi_sign,
+        x -> begin
+            try
+                PSI_interpolant(x[1], x[2]) * psi_sign
+            catch e
+                if typeof(e) <: BoundsError
+                    return Inf
+                else
+                    rethrow(e)
+                end
+            end
+        end ,
         [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
         Optim.Newton(),
         Optim.Options(g_tol=1E-8);
