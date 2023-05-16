@@ -1,4 +1,10 @@
-function contour_no_edges(X, Y, F, l, n=1)
+"""
+    contour_no_edges(X, Y, F, l, n::Int=1)
+
+Returns the contour of F on the domain X, Y,
+but removes all points that are on the edges of the domain.
+"""
+function contour_no_edges(X, Y, F, l, n::Int=1)
     x, y = Contour.coordinates(Contour.lines(Contour.contour(X, Y, F, l))[n])
     index = (x .!= X[1]) .&& (x .!= X[end]) .&& (y .!= Y[1]) .&& (y .!= Y[end])
     return x[index], y[index]

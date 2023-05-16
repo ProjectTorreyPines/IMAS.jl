@@ -147,7 +147,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
                     rethrow(e)
                 end
             end
-        end ,
+        end,
         [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
         Optim.Newton(),
         Optim.Options(g_tol=1E-8);
@@ -263,22 +263,18 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
             end
         end
 
-        # geometric
-        Rm = 0.5 * (max_r + min_r)
-        a = 0.5 * (max_r - min_r)
-        b = 0.5 * (max_z - min_z)
         eqt.profiles_1d.r_outboard[k] = max_r
         eqt.profiles_1d.r_inboard[k] = min_r
-        eqt.profiles_1d.elongation[k] = b / a
-        eqt.profiles_1d.triangularity_upper[k] = (Rm - r_at_max_z) / a
-        eqt.profiles_1d.triangularity_lower[k] = (Rm - r_at_min_z) / a
 
-        # Luce Squareness
-        zetaou, zetaol, zetail, zetaiu = luce_squareness(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
-        eqt.profiles_1d.squareness_upper_outer[k] = zetaou
-        eqt.profiles_1d.squareness_lower_outer[k] = zetaol
-        eqt.profiles_1d.squareness_upper_inner[k] = zetail
-        eqt.profiles_1d.squareness_lower_inner[k] = zetaiu
+        # miller geometric coefficients
+        R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu = miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+        eqt.profiles_1d.elongation[k] = κ
+        eqt.profiles_1d.triangularity_upper[k] = δu
+        eqt.profiles_1d.triangularity_lower[k] = δl
+        eqt.profiles_1d.squareness_lower_outer[k] = ζol
+        eqt.profiles_1d.squareness_upper_outer[k] = ζou
+        eqt.profiles_1d.squareness_lower_inner[k] = ζil
+        eqt.profiles_1d.squareness_upper_inner[k] = ζiu
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, pr, pz)
@@ -647,7 +643,28 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 end
 
 """
-    fluxsurface_extrema(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
+    miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+
+Returns R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu of a contour
+"""
+function miller_R_a_κ_δ_ζ(pr::Vector{T}, pz::Vector{T}, r_at_max_z::T, max_z::T, r_at_min_z::T, min_z::T, z_at_max_r::T, max_r::T, z_at_min_r::T, min_r::T) where {T<:Real}
+    R0 = 0.5 * (max_r + min_r)
+    a = 0.5 * (max_r - min_r)
+    b = 0.5 * (max_z - min_z)
+    κ = b / a
+    δu = (R0 - r_at_max_z) / a
+    δl = (R0 - r_at_min_z) / a
+    ζou, ζol, ζil, ζiu = luce_squareness(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+    return R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu
+end
+
+function miller_R_a_κ_δ_ζ(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
+    (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
+    return miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+end
+
+"""
+    fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
 
 Returns extrema indexes and values of R,Z flux surfaces vectors
     imaxr, iminr,
@@ -657,7 +674,7 @@ Returns extrema indexes and values of R,Z flux surfaces vectors
     z_at_max_r, max_r,
     z_at_min_r, min_r
 """
-function fluxsurface_extrema(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
+function fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
     _, imaxr = findmax(pr)
     _, iminr = findmin(pr)
     _, imaxz = findmax(pz)
