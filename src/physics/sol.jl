@@ -37,10 +37,6 @@ end
     end
 end
 
-function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Int=1)
-    return sol(eqt, first_wall(wall).r, first_wall(wall).z; levels)
-end
-
 """
     sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}, levels::Int=1) where {T<:Real}
 
@@ -103,6 +99,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         end
     end
     return OFL_hfs, OFL_lfs
+end
+
+function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Int=1)
+    return sol(eqt, first_wall(wall).r, first_wall(wall).z; levels)
+end
+
+function sol(dd::IMAS.dd; levels::Int=1)
+    return sol(dd.equilibrium.time_slice[], dd.wall; levels)
 end
 
 """
