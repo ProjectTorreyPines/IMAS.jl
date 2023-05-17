@@ -263,6 +263,26 @@ function point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where 
 end
 
 """
+    point_to_path_distance(x0::T, y0::T, x::Vector{T}, y::Vector{T}) where {T<:Real}
+
+Distance of point (x0,y0) from path defined by vectors x and y
+"""
+function point_to_path_distance(x0::T, y0::T, x::Vector{T}, y::Vector{T}) where {T<:Real}
+    d = Inf
+    for i in 1:length(x)-1
+        x1 = x[i]
+        y1 = y[i]
+        x2 = x[i+1]
+        y2 = y[i+1]
+        dd = point_to_line_distance(x0, y0, x1, y1, x2, y2)
+        if dd < d
+            d = dd
+        end
+    end
+    return d
+end
+
+"""
     rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
 
 Simplifies a 2D line represented by arrays of x and y coordinates using the
