@@ -231,13 +231,24 @@ end
 Total power coming out of the SOL [W]
 """
 function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-    tot_src = total_sources(core_sources, cp1d)
-    p_sol = tot_src.electrons.power_inside[end] + tot_src.total_ion_power_inside[end]
+    p_sol = total_power_source(total_sources(core_sources, cp1d))
     if p_sol < 0.0
         return 0.0
     else
         return p_sol
     end
+end
+
+# ====== #
+# Loarte #
+# ====== #
+"""
+    widthSOL_loarte(B0::T, q95::T, Psol::T) where {T<:Real}
+
+Returns midplane power decay length λ_q in meters
+"""
+function widthSOL_loarte(B0::T, q95::T, Psol::T) where {T<:Real}
+    return 0.00265 * Psol^0.38 * B0^(-0.71) * q95^0.3
 end
 
 function widthSOL_loarte(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
@@ -251,28 +262,9 @@ function widthSOL_loarte(dd::IMAS.dd)
     return widthSOL_loarte(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
-"""
-    widthSOL_loarte(B0::T, q95::T, Psol::T) where {T<:Real}
-
-Returns midplane power decay length λ_q in meters
-"""
-function widthSOL_loarte(B0::T, q95::T, Psol::T) where {T<:Real}
-    return 0.00265 * Psol^0.38 * B0^(-0.71) * q95^0.3
-end
-
-function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
-    eq1d = eqt.profiles_1d
-    R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
-    a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
-    Psol = power_sol(core_sources, cp1d)
-    ne_ped = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
-    return widthSOL_sieglin(R0, a, Bpol_omp(eqt), Psol, ne_ped)
-end
-
-function widthSOL_sieglin(dd::IMAS.dd)
-    return widthSOL_sieglin(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
-end
-
+# ======= #
+# Sieglin #
+# ======= #
 """
     widthSOL_sieglin(R0::T, a::T, Bpol_omp::T, Psol::T, ne_ped::T) where {T<:Real}
 
@@ -299,18 +291,22 @@ function widthSOL_sieglin(R0::T, a::T, Bpol_omp::T, Psol::T, ne_ped::T) where {T
     return λ_int
 end
 
-function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     eq1d = eqt.profiles_1d
     R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
     a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
     Psol = power_sol(core_sources, cp1d)
-    return widthSOL_eich(R0, a, Bpol_omp(eqt), Psol)
+    ne_ped = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
+    return widthSOL_sieglin(R0, a, Bpol_omp(eqt), Psol, ne_ped)
 end
 
-function widthSOL_eich(dd::IMAS.dd)
-    return widthSOL_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
+function widthSOL_sieglin(dd::IMAS.dd)
+    return widthSOL_sieglin(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
+# ==== #
+# Eich #
+# ==== #
 """
     widthSOL_eich(R0::T, a::T, Bpol_omp::T, Psol::T) where {T<:Real}
 
@@ -324,6 +320,23 @@ function widthSOL_eich(R0::T, a::T, Bpol_omp::T, Psol::T) where {T<:Real}
     λ_q = 1.35 * 1E-3 * (Psol / 1E6)^-0.02 * R0^0.04 * Bpol_omp^-0.92 * (a / R0)^0.42
     return λ_q
 end
+
+function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, Psol::Real)
+    eq1d = eqt.profiles_1d
+    R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
+    a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
+    return widthSOL_eich(R0, a, Bpol_omp(eqt), Psol)
+end
+
+function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+    Psol = power_sol(core_sources, cp1d)
+    return widthSOL_eich(eqt, Psol)
+end
+
+function widthSOL_eich(dd::IMAS.dd)
+    return widthSOL_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
+end
+
 
 """
     find_strike_points(wall_outline_r::T, wall_outline_z::T, pr::T, pz::T) where {T<:AbstractVector{<:Real}}
