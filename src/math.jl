@@ -254,6 +254,15 @@ function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:R
 end
 
 """
+    point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+
+Distance of point (x0,y0) from line defined by points (x1,y1) and (x2,y2)
+"""
+function point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / sqrt((y2 - y1)^2 + (x2 - x1)^2)
+end
+
+"""
     rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
 
 Simplifies a 2D line represented by arrays of x and y coordinates using the
@@ -264,10 +273,6 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
     n = length(x)
     if n < 3 || n != length(y)
         error("Input arrays must have at least 3 elements and the same length")
-    end
-
-    function point_to_line_distance(x0, y0, x1, y1, x2, y2)
-        return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / sqrt((y2 - y1)^2 + (x2 - x1)^2)
     end
 
     if n == 3
