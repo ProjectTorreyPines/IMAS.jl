@@ -74,11 +74,15 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 continue
             end
 
-            # add a point exactly at the midplane
+            # add a point exactly at the (preferably outer) midplane
             crossing_index, r_midplane, z_midplane = intersection([minimum(wall_r), maximum(wall_r)], [Z0, Z0], rr, zz; as_list_of_points=false, return_indexes=true)
-            rr = [rr[1:crossing_index[1][2]]; r_midplane; rr[crossing_index[1][2]+1:end]]
-            zz = [zz[1:crossing_index[1][2]]; z_midplane; zz[crossing_index[1][2]+1:end]]
-            midplane_index = crossing_index[1][2] + 1
+            outer_index = argmax(r_midplane)
+            crossing_index = crossing_index[outer_index]
+            r_midplane = r_midplane[outer_index]
+            z_midplane = z_midplane[outer_index]
+            rr = [rr[1:crossing_index[2]]; r_midplane; rr[crossing_index[2]+1:end]]
+            zz = [zz[1:crossing_index[2]]; z_midplane; zz[crossing_index[2]+1:end]]
+            midplane_index = crossing_index[2] + 1
 
             # calculate quantities along field line
             Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, rr, zz)
