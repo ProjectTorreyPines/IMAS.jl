@@ -73,3 +73,19 @@ function A_effective(cp1d::IMAS.core_profiles__profiles_1d)
 
     return (nh + 2nd + 3nt) / (nh + nd + nt)
 end
+
+
+"""
+    scaling_L_to_H_power(dd)
+
+L to H transition power scaling for metal walls and isotope effect according to : G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+returns power in W
+"""
+function scaling_L_to_H_power(dd)
+    return 1e6 * 0.8 * 2 / A_effective(dd.core_profiles.profiles_1d[]) *
+           (0.049 * (dd.summary.volume_average.n_e.value[end] / 1e20)^0.72 *
+            dd.equilibrium.vacuum_toroidal_field.b0[end]^0.8 *
+            dd.equilibrium.time_slice[].profiles_1d.surface[end]^0.94)
+end
+
+
