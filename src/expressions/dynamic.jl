@@ -390,6 +390,72 @@ dyexp["balance_of_plant.thermal_cycle.power_electric_generated"] =
     (time; balance_of_plant, thermal_cycle, _...) -> thermal_cycle.net_work .* thermal_cycle.generator_conversion_efficiency
 
 #= ========= =#
+#  divertors  #
+#= ========= =#
+dyexp["divertors.divertor[:].power_black_body.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_black_body)[1]
+
+dyexp["divertors.divertor[:].power_black_body.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_black_body)[2]
+
+
+dyexp["divertors.divertor[:].power_conducted.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_conducted)[1]
+
+dyexp["divertors.divertor[:].power_conducted.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_conducted)[2]
+
+
+dyexp["divertors.divertor[:].power_convected.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_convected)[1]
+
+dyexp["divertors.divertor[:].power_convected.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_convected)[2]
+
+
+dyexp["divertors.divertor[:].power_currents.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_currents)[1]
+
+dyexp["divertors.divertor[:].power_currents.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_currents)[2]
+
+
+dyexp["divertors.divertor[:].power_incident.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_incident)[1]
+
+dyexp["divertors.divertor[:].power_incident.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_incident)[2]
+
+
+dyexp["divertors.divertor[:].power_neutrals.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_neutrals)[1]
+
+dyexp["divertors.divertor[:].power_neutrals.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_neutrals)[2]
+
+
+dyexp["divertors.divertor[:].power_radiated.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_radiated)[1]
+
+dyexp["divertors.divertor[:].power_radiated.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_radiated)[2]
+
+
+dyexp["divertors.divertor[:].power_recombination_neutrals.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_neutrals)[1]
+
+dyexp["divertors.divertor[:].power_recombination_neutrals.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_neutrals)[2]
+
+
+dyexp["divertors.divertor[:].power_recombination_plasma.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_plasma)[1]
+
+dyexp["divertors.divertor[:].power_recombination_plasma.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_plasma)[2]
+
+
+#= ========= =#
 #  stability  #
 #= ========= =#
 dyexp["stability.model[:].cleared"] =

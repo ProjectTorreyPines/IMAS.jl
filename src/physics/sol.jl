@@ -155,6 +155,24 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, R0::Real, Z0::Real) 
 end
 
 """
+    divertor_totals_from_targets(divertor::IMAS.divertors__divertor, field::Symbol)
+
+Returns time dependent vectors of :field summed over all divertor targets
+"""
+function divertor_totals_from_targets(divertor::IMAS.divertors__divertor, field::Symbol)
+    total = []
+    time = []
+    for target in divertor.target
+        value = getproperty(target, field)
+        if !ismissing(value, :data)
+            push!(total, value.data)
+            push!(time, value.time)
+        end
+    end
+    return time[1], reduce(+, total)
+end
+
+"""
     Bpol(a::T, κ::T, Ip::T) where {T<:Real}
 
 Average poloidal magnetic field magnitude
