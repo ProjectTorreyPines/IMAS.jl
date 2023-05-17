@@ -8,7 +8,7 @@ struct OpenFieldLine
     pitch::Vector{Float64}
     s::Vector{Float64}
     midplane_index::Int
-    strike_angles::Vector{Float64} # poloidal strike angle measured from the normal
+    strike_angles::Vector{Float64}
 end
 
 @recipe function plot_ofl(ofl::OpenFieldLine)
@@ -152,6 +152,36 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, R0::Real, Z0::Real) 
     end
 
     rr, zz, strike_angles
+end
+
+"""
+    identify_strike_surface(ofl::OpenFieldLine, divertors::IMAS.divertors)
+
+Returns vector of two tuples with three integers each, identifying the indexes of the divertor/target/tile that the field line intersections
+When a field line does not intersect a divertor target, then the tuple returned is (0, 0, 0)
+"""
+function identify_strike_surface(ofl::OpenFieldLine, divertors::IMAS.divertors)
+    identifiers = Tuple{Int,Int,Int}[]
+    for strike_index in (1, length(ofl.r))
+        distances = OrderedCollections.OrderedDict()
+        for (k_divertor, divertor) in enumerate(divertors.divertor)
+            for (k_target, target) in enumerate(divertor.target)
+                for (k_tile, tile) in enumerate(target.tile)
+                    id = (k_divertor, k_target, k_tile)
+                    d = IMAS.point_to_path_distance(ofl.r[strike_index], ofl.z[strike_index], tile.surface_outline.r, tile.surface_outline.z)
+                    distances[id] = d
+                end
+            end
+        end
+        d = minimum(values(distances))
+        if d < 1E-2
+            k = argmin(collect(values(distances)))
+            push!(identifiers, collect(keys(distances))[k])
+        else
+            push!(identifiers, (0, 0, 0))
+        end
+    end
+    return identifiers
 end
 
 """
