@@ -232,6 +232,9 @@ dyexp["equilibrium.time_slice[:].profiles_1d.j_parallel"] =
         Jtor_2_Jpar(profiles_1d.rho_tor_norm, j_tor, true, time_slice)
     end
 
+dyexp["equilibrium.time_slice[:].profiles_1d.dpressure_dpsi"] =
+    (psi; time_slice, profiles_1d, _...) -> gradient(psi, profiles_1d.pressure)
+
 dyexp["equilibrium.time_slice[:].time"] =
     (; equilibrium, time_slice_index, _...) -> equilibrium.time[time_slice_index]
 
