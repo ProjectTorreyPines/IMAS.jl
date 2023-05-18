@@ -40,38 +40,16 @@ end
 A_effective towards L to H scaling see G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 """
 function A_effective(cp1d::IMAS.core_profiles__profiles_1d)
-    labels = [ion.label for ion in cp1d.ion]
-    volume = cp1d.grid.volume
-
-    if "DTH" ∈ labels
-        error("you can't have DTH in ion for this function")
-    elseif "DT" ∈ labels && "D" ∈ labels || "DT" ∈ labels && "T" ∈ labels
-        error("combine your DT and D or DT and T species")
+    numerator = []
+    denominator = []
+    for ion in cp1d.ion
+        if ion.element[1].z_n == 1
+            n_int = integrate(cp1d.grid.volume, ion.density)
+            push!(numerator, n_int * ion.element[1].a)
+            push!(denominator, n_int)
+        end
     end
-
-    if "H" ∉ labels
-        nh = 0.0
-    else
-        nh = integrate(volume, cp1d.ion[findfirst(==("H"), labels)].density)
-    end
-
-    if "D" ∈ labels
-        nd = integrate(volume, cp1d.ion[findfirst(==("D"), labels)].density)
-    else
-        nd = 0.0
-    end
-
-    if "T" ∈ labels
-        nt = integrate(volume, cp1d.ion[findfirst(==("T"), labels)].density)
-    else
-        nt = 0.0
-    end
-
-    if "DT" ∈ labels
-        nd = nt = integrate(volume, cp1d.ion[findfirst(==("DT"), labels)].density) / 2
-    end
-
-    return (nh + 2nd + 3nt) / (nh + nd + nt)
+    return reduce(+, numerator) / reduce(+, denominator)
 end
 
 
