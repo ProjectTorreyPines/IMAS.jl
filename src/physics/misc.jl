@@ -65,11 +65,15 @@ function scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surf
     return 1e6 * 0.8 * 2.0 / A_effective * 0.049 * (ne_volume / 1e20)^0.72 * B0^0.8 * surface_area^0.94
 end
 
-function scaling_L_to_H_power(dd)
+function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary, eq::IMAS.equilibrium)
     return scaling_L_to_H_power(
-        A_effective(dd.core_profiles.profiles_1d[]),
-        @ddtime(dd.summary.volume_average.n_e.value),
-        @ddtime(dd.equilibrium.vacuum_toroidal_field.b0),
-        dd.equilibrium.time_slice[].profiles_1d.surface[end]
+        A_effective(cp1d),
+        @ddtime(su.volume_average.n_e.value),
+        @ddtime(eq.vacuum_toroidal_field.b0),
+        eq.time_slice[].profiles_1d.surface[end]
     )
+end
+
+function scaling_L_to_H_power(dd::IMAS.dd)
+    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.summary, dd.equilibrium)
 end
