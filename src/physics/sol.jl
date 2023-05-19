@@ -38,11 +38,13 @@ end
 end
 
 """
-    sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}, levels::Int=1) where {T<:Real}
+    sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}, levels::Union{Int,AbstractVector=20) where {T<:Real}
 
 Returns vectors of hfs and lfs OpenFieldLine
+
+If levels is a vector, then values should be >0.0 (separatrix) and <1.0 (outer midplane wall)
 """
-function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Int=1) where {T<:Real}
+function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20) where {T<:Real}
     r0, b0 = vacuum_r0_b0(eqt)
 
     R0 = eqt.global_quantities.magnetic_axis.r
@@ -58,7 +60,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     ############
 
     # pack points near lcfs
-    levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi__boundary_level)), levels + 1)[1:end-1]
+    if typeof(levels) <: Int
+        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi__boundary_level)), levels + 1)[1:end-1]
+    else
+        @assert levels[1] < levels[end]
+        @assert levels[1] > 0.0
+        @assert levels[end] < 1.0
+        levels = psi__boundary_level .+ levels .* abs(psi_wall_midplane - psi__boundary_level)
+    end
 
     OFL_hfs = OpenFieldLine[]
     OFL_lfs = OpenFieldLine[]
@@ -101,11 +110,11 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     return OFL_hfs, OFL_lfs
 end
 
-function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Int=1)
+function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20)
     return sol(eqt, first_wall(wall).r, first_wall(wall).z; levels)
 end
 
-function sol(dd::IMAS.dd; levels::Int=1)
+function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20)
     return sol(dd.equilibrium.time_slice[], dd.wall; levels)
 end
 
