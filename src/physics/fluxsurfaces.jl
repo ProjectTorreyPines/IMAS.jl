@@ -18,8 +18,8 @@ Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
 """
 function Br_Bz_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11)) where {T<:Real}
     grad = [Interpolations.gradient(PSI_interpolant, r[k], z[k]) for k in 1:length(r)]
-    Br = [cc.sigma_RpZ * grad[k][2] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
-    Bz = [-cc.sigma_RpZ * grad[k][1] / r[k] / (2 * pi)^cc.exp_Bp for k in 1:length(r)]
+    Br = [cc.sigma_RpZ * grad[k][2] / r[k] / (2π)^cc.exp_Bp for k in 1:length(r)]
+    Bz = [-cc.sigma_RpZ * grad[k][1] / r[k] / (2π)^cc.exp_Bp for k in 1:length(r)]
     return Br, Bz
 end
 
@@ -205,7 +205,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
             a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
             b = eqt.profiles_1d.elongation[1] * a
 
-            t = range(0, 2 * pi, length=17)
+            t = range(0, 2π, length=17)
             pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
             pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
 
@@ -342,26 +342,26 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         # j_tor = <j_tor/R> / <1/R>
         eqt.profiles_1d.j_tor[k] =
             (
-                -cc.sigma_Bp .* (eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / (4 * pi * 1e-7)) *
-                (2.0 * pi)^cc.exp_Bp
+                -cc.sigma_Bp .* (eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / constants.μ_0) *
+                (2π)^cc.exp_Bp
             ) / eqt.profiles_1d.gm9[k]
 
         # dvolume_dpsi
-        eqt.profiles_1d.dvolume_dpsi[k] = (cc.sigma_rhotp * cc.sigma_Bp * sign(flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)) * int_fluxexpansion_dl * (2.0 * pi)^(1.0 - cc.exp_Bp))
+        eqt.profiles_1d.dvolume_dpsi[k] = (cc.sigma_rhotp * cc.sigma_Bp * sign(flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)) * int_fluxexpansion_dl * (2π)^(1.0 - cc.exp_Bp))
 
         # surface area
-        eqt.profiles_1d.surface[k] = 2 * pi * sum(pr .* dl)
+        eqt.profiles_1d.surface[k] = 2π * sum(pr .* dl)
 
         # q
         eqt.profiles_1d.q[k] = (
             cc.sigma_rhotp .* cc.sigma_Bp .* eqt.profiles_1d.dvolume_dpsi[k] .* eqt.profiles_1d.f[k] .* eqt.profiles_1d.gm1[k] ./
-            ((2.0 * pi)^(2.0 - cc.exp_Bp))
+            ((2π)^(2.0 - cc.exp_Bp))
         )
 
         # quantities calculated on the last closed flux surface
         if k == length(eqt.profiles_1d.psi)
             # ip
-            eqt.global_quantities.ip = cc.sigma_rhotp * Bpl / (4e-7 * pi)
+            eqt.global_quantities.ip = cc.sigma_rhotp * Bpl / constants.μ_0
 
             # perimeter
             eqt.global_quantities.length_pol = ll[end]
@@ -371,13 +371,13 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     # integral quantities
     for k in 2:length(eqt.profiles_1d.psi)
         # area
-        eqt.profiles_1d.area[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k] .* eqt.profiles_1d.gm9[1:k]) ./ 2pi
+        eqt.profiles_1d.area[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k] .* eqt.profiles_1d.gm9[1:k]) ./ 2π
 
         # volume
         eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
 
         # phi
-        eqt.profiles_1d.phi[k] = cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2.0 * pi)^(1.0 - cc.exp_Bp)
+        eqt.profiles_1d.phi[k] = cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2π)^(1.0 - cc.exp_Bp)
     end
 
     R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
@@ -387,25 +387,25 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     Btvac = b0 * r0 / R
 
     # average poloidal magnetic field
-    Bpave = eqt.global_quantities.ip * (4.0 * pi * 1e-7) / eqt.global_quantities.length_pol
+    Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = integrate(eqt.profiles_1d.psi, BPL * (2.0 * pi)^(1.0 - cc.exp_Bp))
-    eqt.global_quantities.li_3 = 2.0 * Bp2v / r0 / (eqt.global_quantities.ip * (4.0 * pi * 1e-7))^2
+    Bp2v = integrate(eqt.profiles_1d.psi, BPL * (2π)^(1.0 - cc.exp_Bp))
+    eqt.global_quantities.li_3 = 2.0 * Bp2v / r0 / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
-    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure)
-    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / 4.0 / pi / 1e-7) / eqt.profiles_1d.volume[end])
+    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
+    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / constants.μ_0))
 
     # beta_pol
-    eqt.global_quantities.beta_pol = abs(avg_press / eqt.profiles_1d.volume[end] / (Bpave^2 / 2.0 / 4.0 / pi / 1e-7))
+    eqt.global_quantities.beta_pol = abs(avg_press / (Bpave^2 / 2.0 / constants.μ_0))
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
     eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # rho_tor_norm
-    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (pi * b0)))
+    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * b0)))
     rho_meters = rho[end]
     eqt.profiles_1d.rho_tor = rho
     eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
@@ -419,7 +419,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         ).(eqt.profiles_2d[1].psi * psi_sign)
 
     # rho 2D in meters
-    RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (pi * b0)))
+    RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (π * b0)))
 
     # gm2: <∇ρ²/R²>
     if false
@@ -582,7 +582,7 @@ end
 Integrate quantity over surface
 """
 function surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::T where {T<:Real}
-    return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+    return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2π
 end
 
 """
@@ -591,7 +591,7 @@ end
 Cumulative integrate quantity over surface
 """
 function cumlul_surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
-    return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2pi
+    return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2π
 end
 
 """
@@ -709,28 +709,28 @@ function luce_squareness(
     PO = (r_at_max_z, z_at_max_r)
     PE = (max_r, max_z)
     PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
-    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaou = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetaol
     PO = (r_at_min_z, z_at_max_r)
     PE = (max_r, min_z)
     PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
-    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaol = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetaiu
     PO = (r_at_max_z, z_at_min_r)
     PE = (min_r, max_z)
     PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
-    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaiu = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetail
     PO = (r_at_min_z, z_at_min_r)
     PE = (min_r, min_z)
     PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
-    PC = (cos(pi / 4.0) * (PE[1] - PO[1]) + PO[1], sin(pi / 4.0) * (PE[2] - PO[2]) + PO[2])
+    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     return zetaou, zetaol, zetail, zetaiu

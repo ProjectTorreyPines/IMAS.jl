@@ -42,7 +42,7 @@ Jungpyo Lee, Jeffrey P. Freidberg, Antoine J. Cerfon, Martin Greenwald
 https://doi.org/10.1088%2F1741-4326%2Faa6877
 
 NOTE:
-* γτw is the feedback parameter
+* γτw is the feedback capability parameter and represents how fast a instability is controllable (𝛾 is the instability growth rate and τw is the wall diffusion time)
 * ∆o is the outer gap (NOTE: assumes ∆o = ∆i = 1/3 * ∆v) detemines the relation between κ and δ of the plasma boundary and the κw=(κ+3∆o)(1+∆o) and δw=δ(1+∆o) of the wall boundary
 """
 function optimal_kappa_delta(li::T1, βp::T1, ϵ::T1, γτw::T2, ∆o::T2) where {T1<:Real,T2<:Real}
@@ -70,11 +70,11 @@ function optimal_kappa_delta(li::T1, βp::T1, ϵ::T1, γτw::T2, ∆o::T2) where
     δ_opt = 2.30 * li^1.27 * βp^-0.01 * ϵ^(1.21 − 0.76 * li - 1.22 * βp - 0.001 * γτw + 1.21 * (1.0 + ∆o))
     δ_opt = max(min(δ_opt, maximum(δδ_)), minimum(δδ_))
 
-    k0 = interp1d(δδ_, k0_).(δ_opt)
-    k1 = interp1d(δδ_, k1_).(δ_opt)
-    k_opt = k0 + k1 * ((2.0 * ϵ) / (1.0 + ϵ^2))^2
+    k0 = interp1d(δδ_, k0_, :cubic).(δ_opt)
+    k1 = interp1d(δδ_, k1_, :cubic).(δ_opt)
+    k_max = k0 + k1 * ((2.0 * ϵ) / (1.0 + ϵ^2))^2
 
-    return k_opt, δ_opt
+    return k_max, δ_opt
 end
 
 function optimal_kappa_delta(eqt::IMAS.equilibrium__time_slice, γτw::T, ∆o::T) where {T<:Real}
