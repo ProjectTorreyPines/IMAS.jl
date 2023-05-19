@@ -12,7 +12,7 @@ for n in names(IMASDD; all=true)
         @eval import IMASDD: $n
     end
 end
-import IMASDD: @ddtime, interp1d
+import IMASDD: @ddtime
 
 #= ===== =#
 #= UTILS =#
