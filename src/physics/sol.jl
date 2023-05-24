@@ -90,7 +90,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             midplane_index = crossing_index[2] + 1
 
             # calculate quantities along field line
-            Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, rr, zz)
+            Br, Bz = Br_Bz(PSI_interpolant, rr, zz)
             Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
             Bt = abs.(b0 .* r0 ./ rr)
             dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0)
@@ -260,7 +260,7 @@ function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z
-    return Bp_vector_interpolant(PSI_interpolant, [R_omp], [Z_omp])[1]
+    return Bp(PSI_interpolant, [R_omp], [Z_omp])[1]
 end
 
 """

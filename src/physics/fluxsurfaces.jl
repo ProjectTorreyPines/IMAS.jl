@@ -12,11 +12,11 @@ function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 end
 
 """
-    Br_Bz_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T})
+    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
 
 Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
 """
-function Br_Bz_vector_interpolant(PSI_interpolant, r::Array{T}, z::Array{T}) where {T<:Real}
+function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
     # Check that r and z are the same size
     @assert size(r) == size(z)
     grad = [Interpolations.gradient(PSI_interpolant, r[idx], z[idx]) for idx in CartesianIndices(r)]
@@ -28,17 +28,23 @@ end
 function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     Z, R = meshgrid(z, r)
-    return Br_Bz_vector_interpolant(PSI_interpolant, R, Z)
+    return Br_Bz(PSI_interpolant, R, Z)
 end
 
 """
-    Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T})}
+    Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{T}, z::Vector{T}) where {T<:Real}
 
 Returns Bp evaluated at r and z starting from ψ interpolant
 """
-function Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}) where {T<:Real}
-    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, r, z)
+function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Br, Bz = Br_Bz(PSI_interpolant, r, z)
     return sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
+end
+
+function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    Z, R = meshgrid(z, r)
+    return Bp(PSI_interpolant, R, Z)
 end
 
 """
@@ -283,7 +289,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         eqt.profiles_1d.squareness_upper_inner[k] = ζiu
 
         # poloidal magnetic field (with sign)
-        Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, pr, pz)
+        Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
         Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
         Bp_abs = sqrt.(Bp2)
         Bp = (
@@ -633,7 +639,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
     # refine x-point location
     for rz in eqt.boundary.x_point
         res = Optim.optimize(
-            x -> Bp_vector_interpolant(PSI_interpolant, [rz.r + x[1]], [rz.z + x[2]])[1],
+            x -> Bp(PSI_interpolant, [rz.r + x[1]], [rz.z + x[2]])[1],
             [0.0, 0.0],
             Optim.NelderMead(),
             Optim.Options(g_tol=1E-8),

@@ -258,14 +258,12 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_tor"] =
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_r"] =
     (dim1, dim2; profiles_2d, _...) -> begin
-        dPSIdZ = gradient(dim1, dim2, profiles_2d.psi; dim=2)
-        return dPSIdZ ./ profiles_2d.r ./ 2π
+        return Br_Bz(profiles_2d)[1]
     end
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_z"] =
     (dim1, dim2; profiles_2d, _...) -> begin
-        dPSIdR = gradient(dim1, dim2, profiles_2d.psi; dim=1)
-        return -dPSIdR ./ profiles_2d.r ./ 2π
+        return Br_Bz(profiles_2d)[2]
     end
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =
