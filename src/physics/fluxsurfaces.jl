@@ -457,13 +457,9 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     end
 
     # fix quantities on axis
-    for quantity in [:gm2]
-        eqt.profiles_1d.gm2[1] =
-            Interpolations.cubic_spline_interpolation(
-                to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
-                getproperty(eqt.profiles_1d, quantity)[2:end],
-                extrapolation_bc=Interpolations.Line(),
-            ).(eqt.profiles_1d.psi[1] * psi_sign)
+    for quantity in (:gm2,)
+        value = getproperty(eqt.profiles_1d, quantity)
+        value[1] = Interpolations.cubic_spline_interpolation(to_range(eqt.profiles_1d.psi[2:end]) * psi_sign, value[2:end], extrapolation_bc=Interpolations.Line()).(eqt.profiles_1d.psi[1] * psi_sign)
     end
 
     # find quantities on separatrix
