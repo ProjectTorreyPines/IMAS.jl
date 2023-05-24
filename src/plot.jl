@@ -20,7 +20,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         time = global_time(pfa)
     end
 
-    if what in [:cx, :coils_flux]
+    if what ∈ (:cx, :coils_flux)
         label --> ""
         aspect --> :equal
         colorbar_title --> "PF currents [A]"
@@ -752,7 +752,7 @@ Plot build cross-section
             elseif l.type == Int(_cryostat_)
                 color = :lightgray
             end
-            for nm in ["inner", "outer", "vacuum", "hfs", "lfs", "gap"]
+            for nm in ("inner", "outer", "vacuum", "hfs", "lfs", "gap")
                 name = replace(name, Regex("$(nm) ", "i") => "")
             end
 
@@ -877,7 +877,7 @@ end
 @recipe function plot_core_transport(ct::IMAS.core_transport)
     model_type = name_2_index(ct.model)
     for model in ct.model
-        if model.identifier.index ∈ [model_type[k] for k in [:combined, :unspecified, :transport_solver, :unknown]]
+        if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
         @series begin
@@ -1365,7 +1365,7 @@ end
     end
 
     smcs = parent(stress)
-    for radius in [smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end]]
+    for radius in (smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end])
         @series begin
             seriestype := :vline
             linewidth := linewidth
@@ -1441,7 +1441,7 @@ end
         aspect_ratio --> :equal
         linewidth --> 8
         label --> ""
-        if component in [:norm, :power]
+        if component ∈ (:norm, :power)
             clim --> (0.0, maximum(data))
         else
             linecolor --> :seismic

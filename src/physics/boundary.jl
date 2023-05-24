@@ -84,7 +84,7 @@ function boundary_shape(;
     z3ref = zeros(npts - 1)
     z4ref = zeros(npts - 1)
 
-    for is_upper in [false, true]
+    for is_upper in (false, true)
 
         if is_upper
             ukap = kapu

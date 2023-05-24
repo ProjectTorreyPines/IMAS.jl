@@ -45,20 +45,20 @@ function total_fluxes(ct::IMAS.core_transport, rho_total_fluxes::AbstractVector{
     index_to_name = IMAS.index_2_name(ct.model)
     for model in ct.model
         if index_to_name[model.identifier.index] ∈ skip_flux_list
-            if index_to_name[model.identifier.index] ∈ [:unknown, :unspecified]
+            if index_to_name[model.identifier.index] ∈ (:unknown, :unspecified)
                 @warn "skipped model.identifier.index = $(model.identifier.index), do not use this index"
             end
             continue
         end
         push!(skip_flux_list, index_to_name[model.identifier.index]) # Make sure we don't double count a specific flux type
         m1d = model.profiles_1d[]
-        for sub in [:electrons, :momentum_tor, :total_ion_energy]
+        for sub in (:electrons, :momentum_tor, :total_ion_energy)
             ids1 = m1d
             ids2 = total_fluxes
             if sub == :electrons
                 ids1 = getproperty(ids1, sub)
                 ids2 = getproperty(ids2, sub)
-                iterator = deleteat!(keys(ids1), findall(x -> x ∈ [:electrons, :grid_flux, :time], keys(ids1)))
+                iterator = deleteat!(keys(ids1), findall(x -> x ∈ (:electrons, :grid_flux, :time), keys(ids1)))
             else
                 iterator = [sub]
             end

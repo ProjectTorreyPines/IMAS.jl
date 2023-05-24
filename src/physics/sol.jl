@@ -210,7 +210,7 @@ function flux_expansion(OFL::Vector{OpenFieldLine})
     sol1 = OFL[1]
     sol2 = OFL[2]
     tmp = Float64[]
-    for strike_index in [1, 2]
+    for strike_index in (1, 2)
         if strike_index == 1
             strike_index1 = 1
             strike_index2 = 1

@@ -90,13 +90,13 @@ applied to a matrix
 on both dimensions (dim=0) or only (dim=1) or (dim=2)
 """
 function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:central, dim::Int=0)
-    if dim ∈ [0, 1]
+    if dim ∈ (0, 1)
         d1 = hcat(map(x -> gradient(coord1, x; method), eachcol(arr))...)
         if dim == 1
             return d1
         end
     end
-    if dim ∈ [0, 2]
+    if dim ∈ (0, 2)
         d2 = transpose(hcat(map(x -> gradient(coord2, x; method), eachrow(arr))...))
         if dim == 2
             return d2

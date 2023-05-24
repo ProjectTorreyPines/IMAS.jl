@@ -55,7 +55,7 @@ function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Miss
             element.a = 3.0
             ion.label = String(ion_symbol)
             return ion
-        elseif ion_symbol ∈ [:DT, :TD]
+        elseif ion_symbol ∈ (:DT, :TD)
             element.z_n = 1.0
             element.a = 2.5
             ion.label = String(ion_symbol)
@@ -352,7 +352,7 @@ function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profil
     impu_index = findall(zs .!= 1)
 
     ratios = zeros(length(ions[1].density_thermal), length(ions))
-    for index in [bulk_index, impu_index]
+    for index in (bulk_index, impu_index)
         ntot = zeros(length(ions[1].density_thermal))
         for ix in index
             tmp = ions[ix].density_thermal * sum(avgZ(zs[ix], ions[ix].temperature)) / length(ions[ix].temperature)
@@ -377,14 +377,14 @@ function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profil
     impu.label = "impurity"
 
     # weight different ion quantities based on their density
-    for (index, ion) in [(bulk_index, bulk), (impu_index, impu)]
+    for (index, ion) in ((bulk_index, bulk), (impu_index, impu))
         ion.element[1].z_n = 0.0
         ion.element[1].a = 0.0
         for ix in index # z_average is tricky since it's a single constant for the whole profile
             ion.element[1].z_n += sum(zs[ix] .* ratios[:, ix]) / length(ratios[:, ix])
             ion.element[1].a += sum(as[ix] .* ratios[:, ix]) / length(ratios[:, ix])
         end
-        for item in [:density_thermal, :temperature, :rotation_frequency_tor]
+        for item in (:density_thermal, :temperature, :rotation_frequency_tor)
             value = rho_tor_norm .* 0.0
             IMAS.setraw!(ion, item, value)
             for ix in index

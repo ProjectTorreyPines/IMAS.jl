@@ -148,10 +148,10 @@ function func_nested_layers(layer::IMAS.build__layer, func::Function)
     i = index(layer)
     layers = parent(layer)
     # _in_ layers or plasma
-    if layer.fs ∈ [Int(_in_), Int(_lhfs_)]
+    if layer.fs ∈ (Int(_in_), Int(_lhfs_))
         return func(layer)
         # anular layers
-    elseif layer.fs ∈ [Int(_hfs_), Int(_lfs_)]
+    elseif layer.fs ∈ (Int(_hfs_), Int(_lfs_))
         i = index(layer)
         if layer.fs == Int(_hfs_)
             layer_in = layers[i+1]

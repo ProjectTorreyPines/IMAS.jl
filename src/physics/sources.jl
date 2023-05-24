@@ -625,7 +625,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = cp1d.time
 
-    for prop in [:volume, :area, :surface]
+    for prop in (:volume, :area, :surface)
         value = getproperty(cp1d.grid, prop, missing)
         if value === missing
             for source in core_sources.source
@@ -649,16 +649,16 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
             continue
         end
 
-        if source.identifier.index in [0]
+        if source.identifier.index == 0
             @debug "total_sources() skipping unspecified source with index $(source.identifier.index)"
             continue
         elseif 107 >= source.identifier.index >= 100
             @debug "total_sources() skipping combination source with index $(source.identifier.index)"
             continue
-        elseif (source.identifier.index) in [1] && any(all_indexes .> 1)
+        elseif (source.identifier.index) == 1 && any(all_indexes .> 1)
             @debug "total_sources() skipping total source with index $(source.identifier.index)"
             continue
-        elseif (source.identifier.index) in [200] && any(300 > all_indexes > 200)
+        elseif (source.identifier.index) == 200 && any(300 > all_indexes > 200)
             @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
         elseif exclude_indexes !== missing && source.identifier.index ∈ exclude_indexes
@@ -671,7 +671,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         end
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
         source1d = source.profiles_1d[Float64(cp1d.time)]
-        for sub in [nothing, :electrons]
+        for sub in (nothing, :electrons)
             ids1 = total_source1d
             ids2 = source1d
             if sub !== nothing
@@ -693,7 +693,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     end
 
     # assign zeros to missing fields of total_sources
-    for sub in [nothing, :electrons]
+    for sub in (nothing, :electrons)
         ids1 = total_source1d
         if sub !== nothing
             ids1 = getproperty(ids1, sub)
