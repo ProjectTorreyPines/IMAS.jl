@@ -241,6 +241,40 @@ dyexp["equilibrium.time_slice[:].time"] =
 dyexp["equilibrium.time_slice[:].profiles_1d.psi_norm"] =
     (psi; _...) -> norm01(psi)
 
+
+dyexp["equilibrium.time_slice[:].profiles_2d[:].r"] =
+    (dim1, dim2; _...) -> ones(length(dim2))' .* dim1
+
+dyexp["equilibrium.time_slice[:].profiles_2d[:].z"] =
+    (dim1, dim2; _...) -> dim2' .* ones(length(dim1))
+
+dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_tor"] =
+    (dim1, dim2; time_slice, profiles_2d, _...) -> begin
+        psi = time_slice.profiles_1d.psi
+        fpol = time_slice.profiles_1d.f
+        FPOL = interp1d(psi, fpol, :cubic; extrapolate_0=:flat, extrapolate_1=:flat).(profiles_2d.psi)
+        return FPOL ./ profiles_2d.r
+    end
+
+dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_r"] =
+    (dim1, dim2; profiles_2d, _...) -> begin
+        dPSIdZ = gradient(dim1, dim2, profiles_2d.psi; dim=2)
+        return dPSIdZ ./ profiles_2d.r ./ 2π
+    end
+
+dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_z"] =
+    (dim1, dim2; profiles_2d, _...) -> begin
+        dPSIdR = gradient(dim1, dim2, profiles_2d.psi; dim=1)
+        return -dPSIdR ./ profiles_2d.r ./ 2π
+    end
+
+dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =
+    (dim1, dim2; profiles_2d, _...) -> begin
+        dBrdZ = gradient(dim1, dim2, profiles_2d.b_field_r; dim=2)
+        dBzdR = gradient(dim1, dim2, profiles_2d.b_field_z, dim=1)
+        return (dBrdZ - dBzdR) ./ constants.μ_0
+    end
+
 #= ============ =#
 #  core_sources  #
 #= ============ =#
@@ -351,7 +385,7 @@ dyexp["build.tf.ripple"] =
     (; build, _...) -> tf_ripple(get_build(build, type=_plasma_).end_radius, get_build(build, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
 
 dyexp["build.tf.wedge_thickness"] =
-    (; build, _...) -> 2π * IMAS.get_build(build, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
+    (; build, _...) -> 2π * get_build(build, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
 
 #= ======= =#
 #  costing  #

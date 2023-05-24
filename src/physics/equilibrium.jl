@@ -105,7 +105,7 @@ Flux surfaces should re-traced after this operation.
 NOTE: Use with care! This operation will change the flux surfaces (LCFS included) and as such quantities may change
 """
 function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
-    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
 
     Z1 = (maximum(z) + minimum(z)) / 2.0
     Z0 = eqt.global_quantities.magnetic_axis.z

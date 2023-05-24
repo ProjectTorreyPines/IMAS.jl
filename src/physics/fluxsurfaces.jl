@@ -1,35 +1,43 @@
 using LinearAlgebra
 
 """
-    ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
+    ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
 Returns r, z, and ψ interpolant
 """
-function ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
-    r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1))
-    z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2))
-    return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt.profiles_2d[1].psi)
+function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
+    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length=length(eqt2d.grid.dim1))
+    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length=length(eqt2d.grid.dim2))
+    return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi)
 end
 
 """
-    Br_Bz_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11))
+    Br_Bz_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T})
 
 Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
 """
-function Br_Bz_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11)) where {T<:Real}
-    grad = [Interpolations.gradient(PSI_interpolant, r[k], z[k]) for k in 1:length(r)]
-    Br = [cc.sigma_RpZ * grad[k][2] / r[k] / (2π)^cc.exp_Bp for k in 1:length(r)]
-    Bz = [-cc.sigma_RpZ * grad[k][1] / r[k] / (2π)^cc.exp_Bp for k in 1:length(r)]
+function Br_Bz_vector_interpolant(PSI_interpolant, r::Array{T}, z::Array{T}) where {T<:Real}
+    # Check that r and z are the same size
+    @assert size(r) == size(z)
+    grad = [Interpolations.gradient(PSI_interpolant, r[idx], z[idx]) for idx in CartesianIndices(r)]
+    Br = [grad[idx][2] / r[idx] / (2π) for idx in CartesianIndices(r)]
+    Bz = [-grad[idx][1] / r[idx] / (2π) for idx in CartesianIndices(r)]
     return Br, Bz
 end
 
+function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    Z, R = meshgrid(z, r)
+    return Br_Bz_vector_interpolant(PSI_interpolant, R, Z)
+end
+
 """
-    Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11))}
+    Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T})}
 
 Returns Bp evaluated at r and z starting from ψ interpolant
 """
-function Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}; cc::COCOS=cocos(11)) where {T<:Real}
-    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, r, z; cc)
+function Bp_vector_interpolant(PSI_interpolant, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, r, z)
     return sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
 end
 
@@ -38,7 +46,7 @@ end
 
 Find psi value of the last closed flux surface
 """
-function find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
+function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true)
     dim1 = eqt.profiles_2d[1].grid.dim1
     dim2 = eqt.profiles_2d[1].grid.dim2
     PSI = eqt.profiles_2d[1].psi
@@ -121,9 +129,7 @@ Update flux surface averaged and geometric quantities for a given equilibrum IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
 function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
-    cc = cocos(11)
-
-    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
     PSI = eqt.profiles_2d[1].psi
 
     # upsampling for high-resolution r,z flux surface coordinates
@@ -281,7 +287,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
         Bp_abs = sqrt.(Bp2)
         Bp = (
-            Bp_abs .* cc.sigma_rhotp * cc.sigma_RpZ .*
+            Bp_abs .*
             sign.((pz .- eqt.global_quantities.magnetic_axis.z) .* Br .- (pr .- eqt.global_quantities.magnetic_axis.r) .* Bz)
         )
 
@@ -342,26 +348,23 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         # j_tor = <j_tor/R> / <1/R>
         eqt.profiles_1d.j_tor[k] =
             (
-                -cc.sigma_Bp .* (eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / constants.μ_0) *
-                (2π)^cc.exp_Bp
+                -(eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / constants.μ_0) *
+                (2π)
             ) / eqt.profiles_1d.gm9[k]
 
         # dvolume_dpsi
-        eqt.profiles_1d.dvolume_dpsi[k] = (cc.sigma_rhotp * cc.sigma_Bp * sign(flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)) * int_fluxexpansion_dl * (2π)^(1.0 - cc.exp_Bp))
+        eqt.profiles_1d.dvolume_dpsi[k] = (sign(flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)) * int_fluxexpansion_dl)
 
         # surface area
         eqt.profiles_1d.surface[k] = 2π * sum(pr .* dl)
 
         # q
-        eqt.profiles_1d.q[k] = (
-            cc.sigma_rhotp .* cc.sigma_Bp .* eqt.profiles_1d.dvolume_dpsi[k] .* eqt.profiles_1d.f[k] .* eqt.profiles_1d.gm1[k] ./
-            ((2π)^(2.0 - cc.exp_Bp))
-        )
+        eqt.profiles_1d.q[k] = eqt.profiles_1d.dvolume_dpsi[k] .* eqt.profiles_1d.f[k] .* eqt.profiles_1d.gm1[k] ./ (2π)
 
         # quantities calculated on the last closed flux surface
         if k == length(eqt.profiles_1d.psi)
             # ip
-            eqt.global_quantities.ip = cc.sigma_rhotp * Bpl / constants.μ_0
+            eqt.global_quantities.ip = Bpl / constants.μ_0
 
             # perimeter
             eqt.global_quantities.length_pol = ll[end]
@@ -377,7 +380,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
 
         # phi
-        eqt.profiles_1d.phi[k] = cc.sigma_Bp * cc.sigma_rhotp * integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k]) * (2π)^(1.0 - cc.exp_Bp)
+        eqt.profiles_1d.phi[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
     end
 
     R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
@@ -390,7 +393,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = integrate(eqt.profiles_1d.psi, BPL * (2π)^(1.0 - cc.exp_Bp))
+    Bp2v = integrate(eqt.profiles_1d.psi, BPL)
     eqt.global_quantities.li_3 = 2.0 * Bp2v / r0 / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
@@ -626,7 +629,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         eqt.boundary.x_point[end].z = (pz[index] + zlcfs[indexcfs]) / 2.0
     end
 
-    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
     # refine x-point location
     for rz in eqt.boundary.x_point
         res = Optim.optimize(

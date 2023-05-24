@@ -15,8 +15,8 @@ end
     @series begin
         aspect_ratio --> :equal
         label --> ""
-        colorbar_title := "Connection length [m]"
-        line_z := ofl.s
+        colorbar_title := "log₁₀(Connection length [m] + 1.0)"
+        line_z := log10.(ofl.s.+1)
         ofl.r, ofl.z
     end
 end
@@ -51,7 +51,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     Z0 = eqt.global_quantities.magnetic_axis.z
 
     ############
-    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
     r_wall_midplane, _ = intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z; as_list_of_points=false)
     psi_wall_midplane = PSI_interpolant.(r_wall_midplane, Z0)[1]
     psi__axis_level = eqt.profiles_1d.psi[1]
@@ -256,12 +256,11 @@ end
 Poloidal magnetic field magnitude evaluated at the outer midplane
 """
 function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
-    r, z, PSI_interpolant = ψ_interpolant(eqt)
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
     eq1d = eqt.profiles_1d
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z
-    Br, Bz = Br_Bz_vector_interpolant(PSI_interpolant, [R_omp], [Z_omp])
-    return sqrt(Br[1]^2.0 + Bz[1]^2.0)
+    return Bp_vector_interpolant(PSI_interpolant, [R_omp], [Z_omp])[1]
 end
 
 """
