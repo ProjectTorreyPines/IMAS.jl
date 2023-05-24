@@ -190,27 +190,18 @@ end
         l1_x::AbstractVector{T},
         l1_y::AbstractVector{T},
         l2_x::AbstractVector{T},
-        l2_y::AbstractVector{T};
-        as_list_of_points::Bool=true,
-        return_indexes::Bool=false) where {T<:Real}
+        l2_y::AbstractVector{T}) where {T<:Real}
 
-Intersections between two 2D paths, returns list of (x,y) intersection points
+Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
 """
 function intersection(
     l1_x::AbstractVector{T},
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
-    l2_y::AbstractVector{T};
-    as_list_of_points::Bool=true,
-    return_indexes::Bool=false) where {T<:Real}
+    l2_y::AbstractVector{T}) where {T<:Real}
 
     indexes = NTuple{2,Int}[]
-    if as_list_of_points
-        crossings = NTuple{2,T}[]
-    else
-        crossings_x = T[]
-        crossings_y = T[]
-    end
+    crossings = NTuple{2,T}[]
 
     for k1 = 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
@@ -221,28 +212,12 @@ function intersection(
             crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
             if crossing !== nothing
                 push!(indexes, (k1, k2))
-                if as_list_of_points
-                    push!(crossings, (crossing[1], crossing[2]))
-                else
-                    push!(crossings_x, crossing[1])
-                    push!(crossings_y, crossing[2])
-                end
+                push!(crossings, (crossing[1], crossing[2]))
             end
         end
     end
-    if as_list_of_points
-        if return_indexes
-            return indexes, crossings
-        else
-            return crossings
-        end
-    else
-        if return_indexes
-            return indexes, crossings_x, crossings_y
-        else
-            return crossings_x, crossings_y
-        end
-    end
+
+    return indexes, crossings
 end
 
 function _ccw(A, B, C)

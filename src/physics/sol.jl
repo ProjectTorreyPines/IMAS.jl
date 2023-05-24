@@ -52,7 +52,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     ############
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
-    r_wall_midplane, _ = intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z; as_list_of_points=false)
+    crossings = intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z)[2]
+    r_wall_midplane = [cr[1] for cr in crossings]
     psi_wall_midplane = PSI_interpolant.(r_wall_midplane, Z0)[1]
     psi__axis_level = eqt.profiles_1d.psi[1]
     psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true)
@@ -80,7 +81,9 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             end
 
             # add a point exactly at the (preferably outer) midplane
-            crossing_index, r_midplane, z_midplane = intersection([minimum(wall_r), maximum(wall_r)], [Z0, Z0], rr, zz; as_list_of_points=false, return_indexes=true)
+            crossing_index, crossings = intersection([minimum(wall_r), maximum(wall_r)], [Z0, Z0], rr, zz)
+            r_midplane = [cr[1] for cr in crossings]
+            z_midplane = [cr[2] for cr in crossings]
             outer_index = argmax(r_midplane)
             crossing_index = crossing_index[outer_index]
             r_midplane = r_midplane[outer_index]
@@ -125,7 +128,7 @@ Returns r, z coordinates of open field line contained within wall, as well as an
 """
 function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, R0::Real, Z0::Real) where {T<:AbstractVector{<:Real}}
 
-    indexes, crossings = intersection(r, z, wall_r, wall_z; as_list_of_points=true, return_indexes=true)
+    indexes, crossings = intersection(r, z, wall_r, wall_z)
     r_z_index = [k[1] for k in indexes]
     if length(r_z_index) == 0
         return Float64[], Float64[], Float64[]
@@ -382,7 +385,9 @@ end
 Finds strike points and angles of incidence between two paths
 """
 function find_strike_points(wall_outline_r::T, wall_outline_z::T, pr::T, pz::T) where {T<:AbstractVector{<:Real}}
-    indexes, pvx, pvy = intersection(wall_outline_r, wall_outline_z, pr, pz; as_list_of_points=false, return_indexes=true)
+    indexes, crossings = intersection(wall_outline_r, wall_outline_z, pr, pz)
+    pvx = [cr[1] for cr in crossings]
+    pvy = [cr[2] for cr in crossings]
     angles = intersection_angles(wall_outline_r, wall_outline_z, pr, pz, indexes)
     return pvx, pvy, angles
 end

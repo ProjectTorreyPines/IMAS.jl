@@ -722,28 +722,28 @@ function luce_squareness(
     # zetaou
     PO = (r_at_max_z, z_at_max_r)
     PE = (max_r, max_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaou = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetaol
     PO = (r_at_min_z, z_at_max_r)
     PE = (max_r, min_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaol = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetaiu
     PO = (r_at_max_z, z_at_min_r)
     PE = (min_r, max_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaiu = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetail
     PO = (r_at_min_z, z_at_min_r)
     PE = (min_r, min_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz; as_list_of_points=true)[1]
+    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
