@@ -62,7 +62,16 @@ function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64
     find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision, raise_error_on_not_open)
 end
 
-function find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision=1e-6, raise_error_on_not_open)
+function find_psi_boundary(
+    dim1::Union{AbstractVector{T},AbstractRange{T}},
+    dim2::Union{AbstractVector{T},AbstractRange{T}},
+    PSI::Matrix{T},
+    psi::Union{AbstractVector{T},AbstractRange{T}},
+    R0::T,
+    Z0::T;
+    precision::Float64=1e-6,
+    raise_error_on_not_open::Bool) where {T<:Real}
+
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
     dd = sqrt((dim1[2] - dim1[1])^2 + (dim2[2] - dim2[1])^2)
@@ -111,7 +120,7 @@ Update flux surface averaged and geometric quantities in the equilibrium IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
 function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
-    for time_index in 1:length(eq.time_slice)
+    for time_index in eachindex(eq.time_slice)
         flux_surfaces(eq.time_slice[time_index]; upsample_factor)
     end
     return eq
