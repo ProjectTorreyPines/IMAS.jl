@@ -48,6 +48,49 @@ function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 end
 
 """
+    Jt(PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{T}, z::Vector{T}) where {T<:Real}
+
+Returns j_tor evaluated at r and z starting from ψ interpolant
+"""
+function Jt(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
+    # Check that r and z are the same size
+    @assert size(r) == size(z)
+    grad = [Interpolations.gradient(PSI_interpolant, r[idx], z[idx]) for idx in CartesianIndices(r)]
+    dPSIdR(idx) = grad[idx][1]
+    dPSIdZ(idx) = grad[idx][2]
+    hess = [Interpolations.hessian(PSI_interpolant, r[idx], z[idx]) for idx in CartesianIndices(r)]
+    dPSIdRdR(idx) = hess[idx][1, 1]
+    dPSIdZdZ(idx) = hess[idx][2, 2]
+    dBrdZ = [dPSIdZdZ(idx) / r[idx] / (2π) for idx in CartesianIndices(r)]
+    dBzdR = [-(dPSIdRdR(idx) / r[idx] - dPSIdR(idx) / r[idx]^2) / (2π) for idx in CartesianIndices(r)]
+    return (dBrdZ - dBzdR) ./ constants.μ_0
+end
+
+function Jt(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    Z, R = meshgrid(z, r)
+    Br, Bz = Br_Bz(PSI_interpolant, R, Z)
+
+    Br_interpolant = Interpolations.cubic_spline_interpolation((r, z), Br)
+    Br_grad = [Interpolations.gradient(Br_interpolant, R[idx], Z[idx]) for idx in CartesianIndices(R)]
+    
+    Bz_interpolant = Interpolations.cubic_spline_interpolation((r, z), Bz)
+    Bz_grad = [Interpolations.gradient(Bz_interpolant, R[idx], Z[idx]) for idx in CartesianIndices(R)]
+    
+    #dBrdR(idx) = Br_grad[idx][1]
+    dBrdZ(idx) = Br_grad[idx][2]
+    #dBrdR = [dBrdR(idx) for idx in CartesianIndices(R)]
+    dBrdZ = [dBrdZ(idx) for idx in CartesianIndices(R)]
+
+    dBzdR(idx) = Bz_grad[idx][1]
+    #dBzdZ(idx) = Bz_grad[idx][2]
+    dBzdR = [dBzdR(idx) for idx in CartesianIndices(R)]
+    #dBzdZ = [dBzdZ(idx) for idx in CartesianIndices(R)]
+
+    return (dBrdZ - dBzdR) ./ constants.μ_0
+end
+
+"""
     find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
 
 Find psi value of the last closed flux surface
