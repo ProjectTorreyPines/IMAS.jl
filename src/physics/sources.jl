@@ -1,13 +1,11 @@
 #### REACTIONS ####
+# 
+# D+T→He4   (3.518 MeV)  + n (14.072 MeV) + 17.59MeV
 #
-# D+T   -> He4 (3.518 MeV)  + n (14.072 MeV) + 17.59MeV
+# D+D→He3   (0.8175 MeV) + n (2.4525 MeV) + 3.27MeV
+# D+D→T     (1.0075 MeV) + H (3.0225 MeV) + 4.03MeV
 #
-# D+D   -> He3 (0.8175 MeV) + n (2.4525 MeV) + 3.27MeV
-# D+D   -> T   (1.0075 MeV) + H (3.0225 MeV) + 4.03MeV
-#
-# D+He3 -> He4 (3.66 MeV)   + H (14.64 MeV) + 18.3MeV
-#
-#### REACTIONS ####
+# D+He3→He4 (3.66 MeV)   + H (14.64 MeV) + 18.3MeV
 
 """
     D_T_to_He4_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)

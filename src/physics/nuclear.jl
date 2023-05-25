@@ -1,11 +1,21 @@
+#### REACTIONS ####
+# 
+# D+T→He4   (3.518 MeV)  + n (14.072 MeV) + 17.59MeV
+#
+# D+D→He3   (0.8175 MeV) + n (2.4525 MeV) + 3.27MeV
+# D+D→T     (1.0075 MeV) + H (3.0225 MeV) + 4.03MeV
+#
+# D+He3→He4 (3.66 MeV)   + H (14.64 MeV) + 18.3MeV
+
 """
-    reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_fuel_fraction::Real=0.0)
+    reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fraction::Real=0.0)
 
 Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
+Model can be ["D+T→He4", "D+He3→He4", "D+D→T", "D+D→He3"]")
 """
-function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_fuel_fraction::Real=0.0)
+function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fraction::Real=0.0)
     spf = 1 #default value for non spin polarized fuel
-    if model == "D-T"
+    if model == "D+T→He4"
         # Table VII
         c1 = 1.17302e-9
         c2 = 1.51361e-2
@@ -19,7 +29,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_f
         if polarized_fuel_fraction > 0.0
             spf = 1.5 #spin polarization factor - 1.5 chosen according to GACP 20010393
         end
-    elseif model == "D-He3"
+    elseif model == "D+He3→He4"
         bg = 68.7508
         mc2 = 1124572.0
         c1 = 5.51036e-10
@@ -31,9 +41,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_f
         c7 = 0.0
         er = 18.3e6
         if polarized_fuel_fraction > 0.0
-            spf = 1.5 #also 1.5 for D-He3 according to Kulsrud (1982), PRL 49(17), 1248-1251
+            spf = 1.5 #also 1.5 for D+He3→He4 according to Kulsrud (1982), PRL 49(17), 1248-1251
         end
-    elseif model == "D-DtoT"
+    elseif model == "D+D→T"
         bg = 31.3970
         mc2 = 937814.0
         c1 = 5.65718e-12
@@ -47,7 +57,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_f
         if polarized_fuel_fraction > 0.0
             error("Sorry, spin polarized fuel option is not available for $(model)")
         end
-    elseif model == "D-DtoHe3"
+    elseif model == "D+D→He3"
         bg = 31.3970
         mc2 = 937814.0
         c1 = 5.43360e-12
@@ -62,7 +72,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_f
             error("Sorry, spin polarized fuel option is not available for $(model)")
         end
     else
-        error("Reactivity model can be either [\"D-T\", \"D-He3\", \"D-DtoT\", \"D-DtoHe3\"]")
+        error("Reactivity model can be either [\"D+T→He4\", \"D+He3→He4\", \"D+D→T\", \"D+D→He3\"]")
     end
 
     Ti = Ti ./ 1e3  # from eV to keV
@@ -91,14 +101,14 @@ function D_T_to_He4_reactions(cp1d::IMAS.core_profiles__profiles_1d; polarized_f
         T_index = findfirst(ion -> isequal(ion, "T"), ion_list)
         n_tritium = cp1d.ion[T_index].density
         Ti = (cp1d.ion[D_index].temperature .+ cp1d.ion[T_index].temperature) ./ 2.0
-        sigv = reactivity(Ti, "D-T"; polarized_fuel_fraction)
+        sigv = reactivity(Ti, "D+T→He4"; polarized_fuel_fraction)
         result .= n_deuterium .* n_tritium .* sigv  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
-        n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
+        n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2.0
         Ti = cp1d.ion[DT_index].temperature
-        sigv = reactivity(Ti, "D-T"; polarized_fuel_fraction)
+        sigv = reactivity(Ti, "D+T→He4"; polarized_fuel_fraction)
         result .= n_deuterium .* n_tritium .* sigv  #  reactions/m³/s
     end
 
@@ -118,14 +128,14 @@ function D_D_to_He3_reactions(cp1d::IMAS.core_profiles__profiles_1d)
         D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
         n_deuterium = cp1d.ion[D_index].density
         Ti = cp1d.ion[D_index].temperature
-        sigv = reactivity(Ti, "D-DtoHe3")
+        sigv = reactivity(Ti, "D+D→He3")
         result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
-        n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
+        n_deuterium = cp1d.ion[DT_index].density ./ 2.0
         Ti = cp1d.ion[DT_index].temperature
-        sigv = reactivity(Ti, "D-DtoHe3")
+        sigv = reactivity(Ti, "D+D→He3")
         result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
     end
 
@@ -138,5 +148,23 @@ end
 Calculates the number of D-D thermal fusion reactions to T in [reactions/m³/s]
 """
 function D_D_to_T_reactions(cp1d::IMAS.core_profiles__profiles_1d)
-    return D_D_to_He3_reactions(cp1d)
+    ion_list = (ion.label for ion in cp1d.ion)
+    result = zero(cp1d.electrons.density)
+
+    if "D" in ion_list
+        D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
+        n_deuterium = cp1d.ion[D_index].density
+        Ti = cp1d.ion[D_index].temperature
+        sigv = reactivity(Ti, "D+D→T")
+        result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
+
+    elseif "DT" in ion_list
+        DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
+        n_deuterium = cp1d.ion[DT_index].density ./ 2.0
+        Ti = cp1d.ion[DT_index].temperature
+        sigv = reactivity(Ti, "D+D→T")
+        result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
+    end
+
+    return result
 end
