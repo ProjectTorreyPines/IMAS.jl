@@ -136,7 +136,7 @@ end
 """
     name_2_index(ids::Union{IDS, IDSvector})
 
-returns dict of name to IMAS indentifier.index
+Return dict of name to IMAS indentifier.index
 """
 function name_2_index(ids::Union{IDS,IDSvector})
     return Dict(v => k for (k, v) in index_2_name(ids))
@@ -145,7 +145,7 @@ end
 """
     findfirst(identifier_name::Symbol, ids::IDSvector)
 
-return item from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
+Return item from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
 """
 function Base.findfirst(identifier_name::Symbol, ids::IDSvector)
     i = get(name_2_index(ids), identifier_name, nothing)
@@ -166,7 +166,7 @@ end
 """
     findall(identifier_name::Symbol, ids::IDSvector)
 
-return items from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
+Return items from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
 """
 function Base.findall(identifier_name::Symbol, ids::IDSvector)
     i = get(name_2_index(ids), identifier_name, nothing)
@@ -191,14 +191,14 @@ NOTE: `allow_multiple_matches` will delete all entries matching the conditions.
 
 Returns selected IDS(s)
 """
-function Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol; allow_multiple_matches=false)::T where {T<:IDSvectorElement}
+function Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; allow_multiple_matches=false)::T where {T<:IDSvectorElement}
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
     elseif :identifier in fieldnames(eltype(ids))
-        return resize!(ids, "identifier.index" => i; allow_multiple_matches)
+        return resize!(ids, "identifier.index" => i, conditions...; allow_multiple_matches)
     else
-        return resize!(ids, "index" => i; allow_multiple_matches)
+        return resize!(ids, "index" => i, conditions...; allow_multiple_matches)
     end
     return eltype(haystack)[haystack[index] for index in indexes]
 end
@@ -206,15 +206,15 @@ end
 """
     Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol)::T where {T<:IDSvector}
 
-If one or more entries are found based on `ids.identifier.index` of `index_2_name(ids)`, then their content is emptied
+Deletes all entries that match based on `ids.identifier.index` of `index_2_name(ids)`
 """
-function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol)::T where {T<:IDSvector}
+function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol, conditions::Pair{String}...)::T where {T<:IDSvector}
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
     elseif :identifier in fieldnames(eltype(ids))
-        return deleteat!(ids, "identifier.index" => i)
+        return deleteat!(ids, "identifier.index" => i, conditions...)
     else
-        return deleteat!(ids, "index" => i)
+        return deleteat!(ids, "index" => i, conditions...)
     end
 end

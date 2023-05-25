@@ -508,12 +508,12 @@ dyexp["stability.all_cleared"] =
 #= ======= =#
 #  summary  #
 #= ======= =#
-dyexp["summary.fusion.power.value"] = # NOTE: This is α power
+dyexp["summary.fusion.power.value"] = # NOTE: This is the fusion power that is coupled to the plasma
     (time; dd, summary, _...) -> begin
         type = typeof(summary).parameters[1]
         tmp = type[]
         for time in summary.time
-            push!(tmp, alpha_power(dd.core_profiles.profiles_1d[]))
+            push!(tmp, fusion_plasma_power(dd.core_profiles.profiles_1d[Float64(time)]))
         end
         return tmp
     end
