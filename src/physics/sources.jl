@@ -21,7 +21,7 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :return: τ_s: slowing down time
 """
-function slowing_down_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int) where{S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
+function slowing_down_time(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, mf::T, Zf::Int) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real}
     lnΛ = lnΛ_ei(ne, Te, ni, Ti, mi, Zi)
     ne_cm3 = 1e-6 * ne
     τ_s = 6.27e8 * mf * (Te^1.5) ./ (ne_cm3 * lnΛ * Zf^2)
@@ -146,7 +146,7 @@ function critical_energy(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{
     Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     if !(approximate)
         Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf),
-            (0.5*Ec, 2*Ec))
+            (0.5 * Ec, 2 * Ec))
     end
     return Ec
 end
@@ -312,7 +312,6 @@ end
 
 Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 611.
 """
-
 function reactivity(Ti::AbstractVector{<:Real}, model::String="D-T"; polarized_fuel_fraction::Real=0.0)
     spf = 1 #default value for non spin polarized fuel
     if model == "D-T"
@@ -392,11 +391,20 @@ end
 Volumetric heating source of α particles coming from DT reaction [W m⁻³]
 """
 function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+    fast_helium_energy = 3.5e6 * constants.e  # Joules
+    return D_T_to_He4_reactions(cp1d; polarized_fuel_fraction) .* fast_helium_energy
+end
 
-    fast_helium_energy = 3.5e6 * 1.6022e-19  # Joules
+"""
+    D_T_to_He4_reactions(cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculates the number of D-T thermal fusion reactions to He4 in [reactions/m³/s]
+"""
+function D_T_to_He4_reactions(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
     # Find the right D-T density
-    ion_list = [ion.label for ion in cp1d.ion]
+    ion_list = (ion.label for ion in cp1d.ion)
     result = zero(cp1d.electrons.density)
+
     if "D" in ion_list && "T" in ion_list
         D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
         n_deuterium = cp1d.ion[D_index].density
@@ -404,14 +412,14 @@ function alpha_heating(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fra
         n_tritium = cp1d.ion[T_index].density
         Ti = (cp1d.ion[D_index].temperature .+ cp1d.ion[T_index].temperature) ./ 2.0
         sigv = reactivity(Ti, "D-T"; polarized_fuel_fraction)
-        result .= n_deuterium .* n_tritium .* sigv .* fast_helium_energy  # J/m^3/s = W/m^3
+        result .= n_deuterium .* n_tritium .* sigv  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
         n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2
         Ti = cp1d.ion[DT_index].temperature
         sigv = reactivity(Ti, "D-T"; polarized_fuel_fraction)
-        result .= n_deuterium .* n_tritium .* sigv .* fast_helium_energy  # J/m^3/s = W/m^3
+        result .= n_deuterium .* n_tritium .* sigv  #  reactions/m³/s
     end
 
     return result
@@ -452,14 +460,12 @@ Calculates DT fusion heating with an estimation of the alpha slowing down to the
 """
 function DT_fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     cp1d = cp.profiles_1d[]
-
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
-    α = alpha_heating(cp1d; polarized_fuel_fraction)
-    if sum(α) == 0
-        deleteat!(cs.source, "identifier.index" => 6)
-        return cs
-    end
-    ion_to_electron_fraction = sivukhin_fraction(cp1d, 3.5e6, 4.0)
+
+    eV = 3.5e6
+    reactivity = D_T_to_He4_reactions(cp1d; polarized_fuel_fraction)
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 4.0)
+    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
 
     source = resize!(cs.source, :fusion; allow_multiple_matches=true)
     new_source(
@@ -469,8 +475,8 @@ function DT_fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         cp1d.grid.rho_tor_norm,
         cp1d.grid.volume,
         cp1d.grid.area;
-        electrons_energy=α .* (1.0 .- ion_to_electron_fraction),
-        total_ion_energy=α .* ion_to_electron_fraction
+        electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=energy .* ion_to_electron_fraction
     )
 
     fast_density(cs, cp)
@@ -497,10 +503,11 @@ Calculates the He-3 heating source from D-D fusion reactions, estimates energy t
 """
 function D_D_to_He3_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    he3_energy = 0.82e6 * constants.e  # eV to Joules
+
+    eV = 0.82e6
     reactivity = D_D_to_He3_reactions(cp1d)
-    energy = reactivity .* he3_energy
-    ion_to_electron_fraction = sivukhin_fraction(cp1d, 0.82e6, 3.0)
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 3.0)
+    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
 
     source = resize!(dd.core_sources.source, :fusion; allow_multiple_matches=true)
     new_source(

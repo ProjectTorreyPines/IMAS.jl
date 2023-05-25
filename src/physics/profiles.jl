@@ -55,7 +55,7 @@ function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Miss
             element.a = 3.0
             ion.label = String(ion_symbol)
             return ion
-        elseif ion_symbol ∈ (:DT, :TD)
+        elseif ion_symbol == :DT
             element.z_n = 1.0
             element.a = 2.5
             ion.label = String(ion_symbol)
