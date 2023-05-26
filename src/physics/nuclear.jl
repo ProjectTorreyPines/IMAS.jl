@@ -1,4 +1,3 @@
-#### REACTIONS ####
 # 
 # D+T→He4   (3.518 MeV)  + n (14.072 MeV) + 17.59MeV
 #
@@ -14,7 +13,7 @@ Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 
 Model can be ["D+T→He4", "D+He3→He4", "D+D→T", "D+D→He3"]")
 """
 function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fraction::Real=0.0)
-    spf = 1 #default value for non spin polarized fuel
+    spf = 1.0 # default value for non spin polarized fuel
     if model == "D+T→He4"
         # Table VII
         c1 = 1.17302e-9
@@ -86,6 +85,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
     return ((1.0 .- polarized_fuel_fraction) .+ spf * polarized_fuel_fraction) .* sigv / 1e6  # m^3/s
 end
 
+#===========#
+# REACTIONS #
+#===========#
 """
     D_T_to_He4_reactions(cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -167,4 +169,221 @@ function D_D_to_T_reactions(cp1d::IMAS.core_profiles__profiles_1d)
     end
 
     return result
+end
+
+#=========#
+# SOURCES #
+#=========#
+"""
+    D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+
+Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons, modifies dd.core_sources
+"""
+function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+    cp1d = cp.profiles_1d[]
+    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+
+    name = "D+T→He4"
+    eV = 3.518e6
+    reactivity = D_T_to_He4_reactions(cp1d; polarized_fuel_fraction)
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 4.0)
+    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    source = resize!(cs.source, :fusion, "identifier.name" => name)
+    new_source(
+        source,
+        source.identifier.index,
+        name,
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume,
+        cp1d.grid.area;
+        electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=energy .* ion_to_electron_fraction
+    )
+
+    return source
+end
+
+"""
+    D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+
+Calculates the He-3 heating source from D-D fusion reactions, estimates energy transfer to ions and electrons, modifies dd.core_sources
+"""
+function D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+    cp1d = cp.profiles_1d[]
+
+    name = "D+D→He3"
+    eV = 0.8175e6
+    reactivity = D_D_to_He3_reactions(cp1d)
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 3.0)
+    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    source = resize!(cs.source, :fusion, "identifier.name" => name)
+    new_source(
+        source,
+        source.identifier.index,
+        name,
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume,
+        cp1d.grid.area;
+        electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=energy .* ion_to_electron_fraction
+    )
+    return source
+end
+
+"""
+    D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+
+Calculates the T heating source from D-D fusion reactions, estimates energy transfer to ions and electrons, modifies dd.core_sources
+"""
+function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+    cp1d = cp.profiles_1d[]
+
+    name = "D+D→T"
+    eV = 1.0075e6
+    reactivity = D_D_to_T_reactions(cp1d)
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 3.0)
+    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    source = resize!(cs.source, :fusion, "identifier.name" => name)
+    new_source(
+        source,
+        source.identifier.index,
+        name,
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume,
+        cp1d.grid.area;
+        electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=energy .* ion_to_electron_fraction
+    )
+
+    name = "D+D→H"
+    eV = 3.0225e6
+    reactivity = D_D_to_T_reactions(cp1d)
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 1.0)
+    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    source = resize!(cs.source, :fusion, "identifier.name" => name)
+    new_source(
+        source,
+        source.identifier.index,
+        name,
+        cp1d.grid.rho_tor_norm,
+        cp1d.grid.volume,
+        cp1d.grid.area;
+        electrons_energy=energy .* (1.0 .- ion_to_electron_fraction),
+        total_ion_energy=energy .* ion_to_electron_fraction
+    )
+
+    return source
+end
+
+#========#
+# TOTALS #
+#========#
+"""
+    D_T_to_He4_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+
+Volumetric heating source of He4 particles coming from D-T reactions [W m⁻³]
+"""
+function D_T_to_He4_heating(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+    energy = 3.518e6 * constants.e  # Joules
+    return D_T_to_He4_reactions(cp1d; polarized_fuel_fraction) .* energy
+end
+
+"""
+    D_D_to_He3_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+
+Volumetric heating source of He3 particles coming from D-D reactions [W m⁻³]
+"""
+function D_D_to_He3_heating(cp1d::IMAS.core_profiles__profiles_1d)
+    energy = 0.8175e6 * constants.e  # Joules
+    return D_D_to_He3_reactions(cp1d) .* energy
+end
+
+"""
+    D_D_to_T_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+
+Volumetric heating source of T and H particles coming from D-D reactions [W m⁻³]
+"""
+function D_D_to_T_heating(cp1d::IMAS.core_profiles__profiles_1d)
+    energy = (1.0075e6 + 3.0225e6) * constants.e  # Joules
+    return D_D_to_T_reactions(cp1d) .* energy
+end
+
+"""
+    D_T_to_He4_plasma_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+
+Total power in He4 from D-T reaction [W]
+"""
+function D_T_to_He4_plasma_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
+    return integrate(cp1d.grid.volume, D_T_to_He4_heating(cp1d; polarized_fuel_fraction))
+end
+
+"""
+    D_D_to_He3_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Total power in He3 from D-D reaction [W]
+"""
+function D_D_to_He3_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
+    return integrate(cp1d.grid.volume, D_D_to_He3_heating(cp1d))
+end
+
+"""
+    D_D_to_T_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Total power in T from D-D reaction [W]
+"""
+function D_D_to_T_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
+    return integrate(cp1d.grid.volume, D_D_to_T_heating(cp1d))
+end
+
+function fusion_plasma_power(dd::IMAS.dd)
+    return fusion_plasma_power(dd.core_profiles.profiles_1d[])
+end
+
+"""
+    fusion_plasma_power(cp1d::IMAS.core_profiles)
+
+Calculates the total fusion power in the plasma in [W]
+"""
+function fusion_plasma_power(cp1d::IMAS.core_profiles)
+    cp = parent(parent(cp1d))
+    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+    tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction)
+    tot_pow += D_D_to_He3_plasma_power(cp1d)
+    tot_pow += D_D_to_T_plasma_power(cp1d)
+    return tot_pow
+end
+
+function fusion_power(dd::IMAS.dd)
+    return fusion_power(dd.core_profiles.profiles_1d[])
+end
+
+"""
+    fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculates the total fusion power in [W]
+"""
+function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+    cp = parent(parent(cp1d))
+    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+    tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 5.0
+    tot_pow += D_D_to_He3_plasma_power(cp1d) * 4.0
+    tot_pow += D_D_to_T_plasma_power(cp1d)
+    return tot_pow
+end
+
+function fusion_neutron_power(dd::IMAS.dd)
+    return fusion_neutron_power(dd.core_profiles.profiles_1d[])
+end
+
+"""
+    fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculates the total fusion power in the neutrons [W]
+"""
+function fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
+    cp = parent(parent(cp1d))
+    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+    tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 4.0
+    tot_pow += D_D_to_He3_plasma_power(cp1d) * 3.0
+    return tot_pow
 end
