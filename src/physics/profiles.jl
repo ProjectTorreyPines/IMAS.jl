@@ -34,47 +34,117 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
 end
 
 """
-    ion_element(;ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
+    ion_element!(
+        ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion};
+        ion_z::Union{Missing,Int}=missing,
+        ion_symbol::Union{Missing,Symbol}=missing,
+        ion_name::Union{Missing,String}=missing)
 
-returns a `core_profiles__profiles_1d___ion` structure populated with the element information
+Fills the `ion.element` structure with the a and z_n information
+also updates the `ion.label`
 """
-function ion_element(; ion_z::Union{Missing,Int}=missing, ion_symbol::Union{Missing,Symbol}=missing, ion_name::Union{Missing,String}=missing)
-    ion = IMAS.core_profiles__profiles_1d___ion()
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion};
+    ion_z::Union{Missing,Int}=missing,
+    ion_symbol::Union{Missing,Symbol}=missing,
+    ion_name::Union{Missing,String}=missing)
+
     element = resize!(ion.element, 1)[1]
+
     if !ismissing(ion_z)
-        element_ion = elements[ion_z]
-    elseif !ismissing(ion_symbol)
-        # exceptions: isotopes & lumped (only exceptions allowed for symbols)
-        if ion_symbol == :D
-            element.z_n = 1.0
-            element.a = 2.0
-            ion.label = String(ion_symbol)
-            return ion
-        elseif ion_symbol == :T
-            element.z_n = 1.0
-            element.a = 3.0
-            ion.label = String(ion_symbol)
-            return ion
-        elseif ion_symbol == :DT
-            element.z_n = 1.0
-            element.a = 2.5
-            ion.label = String(ion_symbol)
-            return ion
-        end
-        element_ion = elements[ion_symbol]
-    elseif !ismissing(ion_name)
-        element_ion = elements[ion_name]
-    else
-        error("Specify either ion_z, ion_symbol or ion_name")
+        ion_symbol = elements[ion_z].symbol
     end
+
+    if !ismissing(ion_name)
+        ion_symbol = elements[ion_name].symbol
+    end
+
+    # exceptions: isotopes & lumped (only exceptions allowed for symbols)
+    if ion_symbol ∈ (:D, :H2)
+        element.z_n = 1.0
+        element.a = 2.014
+        ion.label = String(ion_symbol)
+        return ion
+    elseif ion_symbol ∈ (:T, :H3)
+        element.z_n = 1.0
+        element.a = 3.016
+        ion.label = String(ion_symbol)
+        return ion
+    elseif ion_symbol == :DT
+        element.z_n = 1.0
+        element.a = (2.014 + 3.016) / 2.0
+        ion.label = String(ion_symbol)
+        return ion
+    end
+    ion_name, ion_a = match(r"(.*?)(\d*)$", string(ion_symbol))
+    element_ion = elements[Symbol(ion_name)]
     element.z_n = float(element_ion.number)
-    element.a = element_ion.atomic_mass.val # This sets the atomic mass to the average isotope mass with respect to the abundence of that isotope i.e Neon: 20.179
-    ion.label = String(element_ion.symbol)
-    return ion
+    if isempty(ion_a)
+        element.a = element_ion.atomic_mass.val
+    else
+        z = element_ion.number
+        n = parse(Int, ion_a) - z
+        element.a = atomic_mass(z, n)
+    end
+    ion.label = String(ion_symbol)
+
+    return ion.element
+end
+
+"""
+    binding_energy(Z::Int, N::Int)
+
+Return the estimate binding energy in MeV
+"""
+function binding_energy(Z::Int, N::Int)
+    # Constants (in MeV)
+    a_v = 15.8
+    a_s = 18.3
+    a_c = 0.714
+    a_a = 23.2
+
+    # Total number of nucleons
+    A = Z + N
+
+    # Calculate the pairing term
+    if A % 2 != 0
+        δ = 0.0
+    elseif Z % 2 == 0
+        δ = 12.0 / sqrt(A)
+    else
+        δ = -12.0 / sqrt(A)
+    end
+
+    # Calculate the binding energy (in MeV)
+    E = a_v * A - a_s * A^(2 / 3) - a_c * Z * (Z - 1) / A^(1 / 3) - a_a * (N - Z)^2 / A + δ
+
+    return E
+end
+
+"""
+    atomic_mass(Z::Int, N::Int)
+
+Returns the estimated nucleus mass including the estimated effect of binding energy
+"""
+function atomic_mass(Z::Int, N::Int)
+    # Mass of proton and neutron (in amu)
+    mass_proton = IMAS.constants.m_p / IMAS.constants.m_u
+    mass_neutron = IMAS.constants.m_n / IMAS.constants.m_u
+
+    # Conversion factor from MeV/c^2 to atomic mass units (amu)
+    mev_to_amu = IMAS.constants.m_u * IMAS.constants.c^2 / (IMAS.constants.e * 1E6)
+
+    # Estimate binding energy
+    E = binding_energy(Z, N)
+
+    # Calculate mass of nucleus (in amu)
+    mass = Z * mass_proton + N * mass_neutron - E / mev_to_amu
+
+    return mass
 end
 
 function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
-    return 3 / 2 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
+    return 3.0 / 2.0 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
 end
 
 function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
