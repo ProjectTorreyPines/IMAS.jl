@@ -174,35 +174,38 @@ end
 #=========#
 # SOURCES #
 #=========#
+function fusion_particle_source(
+    s1d::IMAS.core_sources__source___profiles_1d,
+    reactivity::Vector{<:Real},
+    in1::Symbol,
+    in2::Symbol,
+    out::Symbol,
+    eV::Float64)
 
-function fusion_particle_source(s1d::IMAS.core_sources__source___profiles_1d, reactivity::Vector{<:Real}, in1::Union{Nothing,Symbol}, in2::Union{Nothing,Symbol}, out1::Union{Nothing,Symbol}, out2::Union{Nothing,Symbol})
+    k = 0
 
-    n = 0
+    if in1 == in2
+        k += 1
+        ion = resize!(s1d.ion, k)[k]
+        ion_element!(ion, in1)
+        ion.particles = -2.0 * reactivity
+    else
+        k += 1
+        ion = resize!(s1d.ion, k)[k]
+        ion_element!(ion, in1)
+        ion.particles = -reactivity
 
-    if in1 !== nothing
-        n += 1
-        ion = resize!(s1d.ion, n)[n]
-        ion_element!(ion; ion_symbol=in1)
+        k += 1
+        ion = resize!(s1d.ion, k)[k]
+        ion_element!(ion, in2)
         ion.particles = -reactivity
     end
 
-    if in2 !== nothing
-        ion = resize!(s1d.ion, n)[n]
-        ion_element!(ion; ion_symbol=in2)
-        ion.particles = -reactivity
-    end
-
-    if out1 !== nothing
-        ion = resize!(s1d.ion, n)[n]
-        ion_element!(ion; ion_symbol=out1)
-        ion.particles = reactivity
-    end
-
-    if out2 !== nothing
-        ion = resize!(s1d.ion, n)[n]
-        ion_element!(ion; ion_symbol=out2)
-        ion.particles = reactivity
-    end
+    k += 1
+    ion = resize!(s1d.ion, k)[k]
+    ion_element!(ion, out; fast=true)
+    ion.particles = reactivity
+    ion.fast_particles_energy = eV
 end
 
 """
@@ -215,10 +218,11 @@ function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
 
     name = "D+T→He4"
-    eV = 3.518e6
+    eV1 = 3.518e6
+    eV2 = 14.072e6
     reactivity = D_T_to_He4_reactions(cp1d; polarized_fuel_fraction)
-    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 4.0)
-    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 4.0)
+    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name)
     new_source(
         source,
@@ -231,7 +235,7 @@ function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity, :D, :T, :He4, nothing)
+    fusion_particle_source(source.profiles_1d[], reactivity, :D, :T, :He4, eV1)
 
     return source
 end
@@ -245,10 +249,11 @@ function D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     cp1d = cp.profiles_1d[]
 
     name = "D+D→He3"
-    eV = 0.8175e6
+    eV1 = 0.8175e6
+    eV2 = 2.4525e6
     reactivity = D_D_to_He3_reactions(cp1d)
-    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 3.0)
-    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 3.0)
+    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name)
     new_source(
         source,
@@ -261,7 +266,7 @@ function D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity, :D, :D, :He3, nothing)
+    fusion_particle_source(source.profiles_1d[], reactivity, :D, :D, :He3, eV1)
 
     return source
 end
@@ -275,10 +280,10 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     cp1d = cp.profiles_1d[]
 
     name = "D+D→T"
-    eV = 1.0075e6
+    eV1 = 1.0075e6
     reactivity = D_D_to_T_reactions(cp1d)
-    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 3.0)
-    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 3.0)
+    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name)
     new_source(
         source,
@@ -291,13 +296,12 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity, :D, nothing, :T, nothing)
+    fusion_particle_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :T, eV1)
 
     name = "D+D→H"
-    eV = 3.0225e6
-    reactivity = D_D_to_T_reactions(cp1d)
-    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV, 1.0)
-    energy = reactivity .* eV * constants.e # J/m^3/s = W/m^3
+    eV2 = 3.0225e6
+    ion_to_electron_fraction = sivukhin_fraction(cp1d, eV2, 1.0)
+    energy = reactivity .* eV2 * constants.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name)
     new_source(
         source,
@@ -310,7 +314,7 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity, :D, nothing, :H, nothing)
+    fusion_particle_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :H, eV2)
 
     return source
 end
