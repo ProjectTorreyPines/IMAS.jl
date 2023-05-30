@@ -33,60 +33,75 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     end
 end
 
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_z::Int;
+    fast::Bool=false)
+    return ion_element!(ion, elements[ion_z].symbol; fast)
+end
+
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_string::AbstractString;
+    fast::Bool=false)
+    return ion_element!(ion, Symbol(ion_string); fast)
+end
+
 """
     ion_element!(
-        ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion};
-        ion_z::Union{Missing,Int}=missing,
-        ion_symbol::Union{Missing,Symbol}=missing,
-        ion_name::Union{Missing,String}=missing)
+        ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+        ion_symbol::Symbol)
 
-Fills the `ion.element` structure with the a and z_n information
-also updates the `ion.label`
+Fills the `ion.element` structure with the a and z_n information, also updates the `ion.label`
 """
 function ion_element!(
-    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion};
-    ion_z::Union{Missing,Int}=missing,
-    ion_symbol::Union{Missing,Symbol}=missing,
-    ion_name::Union{Missing,String}=missing)
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_symbol::Symbol;
+    fast::Bool=false)
 
     element = resize!(ion.element, 1)[1]
 
-    if !ismissing(ion_z)
-        ion_symbol = elements[ion_z].symbol
-    end
+    # H isotopes
+    if ion_symbol ∈ (:H, :H1)
+        element.z_n = 1.0
+        element.a = 1.00797
+        label = "H"
 
-    if !ismissing(ion_name)
-        ion_symbol = elements[ion_name].symbol
-    end
-
-    # exceptions: isotopes & lumped (only exceptions allowed for symbols)
-    if ion_symbol ∈ (:D, :H2)
+    elseif ion_symbol ∈ (:D, :H2)
         element.z_n = 1.0
         element.a = 2.014
-        ion.label = String(ion_symbol)
-        return ion
+        label = "D"
+
     elseif ion_symbol ∈ (:T, :H3)
         element.z_n = 1.0
         element.a = 3.016
-        ion.label = String(ion_symbol)
-        return ion
+        label = "T"
+
     elseif ion_symbol == :DT
         element.z_n = 1.0
         element.a = (2.014 + 3.016) / 2.0
-        ion.label = String(ion_symbol)
-        return ion
-    end
-    ion_name, ion_a = match(r"(.*?)(\d*)$", string(ion_symbol))
-    element_ion = elements[Symbol(ion_name)]
-    element.z_n = float(element_ion.number)
-    if isempty(ion_a)
-        element.a = element_ion.atomic_mass.val
+        label = "DT"
+
     else
-        z = element_ion.number
-        n = parse(Int, ion_a) - z
-        element.a = atomic_mass(z, n)
+        # all other ions
+        ion_name, ion_a = match(r"(.*?)(\d*)$", string(ion_symbol))
+        element_ion = elements[Symbol(ion_name)]
+        element.z_n = float(element_ion.number)
+        if isempty(ion_a)
+            element.a = element_ion.atomic_mass.val
+        else
+            z = element_ion.number
+            n = parse(Int, ion_a) - z
+            element.a = atomic_mass(z, n)
+        end
+        label = "$(ion_name)$(Int(floor(element.a)))"
     end
-    ion.label = String(ion_symbol)
+
+    if fast
+        ion.label = "$(label)_fast"
+    else
+        ion.label = label
+    end
 
     return ion.element
 end
