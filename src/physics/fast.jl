@@ -17,7 +17,7 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :param mf: mass of fast ion [AMU]
 
-:param Zf: fast  ion charge
+:param Zf: fast ion charge
 
 :return: τ_s: slowing down time
 """
@@ -39,7 +39,7 @@ Calculates the slowing down time τ_s for Ti*me/mi < 10Zi^2 eV < Te [Stix, Plasm
 
 :param mf: mass of fast ion [AMU]
 
-:param Zf: fast  ion charge
+:param Zf: fast ion charge
 
 :return: τ_s: slowing down time
 """
@@ -95,7 +95,7 @@ Calculates the difference of the electron and ion drag terms in the collision op
 
 :param mf: mass of fast ion [AMU]
 
-:param Zf: fast  ion charge
+:param Zf: fast ion charge
 
 :return ΔD: drag difference
 """
@@ -137,7 +137,7 @@ Calculate the critical energy by finding the root of the difference between the 
 
 :param mf: mass of fast ion [AMU]
 
-:param Zf: fast  ion charge
+:param Zf: fast ion charge
 
 :param approximate: calculate critical energy assuming lnΛ_fe == lnΛ_fi. For DIII-D a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2 can be used.
 """
@@ -204,46 +204,24 @@ function thermalization_time(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{
 end
 
 """
-    fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_energy::Real=3.5e6, sourceid::Symbol=:fusion)
+    fast_particles!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
 
-Calculates the fast ion density, and adds it to the dd
-
-:param particle_energy: particle energy [eV]
-
-:param sourceid: can be either (:fusion or :nbi)
+Calculates the core_profiles fast ion density and pressures resulting from fast ion sources (fusion, nbi)
 """
-function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_energy::Real=3.5e6, sourceid::Symbol=:fusion)
+function fast_particles!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     cp1d = cp.profiles_1d[]
-    css = cs.source
 
-    ne = cp1d.electrons.density_thermal #electron density profile
+    ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
+
     Npsi = length(ne)
-
-    if sourceid == :fusion
-        particle_specie = "He"
-    elseif sourceid == :nbi
-        particle_species = ["D", "DT"]
-        ion_index = findfirst(ion.label in particle_species for ion in cp1d.ion)
-        particle_specie = cp1d.ion[ion_index].label
-    else
-        error("sourceid can only be `:nbi` or `:fusion`")
-    end
-
     Nions = length(cp1d.ion)
-    ion_index = findfirst(ion.label == particle_specie for ion in cp1d.ion)
-    if ion_index === nothing
-        return
-    end
 
-    particle_mass = cp1d.ion[ion_index].element[1].a
-    particle_charge = Int(cp1d.ion[ion_index].element[1].z_n)
-
+    # prepare inputs for slowing_down_time() and thermalization_time() functions
     ni = zeros(Nions, Npsi)
     Ti = zeros(Nions, Npsi)
     Zi = zeros(Int, Nions)
     mi = zeros(Nions)
-
     for (idx, ion) in enumerate(cp1d.ion)
         ni[idx, :] = ion.density_thermal
         Ti[idx, :] = ion.temperature
@@ -251,28 +229,46 @@ function fast_density(cs::IMAS.core_sources, cp::IMAS.core_profiles; particle_en
         mi[idx] = ion.element[1].a
     end
 
-    taus = zeros(Npsi)
-    taut = zeros(Npsi)
-    for i = 1:Npsi
-        taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
-        taut[i] = thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
+    # empty all fast-ion related quantities
+    for ion in cp1d.ion
+        empty!(ion, :pressure_fast_parallel)
+        empty!(ion, :pressure_fast_perpendicular)
+        empty!(ion, :density_fast)
     end
 
-    cs1ds = findall(sourceid, css)
-    cp1d.ion[ion_index].pressure_fast_parallel = zeros(Npsi)
-    cp1d.ion[ion_index].pressure_fast_perpendicular = zeros(Npsi)
-    cp1d.ion[ion_index].density_fast = zeros(Npsi)
+    # go through sources and look for ones that have ion particles source at given energy
+    for source in cs.source
+        for sion in source.profiles_1d[].ion
+            if !ismissing(sion, :particles) && !ismissing(sion, :fast_particles_energy)
 
-    for cs1d in cs1ds
-        qfaste = cs1d.profiles_1d[].electrons.energy
-        qfasti = cs1d.profiles_1d[].total_ion_energy
-        pressa = taus .* 2.0 ./ 3.0 .* qfaste
+                # find the corresponding thermal ion in core_profiles
+                # NOTE: contribution of non-thermal components in core_profiles comes in through pressure_fast and density_fast
+                cion_label = replace(sion.label, r"_fast$" => "")
+                cindex = findfirst(cion -> cion.label == cion_label || (cion_label ∈ ("D", "T") && cion.label == "DT"), cp1d.ion)
 
-        nfast = (qfaste .+ qfasti) ./ (constants.e .* particle_energy) .* taut
-        cp1d.ion[ion_index].pressure_fast_parallel += pressa ./ 3.0
-        cp1d.ion[ion_index].pressure_fast_perpendicular += pressa ./ 3.0
-        cp1d.ion[ion_index].density_fast += nfast
+                if cindex !== nothing
+                    particle_mass = sion.element[1].a
+                    particle_charge = Int(sion.element[1].z_n)
+                    particle_energy = sion.fast_particles_energy
+
+                    cion = cp1d.ion[cindex]
+
+                    taus = zeros(Npsi)
+                    taut = zeros(Npsi)
+                    for i = 1:Npsi
+                        taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
+                        taut[i] = thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
+                    end
+
+                    pressa = taus .* 2.0 ./ 3.0 .* (sion.particles .* particle_energy .* constants.e)
+                    cion.pressure_fast_parallel += pressa ./ 3.0
+                    cion.pressure_fast_perpendicular += pressa ./ 3.0
+                    cion.density_fast += sion.particles .* taut
+                end
+            end
+        end
     end
+
 end
 
 """

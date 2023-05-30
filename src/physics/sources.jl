@@ -8,7 +8,7 @@ function fusion_source!(dd::IMAS.dd)
     D_T_to_He4_source!(dd.core_sources, dd.core_profiles)
     D_D_to_He3_source!(dd.core_sources, dd.core_profiles)
     D_D_to_T_source!(dd.core_sources, dd.core_profiles)
-    fast_density(dd.core_sources, dd.core_profiles)
+    fast_particles!(dd.core_sources, dd.core_profiles)
 end
 
 """
