@@ -389,22 +389,22 @@ dyexp["build.tf.wedge_thickness"] =
 #  costing  #
 #= ======= =#
 dyexp["costing.cost_direct_capital.system[:].cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.cost for sub in system.subsystem)
+    (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.cost for sub in system.subsystem if !ismissing(sub, :cost))
 
 dyexp["costing.cost_direct_capital.cost"] =
-    (; cost_direct_capital, _...) -> isempty(cost_direct_capital.system) ? 0.0 : sum(sys.cost for sys in cost_direct_capital.system)
+    (; cost_direct_capital, _...) -> isempty(cost_direct_capital.system) ? error("no system") : sum(sys.cost for sys in cost_direct_capital.system if !ismissing(sys, :cost))
 
 dyexp["costing.cost_operations.system[:].yearly_cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.yearly_cost for sub in system.subsystem)
+    (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.yearly_cost for sub in system.subsystem if !ismissing(sub, :yearly_cost))
 
 dyexp["costing.cost_operations.yearly_cost"] =
-    (; cost_operations, _...) -> isempty(cost_operations.system) ? 0.0 : sum(sys.yearly_cost for sys in cost_operations.system)
+    (; cost_operations, _...) -> isempty(cost_operations.system) ?  error("no system") : sum(sys.yearly_cost for sys in cost_operations.system if !ismissing(sys, :yearly_cost))
 
 dyexp["costing.cost_decommissioning.system[:].cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.cost for sub in system.subsystem)
+    (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.cost for sub in system.subsystem if !ismissing(sub, :cost))
 
 dyexp["costing.cost_decommissioning.cost"] =
-    (; cost_decommissioning, _...) -> isempty(cost_decommissioning.system) ? 0.0 : sum(sys.cost for sys in cost_decommissioning.system)
+    (; cost_decommissioning, _...) -> isempty(cost_decommissioning.system) ? error("no system") : sum(sys.cost for sys in cost_decommissioning.system if !ismissing(sys, :cost))
 
 #= ============== =#
 #  BalanceOfPlant  #
