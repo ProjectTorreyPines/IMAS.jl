@@ -461,7 +461,7 @@ function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::
 end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, bd::IMAS.build)
-    wall_outline = get_build(bd, type=_plasma_).outline
+    wall_outline = get_build_layer(bd.layer, type=_plasma_).outline
     find_strike_points!(eqt, wall_outline.r, wall_outline.z)
 end
 

@@ -637,7 +637,7 @@ Plot build cross-section
 
         # everything after first vacuum in _out_
         if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
-            for k in get_build(bd, fs=_out_, return_only_one=false, return_index=true)[2:end]
+            for k in get_build_indexes(bd.layer, fs=_out_)[2:end]
                 if !wireframe
                     @series begin
                         seriestype --> :shape
@@ -666,7 +666,7 @@ Plot build cross-section
 
         # first vacuum in _out_
         if !wireframe
-            k = get_build(bd, fs=_out_, return_only_one=false, return_index=true)[1]
+            k = get_build_indexes(bd.layer, fs=_out_)[1]
             @series begin
                 seriestype --> :shape
                 linewidth := 0.0
@@ -676,8 +676,8 @@ Plot build cross-section
                 join_outlines(
                     bd.layer[k].outline.r,
                     bd.layer[k].outline.z,
-                    get_build(bd, type=_plasma_).outline.r,
-                    get_build(bd, type=_plasma_).outline.z,
+                    get_build_layer(bd.layer, type=_plasma_).outline.r,
+                    get_build_layer(bd.layer, type=_plasma_).outline.z,
                 )
             end
             @series begin
@@ -702,7 +702,7 @@ Plot build cross-section
 
         # all layers inside of the TF
         if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
-            for k in get_build(bd, fs=_in_, return_only_one=false, return_index=true)
+            for k in get_build_indexes(bd.layer, fs=_in_)
                 layer = bd.layer[k]
                 if layer.material != "Vacuum"
                     if !wireframe
@@ -728,7 +728,7 @@ Plot build cross-section
         end
 
         # all layers between the OH and the plasma
-        for k in get_build(bd, fs=_hfs_, return_only_one=false, return_index=true)
+        for k in get_build_indexes(bd.layer, fs=_hfs_)
             l = bd.layer[k]
             l1 = bd.layer[k+1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
@@ -786,7 +786,7 @@ Plot build cross-section
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                get_build(bd, type=_plasma_).outline.r, get_build(bd, type=_plasma_).outline.z
+                get_build_layer(bd.layer, type=_plasma_).outline.r, get_build_layer(bd.layer, type=_plasma_).outline.z
             end
         end
 

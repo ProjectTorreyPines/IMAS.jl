@@ -356,16 +356,16 @@ dyexp["core_sources.vacuum_toroidal_field.r0"] =
 #  build  #
 #= ===== =#
 dyexp["build.layer[:].outline.r"] =
-    (x; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
+    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
 
 dyexp["build.layer[:].outline.z"] =
-    (x; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
+    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
 
 dyexp["build.layer[:].shape"] =
-    (; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape
+    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape
 
 dyexp["build.layer[:].shape_parameters"] =
-    (; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
+    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
 
 dyexp["build.layer[:].start_radius"] =
     (; build, layer_index, _...) -> build_radii(build)[1:end-1][layer_index]
@@ -380,10 +380,10 @@ dyexp["build.layer[:].volume"] =
     (; layer, _...) -> volume(layer)
 
 dyexp["build.tf.ripple"] =
-    (; build, _...) -> tf_ripple(get_build(build, type=_plasma_).end_radius, get_build(build, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
+    (; build, _...) -> tf_ripple(get_build_layer(build.layer, type=_plasma_).end_radius, get_build_layer(build.layer, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
 
 dyexp["build.tf.wedge_thickness"] =
-    (; build, _...) -> 2π * get_build(build, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
+    (; build, _...) -> 2π * get_build_layer(build.layer, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
 
 #= ======= =#
 #  costing  #
