@@ -69,7 +69,7 @@ function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:ce
             out[p] = (arr[p+1] - arr[p]) / dcoord[p]
         end
     else
-        error("difference method $(difference_method) doesn't excist in gradient function")
+        error("difference method $(method) doesn't exist in gradient function")
     end
 
     # backward difference at the end
