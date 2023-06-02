@@ -252,7 +252,7 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_tor"] =
     (dim1, dim2; time_slice, profiles_2d, _...) -> begin
         psi = time_slice.profiles_1d.psi
         fpol = time_slice.profiles_1d.f
-        FPOL = interp1d(psi, fpol, :cubic; extrapolate_0=:flat, extrapolate_1=:flat).(profiles_2d.psi)
+        FPOL = extrap1d(interp1d(psi, fpol, :cubic); first=:flat, last=:flat).(profiles_2d.psi)
         return FPOL ./ profiles_2d.r
     end
 
