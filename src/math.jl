@@ -438,7 +438,7 @@ function minimum_distance_two_shapes(
     ik2 = 0
     for k1 in eachindex(R_obj1)
         for k2 in eachindex(R_obj2)
-            @views d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
             if distance > d
                 ik1 = k1
                 ik2 = k2
@@ -478,7 +478,7 @@ function mean_distance_error_two_shapes(
     for k1 in eachindex(R_obj1)
         distance = Inf
         for k2 in eachindex(R_obj2)
-            d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
             if d < distance
                 distance = d
             end
