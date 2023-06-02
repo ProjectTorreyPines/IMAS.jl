@@ -148,10 +148,10 @@ end
 Calculate area of polygon
 """
 function area(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
-    x1 = x[1:end-1]
-    x2 = x[2:end]
-    y1 = y[1:end-1]
-    y2 = y[2:end]
+    @views x1 = x[1:end-1]
+    @views x2 = x[2:end]
+    @views y1 = y[1:end-1]
+    @views y2 = y[2:end]
     return abs.(sum(x1 .* y2) - sum(y1 .* x2)) ./ 2
 end
 
@@ -433,13 +433,12 @@ function minimum_distance_two_shapes(
     Z_obj2::AbstractVector{<:T};
     return_index::Bool=false) where {T<:Real}
 
-    R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     distance = Inf
     ik1 = 0
     ik2 = 0
     for k1 in eachindex(R_obj1)
         for k2 in eachindex(R_obj2)
-            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            @views d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
             if distance > d
                 ik1 = k1
                 ik2 = k2
@@ -474,13 +473,12 @@ function mean_distance_error_two_shapes(
     above_target::Bool=false,
     below_target::Bool=false) where {T<:Real}
 
-    R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     mean_distance_error = 0.0
     n = 0
     for k1 in eachindex(R_obj1)
         distance = Inf
         for k2 in eachindex(R_obj2)
-            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
             if d < distance
                 distance = d
             end
