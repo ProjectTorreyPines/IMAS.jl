@@ -42,7 +42,7 @@ function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:ce
     if length(coord) != length(arr)
         error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
     end
-    
+
     np = size(arr)[1]
     out = similar(arr)
     dcoord = diff(coord)
@@ -400,9 +400,9 @@ function resample_2d_path(
     s = similar(x)
     s[1] = zero(T)
     for i in 2:length(s)
-        dx = x[i] - x[i - 1]
-        dy = y[i] - y[i - 1]
-        s[i] = s[i - 1] + sqrt(dx^2 + dy^2)
+        dx = x[i] - x[i-1]
+        dy = y[i] - y[i-1]
+        s[i] = s[i-1] + sqrt(dx^2 + dy^2)
     end
 
     if curvature_weight > 0.0
@@ -507,6 +507,49 @@ function mean_distance_error_two_shapes(
         end
     end
     return sqrt(mean_distance_error) / n
+end
+
+function min_mean_distance_error_two_shapes(
+    R_obj1::AbstractVector{<:T},
+    Z_obj1::AbstractVector{<:T},
+    R_obj2::AbstractVector{<:T},
+    Z_obj2::AbstractVector{<:T},
+    target_distance::T;
+    above_target::Bool=false,
+    below_target::Bool=false) where {T<:Real}
+
+    min_distance = Inf
+    mean_distance_error = 0.0
+    n = 0
+
+    for k1 in eachindex(R_obj1)
+        for k2 in eachindex(R_obj2)
+            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+
+            # Calculate minimum distance
+            if min_distance > d
+                min_distance = d
+            end
+
+            # Calculate mean error distance
+            if above_target && d > target_distance
+                mean_distance_error += (d - target_distance)^2
+                n += 1
+            elseif below_target && d < target_distance
+                mean_distance_error += (d - target_distance)^2
+                n += 1
+            else
+                mean_distance_error += (d - target_distance)^2
+                n += 1
+            end
+        end
+    end
+
+    # Return results
+    min_distance = sqrt(min_distance)
+    mean_distance_error = sqrt(mean_distance_error) / n
+
+    return min_distance, mean_distance_error
 end
 
 """
