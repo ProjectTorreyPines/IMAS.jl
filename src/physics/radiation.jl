@@ -200,7 +200,7 @@ function adas21(Te, name)
 
     # Sum the Chebyshev series where T_n(x) = cos[n * arccos(x)]
     s = zero(x)
-    for i in 1:length(coefficients)
+    for i in eachindex(coefficients)
         s = s .+ (coefficients[i] .* cos.((i - 1) .* acos.(x)))
     end
 
