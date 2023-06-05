@@ -39,13 +39,13 @@ The returned gradient hence has the same shape as the input array. https://numpy
 For central difference, the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries
 """
 function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
-    np = size(arr)[1]
-    out = similar(arr)
-    dcoord = diff(coord)
-
     if length(coord) != length(arr)
         error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
     end
+
+    np = size(arr)[1]
+    out = similar(arr)
+    dcoord = diff(coord)
 
     # Forward difference at the beginning
     out[1] = (arr[2] - arr[1]) / dcoord[1]
@@ -69,7 +69,7 @@ function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:ce
             out[p] = (arr[p+1] - arr[p]) / dcoord[p]
         end
     else
-        error("difference method $(difference_method) doesn't excist in gradient function")
+        error("difference method $(method) doesn't exist in gradient function")
     end
 
     # backward difference at the end
@@ -110,10 +110,14 @@ end
 
 Calculates central difference of a vector assuming that the data is equally-spaced
 """
-function centraldiff(y::AbstractVector{<:Real})
-    dy = diff(y) / 2
-    a = [dy[1]; dy]
-    a .+= [dy; dy[end]]
+function centraldiff(y::AbstractVector{<:T}) where {T<:Real}
+    n = length(y)
+    a = similar(y, T, n)
+    a[1] = (y[2] - y[1]) / 2
+    a[n] = (y[n] - y[n-1]) / 2
+    for i in 2:n-1
+        a[i] = (y[i+1] - y[i-1]) / 2
+    end
     return a
 end
 
@@ -134,8 +138,10 @@ Calculate centroid of polygon
 function centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
     dy = diff(y)
     dx = diff(x)
-    x0 = (x[2:end] .+ x[1:end-1]) .* 0.5
-    y0 = (y[2:end] .+ y[1:end-1]) .* 0.5
+    x_shift = view(x, 2:length(x))
+    y_shift = view(y, 2:length(y))
+    x0 = (x_shift .+ x[1:end-1]) .* 0.5
+    y0 = (y_shift .+ y[1:end-1]) .* 0.5
     A = sum(dy .* x0)
     x_c = -sum(dx .* y0 .* x0) ./ A
     y_c = sum(dy .* x0 .* y0) ./ A
@@ -148,10 +154,10 @@ end
 Calculate area of polygon
 """
 function area(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
-    x1 = x[1:end-1]
-    x2 = x[2:end]
-    y1 = y[1:end-1]
-    y2 = y[2:end]
+    @views x1 = x[1:end-1]
+    @views x2 = x[2:end]
+    @views y1 = y[1:end-1]
+    @views y2 = y[2:end]
     return abs.(sum(x1 .* y2) - sum(y1 .* x2)) ./ 2
 end
 
@@ -391,14 +397,20 @@ function resample_2d_path(
     curvature_weight::Float64=0.0,
     method::Symbol=:cubic) where {T<:Real}
 
-    s = cumsum(sqrt.(diff(x) .^ 2 + diff(y) .^ 2))
-    s = vcat(0.0, s)
+    s = similar(x)
+    s[1] = zero(T)
+    for i in 2:length(s)
+        dx = x[i] - x[i-1]
+        dy = y[i] - y[i-1]
+        s[i] = s[i-1] + sqrt(dx^2 + dy^2)
+    end
 
     if curvature_weight > 0.0
         s0 = s[end]
-        s ./= s[end]
-        c = cumsum(abs.(curvature(x, y)))
-        c ./ c[end]
+        s ./= s0
+        c = similar(s)
+        c .= abs.(curvature(x, y))
+        c ./= c[end]
         s .+= (c .* curvature_weight)
         s ./= s[end]
         s .*= s0
@@ -406,7 +418,7 @@ function resample_2d_path(
 
     if n_points === 0
         if step !== 0.0
-            n_points = Integer(ceil(s[end] / step))
+            n_points = ceil(Int, s[end] / step)
         else
             n_points = length(x)
         end
@@ -433,7 +445,6 @@ function minimum_distance_two_shapes(
     Z_obj2::AbstractVector{<:T};
     return_index::Bool=false) where {T<:Real}
 
-    R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     distance = Inf
     ik1 = 0
     ik2 = 0
@@ -474,7 +485,6 @@ function mean_distance_error_two_shapes(
     above_target::Bool=false,
     below_target::Bool=false) where {T<:Real}
 
-    R_obj1, Z_obj1, R_obj2, Z_obj2 = promote(R_obj1, Z_obj1, R_obj2, Z_obj2)
     mean_distance_error = 0.0
     n = 0
     for k1 in eachindex(R_obj1)
@@ -499,25 +509,89 @@ function mean_distance_error_two_shapes(
     return sqrt(mean_distance_error) / n
 end
 
-"""
-    curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:Real}
+function min_mean_distance_error_two_shapes(
+    R_obj1::AbstractVector{<:T},
+    Z_obj1::AbstractVector{<:T},
+    R_obj2::AbstractVector{<:T},
+    Z_obj2::AbstractVector{<:T},
+    target_distance::T;
+    above_target::Bool=false,
+    below_target::Bool=false) where {T<:Real}
 
-Returns curvature of a 2D closed contour 2D path
-"""
-function curvature(pr::AbstractVector{<:T}, pz::AbstractVector{<:T}) where {T<:Real}
-    if (pr[1] == pr[end]) && (pz[1] == pz[end])
-        dr = diff(vcat(pr[end-1], pr, pr[2]))
-        dz = diff(vcat(pz[end-1], pz, pz[2]))
-    else
-        dr = vcat(0.0, diff(pr), 0.0)
-        dz = vcat(0.0, diff(pz), 0.0)
+    min_distance = Inf
+    mean_distance_error = 0.0
+    n = 0
+
+    for k1 in eachindex(R_obj1)
+        for k2 in eachindex(R_obj2)
+            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+
+            # Calculate minimum distance
+            if min_distance > d
+                min_distance = d
+            end
+
+            # Calculate mean error distance
+            if above_target && d > target_distance
+                mean_distance_error += (d - target_distance)^2
+                n += 1
+            elseif below_target && d < target_distance
+                mean_distance_error += (d - target_distance)^2
+                n += 1
+            else
+                mean_distance_error += (d - target_distance)^2
+                n += 1
+            end
+        end
     end
-    a = sqrt.(dr .^ 2.0 .+ dz .^ 2.0) .+ 1E-32
-    dr1 = dr[1:end-1] ./ a[1:end-1]
-    dr2 = dr[2:end] ./ a[2:end]
-    dz1 = dz[1:end-1] ./ a[1:end-1]
-    dz2 = dz[2:end] ./ a[2:end]
-    return dr1 .* dz2 .- dr2 .* dz1
+
+    # Return results
+    min_distance = sqrt(min_distance)
+    mean_distance_error = sqrt(mean_distance_error) / n
+
+    return min_distance, mean_distance_error
+end
+
+"""
+    curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
+
+Calculate the curvature of a 2D path defined by `pr` and `pz` using a finite difference approximation.
+
+The path is assumed to be closed if the first and last points are the same, and open otherwise.
+
+# Arguments
+- `pr`: Real abstract vector representing the r-coordinates of the path.
+- `pz`: Real abstract vector representing the z-coordinates of the path.
+
+# Returns
+- A vector of the same length as `pr` and `pz` with the calculated curvature values.
+
+"""
+function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
+    n = length(pr)
+    curvature_res = Vector{T}(undef, n)
+    dr1, dz1 = if pr[1] == pr[end] && pz[1] == pz[end]
+        pr[end-1] - pr[end], pz[end-1] - pz[end]
+    else
+        0.0, 0.0
+    end
+    a1 = sqrt(dr1^2 + dz1^2) + 1E-32
+    for i in 1:n
+        dr2 = if i < n
+            pr[i+1] - pr[i]
+        else
+            pr[1] - pr[end]
+        end
+        dz2 = if i < n
+            pz[i+1] - pz[i]
+        else
+            pz[1] - pz[end]
+        end
+        a2 = sqrt(dr2^2 + dz2^2) + 1E-32
+        curvature_res[i] = (dr1 / a1) * (dz2 / a2) - (dr2 / a2) * (dz1 / a1)
+        dr1, dz1, a1 = dr2, dz2, a2
+    end
+    return curvature_res
 end
 
 """
@@ -529,7 +603,7 @@ NOTE: negative inverse scale length for typical density/temperature profiles
 """
 function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
     f[findall(ff -> (ff < 1e-32), f)] .= 1e-32
-    itp = interp1d(x, f, :cubic)
+    itp = DataInterpolations.CubicSpline(x, f)
     g = [DataInterpolations.derivative(itp, x0) for x0 in x]
     return g ./ f
 end

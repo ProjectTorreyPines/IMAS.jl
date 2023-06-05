@@ -4,7 +4,7 @@
 Return list of radii in the build
 """
 function build_radii(bd::IMAS.build)
-    layers_radii = Real[]
+    layers_radii = typeof(bd.layer[1].thickness)[]
     layer_start = 0.0
     for l in bd.layer
         push!(layers_radii, layer_start)
@@ -41,43 +41,83 @@ function get_build(
     return_only_one::Bool=true,
     return_index::Bool=false,
     raise_error_on_missing::Bool=true)
+    error("`IMAS.get_build()` is obsolete. Use `get_build_layer()` and `get_build_index()` or `get_build_layers()` and `get_build_indexes()` instead")
+end
 
-    name0 = name
-    if return_index
-        valid_layers = Int[]
-    else
-        valid_layers = IMAS.build__layer[]
-    end
+function get_build_layers(
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,Integer}=nothing,
+    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+    valid_layers = eltype(layers)[]
     for (k, l) in enumerate(layers)
         if (name === nothing || l.name == name) &&
            (type === nothing || l.type == Int(type)) &&
            (identifier === nothing || l.identifier == identifier) &&
            (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.fs in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.fs == Int(fs)))
-            if return_index
-                push!(valid_layers, k)
-            else
-                push!(valid_layers, l)
-            end
-        elseif identifier !== nothing && l.identifier == identifier
-            name0 = l.name
+            push!(valid_layers, l)
         end
     end
+
+    return valid_layers
+end
+
+function get_build_indexes(
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,Integer}=nothing,
+    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+    valid_layers_indexes = Int[]
+    for (k, l) in enumerate(layers)
+        if (name === nothing || l.name == name) &&
+           (type === nothing || l.type == Int(type)) &&
+           (identifier === nothing || l.identifier == identifier) &&
+           (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.fs in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.fs == Int(fs)))
+            push!(valid_layers_indexes, k)
+        end
+    end
+
+    return valid_layers_indexes
+end
+
+function get_build_layer(
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,Integer}=nothing,
+    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+    valid_layers = get_build_layers(layers; type, name, identifier, fs)
+
     if isempty(valid_layers)
-        if raise_error_on_missing
-            error("Did not find build.layer: name=$(repr(name0)) type=$type identifier=$identifier fs=$fs")
-        else
-            return missing
-        end
+        error("Did not find build.layer: name=$(repr(name)) type=$type identifier=$identifier fs=$fs")
+    elseif length(valid_layers) > 1
+        error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier fs:$fs")
     end
-    if return_only_one
-        if length(valid_layers) == 1
-            return valid_layers[1]
-        else
-            error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier fs:$fs")
-        end
-    else
-        return valid_layers
+
+    return valid_layers[1]
+end
+
+function get_build_index(
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,Integer}=nothing,
+    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+    valid_layers_indexes = get_build_indexes(layers; type, name, identifier, fs)
+
+    if isempty(valid_layers_indexes)
+        error("Did not find build.layer: name=$(repr(name)) type=$type identifier=$identifier fs=$fs")
+    elseif length(valid_layers_indexes) > 1
+        error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier fs:$fs")
     end
+
+    return valid_layers_indexes[1]
 end
 
 """
@@ -95,7 +135,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
 
     # start from the first vacuum that goes to zero outside of the TF
     start_from = -1
-    for k in get_build(bd, fs=_out_, return_only_one=false, return_index=true)
+    for k in get_build_indexes(bd.layer, fs=_out_)
         if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
             start_from = k
             break
@@ -129,7 +169,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
             end
         end
     end
-    rlim_oh = get_build(bd, type=_oh_).start_radius
+    rlim_oh = get_build_layer(bd.layer, type=_oh_).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr < rlim_oh
@@ -240,7 +280,7 @@ end
 return outline of first wall
 """
 function first_wall(wall::IMAS.wall)
-    if (!ismissing(wall.description_2d, [1, :limiter, :unit, 1, :outline, :r])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 5)
+    if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 5)
         return wall.description_2d[1].limiter.unit[1].outline
     else
         return missing

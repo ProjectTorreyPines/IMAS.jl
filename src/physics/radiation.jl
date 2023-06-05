@@ -98,7 +98,7 @@ function line_radiation_source!(dd::IMAS.dd)
     for ion in cp1d.ion
         ni = ion.density
         zi = ion.z_ion
-        namei = ion.label
+        namei = string(elements[Int(floor(ion.z_ion))].symbol)
         linerad .+= rad_ion_adas(Te, ne, ni, zi, namei)
     end
 
@@ -184,7 +184,7 @@ function adas21(Te, name)
         coefficients = [-4.883447566291e+01, -8.543314577695e-01, +1.305444973614e+00, -4.830394934711e-01, +1.005512839480e-01, +1.392590190604e-02, -1.980609625444e-02, +5.342857189984e-03, +2.324970825974e-03, -2.466382923947e-03, +1.073116177574e-03, -9.834117466066e-04]
     elseif name == "He"
         coefficients = [-5.128490291648e+01, +7.743125302555e-01, +4.674917416545e-01, -2.087203609904e-01, +7.996303682551e-02, -2.450841492530e-02, +4.177032799848e-03, +1.109529527611e-03, -1.080271138220e-03, +1.914061606095e-04, +2.501544833223e-04, -3.856698155759e-04]
-    elseif name == "H" || name == "D" || name == "T" || name == "DT"
+    elseif name in ("H", "D", "T", "DT")
         # Hydrogen - like ions (H, D, T, DT)
         coefficients = [-5.307012989032e+01, +1.382271913121e+00, +1.111772196884e-01, -3.989144654893e-02, +1.043427394534e-02, -3.038480967797e-03, +5.851591993347e-04, +3.472228652286e-04, -8.418918897927e-05, +3.973067124523e-05, -3.853620366361e-05, +2.005063821667e-04]
     else
@@ -200,7 +200,7 @@ function adas21(Te, name)
 
     # Sum the Chebyshev series where T_n(x) = cos[n * arccos(x)]
     s = zero(x)
-    for i in 1:length(coefficients)
+    for i in eachindex(coefficients)
         s = s .+ (coefficients[i] .* cos.((i - 1) .* acos.(x)))
     end
 

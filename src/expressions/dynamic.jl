@@ -252,7 +252,7 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_tor"] =
     (dim1, dim2; time_slice, profiles_2d, _...) -> begin
         psi = time_slice.profiles_1d.psi
         fpol = time_slice.profiles_1d.f
-        FPOL = interp1d(psi, fpol, :cubic; extrapolate_0=:flat, extrapolate_1=:flat).(profiles_2d.psi)
+        FPOL = extrap1d(interp1d(psi, fpol, :cubic); first=:flat, last=:flat).(profiles_2d.psi)
         return FPOL ./ profiles_2d.r
     end
 
@@ -340,11 +340,26 @@ dyexp["core_sources.source[:].profiles_1d[:].momentum_tor"] =
         gradient(profiles_1d.grid.volume, torque_tor_inside)
     end
 
+
+dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles_inside"] =
+    (rho_tor_norm; profiles_1d, ion, _...) -> begin
+        particles = ion.particles
+        cumul_integrate(profiles_1d.grid.volume, particles)
+    end
+
+dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles"] =
+    (rho_tor_norm; profiles_1d, ion, _...) -> begin
+        particles_inside = ion.particles_inside
+        gradient(profiles_1d.grid.volume, ion.particles_inside)
+    end
+
+
 dyexp["core_sources.source[:].profiles_1d[:].time"] =
     (; core_sources, profiles_1d_index, _...) -> core_sources.time[profiles_1d_index]
 
 dyexp["core_sources.source[:].global_quantities[:].time"] =
     (; core_sources, global_quantities_index, _...) -> core_sources.time[global_quantities_index]
+
 
 dyexp["core_sources.vacuum_toroidal_field.b0"] =
     (time; dd, core_sources, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_sources.time)
@@ -356,16 +371,16 @@ dyexp["core_sources.vacuum_toroidal_field.r0"] =
 #  build  #
 #= ===== =#
 dyexp["build.layer[:].outline.r"] =
-    (x; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
+    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
 
 dyexp["build.layer[:].outline.z"] =
-    (x; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
+    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
 
 dyexp["build.layer[:].shape"] =
-    (; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape
+    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape
 
 dyexp["build.layer[:].shape_parameters"] =
-    (; build, layer, _...) -> get_build(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
+    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
 
 dyexp["build.layer[:].start_radius"] =
     (; build, layer_index, _...) -> build_radii(build)[1:end-1][layer_index]
@@ -380,31 +395,31 @@ dyexp["build.layer[:].volume"] =
     (; layer, _...) -> volume(layer)
 
 dyexp["build.tf.ripple"] =
-    (; build, _...) -> tf_ripple(get_build(build, type=_plasma_).end_radius, get_build(build, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
+    (; build, _...) -> tf_ripple(get_build_layer(build.layer, type=_plasma_).end_radius, get_build_layer(build.layer, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
 
 dyexp["build.tf.wedge_thickness"] =
-    (; build, _...) -> 2π * get_build(build, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
+    (; build, _...) -> 2π * get_build_layer(build.layer, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
 
 #= ======= =#
 #  costing  #
 #= ======= =#
 dyexp["costing.cost_direct_capital.system[:].cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.cost for sub in system.subsystem)
+    (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.cost for sub in system.subsystem if !ismissing(sub, :cost))
 
 dyexp["costing.cost_direct_capital.cost"] =
-    (; cost_direct_capital, _...) -> isempty(cost_direct_capital.system) ? 0.0 : sum(sys.cost for sys in cost_direct_capital.system)
+    (; cost_direct_capital, _...) -> isempty(cost_direct_capital.system) ? error("no system") : sum(sys.cost for sys in cost_direct_capital.system if !ismissing(sys, :cost))
 
 dyexp["costing.cost_operations.system[:].yearly_cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.yearly_cost for sub in system.subsystem)
+    (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.yearly_cost for sub in system.subsystem if !ismissing(sub, :yearly_cost))
 
 dyexp["costing.cost_operations.yearly_cost"] =
-    (; cost_operations, _...) -> isempty(cost_operations.system) ? 0.0 : sum(sys.yearly_cost for sys in cost_operations.system)
+    (; cost_operations, _...) -> isempty(cost_operations.system) ?  error("no system") : sum(sys.yearly_cost for sys in cost_operations.system if !ismissing(sys, :yearly_cost))
 
 dyexp["costing.cost_decommissioning.system[:].cost"] =
-    (; system, _...) -> isempty(system.subsystem) ? 0.0 : sum(sub.cost for sub in system.subsystem)
+    (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.cost for sub in system.subsystem if !ismissing(sub, :cost))
 
 dyexp["costing.cost_decommissioning.cost"] =
-    (; cost_decommissioning, _...) -> isempty(cost_decommissioning.system) ? 0.0 : sum(sys.cost for sys in cost_decommissioning.system)
+    (; cost_decommissioning, _...) -> isempty(cost_decommissioning.system) ? error("no system") : sum(sys.cost for sys in cost_decommissioning.system if !ismissing(sys, :cost))
 
 #= ============== =#
 #  BalanceOfPlant  #
@@ -508,12 +523,12 @@ dyexp["stability.all_cleared"] =
 #= ======= =#
 #  summary  #
 #= ======= =#
-dyexp["summary.fusion.power.value"] = # NOTE: This is α power
+dyexp["summary.fusion.power.value"] = # NOTE: This is the fusion power that is coupled to the plasma
     (time; dd, summary, _...) -> begin
         type = typeof(summary).parameters[1]
         tmp = type[]
         for time in summary.time
-            push!(tmp, alpha_power(dd.core_profiles.profiles_1d[]))
+            push!(tmp, fusion_plasma_power(dd.core_profiles.profiles_1d[Float64(time)]))
         end
         return tmp
     end

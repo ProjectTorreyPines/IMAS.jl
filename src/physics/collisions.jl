@@ -109,7 +109,7 @@ function lnΛ_ii(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::
     N = length(ni)
     type = promote_type(S, P, Q, R, T)
 
-    if beta_D == nothing
+    if beta_D === nothing
         beta_D = zeros(type, N, N)
     else
         if size(beta_D) != (N, N)

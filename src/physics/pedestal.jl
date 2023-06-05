@@ -118,8 +118,8 @@ end
 Finds the pedetal height and width using the EPED1 definition
 returns ped_height, ped_width
 """
-function pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
-    function cost_function(params)
+function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}
+    function cost_function(profile, weight_func, params)
         if any(x -> (x < 0.0), params)
             return 1e10
         end
@@ -135,9 +135,9 @@ function pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVect
     weight_func = zeros(ngrid)
     weight_func[inversion_point_margin:end] .+= 1.0
 
-    width0 = 1 - psi_norm[inversion_point]
-    guess = [interp1d(psi_norm, profile)(1 - 2 * width0), width0]
-    res = Optim.optimize(cost_function, guess, Optim.NelderMead(), Optim.Options(g_tol=1E-5))
+    width0 = 1.0 - psi_norm[inversion_point]
+    guess = [interp1d(psi_norm, profile)(1.0 - 2.0 * width0), width0]
+    res = Optim.optimize(params->cost_function(profile, weight_func, params), guess, Optim.NelderMead(), Optim.Options(g_tol=1E-5))
 
     return res.minimizer
 end
