@@ -340,11 +340,26 @@ dyexp["core_sources.source[:].profiles_1d[:].momentum_tor"] =
         gradient(profiles_1d.grid.volume, torque_tor_inside)
     end
 
+
+dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles_inside"] =
+    (rho_tor_norm; profiles_1d, ion, _...) -> begin
+        particles = ion.particles
+        cumul_integrate(profiles_1d.grid.volume, particles)
+    end
+
+dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles"] =
+    (rho_tor_norm; profiles_1d, ion, _...) -> begin
+        particles_inside = ion.particles_inside
+        gradient(profiles_1d.grid.volume, ion.particles_inside)
+    end
+
+
 dyexp["core_sources.source[:].profiles_1d[:].time"] =
     (; core_sources, profiles_1d_index, _...) -> core_sources.time[profiles_1d_index]
 
 dyexp["core_sources.source[:].global_quantities[:].time"] =
     (; core_sources, global_quantities_index, _...) -> core_sources.time[global_quantities_index]
+
 
 dyexp["core_sources.vacuum_toroidal_field.b0"] =
     (time; dd, core_sources, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_sources.time)
@@ -508,12 +523,12 @@ dyexp["stability.all_cleared"] =
 #= ======= =#
 #  summary  #
 #= ======= =#
-dyexp["summary.fusion.power.value"] = # NOTE: This is α power
+dyexp["summary.fusion.power.value"] = # NOTE: This is the fusion power that is coupled to the plasma
     (time; dd, summary, _...) -> begin
         type = typeof(summary).parameters[1]
         tmp = type[]
         for time in summary.time
-            push!(tmp, alpha_power(dd.core_profiles.profiles_1d[]))
+            push!(tmp, fusion_plasma_power(dd.core_profiles.profiles_1d[Float64(time)]))
         end
         return tmp
     end
