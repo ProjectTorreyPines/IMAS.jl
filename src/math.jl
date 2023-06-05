@@ -603,7 +603,7 @@ NOTE: negative inverse scale length for typical density/temperature profiles
 """
 function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
     f[findall(ff -> (ff < 1e-32), f)] .= 1e-32
-    itp = DataInterpolations.CubicSpline(y, f)
+    itp = DataInterpolations.CubicSpline(x, f)
     g = [DataInterpolations.derivative(itp, x0) for x0 in x]
     return g ./ f
 end
