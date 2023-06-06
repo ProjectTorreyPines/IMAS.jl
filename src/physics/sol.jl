@@ -16,7 +16,7 @@ end
         aspect_ratio --> :equal
         label --> ""
         colorbar_title := "log₁₀(Connection length [m] + 1.0)"
-        line_z := log10.(ofl.s.+1)
+        line_z := log10.(ofl.s .+ 1)
         ofl.r, ofl.z
     end
 end
@@ -188,7 +188,7 @@ function identify_strike_surface(ofl::OpenFieldLine, divertors::IMAS.divertors)
             for (k_target, target) in enumerate(divertor.target)
                 for (k_tile, tile) in enumerate(target.tile)
                     id = (k_divertor, k_target, k_tile)
-                    d = IMAS.point_to_path_distance(ofl.r[strike_index], ofl.z[strike_index], tile.surface_outline.r, tile.surface_outline.z)
+                    d = point_to_path_distance(ofl.r[strike_index], ofl.z[strike_index], tile.surface_outline.r, tile.surface_outline.z)
                     distances[id] = d
                 end
             end
@@ -378,6 +378,22 @@ function widthSOL_eich(dd::IMAS.dd)
     return widthSOL_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
+"""
+    q_pol_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+
+Poloidal heat flux [W/m^2] at the outer midplane based on Eigh λ_q
+"""
+function q_pol_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+    eq1d = eqt.profiles_1d
+    R_omp = eq1d.r_outboard[end]
+    Psol = power_sol(core_sources, cp1d)
+    channel_area = 2π * R_omp * widthSOL_eich(eqt, cp1d, core_sources)
+    return Psol / channel_area
+end
+
+function q_pol_omp_eich(dd::IMAS.dd)
+    return q_pol_omp_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
+end
 
 """
     find_strike_points(wall_outline_r::T, wall_outline_z::T, pr::T, pz::T) where {T<:AbstractVector{<:Real}}
