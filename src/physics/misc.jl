@@ -17,6 +17,24 @@ function volume(coil::IMAS.pf_active__coil)
 end
 
 """
+    ω_pe(ne::Real)
+
+Retunrs electron plasma frequency [rad/s] given electron density in m⁻³
+"""
+function ω_pe(ne::Real)
+    return sqrt(ne * constants.e^2 / (constants.ϵ_0 * constants.m_e))
+end
+
+"""
+    ω_ce(B::Real)
+
+Retunrs electron cyclotron frequency [rad/s] given magnetic field B in T
+"""
+function ω_ce(B::Real)
+    return constants.e * abs(B) / constants.m_e
+end
+
+"""
     elongation_limit(R0_over_a::Real)
 
 Returns elongation limit due to control limit from simple aspect ratio scaling
