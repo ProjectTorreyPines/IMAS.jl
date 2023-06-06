@@ -99,7 +99,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:bop, :Pelectric_net, "MWe", dd -> @ddtime(dd.balance_of_plant.power_electric_net) / 1E6)
     ExtractLibFunction(:bop, :Qplant, "-", dd -> @ddtime(dd.balance_of_plant.Q_plant))
     ExtractLibFunction(:bop, :ηthermal_cycle, "-", dd -> @ddtime(dd.balance_of_plant.thermal_cycle.thermal_efficiency))
-    ExtractLibFunction(:bop, :TBR, "-", dd -> @ddtime(dd.blanket.module[].time_slice[].tritium_breeding_ratio))
+    ExtractLibFunction(:bop, :TBR, "-", dd -> @ddtime(dd.blanket.tritium_breeding_ratio))
 
     ExtractLibFunction(:build, :PF_material, "-", dd -> dd.build.pf_active.technology.material)
     ExtractLibFunction(:build, :OH_material, "-", dd -> dd.build.oh.technology.material)
