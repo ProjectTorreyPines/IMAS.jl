@@ -121,11 +121,11 @@ end
 """
     vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice) 
 
-Returns vacuum R0 and B0
+Returns vacuum R0 and B0 of a given equilibrium time slice
 """
 function vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice)
-    eq = top_ids(IMAS.equilibrium__time_slice())
-    if eq !== nothing
+    eq = top_ids(eqt)
+    if eq !== nothing && !ismissing(eq.vacuum_toroidal_field, :r0) && !ismissing(eq.vacuum_toroidal_field, :b0)
         r0 = eq.vacuum_toroidal_field.r0
         b0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
     else
