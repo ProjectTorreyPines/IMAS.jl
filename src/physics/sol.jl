@@ -400,6 +400,23 @@ function q_pol_omp_eich(dd::IMAS.dd)
 end
 
 """
+    q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+
+Parallel heat flux [W/m^2] at the outer midplane based on Eigh λ_q
+"""
+function q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
+    eq1d = eqt.profiles_1d
+    R0, B0 = vacuum_r0_b0(eqt)
+    R_omp = eq1d.r_outboard[end]
+    Bt_omp = B0 * R0 / R_omp
+    return q_pol_omp_eich(eqt, cp1d, core_sources) / sin(atan(Bpol_omp(eqt) / Bt_omp))
+end
+
+function q_par_omp_eich(dd::IMAS.dd)
+    return q_par_omp_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
+end
+
+"""
     find_strike_points(wall_outline_r::T, wall_outline_z::T, pr::T, pz::T) where {T<:AbstractVector{<:Real}}
 
 Finds strike points and angles of incidence between two paths
