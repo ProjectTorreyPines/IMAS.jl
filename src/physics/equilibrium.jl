@@ -134,3 +134,14 @@ function vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice)
     end
     return r0, b0
 end
+
+"""
+    B0_geo(eqt::IMAS.equilibrium__time_slice) 
+
+Returns vacuum B0 at the plasma geometric center
+"""
+function B0_geo(eqt::IMAS.equilibrium__time_slice)
+    R0, B0 = vacuum_r0_b0(eqt)
+    Rgeo = eqt.boundary.geometric_axis.r
+    return R0 * B0 / Rgeo
+end

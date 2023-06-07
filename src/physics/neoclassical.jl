@@ -77,7 +77,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     nuestar = IMAS.nuestar(eqt, cp1d)
     nuistar = IMAS.nuistar(eqt, cp1d)
 
-    R0, B0 = vacuum_r0_b0(eqt)
+    B0 = B0_geo(eqt)
     ip = eqt.global_quantities.ip
 
     return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, nuestar, nuistar, ip, B0; neo_2021, same_ne_ni)

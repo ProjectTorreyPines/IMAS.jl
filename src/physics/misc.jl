@@ -134,7 +134,7 @@ function scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surf
 end
 
 function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    R0, B0 = vacuum_r0_b0(eqt)
+    B0 = B0_geo(eqt)
     return scaling_L_to_H_power(
         A_effective(cp1d),
         integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
