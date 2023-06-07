@@ -280,6 +280,10 @@ function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__pr
     end
 end
 
+function power_sol(dd::IMAS.dd)
+    return power_sol(dd.core_sources, dd.core_profiles.profiles_1d[])
+end
+
 # ====== #
 # Loarte #
 # ====== #
