@@ -127,22 +127,22 @@ end
 
 L to H transition power scaling for metal walls and isotope effect according to : G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 
-inputs in SI
-returns power in W
+inputs in SI and returns power in W
 """
 function scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
-    return 1e6 * 0.8 * 2.0 / A_effective * 0.049 * (ne_volume / 1e20)^0.72 * B0^0.8 * surface_area^0.94
+    return 1e6 * 0.8 * 2.0 / A_effective * 0.049 * (ne_volume / 1e20)^0.72 * abs(B0)^0.8 * surface_area^0.94
 end
 
-function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary, eq::IMAS.equilibrium)
+function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    R0, B0 = vacuum_r0_b0(eqt)
     return scaling_L_to_H_power(
         A_effective(cp1d),
-        @ddtime(su.volume_average.n_e.value),
-        @ddtime(eq.vacuum_toroidal_field.b0),
-        eq.time_slice[].profiles_1d.surface[end]
+        integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
+        B0,
+        eqt.profiles_1d.surface[end]
     )
 end
 
 function scaling_L_to_H_power(dd::IMAS.dd)
-    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.summary, dd.equilibrium)
+    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
