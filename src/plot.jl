@@ -201,7 +201,7 @@ end
         titlefontsize := 10
         ylim := (0, length(costs))
         label := ""
-        annotation := [(0.0, kk - 0.5, ("   $x  $(titlecase(n,strict=false))", :left, 12)) for (kk, (c, x, n)) in enumerate(reverse(collect(zip(costs, perc, names))))]
+        annotation := [(0.0, kk - 0.5, ("   $x  $(titlecase(n,strict=false))", :left, 12)) for (kk, (c, x, n)) in enumerate(reverse!(collect(zip(costs, perc, names))))]
         annotationvalign := :center
         label := ""
         xticks := 0:1000:1000E3

@@ -216,7 +216,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     FLUXEXPANSION = []
     INT_FLUXEXPANSION_DL = zeros(length(eqt.profiles_1d.psi))
     BPL = zeros(length(eqt.profiles_1d.psi))
-    for (k, psi_level0) in reverse(collect(enumerate(eqt.profiles_1d.psi)))
+    for (k, psi_level0) in reverse!(collect(enumerate(eqt.profiles_1d.psi)))
 
         if k == 1 # on axis flux surface is a synthetic one
             eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2] - (eqt.profiles_1d.elongation[3] - eqt.profiles_1d.elongation[2])
