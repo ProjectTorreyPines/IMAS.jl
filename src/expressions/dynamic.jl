@@ -370,6 +370,13 @@ dyexp["core_sources.vacuum_toroidal_field.r0"] =
 #= ===== =#
 #  build  #
 #= ===== =#
+dyexp["build.layer[:].identifier"] =
+    (; build, layer, _...) -> begin
+        plasma_index = index(get_build_layer(build.layer; type=_plasma_))
+        in_len = length(get_build_layers(build.layer; fs=_in_))
+        return -(index(layer) - plasma_index) * layer.fs
+    end
+
 dyexp["build.layer[:].outline.r"] =
     (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
 
@@ -413,7 +420,7 @@ dyexp["costing.cost_operations.system[:].yearly_cost"] =
     (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.yearly_cost for sub in system.subsystem if !ismissing(sub, :yearly_cost))
 
 dyexp["costing.cost_operations.yearly_cost"] =
-    (; cost_operations, _...) -> isempty(cost_operations.system) ?  error("no system") : sum(sys.yearly_cost for sys in cost_operations.system if !ismissing(sys, :yearly_cost))
+    (; cost_operations, _...) -> isempty(cost_operations.system) ? error("no system") : sum(sys.yearly_cost for sys in cost_operations.system if !ismissing(sys, :yearly_cost))
 
 dyexp["costing.cost_decommissioning.system[:].cost"] =
     (; system, _...) -> isempty(system.subsystem) ? error("no subsystem") : sum(sub.cost for sub in system.subsystem if !ismissing(sub, :cost))
