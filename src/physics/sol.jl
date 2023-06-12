@@ -45,16 +45,16 @@ Returns vectors of hfs and lfs OpenFieldLine
 If levels is a vector, then values should be >0.0 (separatrix) and <1.0 (outer midplane wall)
 """
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20) where {T<:Real}
-    r0, b0 = vacuum_r0_b0(eqt)
+    R0, B0 = vacuum_r0_b0(eqt)
 
-    R0 = eqt.global_quantities.magnetic_axis.r
-    Z0 = eqt.global_quantities.magnetic_axis.z
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
 
     ############
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
-    crossings = intersection([R0, maximum(wall_r)], [Z0, Z0], wall_r, wall_z)[2]
+    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2]
     r_wall_midplane = [cr[1] for cr in crossings]
-    psi_wall_midplane = PSI_interpolant.(r_wall_midplane, Z0)[1]
+    psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1]
     psi__axis_level = eqt.profiles_1d.psi[1]
     psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true)
     psi_sign = sign(psi__boundary_level - psi__axis_level)
@@ -75,13 +75,13 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     for level in levels
         lines = flux_surface(eqt, level, false)
         for (r, z) in lines
-            rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, R0, Z0)
-            if isempty(rr) || all(zz .> Z0) || all(zz .< Z0)
+            rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+            if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
                 continue
             end
 
             # add a point exactly at the (preferably outer) midplane
-            crossing_index, crossings = intersection([minimum(wall_r), maximum(wall_r)], [Z0, Z0], rr, zz)
+            crossing_index, crossings = intersection([minimum(wall_r), maximum(wall_r)], [ZA, ZA], rr, zz)
             r_midplane = [cr[1] for cr in crossings]
             z_midplane = [cr[2] for cr in crossings]
             outer_index = argmax(r_midplane)
@@ -95,14 +95,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             # calculate quantities along field line
             Br, Bz = Br_Bz(PSI_interpolant, rr, zz)
             Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
-            Bt = abs.(b0 .* r0 ./ rr)
+            Bt = abs.(B0 .* R0 ./ rr)
             dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0)
             pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2)
             s = cumsum(pitch .* dp)
             s = abs.(s .- s[midplane_index])
 
             # select HFS or LFS and add line to the list
-            if rr[midplane_index] < R0
+            if rr[midplane_index] < RA
                 OFL = OFL_hfs
             else
                 OFL = OFL_lfs
@@ -122,11 +122,12 @@ function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20)
 end
 
 """
-    line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, R0::Real, Z0::Real) where {T<:AbstractVector{<:Real}}
+    line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
 
 Returns r, z coordinates of open field line contained within wall, as well as angles of incidence at the strike locations
+RA and ZA are the coordinate of the magnetic axis
 """
-function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, R0::Real, Z0::Real) where {T<:AbstractVector{<:Real}}
+function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
 
     indexes, crossings = intersection(r, z, wall_r, wall_z)
     r_z_index = [k[1] for k in indexes]
@@ -146,8 +147,8 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, R0::Real, Z0::Real) 
 
     else
         # closest midplane point (favoring low field side)
-        j0 = argmin(abs.(z .- Z0) .+ (r .< R0))
-        # the closest intersection point (in steps) to z=Z0
+        j0 = argmin(abs.(z .- ZA) .+ (r .< RA))
+        # the closest intersection point (in steps) to z=ZA
         i1 = sortperm(abs.(r_z_index .- j0))[1]
         # the intersection on the other size of the midplane
         j1 = r_z_index[i1]
@@ -166,7 +167,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, R0::Real, Z0::Real) 
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2])
 
     # sort clockwise (COCOS 11)
-    if atan(zz[1] - Z0, rr[1] - R0) > atan(zz[end] - Z0, rr[end] - R0)
+    if atan(zz[1] - ZA, rr[1] - RA) > atan(zz[end] - ZA, rr[end] - RA)
         rr = reverse(rr)
         zz = reverse(zz)
     end

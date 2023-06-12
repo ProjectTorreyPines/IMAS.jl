@@ -133,17 +133,17 @@ Update flux surface averaged and geometric quantities for a given equilibrum IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
 function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
-    r0, b0 = vacuum_r0_b0(eqt)
-    return flux_surfaces(eqt, b0, r0; upsample_factor)
+    R0, B0 = vacuum_r0_b0(eqt)
+    return flux_surfaces(eqt, B0, R0; upsample_factor)
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
+    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
 
-Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, b0 and r0
+Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsample_factor::Int=1)
+function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
     PSI = eqt.profiles_2d[1].psi
 
@@ -402,14 +402,14 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
 
     # vacuum magnetic field at the geometric center
-    Btvac = b0 * r0 / R
+    Btvac = B0 * R0 / R
 
     # average poloidal magnetic field
     Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
     Bp2v = integrate(eqt.profiles_1d.psi, BPL)
-    eqt.global_quantities.li_3 = 2.0 * Bp2v / r0 / (eqt.global_quantities.ip * constants.μ_0)^2
+    eqt.global_quantities.li_3 = 2.0 * Bp2v / R0 / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
     avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
@@ -423,7 +423,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
     eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # rho_tor_norm
-    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * b0)))
+    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * B0)))
     rho_meters = rho[end]
     eqt.profiles_1d.rho_tor = rho
     eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
@@ -437,7 +437,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, b0::Real, r0::Real; upsampl
         ).(eqt.profiles_2d[1].psi * psi_sign)
 
     # rho 2D in meters
-    RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (π * b0)))
+    RHO = sqrt.(abs.(eqt.profiles_2d[1].phi ./ (π * B0)))
 
     # gm2: <∇ρ²/R²>
     if false
