@@ -136,6 +136,84 @@ function vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice)
 end
 
 """
+    vacuum_r0_b0_time(dd::IMAS.dd) 
+
+Returns R0 as well as B0, and time arrays
+
+This function solves the issue that in IMAS the information about R0 and B0 is replicated across different IDSs
+"""
+function vacuum_r0_b0_time(dd::IMAS.dd)
+    source = Set{Symbol}()
+
+    # R0
+    if hasfield(typeof(dd), :tf) && !ismissing(dd.tf, :r0)
+        R0 = dd.tf.r0
+        push!(source, :tf)
+    else
+        for (name, ids) in dd
+            if hasfield(typeof(ids), :vacuum_toroidal_field)
+                if !ismissing(ids.vacuum_toroidal_field, :r0)
+                    R0 = ids.vacuum_toroidal_field.r0
+                    push!(source, name)
+                    break
+                end
+            end
+        end
+    end
+
+    # B0 and time
+    # from: tf
+    if hasfield(typeof(dd), :tf) && !ismissing(dd.tf.b_field_tor_vacuum_r, :data)
+        B0 = dd.tf.b_field_tor_vacuum_r.data / R0
+        time = dd.tf.b_field_tor_vacuum_r.data
+        push!(source, :tf)
+
+        # from: pulse_schedule
+    elseif !ismissing(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
+        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data / R0
+        time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time
+        push!(source, :pulse_schedule)
+
+        # from: all other IDSs that have that info
+    else
+        B0 = typeof(dd).parameters[1][]
+        time = Float64[]
+        for (name, ids) in dd
+            if hasfield(typeof(ids), :vacuum_toroidal_field)
+                if !ismissing(ids.vacuum_toroidal_field, :b0) && !ismissing(ids, :time)
+                    B0_ = ids.vacuum_toroidal_field.b0
+                    time_ = ids.time
+                    append!(time, time_)
+                    append!(B0, B0_)
+                    reps = length(time_) - length(B0_)
+                    append!(B0, [B0_[end] for k in 1:reps])
+                    push!(source, name)
+                end
+            end
+        end
+        index = unique_indices(time)
+        B0 = B0[index]
+        time = time[index]
+    end
+    return R0, B0, time, source
+end
+
+"""
+    vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64}) 
+
+Returns R0 and B0 interpolated at a given set of times
+"""
+function vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64})
+    R0, B0, time, source = vacuum_r0_b0_time(dd)
+    return R0, extrap1d(IMAS.IMASDD.interp1d_itp(time, B0); first=:flat, last=:flat).(time0)
+end
+
+function vacuum_r0_b0_time(dd::IMAS.dd, time0::Float64)
+    R0, B0 = vacuum_r0_b0_time(dd, [time0])
+    return R0, B0[1]
+end
+
+"""
     B0_geo(eqt::IMAS.equilibrium__time_slice) 
 
 Returns vacuum B0 at the plasma geometric center

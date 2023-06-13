@@ -117,22 +117,22 @@ dyexp["core_profiles.profiles_1d[:].time"] =
     (; core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
 
 dyexp["core_profiles.vacuum_toroidal_field.b0"] =
-    (time; dd, core_profiles, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_profiles.time)
+    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
 
 dyexp["core_profiles.vacuum_toroidal_field.r0"] =
-    (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
+    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
 
 #= ============ =#
 # core_transport #
 #= ============ =#
-dyexp["core_profiles.profiles_1d[:].time"] =
-    (; core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
+dyexp["core_transport.model[:].profiles_1d[:].time"] =
+    (; core_transport, profiles_1d_index, _...) -> core_transport.time[profiles_1d_index]
 
-dyexp["core_profiles.vacuum_toroidal_field.b0"] =
-    (time; dd, core_profiles, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_profiles.time)
+dyexp["core_transport.vacuum_toroidal_field.b0"] =
+    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
 
-dyexp["core_profiles.vacuum_toroidal_field.r0"] =
-    (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
+dyexp["core_transport.vacuum_toroidal_field.r0"] =
+    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
 
 #= ========= =#
 # equilibrium #
@@ -242,6 +242,13 @@ dyexp["equilibrium.time_slice[:].profiles_1d.psi_norm"] =
     (psi; _...) -> norm01(psi)
 
 
+dyexp["equilibrium.vacuum_toroidal_field.b0"] =
+    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
+
+dyexp["equilibrium.vacuum_toroidal_field.r0"] =
+    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
+
+# 2D
 dyexp["equilibrium.time_slice[:].profiles_2d[:].r"] =
     (dim1, dim2; _...) -> ones(length(dim2))' .* dim1
 
@@ -362,10 +369,10 @@ dyexp["core_sources.source[:].global_quantities[:].time"] =
 
 
 dyexp["core_sources.vacuum_toroidal_field.b0"] =
-    (time; dd, core_sources, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(core_sources.time)
+    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
 
 dyexp["core_sources.vacuum_toroidal_field.r0"] =
-    (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
+    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
 
 #= ===== =#
 #  build  #
@@ -544,13 +551,13 @@ dyexp["summary.global_quantities.ip.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.ip for time in summary.time]
 
 dyexp["summary.global_quantities.b0.value"] =
-    (time; dd, summary, _...) -> interp1d(dd.equilibrium.time, dd.equilibrium.vacuum_toroidal_field.b0, :constant).(summary.time)
+    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
 
 dyexp["summary.global_quantities.beta_tor_norm.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_normal for time in summary.time]
 
 dyexp["summary.global_quantities.r0.value"] =
-    (; dd, summary, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
+    (; dd, summary, _...) -> vacuum_r0_b0_time(dd)[1]
 
 dyexp["summary.global_quantities.current_bootstrap.value"] =
     (time; dd, summary, _...) -> begin
