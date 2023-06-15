@@ -20,6 +20,9 @@ const dynamic_expressions = dyexp = Dict{String,Function}()
 #= =========== =#
 # core_profiles #
 #= =========== =#
+
+#  core_profiles.profiles_1d  #
+
 dyexp["core_profiles.profiles_1d[:].electrons.density"] =
     (rho_tor_norm; electrons, _...) -> electrons.density_thermal .+ electrons.density_fast
 
@@ -116,11 +119,22 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
 dyexp["core_profiles.profiles_1d[:].time"] =
     (; core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
 
+#  core_profiles.vacuum_toroidal_field  #
+
 dyexp["core_profiles.vacuum_toroidal_field.b0"] =
     (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
 
 dyexp["core_profiles.vacuum_toroidal_field.r0"] =
     (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
+
+#  core_profiles.global_quantities  #
+
+dyexp["core_profiles.global_quantities.current_non_inductive"] =
+    (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_non_inductive) for time in core_profiles.time]
+
+    dyexp["core_profiles.global_quantities.current_bootstrap"] =
+    (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
+
 
 #= ============ =#
 # core_transport #
