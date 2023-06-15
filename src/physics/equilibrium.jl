@@ -146,13 +146,13 @@ function vacuum_r0_b0_time(dd::IMAS.dd)
     source = Set{Symbol}()
 
     # R0
-    if hasfield(typeof(dd), :tf) && !ismissing(dd.tf, :r0)
+    if hasfield(typeof(dd), :tf) && isfilled(dd.tf, :r0)
         R0 = dd.tf.r0
         push!(source, :tf)
     else
         for (name, ids) in dd
             if hasfield(typeof(ids), :vacuum_toroidal_field)
-                if !ismissing(ids.vacuum_toroidal_field, :r0)
+                if isfilled(ids.vacuum_toroidal_field, :r0)
                     R0 = ids.vacuum_toroidal_field.r0
                     push!(source, name)
                     break
@@ -163,13 +163,13 @@ function vacuum_r0_b0_time(dd::IMAS.dd)
 
     # B0 and time
     # from: tf
-    if hasfield(typeof(dd), :tf) && !ismissing(dd.tf.b_field_tor_vacuum_r, :data)
+    if hasfield(typeof(dd), :tf) && isfilled(dd.tf.b_field_tor_vacuum_r, :data)
         B0 = dd.tf.b_field_tor_vacuum_r.data / R0
         time = dd.tf.b_field_tor_vacuum_r.data
         push!(source, :tf)
 
         # from: pulse_schedule
-    elseif !ismissing(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
+    elseif isfilled(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
         B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data / R0
         time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time
         push!(source, :pulse_schedule)
@@ -180,7 +180,7 @@ function vacuum_r0_b0_time(dd::IMAS.dd)
         time = Float64[]
         for (name, ids) in dd
             if hasfield(typeof(ids), :vacuum_toroidal_field)
-                if !ismissing(ids.vacuum_toroidal_field, :b0) && !ismissing(ids, :time)
+                if isfilled(ids.vacuum_toroidal_field, :b0) && isfilled(ids, :time)
                     B0_ = ids.vacuum_toroidal_field.b0
                     time_ = ids.time
                     append!(time, time_)
