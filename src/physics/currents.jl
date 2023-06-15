@@ -105,7 +105,7 @@ function JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap::Bool, eqt::IMAS.e
     end
 end
 
-function Jpar_2_Jtor(rho_tor_norm, Jpar, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+function Jpar_2_Jtor(rho_tor_norm::Vector{<:Real}, Jpar::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     eq = top_ids(eqt)
     B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
     JparB = Jpar .* B0
@@ -115,7 +115,7 @@ function Jpar_2_Jtor(rho_tor_norm, Jpar, includes_bootstrap::Bool, eqt::IMAS.equ
     return Jtor
 end
 
-function Jtor_2_Jpar(rho_tor_norm, Jtor, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
     JtoR = Jtor .* interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
     JparB = JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap, eqt)
