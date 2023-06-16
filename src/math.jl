@@ -409,8 +409,8 @@ function resample_2d_path(
         s0 = s[end]
         s ./= s0
         c = similar(s)
-        c .= abs.(curvature(x, y))
-        c ./= c[end]
+        c = abs.(curvature(x, y))
+        c ./= maximum(c)
         s .+= (c .* curvature_weight)
         s ./= s[end]
         s .*= s0
