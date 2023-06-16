@@ -24,14 +24,11 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp::IMAS.core_p
 
     if !ismissing(getproperty(cpglobal,:ip, missing))
         I_ohmic_par_guess = @ddtime(cpglobal.ip) - @ddtime(cpglobal.current_non_inductive)
-        @show "1", I_ohmic_par_guess
     else
         j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
         I_ohmic_tor = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
         I_tor_2_par = integrate(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, fill(I_ohmic_tor, size(cp1d.grid.rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
         I_ohmic_par_guess = I_ohmic_tor .* I_tor_2_par
-        @show "2", I_ohmic_par_guess
-
     end
 
     j_oh_par_norm .*= sign(I_ohmic_par_guess)
