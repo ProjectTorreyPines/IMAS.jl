@@ -135,6 +135,8 @@ dyexp["core_profiles.global_quantities.current_non_inductive"] =
 dyexp["core_profiles.global_quantities.current_bootstrap"] =
     (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
 
+dyexp["core_profiles.global_quantities.ip"] =
+    (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_tor) for time in core_profiles.time]
 
 #= ============ =#
 # core_transport #
