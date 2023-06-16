@@ -94,7 +94,7 @@ end
 Returns tuple of vectors with the total thermal power and time_array for given set of sources selected by identifier.index
 """
 function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vector{<:Integer})
-    sources = []
+    sources = IMAS.core_sources__source[]
     for index in include_indexes
         append!(sources, findall(core_sources.source, "identifier.index" => index))
     end
@@ -106,16 +106,18 @@ function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vect
     return total_power, time_array
 end
 
-function total_sources(dd::IMAS.dd)
-    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[])
+function total_sources(dd::IMAS.dd; kw...)
+    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[]; kw...)
 end
 
 """
     total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
 
-Returns core_sources__source___profiles_1d with sources totals and possiblity to explicitly include/exclude certain sources based on their unique index identifier.
+Returns core_sources__source___profiles_1d with sources totals and possiblity to
+* include/exclude certain sources based on their unique index identifier
+* include only certain fields
 """
-function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
+function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes::Vector{Int}=Int[], exclude_indexes::Vector{Int}=Int[], fields::Vector{Symbol}=Symbol[])
     total_source1d = IMAS.core_sources__source___profiles_1d()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = cp1d.time
@@ -138,9 +140,9 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
     all_indexes = [source.identifier.index for source in core_sources.source]
 
     for source in core_sources.source
-        if include_indexes !== missing && source.identifier.index ∈ include_indexes
+        if isempty(include_indexes) || source.identifier.index ∈ include_indexes
             # pass
-        elseif include_indexes !== missing
+        else
             continue
         end
 
@@ -156,7 +158,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         elseif (source.identifier.index) == 200 && any(300 > all_indexes > 200)
             @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
-        elseif exclude_indexes !== missing && source.identifier.index ∈ exclude_indexes
+        elseif source.identifier.index ∈ exclude_indexes
             continue
         end
         source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
@@ -174,14 +176,16 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                 ids2 = getproperty(ids2, sub)
             end
             for field in keys(ids1)
-                y = getproperty(ids2, field, missing)
-                if typeof(y) <: AbstractVector{<:Real}
-                    if typeof(getraw(ids1, field)) <: Union{Missing,Function}
-                        setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
+                if isempty(fields) || field ∈ fields
+                    y = getproperty(ids2, field, missing)
+                    if typeof(y) <: AbstractVector{<:Real}
+                        if typeof(getraw(ids1, field)) <: Union{Missing,Function}
+                            setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
+                        end
+                        old_value = getproperty(ids1, field)
+                        x = source1d.grid.rho_tor_norm
+                        setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
                     end
-                    old_value = getproperty(ids1, field)
-                    x = source1d.grid.rho_tor_norm
-                    setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
                 end
             end
         end

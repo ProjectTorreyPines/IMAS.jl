@@ -273,7 +273,7 @@ end
 Total power coming out of the SOL [W]
 """
 function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-    p_sol = total_power_source(total_sources(core_sources, cp1d))
+    p_sol = total_power_source(total_sources(core_sources, cp1d; fields=[:power_inside, :total_ion_power_inside]))
     if p_sol < 0.0
         return 0.0
     else

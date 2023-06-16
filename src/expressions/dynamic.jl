@@ -105,7 +105,7 @@ dyexp["core_profiles.profiles_1d[:].j_ohmic"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
 dyexp["core_profiles.profiles_1d[:].j_non_inductive"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; exclude_indexes=[7, 13]).j_parallel .+ profiles_1d.j_bootstrap
+    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; exclude_indexes=[7, 13], fields=[:j_parallel]).j_parallel .+ profiles_1d.j_bootstrap
 
 dyexp["core_profiles.profiles_1d[:].j_total"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> profiles_1d.j_ohmic .+ profiles_1d.j_non_inductive
@@ -132,7 +132,7 @@ dyexp["core_profiles.vacuum_toroidal_field.r0"] =
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
     (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_non_inductive) for time in core_profiles.time]
 
-    dyexp["core_profiles.global_quantities.current_bootstrap"] =
+dyexp["core_profiles.global_quantities.current_bootstrap"] =
     (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
 
 

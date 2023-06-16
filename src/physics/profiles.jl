@@ -173,10 +173,10 @@ Evaluate thermal energy confinement time
 
 NOTE: power losses due to radiation are neglected, as done for tau_e_h98 scaling
 """
-function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
-    total_source = total_sources(sources, cp1d)
+function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    return energy_thermal(cp1d) / (total_power_inside - radiation_losses(sources))
+    return energy_thermal(cp1d) / (total_power_inside - radiation_losses(cs))
 end
 
 
@@ -193,7 +193,7 @@ end
 H98y2 ITER elmy H-mode confinement time scaling
 """
 function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
-    total_source = total_sources(cs, cp1d)
+    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
         integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) / integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
@@ -227,7 +227,7 @@ end
 Petty's 2003 confinement time scaling
 """
 function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
-    total_source = total_sources(cs, cp1d)
+    total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
         integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) / integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
