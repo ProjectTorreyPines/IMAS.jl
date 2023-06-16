@@ -3,13 +3,36 @@
 
 Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
-function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp::IMAS.core_profiles, allow_floating_plasma_current::Bool)
+    cp1d = cp.profiles_1d[]
+    cpglobal = cp.global_quantities
     j_oh_par_norm = cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
 
-    j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
-    I_ohmic_tor = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
-    I_tor_2_par = integrate(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, fill(I_ohmic_tor, size(cp1d.grid.rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
-    I_ohmic_par_guess = I_ohmic_tor .* I_tor_2_par
+    # Match either core_profiles ip or equilibrium ip
+    if ismissing(getproperty(cpglobal,:ip, missing))
+        Ip_target =  eqt.global_quantities.ip
+    else
+        Ip_target = @ddtime(cpglobal.ip)
+    end
+
+    if allow_floating_plasma_current 
+        if Ip_target < @ddtime(cpglobal.current_non_inductive)
+            # This is setting Ip as the non-inductive current
+            return j_oh_par_norm .* 0.0
+        end
+    end
+
+    if !ismissing(getproperty(cpglobal,:ip, missing))
+        I_ohmic_par_guess = @ddtime(cpglobal.ip) - @ddtime(cpglobal.current_non_inductive)
+        @show "1", I_ohmic_par_guess
+    else
+        j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
+        I_ohmic_tor = eqt.global_quantities.ip - integrate(cp1d.grid.area, j_non_inductive_tor)
+        I_tor_2_par = integrate(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, fill(I_ohmic_tor, size(cp1d.grid.rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
+        I_ohmic_par_guess = I_ohmic_tor .* I_tor_2_par
+        @show "2", I_ohmic_par_guess
+
+    end
 
     j_oh_par_norm .*= sign(I_ohmic_par_guess)
     I_ohmic_par_guess = abs(I_ohmic_par_guess)
@@ -18,7 +41,7 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core
         j_ohmic = x[1] .* j_oh_par_norm
         j_total = j_ohmic .+ cp1d.j_non_inductive
         j_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, j_total, true, eqt)
-        return abs(eqt.global_quantities.ip - IMAS.integrate(cp1d.grid.area, j_tor)) .^ 2
+        return abs(Ip_target - IMAS.integrate(cp1d.grid.area, j_tor)) .^ 2
     end
 
     res = Optim.optimize(cost, [I_ohmic_par_guess], Optim.Newton(); autodiff=:forward)
@@ -32,8 +55,9 @@ end
 
 Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
-function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d)
+function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice, cp::IMAS.core_profiles, allow_floating_plasma_currents::Bool)
+    cp1d = cp.profiles_1d[]
+    cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp, allow_floating_plasma_currents)
     # restore j_total and j_tor as expression, to make sure things are self-consistent
     empty!(cp1d, :j_total)
     empty!(cp1d, :j_tor)
