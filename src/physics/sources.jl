@@ -1,14 +1,20 @@
 """
-    fusion_source!(dd::IMAS.dd)
+    fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
 
 Calculates fusion source from D-T and D-D reactions and modifies dd.core_sources
 """
+function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; only_DT::Bool=false)
+    deleteat!(cs.source, :fusion)
+    D_T_to_He4_source!(cs, cp)
+    if !only_DT
+        D_D_to_He3_source!(cs, cp)
+        D_D_to_T_source!(cs, cp)
+    end
+    fast_particles!(cs, cp.profiles_1d[])
+end
+
 function fusion_source!(dd::IMAS.dd)
-    deleteat!(dd.core_sources.source, :fusion)
-    D_T_to_He4_source!(dd.core_sources, dd.core_profiles)
-    D_D_to_He3_source!(dd.core_sources, dd.core_profiles)
-    D_D_to_T_source!(dd.core_sources, dd.core_profiles)
-    fast_particles!(dd.core_sources, dd.core_profiles)
+    fusion_source!(dd.core_sources, dd.core_profiles)
 end
 
 """
