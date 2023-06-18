@@ -583,9 +583,6 @@ dyexp["summary.global_quantities.ip.value"] =
 dyexp["summary.global_quantities.b0.value"] =
     (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
 
-dyexp["summary.global_quantities.beta_tor_norm.value"] =
-    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_normal for time in summary.time]
-
 dyexp["summary.global_quantities.r0.value"] =
     (; dd, summary, _...) -> vacuum_r0_b0_time(dd)[1]
 
@@ -634,6 +631,9 @@ dyexp["summary.global_quantities.beta_tor_mhd.value"] =
 
 dyexp["summary.global_quantities.beta_tor_norm_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time)].global_quantities.beta_normal for time in summary.time]
+
+dyexp["summary.global_quantities.beta_tor_norm.value"] =
+    (time; dd, summary, _...) -> [beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
 
 dyexp["summary.global_quantities.beta_tor_thermal_norm.value"] =
     (time; dd, summary, _...) -> [beta_tor_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in summary.time]
