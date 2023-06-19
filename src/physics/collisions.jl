@@ -1,5 +1,5 @@
 """
-    lnΛ_ee(ne, Te)
+    lnΛ_ee(ne::Real, Te::Real)
 
 Calculate Couloumb logarithm for thermal electron-electron collisions [NRL Plasma Formulary]
 
@@ -9,13 +9,13 @@ Calculate Couloumb logarithm for thermal electron-electron collisions [NRL Plasm
 
 :return lnΛ: Coloumb logarithm
 """
-function lnΛ_ee(ne::S, Te::T) where {S<:Real,T<:Real}
+function lnΛ_ee(ne::Real, Te::Real)
     ne *= 1e-6 # cm^-3
     return 23.5 - log(sqrt(ne) * (Te^(-5 / 4))) - sqrt(1e-5 + ((log(Te) - 2)^2) / 16)
 end
 
 """
-    lnΛ_ei(ne, Te, ni::Vector, Ti::Vector, mi::Vector, Zi::Vector{Int})
+    nΛ_ei(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi::AbstractVector{T}, Zi::AbstractVector{Int}) where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
 
 Calculate Couloumb logarithm for thermal electron-ion collisions [NRL Plasma Formulary]
 
@@ -33,8 +33,7 @@ Calculate Couloumb logarithm for thermal electron-ion collisions [NRL Plasma For
 
 :return lnΛ: list of Coloumb logarithms for each provided ion
 """
-function lnΛ_ei(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int}) where
-{S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
+function lnΛ_ei(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi::AbstractVector{T}, Zi::AbstractVector{Int}) where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
     ne *= 1e-6  #cm^-3
     ni *= 1e-6 #cm^-3
 
@@ -58,7 +57,7 @@ function lnΛ_ei(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::
 end
 
 """
-    lnΛ_ei(ne, T)
+    lnΛ_ei(ne::Real, Te::Real)
 
 Calculate Couloumb logarithm for thermal electron-ion collisions where Ti*me/mi < 10Zi^2 eV < Te [NRL Plasma Formulary]
 
@@ -68,13 +67,13 @@ Calculate Couloumb logarithm for thermal electron-ion collisions where Ti*me/mi 
 
 :return lnΛ: Coloumb logarithm
 """
-function lnΛ_ei(ne::S, Te::P) where {S<:Real,P<:Real}
+function lnΛ_ei(ne::Real, Te::Real)
     ne *= 1e-6  #cm^-3
     return 24 - log(sqrt(ne) / Te)
 end
 
 """
-    lnΛ_ii(ne, Te, ni::Vector, Ti::Vector, mi::Vector, Zi::Vector{Int}; beta_D=nothing)
+    lnΛ_ii(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi::AbstractVector{T}, Zi::AbstractVector{Int}; beta_D::Union{Nothing,Matrix{<:Real}}=nothing) where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
 
 Calculate Couloumb logarithm for mixed thermal ion-ion collisions [NRL Plasma Formulary]
 
@@ -94,8 +93,7 @@ Calculate Couloumb logarithm for mixed thermal ion-ion collisions [NRL Plasma Fo
 
 :return lnΛ: matrix of Coloumb logarithms for each provided ion
 """
-function lnΛ_ii(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::Vector{Int}; beta_D::Union{Nothing,Matrix{<:Real}}=nothing) where
-{S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
+function lnΛ_ii(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi::AbstractVector{T}, Zi::AbstractVector{Int}; beta_D::Union{Nothing,Matrix{<:Real}}=nothing) where {S<:Real,P<:Real,Q<:Real,R<:Real,T<:Real}
     ni *= 1e-6 #cm^-3
     ne *= 1e-6 #cm^-3
 
@@ -141,7 +139,7 @@ function lnΛ_ii(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{T}, Zi::
 end
 
 """
-    lnΛ_fi(ne, Te, ni::Vector, Ti::Vector, mi::Vector, Zi::Vector{Int}, beta_f, mf, Zf)
+    lnΛ_fi(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi::AbstractVector{O}, Zi::AbstractVector{Int}, beta_f::T, mf::V, Zf::Int; verbose=true) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,V<:Real}
 
 Calculate Couloumb logarithm for beam/fast ion in the presence of warm electrons/ions [NRL Plasma Formulary]
 
@@ -165,8 +163,7 @@ Calculate Couloumb logarithm for beam/fast ion in the presence of warm electrons
 
 :return lnΛ: list of Coloumb logarithms for each provided thermal ion species
 """
-function lnΛ_fi(ne::S, Te::P, ni::Vector{Q}, Ti::Vector{R}, mi::Vector{O}, Zi::Vector{Int}, beta_f::T, mf::V, Zf::Int; verbose=true) where
-{S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,V<:Real}
+function lnΛ_fi(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi::AbstractVector{O}, Zi::AbstractVector{Int}, beta_f::T, mf::V, Zf::Int; verbose=true) where {S<:Real,P<:Real,Q<:Real,R<:Real,O<:Real,T<:Real,V<:Real}
     ne *= 1e-6 #cm^-3
 
     c = constants.c

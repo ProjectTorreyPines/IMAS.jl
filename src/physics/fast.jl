@@ -1,5 +1,5 @@
 """
-    slowing_down_time(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, mf::Real, Zf::Int)
+    slowing_down_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int)
 
 Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
@@ -9,9 +9,9 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :param ni: list of ion densities [m^-3]
 
-:param Ti: list of ion temperaturs [eV]
+:param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+:param mi: list of ion masses [AMU]
 
 :param Zi: list of ion charges
 
@@ -21,7 +21,7 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :return: τ_s: slowing down time
 """
-function slowing_down_time(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, mf::Real, Zf::Int)
+function slowing_down_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int)
     lnΛ = lnΛ_ei(ne, Te, ni, Ti, mi, Zi)
     ne_cm3 = 1e-6 * ne
     τ_s = 6.27e8 * mf * (Te^1.5) ./ (ne_cm3 * lnΛ * Zf^2)
@@ -59,7 +59,7 @@ Drag coefficient (Γ) for a fast-ions interacting with a thermal species as defi
 
 :param Z: charge of the thermal species
 
-:param mf: fast-ion mass [amu]
+:param mf: fast-ion mass [AMU]
 
 :param Zf: fast-ion charge
 
@@ -75,7 +75,7 @@ function _drag_coefficient(n::Real, Z::Int, mf::Real, Zf::Int, lnΛ::Real)
 end
 
 """
-    _electron_ion_drag_difference(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, Ef::Real, mf::Real, Zf::Int)
+    _electron_ion_drag_difference(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
 
 Calculates the difference of the electron and ion drag terms in the collision operator defined in Eq. 19 in [Gaffey, J.D (1976). Energetic ion distribution resulting from neutral beam injectioin in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
 
@@ -85,9 +85,9 @@ Calculates the difference of the electron and ion drag terms in the collision op
 
 :param ni: list of ion densities [m^-3]
 
-:param Ti: list of ion temperaturs [eV]
+:param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+:param mi: list of ion masses [AMU]
 
 :param Zi: list of ion charges
 
@@ -99,7 +99,7 @@ Calculates the difference of the electron and ion drag terms in the collision op
 
 :return ΔD: drag difference
 """
-function _electron_ion_drag_difference(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, Ef::Real, mf::Real, Zf::Int)
+function _electron_ion_drag_difference(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
     m_e = constants.m_e
     m_i = mi .* constants.m_u
     m_f = mf * constants.m_u
@@ -119,7 +119,7 @@ function _electron_ion_drag_difference(ne::Real, Te::Real, ni::Vector{<:Real}, T
 end
 
 """
-    critical_energy(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, mf::Real, Zf::Int; approximate::Bool=false)
+    critical_energy(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int; approximate::Bool=false)
 
 Calculate the critical energy by finding the root of the difference between the electron and ion drag
 
@@ -129,9 +129,9 @@ Calculate the critical energy by finding the root of the difference between the 
 
 :param ni: list of ion densities [m^-3]
 
-:param Ti: list of ion temperaturs [eV]
+:param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+:param mi: list of ion masses [AMU]
 
 :param Zi: list of ion charges
 
@@ -141,7 +141,7 @@ Calculate the critical energy by finding the root of the difference between the 
 
 :param approximate: calculate critical energy assuming lnΛ_fe == lnΛ_fi. For DIII-D a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2 can be used.
 """
-function critical_energy(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, mf::Real, Zf::Int; approximate::Bool=false)
+function critical_energy(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int; approximate::Bool=false)
     avg_cmr = sum(ni .* (Zi .^ 2) ./ mi) / ne
     Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     if !(approximate)
@@ -169,7 +169,7 @@ function thermalization_time(v_f::Real, v_c::Real, tau_s::Real)
 end
 
 """
-    thermalization_time(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, Ef::Real, mf::Real, Zf::Int)
+    thermalization_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
 
 Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2 eV < Te
 
@@ -179,9 +179,9 @@ Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2
 
 :param ni: list of ion densities [m^-3]
 
-:param Ti: list of ion temperaturs [eV]
+:param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+:param mi: list of ion masses [AMU]
 
 :param Zi: list of ion charges
 
@@ -191,7 +191,7 @@ Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2
 
 :param Zf: fast ion charge
 """
-function thermalization_time(ne::Real, Te::Real, ni::Vector{<:Real}, Ti::Vector{<:Real}, mi::Vector{<:Real}, Zi::Vector{Int}, Ef::Real, mf::Real, Zf::Int)
+function thermalization_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
     m_f = mf * constants.m_u
 
     tau_s = slowing_down_time(ne, Te, mf, Zf)
@@ -279,7 +279,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                     taut .*= 0.0
                     for i = 1:Npsi
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
-                        taut[i] = thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
+                        taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
                     end
 
                     pressa = taus .* 2.0 ./ 3.0 .* (sion.particles .* particle_energy .* constants.e)
