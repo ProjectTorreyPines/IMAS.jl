@@ -1,4 +1,56 @@
 """
+    estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
+ 
+Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
+
+:param ne: electron density [m^-3]
+
+:param Te: electron temperature [eV]
+
+:param ni: list of ion densities [m^-3]
+
+:param Ti: list of ion temperatures [eV]
+
+:param mi: list of ion masses [AMU]
+
+:param Zi: list of ion charges
+
+:param Ef: fast ion energy [eV]
+
+:param mf: mass of fast ion [AMU]
+
+:param Zf: fast ion charge
+
+:return: i2 and i4
+"""
+                        
+function estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
+    Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
+    i2,i4 = estrada_I_integrals(Ec, Ef)
+    return i2,i4
+end
+
+"""
+    estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
+ 
+Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
+
+:param Ef: fast ion energy [eV]
+
+:param Ec: critical energy [eV]
+
+:return: i2 and i4
+"""
+function estrada_I_integrals(Ec::Real, Ef::Real)
+    a =  sqrt.(Ec./Ef)
+    i2 = (1/3.0) .* log.((1 .+ a.^3) ./ (a.^3))
+    i4 = 0.5 .- a.^2 .* ((1/6.0) .* log.((1 .- a .+ a.^2) ./ (1 .+ a).^2) .+
+         1 ./ sqrt(3.0) .* (atan.((2 .- a) ./ (a .* sqrt(3.0))) .+ pi/6))
+    return i2,i4
+end
+
+
+"""
     slowing_down_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int)
 
 Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
@@ -250,6 +302,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     # go through sources and look for ones that have ion particles source at given energy
     taus = zeros(Npsi)
     taut = zeros(Npsi)
+    i4 = zeros(Npsi)
     for source in cs.source
         for sion in source.profiles_1d[].ion
             if !ismissing(sion, :particles) && !ismissing(sion, :fast_particles_energy)
@@ -280,9 +333,12 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                     for i = 1:Npsi
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
                         taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
-                    end
 
-                    pressa = taus .* 2.0 ./ 3.0 .* (sion.particles .* particle_energy .* constants.e)
+                        i2tmp,i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
+                        i4[i] = i4tmp
+                    end
+                    
+                    pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion.particles .* particle_energy .* constants.e)
                     cion.pressure_fast_parallel += pressa ./ 3.0
                     cion.pressure_fast_perpendicular += pressa ./ 3.0
                     cion.density_fast += sion.particles .* taut
