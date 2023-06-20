@@ -138,6 +138,9 @@ dyexp["core_profiles.global_quantities.current_bootstrap"] =
 dyexp["core_profiles.global_quantities.ip"] =
     (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_tor) for time in core_profiles.time]
 
+dyexp["core_profiles.global_quantities.beta_tor_norm"] =
+    (time; dd, _...) -> [beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in dd.core_profiles.time]
+
 #= ============ =#
 # core_transport #
 #= ============ =#
