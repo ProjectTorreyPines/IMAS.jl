@@ -4,7 +4,7 @@
 Gets from dd what from where
 example: get_from(dd, :ip, :equilibrium)
 """
-function get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol)
+function get_from(dd::IMAS.dd{T}, what::Symbol, from_where::Symbol)::T where {T<:Real}
     return get_from(dd, Val{what}, from_where)
 end
 
