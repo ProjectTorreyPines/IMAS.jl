@@ -176,7 +176,7 @@ function vacuum_r0_b0_time(dd::IMAS.dd)
 
         # from: all other IDSs that have that info
     else
-        B0 = typeof(dd).parameters[1][]
+        B0 = eltype(dd)[]
         time = Float64[]
         for (name, ids) in dd
             if hasfield(typeof(ids), :vacuum_toroidal_field)
