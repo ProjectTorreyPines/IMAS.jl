@@ -288,7 +288,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         eqt.profiles_1d.r_inboard[k] = min_r
 
         # miller geometric coefficients
-        R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu = miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+        _, _, κ, δu, δl, ζou, ζol, ζil, ζiu = miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
         eqt.profiles_1d.elongation[k] = κ
         eqt.profiles_1d.triangularity_upper[k] = δu
         eqt.profiles_1d.triangularity_lower[k] = δl
@@ -398,18 +398,18 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         eqt.profiles_1d.phi[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
     end
 
-    R = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
+    Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
     a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
 
     # vacuum magnetic field at the geometric center
-    Btvac = B0 * R0 / R
+    Btvac = B0 * R0 / Rgeo
 
     # average poloidal magnetic field
     Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
     Bp2v = integrate(eqt.profiles_1d.psi, BPL)
-    eqt.global_quantities.li_3 = 2.0 * Bp2v / R0 / (eqt.global_quantities.ip * constants.μ_0)^2
+    eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
     avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
