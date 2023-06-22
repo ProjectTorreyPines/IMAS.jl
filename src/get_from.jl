@@ -4,11 +4,11 @@
 Gets from dd what from where
 example: get_from(dd, :ip, :equilibrium)
 """
-function get_from(dd::IMAS.dd{T}, what::Symbol, from_where::Symbol)
+function get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol)
     return get_from(dd, Val{what}, from_where)
 end
 
-function get_from(dd::IMAS.dd, what::Type{Val{:ip}}, from_where::Symbol)::T where {T<:Real}
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:ip}}, from_where::Symbol)::T where {T<:Real}
     if from_where == :equilibrium
         return dd.equilibrium.time_slice[].global_quantities.ip
     elseif from_where == :core_profiles
@@ -20,7 +20,7 @@ function get_from(dd::IMAS.dd, what::Type{Val{:ip}}, from_where::Symbol)::T wher
     end
 end
 
-function get_from(dd::IMAS.dd, what::Type{Val{:beta_normal}}, from_where::Symbol)::T where {T<:Real}
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:beta_normal}}, from_where::Symbol)::T where {T<:Real}
     if from_where == :equilibrium
         return dd.equilibrium.time_slice[].global_quantities.beta_normal
     elseif from_where == :core_profiles
