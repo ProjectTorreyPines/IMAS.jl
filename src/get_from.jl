@@ -1,13 +1,19 @@
 """
     get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol)
 
-Gets from dd what from where
-example: get_from(dd, :ip, :equilibrium)
+Gets `what` from `where` from `dd`, for example
+
+    get_from(dd, :ip, :equilibrium)
+
+IMAS stores the same physical quantities in different IDSs.
+This function can used to abstract where information should come from,
+and is generally handy when coupling different codes/modules/actors.
 """
 function get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol)
     return get_from(dd, Val{what}, from_where)
 end
 
+# ip [A]
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:ip}}, from_where::Symbol)::T where {T<:Real}
     if from_where == :equilibrium
         return dd.equilibrium.time_slice[].global_quantities.ip
@@ -20,6 +26,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ip}}, from_where::Symbol)::T w
     end
 end
 
+# beta_normal [-]
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:beta_normal}}, from_where::Symbol)::T where {T<:Real}
     if from_where == :equilibrium
         return dd.equilibrium.time_slice[].global_quantities.beta_normal
