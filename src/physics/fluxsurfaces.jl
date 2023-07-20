@@ -137,6 +137,27 @@ function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
     return flux_surfaces(eqt, B0, R0; upsample_factor)
 end
 
+function find_magnetic_axis!(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, psi_sign::Real)
+    res = Optim.optimize(
+        x -> begin
+            try
+                PSI_interpolant(x[1], x[2]) * psi_sign
+            catch e
+                if typeof(e) <: BoundsError
+                    return Inf
+                else
+                    rethrow(e)
+                end
+            end
+        end,
+        [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
+        Optim.Newton(),
+        Optim.Options(g_tol=1E-8);
+        autodiff=:forward
+    )
+    return res.minimizer[1], res.minimizer[2]
+end
+
 """
     flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
 
@@ -157,25 +178,7 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
     psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
 
     # find magnetic axis
-    res = Optim.optimize(
-        x -> begin
-            try
-                PSI_interpolant(x[1], x[2]) * psi_sign
-            catch e
-                if typeof(e) <: BoundsError
-                    return Inf
-                else
-                    rethrow(e)
-                end
-            end
-        end,
-        [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
-        Optim.Newton(),
-        Optim.Options(g_tol=1E-8);
-        autodiff=:forward
-    )
-    eqt.global_quantities.magnetic_axis.r = res.minimizer[1]
-    eqt.global_quantities.magnetic_axis.z = res.minimizer[2]
+    eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = find_magnetic_axis!(r, z, PSI_interpolant, psi_sign)
     psi_axis = PSI_interpolant(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)
     eqt.profiles_1d.psi = (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (eqt.profiles_1d.psi[end] - psi_axis) .+ psi_axis
 
@@ -238,6 +241,10 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
             pr, pz, psi_level =
                 flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, true)
             if isempty(pr)
+                p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
+                contour!(r, z, PSI'; color=:white, levels=100)
+                contour!(r, z, PSI'; levels=[eqt.profiles_1d.psi[end]], color=:white, lw=2)
+                display(p)
                 error("IMAS: Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
 
@@ -566,6 +573,35 @@ function flux_surface(
         end
         return prpz
     end
+end
+
+"""
+    tweak_psi_to_match_psilcfs!(eqt::IMAS.equilibrium.time_slice{D}; ψbound::Union{Nothing,D}=nothing) where {D<:Real}
+
+Tweak `eqt.profiles_2d[1].psi` and `eqt.profiles_1d.psi` so that contouring finds LCFS at `eqt.profiles_1d.psi[end]`.
+
+If `ψbound !== nothing` this routine also shifts `eqt.profiles_2d[1].psi` and `eqt.profiles_1d.psi` so that `eqt.profiles_1d.psi[end] == ψbound`.
+"""
+function tweak_psi_to_match_psilcfs!(eqt::IMAS.equilibrium__time_slice{D}; ψbound::Union{Nothing,D}=nothing) where {D<:Real}
+    eq1d = eqt.profiles_1d
+    eq2d = eqt.profiles_2d[1]
+
+    psia = eq1d.psi[1]
+    psib = eq1d.psi[end]
+    if ψbound === nothing
+        delta_psib = 0.0
+    else
+        delta_psib = ψbound - psib
+    end
+
+    # retrace the last closed flux surface
+    true_psib = IMAS.find_psi_boundary(eqt)
+
+    # scale psirz so to match original psi bounds (also add delta_psib to get desired ψbound)
+    @. eq2d.psi = (eq2d.psi - psia) * (psib - psia) / (true_psib - psia) + psia + delta_psib
+    @. eq1d.psi = eq1d.psi + delta_psib
+
+    return nothing
 end
 
 function flxAvg(input::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}

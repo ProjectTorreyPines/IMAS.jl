@@ -107,8 +107,10 @@ NOTE: Use with care! This operation will change the flux surfaces (LCFS included
 function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
 
+    psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
+    R0, Z0 = find_magnetic_axis!(r, z, PSI_interpolant, psi_sign)
+
     Z1 = (maximum(z) + minimum(z)) / 2.0
-    Z0 = eqt.global_quantities.magnetic_axis.z
     zz = z .- Z1 .+ Z0
     zz = LinRange(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
 
@@ -116,6 +118,8 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
 
     eqt.profiles_2d[1].grid.dim2 = zz
     eqt.profiles_2d[1].psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
+
+    tweak_psi_to_match_psilcfs!(eqt)
 end
 
 """
