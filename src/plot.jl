@@ -540,7 +540,7 @@ end
 @recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
     @series begin
         :aspect_ratio := :equal
-        outline.r,outline.z
+        outline.r, outline.z
     end
 end
 
@@ -601,7 +601,7 @@ end
     @series begin
         :linewidth --> 2
         :aspect_ratio := :equal
-        surface_outline.r,surface_outline.z
+        surface_outline.r, surface_outline.z
     end
 end
 
@@ -1299,6 +1299,7 @@ end
 # =============== #
 @recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises})
     smcs = parent(parent(stress))
+
     r_oh = smcs.grid.r_oh
     r_tf = smcs.grid.r_tf
     r_pl = getproperty(smcs.grid, :r_pl, missing)
@@ -1316,16 +1317,38 @@ end
             r_pl, stress.pl ./ 1E6
         end
     end
+
+    if typeof(stress) <: IMAS.solid_mechanics__center_stack__stress__vonmises
+        @series begin
+            linestyle := :dash
+            linewidth := 0.75
+            label := "Yield strength"
+            r_oh, r_oh .* 0.0 .+ smcs.properties.yield_strength.oh / 1E6
+        end
+        @series begin
+            primary := false
+            linestyle := :dash
+            linewidth := 0.75
+            r_tf, r_tf .* 0.0 .+ smcs.properties.yield_strength.tf / 1E6
+        end
+        if r_pl !== missing
+            @series begin
+                primary := false
+                linestyle := :dash
+                linewidth := 0.75
+                r_pl, r_pl .* 0.0 .+ smcs.properties.yield_strength.pl / 1E6
+            end
+        end
+    end
 end
 
-@recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress}; linewidth=1)
-
+@recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress; linewidth=1)
     @assert typeof(linewidth) <: Real
 
     legend_position --> :outerbottomright
     ylabel := "Stresses [MPa]"
     xlabel := "Radius [m]"
-    title := "CS stresses"
+    title := "Center Stack stresses"
 
     center_stack = parent(stress)
 
