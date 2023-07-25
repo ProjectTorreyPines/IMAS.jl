@@ -275,11 +275,11 @@ Total power coming out of the SOL [W]
 NOTE: This function returns 1.0 [W] if power is less than that so that SOL quantities remain finite
 """
 function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-    p_sol = total_power_source(total_sources(core_sources, cp1d; fields=[:power_inside, :total_ion_power_inside]))
-    if p_sol < 1.0
-        return one(p_sol)
+    Psol = total_power_source(total_sources(core_sources, cp1d; fields=[:power_inside, :total_ion_power_inside]))
+    if Psol < 1.0
+        return one(Psol)
     else
-        return p_sol
+        return Psol
     end
 end
 
@@ -359,14 +359,11 @@ end
     widthSOL_eich(R0::T, a::T, Bpol_omp::T, Psol::T) where {T<:Real}
 
 Returns midplane power decay length λ_q in meters
+
 Eich scaling (NF 53 093031)
 """
 function widthSOL_eich(R0::T, a::T, Bpol_omp::T, Psol::T) where {T<:Real}
-    if Psol < 0.0
-        return 0.0
-    end
-    λ_q = 1.35 * 1E-3 * (Psol / 1E6)^-0.02 * R0^0.04 * Bpol_omp^-0.92 * (a / R0)^0.42
-    return λ_q
+    return 1.35 * 1E-3 * (Psol / 1E6)^-0.02 * R0^0.04 * Bpol_omp^-0.92 * (a / R0)^0.42
 end
 
 function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, Psol::Real)
