@@ -277,7 +277,7 @@ NOTE: This function returns 1.0 [W] if power is less than that so that SOL quant
 function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
     p_sol = total_power_source(total_sources(core_sources, cp1d; fields=[:power_inside, :total_ion_power_inside]))
     if p_sol < 1.0
-        return one(psol)
+        return one(p_sol)
     else
         return p_sol
     end
