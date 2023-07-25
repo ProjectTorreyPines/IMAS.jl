@@ -6,6 +6,12 @@ end
 
 const onetime_expressions = otexp = Dict{String,Function}()
 
+# These expressions are frozen the first time they are accessed.
+# This is necessary to ensure that core_profiles, core_sources, and core_transport grids do not change after changing the equilibrium.
+# The idea is that we want to freeze in the core_profiles, core_sources, and core_transport grids the rho, psi, volume, area, ... info that were used when those IDSs were filled.
+# While this is generally ok, this is not desirable when iterating the equilibrium solver with other actors.
+# In this case, at each iteration we want core_profiles, core_sources, and core_transport to take the grids from the latest equilibrium.
+#
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
 # 
