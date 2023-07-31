@@ -43,7 +43,7 @@ end
 """
     j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Sets j_total parallel current density as expression in core_profiles that evaluates to the total parallel current in the equilibrirum
+Sets j_total parallel current density as expression in core_profiles that evaluates to the total parallel current in the equilibrium
 """
 function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(cp1d.grid.rho_tor_norm)
@@ -107,7 +107,7 @@ end
 
 function Jpar_2_Jtor(rho_tor_norm::Vector{<:Real}, Jpar::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     eq = top_ids(eqt)
-    B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time, :constant)
     JparB = Jpar .* B0
     JtoR = JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt)
     rho_eq = eqt.profiles_1d.rho_tor_norm

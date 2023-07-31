@@ -30,7 +30,7 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
         pressure = cp1d.pressure
     end
     rho = cp1d.grid.rho_tor_norm
-    B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time, :constant)
     Ip = eqt.global_quantities.ip
     volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
     pressure_avg = integrate(volume_cp, pressure) / volume_cp[end]
