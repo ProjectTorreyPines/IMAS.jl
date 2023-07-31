@@ -286,3 +286,17 @@ function first_wall(wall::IMAS.wall)
         return missing
     end
 end
+
+"""
+    build_max_R0_B0(bd::IMAS.build)
+
+Returns the plasma geometric center and the maximum vacuum toroidal magnetic field at the plasma geometric center that the TF build allows
+"""
+function build_max_R0_B0(bd::IMAS.build)
+    TFhfs = get_build_layer(bd.layer, type=_tf_, fs=_hfs_)
+    plasma = get_build_layer(bd.layer, type=_plasma_)
+    R0 = (plasma.start_radius + plasma.end_radius) / 2.0
+    B0 = bd.tf.max_b_field / TFhfs.end_radius * R0
+    return R0, B0
+end
+
