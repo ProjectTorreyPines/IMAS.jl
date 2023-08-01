@@ -183,13 +183,13 @@ end
 """
     Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; wipe::Bool=true, allow_multiple_matches::Bool=false)::T where {T<:IDSvectorElement}
 
-Resize ids if `identifier_name` is not found based on `ids.identifier.index` of `index_2_name(ids)`
+Resize ids if `identifier_name` is not found based on `ids.identifier.index` of `index_2_name(ids)` and a set of conditions are not met.
 
-If an entry matching the condition is found, then the content of the matching IDS is --NOT-- emptied
+If wipe=true and an entry matching the condition is found, then the content of the matching IDS is emptied.
 
 Either way, the IDS is populated with the conditions.
 
-NOTE: `allow_multiple_matches` will delete subsequent entries matching the conditions.
+NOTE: `allow_multiple_matches` will delete all entries matching the conditions.
 
 Returns the selected IDS
 """
