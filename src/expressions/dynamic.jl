@@ -116,9 +116,6 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
-dyexp["core_profiles.profiles_1d[:].time"] =
-    (; core_profiles, profiles_1d_index, _...) -> core_profiles.time[profiles_1d_index]
-
 #  core_profiles.vacuum_toroidal_field  #
 
 dyexp["core_profiles.vacuum_toroidal_field.b0"] =
@@ -144,9 +141,6 @@ dyexp["core_profiles.global_quantities.beta_tor_norm"] =
 #= ============ =#
 # core_transport #
 #= ============ =#
-dyexp["core_transport.model[:].profiles_1d[:].time"] =
-    (; core_transport, profiles_1d_index, _...) -> core_transport.time[profiles_1d_index]
-
 dyexp["core_transport.vacuum_toroidal_field.b0"] =
     (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
 
@@ -267,9 +261,6 @@ dyexp["equilibrium.time_slice[:].profiles_1d.darea_drho_tor"] =
 dyexp["equilibrium.time_slice[:].profiles_1d.darea_dpsi"] =
     (psi; profiles_1d, _...) -> gradient(psi, profiles_1d.area)
 
-
-dyexp["equilibrium.time_slice[:].time"] =
-    (; equilibrium, time_slice_index, _...) -> equilibrium.time[time_slice_index]
 
 dyexp["equilibrium.time_slice[:].profiles_1d.psi_norm"] =
     (psi; _...) -> norm01(psi)
@@ -392,13 +383,6 @@ dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles"] =
         particles_inside = ion.particles_inside
         gradient(profiles_1d.grid.volume, ion.particles_inside)
     end
-
-
-dyexp["core_sources.source[:].profiles_1d[:].time"] =
-    (; core_sources, profiles_1d_index, _...) -> core_sources.time[profiles_1d_index]
-
-dyexp["core_sources.source[:].global_quantities[:].time"] =
-    (; core_sources, global_quantities_index, _...) -> core_sources.time[global_quantities_index]
 
 
 dyexp["core_sources.vacuum_toroidal_field.b0"] =
