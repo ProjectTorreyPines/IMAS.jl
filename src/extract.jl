@@ -67,9 +67,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:pressures, :βn_th, "-", dd -> @ddtime(dd.summary.global_quantities.beta_tor_thermal_norm.value))
 
     ExtractLibFunction(:transport, :τe, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy.value))
-    ExtractLibFunction(:transport, :τe98, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy_98.value))
-    ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / EFL[:τe98](dd))
-    ExtractLibFunction(:transport, :ds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
+    ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / tau_e_h98(dd))
+    ExtractLibFunction(:transport, :Hds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
 
     ExtractLibFunction(:sources, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
     ExtractLibFunction(:sources, :Pnbi, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_nbi.value) / 1E6)
