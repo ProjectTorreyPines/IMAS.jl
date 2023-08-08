@@ -189,9 +189,9 @@ function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sour
 end
 
 
-function tau_e_h98(dd::IMAS.dd; time::Float64=dd.global_time)
-    eqt = dd.equilibrium.time_slice[time]
-    cp1d = dd.core_profiles.profiles_1d[time]
+function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time)
+    eqt = dd.equilibrium.time_slice[time0]
+    cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
     return tau_e_h98(eqt, cp1d, cs)
 end
@@ -223,9 +223,9 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
     return tau98
 end
 
-function tau_e_ds03(dd::IMAS.dd; time::Float64=dd.global_time)
-    eqt = dd.equilibrium.time_slice[time]
-    cp1d = dd.core_profiles.profiles_1d[time]
+function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time)
+    eqt = dd.equilibrium.time_slice[time0]
+    cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
     return tau_e_ds03(eqt, cp1d, cs)
 end
