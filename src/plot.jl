@@ -26,7 +26,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         colorbar_title --> "PF currents [A]"
 
         currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
-        CURRENT = maximum(abs.(currents))
+        CURRENT = maximum(abs, currents)
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)

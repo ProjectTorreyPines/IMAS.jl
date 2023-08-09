@@ -19,7 +19,7 @@ Turn a vector into a range (if possible)
 """
 function to_range(vector::AbstractVector{<:Real})
     tmp = diff(vector)
-    if !(1 - sum(abs.(tmp .- tmp[1])) / length(vector) ≈ 1.0)
+    if !(1 - sum(abs, tmp .- tmp[1]) / length(vector) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
     return range(vector[1], vector[end], length=length(vector))
