@@ -142,22 +142,22 @@ end
 """
     vacuum_r0_b0_time(dd::IMAS.dd) 
 
-Returns R0 as well as B0, and time arrays
+Returns `R0` as well as the `B0` and `time` arrays.
 
-This function solves the issue that in IMAS the information about R0 and B0 is replicated across different IDSs
+This function solves the issue that in IMAS the information about R0 and B0 is replicated across different IDSs.
 """
-function vacuum_r0_b0_time(dd::IMAS.dd)
+function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
     source = Set{Symbol}()
 
     # R0
     if hasfield(typeof(dd), :tf) && isfilled(dd.tf, :r0)
-        R0 = dd.tf.r0
+        R0 = dd.tf.r0::T
         push!(source, :tf)
     else
         for (name, ids) in dd
             if hasfield(typeof(ids), :vacuum_toroidal_field)
                 if isfilled(ids.vacuum_toroidal_field, :r0)
-                    R0 = ids.vacuum_toroidal_field.r0
+                    R0 = ids.vacuum_toroidal_field.r0::T
                     push!(source, name)
                     break
                 end
@@ -165,16 +165,16 @@ function vacuum_r0_b0_time(dd::IMAS.dd)
         end
     end
 
-    # B0 and time
+    # B0 and time vectors
     # from: tf
     if hasfield(typeof(dd), :tf) && isfilled(dd.tf.b_field_tor_vacuum_r, :data)
-        B0 = dd.tf.b_field_tor_vacuum_r.data / R0
+        B0 = dd.tf.b_field_tor_vacuum_r.data::Vector{T} / R0
         time = dd.tf.b_field_tor_vacuum_r.data
         push!(source, :tf)
 
         # from: pulse_schedule
     elseif isfilled(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
-        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data / R0
+        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data::T / R0
         time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time
         push!(source, :pulse_schedule)
 
@@ -185,8 +185,8 @@ function vacuum_r0_b0_time(dd::IMAS.dd)
         for (name, ids) in dd
             if hasfield(typeof(ids), :vacuum_toroidal_field)
                 if isfilled(ids.vacuum_toroidal_field, :b0) && isfilled(ids, :time)
-                    B0_ = ids.vacuum_toroidal_field.b0
-                    time_ = ids.time
+                    B0_ = ids.vacuum_toroidal_field.b0::Vector{T}
+                    time_ = ids.time::Vector{Float64}
                     append!(time, time_)
                     append!(B0, B0_)
                     reps = length(time_) - length(B0_)
@@ -199,6 +199,7 @@ function vacuum_r0_b0_time(dd::IMAS.dd)
         B0 = B0[index]
         time = time[index]
     end
+
     return R0, B0, time, source
 end
 
