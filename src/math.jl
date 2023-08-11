@@ -19,7 +19,7 @@ Turn a vector into a range (if possible)
 """
 function to_range(vector::AbstractVector{<:Real})
     tmp = diff(vector)
-    if !(1 - sum(abs.(tmp .- tmp[1])) / length(vector) ≈ 1.0)
+    if !(1 - sum(abs, tmp .- tmp[1]) / length(vector) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
     return range(vector[1], vector[end], length=length(vector))
@@ -354,7 +354,7 @@ end
 
 Calculate the angle between three points
 """
-function calculate_angle(p1::T, p2::T, p3::T) where {T<:AbstractVector{<:Real}}
+function calculate_angle(p1::T, p2::T, p3::T) where {T}
     v1 = [p2[1] - p1[1], p2[2] - p1[2]]
     v2 = [p3[1] - p2[1], p3[2] - p2[2]]
     dot_product = dot(v1, v2)
@@ -651,7 +651,22 @@ function angle_between_two_vectors(
     return acos((v1_x * v2_x + v1_y * v2_y) / (sqrt(v1_x^2 + v1_y^2) * sqrt(v2_x^2 + v2_y^2)))
 end
 
-function unique_indices(arr)
-    uniq_elements = unique(arr)
-    return [findfirst(==(elem), arr) for elem in uniq_elements]
+"""
+    unique_indices(vec::AbstractVector)::Vector{Int}
+
+Return the indices of the first occurrence of each unique element in the input vector `vec`
+"""
+function unique_indices(vec::AbstractVector)::Vector{Int}
+    uniq_elements = unique(vec)
+    return [findfirst(==(elem), vec) for elem in uniq_elements]
+end
+
+"""
+    getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
+
+Return the element of the vector `vec` at the position `idx`. 
+If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
+"""
+function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
+    return vec[(idx-1)%length(vec)+1]
 end

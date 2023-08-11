@@ -26,7 +26,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         colorbar_title --> "PF currents [A]"
 
         currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
-        CURRENT = maximum(abs.(currents))
+        CURRENT = maximum(abs, currents)
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)
@@ -1458,9 +1458,12 @@ end
     end
     data = data ./ 1E6
 
+    wall_r = (neutronics.first_wall.r[1:end-1] .+ neutronics.first_wall.r[2:end]) ./ 2.0
+    wall_z = (neutronics.first_wall.z[1:end-1] .+ neutronics.first_wall.z[2:end]) ./ 2.0
+
     if cx
         seriestype --> :path
-        line_z --> vcat(data, data[1])
+        line_z --> data
         aspect_ratio --> :equal
         linewidth --> 8
         label --> ""
@@ -1470,16 +1473,18 @@ end
             linecolor --> :seismic
         end
         colorbar_title --> "\n$title $units"
-        vcat(neutronics.first_wall.r, neutronics.first_wall.r[1]), vcat(neutronics.first_wall.z, neutronics.first_wall.z[1])
+        wall_r, wall_z
 
     else
-        wall_r = neutronics.first_wall.r
+        # sort data so that we start from the outer midplane
         index = vcat(argmax(wall_r)+1:length(wall_r), 1:argmax(wall_r))
         wall_r = wall_r[index]
-        wall_z = neutronics.first_wall.z
         wall_z = wall_z[index]
-        d = sqrt.(diff(vcat(wall_r, wall_r[1])) .^ 2.0 .+ diff(vcat(wall_z, wall_z[1])) .^ 2.0)
+
+        d = sqrt.(IMAS.gradient(neutronics.first_wall.r) .^ 2.0 .+ IMAS.gradient(neutronics.first_wall.z) .^ 2.0)
+        d = @views (d[1:end-1] .+ d[2:end]) ./ 2.0
         l = cumsum(d)
+
         legend_position --> :top
 
         avg = sum(data[index] .* d) / sum(d)

@@ -19,31 +19,15 @@ function get_build(bd::IMAS.build; kw...)
 end
 
 """
-    get_build(
+    get_build_layers(
         layers::IMAS.IDSvector{<:IMAS.build__layer};
         type::Union{Nothing,BuildLayerType}=nothing,
         name::Union{Nothing,String}=nothing,
         identifier::Union{Nothing,Integer}=nothing,
-        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing,
-        return_only_one::Bool=true,
-        return_index::Bool=false,
-        raise_error_on_missing::Bool=true)
+        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
 
 Select layer(s) in build based on a series of selection criteria
-With `raise_error_on_missing=false` will returns `missing` if layer is missing
 """
-function get_build(
-    layers::IMAS.IDSvector{<:IMAS.build__layer};
-    type::Union{Nothing,BuildLayerType}=nothing,
-    name::Union{Nothing,String}=nothing,
-    identifier::Union{Nothing,Integer}=nothing,
-    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing,
-    return_only_one::Bool=true,
-    return_index::Bool=false,
-    raise_error_on_missing::Bool=true)
-    error("`IMAS.get_build()` is obsolete. Use `get_build_layer()` and `get_build_index()` or `get_build_layers()` and `get_build_indexes()` instead")
-end
-
 function get_build_layers(
     layers::IMAS.IDSvector{<:IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
@@ -64,6 +48,16 @@ function get_build_layers(
     return valid_layers
 end
 
+"""
+    get_build_indexes(
+        layers::IMAS.IDSvector{<:IMAS.build__layer};
+        type::Union{Nothing,BuildLayerType}=nothing,
+        name::Union{Nothing,String}=nothing,
+        identifier::Union{Nothing,Integer}=nothing,
+        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+Returns indexes of layer(s) in build based on a series of selection criteria
+"""
 function get_build_indexes(
     layers::IMAS.IDSvector{<:IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
@@ -84,6 +78,18 @@ function get_build_indexes(
     return valid_layers_indexes
 end
 
+"""
+    get_build_layer(
+        layers::IMAS.IDSvector{<:IMAS.build__layer};
+        type::Union{Nothing,BuildLayerType}=nothing,
+        name::Union{Nothing,String}=nothing,
+        identifier::Union{Nothing,Integer}=nothing,
+        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+Select layer in build based on a series of selection criteria
+
+It raises an error if none or more than one layer matches.
+"""
 function get_build_layer(
     layers::IMAS.IDSvector{<:IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
@@ -102,6 +108,18 @@ function get_build_layer(
     return valid_layers[1]
 end
 
+"""
+    get_build_index(
+        layers::IMAS.IDSvector{<:IMAS.build__layer};
+        type::Union{Nothing,BuildLayerType}=nothing,
+        name::Union{Nothing,String}=nothing,
+        identifier::Union{Nothing,Integer}=nothing,
+        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+Returns index of layer in build based on a series of selection criteria
+
+It raises an error if none or more than one layer matches.
+"""
 function get_build_index(
     layers::IMAS.IDSvector{<:IMAS.build__layer};
     type::Union{Nothing,BuildLayerType}=nothing,
@@ -184,7 +202,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     end
 end
 
-function func_nested_layers(layer::IMAS.build__layer, func::Function)
+function func_nested_layers(layer::IMAS.build__layer{D}, func::Function)::D where {D<:Real}
     i = index(layer)
     layers = parent(layer)
     # _in_ layers or plasma
