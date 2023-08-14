@@ -1032,12 +1032,18 @@ end
         end
     end
 
+    if parent(cs1d) !== nothing && parent(parent(cs1d)) !== nothing
+        color = index(parent(parent(cs1d)))
+    else
+        color = :black
+    end
+
     if only === nothing || only == 1
         @series begin
             if only === nothing
                 subplot := 1
             end
-            color := objectid(cs1d) % Int
+            color := color
             title := "Electron Energy"
             tot = 0.0
             if !ismissing(cs1d.electrons, :energy) && !flux
@@ -1068,7 +1074,7 @@ end
             if only === nothing
                 subplot := 2
             end
-            color := objectid(cs1d) % Int
+            color := color
             title := "Ion Energy"
             tot = 0.0
             if !ismissing(cs1d, :total_ion_energy) && !flux
@@ -1098,7 +1104,7 @@ end
             if only === nothing
                 subplot := 3
             end
-            color := objectid(cs1d) % Int
+            color := color
             title := "Electron Particle"
             tot = 0.0
             if !ismissing(cs1d.electrons, :particles) && !flux
@@ -1130,7 +1136,7 @@ end
             if only === nothing
                 subplot := 4
             end
-            color := objectid(cs1d) % Int
+            color := color
             title := "Momentum Tor"
             if !ismissing(cs1d, :torque_tor_inside)
                 label := :none
@@ -1144,7 +1150,7 @@ end
                 if only === nothing
                     subplot := 4
                 end
-                color := objectid(cs1d) % Int
+                color := color
                 title := "Parallel Current"
                 tot = 0.0
                 if !ismissing(cs1d, :j_parallel)

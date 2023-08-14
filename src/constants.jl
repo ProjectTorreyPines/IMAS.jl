@@ -181,7 +181,7 @@ function Base.findall(identifier_name::Symbol, ids::IDSvector)
 end
 
 """
-    Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; wipe::Bool=true, allow_multiple_matches::Bool=false)::T where {T<:IDSvectorElement}
+    Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; wipe::Bool=true, error_multiple_matches::Bool=true)::T where {T<:IDSvectorElement}
 
 Resize ids if `identifier_name` is not found based on `ids.identifier.index` of `index_2_name(ids)` and a set of conditions are not met.
 
@@ -189,18 +189,18 @@ If wipe=true and an entry matching the condition is found, then the content of t
 
 Either way, the IDS is populated with the conditions.
 
-NOTE: `allow_multiple_matches` will delete all entries matching the conditions.
+NOTE: `error_multiple_matches` will delete all extra entries matching the conditions.
 
 Returns the selected IDS
 """
-function Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; wipe::Bool=true, allow_multiple_matches::Bool=false)::T where {T<:IDSvectorElement}
+function Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; wipe::Bool=true, error_multiple_matches::Bool=true)::T where {T<:IDSvectorElement}
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
     elseif :identifier in fieldnames(eltype(ids))
-        return resize!(ids, "identifier.index" => i, conditions...; wipe, allow_multiple_matches)
+        return resize!(ids, "identifier.index" => i, conditions...; wipe, error_multiple_matches)
     else
-        return resize!(ids, "index" => i, conditions...; wipe, allow_multiple_matches)
+        return resize!(ids, "index" => i, conditions...; wipe, error_multiple_matches)
     end
 end
 
