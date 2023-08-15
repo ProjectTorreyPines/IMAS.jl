@@ -1013,7 +1013,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing, nozeros=false)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing, nozeros=false, show_source_number=false)
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
     @assert typeof(label) <: Union{Nothing,AbstractString}
@@ -1033,9 +1033,12 @@ end
     end
 
     if parent(cs1d) !== nothing && parent(parent(cs1d)) !== nothing
-        color = index(parent(parent(cs1d)))
+        idx = index(parent(parent(cs1d)))
+        if show_source_number
+            name = "[$idx] $name"
+        end
     else
-        color = :black
+        idx = 1
     end
 
     if only === nothing || only == 1
@@ -1043,7 +1046,7 @@ end
             if only === nothing
                 subplot := 1
             end
-            color := color
+            color := idx
             title := "Electron Energy"
             tot = 0.0
             if !ismissing(cs1d.electrons, :energy) && !flux
@@ -1074,7 +1077,7 @@ end
             if only === nothing
                 subplot := 2
             end
-            color := color
+            color := idx
             title := "Ion Energy"
             tot = 0.0
             if !ismissing(cs1d, :total_ion_energy) && !flux
@@ -1104,7 +1107,7 @@ end
             if only === nothing
                 subplot := 3
             end
-            color := color
+            color := idx
             title := "Electron Particle"
             tot = 0.0
             if !ismissing(cs1d.electrons, :particles) && !flux
@@ -1136,7 +1139,7 @@ end
             if only === nothing
                 subplot := 4
             end
-            color := color
+            color := idx
             title := "Momentum Tor"
             if !ismissing(cs1d, :torque_tor_inside)
                 label := :none
@@ -1150,7 +1153,7 @@ end
                 if only === nothing
                     subplot := 4
                 end
-                color := color
+                color := idx
                 title := "Parallel Current"
                 tot = 0.0
                 if !ismissing(cs1d, :j_parallel)
