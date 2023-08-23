@@ -143,15 +143,9 @@ end
 Calculate centroid of polygon
 """
 function centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
-    dy = diff(y)
-    dx = diff(x)
-    x_shift = view(x, 2:length(x))
-    y_shift = view(y, 2:length(y))
-    x0 = (x_shift .+ x[1:end-1]) .* 0.5
-    y0 = (y_shift .+ y[1:end-1]) .* 0.5
-    A = sum(dy .* x0)
-    x_c = -sum(dx .* y0 .* x0) ./ A
-    y_c = sum(dy .* x0 .* y0) ./ A
+    A = sum((y[i+1] - y[i]) * 0.5 * (x[i+1] + x[i]) for i in 1:length(x)-1)
+    x_c = -sum((x[i+1] - x[i]) * 0.5 * (y[i+1] + y[i]) * 0.5 * (x[i+1] + x[i]) for i in 1:length(x)-1) / A
+    y_c = sum((y[i+1] - y[i]) * 0.5 * (x[i+1] + x[i]) * 0.5 * (y[i+1] + y[i]) for i in 1:length(x)-1) / A
     return x_c, y_c
 end
 
