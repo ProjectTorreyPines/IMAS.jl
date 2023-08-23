@@ -1,6 +1,6 @@
 """
     estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
- 
+
 Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
 
 :param ne: electron density [m^-3]
@@ -23,16 +23,16 @@ Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 1
 
 :return: i2 and i4
 """
-                        
-function estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
+
+function estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
     Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
-    i2,i4 = estrada_I_integrals(Ec, Ef)
-    return i2,i4
+    i2, i4 = estrada_I_integrals(Ec, Ef)
+    return i2, i4
 end
 
 """
     estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
- 
+
 Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
 
 :param Ef: fast ion energy [eV]
@@ -42,11 +42,11 @@ Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 1
 :return: i2 and i4
 """
 function estrada_I_integrals(Ec::Real, Ef::Real)
-    a =  sqrt.(Ec./Ef)
-    i2 = (1/3.0) .* log.((1 .+ a.^3) ./ (a.^3))
-    i4 = 0.5 .- a.^2 .* ((1/6.0) .* log.((1 .- a .+ a.^2) ./ (1 .+ a).^2) .+
-         1 ./ sqrt(3.0) .* (atan.((2 .- a) ./ (a .* sqrt(3.0))) .+ pi/6))
-    return i2,i4
+    a = sqrt.(Ec ./ Ef)
+    i2 = (1 / 3.0) .* log.((1 .+ a .^ 3) ./ (a .^ 3))
+    i4 = 0.5 .- a .^ 2 .* ((1 / 6.0) .* log.((1 .- a .+ a .^ 2) ./ (1 .+ a) .^ 2) .+
+                           1 ./ sqrt(3.0) .* (atan.((2 .- a) ./ (a .* sqrt(3.0))) .+ pi / 6))
+    return i2, i4
 end
 
 
@@ -153,7 +153,6 @@ Calculates the difference of the electron and ion drag terms in the collision op
 """
 function _electron_ion_drag_difference(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
     m_e = constants.m_e
-    m_i = mi .* constants.m_u
     m_f = mf * constants.m_u
 
     v_f = sqrt(2 * Ef * constants.e / m_f)
@@ -163,9 +162,9 @@ function _electron_ion_drag_difference(ne::Real, Te::Real, ni::AbstractVector{<:
     Γ_fe = _drag_coefficient(ne, -1, mf, Zf, lnΛ_fe)
     electron_drag = ((8 * Γ_fe * m_f) / (3 * sqrt(pi) * m_e * v_e^3)) * v_f^3
 
-    lnΛ_fis = lnΛ_fi(ne, Te, ni, Ti, mi, Zi, v_f / constants.c, mf, Zf; verbose=false)
-    Γ_fi = _drag_coefficient.(ni, Zi, mf, Zf, lnΛ_fis)
-    ion_drag = 2 * m_f * sum(Γ_fi ./ m_i)
+    lnΛ_fis = k -> lnΛ_fi(ne, Te, ni[k], Ti[k], mi[k], Zi[k], v_f / constants.c, mf, Zf; verbose=false)
+    Γ_fi = k -> _drag_coefficient(ni[k], Zi[k], mf, Zf, lnΛ_fis(k))
+    ion_drag = 2 * m_f * sum(Γ_fi(k) / mi[k] for k in eachindex(mi)) / constants.m_u
 
     return electron_drag - ion_drag
 end
@@ -334,10 +333,10 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
                         taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
 
-                        i2tmp,i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
+                        i2tmp, i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
                         i4[i] = i4tmp
                     end
-                    
+
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion.particles .* particle_energy .* constants.e)
                     cion.pressure_fast_parallel += pressa ./ 3.0
                     cion.pressure_fast_perpendicular += pressa ./ 3.0
