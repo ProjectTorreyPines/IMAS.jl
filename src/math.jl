@@ -26,71 +26,93 @@ function to_range(vector::AbstractVector{<:Real})
     return range(vector[1], vector[end], length=N)
 end
 
-function gradient(arr::AbstractVector; method::Symbol=:central)
+function gradient(arr::AbstractVector; method::Symbol=:second_order)
     return gradient(1:length(arr), arr; method)
 end
 
 """
-    gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
+    gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real, A<:Real}
 
-Finite difference method of the gradient: [:central, :backward, :forward]
+Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
 
 The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 
-For central difference, the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries
+For `:central` the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries.
+
+For `:second_order` the gradient is computed using second order accurate central differences in the interior points, and 2nd order differences at the boundaries.
 """
-function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
-    if length(coord) != length(arr)
-        error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
+function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real,A<:Real}
+    @assert length(coord) == length(arr) "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))"
+
+    np = length(arr)
+    grad = Array{promote_type(A, C)}(undef, np)
+
+    if method != :second_order
+        # Forward difference at the beginning
+        grad[1] = (arr[2] - arr[1]) / (coord[2] - coord[1])
+        # backward difference at the end
+        grad[end] = (arr[end] - arr[end-1]) / (coord[end] - coord[end-1])
     end
 
-    np = size(arr)[1]
-    out = similar(arr)
-    dcoord = diff(coord)
-
-    # Forward difference at the beginning
-    out[1] = (arr[2] - arr[1]) / dcoord[1]
-
     # Central difference in interior using numpy method
-    if method == :central
-        for p = 2:np-1
-            dp1 = dcoord[p-1]
-            dp2 = dcoord[p]
-            a = -dp2 / (dp1 * (dp1 + dp2))
-            b = (dp2 - dp1) / (dp1 * dp2)
-            c = dp1 / (dp2 * (dp1 + dp2))
-            out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
+    if method in [:central, :second_order]
+        for p in 2:np-1
+            hs = coord[p] - coord[p-1]
+            fs = arr[p-1]
+            hd = coord[p+1] - coord[p]
+            fd = arr[p+1]
+            grad[p] = (hs^2 * fd + (hd^2 - hs^2) * arr[p] - hd^2 * fs) / (hs * hd * (hd + hs))
+        end
+        if method == :second_order
+            # Derived using Numerical Mathematics, section 10.10 and lecture notes by A. Yew
+            # and checked against formula from A. Yew for the case of equal spacing.
+            # Numerical Mathematics: A. Quarteroni, R. Sacco, F. Saleri, Springer (2007)
+            #   https://sites.math.washington.edu/~morrow/464_17/sacco%20saleri%20numerical.pdf
+            # A. Yew: Lecture notes for APMA 0160 at Brown University
+            #    https://www.dam.brown.edu/people/alcyew/handouts/numdiff.pdf
+            c = coord[2] - coord[1]
+            d = coord[3] - coord[2]
+            f = arr[1]
+            g = arr[2]
+            h = arr[3]
+            ccd = c / (c + d)
+            ccd2 = c^2 / (c + d)^2
+            grad[1] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
+            c = coord[end-1] - coord[end]
+            d = coord[end-2] - coord[end-1]
+            f = arr[end]
+            g = arr[end-1]
+            h = arr[end-2]
+            ccd = c / (c + d)
+            ccd2 = c^2 / (c + d)^2
+            grad[end] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
         end
     elseif method == :backward
-        for p = 2:np-1
-            out[p] = (arr[p] - arr[p-1]) / dcoord[p]
+        for p in 2:np-1
+            grad[p] = (arr[p] - arr[p-1]) / (coord[p] - coord[p-1])
         end
     elseif method == :forward
-        for p = 2:np-1
-            out[p] = (arr[p+1] - arr[p]) / dcoord[p]
+        for p in 2:np-1
+            grad[p] = (arr[p+1] - arr[p]) / (coord[p+1] - coord[p])
         end
     else
         error("difference method $(method) doesn't exist in gradient function")
     end
 
-    # backward difference at the end
-    out[end] = (arr[end] - arr[end-1]) / dcoord[end]
-
-    return out
+    return grad
 end
 
-function gradient(arr::Matrix; method::Symbol=:central)
+function gradient(arr::Matrix; method::Symbol=:second_order)
     return gradient(1:size(arr)[1], 1:size(arr)[2], arr; method)
 end
 
 """
-    gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:central, dim::Int=0)
+    gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
 
-Finite difference method of the gradient: [:central, :backward, :forward]
-applied to a matrix
-on both dimensions (dim=0) or only (dim=1) or (dim=2)
+Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
+Can apply to both dimensions (dim=0) or either the first (dim=1) or second (dim=2) dimension.
 """
-function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:central, dim::Int=0)
+function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
     if dim ∈ (0, 1)
         d1 = hcat(map(x -> gradient(coord1, x; method), eachcol(arr))...)
         if dim == 1
@@ -104,22 +126,6 @@ function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; m
         end
     end
     return d1, d2
-end
-
-"""
-    centraldiff(y::AbstractVector{<:Real})
-
-Calculates central difference of a vector assuming that the data is equally-spaced
-"""
-function centraldiff(y::AbstractVector{<:T}) where {T<:Real}
-    n = length(y)
-    a = similar(y, T, n)
-    a[1] = (y[2] - y[1]) / 2
-    a[n] = (y[n] - y[n-1]) / 2
-    for i in 2:n-1
-        a[i] = (y[i+1] - y[i-1]) / 2
-    end
-    return a
 end
 
 """
