@@ -169,13 +169,13 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
     # from: tf
     if hasfield(typeof(dd), :tf) && isfilled(dd.tf.b_field_tor_vacuum_r, :data)
         B0 = dd.tf.b_field_tor_vacuum_r.data::Vector{T} / R0
-        time = dd.tf.b_field_tor_vacuum_r.data
+        time = dd.tf.b_field_tor_vacuum_r.time::Vector{Float64}
         push!(source, :tf)
 
         # from: pulse_schedule
     elseif isfilled(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
-        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data::T / R0
-        time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time
+        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data::Vector{T} / R0
+        time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time::Vector{Float64}
         push!(source, :pulse_schedule)
 
         # from: all other IDSs that have that info
@@ -210,12 +210,13 @@ Returns R0 and B0 interpolated at a given set of times
 """
 function vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64})
     R0, B0, time, source = vacuum_r0_b0_time(dd)
-    return R0, extrap1d(IMAS.IMASDD.interp1d_itp(time, B0); first=:flat, last=:flat).(time0)
+    B0_interp = extrap1d(IMAS.IMASDD.interp1d_itp(time, B0); first=:flat, last=:flat).(time0)
+    return R0, B0_interp
 end
 
 function vacuum_r0_b0_time(dd::IMAS.dd, time0::Float64)
-    R0, B0 = vacuum_r0_b0_time(dd, [time0])
-    return R0, B0[1]
+    R0, B0_interp = vacuum_r0_b0_time(dd, [time0])
+    return R0, B0_interp[1]
 end
 
 """
