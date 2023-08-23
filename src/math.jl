@@ -172,23 +172,27 @@ function revolution_volume(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where
 end
 
 """
-    intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int, Int}}) where {T<:AbstractVector{<:Real}}
+    intersection_angles(path1_r::AbstractVector{T}, path1_z::AbstractVector{T}, path2_r::AbstractVector{T}, path2_z::AbstractVector{T}, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:Real}
 
 returns angles of intersections between two paths and intersection_indexes given by intersection() function
 """
-function intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:AbstractVector{<:Real}}
-    angles = Float64[]
-    for index in intersection_indexes
-        path1_p1 = [path1_r[index[1]], path1_z[index[1]]]
-        path1_p2 = [path1_r[index[1]+1], path1_z[index[1]+1]]
-        path2_p1 = [path2_r[index[2]], path2_z[index[2]]]
-        path2_p2 = [path2_r[index[2]+1], path2_z[index[2]+1]]
-        angle = mod(IMAS.angle_between_two_vectors(path1_p1, path1_p2, path2_p1, path2_p2), π)
+function intersection_angles(path1_r::AbstractVector{T}, path1_z::AbstractVector{T}, path2_r::AbstractVector{T}, path2_z::AbstractVector{T}, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:Real}
+    n = length(intersection_indexes)
+    angles = Vector{T}(undef, n)
+
+    for (i, index) in enumerate(intersection_indexes)
+        r1, z1 = path1_r[index[1]], path1_z[index[1]]
+        r1_next, z1_next = path1_r[index[1]+1], path1_z[index[1]+1]
+        r2, z2 = path2_r[index[2]], path2_z[index[2]]
+        r2_next, z2_next = path2_r[index[2]+1], path2_z[index[2]+1]
+
+        angle = mod(angle_between_two_vectors((r1, z1), (r1_next, z1_next), (r2, z2), (r2_next, z2_next)), π)
         if angle > (π / 2.0)
             angle = π - angle
         end
-        push!(angles, angle)
+        angles[i] = angle
     end
+
     return angles
 end
 
@@ -631,18 +635,18 @@ end
 
 """
     angle_between_two_vectors(
-        v1_p1::Vector{T},
-        v1_p2::Vector{T},
-        v2_p1::Vector{T},
-        v2_p2::Vector{T}) where {T<:Real}
+        v1_p1::Tuple{T,T},
+        v1_p2::Tuple{T,T},
+        v2_p1::Tuple{T,T},
+        v2_p2::Tuple{T,T}) where {T<:Real}
 
 Returns angle in radiants between two vectors defined by their start and end points
 """
 function angle_between_two_vectors(
-    v1_p1::Vector{T},
-    v1_p2::Vector{T},
-    v2_p1::Vector{T},
-    v2_p2::Vector{T}) where {T<:Real}
+    v1_p1::Tuple{T,T},
+    v1_p2::Tuple{T,T},
+    v2_p1::Tuple{T,T},
+    v2_p2::Tuple{T,T}) where {T<:Real}
 
     v1_x = v1_p2[1] - v1_p1[1]
     v1_y = v1_p2[2] - v1_p1[2]
