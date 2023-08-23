@@ -24,10 +24,10 @@ Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 1
 :return: i2 and i4
 """
 
-function estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
+function estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
     Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
-    i2,i4 = estrada_I_integrals(Ec, Ef)
-    return i2,i4
+    i2, i4 = estrada_I_integrals(Ec, Ef)
+    return i2, i4
 end
 
 """
@@ -42,11 +42,11 @@ Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 1
 :return: i2 and i4
 """
 function estrada_I_integrals(Ec::Real, Ef::Real)
-    a =  sqrt.(Ec./Ef)
-    i2 = (1/3.0) .* log.((1 .+ a.^3) ./ (a.^3))
-    i4 = 0.5 .- a.^2 .* ((1/6.0) .* log.((1 .- a .+ a.^2) ./ (1 .+ a).^2) .+
-         1 ./ sqrt(3.0) .* (atan.((2 .- a) ./ (a .* sqrt(3.0))) .+ pi/6))
-    return i2,i4
+    a = sqrt.(Ec ./ Ef)
+    i2 = (1 / 3.0) .* log.((1 .+ a .^ 3) ./ (a .^ 3))
+    i4 = 0.5 .- a .^ 2 .* ((1 / 6.0) .* log.((1 .- a .+ a .^ 2) ./ (1 .+ a) .^ 2) .+
+                           1 ./ sqrt(3.0) .* (atan.((2 .- a) ./ (a .* sqrt(3.0))) .+ pi / 6))
+    return i2, i4
 end
 
 
@@ -333,7 +333,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
                         taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
 
-                        i2tmp,i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
+                        i2tmp, i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
                         i4[i] = i4tmp
                     end
 
