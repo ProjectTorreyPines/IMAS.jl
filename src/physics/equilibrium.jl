@@ -149,12 +149,15 @@ This function solves the issue that in IMAS the information about R0 and B0 is r
 function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
     source = Set{Symbol}()
 
+    idss_with_vacuum_toroidal_field = keys(dd)
+
     # R0
     if hasfield(typeof(dd), :tf) && isfilled(dd.tf, :r0)
         R0 = dd.tf.r0::T
         push!(source, :tf)
     else
-        for (name, ids) in dd
+        for name in idss_with_vacuum_toroidal_field
+            ids = getfield(dd, name)
             if hasfield(typeof(ids), :vacuum_toroidal_field)
                 if isfilled(ids.vacuum_toroidal_field, :r0)
                     R0 = ids.vacuum_toroidal_field.r0::T
@@ -182,7 +185,8 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
     else
         B0 = eltype(dd)[]
         time = Float64[]
-        for (name, ids) in dd
+        for name in idss_with_vacuum_toroidal_field
+            ids = getfield(dd, name)
             if hasfield(typeof(ids), :vacuum_toroidal_field)
                 if isfilled(ids.vacuum_toroidal_field, :b0) && isfilled(ids, :time)
                     B0_ = ids.vacuum_toroidal_field.b0::Vector{T}
@@ -190,7 +194,7 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
                     append!(time, time_)
                     append!(B0, B0_)
                     reps = length(time_) - length(B0_)
-                    append!(B0, [B0_[end] for k in 1:reps])
+                    append!(B0, (B0_[end] for k in 1:reps))
                     push!(source, name)
                 end
             end
