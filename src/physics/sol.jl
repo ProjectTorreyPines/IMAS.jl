@@ -233,18 +233,16 @@ end
 Returns time dependent vectors of :field summed over all divertor targets
 """
 function divertor_totals_from_targets(divertor::IMAS.divertors__divertor, field::Symbol)
-    total = zero(T)
-    time = Vector{Float64}[]
+    total = []
+    time = []
     for target in divertor.target
         value = getproperty(target, field)
         if !ismissing(value, :data)
-            total += value.data
-            if isempty(time)
-                push!(time, value.time)
-            end
+            push!(total, value.data)
+            push!(time, value.time)
         end
     end
-    return time[1], total
+    return time[1], reduce(+, total)
 end
 
 """
