@@ -177,7 +177,7 @@ function Base.findall(identifier_name::Symbol, ids::IDSvector)
     else
         indexes = findall(idx -> idx.index == i, ids)
     end
-    return eltype(ids)[ids[index] for index in indexes]
+    return (ids[index] for index in indexes)
 end
 
 """

@@ -1581,7 +1581,7 @@ end
 #= ================ =#
 @recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing)
 
-    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(collect(fieldnames_(typeof(ids))))"
+    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
     @assert typeof(normalization) <: Real
     @assert typeof(coordinate) <: Union{Nothing,Symbol}
 

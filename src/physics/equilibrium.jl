@@ -152,14 +152,14 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
     idss_with_vacuum_toroidal_field = keys(dd)
 
     # R0
-    if hasfield(typeof(dd), :tf) && isfilled(dd.tf, :r0)
+    if hasfield(typeof(dd), :tf) && hasdata(dd.tf, :r0)
         R0 = dd.tf.r0::T
         push!(source, :tf)
     else
         for name in idss_with_vacuum_toroidal_field
             ids = getfield(dd, name)
             if hasfield(typeof(ids), :vacuum_toroidal_field)
-                if isfilled(ids.vacuum_toroidal_field, :r0)
+                if hasdata(ids.vacuum_toroidal_field, :r0)
                     R0 = ids.vacuum_toroidal_field.r0::T
                     push!(source, name)
                     break
@@ -170,13 +170,13 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
 
     # B0 and time vectors
     # from: tf
-    if hasfield(typeof(dd), :tf) && isfilled(dd.tf.b_field_tor_vacuum_r, :data)
+    if hasfield(typeof(dd), :tf) && hasdata(dd.tf.b_field_tor_vacuum_r, :data)
         B0 = dd.tf.b_field_tor_vacuum_r.data::Vector{T} / R0
         time = dd.tf.b_field_tor_vacuum_r.time::Vector{Float64}
         push!(source, :tf)
 
         # from: pulse_schedule
-    elseif isfilled(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
+    elseif hasdata(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
         B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data::Vector{T} / R0
         time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time::Vector{Float64}
         push!(source, :pulse_schedule)
@@ -188,7 +188,7 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
         for name in idss_with_vacuum_toroidal_field
             ids = getfield(dd, name)
             if hasfield(typeof(ids), :vacuum_toroidal_field)
-                if isfilled(ids.vacuum_toroidal_field, :b0) && isfilled(ids, :time)
+                if hasdata(ids.vacuum_toroidal_field, :b0) && hasdata(ids, :time)
                     B0_ = ids.vacuum_toroidal_field.b0::Vector{T}
                     time_ = ids.time::Vector{Float64}
                     append!(time, time_)
