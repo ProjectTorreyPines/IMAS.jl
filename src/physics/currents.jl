@@ -6,9 +6,12 @@ Sets j_ohmic parallel current density to what it would be at steady-state, based
 function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T}
     j_oh_par_norm = cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
 
-    j_non_inductive_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt)
+    rho_tor_norm = cp1d.grid.rho_tor_norm
+    j_non_inductive = cp1d.j_non_inductive
+
+    j_non_inductive_tor = Jpar_2_Jtor(rho_tor_norm, j_non_inductive, true, eqt)
     I_ohmic_tor = Ip - integrate(cp1d.grid.area, j_non_inductive_tor)
-    I_tor_2_par = integrate(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, fill(I_ohmic_tor, size(cp1d.grid.rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
+    I_tor_2_par = integrate(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, fill(I_ohmic_tor, size(rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
     I_ohmic_par_guess = I_ohmic_tor .* I_tor_2_par
 
     j_oh_par_norm .*= sign(I_ohmic_par_guess)
@@ -16,8 +19,8 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
 
     function cost(x)
         j_ohmic = x[1] .* j_oh_par_norm
-        j_total = j_ohmic .+ cp1d.j_non_inductive
-        j_tor = Jpar_2_Jtor(cp1d.grid.rho_tor_norm, j_total, true, eqt)
+        j_total = j_ohmic .+ j_non_inductive
+        j_tor = Jpar_2_Jtor(rho_tor_norm, j_total, true, eqt)
         return abs(Ip - IMAS.integrate(cp1d.grid.area, j_tor)) .^ 2
     end
 
