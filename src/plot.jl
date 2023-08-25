@@ -1562,7 +1562,6 @@ end
     @series begin
         label --> getproperty(wd2du, :name, "")
         aspect_ratio := :equal
-        xlim := (0.0, Inf)
         wd2du.outline.r, wd2du.outline.z
     end
 end
@@ -1570,9 +1569,86 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_field(pc::IMAS.pulse_schedule__position_control; time_index=0)
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control, time::Float64)
     @series begin
-        boundary(pc; time_index)
+        aspect_ratio := :equal
+        boundary(pc, time)
+    end
+end
+
+@recipe function plot_pc(pc::IMAS.pulse_schedule__position_control)
+    time = global_time(pc)
+    @series begin
+        pc, time
+    end
+end
+
+@recipe function plot_ps(ps::IMAS.pulse_schedule)
+    time = global_time(ps)
+    @series begin
+        ps, time
+    end
+end
+
+@recipe function plot_ps(ps::IMAS.pulse_schedule, time::Float64)
+    plots = []
+    for (ids, field) in IMASDD.filled_ids_fields(ps; eval_expr=true)
+        if field != :data
+            continue
+        end
+        path = collect(f2p(ids))
+        if "position_control" in path
+            continue
+        end
+
+        plt = Dict()
+        plt[:ids] = ids
+        plt[:x] = getproperty(ids, :time)
+        plt[:y] = getproperty(ids, :data)
+        plt[:label] = path[end-1]
+        push!(plots, plt)
+    end
+
+    rows = length(plots)
+    size --> (1000, 200 * rows)
+    layout := @layout [a{0.35w} [1 for k in 1:rows]]
+    margin --> 5 * Measures.mm
+
+    @series begin
+        subplot := 1
+        label := "$(time) [s]"
+        ps.position_control
+    end
+
+    @series begin
+        subplot := 1
+        legend := false
+        cx := true
+        alpha := 0.2
+        color := :gray
+        top_dd(ps).equilibrium.time_slice[time]
+    end
+
+    @series begin
+        subplot := 1
+        legend := false
+        top_dd(ps).wall
+    end
+
+    for (k, plt) in enumerate(plots)
+        @series begin
+            subplot := k + 1
+            label := ""
+            plt[:x], plt[:y]
+        end
+        @series begin
+            subplot := k + 1
+            primary := false
+            linestyle := :dash
+            title := nice_field(plt[:label])
+            seriestype --> :vline
+            [time]
+        end
     end
 end
 
@@ -1621,6 +1697,8 @@ nice_field_symbols["rho_tor_norm"] = L"\rho"
 nice_field_symbols["psi"] = L"\psi"
 nice_field_symbols["psi_norm"] = L"\psi_N"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
+nice_field_symbols["i_plasma"] = "Plasma current"
+nice_field_symbols["b_field_tor_vacuum_r"] = "B0 * R0"
 
 function nice_field(field::AbstractString)
     if field in keys(nice_field_symbols)
