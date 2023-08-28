@@ -355,24 +355,24 @@ function rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, threshol
 end
 
 """
-    calculate_angle(p1::T, p2::T, p3::T) where {T<:AbstractVector{<:Real}}
+    calculate_angle(p1::T, p2::T, p3::T) where {T}
 
 Calculate the angle between three points
 """
-function calculate_angle(p1::T, p2::T, p3::T) where {T}
+function calculate_angle(p1::Tuple{T,T}, p2::Tuple{T,T}, p3::Tuple{T,T}) where {T<:Real}
     v1 = [p2[1] - p1[1], p2[2] - p1[2]]
     v2 = [p3[1] - p2[1], p3[2] - p2[2]]
     dot_product = dot(v1, v2)
     magnitude_product = norm(v1) * norm(v2)
-    return acosd(dot_product / magnitude_product)
+    return acosd(min(dot_product / magnitude_product, one(T)))
 end
 
 """
-    simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:curvature)
+    simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:distance)
 
 Simplify 2D path by `:curvature` (Reumann-Witkam Algorithm) or `:distance` (Ramer-Douglas-Peucker) algorithms
 """
-function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:curvature) where {T<:Real}
+function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:distance) where {T<:Real}
     if model == :curvature
         return rwa_simplify_2d_path(x, y, simplification_factor)
     elseif model == :distance
