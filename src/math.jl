@@ -18,11 +18,12 @@ end
 Turn a vector into a range (if possible)
 """
 function to_range(vector::AbstractVector{<:Real})
-    tmp = diff(vector)
-    if !(1 - sum(abs, tmp .- tmp[1]) / length(vector) ≈ 1.0)
+    N = length(vector)
+    dv = vector[2] - vector[1]
+    if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
-    return range(vector[1], vector[end], length=length(vector))
+    return range(vector[1], vector[end], length=N)
 end
 
 function gradient(arr::AbstractVector; method::Symbol=:central)

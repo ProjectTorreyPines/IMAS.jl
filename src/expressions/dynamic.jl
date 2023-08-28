@@ -1,6 +1,6 @@
 import NumericalIntegration: integrate, cumul_integrate
 
-function IMASDD.get_expressions(::Val{:dynamic})
+function IMASDD.get_expressions(::Type{Val{:dynamic}})
     return dynamic_expressions
 end
 
