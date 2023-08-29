@@ -1592,47 +1592,76 @@ end
 
 @recipe function plot_ps(ps::IMAS.pulse_schedule, time::Float64)
     plots = []
-    for (ids, field) in IMASDD.filled_ids_fields(ps; eval_expr=true)
+    for (ids, field) in filled_ids_fields(ps; eval_expr=true)
         if field != :data
             continue
         end
         path = collect(f2p(ids))
-        if "position_control" in path
+        if "boundary_outline" in path# || "x_point" in path
+            continue
+        end
+
+        time_value = getproperty(ids, :time)
+        data_value = getproperty(ids, :data)
+
+        if length(collect(filter(x -> x ∉ (-Inf, Inf), time_value))) == 1
             continue
         end
 
         plt = Dict()
         plt[:ids] = ids
-        plt[:x] = getproperty(ids, :time)
-        plt[:y] = getproperty(ids, :data)
-        plt[:label] = path[end-1]
+        plt[:x] = time_value
+        plt[:y] = data_value
+        if path[end-1] in ["r", "z"]
+            if isdigit(path[end-2][1])
+                plt[:label] = "$(path[end-3]) $(path[end-2]) $(path[end-1])"
+            else
+                plt[:label] = "$(path[end-2]) $(path[end-1])"
+            end
+        else
+            plt[:label] = path[end-1]
+        end
         push!(plots, plt)
     end
 
-    rows = length(plots)
-    size --> (1000, 200 * rows)
-    layout := @layout [a{0.35w} [1 for k in 1:rows]]
+    layout := @layout [length(plots) + 1]
+    size --> (1000, 1000)
     margin --> 5 * Measures.mm
 
     @series begin
         subplot := 1
         label := "$(time) [s]"
-        ps.position_control
+        aspect_ratio := :equal
+        ps.position_control, time
     end
 
-    @series begin
-        subplot := 1
-        legend := false
-        cx := true
-        alpha := 0.2
-        color := :gray
+    eqt = try
         top_dd(ps).equilibrium.time_slice[time]
+    catch
+        nothing
+    end
+    if eqt !== nothing
+        @series begin
+            subplot := 1
+            legend := false
+            cx := true
+            alpha := 0.2
+            color := :gray
+            eqt
+        end
     end
 
-    @series begin
-        subplot := 1
-        legend := false
+    wall = try
         top_dd(ps).wall
+    catch
+        nothing
+    end
+    if wall !== nothing
+        @series begin
+            subplot := 1
+            legend := false
+            wall
+        end
     end
 
     for (k, plt) in enumerate(plots)
@@ -1643,11 +1672,13 @@ end
         end
         @series begin
             subplot := k + 1
+            seriestype := :scatter
             primary := false
-            linestyle := :dash
+            marker := :dot
+            markerstrokewidth := 0.0
             title := nice_field(plt[:label])
-            seriestype --> :vline
-            [time]
+            #link := :x
+            [time], interp1d(plt[:x], plt[:y]).([time])
         end
     end
 end
