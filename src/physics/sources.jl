@@ -119,8 +119,8 @@ Returns core_sources__source___profiles_1d with sources totals and possiblity to
 * include/exclude certain sources based on their unique index identifier
 * include only certain fields
 """
-function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes::Vector{Int}=Int[], exclude_indexes::Vector{Int}=Int[], fields::Vector{Symbol}=Symbol[])
-    total_source1d = IMAS.core_sources__source___profiles_1d()
+function total_sources(core_sources::IMAS.core_sources{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; include_indexes::Vector{Int}=Int[], exclude_indexes::Vector{Int}=Int[], fields::Vector{Symbol}=Symbol[]) where {T<:Real}
+    total_source1d = IMAS.core_sources__source___profiles_1d{T}()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = cp1d.time
 
@@ -168,6 +168,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         if isempty(source.profiles_1d)
             continue
         end
+
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
         source1d = source.profiles_1d[Float64(cp1d.time)]
         for sub in (nothing, :electrons)
@@ -182,7 +183,7 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                     y = getproperty(ids2, field, missing)
                     if typeof(y) <: AbstractVector{<:Real}
                         if typeof(getraw(ids1, field)) <: Union{Missing,Function}
-                            setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
+                            setproperty!(ids1, field, zeros(T, length(total_source1d.grid.rho_tor_norm)))
                         end
                         old_value = getproperty(ids1, field)
                         x = source1d.grid.rho_tor_norm
