@@ -10,6 +10,14 @@ const gacode_units = (
     m³_to_cm³=1e-6
 )
 
+struct flux_solution{T<:Real}
+    PARTICLE_FLUX_e::T
+    STRESS_TOR_i::T
+    ENERGY_FLUX_e::T
+    ENERGY_FLUX_i::T
+end
+
+
 function c_s(cp1d::IMAS.core_profiles__profiles_1d)
     return sqrt.(gacode_units.k .* cp1d.electrons.temperature ./ (cp1d.ion[1].element[1].a .* gacode_units.mp))
 end
