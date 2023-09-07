@@ -675,3 +675,18 @@ If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circ
 function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
     return vec[(idx-1)%length(vec)+1]
 end
+
+"""
+    pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}, N::Int=length(x), l::Float64=1E-1) where {T<:Float64}
+
+Returns grid between `minimum(x)` and `maximum(x)` with `N` points positioned to
+sample `y(x)` in such a way to pack more points where gradients are greates.
+`l` controls how much the adaptive gradiant sampling should approach linear sampling.
+"""
+function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}, N::Int=length(x), l::Float64=1E-1) where {T<:Float64}
+    tmp = abs.(gradient(x, y))
+    tmp .+= maximum(tmp) * l
+    cumsum!(tmp, tmp)
+    tmp ./= tmp[end]
+    return interp1d(tmp, x).(LinRange(0.0, 1.0, N))
+end
