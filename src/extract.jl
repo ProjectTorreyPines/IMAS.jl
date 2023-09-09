@@ -77,6 +77,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:sources, :Paux_tot, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_total.value) / 1E6)
     ExtractLibFunction(:sources, :Prad_tot, "MW", dd -> radiation_losses(dd.core_sources) / 1E6)
 
+    ExtractLibFunction(:neutronics, :Nw_peak, "MW/m^2", dd -> maximum(@. sqrt(dd.neutronics.time_slice[].wall_loading.flux_r^2+dd.neutronics.time_slice[].wall_loading.flux_z^2)) / 1E6)
+
     ExtractLibFunction(:exhaust, :Psol, "MW", dd -> power_sol(dd) / 1E6)
     ExtractLibFunction(:exhaust, :PLH, "MW", dd -> scaling_L_to_H_power(dd) / 1E6)
     ExtractLibFunction(:exhaust, :Bpol_omp, "T", dd -> Bpol_omp(dd.equilibrium.time_slice[]))
