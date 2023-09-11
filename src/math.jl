@@ -669,7 +669,8 @@ end
 """
     getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
 
-Return the element of the vector `vec` at the position `idx`. 
+Return the element of the vector `vec` at the position `idx`.
+
 If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
 """
 function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
@@ -677,16 +678,19 @@ function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
 end
 
 """
-    pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}, N::Int=length(x), l::Float64=1E-1) where {T<:Float64}
+    pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_points::Int=length(x), l::Float64=1E-2) where {T<:Float64}
 
-Returns grid between `minimum(x)` and `maximum(x)` with `N` points positioned to
+Returns grid between `minimum(x)` and `maximum(x)` with `n_points` points positioned to
 sample `y(x)` in such a way to pack more points where gradients are greates.
+
 `l` controls how much the adaptive gradiant sampling should approach linear sampling.
 """
-function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}, N::Int=length(x), l::Float64=1E-1) where {T<:Float64}
+function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_points::Int=length(x), l::Float64=1E-2) where {T<:Float64}
     tmp = abs.(gradient(x, y))
-    tmp .+= maximum(tmp) * l
+    m, M = extrema(tmp)
+    tmp .+= (M - m) * l
     cumsum!(tmp, tmp)
+    tmp .-= tmp[1]
     tmp ./= tmp[end]
-    return interp1d(tmp, x).(LinRange(0.0, 1.0, N))
+    return interp1d(tmp, x).(LinRange(0.0, 1.0, n_points))
 end
