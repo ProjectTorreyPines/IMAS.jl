@@ -1,9 +1,9 @@
 """
-    j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T}
+    j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
 
 Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
-function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T}
+function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
     j_oh_par_norm = cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
 
     rho_tor_norm = cp1d.grid.rho_tor_norm
@@ -31,11 +31,11 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
 end
 
 """
-    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; Ip::T) where {T}
+    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; Ip::T) where {T<:Real}
 
 Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
-function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T}
+function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
     cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d, Ip)
     # restore j_total and j_tor as expression, to make sure things are self-consistent
     empty!(cp1d, :j_total)
@@ -44,11 +44,11 @@ function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.
 end
 
 """
-    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
 Sets j_total parallel current density as expression in core_profiles that evaluates to the total parallel current in the equilibrium
 """
-function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(cp1d.grid.rho_tor_norm)
     # restore j_ohmic and j_tor as expression, to make sure things are self-consistent
     empty!(cp1d, :j_ohmic)
@@ -57,17 +57,21 @@ function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS
 end
 
 """
-    JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap, eqt::IMAS.equilibrium__time_slice)
+    JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
 
 Given <Jt/R> returns <J⋅B>
+
 Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))
+
 Includes_bootstrap set to true if input current includes bootstrap
+
 NOTE: Jtor ≂̸ JtoR
-JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+    JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+
 NOTE: Jpar ≂̸ JparB
-JparB = Jpar * B0
+    JparB = Jpar * B0
 """
-function JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+function JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
     fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5).(rho_tor_norm)
     fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm)
@@ -83,17 +87,21 @@ function JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap::Bool, eqt::IMAS.eq
 end
 
 """
-    JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt::IMAS.equilibrium__time_slice)
+    JparB_2_JtoR(rho_tor_norm::Vector{<:Real}, JparB::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
 
 Given <J⋅B> returns <Jt/R>
+
 Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))
+
 Includes_bootstrap set to true if input current includes bootstrap
+
 NOTE: Jtor ≂̸ JtoR
-JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+    JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+
 NOTE: Jpar ≂̸ JparB
-JparB = Jpar * B0
+    JparB = Jpar * B0
 """
-function JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+function JparB_2_JtoR(rho_tor_norm::Vector{<:Real}, JparB::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
     fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5).(rho_tor_norm)
     fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm)
@@ -126,4 +134,28 @@ function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, include
     B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
     Jpar = JparB ./ B0
     return Jpar
+end
+
+"""
+    v_loop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
+
+Vloop = η*J: method emphasizes the resistive nature of the plasma.
+"""
+function v_loop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
+    return integrate(cp1d.grid.area, cp1d.j_tor ./ cp1d.conductivity_parallel) / cp1d.grid.area[end]
+end
+
+"""
+    v_loop(eq::IMAS.equilibrium)::T where {T<:Real}
+
+`Vloop = dψ/dt` method emphasizes the inductive nature of the loop voltage.
+"""
+function v_loop(eq::IMAS.equilibrium{T}, time0::Float64)::T where {T<:Real}
+    @assert length(eq.time) > 2 "v_loop from equilibrium can only be calculated in presence of at least two time slices"
+    index = causal_time_index(eq.time, time0)
+    return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
+end
+
+function v_loop(eq::IMAS.equilibrium{T})::T where {T<:Real}
+    return v_loop(eq, top_dd(eq).global_time)
 end
