@@ -26,71 +26,93 @@ function to_range(vector::AbstractVector{<:Real})
     return range(vector[1], vector[end], length=N)
 end
 
-function gradient(arr::AbstractVector; method::Symbol=:central)
+function gradient(arr::AbstractVector; method::Symbol=:second_order)
     return gradient(1:length(arr), arr; method)
 end
 
 """
-    gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
+    gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real, A<:Real}
 
-Finite difference method of the gradient: [:central, :backward, :forward]
+Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
 
 The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 
-For central difference, the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries
+For `:central` the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries.
+
+For `:second_order` the gradient is computed using second order accurate central differences in the interior points, and 2nd order differences at the boundaries.
 """
-function gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:central)
-    if length(coord) != length(arr)
-        error("The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))")
+function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real,A<:Real}
+    @assert length(coord) == length(arr) "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))"
+
+    np = length(arr)
+    grad = Array{promote_type(A, C)}(undef, np)
+
+    if method != :second_order
+        # Forward difference at the beginning
+        grad[1] = (arr[2] - arr[1]) / (coord[2] - coord[1])
+        # backward difference at the end
+        grad[end] = (arr[end] - arr[end-1]) / (coord[end] - coord[end-1])
     end
 
-    np = size(arr)[1]
-    out = similar(arr)
-    dcoord = diff(coord)
-
-    # Forward difference at the beginning
-    out[1] = (arr[2] - arr[1]) / dcoord[1]
-
     # Central difference in interior using numpy method
-    if method == :central
-        for p = 2:np-1
-            dp1 = dcoord[p-1]
-            dp2 = dcoord[p]
-            a = -dp2 / (dp1 * (dp1 + dp2))
-            b = (dp2 - dp1) / (dp1 * dp2)
-            c = dp1 / (dp2 * (dp1 + dp2))
-            out[p] = a * arr[p-1] + b * arr[p] + c * arr[p+1]
+    if method in [:central, :second_order]
+        for p in 2:np-1
+            hs = coord[p] - coord[p-1]
+            fs = arr[p-1]
+            hd = coord[p+1] - coord[p]
+            fd = arr[p+1]
+            grad[p] = (hs^2 * fd + (hd^2 - hs^2) * arr[p] - hd^2 * fs) / (hs * hd * (hd + hs))
+        end
+        if method == :second_order
+            # Derived using Numerical Mathematics, section 10.10 and lecture notes by A. Yew
+            # and checked against formula from A. Yew for the case of equal spacing.
+            # Numerical Mathematics: A. Quarteroni, R. Sacco, F. Saleri, Springer (2007)
+            #   https://sites.math.washington.edu/~morrow/464_17/sacco%20saleri%20numerical.pdf
+            # A. Yew: Lecture notes for APMA 0160 at Brown University
+            #    https://www.dam.brown.edu/people/alcyew/handouts/numdiff.pdf
+            c = coord[2] - coord[1]
+            d = coord[3] - coord[2]
+            f = arr[1]
+            g = arr[2]
+            h = arr[3]
+            ccd = c / (c + d)
+            ccd2 = c^2 / (c + d)^2
+            grad[1] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
+            c = coord[end-1] - coord[end]
+            d = coord[end-2] - coord[end-1]
+            f = arr[end]
+            g = arr[end-1]
+            h = arr[end-2]
+            ccd = c / (c + d)
+            ccd2 = c^2 / (c + d)^2
+            grad[end] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
         end
     elseif method == :backward
-        for p = 2:np-1
-            out[p] = (arr[p] - arr[p-1]) / dcoord[p]
+        for p in 2:np-1
+            grad[p] = (arr[p] - arr[p-1]) / (coord[p] - coord[p-1])
         end
     elseif method == :forward
-        for p = 2:np-1
-            out[p] = (arr[p+1] - arr[p]) / dcoord[p]
+        for p in 2:np-1
+            grad[p] = (arr[p+1] - arr[p]) / (coord[p+1] - coord[p])
         end
     else
         error("difference method $(method) doesn't exist in gradient function")
     end
 
-    # backward difference at the end
-    out[end] = (arr[end] - arr[end-1]) / dcoord[end]
-
-    return out
+    return grad
 end
 
-function gradient(arr::Matrix; method::Symbol=:central)
+function gradient(arr::Matrix; method::Symbol=:second_order)
     return gradient(1:size(arr)[1], 1:size(arr)[2], arr; method)
 end
 
 """
-    gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:central, dim::Int=0)
+    gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
 
-Finite difference method of the gradient: [:central, :backward, :forward]
-applied to a matrix
-on both dimensions (dim=0) or only (dim=1) or (dim=2)
+Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
+Can apply to both dimensions (dim=0) or either the first (dim=1) or second (dim=2) dimension.
 """
-function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:central, dim::Int=0)
+function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
     if dim ∈ (0, 1)
         d1 = hcat(map(x -> gradient(coord1, x; method), eachcol(arr))...)
         if dim == 1
@@ -104,22 +126,6 @@ function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; m
         end
     end
     return d1, d2
-end
-
-"""
-    centraldiff(y::AbstractVector{<:Real})
-
-Calculates central difference of a vector assuming that the data is equally-spaced
-"""
-function centraldiff(y::AbstractVector{<:T}) where {T<:Real}
-    n = length(y)
-    a = similar(y, T, n)
-    a[1] = (y[2] - y[1]) / 2
-    a[n] = (y[n] - y[n-1]) / 2
-    for i in 2:n-1
-        a[i] = (y[i+1] - y[i-1]) / 2
-    end
-    return a
 end
 
 """
@@ -137,15 +143,9 @@ end
 Calculate centroid of polygon
 """
 function centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
-    dy = diff(y)
-    dx = diff(x)
-    x_shift = view(x, 2:length(x))
-    y_shift = view(y, 2:length(y))
-    x0 = (x_shift .+ x[1:end-1]) .* 0.5
-    y0 = (y_shift .+ y[1:end-1]) .* 0.5
-    A = sum(dy .* x0)
-    x_c = -sum(dx .* y0 .* x0) ./ A
-    y_c = sum(dy .* x0 .* y0) ./ A
+    A = sum((y[i+1] - y[i]) * 0.5 * (x[i+1] + x[i]) for i in 1:length(x)-1)
+    x_c = -sum((x[i+1] - x[i]) * 0.5 * (y[i+1] + y[i]) * 0.5 * (x[i+1] + x[i]) for i in 1:length(x)-1) / A
+    y_c = sum((y[i+1] - y[i]) * 0.5 * (x[i+1] + x[i]) * 0.5 * (y[i+1] + y[i]) for i in 1:length(x)-1) / A
     return x_c, y_c
 end
 
@@ -172,23 +172,27 @@ function revolution_volume(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where
 end
 
 """
-    intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int, Int}}) where {T<:AbstractVector{<:Real}}
+    intersection_angles(path1_r::AbstractVector{T}, path1_z::AbstractVector{T}, path2_r::AbstractVector{T}, path2_z::AbstractVector{T}, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:Real}
 
 returns angles of intersections between two paths and intersection_indexes given by intersection() function
 """
-function intersection_angles(path1_r::T, path1_z::T, path2_r::T, path2_z::T, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:AbstractVector{<:Real}}
-    angles = Float64[]
-    for index in intersection_indexes
-        path1_p1 = [path1_r[index[1]], path1_z[index[1]]]
-        path1_p2 = [path1_r[index[1]+1], path1_z[index[1]+1]]
-        path2_p1 = [path2_r[index[2]], path2_z[index[2]]]
-        path2_p2 = [path2_r[index[2]+1], path2_z[index[2]+1]]
-        angle = mod(IMAS.angle_between_two_vectors(path1_p1, path1_p2, path2_p1, path2_p2), π)
+function intersection_angles(path1_r::AbstractVector{T}, path1_z::AbstractVector{T}, path2_r::AbstractVector{T}, path2_z::AbstractVector{T}, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:Real}
+    n = length(intersection_indexes)
+    angles = Vector{T}(undef, n)
+
+    for (i, index) in enumerate(intersection_indexes)
+        r1, z1 = path1_r[index[1]], path1_z[index[1]]
+        r1_next, z1_next = path1_r[index[1]+1], path1_z[index[1]+1]
+        r2, z2 = path2_r[index[2]], path2_z[index[2]]
+        r2_next, z2_next = path2_r[index[2]+1], path2_z[index[2]+1]
+
+        angle = mod(angle_between_two_vectors((r1, z1), (r1_next, z1_next), (r2, z2), (r2_next, z2_next)), π)
         if angle > (π / 2.0)
             angle = π - angle
         end
-        push!(angles, angle)
+        angles[i] = angle
     end
+
     return angles
 end
 
@@ -351,24 +355,24 @@ function rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, threshol
 end
 
 """
-    calculate_angle(p1::T, p2::T, p3::T) where {T<:AbstractVector{<:Real}}
+    calculate_angle(p1::T, p2::T, p3::T) where {T}
 
 Calculate the angle between three points
 """
-function calculate_angle(p1::T, p2::T, p3::T) where {T}
+function calculate_angle(p1::Tuple{T,T}, p2::Tuple{T,T}, p3::Tuple{T,T}) where {T<:Real}
     v1 = [p2[1] - p1[1], p2[2] - p1[2]]
     v2 = [p3[1] - p2[1], p3[2] - p2[2]]
     dot_product = dot(v1, v2)
     magnitude_product = norm(v1) * norm(v2)
-    return acosd(dot_product / magnitude_product)
+    return acosd(min(dot_product / magnitude_product, one(T)))
 end
 
 """
-    simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:curvature)
+    simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:distance)
 
 Simplify 2D path by `:curvature` (Reumann-Witkam Algorithm) or `:distance` (Ramer-Douglas-Peucker) algorithms
 """
-function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:curvature) where {T<:Real}
+function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:distance) where {T<:Real}
     if model == :curvature
         return rwa_simplify_2d_path(x, y, simplification_factor)
     elseif model == :distance
@@ -631,18 +635,18 @@ end
 
 """
     angle_between_two_vectors(
-        v1_p1::Vector{T},
-        v1_p2::Vector{T},
-        v2_p1::Vector{T},
-        v2_p2::Vector{T}) where {T<:Real}
+        v1_p1::Tuple{T,T},
+        v1_p2::Tuple{T,T},
+        v2_p1::Tuple{T,T},
+        v2_p2::Tuple{T,T}) where {T<:Real}
 
 Returns angle in radiants between two vectors defined by their start and end points
 """
 function angle_between_two_vectors(
-    v1_p1::Vector{T},
-    v1_p2::Vector{T},
-    v2_p1::Vector{T},
-    v2_p2::Vector{T}) where {T<:Real}
+    v1_p1::Tuple{T,T},
+    v1_p2::Tuple{T,T},
+    v2_p1::Tuple{T,T},
+    v2_p2::Tuple{T,T}) where {T<:Real}
 
     v1_x = v1_p2[1] - v1_p1[1]
     v1_y = v1_p2[2] - v1_p1[2]
@@ -665,9 +669,28 @@ end
 """
     getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
 
-Return the element of the vector `vec` at the position `idx`. 
+Return the element of the vector `vec` at the position `idx`.
+
 If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
 """
 function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
     return vec[(idx-1)%length(vec)+1]
+end
+
+"""
+    pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_points::Int=length(x), l::Float64=1E-2) where {T<:Float64}
+
+Returns grid between `minimum(x)` and `maximum(x)` with `n_points` points positioned to
+sample `y(x)` in such a way to pack more points where gradients are greates.
+
+`l` controls how much the adaptive gradiant sampling should approach linear sampling.
+"""
+function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_points::Int=length(x), l::Float64=1E-2) where {T<:Float64}
+    tmp = abs.(gradient(x, y))
+    m, M = extrema(tmp)
+    tmp .+= (M - m) * l
+    cumsum!(tmp, tmp)
+    tmp .-= tmp[1]
+    tmp ./= tmp[end]
+    return interp1d(tmp, x).(LinRange(0.0, 1.0, n_points))
 end

@@ -117,12 +117,26 @@ end
 
 Returns core_sources__source___profiles_1d with sources totals and possiblity to
 * include/exclude certain sources based on their unique index identifier
-* include only certain fields
+* include only certain fields among these: [:particles_inside, :energy, :power_inside, :momentum_tor, :total_ion_power_inside, :total_ion_energy, :j_parallel, :torque_tor_inside, :current_parallel_inside, :particles]
 """
-function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes::Vector{Int}=Int[], exclude_indexes::Vector{Int}=Int[], fields::Vector{Symbol}=Symbol[])
-    total_source1d = IMAS.core_sources__source___profiles_1d()
+function total_sources(core_sources::IMAS.core_sources{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; include_indexes::Vector{Int}=Int[], exclude_indexes::Vector{Int}=Int[], fields::Vector{Symbol}=Symbol[]) where {T<:Real}
+    total_source1d = IMAS.core_sources__source___profiles_1d{T}()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = cp1d.time
+
+    matching = Dict{Symbol,Symbol}()
+    matching[:power_inside] = :energy
+    matching[:energy] = :power_inside
+    matching[:total_ion_power_inside] = :total_ion_energy
+    matching[:total_ion_energy] = :total_ion_power_inside
+    matching[:particles_inside] = :particles
+    matching[:particles] = :particles_inside
+    matching[:current_parallel_inside] = :j_parallel
+    matching[:j_parallel] = :current_parallel_inside
+    matching[:torque_tor_inside] = :momentum_tor
+    matching[:momentum_tor] = :torque_tor_inside
+
+    @assert isempty(fields) || all(field in keys(matching) for field in fields) "Supported fields are $(collect(keys(matching)))"
 
     for prop in (:volume, :area, :surface)
         value = getproperty(cp1d.grid, prop, missing)
@@ -133,14 +147,27 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                     break
                 end
             end
-        end
-        if value !== missing
+        else
             setproperty!(total_source1d.grid, prop, value)
         end
     end
 
     all_indexes = [source.identifier.index for source in core_sources.source]
 
+    # zero out total_sources
+    for sub in (nothing, :electrons)
+        ids1 = total_source1d
+        if sub !== nothing
+            ids1 = getproperty(ids1, sub)
+        end
+        for field in keys(ids1)
+            if field in keys(matching)
+                setproperty!(ids1, field, zeros(T, size(rho)))
+            end
+        end
+    end
+
+    # start accumulating 
     for source in core_sources.source
         if isempty(include_indexes) || source.identifier.index ∈ include_indexes
             # pass
@@ -168,8 +195,10 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
         if isempty(source.profiles_1d)
             continue
         end
+
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
         source1d = source.profiles_1d[Float64(cp1d.time)]
+        x = source1d.grid.rho_tor_norm
         for sub in (nothing, :electrons)
             ids1 = total_source1d
             ids2 = source1d
@@ -178,30 +207,14 @@ function total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles
                 ids2 = getproperty(ids2, sub)
             end
             for field in keys(ids1)
-                if isempty(fields) || field ∈ fields
-                    y = getproperty(ids2, field, missing)
-                    if typeof(y) <: AbstractVector{<:Real}
-                        if typeof(getraw(ids1, field)) <: Union{Missing,Function}
-                            setproperty!(ids1, field, zeros(length(total_source1d.grid.rho_tor_norm)))
+                if (isempty(fields) || field ∈ fields) && field ∈ keys(matching)
+                    if hasdata(ids2, field) || hasdata(ids2, matching[field])
+                        y = getproperty(ids2, field, missing)
+                        if y !== missing
+                            setproperty!(ids1, field, getproperty(ids1, field) .+ interp1d(x, y).(rho))
                         end
-                        old_value = getproperty(ids1, field)
-                        x = source1d.grid.rho_tor_norm
-                        setproperty!(ids1, field, old_value .+ interp1d(x, y).(rho))
                     end
                 end
-            end
-        end
-    end
-
-    # assign zeros to missing fields of total_sources
-    for sub in (nothing, :electrons)
-        ids1 = total_source1d
-        if sub !== nothing
-            ids1 = getproperty(ids1, sub)
-        end
-        for field in keys(ids1)
-            if ismissing(ids1, field)
-                setproperty!(ids1, field, zeros(size(rho)))
             end
         end
     end

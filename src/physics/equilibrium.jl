@@ -123,24 +123,24 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
 end
 
 """
-    vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice) 
+    vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice{T})::Tuple{T,T} where {T<:Real}
 
 Returns vacuum R0 and B0 of a given equilibrium time slice
 """
-function vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice)
+function vacuum_r0_b0(eqt::IMAS.equilibrium__time_slice{T})::Tuple{T,T} where {T<:Real}
     eq = top_ids(eqt)
     if eq !== nothing && !ismissing(eq.vacuum_toroidal_field, :r0) && !ismissing(eq.vacuum_toroidal_field, :b0)
-        r0 = eq.vacuum_toroidal_field.r0
-        b0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
+        R0 = eq.vacuum_toroidal_field.r0
+        B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
     else
-        r0 = eqt.boundary.geometric_axis.r
-        b0 = eqt.profiles_1d.f[end] / r0
+        R0 = eqt.boundary.geometric_axis.r
+        B0 = eqt.profiles_1d.f[end] / R0
     end
-    return r0, b0
+    return R0, B0
 end
 
 """
-    vacuum_r0_b0_time(dd::IMAS.dd) 
+    vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
 
 Returns `R0` as well as the `B0` and `time` arrays.
 
@@ -149,14 +149,17 @@ This function solves the issue that in IMAS the information about R0 and B0 is r
 function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
     source = Set{Symbol}()
 
+    idss_with_vacuum_toroidal_field = keys(dd)
+
     # R0
-    if hasfield(typeof(dd), :tf) && isfilled(dd.tf, :r0)
+    if hasfield(typeof(dd), :tf) && hasdata(dd.tf, :r0)
         R0 = dd.tf.r0::T
         push!(source, :tf)
     else
-        for (name, ids) in dd
+        for name in idss_with_vacuum_toroidal_field
+            ids = getfield(dd, name)
             if hasfield(typeof(ids), :vacuum_toroidal_field)
-                if isfilled(ids.vacuum_toroidal_field, :r0)
+                if hasdata(ids.vacuum_toroidal_field, :r0)
                     R0 = ids.vacuum_toroidal_field.r0::T
                     push!(source, name)
                     break
@@ -167,30 +170,31 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
 
     # B0 and time vectors
     # from: tf
-    if hasfield(typeof(dd), :tf) && isfilled(dd.tf.b_field_tor_vacuum_r, :data)
+    if hasfield(typeof(dd), :tf) && hasdata(dd.tf.b_field_tor_vacuum_r, :data)
         B0 = dd.tf.b_field_tor_vacuum_r.data::Vector{T} / R0
-        time = dd.tf.b_field_tor_vacuum_r.data
+        time = dd.tf.b_field_tor_vacuum_r.time::Vector{Float64}
         push!(source, :tf)
 
         # from: pulse_schedule
-    elseif isfilled(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
-        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data::T / R0
-        time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time
+    elseif hasdata(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
+        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data::Vector{T} / R0
+        time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time::Vector{Float64}
         push!(source, :pulse_schedule)
 
         # from: all other IDSs that have that info
     else
         B0 = eltype(dd)[]
         time = Float64[]
-        for (name, ids) in dd
+        for name in idss_with_vacuum_toroidal_field
+            ids = getfield(dd, name)
             if hasfield(typeof(ids), :vacuum_toroidal_field)
-                if isfilled(ids.vacuum_toroidal_field, :b0) && isfilled(ids, :time)
+                if hasdata(ids.vacuum_toroidal_field, :b0) && hasdata(ids, :time)
                     B0_ = ids.vacuum_toroidal_field.b0::Vector{T}
                     time_ = ids.time::Vector{Float64}
                     append!(time, time_)
                     append!(B0, B0_)
                     reps = length(time_) - length(B0_)
-                    append!(B0, [B0_[end] for k in 1:reps])
+                    append!(B0, (B0_[end] for k in 1:reps))
                     push!(source, name)
                 end
             end
@@ -204,27 +208,28 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
 end
 
 """
-    vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64}) 
+    vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64})
 
 Returns R0 and B0 interpolated at a given set of times
 """
 function vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64})
     R0, B0, time, source = vacuum_r0_b0_time(dd)
-    return R0, extrap1d(IMAS.IMASDD.interp1d_itp(time, B0); first=:flat, last=:flat).(time0)
+    B0_interp = extrap1d(interp1d_itp(time, B0); first=:flat, last=:flat).(time0)
+    return R0, B0_interp
 end
 
-function vacuum_r0_b0_time(dd::IMAS.dd, time0::Float64)
-    R0, B0 = vacuum_r0_b0_time(dd, [time0])
-    return R0, B0[1]
+function vacuum_r0_b0_time(dd::IMAS.dd{T}, time0::Float64)::Tuple{T,T} where{T<:Real}
+    R0, B0_interp = vacuum_r0_b0_time(dd, [time0])
+    return R0, B0_interp[1]
 end
 
 """
-    B0_geo(eqt::IMAS.equilibrium__time_slice) 
+    B0_geo(eqt::IMAS.equilibrium__time_slice{T})::T where{T<:Real}
 
 Returns vacuum B0 at the plasma geometric center
 """
-function B0_geo(eqt::IMAS.equilibrium__time_slice)
+function B0_geo(eqt::IMAS.equilibrium__time_slice{T})::T where{T<:Real}
     R0, B0 = vacuum_r0_b0(eqt)
     Rgeo = eqt.boundary.geometric_axis.r
-    return R0 * B0 / Rgeo
+    return R0 .* B0 ./ Rgeo
 end

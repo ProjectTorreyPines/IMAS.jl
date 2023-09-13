@@ -159,12 +159,12 @@ function find_magnetic_axis!(r::AbstractVector{<:Real}, z::AbstractVector{<:Real
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
+    flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_factor::Int=1) where {T<:Real}
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsample_factor::Int=1)
+function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_factor::Int=1) where {T<:Real}
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
     PSI = eqt.profiles_2d[1].psi
 
@@ -213,12 +213,12 @@ function flux_surfaces(eqt::equilibrium__time_slice, B0::Real, R0::Real; upsampl
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
 
-    PR = []
-    PZ = []
-    LL = []
-    FLUXEXPANSION = []
-    INT_FLUXEXPANSION_DL = zeros(length(eqt.profiles_1d.psi))
-    BPL = zeros(length(eqt.profiles_1d.psi))
+    PR = Vector{T}[]
+    PZ = Vector{T}[]
+    LL = Vector{T}[]
+    FLUXEXPANSION = Vector{T}[]
+    INT_FLUXEXPANSION_DL = zeros(T, length(eqt.profiles_1d.psi))
+    BPL = zeros(T, length(eqt.profiles_1d.psi))
     for (k, psi_level0) in reverse!(collect(enumerate(eqt.profiles_1d.psi)))
 
         if k == 1 # on axis flux surface is a synthetic one
@@ -506,15 +506,14 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Uni
 end
 
 function flux_surface(
-    dim1::Union{AbstractVector,AbstractRange},
-    dim2::Union{AbstractVector,AbstractRange},
-    PSI::AbstractArray,
-    psi::Union{AbstractVector,AbstractRange},
-    R0::Real,
-    Z0::Real,
-    psi_level::Real,
-    closed::Union{Nothing,Bool},
-)
+    dim1::Union{AbstractVector{T},AbstractRange{T}},
+    dim2::Union{AbstractVector{T},AbstractRange{T}},
+    PSI::AbstractArray{T},
+    psi::Union{AbstractVector{T},AbstractRange{T}},
+    R0::T,
+    Z0::T,
+    psi_level::T,
+    closed::Union{Nothing,Bool}) where {T<:Real}
 
     if psi_level == psi[1]
         # handle on axis value as the first flux surface
@@ -533,7 +532,7 @@ function flux_surface(
     # contouring routine
     cl = Contour.contour(dim1, dim2, PSI, psi_level)
 
-    prpz = []
+    prpz = Tuple{Vector{T},Vector{T}}[]
     if closed === nothing
         # if no open/closed check, then return all contours
         for line in Contour.lines(cl)

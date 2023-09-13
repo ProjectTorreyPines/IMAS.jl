@@ -1562,7 +1562,6 @@ end
     @series begin
         label --> getproperty(wd2du, :name, "")
         aspect_ratio := :equal
-        xlim := (0.0, Inf)
         wd2du.outline.r, wd2du.outline.z
     end
 end
@@ -1570,9 +1569,117 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_field(pc::IMAS.pulse_schedule__position_control; time_index=0)
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control, time::Float64)
     @series begin
-        boundary(pc; time_index)
+        aspect_ratio := :equal
+        boundary(pc, time)
+    end
+end
+
+@recipe function plot_pc(pc::IMAS.pulse_schedule__position_control)
+    time = global_time(pc)
+    @series begin
+        pc, time
+    end
+end
+
+@recipe function plot_ps(ps::IMAS.pulse_schedule)
+    time = global_time(ps)
+    @series begin
+        ps, time
+    end
+end
+
+@recipe function plot_ps(ps::IMAS.pulse_schedule, time::Float64)
+    plots = []
+    for (ids, field) in filled_ids_fields(ps; eval_expr=true)
+        if field != :data
+            continue
+        end
+        path = collect(f2p(ids))
+        if "boundary_outline" in path# || "x_point" in path
+            continue
+        end
+
+        time_value = getproperty(ids, :time)
+        data_value = getproperty(ids, :data)
+
+        if length(collect(filter(x -> x ∉ (-Inf, Inf), time_value))) == 1
+            continue
+        end
+
+        plt = Dict()
+        plt[:ids] = ids
+        plt[:x] = time_value
+        plt[:y] = data_value
+        if path[end-1] in ["r", "z"]
+            if isdigit(path[end-2][1])
+                plt[:label] = "$(path[end-3]) $(path[end-2]) $(path[end-1])"
+            else
+                plt[:label] = "$(path[end-2]) $(path[end-1])"
+            end
+        else
+            plt[:label] = path[end-1]
+        end
+        push!(plots, plt)
+    end
+
+    layout := @layout [length(plots) + 1]
+    size --> (1000, 1000)
+    margin --> 5 * Measures.mm
+
+    @series begin
+        subplot := 1
+        label := "$(time) [s]"
+        aspect_ratio := :equal
+        ps.position_control, time
+    end
+
+    eqt = try
+        top_dd(ps).equilibrium.time_slice[time]
+    catch
+        nothing
+    end
+    if eqt !== nothing
+        @series begin
+            subplot := 1
+            legend := false
+            cx := true
+            alpha := 0.2
+            color := :gray
+            eqt
+        end
+    end
+
+    wall = try
+        top_dd(ps).wall
+    catch
+        nothing
+    end
+    if wall !== nothing
+        @series begin
+            subplot := 1
+            legend := false
+            wall
+        end
+    end
+
+    for (k, plt) in enumerate(plots)
+        @series begin
+            subplot := k + 1
+            label := ""
+            plt[:x], plt[:y]
+        end
+        @series begin
+            subplot := k + 1
+            seriestype := :scatter
+            primary := false
+            marker := :dot
+            markerstrokewidth := 0.0
+            title := nice_field(plt[:label])
+            #link := :x
+            [time], interp1d(plt[:x], plt[:y]).([time])
+        end
     end
 end
 
@@ -1581,7 +1688,7 @@ end
 #= ================ =#
 @recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing)
 
-    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(collect(fieldnames_(typeof(ids))))"
+    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
     @assert typeof(normalization) <: Real
     @assert typeof(coordinate) <: Union{Nothing,Symbol}
 
@@ -1621,6 +1728,8 @@ nice_field_symbols["rho_tor_norm"] = L"\rho"
 nice_field_symbols["psi"] = L"\psi"
 nice_field_symbols["psi_norm"] = L"\psi_N"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
+nice_field_symbols["i_plasma"] = "Plasma current"
+nice_field_symbols["b_field_tor_vacuum_r"] = "B0 * R0"
 
 function nice_field(field::AbstractString)
     if field in keys(nice_field_symbols)

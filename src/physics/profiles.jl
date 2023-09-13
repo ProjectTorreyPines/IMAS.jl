@@ -426,17 +426,13 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
 end
 
 """
-    lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion})
+    lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
 
 Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities 
 """
-function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
+function lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}}, rho_tor_norm::Vector{<:T})::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where{T<:Real}
     if length(ions) < 2
-        error("TAUENN requires two ion species to run")
-        # elseif any(!ismissing(ion, :density_fast) for ion in ions)
-        #     error("lump_ions_as_bulk_and_impurity! is not setup for handling fast ions")
-    elseif length(ions) == 2
-        return ions
+        error("lump_ions_as_bulk_and_impurity requires at least two ion species")
     end
 
     zs = [ion.element[1].z_n for ion in ions]
@@ -458,42 +454,42 @@ function lump_ions_as_bulk_and_impurity!(ions::IMAS.IDSvector{<:IMAS.core_profil
         end
     end
 
+    ions2 = IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}()
+
     # bulk ions
-    push!(ions, IMAS.core_profiles__profiles_1d___ion())
-    bulk = ions[end]
+    push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
+    bulk = ions2[end]
     resize!(bulk.element, 1)
     bulk.label = "bulk"
 
     # impurity ions
-    push!(ions, IMAS.core_profiles__profiles_1d___ion())
-    impu = ions[end]
+    push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
+    impu = ions2[end]
     resize!(impu.element, 1)
     impu.label = "impurity"
 
     # weight different ion quantities based on their density
-    for (index, ion) in ((bulk_index, bulk), (impu_index, impu))
-        ion.element[1].z_n = 0.0
-        ion.element[1].a = 0.0
+    for (index, ion2) in ((bulk_index, bulk), (impu_index, impu))
+        ion2.element[1].z_n = 0.0
+        ion2.element[1].a = 0.0
         for ix in index # z_average is tricky since it's a single constant for the whole profile
-            ion.element[1].z_n += sum(zs[ix] .* ratios[:, ix]) / length(ratios[:, ix])
-            ion.element[1].a += sum(as[ix] .* ratios[:, ix]) / length(ratios[:, ix])
+            ion2.element[1].z_n += sum(zs[ix] .* ratios[:, ix]) / length(ratios[:, ix])
+            ion2.element[1].a += sum(as[ix] .* ratios[:, ix]) / length(ratios[:, ix])
         end
         for item in (:density_thermal, :temperature, :rotation_frequency_tor)
             value = rho_tor_norm .* 0.0
-            IMAS.setraw!(ion, item, value)
+            IMAS.setraw!(ion2, item, value)
             for ix in index
-                if !ismissing(ions[ix], item)
-                    value .+= getproperty(ions[ix], item) .* ratios[:, ix]
+                tp = Vector{typeof(ions[ix]).parameters[1]}
+                tmp = getproperty(ions[ix], item, tp())::tp
+                if !isempty(tmp)
+                    value .+= tmp .* ratios[:, ix]
                 end
             end
         end
     end
 
-    for k in reverse(1:length(ions)-2)
-        deleteat!(ions, k)
-    end
-
-    return ions
+    return ions2
 end
 
 """
@@ -502,7 +498,8 @@ end
 Returns average ionization state of an ion at a given temperature
 """
 function avgZ(Z::Float64, Ti::T,)::T where {T}
-    return 10.0 .^ (avgZinterpolator(joinpath(dirname(dirname(pathof(@__MODULE__))), "data", "Zavg_z_t.dat")).(log10.(Ti ./ 1E3), Z)) .- 1.0
+    func = avgZinterpolator(joinpath(dirname(dirname(pathof(@__MODULE__))), "data", "Zavg_z_t.dat"))
+    return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
 end
 
 Memoize.@memoize function avgZinterpolator(filename::String)
@@ -531,7 +528,7 @@ Memoize.@memoize function avgZinterpolator(filename::String)
         end
     end
 
-    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
+    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1.0), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
 
 end
 

@@ -260,17 +260,19 @@ function boundary_shape(;
 end
 
 """
-    boundary(pc::IMAS.pulse_schedule__position_control; time_index::Int=0)
+    boundary(pc::IMAS.pulse_schedule__position_control, time::Float64)
 
 Beturns r,z vectors from pulse_schedule.position_control.equilibrium__time_slice___boundary__outline
-
-NOTE:
-* if time_index=0 returns at current global time
 """
-function boundary(pc::IMAS.pulse_schedule__position_control; time_index::Int=0)
-    if time_index == 0
-        return [@ddtime(pcb.r.reference.data) for pcb in pc.boundary_outline], [@ddtime(pcb.z.reference.data) for pcb in pc.boundary_outline]
-    else
-        return [pcb.r.reference.data[time_index] for pcb in pc.boundary_outline], [pcb.z.reference.data[time_index] for pcb in pc.boundary_outline]
-    end
+function boundary(pc::IMAS.pulse_schedule__position_control, time::Float64)
+    return [extrap1d(interp1d_itp(pcb.r.reference.time, pcb.r.reference.data); first=:flat, last=:flat).(time) for pcb in pc.boundary_outline], [extrap1d(interp1d_itp(pcb.z.reference.time, pcb.z.reference.data); first=:flat, last=:flat).(time) for pcb in pc.boundary_outline]
+end
+
+function boundary(pc::IMAS.pulse_schedule__position_control, time_index::Int)
+    return [pcb.r.reference.data[time_index] for pcb in pc.boundary_outline], [pcb.z.reference.data[time_index] for pcb in pc.boundary_outline]
+end
+
+function boundary(pc::IMAS.pulse_schedule__position_control)
+    time = global_time(pc)
+    return boundary(pc, time)
 end

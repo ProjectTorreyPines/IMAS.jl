@@ -58,9 +58,9 @@ function total_fluxes(ct::IMAS.core_transport, rho_total_fluxes::AbstractVector{
             if sub == :electrons
                 ids1 = getproperty(ids1, sub)
                 ids2 = getproperty(ids2, sub)
-                iterator = deleteat!(keys(ids1), findall(x -> x ∈ (:electrons, :grid_flux, :time), keys(ids1)))
+                iterator = keys(ids1)[findall(x -> x ∉ (:electrons, :grid_flux, :time), keys(ids1))]
             else
-                iterator = [sub]
+                iterator = (sub,)
             end
             for field in iterator
                 y = getproperty(getproperty(ids1, field, missing), :flux, missing)
