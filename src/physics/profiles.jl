@@ -480,8 +480,10 @@ function lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profile
             value = rho_tor_norm .* 0.0
             IMAS.setraw!(ion2, item, value)
             for ix in index
-                if !ismissing(ions[ix], item)
-                    value .+= getproperty(ions[ix], item) .* ratios[:, ix]
+                tp = Vector{typeof(ions[ix]).parameters[1]}
+                tmp = getproperty(ions[ix], item, tp())::tp
+                if !isempty(tmp)
+                    value .+= tmp .* ratios[:, ix]
                 end
             end
         end
@@ -496,7 +498,8 @@ end
 Returns average ionization state of an ion at a given temperature
 """
 function avgZ(Z::Float64, Ti::T,)::T where {T}
-    return 10.0 .^ (avgZinterpolator(joinpath(dirname(dirname(pathof(@__MODULE__))), "data", "Zavg_z_t.dat")).(log10.(Ti ./ 1E3), Z)) .- 1.0
+    func = avgZinterpolator(joinpath(dirname(dirname(pathof(@__MODULE__))), "data", "Zavg_z_t.dat"))
+    return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
 end
 
 Memoize.@memoize function avgZinterpolator(filename::String)
@@ -525,7 +528,7 @@ Memoize.@memoize function avgZinterpolator(filename::String)
         end
     end
 
-    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
+    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1.0), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
 
 end
 
