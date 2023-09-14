@@ -207,12 +207,10 @@ function total_sources(core_sources::IMAS.core_sources{T}, cp1d::IMAS.core_profi
                 ids2 = getproperty(ids2, sub)
             end
             for field in keys(ids1)
-                if (isempty(fields) || field ∈ fields) && field ∈ keys(matching)
+                if (isempty(fields) || field ∈ fields || (field ∈ keys(matching) && matching[field] ∈ fields)) && field ∈ keys(matching)
                     if hasdata(ids2, field) || hasdata(ids2, matching[field])
-                        y = getproperty(ids2, field, missing)
-                        if y !== missing
-                            setproperty!(ids1, field, getproperty(ids1, field) .+ interp1d(x, y).(rho))
-                        end
+                        y = getproperty(ids2, field)
+                        setproperty!(ids1, field, getproperty(ids1, field) .+ interp1d(x, y).(rho))
                     end
                 end
             end
