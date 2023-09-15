@@ -137,25 +137,25 @@ function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, include
 end
 
 """
-    v_loop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
+    vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
 
 Vloop = η*J: method emphasizes the resistive nature of the plasma.
 """
-function v_loop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
+function vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
     return integrate(cp1d.grid.area, cp1d.j_tor ./ cp1d.conductivity_parallel) / cp1d.grid.area[end]
 end
 
 """
-    v_loop(eq::IMAS.equilibrium)::T where {T<:Real}
+    vloop(eq::IMAS.equilibrium{T}, time0::Float64)::T where {T<:Real}
 
 `Vloop = dψ/dt` method emphasizes the inductive nature of the loop voltage.
 """
-function v_loop(eq::IMAS.equilibrium{T}, time0::Float64)::T where {T<:Real}
-    @assert length(eq.time) > 2 "v_loop from equilibrium can only be calculated in presence of at least two time slices"
+function vloop(eq::IMAS.equilibrium{T}, time0::Float64)::T where {T<:Real}
+    @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
     index = causal_time_index(eq.time, time0)
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
 end
 
-function v_loop(eq::IMAS.equilibrium{T})::T where {T<:Real}
-    return v_loop(eq, top_dd(eq).global_time)
+function vloop(eq::IMAS.equilibrium{T})::T where {T<:Real}
+    return vloop(eq, top_dd(eq).global_time)
 end
