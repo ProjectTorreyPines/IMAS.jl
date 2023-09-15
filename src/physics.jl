@@ -18,6 +18,7 @@ using RecipesBase
 include("physics/equilibrium.jl")
 include("physics/build.jl")
 include("physics/currents.jl")
+include("physics/control.jl")
 include("physics/fluxsurfaces.jl")
 include("physics/misc.jl")
 include("physics/neoclassical.jl")

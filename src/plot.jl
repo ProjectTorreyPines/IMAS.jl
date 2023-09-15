@@ -1682,6 +1682,73 @@ end
         end
     end
 end
+#= =========== =#
+#  controllers  #
+#= =========== =#
+@recipe function plot_controllers(controller_outputs::controllers__linear_controller___outputs)
+    controller = IMAS.parent(controller_outputs)
+
+    data = controller.inputs.data[1, :]
+    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in 1:length(controller.inputs.time)-1)
+    derivative = diff(data) ./ diff(controller.inputs.time)
+
+    @series begin
+        label := "PID"
+        color := :black
+        lw := 2
+        controller.outputs.time, controller.outputs.data[1, :]
+    end
+
+    @series begin
+        label := "P=$(controller.pid.p.data[1])"
+        controller.outputs.time, data .* controller.pid.p.data[1]
+    end
+
+    @series begin
+        label := "I=$(controller.pid.i.data[1])"
+        controller.outputs.time[2:end], integral .* controller.pid.i.data[1]
+    end
+
+    @series begin
+        label := "D=$(controller.pid.d.data[1])"
+        controller.outputs.time[2:end], derivative .* controller.pid.d.data[1]
+    end
+
+    @series begin
+        label := "PI"
+        controller.outputs.time[2:end], data[2:end] .* controller.pid.p.data[1] .+ integral .* controller.pid.i.data[1]
+    end
+
+    @series begin
+        label := "PID"
+        controller.outputs.time[2:end], data[2:end] .* controller.pid.p.data[1] .+ integral .* controller.pid.i.data[1] .+ derivative .* controller.pid.d.data[1]
+    end
+
+end
+
+@recipe function plot_controllers(controller_inputs::controllers__linear_controller___inputs)
+    controller = IMAS.parent(controller_inputs)
+    label = "P=$(controller.pid.p.data[1]), I=$(controller.pid.i.data[1]), D=$(controller.pid.d.data[1])"
+    @series begin
+        label := "$(controller.input_names[1]) ($label)"
+        controller.inputs.time, controller.inputs.data[1, :]
+    end
+end
+
+@recipe function plot_controllers(controller::controllers__linear_controller)
+    layout := (2, 1)
+    size --> (800, 600)
+    margin --> 5 * Measures.mm
+    @series begin
+        subplot := 1
+        controller.inputs
+    end
+    @series begin
+        subplot := 2
+        controller.outputs
+    end
+end
+
 
 #= ================ =#
 #  generic plotting  #
