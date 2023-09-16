@@ -23,7 +23,7 @@ function to_range(vector::AbstractVector{<:Real})
     if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
-    return range(vector[1], vector[end], length=N)
+    return range(vector[1], vector[end]; length=N)
 end
 
 function gradient(arr::AbstractVector; method::Symbol=:second_order)
@@ -176,7 +176,13 @@ end
 
 returns angles of intersections between two paths and intersection_indexes given by intersection() function
 """
-function intersection_angles(path1_r::AbstractVector{T}, path1_z::AbstractVector{T}, path2_r::AbstractVector{T}, path2_z::AbstractVector{T}, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:Real}
+function intersection_angles(
+    path1_r::AbstractVector{T},
+    path1_z::AbstractVector{T},
+    path2_r::AbstractVector{T},
+    path2_z::AbstractVector{T},
+    intersection_indexes::Vector{Tuple{Int,Int}}
+) where {T<:Real}
     n = length(intersection_indexes)
     angles = Vector{T}(undef, n)
 
@@ -214,10 +220,10 @@ function intersection(
     indexes = NTuple{2,Int}[]
     crossings = NTuple{2,T}[]
 
-    for k1 = 1:(length(l1_x)-1)
+    for k1 in 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
         s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
-        for k2 = 1:(length(l2_x)-1)
+        for k2 in 1:(length(l2_x)-1)
             s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
             crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
@@ -565,12 +571,13 @@ Calculate the curvature of a 2D path defined by `pr` and `pz` using a finite dif
 The path is assumed to be closed if the first and last points are the same, and open otherwise.
 
 # Arguments
-- `pr`: Real abstract vector representing the r-coordinates of the path.
-- `pz`: Real abstract vector representing the z-coordinates of the path.
+
+  - `pr`: Real abstract vector representing the r-coordinates of the path.
+  - `pz`: Real abstract vector representing the z-coordinates of the path.
 
 # Returns
-- A vector of the same length as `pr` and `pz` with the calculated curvature values.
 
+  - A vector of the same length as `pr` and `pz` with the calculated curvature values.
 """
 function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     n = length(pr)

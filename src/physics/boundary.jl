@@ -30,24 +30,24 @@ end
 
 Function used to generate boundary shapes based on `T. C. Luce, PPCF, 55 9 (2013)`
 
-* a: minor radius
-* eps: aspect ratio
-* kapu: upper elongation
-* lkap: lower elongation
-* delu: upper triangularity
-* dell: lower triangularity
-* zetaou: upper outer squareness
-* zetaiu: upper inner squareness
-* zetail: lower inner squareness
-* zetaol: lower outer squareness
-* zoffset: z-offset
-* upnull: toggle upper x-point
-* lonull: toggle lower x-point
-* npts: number of points (per quadrant)
+  - a: minor radius
+  - eps: aspect ratio
+  - kapu: upper elongation
+  - lkap: lower elongation
+  - delu: upper triangularity
+  - dell: lower triangularity
+  - zetaou: upper outer squareness
+  - zetaiu: upper inner squareness
+  - zetail: lower inner squareness
+  - zetaol: lower outer squareness
+  - zoffset: z-offset
+  - upnull: toggle upper x-point
+  - lonull: toggle lower x-point
+  - npts: number of points (per quadrant)
 
 returns tuple with arrays of (r, z, zref)
 
->> boundary_shape(;a=0.608,eps=0.374,kapu=1.920,kapl=1.719,delu=0.769,dell=0.463,zetaou=-0.155,zetaiu=-0.255,zetail=-0.174,zetaol=-0.227,zoffset=0.000,upnull=true,lonull=false)
+> > boundary_shape(;a=0.608,eps=0.374,kapu=1.920,kapl=1.719,delu=0.769,dell=0.463,zetaou=-0.155,zetaiu=-0.255,zetail=-0.174,zetaol=-0.227,zoffset=0.000,upnull=true,lonull=false)
 """
 function boundary_shape(;
     a::T,
@@ -265,7 +265,8 @@ end
 Beturns r,z vectors from pulse_schedule.position_control.equilibrium__time_slice___boundary__outline
 """
 function boundary(pc::IMAS.pulse_schedule__position_control, time::Float64)
-    return [extrap1d(interp1d_itp(pcb.r.reference.time, pcb.r.reference.data); first=:flat, last=:flat).(time) for pcb in pc.boundary_outline], [extrap1d(interp1d_itp(pcb.z.reference.time, pcb.z.reference.data); first=:flat, last=:flat).(time) for pcb in pc.boundary_outline]
+    return [extrap1d(interp1d_itp(pcb.r.reference.time, pcb.r.reference.data); first=:flat, last=:flat).(time) for pcb in pc.boundary_outline],
+    [extrap1d(interp1d_itp(pcb.z.reference.time, pcb.z.reference.data); first=:flat, last=:flat).(time) for pcb in pc.boundary_outline]
 end
 
 function boundary(pc::IMAS.pulse_schedule__position_control, time_index::Int)

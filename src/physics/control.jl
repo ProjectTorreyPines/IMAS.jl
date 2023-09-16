@@ -31,8 +31,8 @@ function (controller::controllers__linear_controller{T})(set_point::T, value::T,
     controller.inputs.data = hcat(controller.inputs.data, [error])
 
     if size(controller.inputs.data)[2] < 2
-        integral = 0.0
-        derivative = 0.0
+        integral = zero(T)
+        derivative = zero(T)
     else
         integral = sum((controller.inputs.data[1, k+1] + controller.inputs.data[1, k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in 1:length(controller.inputs.time)-1)
         derivative = (controller.inputs.data[1, end] - controller.inputs.data[1, end-1]) / (controller.inputs.time[end] - controller.inputs.time[end-1])
