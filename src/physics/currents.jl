@@ -66,9 +66,11 @@ Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*
 Includes_bootstrap set to true if input current includes bootstrap
 
 NOTE: Jtor ≂̸ JtoR
+
     JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
 
 NOTE: Jpar ≂̸ JparB
+
     JparB = Jpar * B0
 """
 function JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
@@ -96,9 +98,11 @@ Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*
 Includes_bootstrap set to true if input current includes bootstrap
 
 NOTE: Jtor ≂̸ JtoR
+
     JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
 
 NOTE: Jpar ≂̸ JparB
+
     JparB = Jpar * B0
 """
 function JparB_2_JtoR(rho_tor_norm::Vector{<:Real}, JparB::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
@@ -146,16 +150,12 @@ function vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
 end
 
 """
-    vloop(eq::IMAS.equilibrium{T}, time0::Float64)::T where {T<:Real}
+    vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
 
 `Vloop = dψ/dt` method emphasizes the inductive nature of the loop voltage.
 """
-function vloop(eq::IMAS.equilibrium{T}, time0::Float64)::T where {T<:Real}
+function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
     @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
     index = causal_time_index(eq.time, time0)
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
-end
-
-function vloop(eq::IMAS.equilibrium{T})::T where {T<:Real}
-    return vloop(eq, top_dd(eq).global_time)
 end

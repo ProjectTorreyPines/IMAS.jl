@@ -12,13 +12,9 @@ import Measures
 Plots pf active cross-section
 NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
 """
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time=nothing, cname=:roma)
-    @assert typeof(time) <: Union{Nothing,Float64}
+@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time=global_time(pfa), cname=:roma)
+    @assert typeof(time) <: Float64
     @assert typeof(cname) <: Symbol
-
-    if time === nothing
-        time = global_time(pfa)
-    end
 
     if what ∈ (:cx, :coils_flux)
         label --> ""
@@ -987,10 +983,11 @@ end
 # ======= #
 # sources #
 # ======= #
-@recipe function plot_core_sources(cs::IMAS.core_sources)
+@recipe function plot_core_sources(cs::IMAS.core_sources; time0=global_time(cs))
     for source in cs.source
         @series begin
             nozeros := true
+            time0 := time0
             source
         end
     end
@@ -1001,15 +998,15 @@ end
             name := "total"
             linewidth := 2
             color := :black
-            total_sources(dd)
+            total_sources(dd; time0)
         end
     end
 end
 
-@recipe function plot_source(source::IMAS.core_sources__source)
+@recipe function plot_source(source::IMAS.core_sources__source; time0=global_time(source))
     @series begin
         name := source.identifier.name
-        source.profiles_1d[]
+        source.profiles_1d[time0]
     end
 end
 
@@ -1569,28 +1566,16 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control, time::Float64)
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
+    @assert typeof(time0) <: Float64
     @series begin
         aspect_ratio := :equal
-        boundary(pc, time)
+        boundary(pc; time0)
     end
 end
 
-@recipe function plot_pc(pc::IMAS.pulse_schedule__position_control)
-    time = global_time(pc)
-    @series begin
-        pc, time
-    end
-end
-
-@recipe function plot_ps(ps::IMAS.pulse_schedule)
-    time = global_time(ps)
-    @series begin
-        ps, time
-    end
-end
-
-@recipe function plot_ps(ps::IMAS.pulse_schedule, time::Float64)
+@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
+    @assert typeof(time0) <: Float64
     plots = []
     for (ids, field) in filled_ids_fields(ps; eval_expr=true)
         if field != :data
@@ -1632,11 +1617,11 @@ end
         subplot := 1
         label := "$(time) [s]"
         aspect_ratio := :equal
-        ps.position_control, time
+        ps.position_control, time0
     end
 
     eqt = try
-        top_dd(ps).equilibrium.time_slice[time]
+        top_dd(ps).equilibrium.time_slice[time0]
     catch
         nothing
     end
@@ -1678,7 +1663,7 @@ end
             markerstrokewidth := 0.0
             title := nice_field(plt[:label])
             #link := :x
-            [time], interp1d(plt[:x], plt[:y]).([time])
+            [time0], interp1d(plt[:x], plt[:y]).([time0])
         end
     end
 end

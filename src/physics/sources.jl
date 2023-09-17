@@ -108,8 +108,8 @@ function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vect
     return total_power, time_array
 end
 
-function total_sources(dd::IMAS.dd; kw...)
-    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[]; kw...)
+function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
 end
 
 """

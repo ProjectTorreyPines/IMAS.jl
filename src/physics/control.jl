@@ -21,13 +21,13 @@ function controllers__linear_controller(kP::T, kI::T, kD::T) where {T<:Real}
 end
 
 """
-    (controller::controllers__linear_controller{T})(set_point::T, value::T, time::Float64) where {T<:Real}
+    (controller::controllers__linear_controller{T})(setpoint::T, value::T, time0::Float64) where {T<:Real}
 
 Operates the linear controller
 """
-function (controller::controllers__linear_controller{T})(set_point::T, value::T, time::Float64) where {T<:Real}
-    error = set_point - value
-    push!(controller.inputs.time, time)
+function (controller::controllers__linear_controller{T})(setpoint::T, value::T, time0::Float64) where {T<:Real}
+    error = setpoint - value
+    push!(controller.inputs.time, time0)
     controller.inputs.data = hcat(controller.inputs.data, [error])
 
     if size(controller.inputs.data)[2] < 2
@@ -39,7 +39,7 @@ function (controller::controllers__linear_controller{T})(set_point::T, value::T,
     end
     control = (controller.pid.p.data[1] * error) + (controller.pid.i.data[1] * integral) + (controller.pid.d.data[1] * derivative)
 
-    push!(controller.outputs.time, time)
+    push!(controller.outputs.time, time0)
     controller.outputs.data = hcat(controller.outputs.data, [control])
 
     return control
