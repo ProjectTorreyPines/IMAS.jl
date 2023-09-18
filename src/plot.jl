@@ -10,19 +10,25 @@ import Measures
     plot_pf_active_cx(pfa::pf_active)
 
 Plots pf active cross-section
+
 NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
 """
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time=global_time(pfa), cname=:roma)
-    @assert typeof(time) <: Float64
+@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time0=global_time(pfa), cname=:roma)
+    @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
+
+    if pfa.coil[1].current.time == -Inf
+        index = 2:length(pfa.coil[1].current.time)
+    else
+        index = 1:length(pfa.coil[1].current.time)
+    end
+    currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
+    CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
 
     if what ∈ (:cx, :coils_flux)
         label --> ""
         aspect --> :equal
         colorbar_title --> "PF currents [A]"
-
-        currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
-        CURRENT = maximum(abs, currents)
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)
@@ -36,8 +42,8 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
         # plot individual coils
-        for c in pfa.coil
-            current_color_index = (get_time_array(c.current, :data, time) * c.element[1].turns_with_sign + CURRENT) / (2 * CURRENT)
+        for (k, c) in enumerate(pfa.coil)
+            current_color_index = (currents[k] + CURRENT) / (2 * CURRENT)
             @series begin
                 if all(currents .== 0.0)
                     color --> :black
@@ -49,18 +55,17 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
     elseif what == :currents
-        label --> "$(get_time_array(pfa.coil[1].current, :time, time)) s"
-        currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
+        label --> "$(get_time_array(pfa.coil[1].current, :time, time0)) s"
         @series begin
             linestyle --> :dash
             marker --> :circle
-            ["$k" for k = 1:length(currents)], currents
+            ["$k" for k in 1:length(currents)], currents
         end
 
         Imax = []
         for c in pfa.coil
             if !ismissing(c.b_field_max_timed, :data)
-                b_max = get_time_array(c.b_field_max_timed, :data, time)
+                b_max = get_time_array(c.b_field_max_timed, :data, time0)
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
                 #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
@@ -75,12 +80,12 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             @series begin
                 marker --> :cross
                 label := "Max current"
-                ["$k" for k = 1:length(currents)], Imax
+                ["$k" for k in 1:length(currents)], Imax
             end
             @series begin
                 marker --> :cross
                 primary := false
-                ["$k" for k = 1:length(currents)], -Imax
+                ["$k" for k in 1:length(currents)], -Imax
             end
         end
 
@@ -414,7 +419,7 @@ end
     # plot cx
     # handle psi levels
     psi__boundary_level = eqt.profiles_1d.psi[end]
-    tmp = find_psi_boundary(eqt, raise_error_on_not_open=false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    tmp = find_psi_boundary(eqt; raise_error_on_not_open=false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
     if tmp !== nothing
         psi__boundary_level = tmp
     end
@@ -424,18 +429,18 @@ end
     else
         npsi = 11
         if psi_levels_in === nothing
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=npsi)
+            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=npsi)
         elseif isa(psi_levels_in, Int)
             if psi_levels_in > 1
                 npsi = psi_levels_in
-                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels_in)
+                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=psi_levels_in)
             else
                 psi_levels_in = []
             end
         end
         delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
         if psi_levels_out === nothing
-            psi_levels_out = delta_psi .* range(0, 1, length=npsi) .+ psi__boundary_level
+            psi_levels_out = delta_psi .* range(0, 1; length=npsi) .+ psi__boundary_level
         elseif isa(psi_levels_out, Int)
             if psi_levels_out > 1
                 psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
@@ -633,7 +638,7 @@ Plot build cross-section
 
         # everything after first vacuum in _out_
         if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
-            for k in get_build_indexes(bd.layer, fs=_out_)[2:end]
+            for k in get_build_indexes(bd.layer; fs=_out_)[2:end]
                 if !wireframe
                     @series begin
                         seriestype --> :shape
@@ -645,7 +650,7 @@ Plot build cross-section
                             bd.layer[k].outline.r,
                             bd.layer[k].outline.z,
                             bd.layer[k-1].outline.r,
-                            bd.layer[k-1].outline.z,
+                            bd.layer[k-1].outline.z
                         )
                     end
                 end
@@ -662,7 +667,7 @@ Plot build cross-section
 
         # first vacuum in _out_
         if !wireframe
-            k = get_build_indexes(bd.layer, fs=_out_)[1]
+            k = get_build_indexes(bd.layer; fs=_out_)[1]
             @series begin
                 seriestype --> :shape
                 linewidth := 0.0
@@ -672,8 +677,8 @@ Plot build cross-section
                 join_outlines(
                     bd.layer[k].outline.r,
                     bd.layer[k].outline.z,
-                    get_build_layer(bd.layer, type=_plasma_).outline.r,
-                    get_build_layer(bd.layer, type=_plasma_).outline.z,
+                    get_build_layer(bd.layer; type=_plasma_).outline.r,
+                    get_build_layer(bd.layer; type=_plasma_).outline.z
                 )
             end
             @series begin
@@ -698,7 +703,7 @@ Plot build cross-section
 
         # all layers inside of the TF
         if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
-            for k in get_build_indexes(bd.layer, fs=_in_)
+            for k in get_build_indexes(bd.layer; fs=_in_)
                 layer = bd.layer[k]
                 if layer.material != "Vacuum"
                     if !wireframe
@@ -724,7 +729,7 @@ Plot build cross-section
         end
 
         # all layers between the OH and the plasma
-        for k in get_build_indexes(bd.layer, fs=_hfs_)
+        for k in get_build_indexes(bd.layer; fs=_hfs_)
             l = bd.layer[k]
             l1 = bd.layer[k+1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
@@ -782,7 +787,7 @@ Plot build cross-section
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                get_build_layer(bd.layer, type=_plasma_).outline.r, get_build_layer(bd.layer, type=_plasma_).outline.z
+                get_build_layer(bd.layer; type=_plasma_).outline.r, get_build_layer(bd.layer; type=_plasma_).outline.z
             end
         end
 
@@ -1010,7 +1015,16 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing, nozeros=false, show_source_number=false)
+@recipe function plot_source1d(
+    cs1d::IMAS.core_sources__source___profiles_1d;
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    only=nothing,
+    nozeros=false,
+    show_source_number=false
+)
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
     @assert typeof(label) <: Union{Nothing,AbstractString}
@@ -1303,7 +1317,9 @@ end
 # =============== #
 # solid_mechanics #
 # =============== #
-@recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises})
+@recipe function plot_solid_mechanics(
+    stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises}
+)
     smcs = parent(parent(stress))
 
     r_oh = smcs.grid.r_oh
@@ -1797,7 +1813,7 @@ function nice_field(field::AbstractString)
 end
 
 function nice_field(field::Symbol)
-    nice_field(String(field))
+    return nice_field(String(field))
 end
 
 function nice_units(units::String)
