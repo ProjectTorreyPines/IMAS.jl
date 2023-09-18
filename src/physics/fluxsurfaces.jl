@@ -595,10 +595,11 @@ function tweak_psi_to_match_psilcfs!(eqt::IMAS.equilibrium__time_slice{D}; ψbou
 
     # retrace the last closed flux surface
     true_psib = IMAS.find_psi_boundary(eqt)
-
-    # scale psirz so to match original psi bounds (also add delta_psib to get desired ψbound)
-    @. eq2d.psi = (eq2d.psi - psia) * (psib - psia) / (true_psib - psia) + psia + delta_psib
-    @. eq1d.psi = eq1d.psi + delta_psib
+    if true_psib !== nothing
+        # scale psirz so to match original psi bounds (also add delta_psib to get desired ψbound)
+        @. eq2d.psi = (eq2d.psi - psia) * (psib - psia) / (true_psib - psia) + psia + delta_psib
+        @. eq1d.psi = eq1d.psi + delta_psib
+    end
 
     return nothing
 end
