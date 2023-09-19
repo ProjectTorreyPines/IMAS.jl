@@ -47,3 +47,32 @@ function gyrobohm_momentum_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS
     return cp1d.electrons.density_thermal .* gacode_units.m³_to_cm³ .* gacode_units.k .* cp1d.electrons.temperature .*
            eqt.boundary.minor_radius .* gacode_units.m_to_cm .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.Erg_to_J .* gacode_units.m_to_cm^2
 end
+
+##### GA code to FUSE flux normalizations: gyrobohm normalization + Miller volume correction 
+# Volume correction accounts for transformation from Miller r grid in GA code equilibrium to Psi grid in FUSE equilibrium
+function energy_flux_gacode_to_fuse(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice, rho::Real)
+    rho_cp_idx = argmin(abs.(cp1d.grid.rho_tor_norm .- rho))
+    rho_eq_idx = argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho))
+
+    a_minor = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
+    volume_prime_miller_correction = IMAS.gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
+    return volume_prime_miller_correction[rho_eq_idx] * gyrobohm_energy_flux(cp1d, eqt)[rho_cp_idx]
+end
+
+function particle_flux_gacode_to_fuse(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice, rho::Real)
+    rho_cp_idx = argmin(abs.(cp1d.grid.rho_tor_norm .- rho))
+    rho_eq_idx = argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho))
+
+    a_minor = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
+    volume_prime_miller_correction = IMAS.gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
+    return volume_prime_miller_correction[rho_eq_idx] * gyrobohm_particle_flux(cp1d, eqt)[rho_cp_idx]
+end
+
+function momentum_flux_gacode_to_fuse(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice, rho::Real)
+    rho_cp_idx = argmin(abs.(cp1d.grid.rho_tor_norm .- rho))
+    rho_eq_idx = argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho))
+
+    a_minor = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
+    volume_prime_miller_correction = IMAS.gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
+    return volume_prime_miller_correction[rho_eq_idx] * gyrobohm_momentum_flux(cp1d, eqt)[rho_cp_idx]
+end
