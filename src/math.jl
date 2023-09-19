@@ -701,3 +701,43 @@ function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_point
     tmp ./= tmp[end]
     return interp1d(tmp, x).(LinRange(0.0, 1.0, n_points))
 end
+
+"""
+    chunk_indices(dims::Tuple{Vararg{Int}}, N::Int)
+
+Split the indices of an array with dimensions `dims` into `N` chunks of similar size.
+Each chunk is a generator of `CartesianIndex` objects.
+
+# Arguments
+
+  - `dims::Tuple{Vararg{Int}}`: A tuple specifying the dimensions of the array. For a 2D array, this would be `(rows, cols)`.
+  - `N::Int`: The number of chunks to split the indices into.
+
+# Returns
+
+  - Vector with chunks of cartesian indices. Each chunk can be iterated over to get the individual `CartesianIndex` objects.
+"""
+function chunk_indices(dims::Tuple{Vararg{Int}}, N::Int)
+    # Total number of elements
+    total_elements = prod(dims)
+
+    # Calculate chunk size
+    chunk_size, remainder = divrem(total_elements, N)
+
+    # Split indices into N chunks
+    chunks = []
+    start_idx = 1
+    for i in 1:N
+        end_idx = start_idx + chunk_size - 1
+        # Distribute the remainder among the first few chunks
+        if i <= remainder
+            end_idx += 1
+        end
+        chunk_1d = start_idx:end_idx
+        chunk_multi = (CartesianIndices(dims)[i] for i in chunk_1d)
+        push!(chunks, chunk_multi)
+        start_idx = end_idx + 1
+    end
+
+    return chunks
+end
