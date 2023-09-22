@@ -48,14 +48,22 @@ function gyrobohm_momentum_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS
            eqt.boundary.minor_radius .* gacode_units.m_to_cm .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.Erg_to_J .* gacode_units.m_to_cm^2
 end
 
+"""
+    volume_prime_miller_correction(eqt::IMAS.equilibrium__time_slice)
+
+Correction to account for transformation from Miller r grid in GA code equilibrium to Psi grid in FUSE equilibrium
+"""
 
 function volume_prime_miller_correction(eqt::IMAS.equilibrium__time_slice)
     a_minor = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
     return IMAS.gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
 end
 
-##### GA code to FUSE flux normalizations: gyrobohm normalization + Miller volume correction 
-# Volume correction accounts for transformation from Miller r grid in GA code equilibrium to Psi grid in FUSE equilibrium
+"""
+    flux_gacode_to_fuse(flux_types::Vector{Symbol}, flux_solutions::Vector{<:IMAS.flux_solution}, m1d::IMAS.core_transport__model___profiles_1d, eqt::IMAS.equilibrium__time_slice, cp1d::core_profiles__profiles_1d)
+
+Normalizes specified transport fluxes output by GA code via gyrobohm normalization and Miller volume correction
+"""
 
 function flux_gacode_to_fuse(flux_types::Vector{Symbol}, flux_solutions::Vector{<:IMAS.flux_solution}, m1d::IMAS.core_transport__model___profiles_1d, eqt::IMAS.equilibrium__time_slice, cp1d::core_profiles__profiles_1d)
 
