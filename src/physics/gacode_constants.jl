@@ -53,7 +53,6 @@ end
 
 Correction to account for transformation from Miller r grid in GA code equilibrium to Psi grid in FUSE equilibrium
 """
-
 function volume_prime_miller_correction(eqt::IMAS.equilibrium__time_slice)
     a_minor = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
     return IMAS.gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
@@ -64,7 +63,6 @@ end
 
 Normalizes specified transport fluxes output by GA code via gyrobohm normalization and Miller volume correction
 """
-
 function flux_gacode_to_fuse(flux_types::Vector{Symbol}, flux_solutions::Vector{<:IMAS.flux_solution}, m1d::IMAS.core_transport__model___profiles_1d, eqt::IMAS.equilibrium__time_slice, cp1d::core_profiles__profiles_1d)
 
     rho_eq_idxs = [argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
