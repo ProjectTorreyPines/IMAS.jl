@@ -301,7 +301,7 @@ end
 
 function widthSOL_loarte(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     B0 = B0_geo(eqt)
-    q95 = eqt.global_quantities.q95
+    q95 = eqt.global_quantities.q_95
     Psol = power_sol(core_sources, cp1d)
     return widthSOL_loarte(B0, q95, Psol)
 end
