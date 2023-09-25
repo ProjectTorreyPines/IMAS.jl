@@ -875,7 +875,7 @@ end
 # ========= #
 # transport #
 # ========= #
-@recipe function plot_core_transport(ct::IMAS.core_transport)
+@recipe function plot_core_transport(ct::IMAS.core_transport; time0=global_time(ct))
     model_type = name_2_index(ct.model)
     for model in ct.model
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
@@ -890,7 +890,7 @@ end
                 markershape := :diamond
                 color := :red
             end
-            model.profiles_1d[]
+            model.profiles_1d[time0]
         end
     end
 
@@ -901,7 +901,7 @@ end
             color := :green
             label := "Total source"
             flux := true
-            total_sources(dd)
+            total_sources(dd; time0)
         end
     end
 
@@ -909,7 +909,7 @@ end
         linewidth := 2
         color := :black
         label := "Total transport"
-        total_fluxes(ct)
+        total_fluxes(ct; time0)
     end
 end
 

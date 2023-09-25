@@ -28,8 +28,8 @@ function profile_from_z_transport(
     return profile_new
 end
 
-function total_fluxes(dd::IMAS.dd)
-    return total_fluxes(dd.core_transport)
+function total_fluxes(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return total_fluxes(dd.core_transport; time0)
 end
 
 
@@ -38,7 +38,7 @@ end
 
 Sums up all the fluxes and returns it as a core_transport.model IDS
 """
-function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}=0.0:0.05:1.0) where {T<:Real}
+function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}=0.0:0.05:1.0; time0::Float64=global_time(ct)) where {T<:Real}
     total_fluxes = IMAS.core_transport__model___profiles_1d{T}()
     total_fluxes.grid_flux.rho_tor_norm = rho_total_fluxes
     skip_flux_list = [:unknown, :unspecified, :combined]
@@ -53,7 +53,7 @@ function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVect
         end
 
         push!(skip_flux_list, index_to_name[model.identifier.index]) # Make sure we don't double count a specific flux type
-        m1d = model.profiles_1d[]
+        m1d = model.profiles_1d[time0]
         for sub in (:electrons, :momentum_tor, :total_ion_energy)
             ids1 = m1d
             ids2 = total_fluxes
