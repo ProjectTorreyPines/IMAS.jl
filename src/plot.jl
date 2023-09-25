@@ -1788,6 +1788,15 @@ end
     end
 end
 
+@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurements.Measurement}, err::Symbol=:ribbon)
+    if err == :ribbon
+        ribbon := Measurements.uncertainty.(y)
+    elseif err == :bar
+        yerror := Measurements.uncertainty.(y)
+    end
+    x, Measurements.value.(y)
+end
+
 #= ================== =#
 #  handling of labels  #
 #= ================== =#
