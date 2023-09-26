@@ -435,8 +435,19 @@ function resample_2d_path(
         end
     end
 
+    # interpolate
     t = range(s[1], s[end]; length=n_points)
-    return interp1d(s, x, method).(t), interp1d(s, y, method).(t)
+    xi = interp1d(s, x, method).(t)
+    yi = interp1d(s, y, method).(t)
+
+    # if original path closed, make sure resampled path closes too
+    # independently of interpolation method used
+    if x[1] == x[end] && y[1] == y[end]
+        xi[end] = xi[1]
+        yi[end] = yi[1]
+    end
+
+    return xi, yi
 end
 
 """
