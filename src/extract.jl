@@ -87,7 +87,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:exhaust, Symbol("P/R0"), "MW/m", dd -> EFL[:Psol](dd) / EFL[:R0](dd))
     ExtractLibFunction(:exhaust, Symbol("PB/R0"), "MW/m", dd -> EFL[:Psol](dd) * EFL[:B0](dd) / EFL[:R0](dd))
     ExtractLibFunction(:exhaust, Symbol("PBp/R0"), "MW/m", dd -> EFL[:Psol](dd) * EFL[Symbol("<Bpol>")](dd) / EFL[:R0](dd))
-
+    ExtractLibFunction(:exhaust, Symbol("PBϵ/R0q95"), "MW T/m", dd -> zohm_divertor_figure_of_merit(dd)/1E6)
+    
     ExtractLibFunction(:currents, :ip_bs_aux_ohm, "MA", dd -> (EFL[:ip_bs](dd) + EFL[:ip_aux](dd) + EFL[:ip_ohm](dd)))
     ExtractLibFunction(:currents, :ip_ni, "MA", dd -> @ddtime(dd.summary.global_quantities.current_non_inductive.value) / 1E6)
     ExtractLibFunction(:currents, :ip_bs, "MA", dd -> @ddtime(dd.summary.global_quantities.current_bootstrap.value) / 1E6)
