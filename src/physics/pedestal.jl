@@ -17,7 +17,7 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     nml_bound::Real,
-    ped_bound::Real;
+    ped_bound::Real,
     expin::Real,
     expout::Real)
 
@@ -28,8 +28,8 @@ function blend_core_edge_Hmode(
     z_profile = -calc_z(rho, profile)
     z_nml = z_profile[inml]
 
-    # H-mode profile used for pedestal
-    profile_ped = Hmode_profiles(profile[end], ped_height, profile[1], length(rho), expin, expout, ped_width)
+    # H-mode profile used for pedestal  (DON"T CHANGE THE -1 to profile[1] as this causes the optimizizer optimize with a lag)
+    profile_ped = Hmode_profiles(profile[end], ped_height, -1, length(rho), expin, expout, ped_width)
 
     # linear z between nml and pedestal
     if nml_bound < ped_bound
@@ -92,7 +92,7 @@ function blend_core_edge_Hmode(
         ped_height,
         ped_width,
         tr_bound0,
-        tr_bound1;
+        tr_bound1,
         expin,
         expout)
 end
