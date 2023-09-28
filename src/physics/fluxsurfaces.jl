@@ -6,8 +6,8 @@ using LinearAlgebra
 Returns r, z, and ψ interpolant
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length=length(eqt2d.grid.dim1))
-    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length=length(eqt2d.grid.dim2))
+    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end]; length=length(eqt2d.grid.dim1))
+    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end]; length=length(eqt2d.grid.dim2))
     return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi)
 end
 
@@ -110,7 +110,7 @@ function find_psi_boundary(
         end
     end
 
-    error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
+    return error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
 end
 
 """
@@ -152,7 +152,7 @@ function find_magnetic_axis!(r::AbstractVector{<:Real}, z::AbstractVector{<:Real
         end,
         [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
         Optim.Newton(),
-        Optim.Options(g_tol=1E-8);
+        Optim.Options(; g_tol=1E-8);
         autodiff=:forward
     )
     return res.minimizer[1], res.minimizer[2]
@@ -170,8 +170,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
 
     # upsampling for high-resolution r,z flux surface coordinates
     if upsample_factor > 1
-        r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end], length=length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
-        z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end], length=length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
+        r = range(eqt.profiles_2d[1].grid.dim1[1], eqt.profiles_2d[1].grid.dim1[end]; length=length(eqt.profiles_2d[1].grid.dim1) * upsample_factor)
+        z = range(eqt.profiles_2d[1].grid.dim2[1], eqt.profiles_2d[1].grid.dim2[end]; length=length(eqt.profiles_2d[1].grid.dim2) * upsample_factor)
         PSI = PSI_interpolant(r, z)
     end
 
@@ -180,7 +180,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
     # find magnetic axis
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = find_magnetic_axis!(r, z, PSI_interpolant, psi_sign)
     psi_axis = PSI_interpolant(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)
-    eqt.profiles_1d.psi = (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (eqt.profiles_1d.psi[end] - psi_axis) .+ psi_axis
+    eqt.profiles_1d.psi =
+        (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (eqt.profiles_1d.psi[end] - psi_axis) .+ psi_axis
 
     for item in (
         :b_field_average,
@@ -208,7 +209,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         :gm8,
         :gm9,
         :phi,
-        :trapped_fraction,
+        :trapped_fraction
     )
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
@@ -229,7 +230,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
             a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
             b = eqt.profiles_1d.elongation[1] * a
 
-            t = range(0, 2π, length=17)
+            t = range(0, 2π; length=17)
             pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
             pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
 
@@ -267,14 +268,14 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
                     return 100
                 end
             end
-            res = Optim.optimize(x -> fx(x, psi_level, eqt, w), [max_r, z_at_max_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+            res = Optim.optimize(x -> fx(x, psi_level, eqt, w), [max_r, z_at_max_r], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fx(x, psi_level, eqt, w), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+            res = Optim.optimize(x -> fx(x, psi_level, eqt, w), [min_r, z_at_min_r], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
             (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
             if psi_level0 != eqt.profiles_1d.psi[end]
-                res = Optim.optimize(x -> fz(x, psi_level, eqt, w), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+                res = Optim.optimize(x -> fz(x, psi_level, eqt, w), [r_at_max_z, max_z], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
                 (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(x -> fz(x, psi_level, eqt, w), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(g_tol=1E-8); autodiff=:forward)
+                res = Optim.optimize(x -> fz(x, psi_level, eqt, w), [r_at_min_z, min_z], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
                 (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
             end
             # p = plot(pr, pz, label = "")
@@ -439,8 +440,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
     eqt.profiles_2d[1].phi =
         Interpolations.cubic_spline_interpolation(
             to_range(eqt.profiles_1d.psi) * psi_sign,
-            eqt.profiles_1d.phi,
-            extrapolation_bc=Interpolations.Line(),
+            eqt.profiles_1d.phi;
+            extrapolation_bc=Interpolations.Line()
         ).(eqt.profiles_2d[1].psi * psi_sign)
 
     # rho 2D in meters
@@ -466,7 +467,12 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
     # fix quantities on axis
     for quantity in (:gm2,)
         value = getproperty(eqt.profiles_1d, quantity)
-        value[1] = Interpolations.cubic_spline_interpolation(to_range(eqt.profiles_1d.psi[2:end]) * psi_sign, value[2:end], extrapolation_bc=Interpolations.Line()).(eqt.profiles_1d.psi[1] * psi_sign)
+        value[1] =
+            Interpolations.cubic_spline_interpolation(
+                to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
+                value[2:end];
+                extrapolation_bc=Interpolations.Line()
+            ).(eqt.profiles_1d.psi[1] * psi_sign)
     end
 
     # find quantities on separatrix
@@ -491,9 +497,10 @@ end
 Returns r,z coordiates of open or closed flux surface at given psi_level
 
 The `closed` parameter:
-* nothing: return all contours
-* true: all closed flux-surface that encircle the magnetic axis
-* false: all open flux-surfaces
+
+  - nothing: return all contours
+  - true: all closed flux-surface that encircle the magnetic axis
+  - false: all open flux-surfaces
 """
 function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Union{Nothing,Bool})
     dim1 = eqt.profiles_2d[1].grid.dim1
@@ -502,7 +509,7 @@ function flux_surface(eqt::equilibrium__time_slice, psi_level::Real, closed::Uni
     psi = eqt.profiles_1d.psi
     R0 = eqt.global_quantities.magnetic_axis.r
     Z0 = eqt.global_quantities.magnetic_axis.z
-    flux_surface(dim1, dim2, PSI, psi, R0, Z0, psi_level, closed)
+    return flux_surface(dim1, dim2, PSI, psi, R0, Z0, psi_level, closed)
 end
 
 function flux_surface(
@@ -683,7 +690,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             x -> Bp(PSI_interpolant, [rz.r + x[1]], [rz.z + x[2]])[1],
             [0.0, 0.0],
             Optim.NelderMead(),
-            Optim.Options(g_tol=1E-8),
+            Optim.Options(; g_tol=1E-8)
         )
         rz.r += res.minimizer[1]
         rz.z += res.minimizer[2]
@@ -716,7 +723,8 @@ end
 """
     fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
 
-Returns extrema indexes and values of R,Z flux surfaces vectors
+Returns extrema indexes and values of R,Z flux surfaces vectors:
+
     imaxr, iminr,
     imaxz, iminz,
     r_at_max_z, max_z,
