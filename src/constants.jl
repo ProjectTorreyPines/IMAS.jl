@@ -116,6 +116,7 @@ const index_2_name__stability__model = Dict(
     105 => :beta_model_105, #Beta limit defined by
     # 200s: Current Limit Models
     201 => :model_201, #Current limit defined by
+    202 => :safety_factor_rho_08_lt_2, # q(@rho=0.8) > 2.
     # 300s: Density Limit Models
     301 => :model_301, #Density limit defined by
     # 400s: Shaping Limit Models
