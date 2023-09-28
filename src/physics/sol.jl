@@ -518,3 +518,24 @@ function find_strike_points!(eqt::IMAS.equilibrium__time_slice)
         return find_strike_points!(eqt, dd.build)
     end
 end
+
+"""
+ zohm_divertor_figure_of_merit(eqt::IMAS.equilibrium__time_slice)
+
+Computes a figure of merit for the divertor (Zohm) PB/R/q/A [W T/m]
+"""
+function zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d,eqt::IMAS.equilibrium__time_slice, T::summary__global_quantities)
+    R0  = eqt.boundary.geometric_axis.r
+    a   = eqt.boundary.minor_radius
+    A   = R0/a 
+    q95 = eqt.global_quantities.q_95
+    B0 = @ddtime(T.b0.value)
+    Psol = power_sol(core_sources, cp1d)
+
+    zohm = Psol*B0/R0/A/q95 # W T/m
+return zohm
+end
+
+function zohm_divertor_figure_of_merit(dd::IMAS.dd)
+return zohm_divertor_figure_of_merit(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[],dd.summary.global_quantities)
+end

@@ -17,7 +17,9 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
     @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
 
-    if pfa.coil[1].current.time == -Inf
+    if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
+        index = 1
+    elseif pfa.coil[1].current.time[1] == -Inf
         index = 2:length(pfa.coil[1].current.time)
     else
         index = 1:length(pfa.coil[1].current.time)
@@ -276,7 +278,9 @@ end
     end
 
     @series begin
-        subplot := 1
+        if !cx
+            subplot := 1
+        end
         eqt.profiles_2d
     end
 
@@ -419,7 +423,8 @@ end
     # plot cx
     # handle psi levels
     psi__boundary_level = eqt.profiles_1d.psi[end]
-    tmp = find_psi_boundary(eqt; raise_error_on_not_open=false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    tmp = find_psi_boundary(eqt; raise_error_on_not_open=false, raise_error_on_not_closed=false)
     if tmp !== nothing
         psi__boundary_level = tmp
     end
@@ -1794,7 +1799,7 @@ end
     elseif err == :bar
         yerror := Measurements.uncertainty.(y)
     end
-    x, Measurements.value.(y)
+    return x, Measurements.value.(y)
 end
 
 #= ================== =#
