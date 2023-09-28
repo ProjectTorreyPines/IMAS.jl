@@ -388,7 +388,7 @@ end
 
 Calculates the total fusion power in the plasma in [W]
 """
-function fusion_plasma_power(cp1d::IMAS.core_profiles)
+function fusion_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
     cp = parent(parent(cp1d))
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
     tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction)
