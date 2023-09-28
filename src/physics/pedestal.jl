@@ -28,8 +28,10 @@ function blend_core_edge_Hmode(
     z_profile = -calc_z(rho, profile)
     z_nml = z_profile[inml]
 
-    # H-mode profile used for pedestal  (DON"T CHANGE THE -1 to profile[1] as this causes the optimizizer optimize with a lag)
-    profile_ped = Hmode_profiles(profile[end], ped_height, -1, length(rho), expin, expout, ped_width)
+    # H-mode profile used for pedestal
+    # NOTE: DO NOT change the -1.0 to profile[1] as this causes the pedestal solution to depend on the core solution
+    #       which breaks finding self-consistent core-pedestal solution through an optimizer
+    profile_ped = Hmode_profiles(profile[end], ped_height, -1.0, length(rho), expin, expout, ped_width)
 
     # linear z between nml and pedestal
     if nml_bound < ped_bound
@@ -46,15 +48,21 @@ function blend_core_edge_Hmode(
 end
 
 
-function cost_find_exps(x::AbstractVector, ped_height::Real, ped_width::Real, rho::AbstractVector, profile::AbstractVector, z_targets::AbstractVector, rho_targets::AbstractVector)
+function cost_find_exps(
+    x::AbstractVector{<:Real},
+    ped_height::Real,
+    ped_width::Real,
+    rho::AbstractVector{<:Real},
+    profile::AbstractVector{<:Real},
+    z_targets::AbstractVector{<:Real},
+    rho_targets::AbstractVector{<:Real}
+)
     x = abs.(x)
     profile_ped = Hmode_profiles(profile[end], ped_height, profile[1], length(rho), x[1], x[2], ped_width)
-
     z_ped = -calc_z(rho, profile_ped)
     z_ped_values = interp1d(rho, z_ped).(rho_targets)
     return sum(abs.(z_targets .- z_ped_values))
 end
-
 
 """
     blend_core_edge_Hmode(
