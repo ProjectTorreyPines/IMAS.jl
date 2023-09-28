@@ -48,18 +48,18 @@ function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 end
 
 """
-    find_psi_boundary(eqt; precision=1e-6, raise_error_on_not_open=true)
+    find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
 
 Find psi value of the last closed flux surface
 """
-function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true)
+function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
     dim1 = eqt.profiles_2d[1].grid.dim1
     dim2 = eqt.profiles_2d[1].grid.dim2
     PSI = eqt.profiles_2d[1].psi
     psi = eqt.profiles_1d.psi
     R0 = eqt.global_quantities.magnetic_axis.r
     Z0 = eqt.global_quantities.magnetic_axis.z
-    find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision, raise_error_on_not_open)
+    return find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision, raise_error_on_not_open, raise_error_on_not_closed)
 end
 
 function find_psi_boundary(
@@ -70,7 +70,8 @@ function find_psi_boundary(
     R0::T,
     Z0::T;
     precision::Float64=1e-6,
-    raise_error_on_not_open::Bool) where {T<:Real}
+    raise_error_on_not_open::Bool,
+    raise_error_on_not_closed::Bool) where {T<:Real}
 
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
@@ -78,13 +79,17 @@ function find_psi_boundary(
 
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[1], true)
     if length(pr) == 0
-        error("Flux surface at ψ=$(psirange_init[1]) is not closed")
+        if raise_error_on_not_closed
+            error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psi[1])...$(psi[end])]")
+        else
+            return nothing
+        end
     end
 
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[end], true)
     if length(pr) > 0
         if raise_error_on_not_open
-            error("Flux surface at ψ=$(psirange_init[end]) is not open")
+            error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psi[1])...$(psi[end])]")
         else
             return nothing
         end
@@ -528,7 +533,7 @@ function flux_surface(
 
     elseif psi_level == psi[end]
         # handle boundary by finding accurate lcfs psi
-        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; raise_error_on_not_open=false)
+        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; raise_error_on_not_open=false, raise_error_on_not_closed=false)
         if psi__boundary_level !== nothing
             if abs(psi__boundary_level - psi_level) < abs(psi[end] - psi[end-1])
                 psi_level = psi__boundary_level

@@ -419,7 +419,8 @@ end
     # plot cx
     # handle psi levels
     psi__boundary_level = eqt.profiles_1d.psi[end]
-    tmp = find_psi_boundary(eqt; raise_error_on_not_open=false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    tmp = find_psi_boundary(eqt; raise_error_on_not_open=false, raise_error_on_not_closed=false)
     if tmp !== nothing
         psi__boundary_level = tmp
     end
