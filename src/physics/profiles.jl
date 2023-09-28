@@ -357,6 +357,8 @@ Generate H-mode density and temperature profiles evenly spaced in your favorite 
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
     xpsi = LinRange(0.0, 1.0, ngrid)
 
+    @assert core >= 0.0
+
     w_E1 = 0.5 * widthp  # width as defined in eped
     xphalf = 1.0 - w_E1
     pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
@@ -367,12 +369,61 @@ function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
     val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge + core * 0.0
 
     # core tanh+polynomial part
-    if core >= 0.0
-        xped = xphalf - w_E1
-        xtoped = xpsi ./ xped
-        for i in 1:ngrid
-            if xtoped[i] < 1.0
-                @inbounds val[i] += (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+    xped = xphalf - w_E1
+    xtoped = xpsi ./ xped
+    for i in 1:ngrid
+        if xtoped[i] < 1.0
+            @inbounds val[i] += (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+        end
+    end
+
+    return val
+end
+
+"""
+    Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+
+Generate H-mode density and temperature profiles evenly spaced in your favorite radial coordinate
+
+NOTE: The core value is allowed to float
+
+:param edge: separatrix height
+
+:param ped: pedestal height
+
+:param ngrid: number of radial grid points
+
+:param expin: inner core exponent for H-mode pedestal profile
+
+:param expout: outer core exponent for H-mode pedestal profile
+
+:param width: width of pedestal
+"""
+function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    xpsi = LinRange(0.0, 1.0, ngrid)
+
+    w_E1 = 0.5 * widthp  # width as defined in eped
+    xphalf = 1.0 - w_E1
+    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
+
+    # edge tanh part
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge
+
+    # core tanh+polynomial part
+    xped = xphalf - w_E1
+    xtoped = xpsi ./ xped
+    integral = 0.0
+    factor = Inf
+    for i in ngrid:-1:1
+        if xtoped[i] < 1.0
+            @inbounds val[i] += integral
+            if i > 1
+                factor = min(factor, val[i])
+                xi = (xtoped[i] + xtoped[i-1]) / 2.0
+                dx = (xtoped[i] - xtoped[i-1])
+                v1 = expin * expout * xi^(expin - 1.0) * (1.0 - xi^expin)^(expout - 1.0)
+                integral += v1 * dx * factor
             end
         end
     end

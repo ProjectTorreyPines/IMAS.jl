@@ -13,7 +13,7 @@ Plots pf active cross-section
 
 NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
 """
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time0=global_time(pfa), cname=:roma)
+@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time0=global_time(pfa), cname=:vik)
     @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
 

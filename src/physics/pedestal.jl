@@ -29,9 +29,9 @@ function blend_core_edge_Hmode(
     z_nml = z_profile[inml]
 
     # H-mode profile used for pedestal
-    # NOTE: DO NOT change the -1.0 to profile[1] as this causes the pedestal solution to depend on the core solution
+    # NOTE: Note that we do not provide a core value as this causes the pedestal solution to depend on the core solution
     #       which breaks finding self-consistent core-pedestal solution through an optimizer
-    profile_ped = Hmode_profiles(profile[end], ped_height, -1.0, length(rho), expin, expout, ped_width)
+    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width)
 
     # linear z between nml and pedestal
     if nml_bound < ped_bound
