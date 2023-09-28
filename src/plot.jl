@@ -276,7 +276,9 @@ end
     end
 
     @series begin
-        subplot := 1
+        if !cx
+            subplot := 1
+        end
         eqt.profiles_2d
     end
 
