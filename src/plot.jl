@@ -17,7 +17,9 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
     @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
 
-    if pfa.coil[1].current.time == -Inf
+    if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
+        index = 1
+    elseif pfa.coil[1].current.time[1] == -Inf
         index = 2:length(pfa.coil[1].current.time)
     else
         index = 1:length(pfa.coil[1].current.time)
@@ -1797,7 +1799,7 @@ end
     elseif err == :bar
         yerror := Measurements.uncertainty.(y)
     end
-    x, Measurements.value.(y)
+    return x, Measurements.value.(y)
 end
 
 #= ================== =#
