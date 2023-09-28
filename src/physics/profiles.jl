@@ -401,7 +401,8 @@ NOTE: The core value is allowed to float
 """
 function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
 
-    @assert expout >= 1.0
+    @assert expin >= 0.0
+    @assert expout >= 0.0
 
     xpsi = LinRange(0.0, 1.0, ngrid)
 
@@ -425,7 +426,11 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
                 factor = min(factor, val[i])
                 xi = (xtoped[i] + xtoped[i-1]) / 2.0
                 dx = (xtoped[i] - xtoped[i-1])
-                v1 = expin * expout * xi^(expin - 1.0) * (1.0 - xi^expin)^(expout - 1.0)
+                if expin == 0.0
+                    v1 = 0.0
+                else
+                    v1 = expin * expout * xi^(expin - 1.0) * (1.0 - xi^expin)^(expout - 1.0)
+                end
                 integral += v1 * dx * factor
             end
         end

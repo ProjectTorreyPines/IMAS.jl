@@ -58,7 +58,7 @@ function cost_find_exps(
     rho_targets::AbstractVector{<:Real}
 )
     x = abs.(x)
-    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], 1.0 + x[2], ped_width)
+    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
     z_ped = -calc_z(rho, profile_ped)
     z_ped_values = interp1d(rho, z_ped).(rho_targets)
     return sum(abs.(z_targets .- z_ped_values))
@@ -89,12 +89,12 @@ function blend_core_edge_Hmode(
     z_targets = interp1d(rho, z_profile).([tr_bound0, tr_bound1])
 
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
-    x_guess = [1.0, 0.0]
+    x_guess = [1.0, 1.0]
     res = Optim.optimize(x -> cost_find_exps(x, ped_height, ped_width, rho, profile, z_targets,
             [tr_bound0, tr_bound1]), x_guess, Optim.NelderMead(), Optim.Options(; g_tol=1E-3))
 
     expin = abs(res.minimizer[1])
-    expout = 1.0 + abs(res.minimizer[2])
+    expout = abs(res.minimizer[2])
 
     return blend_core_edge_Hmode(
         profile,
