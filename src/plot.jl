@@ -1638,7 +1638,8 @@ end
         subplot := 1
         label := "$(time) [s]"
         aspect_ratio := :equal
-        ps.position_control, time0
+        time0 := time0
+        ps.position_control
     end
 
     eqt = try
