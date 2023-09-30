@@ -135,7 +135,7 @@ function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, include
     JtoR = Jtor .* interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
     JparB = JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap, eqt)
     eq = top_ids(eqt)
-    B0 = interp1d(eq.time, eq.vacuum_toroidal_field.b0, :constant).(eqt.time)
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
     Jpar = JparB ./ B0
     return Jpar
 end
