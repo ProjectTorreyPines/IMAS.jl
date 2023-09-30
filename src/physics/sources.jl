@@ -19,7 +19,7 @@ end
 """
     collisional_exchange_source!(dd::IMAS.dd)
 
-Calculates collisional exchange source and modifies dd.core_sources
+Calculates collisional exchange source and modifies `dd.core_sources`
 """
 function collisional_exchange_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -54,7 +54,7 @@ end
 """
     bootstrap_source!(dd::IMAS.dd)
 
-Calculates the bootsrap current source from data in `dd.core_profiles` and modifies dd.core_sources
+Calculates the bootsrap current source from data in `dd.core_profiles` and modifies `dd.core_sources`
 """
 function bootstrap_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]

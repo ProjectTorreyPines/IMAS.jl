@@ -44,14 +44,14 @@ function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.
 end
 
 """
-    j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+    j_ohmic_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
 Sets j_total parallel current density as expression in core_profiles that evaluates to the total parallel current in the equilibrium
 """
-function j_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+function j_ohmic_total_from_equilibrium!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     cp1d.j_total = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.j_parallel, :cubic).(cp1d.grid.rho_tor_norm)
-    # restore j_ohmic and j_tor as expression, to make sure things are self-consistent
-    empty!(cp1d, :j_ohmic)
+    cp1d.j_ohmic = cp1d.j_total - cp1d.j_non_inductive
+    # restore j_tor as expression, to make sure things are self-consistent
     empty!(cp1d, :j_tor)
     return nothing
 end
