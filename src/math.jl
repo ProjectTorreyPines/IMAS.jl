@@ -300,11 +300,11 @@ allowed between a point on the original line and its simplified representation.
 """
 function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
     n = length(x)
-    if n < 3 || n != length(y)
+    if n != length(y)
         error("Input arrays must have at least 3 elements and the same length")
     end
 
-    if n == 3
+    if n <= 3
         return x, y
     else
         # Find the point with the maximum distance from the line between the first and last points
