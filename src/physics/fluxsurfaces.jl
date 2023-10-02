@@ -247,10 +247,10 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
             pr, pz, psi_level =
                 flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, true)
             if isempty(pr)
-                p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
-                contour!(r, z, PSI'; color=:white, levels=100)
-                contour!(r, z, PSI'; levels=[eqt.profiles_1d.psi[end]], color=:white, lw=2)
-                display(p)
+                # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
+                # contour!(r, z, PSI'; color=:white, levels=100)
+                # contour!(r, z, PSI'; levels=[eqt.profiles_1d.psi[end]], color=:white, lw=2)
+                # display(p)
                 error("IMAS: Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
 
