@@ -391,9 +391,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
 
         # quantities calculated on the last closed flux surface
         if k == length(eqt.profiles_1d.psi)
-            # ip
-            eqt.global_quantities.ip = Bpl / constants.μ_0
-
             # perimeter
             eqt.global_quantities.length_pol = ll[end]
         end
@@ -411,6 +408,10 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         eqt.profiles_1d.phi[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
     end
 
+    # ip
+    eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
+
+    # Geometric major and minor radii
     Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
     a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
 
