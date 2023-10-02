@@ -62,10 +62,10 @@ NOTE: Jpar ≂̸ JparB
 """
 function JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5).(rho_tor_norm)
-    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm)
-    f = interp1d(rho_eq, eqt.profiles_1d.f).(rho_tor_norm)
-    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi).(rho_tor_norm)
+    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5, :cubic).(rho_tor_norm)
+    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm)
+    f = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
+    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi, :cubic).(rho_tor_norm)
     if includes_bootstrap
         # diamagnetic term to get included with bootstrap currrent
         JtoR_dia = dpdpsi .* (1.0 .- fsa_invR2 .* f .^ 2 ./ fsa_B2) .* 2pi
@@ -94,10 +94,10 @@ NOTE: Jpar ≂̸ JparB
 """
 function JparB_2_JtoR(rho_tor_norm::Vector{<:Real}, JparB::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5).(rho_tor_norm)
-    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm)
-    f = interp1d(rho_eq, eqt.profiles_1d.f).(rho_tor_norm)
-    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi).(rho_tor_norm)
+    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5, :cubic).(rho_tor_norm)
+    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm)
+    f = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
+    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi, :cubic).(rho_tor_norm)
     if includes_bootstrap
         # diamagnetic term to get included with bootstrap currrent
         JtoR_dia = dpdpsi .* (1.0 .- fsa_invR2 .* f .^ 2 ./ fsa_B2) .* 2pi
@@ -113,13 +113,13 @@ function Jpar_2_Jtor(rho_tor_norm::Vector{<:Real}, Jpar::Vector{<:Real}, include
     JparB = Jpar .* B0
     JtoR = JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    Jtor = JtoR ./ interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
+    Jtor = JtoR ./ interp1d(rho_eq, eqt.profiles_1d.gm9, :cubic).(rho_tor_norm)
     return Jtor
 end
 
 function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    JtoR = Jtor .* interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
+    JtoR = Jtor .* interp1d(rho_eq, eqt.profiles_1d.gm9, :cubic).(rho_tor_norm)
     JparB = JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap, eqt)
     eq = top_ids(eqt)
     B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
