@@ -17,15 +17,19 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
     @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
 
-    if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
-        index = 1
-    elseif pfa.coil[1].current.time[1] == -Inf
-        index = 2:length(pfa.coil[1].current.time)
+    if isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
+        currents = [0.0 for c in pfa.coil]
     else
-        index = 1:length(pfa.coil[1].current.time)
+        if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
+            index = 1
+        elseif pfa.coil[1].current.time[1] == -Inf
+            index = 2:length(pfa.coil[1].current.time)
+        else
+            index = 1:length(pfa.coil[1].current.time)
+        end
+        currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
+        CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
     end
-    currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
-    CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
 
     if what ∈ (:cx, :coils_flux)
         label --> ""
@@ -45,11 +49,11 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 
         # plot individual coils
         for (k, c) in enumerate(pfa.coil)
-            current_color_index = (currents[k] + CURRENT) / (2 * CURRENT)
             @series begin
                 if all(currents .== 0.0)
                     color --> :black
                 else
+                    current_color_index = (currents[k] + CURRENT) / (2 * CURRENT)
                     color --> PlotUtils.cgrad(cname)[current_color_index]
                 end
                 c
@@ -57,7 +61,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
     elseif what == :currents
-        label --> "$(get_time_array(pfa.coil[1].current, :time, time0)) s"
+        label --> "$(time0) s"
         @series begin
             linestyle --> :dash
             marker --> :circle
@@ -1194,9 +1198,9 @@ end
     end
 end
 
-# ======== #
-# profiles #
-# ======== #
+# ============= #
+# core_profiles #
+# ============= #
 @recipe function plot_core_profiles(cp::IMAS.core_profiles)
     @series begin
         return cp.profiles_1d[]
@@ -1624,6 +1628,8 @@ end
             else
                 plt[:label] = "$(path[end-2]) $(path[end-1])"
             end
+        elseif path[end-1] in ["power"]
+            plt[:label] = "$(path[end-2]) $(path[end-1])"
         else
             plt[:label] = path[end-1]
         end
@@ -1820,6 +1826,11 @@ function nice_field(field::AbstractString)
     else
         field = replace(field, r"_tor" => " toroidal")
         field = replace(field, r"_pol" => " poloidal")
+        field = replace(field, r"\bec\b" => "EC")
+        field = replace(field, r"\bic\b" => "IC")
+        field = replace(field, r"\blh\b" => "LH")
+        field = replace(field, r"\bnb\b" => "NB")
+        field = replace(field, r"\bnbi\b" => "NBI")
         if length(field) > 1
             field = uppercasefirst(replace(field, "_" => " "))
         end
