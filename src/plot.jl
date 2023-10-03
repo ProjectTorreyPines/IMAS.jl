@@ -884,8 +884,9 @@ end
 # ========= #
 # transport #
 # ========= #
-@recipe function plot_core_transport(ct::IMAS.core_transport; time0=global_time(ct))
+@recipe function plot_core_transport(ct::IMAS.core_transport{D}; time0=global_time(ct)) where {D<:Real}
     model_type = name_2_index(ct.model)
+    rhos = D[]
     for model in ct.model
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
@@ -901,7 +902,9 @@ end
             end
             model.profiles_1d[time0]
         end
+        append!(rhos, model.profiles_1d[].grid_flux.rho_tor_norm)
     end
+    rhos = unique(rhos)
 
     dd = top_dd(ct)
     if dd !== nothing
@@ -918,7 +921,7 @@ end
         linewidth := 2
         color := :black
         label := "Total transport"
-        total_fluxes(ct; time0)
+        total_fluxes(ct, rhos; time0)
     end
 end
 
