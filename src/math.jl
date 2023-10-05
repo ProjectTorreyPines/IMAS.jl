@@ -33,13 +33,15 @@ end
 """
     gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real, A<:Real}
 
-Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
+Finite difference method of the gradient: [:third_order, :second_order, :central, :backward, :forward]
 
 The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 
 For `:central` the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries.
 
 For `:second_order` the gradient is computed using second order accurate central differences in the interior points, and 2nd order differences at the boundaries.
+
+For `:third_order` the gradient is computed from the cubic spline passing through the points
 """
 function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real,A<:Real}
     grad = Array{promote_type(A, C)}(undef, length(arr))
@@ -55,18 +57,26 @@ function gradient!(grad::Union{AbstractVector,SubArray{<:Real,1}}, coord::Abstra
     np = length(arr)
     @assert length(grad) == np "The length of your grad vector (length = $(length(grad))) is not equal to the length of your arr (length = $np)"
     @assert length(coord) == np "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $np)"
+
     if np < 3 && method == :second_order
         method = :central
     end
-    if method != :second_order
+
+    if method ∈ [:central, :backward, :forward]
         # Forward difference at the beginning
         grad[1] = (arr[2] - arr[1]) / (coord[2] - coord[1])
         # backward difference at the end
         grad[end] = (arr[end] - arr[end-1]) / (coord[end] - coord[end-1])
     end
 
-    # Central difference in interior using numpy method
-    if method in [:central, :second_order]
+    if method == :third_order
+        itp = DataInterpolations.CubicSpline(arr, coord)
+        for k in eachindex(arr)
+            grad[k] = DataInterpolations.derivative(itp, coord[k])
+        end
+
+    elseif method ∈ [:central, :second_order]
+        # Central difference in interior using numpy method
         for p in 2:np-1
             hs = coord[p] - coord[p-1]
             fs = arr[p-1]
@@ -98,14 +108,17 @@ function gradient!(grad::Union{AbstractVector,SubArray{<:Real,1}}, coord::Abstra
             ccd2 = c^2 / (c + d)^2
             grad[end] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
         end
+
     elseif method == :backward
         for p in 2:np-1
             grad[p] = (arr[p] - arr[p-1]) / (coord[p] - coord[p-1])
         end
+
     elseif method == :forward
         for p in 2:np-1
             grad[p] = (arr[p+1] - arr[p]) / (coord[p+1] - coord[p])
         end
+
     else
         error("difference method $(method) doesn't exist in gradient function")
     end
@@ -653,13 +666,10 @@ end
 
 Returns the gradient scale lengths of vector f on x
 
-NOTE: negative inverse scale length for typical density/temperature profiles
+NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
 function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
-    f[findall(ff -> (ff < 1e-32), f)] .= 1e-32
-    itp = DataInterpolations.CubicSpline(f, x)
-    g = [DataInterpolations.derivative(itp, x0) for x0 in x]
-    return g ./ f
+    return gradient(x, f; method=:third_order) ./ f
 end
 
 """
@@ -668,7 +678,7 @@ end
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    f = interp1d(rho, z_profile, :quadratic)
+    f = interp1d(rho, z_profile, :quadratic) # do not change this from being :quadratic
     profile_new = similar(rho)
     profile_new[end] = bc
     for i in length(rho)-1:-1:1
