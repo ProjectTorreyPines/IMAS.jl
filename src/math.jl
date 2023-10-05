@@ -42,11 +42,22 @@ For `:central` the gradient is computed using second order accurate central diff
 For `:second_order` the gradient is computed using second order accurate central differences in the interior points, and 2nd order differences at the boundaries.
 """
 function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real,A<:Real}
-    @assert length(coord) == length(arr) "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))"
+    grad = Array{promote_type(A, C)}(undef, length(arr))
+    return gradient!(grad, coord, arr; method)
+end
 
+"""
+    gradient!(grad::AbstractVector, coord::AbstractVector, arr::AbstractVector; method::Symbol=:second_order)
+
+In place version of gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:second_order)
+"""
+function gradient!(grad::Union{AbstractVector,SubArray{<:Real,1}}, coord::AbstractVector, arr::Union{AbstractVector,SubArray{<:Real,1}}; method::Symbol=:second_order)
     np = length(arr)
-    grad = Array{promote_type(A, C)}(undef, np)
-
+    @assert length(grad) == np "The length of your grad vector (length = $(length(grad))) is not equal to the length of your arr (length = $np)"
+    @assert length(coord) == np "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $np)"
+    if np < 3 && method == :second_order
+        method = :central
+    end
     if method != :second_order
         # Forward difference at the beginning
         grad[1] = (arr[2] - arr[1]) / (coord[2] - coord[1])
@@ -102,29 +113,49 @@ function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symb
     return grad
 end
 
-function gradient(arr::Matrix; method::Symbol=:second_order)
-    return gradient(1:size(arr)[1], 1:size(arr)[2], arr; method)
+function gradient(mat::Matrix; method::Symbol=:second_order)
+    return gradient(1:size(mat)[1], 1:size(mat)[2], mat; method)
+end
+
+function gradient(mat::Matrix, dim::Int; method::Symbol=:second_order)
+    return gradient(1:size(mat)[1], 1:size(mat)[2], mat, dim; method)
 end
 
 """
-    gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
+    gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix, dim::Int; method::Symbol=:second_order)
 
 Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
-Can apply to both dimensions (dim=0) or either the first (dim=1) or second (dim=2) dimension.
+
+Can be applied to either the first (dim=1) or second (dim=2) dimension
 """
-function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
-    if dim ∈ (0, 1)
-        d1 = hcat(map(x -> gradient(coord1, x; method), eachcol(arr))...)
-        if dim == 1
-            return d1
+function gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix, dim::Int; method::Symbol=:second_order)
+    nrows, ncols = size(mat)
+    d = Matrix{eltype(mat)}(undef, nrows, ncols)
+    if dim == 1
+        for i in 1:ncols
+            gradient!(@views(d[:, i]), coord1, @views(mat[:, i]); method)
         end
-    end
-    if dim ∈ (0, 2)
-        d2 = transpose(hcat(map(x -> gradient(coord2, x; method), eachrow(arr))...))
-        if dim == 2
-            return d2
+        return d
+    elseif dim == 2
+        for i in 1:nrows
+            gradient!(@views(d[i, :]), coord2, @views(mat[i, :]); method)
         end
+        return d
+    else
+        throw(ArgumentError("dim should be either 1 or 2"))
     end
+end
+
+"""
+    gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix)
+
+Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
+
+Computes the gradient in both dimensions
+"""
+function gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix; method::Symbol=:second_order)
+    d1 = gradient(coord1, coord2, mat, 1; method)
+    d2 = gradient(coord1, coord2, mat, 2; method)
     return d1, d2
 end
 
