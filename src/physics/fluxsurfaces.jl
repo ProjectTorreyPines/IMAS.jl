@@ -413,34 +413,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         eqt.profiles_1d.phi[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
     end
 
-    # ip
-    eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
-
-    # Geometric major and minor radii
-    Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
-    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
-
-    # vacuum magnetic field at the geometric center
-    Btvac = B0 * R0 / Rgeo
-
-    # average poloidal magnetic field
-    Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
-
-    # li
-    Bp2v = integrate(eqt.profiles_1d.psi, BPL)
-    eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
-
-    # beta_tor
-    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
-    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / constants.μ_0))
-
-    # beta_pol
-    eqt.global_quantities.beta_pol = abs(avg_press / (Bpave^2 / 2.0 / constants.μ_0))
-
-    # beta_normal
-    ip = eqt.global_quantities.ip / 1e6
-    eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
-
     # rho_tor_norm
     rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * B0)))
     rho_meters = rho[end]
@@ -474,17 +446,41 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
         end
     end
+    eqt.profiles_1d.gm2[1] =
+        Interpolations.cubic_spline_interpolation(
+            to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
+            eqt.profiles_1d.gm2[2:end];
+            extrapolation_bc=Interpolations.Line()
+        ).(eqt.profiles_1d.psi[1] * psi_sign)
 
-    # fix quantities on axis
-    for quantity in (:gm2,)
-        value = getproperty(eqt.profiles_1d, quantity)
-        value[1] =
-            Interpolations.cubic_spline_interpolation(
-                to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
-                value[2:end];
-                extrapolation_bc=Interpolations.Line()
-            ).(eqt.profiles_1d.psi[1] * psi_sign)
-    end
+    # ip
+    #eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
+    eqt.global_quantities.ip = -gradient(eqt.profiles_1d.psi, eqt.profiles_1d.phi)[end] .* eqt.profiles_1d.gm2[end] .* eqt.profiles_1d.dvolume_dpsi[end] / (2π * constants.μ_0) * 4π
+
+    # Geometric major and minor radii
+    Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
+    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
+
+    # vacuum magnetic field at the geometric center
+    Btvac = B0 * R0 / Rgeo
+
+    # average poloidal magnetic field
+    Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
+
+    # li
+    Bp2v = integrate(eqt.profiles_1d.psi, BPL)
+    eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
+
+    # beta_tor
+    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
+    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / constants.μ_0))
+
+    # beta_pol
+    eqt.global_quantities.beta_pol = abs(avg_press / (Bpave^2 / 2.0 / constants.μ_0))
+
+    # beta_normal
+    ip = eqt.global_quantities.ip / 1e6
+    eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # find quantities on separatrix
     find_x_point!(eqt)
