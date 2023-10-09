@@ -9,11 +9,11 @@ function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; only_DT::
         D_D_to_He3_source!(cs, cp)
         D_D_to_T_source!(cs, cp)
     end
-    fast_particles!(cs, cp.profiles_1d[])
+    return fast_particles!(cs, cp.profiles_1d[])
 end
 
 function fusion_source!(dd::IMAS.dd)
-    fusion_source!(dd.core_sources, dd.core_profiles)
+    return fusion_source!(dd.core_sources, dd.core_profiles)
 end
 
 """
@@ -78,7 +78,7 @@ function sources!(dd::IMAS.dd)
     IMAS.bremsstrahlung_source!(dd)
     IMAS.line_radiation_source!(dd)
     IMAS.synchrotron_source!(dd)
-    IMAS.fusion_source!(dd)
+    return IMAS.fusion_source!(dd)
 end
 
 """
@@ -109,17 +109,26 @@ function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vect
 end
 
 function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
-    total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+    return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
 end
 
 """
     total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
 
 Returns core_sources__source___profiles_1d with sources totals and possiblity to
-* include/exclude certain sources based on their unique index identifier
-* include only certain fields among these: [:particles_inside, :energy, :power_inside, :momentum_tor, :total_ion_power_inside, :total_ion_energy, :j_parallel, :torque_tor_inside, :current_parallel_inside, :particles]
+
+  - include/exclude certain sources based on their unique index identifier
+  - include only certain fields among these: [:particles_inside, :energy, :power_inside, :momentum_tor, :total_ion_power_inside, :total_ion_energy, :j_parallel, :torque_tor_inside, :current_parallel_inside, :particles]
 """
-function total_sources(core_sources::IMAS.core_sources{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; include_indexes::Vector{Int}=Int[], exclude_indexes::Vector{Int}=Int[], fields::Vector{Symbol}=Symbol[]) where {T<:Real}
+function total_sources(
+    core_sources::IMAS.core_sources{T},
+    cp1d::IMAS.core_profiles__profiles_1d{T};
+    include_indexes::Vector{Int}=Int[],
+    exclude_indexes::Vector{Int}=Int[],
+    fields::Vector{Symbol}=Symbol[],
+    only_positive_negative::Int=0
+) where {T<:Real}
+
     total_source1d = IMAS.core_sources__source___profiles_1d{T}()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = cp1d.time
@@ -210,6 +219,9 @@ function total_sources(core_sources::IMAS.core_sources{T}, cp1d::IMAS.core_profi
                 if (isempty(fields) || field ∈ fields || (field ∈ keys(matching) && matching[field] ∈ fields)) && field ∈ keys(matching)
                     if hasdata(ids2, field) || hasdata(ids2, matching[field])
                         y = getproperty(ids2, field)
+                        if only_positive_negative != 0 && any((sign(yy) ∉ (0, sign(only_positive_negative)) for yy in y))
+                            continue
+                        end
                         setproperty!(ids1, field, getproperty(ids1, field) .+ interp1d(x, y).(rho))
                     end
                 end
@@ -218,6 +230,23 @@ function total_sources(core_sources::IMAS.core_sources{T}, cp1d::IMAS.core_profi
     end
 
     return total_source1d
+end
+
+function total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+    return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+end
+
+
+function total_radiation_sources(
+    core_sources::IMAS.core_sources{T},
+    cp1d::IMAS.core_profiles__profiles_1d{T};
+    include_indexes::Vector{Int}=Int[],
+    exclude_indexes::Vector{Int}=Int[]
+) where {T<:Real}
+
+    fields = [:power_inside, :energy]
+    only_positive_negative = -1
+    return total_sources(core_sources, cp1d; include_indexes, exclude_indexes, fields, only_positive_negative)
 end
 
 """

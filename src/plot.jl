@@ -1000,9 +1000,15 @@ end
 # ======= #
 # sources #
 # ======= #
-@recipe function plot_core_sources(cs::IMAS.core_sources; time0=global_time(cs))
+@recipe function plot_core_sources(cs::IMAS.core_sources{T}; time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
+    @assert typeof(time0) <: Float64
+    @assert typeof(aggregate_radiation) <: Bool
+
     for source in cs.source
         @series begin
+            if aggregate_radiation
+                only_positive_negative := 1
+            end
             nozeros := true
             time0 := time0
             source
@@ -1011,6 +1017,18 @@ end
 
     dd = top_dd(cs)
     if dd !== nothing
+
+        if aggregate_radiation
+            @series begin
+                rad_source = IMAS.core_sources__source{T}()
+                resize!(rad_source.profiles_1d, 1)
+                fill!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
+                rad_source.identifier.index = 200
+                rad_source.identifier.name = "radiation"
+                rad_source
+            end
+        end
+
         @series begin
             name := "total"
             linewidth := 2
@@ -1036,6 +1054,7 @@ end
     only=nothing,
     show_zeros=false,
     min_power=0.0,
+    only_positive_negative=0,
     show_source_number=false
 )
     @assert typeof(name) <: AbstractString
@@ -1044,6 +1063,7 @@ end
     @assert typeof(label) <: Union{Nothing,AbstractString}
     @assert typeof(show_zeros) <: Bool
     @assert typeof(min_power) <: Float64
+    @assert typeof(only_positive_negative) <: Int
     @assert typeof(show_source_number) <: Bool
 
     if label === nothing
@@ -1071,19 +1091,30 @@ end
         source = nothing
         idx = 1
     end
+    if source !== nothing
+        source_name = identifier_name(source)
+    else
+        source_name = :undefined
+    end
 
+    # electron energy
     if only === nothing || only == 1
         tot = 0.0
         if !ismissing(cs1d.electrons, :energy) && !flux
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
         end
+        show_condition =
+            flux || show_zeros || source_name == :collisional_equipartition || (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
         @series begin
             if only === nothing
                 subplot := 1
             end
+            if source_name == :collisional_equipartition
+                linestyle --> :dash
+            end
             color := idx
             title := "Electron Energy"
-            if flux || show_zeros || abs(tot) > min_power
+            if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d.electrons, :power_inside) && flux
                     label := :none
@@ -1101,8 +1132,11 @@ end
                 [NaN], [NaN]
             end
         end
-        if source!== nothing && identifier_name(source) in [:ec, :ic, :nbi] && abs(tot) > min_power && !flux && !integrated && !ismissing(cs1d.electrons, :energy)
+        if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
             @series begin
+                if only === nothing
+                    subplot := 1
+                end
                 label := ""
                 primary := false
                 alpha := 0.25
@@ -1112,18 +1146,23 @@ end
         end
     end
 
+    # ion energy
     if only === nothing || only == 2
         tot = 0.0
         if !ismissing(cs1d, :total_ion_energy) && !flux
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
         end
+        show_condition = flux || show_zeros || abs(tot) > min_power
         @series begin
             if only === nothing
                 subplot := 2
             end
+            if source_name == :collisional_equipartition
+                linestyle --> :dash
+            end
             color := idx
             title := "Ion Energy"
-            if flux || show_zeros || abs(tot) > min_power
+            if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
@@ -1140,8 +1179,11 @@ end
                 [NaN], [NaN]
             end
         end
-        if source!== nothing && identifier_name(source) in [:ec, :ic, :lh, :nbi] && abs(tot) > min_power && !flux && !integrated && !ismissing(cs1d.electrons, :energy)
+        if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
             @series begin
+                if only === nothing
+                    subplot := 2
+                end
                 label := ""
                 primary := false
                 alpha := 0.25
@@ -1151,18 +1193,20 @@ end
         end
     end
 
+    # particles
     if only === nothing || only == 3
         tot = 0.0
         if !ismissing(cs1d.electrons, :particles) && !flux
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
         end
+        show_condition = flux || show_zeros || abs(tot) > 0.0
         @series begin
             if only === nothing
                 subplot := 3
             end
             color := idx
             title := "Electron Particle"
-            if flux || show_zeros || abs(tot) > 0.0
+            if show_condition
                 label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
                     label := :none
@@ -1180,8 +1224,11 @@ end
                 [NaN], [NaN]
             end
         end
-        if source!== nothing && identifier_name(source) in [:ec, :ic, :lh, :nbi] && abs(tot) > min_power && !flux && !integrated && !ismissing(cs1d.electrons, :energy)
+        if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
             @series begin
+                if only === nothing
+                    subplot := 3
+                end
                 label := ""
                 primary := false
                 alpha := 0.25
@@ -1191,7 +1238,7 @@ end
         end
     end
 
-    # current or momentum (if plotting flux)
+    # current (or momentum, if plotting flux)
     if only === nothing || only == 4
         if flux
             if only === nothing
@@ -1211,13 +1258,14 @@ end
             if !ismissing(cs1d, :j_parallel)
                 tot = integrate(cs1d.grid.area, cs1d.j_parallel)
             end
+            show_condition = flux || show_zeros || abs(tot) > 0.0
             @series begin
                 if only === nothing
                     subplot := 4
                 end
                 color := idx
                 title := "Parallel Current"
-                if flux || show_zeros || abs(tot) > 0.0
+                if show_condition
                     label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
                     if !integrated && !ismissing(cs1d, :j_parallel)
                         cs1d, :j_parallel
@@ -1232,8 +1280,11 @@ end
                     [NaN], [NaN]
                 end
             end
-            if source!== nothing && identifier_name(source) in [:ec, :ic, :lh, :nbi] && !integrated && !ismissing(cs1d.electrons, :energy)
+            if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
                 @series begin
+                    if only === nothing
+                        subplot := 4
+                    end
                     label := ""
                     primary := false
                     alpha := 0.25
