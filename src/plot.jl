@@ -1034,12 +1034,18 @@ end
     integrated=false,
     flux=false,
     only=nothing,
-    nozeros=false,
+    show_zeros=false,
+    min_power=0.0,
     show_source_number=false
 )
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
+    @assert typeof(flux) <: Bool
     @assert typeof(label) <: Union{Nothing,AbstractString}
+    @assert typeof(show_zeros) <: Bool
+    @assert typeof(min_power) <: Float64
+    @assert typeof(show_source_number) <: Bool
+
     if label === nothing
         label = ""
     end
@@ -1056,27 +1062,29 @@ end
     end
 
     if parent(cs1d) !== nothing && parent(parent(cs1d)) !== nothing
-        idx = index(parent(parent(cs1d)))
+        source = parent(parent(cs1d))
+        idx = index(source)
         if show_source_number
             name = "[$idx] $name"
         end
     else
+        source = nothing
         idx = 1
     end
 
     if only === nothing || only == 1
+        tot = 0.0
+        if !ismissing(cs1d.electrons, :energy) && !flux
+            tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
+        end
         @series begin
             if only === nothing
                 subplot := 1
             end
             color := idx
             title := "Electron Energy"
-            tot = 0.0
-            if !ismissing(cs1d.electrons, :energy) && !flux
-                tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
+            if flux || show_zeros || abs(tot) > min_power
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-            end
-            if !nozeros || abs(tot) > 0.0
                 if !ismissing(cs1d.electrons, :power_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
@@ -1093,21 +1101,30 @@ end
                 [NaN], [NaN]
             end
         end
+        if source!== nothing && identifier_name(source) in [:ec, :ic, :nbi] && abs(tot) > min_power && !flux && !integrated && !ismissing(cs1d.electrons, :energy)
+            @series begin
+                label := ""
+                primary := false
+                alpha := 0.25
+                fillrange := cs1d.electrons.energy
+                cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
+            end
+        end
     end
 
     if only === nothing || only == 2
+        tot = 0.0
+        if !ismissing(cs1d, :total_ion_energy) && !flux
+            tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
+        end
         @series begin
             if only === nothing
                 subplot := 2
             end
             color := idx
             title := "Ion Energy"
-            tot = 0.0
-            if !ismissing(cs1d, :total_ion_energy) && !flux
-                tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
+            if flux || show_zeros || abs(tot) > min_power
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-            end
-            if !nozeros || abs(tot) > 0.0
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d, :total_ion_energy)
@@ -1123,21 +1140,30 @@ end
                 [NaN], [NaN]
             end
         end
+        if source!== nothing && identifier_name(source) in [:ec, :ic, :lh, :nbi] && abs(tot) > min_power && !flux && !integrated && !ismissing(cs1d.electrons, :energy)
+            @series begin
+                label := ""
+                primary := false
+                alpha := 0.25
+                fillrange := cs1d.total_ion_energy
+                cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
+            end
+        end
     end
 
     if only === nothing || only == 3
+        tot = 0.0
+        if !ismissing(cs1d.electrons, :particles) && !flux
+            tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
+        end
         @series begin
             if only === nothing
                 subplot := 3
             end
             color := idx
             title := "Electron Particle"
-            tot = 0.0
-            if !ismissing(cs1d.electrons, :particles) && !flux
-                tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
+            if flux || show_zeros || abs(tot) > 0.0
                 label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
-            end
-            if !nozeros || abs(tot) > 0.0
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
@@ -1152,6 +1178,15 @@ end
             else
                 label := ""
                 [NaN], [NaN]
+            end
+        end
+        if source!== nothing && identifier_name(source) in [:ec, :ic, :lh, :nbi] && abs(tot) > min_power && !flux && !integrated && !ismissing(cs1d.electrons, :energy)
+            @series begin
+                label := ""
+                primary := false
+                alpha := 0.25
+                fillrange := cs1d.electrons.particles
+                cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
             end
         end
     end
@@ -1172,18 +1207,18 @@ end
                 [NaN], [NaN]
             end
         else
+            tot = 0.0
+            if !ismissing(cs1d, :j_parallel)
+                tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+            end
             @series begin
                 if only === nothing
                     subplot := 4
                 end
                 color := idx
                 title := "Parallel Current"
-                tot = 0.0
-                if !ismissing(cs1d, :j_parallel)
-                    tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+                if flux || show_zeros || abs(tot) > 0.0
                     label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
-                end
-                if !nozeros || abs(tot) > 0.0
                     if !integrated && !ismissing(cs1d, :j_parallel)
                         cs1d, :j_parallel
                     elseif integrated && !ismissing(cs1d, :current_parallel_inside)
@@ -1195,6 +1230,15 @@ end
                 else
                     label := ""
                     [NaN], [NaN]
+                end
+            end
+            if source!== nothing && identifier_name(source) in [:ec, :ic, :lh, :nbi] && !integrated && !ismissing(cs1d.electrons, :energy)
+                @series begin
+                    label := ""
+                    primary := false
+                    alpha := 0.25
+                    fillrange := cs1d.j_parallel
+                    cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
                 end
             end
         end
