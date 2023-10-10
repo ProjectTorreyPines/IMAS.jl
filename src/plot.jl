@@ -1113,13 +1113,16 @@ end
                 linestyle --> :dash
             end
             color := idx
-            title := "Electron Energy"
+            title --> "Electron Energy"
             if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d.electrons, :power_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :energy)
+                    if source_name in [:ec, :ic, :lh, :nbi]
+                        fill0 --> true
+                    end
                     cs1d.electrons, :energy
                 elseif integrated && !ismissing(cs1d.electrons, :power_inside)
                     cs1d.electrons, :power_inside
@@ -1130,18 +1133,6 @@ end
             else
                 label := ""
                 [NaN], [NaN]
-            end
-        end
-        if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
-            @series begin
-                if only === nothing
-                    subplot := 1
-                end
-                label := ""
-                primary := false
-                alpha := 0.25
-                fillrange := cs1d.electrons.energy
-                cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
             end
         end
     end
@@ -1161,12 +1152,15 @@ end
                 linestyle --> :dash
             end
             color := idx
-            title := "Ion Energy"
+            title --> "Ion Energy"
             if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d, :total_ion_energy)
+                    if source_name in [:ec, :ic, :lh, :nbi]
+                        fill0 --> true
+                    end
                     cs1d, :total_ion_energy
                 elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
                     cs1d, :total_ion_power_inside
@@ -1177,18 +1171,6 @@ end
             else
                 label := ""
                 [NaN], [NaN]
-            end
-        end
-        if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
-            @series begin
-                if only === nothing
-                    subplot := 2
-                end
-                label := ""
-                primary := false
-                alpha := 0.25
-                fillrange := cs1d.total_ion_energy
-                cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
             end
         end
     end
@@ -1205,13 +1187,16 @@ end
                 subplot := 3
             end
             color := idx
-            title := "Electron Particle"
+            title --> "Electron Particle"
             if show_condition
                 label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :particles)
+                    if source_name in [:ec, :ic, :lh, :nbi]
+                        fill0 --> true
+                    end
                     cs1d.electrons, :particles
                 elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
                     cs1d.electrons, :particles_inside
@@ -1224,18 +1209,6 @@ end
                 [NaN], [NaN]
             end
         end
-        if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
-            @series begin
-                if only === nothing
-                    subplot := 3
-                end
-                label := ""
-                primary := false
-                alpha := 0.25
-                fillrange := cs1d.electrons.particles
-                cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
-            end
-        end
     end
 
     # current (or momentum, if plotting flux)
@@ -1245,7 +1218,7 @@ end
                 subplot := 4
             end
             color := idx
-            title := "Momentum Tor"
+            title --> "Momentum Tor"
             if !ismissing(cs1d, :torque_tor_inside)
                 label := :none
                 cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
@@ -1264,10 +1237,13 @@ end
                     subplot := 4
                 end
                 color := idx
-                title := "Parallel Current"
+                title --> "Parallel Current"
                 if show_condition
                     label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
                     if !integrated && !ismissing(cs1d, :j_parallel)
+                        if source_name in [:ec, :ic, :lh, :nbi]
+                            fill0 --> true
+                        end
                         cs1d, :j_parallel
                     elseif integrated && !ismissing(cs1d, :current_parallel_inside)
                         cs1d, :current_parallel_inside
@@ -1278,18 +1254,6 @@ end
                 else
                     label := ""
                     [NaN], [NaN]
-                end
-            end
-            if source_name in [:ec, :ic, :lh, :nbi] && !integrated && show_condition
-                @series begin
-                    if only === nothing
-                        subplot := 4
-                    end
-                    label := ""
-                    primary := false
-                    alpha := 0.25
-                    fillrange := cs1d.j_parallel
-                    cs1d.grid.rho_tor_norm, cs1d.grid.rho_tor_norm .* 0.0
                 end
             end
         end
@@ -1864,29 +1828,41 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing)
-
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing, weighted=:none, fill0=false)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
     @assert typeof(normalization) <: Real
     @assert typeof(coordinate) <: Union{Nothing,Symbol}
+    @assert typeof(weighted) <: Symbol
+    @assert typeof(fill0) <: Bool
 
     coords = coordinates(ids, field; coord_leaves=[coordinate])
     coordinate_name = coords.names[1]
     coordinate_value = coords.values[1]
 
-    @series begin
-        xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
-        ylabel --> nice_units(units(ids, field))
-        label --> nice_field(field)
+    xvalue = coordinate_value
+    yvalue = getproperty(ids, field) .* normalization
 
+    @series begin
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
         if endswith(coordinate_name, "_norm")
             xlim --> (0.0, 1.0)
         end
 
-        xvalue = coordinate_value
-        yvalue = getproperty(ids, field) .* normalization
+        # multiply y by things like `:area` or `:volume`
+        if weighted != :none
+            weight = coordinates(ids, field; coord_leaves=[weighted])
+            yvalue .*= weight.values[1]
+            ylabel = nice_units(units(ids, field) * "*" * units(weight.names[1]))
+            label = nice_field("$field*$weighted")
+        else
+            ylabel = nice_units(units(ids, field))
+            label = nice_field(field)
+        end
+
+        xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+        ylabel --> ylabel
+        label --> label
 
         # plot 1D Measurements with ribbon
         if (eltype(yvalue) <: Measurement) && !((eltype(xvalue) <: Measurement))
@@ -1895,6 +1871,15 @@ end
         end
 
         xvalue, yvalue
+    end
+    if fill0
+        @series begin
+            label := ""
+            primary := false
+            alpha := 0.25
+            fillrange := yvalue
+            xvalue, yvalue .* 0.0
+        end
     end
 end
 
