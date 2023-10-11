@@ -27,14 +27,23 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         else
             index = 1:length(pfa.coil[1].current.time)
         end
+        
         currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
+
         CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
+        if maximum(currents) > 1e6
+            currents =  currents ./ 1e6
+            CURRENT = CURRENT ./ 1e6
+            c_unit = "MA"
+        else
+            c_unit = "A"
+        end
     end
 
     if what ∈ (:cx, :coils_flux)
         label --> ""
         aspect --> :equal
-        colorbar_title --> "PF currents [A]"
+        colorbar_title --> "PF currents [$c_unit]"
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)
