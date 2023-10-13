@@ -454,8 +454,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         ).(eqt.profiles_1d.psi[1] * psi_sign)
 
     # ip
-    #eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
-    eqt.global_quantities.ip = -gradient(eqt.profiles_1d.psi, eqt.profiles_1d.phi)[end] .* eqt.profiles_1d.gm2[end] .* eqt.profiles_1d.dvolume_dpsi[end] / (2π * constants.μ_0) * 4π
+    eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
+    #eqt.global_quantities.ip = -gradient(eqt.profiles_1d.psi, eqt.profiles_1d.phi)[end] .* eqt.profiles_1d.gm2[end] .* eqt.profiles_1d.dvolume_dpsi[end] / (2π * constants.μ_0) * 4π
 
     # Geometric major and minor radii
     Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
