@@ -895,21 +895,11 @@ end
 # ========= #
 @recipe function plot_core_transport(ct::IMAS.core_transport{D}; time0=global_time(ct)) where {D<:Real}
     model_type = name_2_index(ct.model)
+
     rhos = D[]
     for model in ct.model
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
-        end
-        @series begin
-            label := model.identifier.name
-            if model.identifier.index == model_type[:neoclassical]
-                markershape := :cross
-                color := :blue
-            elseif model.identifier.index == model_type[:anomalous]
-                markershape := :diamond
-                color := :red
-            end
-            model.profiles_1d[time0]
         end
         append!(rhos, model.profiles_1d[].grid_flux.rho_tor_norm)
     end
@@ -919,7 +909,7 @@ end
     if dd !== nothing
         @series begin
             linewidth := 2
-            color := :green
+            color := :blue
             label := "Total source"
             flux := true
             total_sources(dd; time0)
@@ -928,9 +918,29 @@ end
 
     @series begin
         linewidth := 2
-        color := :black
+        color := :red
         label := "Total transport"
         total_fluxes(ct, rhos; time0)
+    end
+
+    for model in ct.model
+        if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
+            continue
+        end
+        @series begin
+            label := model.identifier.name
+            if model.identifier.index == model_type[:anomalous]
+                markershape := :diamond
+                markerstrokewidth := 0.5
+                linewidth := 0
+                color := :orange
+            elseif model.identifier.index == model_type[:neoclassical]
+                markershape := :cross
+                linewidth := 0
+                color := :purple
+            end
+            model.profiles_1d[time0]
+        end
     end
 end
 
