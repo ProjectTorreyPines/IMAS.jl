@@ -80,10 +80,9 @@ function find_psi_boundary(
 
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
-    dd = sqrt((dim1[2] - dim1[1])^2 + (dim2[2] - dim2[1])^2)
-
+    # innermost tentative flux surface (which should be closed!)
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[1], true)
-    if length(pr) == 0
+    if isempty(pr)
         if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psi[1])...$(psi[end])]")
         else
@@ -91,6 +90,7 @@ function find_psi_boundary(
         end
     end
 
+    # outermost tentative flux surface (which should be open!)
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[end], true)
     if length(pr) > 0
         if raise_error_on_not_open
@@ -100,6 +100,7 @@ function find_psi_boundary(
         end
     end
 
+    δd = sqrt((dim1[2] - dim1[1])^2 + (dim2[2] - dim2[1])^2)
     psirange = deepcopy(psirange_init)
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
@@ -108,7 +109,7 @@ function find_psi_boundary(
         if length(pr) > 0
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
-                if any(abs.([(minimum(pr) - minimum(dim1)), (maximum(pr) - maximum(dim1)), (minimum(pz) - minimum(dim2)), (maximum(pz) - maximum(dim2))]) .< 2 * dd)
+                if any(abs.([(minimum(pr) - minimum(dim1)), (maximum(pr) - maximum(dim1)), (minimum(pz) - minimum(dim2)), (maximum(pz) - maximum(dim2))]) .< 2 * δd)
                     return psi[end]
                 else
                     return psimid
