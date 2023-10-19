@@ -146,6 +146,120 @@ function find_psi_2nd_separatrix(dd::IMAS.dd)
 end
 
 """
+    find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation,r::T) where {T<:Real}
+    or
+    find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation,r::T) where {T<:AbstractVector{<:Real}}
+
+    Returns ψ(r): the poloidal flux ψ of the flux surface that intersects the midplane at the coordinate r (major radius)
+"""
+function find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, r::T ) where {T<:Real}
+    psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi magnetic separatrix
+    psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
+    r_max_grid             = maximum(eqt.profiles_2d[].grid.dim1)                 # max r on grid of equilibrium
+    @assert r < r_max_grid
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
+    @assert r > RA
+    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+    
+    psi = PSI_interpolant.(r, ZA)[1]           # compute psi at r on midplane (first guess)
+
+    # PSI_interpolant is not as precise as intersecting flux_surface with midplane (as is done in find_r_midplane_from_ψ)
+    find_psi = [psi-0.01, psi+0.01]
+    r_of_find_psi = find_r_midplane_from_ψ(eqt, find_psi) 
+    psi = find_psi[1] + diff(find_psi)[1]/diff(r_of_find_psi)[1]*(r-r_of_find_psi[1]) #linear interp of find_r_midplane_from_ψ
+    if (psi - psi__boundary_level) <= psi_sign * psi__boundary_level*0.000001
+        # this is needed in find_r_midplane_from_ψ. This makes the two function work consistently r(ψ(R)) = R
+        psi = psi__boundary_level + psi_sign * psi__boundary_level*0.000001 # if psi exactly psi__boundary_level flux surfaces does not find separatrix
+    end
+    return psi
+end
+
+function find_ψ_from_r_midplane(dd::IMAS.dd,r::T) where {T<:Real}
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return find_ψ_from_r_midplane(dd.equilibrium.time_slice[], PSI_interpolant, r)
+end
+
+function find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, r::T ) where {T<:AbstractVector{<:Real}}
+    # if r is a vector
+    PSI = r*0.0 # initialize float
+
+    for index in 1:length(PSI)
+        
+        PSI[index] = find_ψ_from_r_midplane(eqt, PSI_interpolant, r[index])
+
+    end
+    return PSI
+end
+
+function find_ψ_from_r_midplane(dd::IMAS.dd, r::T ) where {T<:AbstractVector{<:Real}}
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return find_ψ_from_r_midplane(dd.equilibrium.time_slice[], PSI_interpolant, r)
+end
+
+"""
+    find_r_midplane_from_ψ(eqt::IMAS.equilibrium__time_slice,psi::T) where {T<:Real}
+    or
+    find_r_midplane_from_ψ(eqt::IMAS.equilibrium__time_slice, psi::T) where {T<:AbstractVector{<:Real}}
+
+    Returns r(ψ): the r coordinate of the intersection between the flux surface of defined poloidal flux ψ and midplane
+"""
+function find_r_midplane_from_ψ(eqt::IMAS.equilibrium__time_slice, psi::T) where {T<:Real}
+    
+    psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) #psi on separatrix
+    psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
+
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
+    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+    psi = float(psi)
+
+    if psi > psi__boundary_level # check if surface is open or closed
+        is_closed = false
+    else
+        is_closed = true
+    end
+
+    surface   = flux_surface(eqt, psi, is_closed) #returns (r,z) of surfaces with psi;
+    r_midplane = Float64[] 
+    if is_closed 
+        # when closed = true, flux_surface returns Tuple{Vector{Float64}, Vector{Float64}, Float64}
+        ind, crossings = intersection([RA, 100], [ZA, ZA], surface[1], surface[2]) #cross surface with OMP - segment from RA to 100 m
+        r_midplane = crossings[1][1]
+    else
+        for (r,z) in surface
+            # when closed = false, flux_surface returns Vector{Tuple{Vector{Float64}, Vector{Float64}}}
+            ind, crossings = intersection([RA, 100], [ZA, ZA], r, z) #cross surface with OMP - segment from RA to 100 m
+            if isempty(ind) # check if intresection exists
+                continue
+            end
+            push!(r_midplane,crossings[1][1])       # if so save value
+            r_midplane = r_midplane[1] # make it Float64 instead of Vector{1,Float64}
+        end
+    end
+    
+    return r_midplane
+end
+
+function find_r_midplane_from_ψ(dd::IMAS.dd, psi::T) where {T<:Real}
+    return find_r_midplane_from_ψ(dd.equilibrium.time_slice[], psi)
+end
+
+function find_r_midplane_from_ψ(eqt::IMAS.equilibrium__time_slice, psi::T) where {T<:AbstractVector{<:Real}}
+    # if psi is a vector
+    R_midplane = psi*0.0
+    for index in 1:length(psi)
+        R_midplane[index] = find_r_midplane_from_ψ(eqt,psi[index])
+    end
+    return R_midplane
+end
+
+function find_r_midplane_from_ψ(dd::IMAS.dd, psi::T) where {T<:AbstractVector{<:Real}}
+    return find_r_midplane_from_ψ(dd.equilibrium.time_slice[], psi)
+end
+
+
+"""
     flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities in the equilibrium IDS
