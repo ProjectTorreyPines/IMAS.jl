@@ -146,6 +146,112 @@ function find_psi_2nd_separatrix(dd::IMAS.dd)
 end
 
 """
+    find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation)
+
+    Returns [psi_up, psi_low] of the two flux surfaces around the last diverted flux surface. 
+    psi_up will be the first surface inside OFL[:lfs_far]; psi_low will be the last surface inside OFL[:lfs]
+    Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_up and psi_low ~ 0)
+ """
+function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
+
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
+    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+
+    Xpoint2 = collect(find_2nd_x_point!(eqt,PSI_interpolant))
+    sign_z = sign(Xpoint2[2]) # sign of Z coordinate of 2nd null
+    
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt,PSI_interpolant)         # psi second magnetic separatrix
+    psi_separatrix    = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
+    
+    #intersect 2nd separatrix with wall, and look 
+    surface = flux_surface(eqt, psi_2ndseparatrix*1.0001, false)
+    r_intersect = Float64[]
+    z_intersect = Float64[]
+    for (r,z) in surface
+        rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA) 
+        if isempty(rr) || all(zz .< ZA)
+            continue
+        end
+        #save intersections with wall 
+        push!(r_intersect, rr[1], rr[end])
+        push!(z_intersect, zz[1], zz[end])
+    end
+
+    #take intersections above midplane
+    r_intersect = r_intersect[z_intersect.>ZA]
+    z_intersect = z_intersect[z_intersect.>ZA]
+    order = sortperm(r_intersect)
+    z_intersect = z_intersect[order]
+    r_intersect = r_intersect[order]
+
+    # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
+    # This is an approximation (should work except for exotic walls)
+    vec  = [diff(r_intersect)[1], diff(z_intersect)[1]]
+    vec2 = Xpoint2 - [r_intersect[1], z_intersect[1]]
+    if vec[1]*vec2[2]-vec[2]*vec2[1]>0
+        #upper null on the left = is outside wall
+        null_is_inside = false
+        else
+        #upper null on the right = is inside wall
+        null_is_inside = true
+    end
+    # find the two surfaces psi_up (inside OFL[:lfs_far])  and psi_low (inside OFL[:lfs]) around the last diverted flux surface
+    counter_max = 50
+    counter =0
+    psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_sign = sign(psi_separatrix - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
+    psi_wall = PSI_interpolant.(wall_r,wall_z)
+    if psi_sign >0
+        psi_up  = minimum([psi_2ndseparatrix+psi_sign, maximum(psi_wall)*0.999]) # increase value just to be sure of being inside OFL[:lfs_far]
+    else
+        psi_up  = maximum([psi_2ndseparatrix+psi_sign, minimum(psi_wall)*1.001]) # increase value just to be sure of being inside OFL[:lfs_far]
+    end
+
+    psi_low = psi_separatrix
+    psi = (psi_up+psi_low)/2
+    err = 1
+    while abs(err)> precision && counter< counter_max
+        surface = flux_surface(eqt, psi, false)
+        for (r,z) in surface
+            rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA) 
+            
+            if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
+                continue
+            end
+
+            if sign_z*zz[1]>0|| sign_z*zz[end]>0
+                # psi intersects top FW -> update upper bound
+                psi_up = psi
+            else
+                #psi intersects divertor -> update lower bound
+                psi_low = psi
+            end
+        end
+        
+        # better to compute error on poloidal area between [psi_low, psi_up] (needed for accurate power balance)
+        r_up  = find_r_midplane_from_ψ(eqt,psi_up)
+        r_low = find_r_midplane_from_ψ(eqt,psi_low)
+ 
+        A = π*(r_up^2-r_low^2) # annular area between r_up and r_low [m^2] 
+        err = abs(A)
+        psi = (psi_up+psi_low)/2
+        
+        counter = counter +1
+    end
+    
+    return [psi_low, psi_up], null_is_inside # return both psi_up and psi_low to increase resolution around last diverted flux surface
+end
+
+function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
+    return find_psi_last_diverted(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant; precision)
+end 
+
+function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7) 
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return find_psi_last_diverted(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant; precision)
+end
+
+"""
     find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation,r::T) where {T<:Real}
     or
     find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation,r::T) where {T<:AbstractVector{<:Real}}
