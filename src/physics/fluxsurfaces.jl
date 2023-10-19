@@ -11,6 +11,10 @@ function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi)
 end
 
+function ψ_interpolant(dd::IMAS.dd)
+    return ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+end
+
 """
     Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
 
@@ -60,6 +64,10 @@ function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64
     R0 = eqt.global_quantities.magnetic_axis.r
     Z0 = eqt.global_quantities.magnetic_axis.z
     return find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision, raise_error_on_not_open, raise_error_on_not_closed)
+end
+
+function find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
+    return find_psi_boundary(dd.equilibrium.time_slice[]; precision, raise_error_on_not_open, raise_error_on_not_closed)
 end
 
 function find_psi_boundary(
@@ -661,6 +669,7 @@ end
     find_x_point!(eqt::IMAS.equilibrium__time_slice)::eqt.boundary.x_point
 
 Firnd X-points on the last closed flux surface
+Find X-points on the last closed flux surface
 """
 function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
     rlcfs, zlcfs = flux_surface(eqt, eqt.profiles_1d.psi[end], true)
