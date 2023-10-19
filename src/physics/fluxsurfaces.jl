@@ -715,6 +715,65 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 end
 
 """
+    find_2nd_x_point!(eqt::IMAS.equilibrium__time_slice)
+
+Returns a tuple with coordiantes of upper X-point, which could be on the lcfs or not.
+"""
+function find_2nd_x_point!(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation)
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+      
+    #first: look for second x point in equilibrium time slice
+    xpoints = eqt.boundary.x_point  # list of x points from eqt
+    z_xpoints = zeros(length(xpoints))
+    psi_xpoints = Float64[]
+    for jj in 1:length(xpoints)  # retrive Z coordinates of all x points
+        z_xpoints[jj] = xpoints[jj].z
+        push!(psi_xpoints, PSI_interpolant(xpoints[jj].r,xpoints[jj].z)[1]) # save psi of nulls 
+    end
+
+    c = sign(z_xpoints[argmin(abs.(psi_xpoints.-psi_separatrix))]) # find sign of Z coordinate of first null
+    index = 1:length(xpoints)
+    index = index[-c.*z_xpoints.>0] # index in xpoints of nulls with positive Z (if upper)
+    
+    if isempty(index)
+        # no nulls found with Z coordinate with opposite sign of first null
+        # find second null looking for Bp = 0
+
+        # optimization to find x-point location
+        null2 = [xpoints[argmin(abs.(psi_xpoints.-psi_separatrix))].r, xpoints[argmin(abs.(psi_xpoints.-psi_separatrix))].z]
+        @show null2
+        null2[2] = -1*null2[2] # start optimization from flipped first xpoint
+        @show null2
+         res = Optim.optimize(
+            x -> IMAS.Bp(PSI_interpolant, [null2[1] + x[1]], [null2[2] + x[2]])[1],
+            [0.0, 0.0],
+            Optim.NelderMead(),
+            Optim.Options(; g_tol=1E-8)
+        )
+        null2[1] += res.minimizer[1]
+        null2[2] += res.minimizer[2]
+        return (null2[1],null2[2])
+
+    else
+        if sum(-c.*z_xpoints.>0) == 1
+            # we have only one null having Z with opposite sign of first x point
+            return (xpoints[index[1]].r,xpoints[index[1]].z)
+        else
+            # we have more than one null  having Z with opposite sign of first x point
+            # choose xpoint with closest psi to separatrix
+            psi = Float64[]
+            for i in index
+                push!(psi, PSI_interpolant(xpoints[i].r,xpoints[i].z)[1]) # find psi of nulls with Z>0 (if upper)
+            end
+
+            index = index[argmin(abs.(psi.-psi_separatrix))] # find index of null with psi closest to psi_separatrix
+
+            return (xpoints[index].r,xpoints[index].z)
+        end
+    end 
+end
+
+"""
     miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
 
 Returns R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu of a contour
