@@ -225,7 +225,8 @@ function intersection_angles(
     path1_z::AbstractVector{T},
     path2_r::AbstractVector{T},
     path2_z::AbstractVector{T},
-    intersection_indexes::Vector{Tuple{Int,Int}}
+    intersection_indexes::Vector{Tuple{Int,Int}};
+    mod_pi::Bool=true 
 ) where {T<:Real}
     n = length(intersection_indexes)
     angles = Vector{T}(undef, n)
@@ -237,7 +238,7 @@ function intersection_angles(
         r2_next, z2_next = path2_r[index[2]+1], path2_z[index[2]+1]
 
         angle = mod(angle_between_two_vectors((r1, z1), (r1_next, z1_next), (r2, z2), (r2_next, z2_next)), π)
-        if angle > (π / 2.0)
+        if angle > (π / 2.0) && mod_pi
             angle = π - angle
         end
         angles[i] = angle
