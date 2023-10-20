@@ -60,10 +60,10 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
 
     ############
-    psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1]
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
     crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+    psi_wall_midplane = find_ψ_from_r_midplane(eqt,PSI_interpolant,r_wall_midplane[1]) # psi #at location (Rwall MP, ZA)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     psi__boundary_level= find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
     # find psi at second magnetic separatrix 
@@ -119,7 +119,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             end
 
             # add a point exactly at the (preferably outer) midplane
-            crossing_index, crossings = intersection([minimum(wall_r), maximum(wall_r)], [ZA, ZA], rr, zz)
+            crossing_index, crossings = intersection([0, maximum(wall_r)*1.5], [ZA, ZA], rr, zz)
             r_midplane = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
             z_midplane = [cr[2] for cr in crossings] # Z coordinate of points in SOL surface at MP (inner and outer)
             outer_index = argmax(r_midplane)  #index of point @ MP: this is OMP (for OFL_lfs); IMP for OFL_hfs
