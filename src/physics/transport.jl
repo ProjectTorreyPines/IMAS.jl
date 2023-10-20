@@ -88,5 +88,3 @@ function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVect
     end
     return total_fluxes
 end
-
-

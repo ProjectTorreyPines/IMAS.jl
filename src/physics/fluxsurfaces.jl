@@ -6,9 +6,14 @@ using LinearAlgebra
 Returns r, z, and ψ interpolant
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end]; length=length(eqt2d.grid.dim1))
-    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end]; length=length(eqt2d.grid.dim2))
-    return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi)
+    grid_type = identifier_name(eqt2d.grid_type, :rectangular)
+    if grid_type == :rectangular
+        r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end]; length=length(eqt2d.grid.dim1))
+        z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end]; length=length(eqt2d.grid.dim2))
+        return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi)
+    else
+        error("ψ_interpolant cannot handle grid of type `$grid_type`")
+    end
 end
 
 function ψ_interpolant(dd::IMAS.dd)
@@ -83,10 +88,9 @@ function find_psi_boundary(
 
     psirange_init = [psi[1] * 0.9 + psi[end] * 0.1, psi[end] + 0.5 * (psi[end] - psi[1])]
 
-    dd = sqrt((dim1[2] - dim1[1])^2 + (dim2[2] - dim2[1])^2)
-
+    # innermost tentative flux surface (which should be closed!)
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[1], true)
-    if length(pr) == 0
+    if isempty(pr)
         if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psi[1])...$(psi[end])]")
         else
@@ -94,6 +98,7 @@ function find_psi_boundary(
         end
     end
 
+    # outermost tentative flux surface (which should be open!)
     pr, pz = flux_surface(dim1, dim2, PSI, psi, R0, Z0, psirange_init[end], true)
     if length(pr) > 0
         if raise_error_on_not_open
@@ -103,6 +108,7 @@ function find_psi_boundary(
         end
     end
 
+    δd = sqrt((dim1[2] - dim1[1])^2 + (dim2[2] - dim2[1])^2)
     psirange = deepcopy(psirange_init)
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
@@ -111,7 +117,7 @@ function find_psi_boundary(
         if length(pr) > 0
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
-                if any(abs.([(minimum(pr) - minimum(dim1)), (maximum(pr) - maximum(dim1)), (minimum(pz) - minimum(dim2)), (maximum(pz) - maximum(dim2))]) .< 2 * dd)
+                if any(abs.([(minimum(pr) - minimum(dim1)), (maximum(pr) - maximum(dim1)), (minimum(pz) - minimum(dim2)), (maximum(pz) - maximum(dim2))]) .< 2 * δd)
                     return psi[end]
                 else
                     return psimid
@@ -655,34 +661,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         eqt.profiles_1d.phi[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
     end
 
-    # ip
-    eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
-
-    # Geometric major and minor radii
-    Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
-    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
-
-    # vacuum magnetic field at the geometric center
-    Btvac = B0 * R0 / Rgeo
-
-    # average poloidal magnetic field
-    Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
-
-    # li
-    Bp2v = integrate(eqt.profiles_1d.psi, BPL)
-    eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
-
-    # beta_tor
-    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
-    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / constants.μ_0))
-
-    # beta_pol
-    eqt.global_quantities.beta_pol = abs(avg_press / (Bpave^2 / 2.0 / constants.μ_0))
-
-    # beta_normal
-    ip = eqt.global_quantities.ip / 1e6
-    eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
-
     # rho_tor_norm
     rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * B0)))
     rho_meters = rho[end]
@@ -716,17 +694,41 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
         end
     end
+    eqt.profiles_1d.gm2[1] =
+        Interpolations.cubic_spline_interpolation(
+            to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
+            eqt.profiles_1d.gm2[2:end];
+            extrapolation_bc=Interpolations.Line()
+        ).(eqt.profiles_1d.psi[1] * psi_sign)
 
-    # fix quantities on axis
-    for quantity in (:gm2,)
-        value = getproperty(eqt.profiles_1d, quantity)
-        value[1] =
-            Interpolations.cubic_spline_interpolation(
-                to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
-                value[2:end];
-                extrapolation_bc=Interpolations.Line()
-            ).(eqt.profiles_1d.psi[1] * psi_sign)
-    end
+    # ip
+    eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
+    #eqt.global_quantities.ip = -gradient(eqt.profiles_1d.psi, eqt.profiles_1d.phi)[end] .* eqt.profiles_1d.gm2[end] .* eqt.profiles_1d.dvolume_dpsi[end] / (2π * constants.μ_0) * 4π
+
+    # Geometric major and minor radii
+    Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
+    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
+
+    # vacuum magnetic field at the geometric center
+    Btvac = B0 * R0 / Rgeo
+
+    # average poloidal magnetic field
+    Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
+
+    # li
+    Bp2v = integrate(eqt.profiles_1d.psi, BPL)
+    eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
+
+    # beta_tor
+    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
+    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / constants.μ_0))
+
+    # beta_pol
+    eqt.global_quantities.beta_pol = abs(avg_press / (Bpave^2 / 2.0 / constants.μ_0))
+
+    # beta_normal
+    ip = eqt.global_quantities.ip / 1e6
+    eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # find quantities on separatrix
     find_x_point!(eqt)
