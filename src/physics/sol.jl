@@ -181,50 +181,62 @@ RA and ZA are the coordinate of the magnetic axis
 """
 function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
 
-    indexes, crossings = intersection(r, z, wall_r, wall_z)
-    r_z_index = [k[1] for k in indexes]
-    if length(r_z_index) == 0
+    indexes, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
+    # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"
+    # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
+    r_z_index = [k[1] for k in indexes] #index of vectors (r,z) of all crossing point
+
+    if length(r_z_index) == 0 # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[]
 
     elseif length(r_z_index) == 1
         error("line_wall_2_wall: open field line should intersect wall at least twice.
-               If it does not it's likely because the equilibrium grid was too small.")
+               If it does not it's likely because the equilibrium grid was too small.
+               Suggestion: plot dd.wall + flux_surface(eqt,psi_2ndseparatrix,false) to debug.")
     end
 
     # angle of incidence
-    strike_angles = intersection_angles(r, z, wall_r, wall_z, indexes)
+    strike_angles = intersection_angles(r, z, wall_r, wall_z, indexes) # find poloidal angle btw SOL magnetic surface and wall
 
-    if length(r_z_index) == 2
+    if length(r_z_index) == 2 #it is a magnetic surface in the SOL
         # pass
 
     else
-        # closest midplane point (favoring low field side)
-        j0 = argmin(abs.(z .- ZA) .+ (r .< RA))
+        # more than 2 intersections with wall
+
+        #  index in (r,z) of closest midplane point (favoring low field side)
+        j0 = argmin(abs.(z .- ZA) .+ (r .< RA)) # min of abs(z-ZA) + 1 meter only on hfs
+        
         # the closest intersection point (in steps) to z=ZA
-        i1 = sortperm(abs.(r_z_index .- j0))[1]
-        # the intersection on the other size of the midplane
-        j1 = r_z_index[i1]
-        if j0 < j1
-            i2 = i1 - 1
+        i1 = sortperm(abs.(r_z_index .- j0))[1] # identifies which crossing point is closest to OMP (outer "strike point")
+        
+        # the intersection on the other side of the midplane
+        j1 = r_z_index[i1] #index of outer "strike point"; point closer to the OMP
+
+        if j0 < j1 
+            # (r,z) is ordered such that the outer "strike point" comes after OMP
+            i2 = i1 - 1 # inner "strike point" is the point before in r_z_index
         else
-            i2 = i1 + 1
+            # (r,z) is ordered such that the OMP comes after the outer "strike point"
+            i2 = i1 + 1 #  inner "strike point" is the second point in r_z_index
+        i = sort([i1, i2]) 
         end
-        i = sort([i1, i2])
         r_z_index = r_z_index[i]
         crossings = crossings[i]
         strike_angles = strike_angles[i]
     end
 
-    rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1])
-    zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2])
+    rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
+    zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
 
-    # sort clockwise (COCOS 11)
-    if atan(zz[1] - ZA, rr[1] - RA) > atan(zz[end] - ZA, rr[end] - RA)
+    # sort clockwise (COCOS 11) 
+    if mod(atan(zz[1] - ZA, rr[1] - RA),2*π) > mod(atan(zz[end] - ZA, rr[end] - RA),2*π) 
         rr = reverse(rr)
         zz = reverse(zz)
+        strike_angles = reverse(strike_angles)
     end
 
-    rr, zz, strike_angles
+  rr, zz, strike_angles
 end
 
 """
