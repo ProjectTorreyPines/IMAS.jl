@@ -982,9 +982,7 @@ function find_2nd_x_point!(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::I
 
         # optimization to find x-point location
         null2 = [xpoints[argmin(abs.(psi_xpoints.-psi_separatrix))].r, xpoints[argmin(abs.(psi_xpoints.-psi_separatrix))].z]
-        @show null2
         null2[2] = -1*null2[2] # start optimization from flipped first xpoint
-        @show null2
          res = Optim.optimize(
             x -> IMAS.Bp(PSI_interpolant, [null2[1] + x[1]], [null2[2] + x[2]])[1],
             [0.0, 0.0],
