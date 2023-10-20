@@ -272,23 +272,170 @@ end
 """
     flux_expansion(OFL::Vector{OpenFieldLine})
 
-Returns the λq_target/λq_omp ratio
+Returns the λq_target/λq_omp ratio in a matrix with 2 columns, one per strike location (clockwise order), and lines as the numebr of flux tubes in OFL
 """
-function flux_expansion(OFL::Vector{OpenFieldLine})
-    sol1 = OFL[1]
-    sol2 = OFL[2]
-    tmp = Float64[]
-    for strike_index in (1, 2)
-        if strike_index == 1
-            strike_index1 = 1
-            strike_index2 = 1
-        else
-            strike_index1 = length(sol1.r)
-            strike_index2 = length(sol2.r)
+function flux_expansion(OFL::Vector{OpenFieldLine};precision::Float64=1e-6)   
+    # how many flux tubes?
+    n_tubes =  length(OFL)-1
+    flux_exp = zeros(n_tubes,2) #initialize result
+    for index in 1:n_tubes
+        # surfaces defining the flux tube (always clockwise)
+        sol1 = OFL[index]    # first open field line
+        sol2 = OFL[index+1]  # second open field line
+        
+        for strike_index in (1,2)
+            # do one strike location at the time
+            if strike_index == 1 
+                line1_strike_index = 1
+                line2_strike_index = 1
+            else
+                line1_strike_index = length(sol1.r)
+                line2_strike_index = length(sol2.r)
+                
+            end
+            
+            p1     = (sol1.r[line1_strike_index], sol1.z[line1_strike_index]) # strike location of line sol1 (tuple)
+            p2     = (sol2.r[line2_strike_index], sol2.z[line2_strike_index]) # strike location of line sol2 (tuple)
+            rdiff  = p2[1]-p1[1]
+            zdiff  = p2[2]-p1[2]
+            dist   = sqrt(rdiff^2 + zdiff^2) # distance between p2 and p1
+
+            #check whether to pick p1+sol2 or p2+sol1
+            # find the point with the minimum distance.
+            dist_p1_sol2 = sqrt.((sol2.r .- p1[1]).^2 + (sol2.z .- p1[2]).^2)
+            dist_p2_sol1 = sqrt.((sol1.r .- p2[1]).^2 + (sol1.z .- p2[2]).^2)
+            if minimum(dist_p1_sol2) >= minimum(dist_p2_sol1)
+                # always take the point with lower distance
+                pp = p2
+                sol = sol1    
+                # FOR THE FUTURE: case where the minimum distances are equal to each other (example in divertor)
+                # for now: in this case take the outer point and inner surface
+            else
+                pp = p1
+                sol = sol2
+            end
+            line_r = [p2[1]-10*dist, p2[1]+10*dist] #line thorugh p2 for intersection later
+            
+            p = Tuple{Float64,Float64}[]
+            ## find line perpendicular to sol passing through pp
+            ## we throw a "fascio proprio di rette" passing through pp
+            m1 = -π/2*0.999
+            m2 =  π/2*0.999
+           
+            err = 1
+            counter_max = 10
+            counter = 0
+            dim = 15 # how many lines are thrown per iteration
+            
+            while minimum(err)>precision && counter <= counter_max
+                m_angles = collect(LinRange(m1,m2,dim)) # vector with angles of the lines from pp
+                m = tan.(m_angles)                      # vector with slope  of the lines from pp
+                #initialization
+                save_angles= Float64[]                      
+                save_crossings = Tuple{Float64,Float64}[]
+                save_index_m = Int64[]
+                for index_m in 1:length(m)
+                    slope=m[index_m]
+                    line_z = slope*line_r .+ (pp[2]-slope*pp[1]) #line passing through pp 
+                    crossing_index, crossings  = intersection(line_r, line_z, sol.r, sol.z) #intersect line with sol surface that does not have pp
+                    
+                    if isempty(crossings) 
+                        continue
+                    end
+                    right_intersection = 1
+                    check_dist = (collect(crossings[right_intersection]) - collect(pp))
+                    if check_dist'*check_dist>400*dist^2 # ignore if line intersect surface far from strike location (20*dist)
+                        continue
+                    end
+                    #there could be more than one intersection, especially around 2nd null (flux line makes a 180deg turn)
+                    if length(crossings) > 1
+                        check_dist = Vector{Float64}(undef,length(crossings))
+                        for indexx in 1:length(crossings)   
+                            check = (collect(crossings[indexx]) - collect(pp))
+                            check_dist[indexx] = check'*check # squared distance from crossings and pp
+                        end
+                        right_intersection = argmin(check_dist) # take crossing closest to pp
+                    end
+                    
+                    # angle between line and sol surface without pp
+                    angle = intersection_angles(line_r, line_z, sol.r, sol.z, crossing_index, mod_pi=false)[1]
+                    
+                    push!(save_angles,angle)
+                    # push!(save_crossings,crossings[argmin(check_dist)]) # old code - check if new works before erasing
+                    push!(save_crossings,crossings[right_intersection])
+                    push!(save_index_m,index_m)
+                end
+            
+                index_p = argmin(abs.(save_angles .- π/2)) # closest point
+                # update (m1,m2) = slope of lines to be thrown at the next iteration (preferably with interpolation)
+                if sum(save_angles.>π/2)== length(save_angles) || sum(save_angles.<π/2)== length(save_angles)
+                    # interpolation not possible because all values are above or below π/2
+                    # closest point can be either at the beginning, at the end or in the middle of the vector
+                    if index_p == 1 
+                        m1 = m_angles[save_index_m[1]] 
+                        m2 = m_angles[save_index_m[2]]
+                        m1 = m1 - abs(m2-m1) #go also before m1 (we could be at the end of the vector)
+                    end
+                    if index_p == length(save_angles)
+                        m1 = m_angles[save_index_m[end-1]]
+                        m2 = m_angles[save_index_m[end]  ]
+                        m2 = m2 + abs(m2-m1) #go also after m1 (we could be at the end of the vector)
+                    end
+                    if index_p!==1 && index_p !== length(save_angles)
+                        # take before and after element
+                        m1 = m_angles[save_index_m[index_p-1]]
+                        m2 = m_angles[save_index_m[index_p+1]]
+                    end
+                else
+                    # we can interpolate here
+                    order = sortperm(save_angles)
+                    knots = save_angles[order]
+                    knots = Interpolations.deduplicate_knots!(knots) # julia told me to do it
+                    linear_interp = Interpolations.linear_interpolation(knots,m_angles[save_index_m[order]])
+                    mm = linear_interp(π/2) # next interpolated guess
+                    # closest point can be either at the beginning, at the end or in the middle of the vector
+                    if index_p == 1
+                        deltam = maximum([abs(m_angles[save_index_m[1]] -mm), abs(mm-m_angles[save_index_m[2]])])
+                    end
+                    if index_p == length(save_angles)
+                        deltam = maximum([abs(m_angles[save_index_m[end]] -mm), abs(mm-m_angles[save_index_m[end-1]])])
+                    end
+                    if index_p!==1 && index_p !== length(save_angles)
+                        deltam = maximum([abs(m_angles[save_index_m[index_p+1]] -mm), abs(mm-m_angles[save_index_m[index_p-1]]), abs(mm-m_angles[save_index_m[index_p]])])
+                    end
+                    m1 = mm-deltam # expolore a neighborhood of width 2*deltam of mm; deltam defined above
+                    m2 = mm+deltam
+                end
+                # update counter and error
+                err = abs.(save_angles.-π/2)
+                counter = counter+1
+
+                if minimum(err)< precision
+                    # converged!
+                    push!(p,save_crossings[index_p]) # save intersection point
+                end
+
+                if counter >counter_max
+                    # not converged =(
+                    println("FLUX EXPANSION DID NOT CONVERGE with precision = ", precision," (reached  = ",minimum(err), ")")
+                    index_p = argmin(err)
+                    println("continue with a result, with angle =  ", save_angles[index_p]*180/π, " degrees, instead of 90 degrees")
+                    println("flux tube #",index, ", strike location #", strike_index)
+                    println("--------------------------------------------------------")
+                    push!(p,save_crossings[index_p]) # save intersection point
+               end
+
+            end
+            p = collect(p[1])
+
+            # compute poloidal flux expansion
+            distance_at_midplane = sol2.r[sol2.midplane_index] - sol1.r[sol1.midplane_index]
+            distance_at_target = sqrt((pp[1] - p[1])^2 + (pp[2] - p[2])^2)
+            flux_exp[index,strike_index] = distance_at_target / distance_at_midplane
         end
-        push!(tmp, sqrt((sol2.r[strike_index2] - sol1.r[strike_index1])^2 + (sol2.z[strike_index2] - sol1.z[strike_index1])^2) / (sol2.r[sol2.midplane_index] - sol1.r[sol1.midplane_index]))
-    end
-    return tmp
+
+    end            
+    return flux_exp
 end
 
 """
