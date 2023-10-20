@@ -9,6 +9,8 @@ struct OpenFieldLine
     s::Vector{Float64}
     midplane_index::Int
     strike_angles::Vector{Float64}
+    pitch_angles::Vector{Float64}       # angle in radiants between B and Btoroidal; atan(Bp/Bt)
+    grazing_angles::Vector{Float64}     # angle in radiants between B and the wall; grazing angle 
 end
 
 @recipe function plot_ofl(ofl::OpenFieldLine)
@@ -21,12 +23,18 @@ end
     end
 end
 
-@recipe function plot_OFL(OFL_hfs_lfs::Tuple{Vector{OpenFieldLine},Vector{OpenFieldLine}})
-    for OFL in OFL_hfs_lfs
-        @series begin
-            OFL
-        end
+@recipe function plot_OFL(OFL_hfs_lfs_lfsfar::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}})
+    # for OFL in OFL_hfs_lfs_lfsfar
+    @series begin
+        OFL_hfs_lfs_lfsfar[:hfs]
     end
+    @series begin
+        OFL_hfs_lfs_lfsfar[:lfs]
+    end
+    @series begin
+        OFL_hfs_lfs_lfsfar[:lfs_far]
+    end
+    # end
 end
 
 @recipe function plot_OFL(OFL::Vector{OpenFieldLine})
@@ -36,6 +44,7 @@ end
         end
     end
 end
+
 
 """
     sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}, levels::Union{Int,AbstractVector=20) where {T<:Real}
@@ -69,9 +78,11 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         @assert levels[end] < 1.0
         levels = psi__boundary_level .+ levels .* abs(psi_wall_midplane - psi__boundary_level)
     end
+    OFL_hfs     = OpenFieldLine[]      # field lines magnetically isolated from OMP
+    OFL_lfs     = OpenFieldLine[]      # field lines magnetically connected to OMP inside second separatrix
+    OFL_lfs_far = OpenFieldLine[]      # field lines magnetically connected to OMP outside second separatrix
+    # TO DO for the future: insert private flux regions (upper and lower)
 
-    OFL_hfs = OpenFieldLine[]
-    OFL_lfs = OpenFieldLine[]
     for level in levels
         lines = flux_surface(eqt, level, false)
         for (r, z) in lines
@@ -101,16 +112,30 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             s = cumsum(pitch .* dp)
             s = abs.(s .- s[midplane_index])
 
-            # select HFS or LFS and add line to the list
-            if rr[midplane_index] < RA
-                OFL = OFL_hfs
+            # angles at crossing points btw the SOL surface and the wall
+            pitch_angles = [atan(Bp[1],Bt[1]), atan(Bp[end],Bt[end])]    
+            grazing_angles = asin.( sin.(pitch_angles) .* sin.(strike_angles) )
+
+            # select HFS or LFS and add line to the list 
+            if rr[midplane_index] < RA 
+                # Add SOL surface in OFL_hfs
+                OFL = OFL_hfs # surfaces magnetically isolated from OMP
             else
-                OFL = OFL_lfs
+                if zz[1]*zz[end] > 0 # z cordinate have same sign 
+                    # Add SOL surface in OFL_lfs
+                    OFL = OFL_lfs
+                else
+                    # Add SOL surface in OFL_lfs_far
+                    OFL = OFL_lfs_far
+                end
             end
-            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles))
+            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles)) # add result
         end
     end
-    return OFL_hfs, OFL_lfs
+    OFL = OrderedCollections.OrderedDict( :hfs     => OFL_hfs,
+                                          :lfs     => OFL_lfs,
+                                          :lfs_far => OFL_lfs_far)
+    return OFL
 end
 
 function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20)
