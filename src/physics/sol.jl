@@ -51,7 +51,7 @@ end
 
 Returns vectors of hfs and lfs OpenFieldLine
 
-If levels is a vector, then values should be >0.0 (separatrix) and <1.0 (outer midplane wall)
+If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20) where {T<:Real}
     R0, B0 = vacuum_r0_b0(eqt)
@@ -66,17 +66,39 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     psi__boundary_level= find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
+    # find psi at second magnetic separatrix 
+    psi__2nd_separatix  = find_psi_2nd_separatrix(eqt, PSI_interpolant)
+    psi_last_diverted, null_is_inside = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant)
+
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     ############
     
     # pack points near lcfs
     if typeof(levels) <: Int
-        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi__boundary_level)), levels + 1)[1:end-1]
+        # I need to have levels as close as possible to both LCFS and wall_midplane
+        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane-psi_sign*0.001*abs(psi_wall_midplane) - psi__boundary_level)), levels)
+        
+        if null_is_inside
+            levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix+psi_sign*0.0001*abs(psi__2nd_separatix)# make sure 2nd separatrix is in levels
+        else
+            indexx = argmin(abs.(levels .- psi_last_diverted[1]))
+            levels = vcat(levels[1:indexx-1], psi_last_diverted, levels[indexx+1:end]) # remove closest point + add grazing surface (could be a vector)
+            levels = sort(vcat(levels,psi__2nd_separatix+psi_sign*0.0001*abs(psi__2nd_separatix)))
+
+        end
+        
     else
-        @assert levels[1] < levels[end]
-        @assert levels[1] > 0.0
-        @assert levels[end] < 1.0
-        levels = psi__boundary_level .+ levels .* abs(psi_wall_midplane - psi__boundary_level)
+        
+        #levels is a vector of psi_levels for the discretization of the SOL
+        @assert levels[1]   >= psi__boundary_level
+        @assert levels[end] <= psi_wall_midplane
+        levels_is_not_monotonic_in_Ip_direction = sum(psi_sign*gradient(levels) .> 0) == length(levels) 
+        @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
+        # make sure levels includes separatrix and wall
+
+        levels[1]   = psi__boundary_level+psi_sign*0.00001*abs(psi__boundary_level) # if psi = psi__boundary_level, flux_surface does not work
+        levels[end] = psi_wall_midplane-psi_sign*0.001*abs(psi_wall_midplane)
+       
     end
     OFL_hfs     = OpenFieldLine[]      # field lines magnetically isolated from OMP
     OFL_lfs     = OpenFieldLine[]      # field lines magnetically connected to OMP inside second separatrix
