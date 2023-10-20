@@ -56,19 +56,19 @@ If levels is a vector, then values should be >0.0 (separatrix) and <1.0 (outer m
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20) where {T<:Real}
     R0, B0 = vacuum_r0_b0(eqt)
 
-    RA = eqt.global_quantities.magnetic_axis.r
-    ZA = eqt.global_quantities.magnetic_axis.z
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
+    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
 
     ############
-    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
-    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2]
-    r_wall_midplane = [cr[1] for cr in crossings]
     psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1]
-    psi__axis_level = eqt.profiles_1d.psi[1]
-    psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true)
-    psi_sign = sign(psi__boundary_level - psi__axis_level)
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
+    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+    psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi__boundary_level= find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
+    psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     ############
-
+    
     # pack points near lcfs
     if typeof(levels) <: Int
         levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi__boundary_level)), levels + 1)[1:end-1]
@@ -84,33 +84,38 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     # TO DO for the future: insert private flux regions (upper and lower)
 
     for level in levels
-        lines = flux_surface(eqt, level, false)
+        lines = flux_surface(eqt, level, false) #returns (r,z) of surfaces with psi = level
         for (r, z) in lines
-            rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+            rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA) # returns poloidal angles of each surface
+            # rr and zz are clockwise
+            # crossing points with wall = (rr[1], zz[1]) (rr[end], zz[end])
+            # this is the order at which angles are computed (strike, pitch and grazing) ????
+            # Example - OFL[2].[1<n<length(levels)].strike_angle[1] is computed at (rr[1], zz[1]) ???
+            
             if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
                 continue
             end
 
             # add a point exactly at the (preferably outer) midplane
             crossing_index, crossings = intersection([minimum(wall_r), maximum(wall_r)], [ZA, ZA], rr, zz)
-            r_midplane = [cr[1] for cr in crossings]
-            z_midplane = [cr[2] for cr in crossings]
-            outer_index = argmax(r_midplane)
-            crossing_index = crossing_index[outer_index]
-            r_midplane = r_midplane[outer_index]
-            z_midplane = z_midplane[outer_index]
-            rr = [rr[1:crossing_index[2]]; r_midplane; rr[crossing_index[2]+1:end]]
-            zz = [zz[1:crossing_index[2]]; z_midplane; zz[crossing_index[2]+1:end]]
-            midplane_index = crossing_index[2] + 1
+            r_midplane = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
+            z_midplane = [cr[2] for cr in crossings] # Z coordinate of points in SOL surface at MP (inner and outer)
+            outer_index = argmax(r_midplane)  #index of point @ MP: this is OMP (for OFL_lfs); IMP for OFL_hfs
+            crossing_index = crossing_index[outer_index] #indexes of point at MP in SOL surface
+            r_midplane = r_midplane[outer_index] # R coordinate of point at MP in SOL surface
+            z_midplane = z_midplane[outer_index] # Z coordinate of point at MP in SOL surface
+            rr = [rr[1:crossing_index[2]]; r_midplane; rr[crossing_index[2]+1:end]] #Insert in r of SOL surface a point @ MP
+            zz = [zz[1:crossing_index[2]]; z_midplane; zz[crossing_index[2]+1:end]] #Insert in z of SOL surface a point @ MP
+            midplane_index = crossing_index[2] + 1 #index at which point @ MP
 
             # calculate quantities along field line
-            Br, Bz = Br_Bz(PSI_interpolant, rr, zz)
-            Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
-            Bt = abs.(B0 .* R0 ./ rr)
-            dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0)
-            pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2)
-            s = cumsum(pitch .* dp)
-            s = abs.(s .- s[midplane_index])
+            Br, Bz = Br_Bz(PSI_interpolant, rr, zz) #r and z component of B for each point in (r,z)
+            Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)     #poloidal component of B for each point in (r,z)
+            Bt = abs.(B0 .* R0 ./ rr)              #toroidal component of B for each point in (r,z)
+            dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0) # curvilinear abscissa increments of poloidal projection of SOL surface
+            pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2) # ds = dp*sqrt(1 + (Bt/Bp)^2) (pythagora)
+            s = cumsum(pitch .* dp) # s = integer(ds)
+            s = abs.(s .- s[midplane_index]) # fix 0 at outer midplane
 
             # angles at crossing points btw the SOL surface and the wall
             pitch_angles = [atan(Bp[1],Bt[1]), atan(Bp[end],Bt[end])]    
