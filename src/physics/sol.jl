@@ -174,6 +174,246 @@ function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20)
 end
 
 """
+
+function find_levels_from_q(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+
+    Function for the discretization of the poloidal flux ψ on the SOL, based on an hypotesis of OMP radial transport through arbitrary q(r)
+    returns vector with level of ψ, vector with matching r_midplane and q.
+    Discretization with even steps of q
+"""
+function find_levels_from_q(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+    
+    ################### Housekeeping on function q(r) ###################
+    @assert length(r) == length(q)
+    @assert sum(q .<0) == 0 # q is all positive
+    @assert sum(r .<0) == 0 # r is all positive  
+  
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
+    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+    psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    r_separatrix_midplane = find_r_midplane_from_ψ(eqt,psi__boundary_level)                         # R OMP at separatrix 
+    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+    r_wall_midplane = r_wall_midplane[1] # make it float
+    psi_wall_midplane = find_ψ_from_r_midplane(eqt,PSI_interpolant,r_wall_midplane) # psi #at location (Rwall MP, ZA)
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt,PSI_interpolant) # psi of the second magnetic separatrix
+    r_2ndseparatrix_midplane = find_r_midplane_from_ψ(eqt,psi_2ndseparatrix) # Rcoordinate at OMP of 2nd magnetic separatrix
+    psi_last_diverted, null_is_inside = find_psi_last_diverted(eqt,wall_r,wall_z,PSI_interpolant)
+    r_last_diverted = find_r_midplane_from_ψ(eqt,psi_last_diverted)
+
+    order = sortperm(r)
+    q = q[order] 
+    r = r[order] # r is now increasing monotonically
+
+     if r[1] >= r_wall_midplane
+        # all the vector r is inside the wall
+        r = [r_separatrix_midplane, r_wall_midplane] # constant value of q as closest point to SOL
+        q = [1,0.999]*q[1]  # keep preference for monotonic decrease
+
+    end
+
+    if r[end] <= r_separatrix_midplane
+        # all of r is inside the separatrix
+        r = [r_separatrix_midplane, r_wall_midplane] # constant value of q as closest point to SOL
+        q = [1.001,1]*q[end] # keep preference for monotonic decrease
+    end
+
+    # r[1] can be either >, = or < than r_separatrix_midplane
+    if r[1] > r_separatrix_midplane 
+        # r starts from inside the sol
+        r = vcat(r_separatrix_midplane, r) # add a point at R_OMP
+        q = vcat(q[1]*1.001, q)            # Repeat first value of q with slight increment, favoring monotonic decrease
+    end
+    # if r[1] == r_separatrix_midplane do nothing
+    if r[1] < r_separatrix_midplane
+        # r starts from inside the separatrix, q(r) must be cut
+        index = argmin(abs.(r .- r_separatrix_midplane)) # closest point
+        # index2 is the position in r, such that r_separatrix_midplane is between r[index2] and r[index]
+        if r[index] > r_separatrix_midplane
+            index2 = index - 1 
+            #interp linearly value at r_separatrix_midplane between r[index2] and r[index]
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index]) 
+            r = vcat(r_separatrix_midplane, r[index:end]) # cut r and q
+            q = vcat(qq                   , q[index:end])
+        else
+            index2 = index + 1
+            #interp linearly value at r_separatrix_midplane between r[index2] and r[index]
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index]) 
+            r = vcat(r_separatrix_midplane, r[index2:end]) # cut r and q
+            q = vcat(qq                   , q[index2:end])
+        end
+    end
+
+    # r[end] can be either >, = < than r_wall_midplane
+    if r[end] < r_wall_midplane
+        # r ends inside sol
+        r = vcat(r, r_wall_midplane) # add a point at r_wall_midplane
+        q = vcat(q, q[end]*0.999)    # Repeat last value of q with slight reduction, favoring monotonic decrease
+    end
+    # if r[end]==r_wall_midplane do nothing
+    if r[end] > r_wall_midplane
+        # r ends inside the wall, q(r) must be cut
+        index = argmin(abs.(r .- r_wall_midplane)) # closest point
+        if r[index] > r_wall_midplane 
+            index2 = index-1
+            #interp linearly value at r_wall_midplane between r[index2] and r[index]
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index]) 
+            r = vcat(r[1:index-1],r_wall_midplane) # cut + add point between index and index2
+            q = vcat(q[1:index-1],qq)
+        else
+            index2 = index+1
+            #interp linearly value at r_wall_midplane between r[index2] and r[index]
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index]) 
+            r = vcat(r[1:index],r_wall_midplane) # cut + add a point between index and index 
+            q = vcat(q[1:index],qq)
+        end
+
+    end 
+    
+    ############### finished houskeeping of q(r)
+    #################################################################
+
+    if sum(gradient(q) .> 0) == length(q) || sum(gradient(q) .< 0) == length(q)
+        # q is strictly monotonic, therefore injective (one-to-one)
+
+        order = sortperm(q) # intepolations needs the abscissa to be oredered
+        interp_linear = Interpolations.linear_interpolation(q[order],r[order])
+        Q = LinRange(minimum(q),maximum(q),levels)
+        Q = collect(Q)
+         #insert grazing_surface and/or 2nd magnetic separatix.
+        # NOTE: psi_level will increase length from levels
+
+        interp_linear_rq = Interpolations.linear_interpolation(r,q) 
+        q_2ndseparatrix = interp_linear_rq(r_2ndseparatrix_midplane)
+            
+        if null_is_inside
+            # add only second separatrix 
+            # TO BE CHECKED: in case of double null, power balance must work (integrals on flux tubes)
+            
+            if sum(Q.==q_2ndseparatrix) ==0 # all levels of Q are different from q_2nsep
+                Q = vcat(Q,q_2ndseparatrix)
+            end
+        else
+            q_low= interp_linear_rq(r_last_diverted[1])
+            q_up = interp_linear_rq(r_last_diverted[2])
+            # add second separatrix and grazing surfaces
+            if sum(Q.==q_2ndseparatrix) == 0 # all levels of Q are different from q_2nsep
+                Q = vcat(Q,q_2ndseparatrix)
+            end
+            if sum(Q.==q_low) == 0 # all levels of Q are different from q_low
+                Q = vcat(Q,q_low)
+            end
+            if sum(Q.==q_up) == 0 # all levels of Q are different from q_up
+                Q = vcat(Q,q_up)
+            end
+        end
+        
+        Q = sort(Q)
+        R = interp_linear(Q) #discretize with equal steps in q
+        # just to be sure everything is ordered 
+        order = sortperm(R)
+        Q = Q[order]
+        R = R[order]
+    else
+        # if q is not injective, we must go through crossings
+        # NOTE: in this case output will not have length levels
+        q_levels = LinRange(minimum(q),maximum(q),levels)
+        if null_is_inside
+            # add only second separatrix 
+            # TO BE CHECKED: in case of double null, power balance must work (integrals on flux tubes)
+            if sum(r==r_2ndseparatrix_midplane) !==0
+                interp_linear_rq = Interpolations.linear_interpolation(r,q) 
+                q_2ndseparatrix = interp_linear_rq(r_2ndseparatrix_midplane)
+                q_levels = vcat(collect(q_levels),q_2ndseparatrix)
+            end
+        else
+            # add second separatrix and grazing surfaces
+            if sum(r==r_2ndseparatrix_midplane) !==0
+                interp_linear_rq = Interpolations.linear_interpolation(r,q) 
+                q_2ndseparatrix = interp_linear_rq(r_2ndseparatrix_midplane)
+                q_levels = vcat(collect(q_levels),q_2ndseparatrix)
+            end
+            if sum(r==r_last_diverted[1]) !==0
+                interp_linear_rq = Interpolations.linear_interpolation(r,q) 
+                q_low= interp_linear_rq(r_last_diverted[1])
+                q_levels = vcat(collect(q_levels),q_low)
+            end
+            if sum(r==r_last_diverted[2]) !==0
+                interp_linear_rq = Interpolations.linear_interpolation(r,q) 
+                q_up = interp_linear_rq(r_last_diverted[2])
+                q_levels = vcat(collect(q_levels),q_up)
+            end
+        end
+        q_levels = sort(q_levels)
+
+        R = Float64[]
+        Q = Float64[]
+
+        for index in 1:levels
+            crossing_index, crossings = IMAS.intersection([1,1]*q_levels[index], [r_separatrix_midplane*0.9, r_wall_midplane*1.1], q, r)
+            crossings = reinterpret(reshape,Float64,crossings) .+ 0.0 # make it Matrix{Float64} from Vector{Tuple{Float64, Float64}}
+            RR = crossings[2,:]
+            QQ = crossings[1,:]
+            R = vcat(R,RR)
+            Q = vcat(Q,QQ)
+        end
+
+        # intersections misses the maximum, here we put it back in the output vectors
+        R = vcat(R, r[argmax(q)])
+        Q = vcat(Q, maximum(q))
+
+         #insert grazing_surface and/or 2nd magnetic separatix.
+        # NOTE: psi_level will increase length from levels
+        
+        Q = sort(Q)
+        R = interp_linear(Q) #discretize with equal steps in q
+
+        # order everything
+        order = sortperm(R)
+        Q= Q[order]
+        R= R[order]
+    end
+
+    # using ψ(R), go from discretization in R to discretization in ψ
+    psi_levels = find_ψ_from_r_midplane(eqt, PSI_interpolant, R) # ψ(R)
+
+    #We have good resolution in q. we need to ensure some resolution up to the wall midplane
+    if (r_wall_midplane-R[end-1])/(r_wall_midplane-r_separatrix_midplane) > 0.5
+        add_levels = 10.0.^LinRange(log10(psi_levels[end-1]),log10(psi_wall_midplane),ceil(Int,levels/3))
+        psi_levels = vcat(psi_levels[1:end-2], add_levels)
+        interp_linear_rq = Interpolations.linear_interpolation(r,q) 
+        add_R = find_r_midplane_from_ψ(eqt,add_levels)
+        R = vcat(R[1:end-2], add_R)
+        add_R[end] = r_wall_midplane
+        Q = vcat(Q[1:end-2], interp_linear_rq(add_R))
+
+    end
+
+    #force midplane and wall in
+    psi_levels[1] = psi__boundary_level
+    R[1] = r_separatrix_midplane
+    Q[1] = q[1]
+
+    psi_levels[end] = psi_wall_midplane*(1-1e-3)
+    R[end] = r_wall_midplane
+    Q[end] = q[end]
+
+    # correction of psi_2ndseparatrix for flux_surfaces
+    psi_levels[argmin(abs.(psi_levels .- psi_2ndseparatrix))]= psi_2ndseparatrix*1.0001
+
+    return psi_levels, R, Q
+    
+end
+
+function find_levels_from_q(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+    return find_levels_from_q(eqt, first_wall(wall).r,first_wall(wall).z, PSI_interpolant, q, r, levels)
+end
+
+function find_levels_from_q(dd::IMAS.dd, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return find_levels_from_q(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, q, r, levels) 
+end
+"""
     line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
 
 Returns r, z coordinates of open field line contained within wall, as well as angles of incidence at the strike locations
