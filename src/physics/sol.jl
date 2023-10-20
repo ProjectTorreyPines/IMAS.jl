@@ -626,8 +626,8 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         else
             # (r,z) is ordered such that the OMP comes after the outer "strike point"
             i2 = i1 + 1 #  inner "strike point" is the second point in r_z_index
-        i = sort([i1, i2]) 
         end
+        i = sort([i1, i2]) 
         r_z_index = r_z_index[i]
         crossings = crossings[i]
         strike_angles = strike_angles[i]
