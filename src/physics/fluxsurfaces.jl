@@ -1012,6 +1012,11 @@ function find_2nd_x_point!(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::I
     end 
 end
 
+function find_2nd_x_point!(dd::IMAS.dd)
+    r, z, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return find_2nd_x_point!(dd.equilibrium.time_slice[], PSI_interpolant)
+end 
+
 """
     miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
 
