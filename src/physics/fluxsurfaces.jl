@@ -979,10 +979,10 @@ function find_2nd_x_point!(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::I
     if isempty(index)
         # no nulls found with Z coordinate with opposite sign of first null
         # find second null looking for Bp = 0
-
+        ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
         # optimization to find x-point location
         null2 = [xpoints[argmin(abs.(psi_xpoints.-psi_separatrix))].r, xpoints[argmin(abs.(psi_xpoints.-psi_separatrix))].z]
-        null2[2] = -1*null2[2] # start optimization from flipped first xpoint
+        null2[2] = -1*null2[2]+ZA # start optimization from flipped first xpoint
          res = Optim.optimize(
             x -> IMAS.Bp(PSI_interpolant, [null2[1] + x[1]], [null2[2] + x[2]])[1],
             [0.0, 0.0],
