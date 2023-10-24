@@ -1683,7 +1683,7 @@ end
 @recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
     @assert typeof(time0) <: Float64
     plots = []
-    for (ids, field) in filled_ids_fields(ps; eval_expr=true)
+    for (loc,(ids, field)) in filled_ids_fields(ps; eval_expr=true)
         if field != :data
             continue
         end
