@@ -699,46 +699,46 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         )
         rz.r += res.minimizer[1]
         rz.z += res.minimizer[2]
-        push!(psi_xpoints, PSI_interpolant(rz.r, rz.z)[1]) 
+        push!(psi_xpoints, PSI_interpolant(rz.r, rz.z)[1])
     end
 
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS 
 
-    if sum(psi_xpoints .< -abs( psi_xpoints[argmin(abs.(psi_xpoints .- psi_separatrix))])) >0
+    if sum(psi_xpoints .< -abs(psi_xpoints[argmin(abs.(psi_xpoints .- psi_separatrix))])) > 0
         # eliminate Xpoints insie the LCFS
-        v = psi_xpoints .< -abs( psi_xpoints[argmin(abs.(psi_xpoints .- psi_separatrix))])
-        index2 = v.*(1:length(psi_xpoints))# find index of X-points to be deleted
+        v = psi_xpoints .< -abs(psi_xpoints[argmin(abs.(psi_xpoints .- psi_separatrix))])
+        index2 = v .* (1:length(psi_xpoints))# find index of X-points to be deleted
         index2 = index2[index2.>0]
         for k in reverse(index2)
             # delete X points starting from the one with highest index -  otherwise index of others points changes
-            deleteat!(psi_xpoints,k)
+            deleteat!(psi_xpoints, k)
             deleteat!(eqt.boundary.x_point, k)
         end
     end
 
     index = sortperm(abs.(psi_xpoints .- psi_separatrix))
-    if length(index)>1
+    if length(index) > 1
         #order x-points
         xpoints_r = Float64[]
         xpoints_z = Float64[]
         for k in index
             #save location of Xpoints in ordered fashion from the closest in psi to the LCFS
-            push!(xpoints_r,eqt.boundary.x_point[k].r)
-            push!(xpoints_z,eqt.boundary.x_point[k].z)
+            push!(xpoints_r, eqt.boundary.x_point[k].r)
+            push!(xpoints_z, eqt.boundary.x_point[k].z)
         end
 
-        dist = sqrt.(diff(xpoints_r).^2+diff(xpoints_z).^2) # distance between a x-point and the next
+        dist = sqrt.(diff(xpoints_r) .^ 2 + diff(xpoints_z) .^ 2) # distance between a x-point and the next
         # delete doubles
-        if sum(dist .< 1e-4)>0
+        if sum(dist .< 1e-4) > 0
             #if two x_points are closer than 0.1 mm, they are doubles
             v = dist .< 1e-4
-            index3 = v.*(1:length(xpoints_z)-1) #find indexes of points to be deleted
+            index3 = v .* (1:length(xpoints_z)-1) #find indexes of points to be deleted
             index3 = index3[index3.>0]
             for k in reverse(index3)
                 # delete X points starting from the one with highest index -  otherwise index of others points changes
-                deleteat!(psi_xpoints,k)
-                deleteat!(xpoints_z,k)
-                deleteat!(xpoints_r,k)
+                deleteat!(psi_xpoints, k)
+                deleteat!(xpoints_z, k)
+                deleteat!(xpoints_r, k)
                 deleteat!(eqt.boundary.x_point, k)
             end
         end
@@ -751,22 +751,22 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
     else
         # only 1 xpoint saved
         # 2nd xpoint was not found:
-         # find second null looking for Bp = 0
-         ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
-         # optimization to find x-point location
-         null2 = [eqt.boundary.x_point[1].r, -1*eqt.boundary.x_point[1].z+ZA] # start optimization from flipped first xpoint
-          res = Optim.optimize(
-             x -> IMAS.Bp(PSI_interpolant, [null2[1] + x[1]], [null2[2] + x[2]])[1],
-             [0.0, 0.0],
-             Optim.NelderMead(),
-             Optim.Options(; g_tol=1E-8)
-         )
-         null2[1] += res.minimizer[1]
-         null2[2] += res.minimizer[2]
-         # save 2nd null
-         resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
-         eqt.boundary.x_point[end].r = null2[1]
-         eqt.boundary.x_point[end].z = null2[2]
+        # find second null looking for Bp = 0
+        ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+        # optimization to find x-point location
+        null2 = [eqt.boundary.x_point[1].r, -1 * eqt.boundary.x_point[1].z + ZA] # start optimization from flipped first xpoint
+        res = Optim.optimize(
+            x -> IMAS.Bp(PSI_interpolant, [null2[1] + x[1]], [null2[2] + x[2]])[1],
+            [0.0, 0.0],
+            Optim.NelderMead(),
+            Optim.Options(; g_tol=1E-8)
+        )
+        null2[1] += res.minimizer[1]
+        null2[2] += res.minimizer[2]
+        # save 2nd null
+        resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
+        eqt.boundary.x_point[end].r = null2[1]
+        eqt.boundary.x_point[end].z = null2[2]
     end
 
     return eqt.boundary.x_point
