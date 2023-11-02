@@ -27,12 +27,12 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         else
             index = 1:length(pfa.coil[1].current.time)
         end
-        
+
         currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
 
         CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
         if maximum(currents) > 1e6
-            currents =  currents ./ 1e6
+            currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
             c_unit = "MA"
         else
@@ -300,6 +300,11 @@ end
     if !cx
         coordinate := coordinate
 
+        if core_profiles_overlay
+            cp = top_dd(eqt).core_profiles
+            cp1d = top_dd(eqt).core_profiles.profiles_1d[argmin(abs.(cp.time .- eqt.time))]
+        end
+
         # pressure
         if !ismissing(eqt.profiles_1d, :pressure)
             @series begin
@@ -313,7 +318,6 @@ end
             end
         end
         if core_profiles_overlay
-            cp1d = top_dd(eqt).core_profiles.profiles_1d[eqt.time]
             if !ismissing(cp1d, :pressure)
                 @series begin
                     primary := false
@@ -343,7 +347,6 @@ end
             end
         end
         if core_profiles_overlay
-            cp1d = top_dd(eqt).core_profiles.profiles_1d[eqt.time]
             if !ismissing(cp1d, :pressure)
                 @series begin
                     primary := false
@@ -395,7 +398,6 @@ end
             end
         end
     end
-
 end
 
 @recipe function plot_eqt2dv(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
@@ -1683,7 +1685,7 @@ end
 @recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
     @assert typeof(time0) <: Float64
     plots = []
-    for (loc,(ids, field)) in filled_ids_fields(ps; eval_expr=true)
+    for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
         if field != :data
             continue
         end
