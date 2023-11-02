@@ -219,6 +219,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         :gm5,
         :gm8,
         :gm9,
+        :fsa_bp,
         :phi,
         :trapped_fraction
     )
@@ -379,6 +380,9 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         # gm9 = <1/R>
         eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr, ll, fluxexpansion, int_fluxexpansion_dl)
 
+        # fsa_bp = <Bp>
+        eqt.profiles_1d.fsa_bp[k] = flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)
+
         # j_tor = <j_tor/R> / <1/R>
         eqt.profiles_1d.j_tor[k] =
             (
@@ -387,7 +391,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
             ) / eqt.profiles_1d.gm9[k]
 
         # dvolume_dpsi
-        eqt.profiles_1d.dvolume_dpsi[k] = (sign(flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)) * int_fluxexpansion_dl)
+        eqt.profiles_1d.dvolume_dpsi[k] = sign(eqt.profiles_1d.fsa_bp[k]) * int_fluxexpansion_dl
 
         # surface area
         eqt.profiles_1d.surface[k] = 2π * sum(pr .* dl)
