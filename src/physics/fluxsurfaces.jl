@@ -730,7 +730,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 
             # stop when current x-point flips sign with respect to first x-point
             # NOTE: this is to define the flux surface that determines the heat flux on the secondary divertor
-            if x_point.z != eqt.boundary.x_point[1].z
+            if sign(x_point.z )!= sign(eqt.boundary.x_point[1].z)
                 eqt.boundary.x_point = eqt.boundary.x_point[1:k]
                 break
             end
