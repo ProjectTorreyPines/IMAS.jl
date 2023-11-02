@@ -664,7 +664,7 @@ end
 
 Find the `n` X-points that are closest to the separatrix
 """
-function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
     rlcfs, zlcfs = flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     private = flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     Z0 = sum(zlcfs) / length(zlcfs)
@@ -706,14 +706,14 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
 
     if !isempty(dist_lcfs_xpoints)
-        # sort x-point by distance and pick only the first n_xpoints
+        # sort x-point by distance from lcfs and pick only the first n_xpoints
         index = sortperm(dist_lcfs_xpoints)
-        eqt.boundary.x_point = eqt.boundary.x_point[index[1:min(length(index), n_xpoints)]]
+        eqt.boundary.x_point = eqt.boundary.x_point[index]
 
         # refine x-points location and re-sort
         psidist_lcfs_xpoints = Float64[]
         r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
-        for x_point in eqt.boundary.x_point
+        for (k,x_point) in enumerate(eqt.boundary.x_point)
             res = Optim.optimize(
                 x -> Bp(PSI_interpolant, [x_point.r + x[1]], [x_point.z + x[2]])[1],
                 [0.0, 0.0],
@@ -725,6 +725,13 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
 
             # record the distance from this x-point to the separatrix
             push!(psidist_lcfs_xpoints, PSI_interpolant(x_point.r, x_point.z)[1] - psi_separatrix)
+
+            # stop when current x-point flips sign with respect to first x-point
+            # NOTE: this is to define the flux surface that determines the heat flux on the secondary divertor
+            if x_point.z != eqt.boundary.x_point[1].z
+                eqt.boundary.x_point = eqt.boundary.x_point[1:k]
+                break
+            end
         end
 
         # find distances among pairs of x-points (d_x) and record which one is closest to each (i_x)
