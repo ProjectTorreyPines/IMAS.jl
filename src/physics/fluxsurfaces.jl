@@ -664,13 +664,14 @@ end
 
 Find the `n` X-points that are closest to the separatrix
 """
-function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
+function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
     rlcfs, zlcfs = flux_surface(eqt, eqt.profiles_1d.psi[end], true)
     private = flux_surface(eqt, eqt.profiles_1d.psi[end], false)
     Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
 
     dist_lcfs_xpoints = Float64[]
+    z_xpoints = Float64[]
     for (pr, pz) in private
         if sign(pz[1] - Z0) != sign(pz[end] - Z0)
             # open flux surface does not encicle the plasma
@@ -688,6 +689,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
         resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
         eqt.boundary.x_point[end].r = pr[index]
         eqt.boundary.x_point[end].z = pz[index]
+        push!(z_xpoints, eqt.boundary.x_point[end].z) # save Z cooridante of x-point
 
         # record the distance from this x-point to the separatrix
         indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
@@ -699,8 +701,12 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
     if !isempty(dist_lcfs_xpoints)
         # sort x-point by distance and pick only the first n_xpoints
         index = sortperm(dist_lcfs_xpoints)
-        eqt.boundary.x_point = eqt.boundary.x_point[index[1:min(length(index), n_xpoints)]]
-
+            z_xpoints = z_xpoints[index]
+            c = sign(z_xpoints[1]) # find sign of Z coordinate of first null on LCFS
+            n_xpoints = 1:length(z_xpoints)
+            n_xpoints = n_xpoints[-c.*z_xpoints.>0] # index in xpoints of nulls with opposite Z to the first null
+            n_xpoints = n_xpoints[1] # take only the one closest to the LCFS (x points are already ordered in psi)
+            eqt.boundary.x_point = eqt.boundary.x_point[index[1:n_xpoints]]
         # refine x-points location and re-sort
         empty!(dist_lcfs_xpoints)
         r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
