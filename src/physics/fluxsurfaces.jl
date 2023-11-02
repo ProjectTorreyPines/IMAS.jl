@@ -660,7 +660,7 @@ function cumlul_surface_integrate(eqt::IMAS.equilibrium__time_slice, what::Abstr
 end
 
 """
-    find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
+    find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
 
 Find the `n` X-points that are closest to the separatrix
 """
@@ -699,7 +699,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
     # if only one x-point is found, then look on the other side of the magnetic axis to find the other one
     if length(dist_lcfs_xpoints) == 1
         push!(eqt.boundary.x_point, deepcopy(eqt.boundary.x_point[1]))
-        eqt.boundary.x_point[2].z =  - (eqt.boundary.x_point[2].z - eqt.global_quantities.magnetic_axis.z) + eqt.global_quantities.magnetic_axis.z
+        eqt.boundary.x_point[2].z = -(eqt.boundary.x_point[2].z - eqt.global_quantities.magnetic_axis.z) + eqt.global_quantities.magnetic_axis.z
         push!(dist_lcfs_xpoints, dist_lcfs_xpoints[1])
     end
 
@@ -711,24 +711,58 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
         eqt.boundary.x_point = eqt.boundary.x_point[index[1:min(length(index), n_xpoints)]]
 
         # refine x-points location and re-sort
-        empty!(dist_lcfs_xpoints)
+        psidist_lcfs_xpoints = Float64[]
         r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
-        for rz in eqt.boundary.x_point
+        for x_point in eqt.boundary.x_point
             res = Optim.optimize(
-                x -> Bp(PSI_interpolant, [rz.r + x[1]], [rz.z + x[2]])[1],
+                x -> Bp(PSI_interpolant, [x_point.r + x[1]], [x_point.z + x[2]])[1],
                 [0.0, 0.0],
                 Optim.NelderMead(),
                 Optim.Options(; g_tol=1E-8)
             )
-            rz.r += res.minimizer[1]
-            rz.z += res.minimizer[2]
+            x_point.r += res.minimizer[1]
+            x_point.z += res.minimizer[2]
 
             # record the distance from this x-point to the separatrix
-            push!(dist_lcfs_xpoints, psi_separatrix - PSI_interpolant(rz.r, rz.z)[1])
+            push!(psidist_lcfs_xpoints, PSI_interpolant(x_point.r, x_point.z)[1] - psi_separatrix)
         end
 
+        # find distances among pairs of x-points (d_x) and record which one is closest to each (i_x)
+        r_x = [x_point.r for x_point in eqt.boundary.x_point]
+        z_x = [x_point.z for x_point in eqt.boundary.x_point]
+        d_x = r_x .* Inf
+        i_x = zeros(Int, length(eqt.boundary.x_point))
+        for (k1, (r1, z1)) in enumerate(zip(r_x, z_x))
+            for (k2, (r2, z2)) in enumerate(zip(r_x, z_x))
+                if k2 == k1
+                    continue
+                end
+                d = sqrt((r1 - r2)^2 + (z1 - z2)^2)
+                if d < d_x[k1]
+                    d_x[k1] = d
+                    i_x[k1] = k2
+                end
+            end
+        end
+
+        # NOTE: this handles cases with two x-points in the same spot
+        i_x = i_x[d_x.<1E-3]
+        d_x = d_x[d_x.<1E-3]
+        index = sortperm(d_x)
+        d_x = d_x[index[1:2:end]]
+        i_x = i_x[index[1:2:end]]
+        for k in reverse!(sort(i_x))
+            deleteat!(eqt.boundary.x_point, k)
+            deleteat!(psidist_lcfs_xpoints, k)
+        end
+
+        # remove x-points that have fallen on the magnetic axis
+        index = psidist_lcfs_xpoints .> -1E-3 # positive means outside of the lcfs
+        psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
+        eqt.boundary.x_point = eqt.boundary.x_point[index]
+
         # sort a second time now by distance in psi
-        index = sortperm(abs.(dist_lcfs_xpoints))
+        index = sortperm(abs.(psidist_lcfs_xpoints))
         eqt.boundary.x_point = eqt.boundary.x_point[index]
     end
 
