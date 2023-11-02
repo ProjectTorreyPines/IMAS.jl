@@ -689,7 +689,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
         eqt.boundary.x_point[end].r = pr[index]
         eqt.boundary.x_point[end].z = pz[index]
-        push!(z_xpoints, eqt.boundary.x_point[end].z) # save Z cooridante of x-point
+        push!(z_xpoints, eqt.boundary.x_point[end].z) # save Z coordinate of x-point
 
         # record the distance from this x-point to the separatrix
         indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
@@ -705,18 +705,18 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             # If only 1 X-point is found, try to find the second
             ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
             resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
-            # start optimization froma point obtained by flipping the first null around the midplane
+            # start optimization from a point obtained by flipping the first null around the midplane
             eqt.boundary.x_point[end].r = eqt.boundary.x_point[1].r
             eqt.boundary.x_point[end].z = -1 * eqt.boundary.x_point[1].z + ZA
         else
             z_xpoints = z_xpoints[index]
             c = sign(z_xpoints[1]) # find sign of Z coordinate of first null on LCFS
             n_xpoints = 1:length(z_xpoints)
-            n_xpoints = n_xpoints[-c.*z_xpoints.>0] # index in xpoints of nulls with opposite Z to the first null
-            n_xpoints = n_xpoints[1] # take only the one closest to the LCFS (x points are already ordered in psi)
+            n_xpoints = n_xpoints[-c.*z_xpoints.>0] # position in index of nulls with opposite Z to the first null
+            n_xpoints = n_xpoints[1] # take only the one closest to the LCFS (x points are already ordered in distance)
             eqt.boundary.x_point = eqt.boundary.x_point[index[1:n_xpoints]] ######## here the x-point are sorted
         end
-        
+
         # refine x-points location and re-sort
         empty!(dist_lcfs_xpoints) ##########
         r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
