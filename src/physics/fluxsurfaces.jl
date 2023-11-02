@@ -714,11 +714,11 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             n_xpoints = 1:length(z_xpoints)
             n_xpoints = n_xpoints[-c.*z_xpoints.>0] # index in xpoints of nulls with opposite Z to the first null
             n_xpoints = n_xpoints[1] # take only the one closest to the LCFS (x points are already ordered in psi)
-            eqt.boundary.x_point = eqt.boundary.x_point[index[1:n_xpoints]]
+            eqt.boundary.x_point = eqt.boundary.x_point[index[1:n_xpoints]] ######## here the x-point are sorted
         end
         
         # refine x-points location and re-sort
-        empty!(dist_lcfs_xpoints)
+        empty!(dist_lcfs_xpoints) ##########
         r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
         for rz in eqt.boundary.x_point
             res = Optim.optimize(
@@ -731,13 +731,13 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             rz.z += res.minimizer[2]
 
             # record the distance from this x-point to the separatrix
-            indexcfs = argmin((rlcfs .- rz.r) .^ 2 .+ (zlcfs .- rz.z) .^ 2)
-            dr = (rz.r - rlcfs[indexcfs]) / 2.0
-            dz = (rz.z - zlcfs[indexcfs]) / 2.0
-            push!(dist_lcfs_xpoints, sqrt(dr^2 + dz^2))
+            indexcfs = argmin((rlcfs .- rz.r) .^ 2 .+ (zlcfs .- rz.z) .^ 2) ############
+            dr = (rz.r - rlcfs[indexcfs]) / 2.0 #############
+            dz = (rz.z - zlcfs[indexcfs]) / 2.0 #############
+            push!(dist_lcfs_xpoints, sqrt(dr^2 + dz^2)) #############
         end
-        index = sortperm(dist_lcfs_xpoints)
-        eqt.boundary.x_point = eqt.boundary.x_point[index]
+        index = sortperm(dist_lcfs_xpoints) ############
+        eqt.boundary.x_point = eqt.boundary.x_point[index] ###### why sorting them out a second time?
     end
 
     return eqt.boundary.x_point
