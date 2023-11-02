@@ -696,6 +696,15 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
         push!(dist_lcfs_xpoints, sqrt(dr^2 + dz^2))
     end
 
+    # if only one x-point is found, then look on the other side of the magnetic axis to find the other one
+    if length(dist_lcfs_xpoints) == 1
+        push!(eqt.boundary.x_point, deepcopy(eqt.boundary.x_point[1]))
+        eqt.boundary.x_point[2].z =  - (eqt.boundary.x_point[2].z - eqt.global_quantities.magnetic_axis.z) + eqt.global_quantities.magnetic_axis.z
+        push!(dist_lcfs_xpoints, dist_lcfs_xpoints[1])
+    end
+
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+
     if !isempty(dist_lcfs_xpoints)
         # sort x-point by distance and pick only the first n_xpoints
         index = sortperm(dist_lcfs_xpoints)
@@ -706,7 +715,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
         r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
         for rz in eqt.boundary.x_point
             res = Optim.optimize(
-                x -> IMAS.Bp(PSI_interpolant, [rz.r + x[1]], [rz.z + x[2]])[1],
+                x -> Bp(PSI_interpolant, [rz.r + x[1]], [rz.z + x[2]])[1],
                 [0.0, 0.0],
                 Optim.NelderMead(),
                 Optim.Options(; g_tol=1E-8)
@@ -715,12 +724,11 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice; n_xpoints::Int=2)::IDS
             rz.z += res.minimizer[2]
 
             # record the distance from this x-point to the separatrix
-            indexcfs = argmin((rlcfs .- rz.r) .^ 2 .+ (zlcfs .- rz.z) .^ 2)
-            dr = (rz.r - rlcfs[indexcfs]) / 2.0
-            dz = (rz.z - zlcfs[indexcfs]) / 2.0
-            push!(dist_lcfs_xpoints, sqrt(dr^2 + dz^2))
+            push!(dist_lcfs_xpoints, psi_separatrix - PSI_interpolant(rz.r, rz.z)[1])
         end
-        index = sortperm(dist_lcfs_xpoints)
+
+        # sort a second time now by distance in psi
+        index = sortperm(abs.(dist_lcfs_xpoints))
         eqt.boundary.x_point = eqt.boundary.x_point[index]
     end
 
