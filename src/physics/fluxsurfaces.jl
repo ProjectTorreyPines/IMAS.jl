@@ -10,7 +10,7 @@ function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     if grid_type == :rectangular
         r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end]; length=length(eqt2d.grid.dim1))
         z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end]; length=length(eqt2d.grid.dim2))
-        return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi; extrapolation_bc=Interpolations.Linear())
+        return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi; extrapolation_bc=Interpolations.Line())
     else
         error("ψ_interpolant cannot handle grid of type `$grid_type`")
     end
@@ -429,7 +429,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         Interpolations.cubic_spline_interpolation(
             to_range(eqt.profiles_1d.psi) * psi_sign,
             eqt.profiles_1d.phi;
-            extrapolation_bc=Interpolations.Linear()
+            extrapolation_bc=Interpolations.Line()
         ).(eqt.profiles_2d[1].psi * psi_sign)
 
     # rho 2D in meters
@@ -455,7 +455,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         Interpolations.cubic_spline_interpolation(
             to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
             eqt.profiles_1d.gm2[2:end];
-            extrapolation_bc=Interpolations.Linear()
+            extrapolation_bc=Interpolations.Line()
         ).(eqt.profiles_1d.psi[1] * psi_sign)
 
     # ip

@@ -60,8 +60,10 @@ Jungpyo Lee, Jeffrey P. Freidberg, Antoine J. Cerfon, Martin Greenwald
 https://doi.org/10.1088%2F1741-4326%2Faa6877
 
 NOTE:
-* γτw is the feedback capability parameter and represents how fast a instability is controllable (𝛾 is the instability growth rate and τw is the wall diffusion time)
-* ∆o is the outer gap (NOTE: assumes ∆o = ∆i = 1/3 * ∆v) detemines the relation between κ and δ of the plasma boundary and the κw=(κ+3∆o)(1+∆o) and δw=δ(1+∆o) of the wall boundary
+
+  - γτw is the feedback capability parameter and represents how fast a instability is controllable (𝛾 is the instability growth rate and τw is the wall diffusion time)
+
+  - ∆o is the outer gap (NOTE: assumes ∆o = ∆i = 1/3 * ∆v) detemines the relation between κ and δ of the plasma boundary and the κw=(κ+3∆o)(1+∆o) and δw=δ(1+∆o) of the wall boundary
 """
 function optimal_kappa_delta(li::T1, βp::T1, ϵ::T1, γτw::T2, ∆o::T2) where {T1<:Real,T2<:Real}
     δδ_ = [0.0, 0.33, 0.50, 0.70]
@@ -102,7 +104,6 @@ function optimal_kappa_delta(eqt::IMAS.equilibrium__time_slice, γτw::T, ∆o::
     return optimal_kappa_delta(li, βp, ϵ, γτw, ∆o)
 end
 
-
 """
     A_effective(cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -120,7 +121,6 @@ function A_effective(cp1d::IMAS.core_profiles__profiles_1d)
     end
     return reduce(+, numerator) / reduce(+, denominator)
 end
-
 
 """
     scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
