@@ -11,20 +11,30 @@ Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 1
 
 :param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [AMU]
+:param mi: list of ion masses [amu]
 
 :param Zi: list of ion charges
 
 :param Ef: fast ion energy [eV]
 
-:param mf: mass of fast ion [AMU]
+:param mf: mass of fast ion [amu]
 
 :param Zf: fast ion charge
 
 :return: i2 and i4
 """
 
-function estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
+function estrada_I_integrals(
+    ne::Real,
+    Te::Real,
+    ni::AbstractVector{<:Real},
+    Ti::AbstractVector{<:Real},
+    mi::AbstractVector{<:Real},
+    Zi::AbstractVector{Int},
+    Ef::Real,
+    mf::Real,
+    Zf::Int
+)
     Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
     i2, i4 = estrada_I_integrals(Ec, Ef)
     return i2, i4
@@ -63,11 +73,11 @@ Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
 :param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [AMU]
+:param mi: list of ion masses [amu]
 
 :param Zi: list of ion charges
 
-:param mf: mass of fast ion [AMU]
+:param mf: mass of fast ion [amu]
 
 :param Zf: fast ion charge
 
@@ -89,7 +99,7 @@ Calculates the slowing down time τ_s for Ti*me/mi < 10Zi^2 eV < Te [Stix, Plasm
 
 :param Te: electron temperature [eV]
 
-:param mf: mass of fast ion [AMU]
+:param mf: mass of fast ion [amu]
 
 :param Zf: fast ion charge
 
@@ -111,7 +121,7 @@ Drag coefficient (Γ) for a fast-ions interacting with a thermal species as defi
 
 :param Z: charge of the thermal species
 
-:param mf: fast-ion mass [AMU]
+:param mf: fast-ion mass [amu]
 
 :param Zf: fast-ion charge
 
@@ -139,19 +149,29 @@ Calculates the difference of the electron and ion drag terms in the collision op
 
 :param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [AMU]
+:param mi: list of ion masses [amu]
 
 :param Zi: list of ion charges
 
 :param Ef: fast ion energy [eV]
 
-:param mf: mass of fast ion [AMU]
+:param mf: mass of fast ion [amu]
 
 :param Zf: fast ion charge
 
 :return ΔD: drag difference
 """
-function _electron_ion_drag_difference(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
+function _electron_ion_drag_difference(
+    ne::Real,
+    Te::Real,
+    ni::AbstractVector{<:Real},
+    Ti::AbstractVector{<:Real},
+    mi::AbstractVector{<:Real},
+    Zi::AbstractVector{Int},
+    Ef::Real,
+    mf::Real,
+    Zf::Int
+)
     m_e = constants.m_e
     m_f = mf * constants.m_u
 
@@ -182,22 +202,31 @@ Calculate the critical energy by finding the root of the difference between the 
 
 :param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [AMU]
+:param mi: list of ion masses [amu]
 
 :param Zi: list of ion charges
 
-:param mf: mass of fast ion [AMU]
+:param mf: mass of fast ion [amu]
 
 :param Zf: fast ion charge
 
 :param approximate: calculate critical energy assuming lnΛ_fe == lnΛ_fi. For DIII-D a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2 can be used.
 """
-function critical_energy(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int; approximate::Bool=false)
+function critical_energy(
+    ne::Real,
+    Te::Real,
+    ni::AbstractVector{<:Real},
+    Ti::AbstractVector{<:Real},
+    mi::AbstractVector{<:Real},
+    Zi::AbstractVector{Int},
+    mf::Real,
+    Zf::Int;
+    approximate::Bool=false
+)
     avg_cmr = sum(ni .* (Zi .^ 2) ./ mi) / ne
     Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     if !(approximate)
-        Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf),
-            (0.5 * Ec, 2 * Ec))
+        Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf), (0.5 * Ec, 2 * Ec))
     end
     return Ec
 end
@@ -232,17 +261,27 @@ Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2
 
 :param Ti: list of ion temperatures [eV]
 
-:param mi: list of ion masses [AMU]
+:param mi: list of ion masses [amu]
 
 :param Zi: list of ion charges
 
 :param Ef: fast ion energy [eV]
 
-:param mf: mass of fast ion [AMU]
+:param mf: mass of fast ion [amu]
 
 :param Zf: fast ion charge
 """
-function thermalization_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
+function thermalization_time(
+    ne::Real,
+    Te::Real,
+    ni::AbstractVector{<:Real},
+    Ti::AbstractVector{<:Real},
+    mi::AbstractVector{<:Real},
+    Zi::AbstractVector{Int},
+    Ef::Real,
+    mf::Real,
+    Zf::Int
+)
     m_f = mf * constants.m_u
 
     tau_s = slowing_down_time(ne, Te, mf, Zf)
@@ -312,7 +351,8 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
 
                 # find the corresponding thermal ion in core_profiles (we use z_n and a since that's more reliable than labels)
                 # NOTE: contribution of non-thermal components in core_profiles comes in through pressure_fast and density_fast
-                cindex = findfirst(cion ->
+                cindex = findfirst(
+                    cion ->
                         (Int(round(cion.element[1].z_n)) == Int(round(particle_charge)) && Int(round(cion.element[1].a)) == Int(round(particle_mass))) ||
                             (Int(round(particle_charge)) == 1 && Int(round(particle_mass)) == 2 && cion.label == "DT") ||
                             (Int(round(particle_charge)) == 1 && Int(round(particle_mass)) == 3 && cion.label == "DT"), cp1d.ion)
@@ -329,7 +369,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
 
                     taus .*= 0.0
                     taut .*= 0.0
-                    for i = 1:Npsi
+                    for i in 1:Npsi
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
                         taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
 

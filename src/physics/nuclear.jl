@@ -13,6 +13,7 @@ Fusion reactivity coming from H.-S. Bosch and G.M. Hale, Nucl. Fusion 32 (1992) 
 Model can be ["D+T→He4", "D+He3→He4", "D+D→T", "D+D→He3"]")
 """
 function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fraction::Real=0.0)
+    @assert 0.0 <= polarized_fuel_fraction <= 1.0 "Polarized fuel fraction should be between 0.0 and 1.0"
     spf = 1.0 # default value for non spin polarized fuel
     if model == "D+T→He4"
         # Table VII
@@ -77,11 +78,11 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
     Ti = Ti ./ 1e3  # from eV to keV
 
     r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
+
     theta = Ti ./ (1.0 .- r0)
     xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
     sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
 
-    @assert 0.0 <= polarized_fuel_fraction <= 1.0 "Polarized fuel fraction should be between 0.0 and 1.0"
     return ((1.0 .- polarized_fuel_fraction) .+ spf * polarized_fuel_fraction) .* sigv / 1e6  # m^3/s
 end
 
@@ -205,7 +206,7 @@ function fusion_particle_source(
     ion = resize!(s1d.ion, k)[k]
     ion_element!(ion, out; fast=true)
     ion.particles = reactivity
-    ion.fast_particles_energy = eV
+    return ion.fast_particles_energy = eV
 end
 
 """
