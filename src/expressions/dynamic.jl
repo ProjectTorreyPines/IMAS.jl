@@ -264,6 +264,8 @@ dyexp["equilibrium.time_slice[:].profiles_1d.darea_drho_tor"] =
 dyexp["equilibrium.time_slice[:].profiles_1d.darea_dpsi"] =
     (psi; profiles_1d, _...) -> gradient(psi, profiles_1d.area)
 
+dyexp["equilibrium.time_slice[:].profiles_1d.dpsi_drho_tor"] =
+    (psi; profiles_1d, _...) -> gradient(profiles_1d.rho_tor, profiles_1d.psi)
 
 dyexp["equilibrium.time_slice[:].profiles_1d.psi_norm"] =
     (psi; _...) -> norm01(psi)
