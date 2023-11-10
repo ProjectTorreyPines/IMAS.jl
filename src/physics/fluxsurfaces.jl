@@ -211,8 +211,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         :surface,
         :dvolume_dpsi,
         :j_tor,
-        :area,
-        :volume,
         :gm1,
         :gm2,
         :gm4,
@@ -220,7 +218,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         :gm8,
         :gm9,
         :fsa_bp,
-        :phi,
         :trapped_fraction
     )
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
@@ -383,7 +380,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         # fsa_bp = <Bp>
         eqt.profiles_1d.fsa_bp[k] = flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)
 
-        # j_tor = <j_tor/R> / <1/R>
+        # j_tor = <j_tor/R> / <1/R> [A/m²]
         eqt.profiles_1d.j_tor[k] =
             (
                 -(eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / constants.μ_0) *
@@ -406,17 +403,14 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         end
     end
 
-    # integral quantities
-    for k in 2:length(eqt.profiles_1d.psi)
-        # area
-        eqt.profiles_1d.area[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k] .* eqt.profiles_1d.gm9[1:k]) ./ 2π
+    # area
+    eqt.profiles_1d.area = cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.gm9) ./ 2π
 
-        # volume
-        eqt.profiles_1d.volume[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.dvolume_dpsi[1:k])
+    # volume
+    eqt.profiles_1d.volume = cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi)
 
-        # phi
-        eqt.profiles_1d.phi[k] = integrate(eqt.profiles_1d.psi[1:k], eqt.profiles_1d.q[1:k])
-    end
+    # phi
+    eqt.profiles_1d.phi = cumul_integrate(eqt.profiles_1d.volume, eqt.profiles_1d.f .* eqt.profiles_1d.gm1) / (2π)
 
     # rho_tor_norm
     rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * B0)))
@@ -460,7 +454,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
 
     # ip
     eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
-    #eqt.global_quantities.ip = -gradient(eqt.profiles_1d.psi, eqt.profiles_1d.phi)[end] .* eqt.profiles_1d.gm2[end] .* eqt.profiles_1d.dvolume_dpsi[end] / (2π * constants.μ_0) * 4π
+    # eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.volume, eqt.profiles_1d.j_tor.*eqt.profiles_1d.gm9) / (2π) # equivalent
 
     # Geometric major and minor radii
     Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
@@ -719,7 +713,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         # refine x-points location and re-sort
         psidist_lcfs_xpoints = Float64[]
         r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
-        for (k,x_point) in enumerate(eqt.boundary.x_point)
+        for (k, x_point) in enumerate(eqt.boundary.x_point)
             res = Optim.optimize(
                 x -> Bp(PSI_interpolant, [x_point.r + x[1]], [x_point.z + x[2]])[1],
                 [0.0, 0.0],
@@ -734,7 +728,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 
             # stop when current x-point flips sign with respect to first x-point
             # NOTE: this is to define the flux surface that determines the heat flux on the secondary divertor
-            if sign(x_point.z )!= sign(eqt.boundary.x_point[1].z)
+            if sign(x_point.z) != sign(eqt.boundary.x_point[1].z)
                 eqt.boundary.x_point = eqt.boundary.x_point[1:k]
                 break
             end
