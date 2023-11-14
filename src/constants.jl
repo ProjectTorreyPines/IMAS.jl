@@ -28,19 +28,19 @@ const constants = (
 )
 
 const index_2_name__core_transport__model = Dict(
-    0 => :unspecified, #Unspecified transport type
-    1 => :combined, #Combination of data from available transport models. Representation of the total transport in the system
-    2 => :transport_solver, #Output from a transport solver
-    3 => :background, #Background transport level, ad-hoc transport model not directly related to a physics model
-    4 => :database, #Transport specified by a database entry external to the dynamic evolution of the plasma
-    5 => :neoclassical, #Neoclassical
-    6 => :anomalous, #Representation of turbulent transport
-    19 => :mhd, #Transport arising from MHD frequency modes
-    20 => :ntm, #Transport arising from the presence of NTMs
-    21 => :sawteeth, #Transport arising from the presence of sawteeth
-    22 => :elm_continuous, #Continuous ELM model --- gives the ELM averaged profile
-    23 => :elm_resolved, #Time resolved ELM model
-    24 => :pedestal, #Transport level to give edge pedestal
+    0 => :unspecified, # Unspecified transport type
+    1 => :combined, # Combination of data from available transport models. Representation of the total transport in the system
+    2 => :transport_solver, # Output from a transport solver
+    3 => :background, # Background transport level, ad-hoc transport model not directly related to a physics model
+    4 => :database, # Transport specified by a database entry external to the dynamic evolution of the plasma
+    5 => :neoclassical, # Neoclassical
+    6 => :anomalous, # Representation of turbulent transport
+    19 => :mhd, # Transport arising from MHD frequency modes
+    20 => :ntm, # Transport arising from the presence of NTMs
+    21 => :sawteeth, # Transport arising from the presence of sawteeth
+    22 => :elm_continuous, # Continuous ELM model --- gives the ELM averaged profile
+    23 => :elm_resolved, # Time resolved ELM model
+    24 => :pedestal, # Transport level to give edge pedestal
     25 => :unknown) #Unknown transport type
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.core_transport__model}
@@ -48,47 +48,47 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.core_transport_
 end
 
 const index_2_name__core_sources__source = Dict(
-    0 => :unspecified, #Unspecified source type
-    1 => :total, #Total source; combines all sources
-    2 => :nbi, #Source from Neutral Beam Injection
-    3 => :ec, #Sources from electron cyclotron heating and current drive
-    4 => :lh, #Sources from lower hybrid heating and current drive
-    5 => :ic, #Sources from heating at the ion cyclotron range of frequencies
-    6 => :fusion, #Sources from fusion reactions, e.g. alpha particle heating
-    7 => :ohmic, #Source from ohmic heating
-    8 => :bremsstrahlung, #Source from bremsstrahlung; radiation losses are negative sources
-    9 => :synchrotron_radiation, #Source from synchrotron radiation; radiation losses are negative sources
-    10 => :line_radiation, #Source from line radiation; radiation losses are negative sources
-    11 => :collisional_equipartition, #Collisional equipartition
-    12 => :cold_neutrals, #Source of cold neutrals
-    13 => :bootstrap_current, #Bootstrap current
-    14 => :pellet, #Sources from injection
-    100 => :auxiliary, #Source from auxiliary systems, e.g. heating and current drive systems
-    101 => :ic_nbi, #A combination of the ic and nbi sources
-    102 => :ic_fusion, #A combination of the ic and fusion sources
-    103 => :ic_nbi_fusion, #A combination of the ic and fusion sources
-    104 => :ec_lh, #A combination of the ec and lh sources
-    105 => :ec_ic, #A combination of the ec and ic sources
-    106 => :lh_ic, #A combination of the lh and ic sources
-    107 => :ec_lh_ic, #A combination of the ec, lh and ic sources
-    108 => :gas_puff, #Gas puff
-    109 => :killer_gas_puff, #Killer gas puff
-    200 => :radiation, #Total radiation source; radiation losses are negative sources
-    201 => :cyclotron_radiation, #Source from cyclotron radiation; radiation losses are negative sources
-    202 => :cyclotron_synchrotron_radiation, #Source from combined cyclotron and synchrotron radiation; radiation losses are negative sources
-    203 => :impurity_radiation, #Line radiation and Bremsstrahlung source; radiation losses are negative sources.
-    303 => :particles_to_wall, #Particle pumping by the wall; negative source for plasma and positive source for the wall
-    304 => :particles_to_pump, #Particle pumping by external pump; negative source for plasma and positive source for the pump
-    305 => :charge_exchange, #Source from charge exchange. Charge exchange losses are negative sources
-    400 => :transport, #Source term related to transport processes
-    401 => :neoclassical, #Source term related to neoclassical processes
-    402 => :equipartition, #Equipartition due to collisions and turbulence
-    403 => :turbulent_equipartition, #Turbulent equipartition
-    501 => :runaways, #Source from run-away processes; includes both electron and ion run-away
-    601 => :ionisation, #Source from ionisation processes (not accounting for charge exchange)
-    602 => :recombination, #Source from recombination processes (not accounting for charge exchange)
-    603 => :excitation, #Source from excitation processes
-    801 => :database, #Source from database entry
+    0 => :unspecified, # Unspecified source type
+    1 => :total, # Total source; combines all sources
+    2 => :nbi, # Source from Neutral Beam Injection
+    3 => :ec, # Sources from electron cyclotron heating and current drive
+    4 => :lh, # Sources from lower hybrid heating and current drive
+    5 => :ic, # Sources from heating at the ion cyclotron range of frequencies
+    6 => :fusion, # Sources from fusion reactions, e.g. alpha particle heating
+    7 => :ohmic, # Source from ohmic heating
+    8 => :bremsstrahlung, # Source from bremsstrahlung; radiation losses are negative sources
+    9 => :synchrotron_radiation, # Source from synchrotron radiation; radiation losses are negative sources
+    10 => :line_radiation, # Source from line radiation; radiation losses are negative sources
+    11 => :collisional_equipartition, # Collisional equipartition
+    12 => :cold_neutrals, # Source of cold neutrals
+    13 => :bootstrap_current, # Bootstrap current
+    14 => :pellet, # Sources from injection
+    100 => :auxiliary, # Source from auxiliary systems, e.g. heating and current drive systems
+    101 => :ic_nbi, # A combination of the ic and nbi sources
+    102 => :ic_fusion, # A combination of the ic and fusion sources
+    103 => :ic_nbi_fusion, # A combination of the ic and fusion sources
+    104 => :ec_lh, # A combination of the ec and lh sources
+    105 => :ec_ic, # A combination of the ec and ic sources
+    106 => :lh_ic, # A combination of the lh and ic sources
+    107 => :ec_lh_ic, # A combination of the ec, lh and ic sources
+    108 => :gas_puff, # Gas puff
+    109 => :killer_gas_puff, # Killer gas puff
+    200 => :radiation, # Total radiation source; radiation losses are negative sources
+    201 => :cyclotron_radiation, # Source from cyclotron radiation; radiation losses are negative sources
+    202 => :cyclotron_synchrotron_radiation, # Source from combined cyclotron and synchrotron radiation; radiation losses are negative sources
+    203 => :impurity_radiation, # Line radiation and Bremsstrahlung source; radiation losses are negative sources.
+    303 => :particles_to_wall, # Particle pumping by the wall; negative source for plasma and positive source for the wall
+    304 => :particles_to_pump, # Particle pumping by external pump; negative source for plasma and positive source for the pump
+    305 => :charge_exchange, # Source from charge exchange. Charge exchange losses are negative sources
+    400 => :transport, # Source term related to transport processes
+    401 => :neoclassical, # Source term related to neoclassical processes
+    402 => :equipartition, # Equipartition due to collisions and turbulence
+    403 => :turbulent_equipartition, # Turbulent equipartition
+    501 => :runaways, # Source from run-away processes; includes both electron and ion run-away
+    601 => :ionisation, # Source from ionisation processes (not accounting for charge exchange)
+    602 => :recombination, # Source from recombination processes (not accounting for charge exchange)
+    603 => :excitation, # Source from excitation processes
+    801 => :database, # Source from database entry
     802 => :gaussian) #Artificial source with a gaussian profile
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:core_sources__source}
@@ -97,9 +97,9 @@ end
 
 const index_2_name__stability__collection = Dict(
     1 => :default_limits,
-    11 => :beta_limits, #Run all beta limits
-    12 => :current_limit, #Run all current limits
-    13 => :density_limit, #Run all density limits
+    11 => :beta_limits, # Run all beta limits
+    12 => :current_limit, # Run all current limits
+    13 => :density_limit #Run all density limits
 )
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__collection}
@@ -107,19 +107,20 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__coll
 end
 
 const index_2_name__stability__model = Dict(
-    0 => :force_fail, #Instantly causes the actor to fail
+    0 => :force_fail, # Instantly causes the actor to fail
     # 100s: Beta Limit Models
-    101 => :beta_troyon_1984, #Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
-    102 => :beta_troyon_1985, #Beta limit defined by
-    103 => :beta_tuda_1985, #Beta limit defined by
-    104 => :beta_bernard_1983, #Beta limit defined by
-    105 => :beta_model_105, #Beta limit defined by
+    101 => :beta_troyon_1984, # Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
+    102 => :beta_troyon_1985, # Beta limit defined by
+    103 => :beta_tuda_1985, # Beta limit defined by
+    104 => :beta_bernard_1983, # Beta limit defined by
+    105 => :beta_model_105, # Beta limit defined by
     # 200s: Current Limit Models
-    201 => :model_201, #Current limit defined by
+    201 => :model_201, # Current limit defined by
+    202 => :safety_factor_rho_08_lt_2, # q(@rho=0.8) > 2.
     # 300s: Density Limit Models
-    301 => :model_301, #Density limit defined by
+    301 => :model_301, # Density limit defined by
     # 400s: Shaping Limit Models
-    401 => :model_401, #Elongation limit defined by
+    401 => :model_401, # Elongation limit defined by
     # 900s: Stability Codes
     999 => :unknown) #Unknown model type
 
@@ -127,14 +128,112 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__mode
     return index_2_name__stability__model
 end
 
-const index_2_name__balance_of_plant__power_electric_plant_operation = Dict((k - 1) => item for (k, item) in enumerate([:total, :HCD, :plant, :cryostat, :tritium_handling, :pumping, :pf_active]))
+const index_2_name__equilibrium__time_slice___profiles_2d___grid_type = Dict(
+    1 => :rectangular, # Cylindrical R,Z ala eqdsk (R=dim1, Z=dim2). In this case the position arrays should not be filled since they are redundant with grid/dim1 and dim2.
+    2 => :inverse, # Rhopolar_polar 2D polar coordinates (rho=dim1, theta=dim2) with magnetic axis as centre of grid; theta and values following the COCOS=11 convention; the polar angle is theta=atan2(z-zaxis,r-raxis)
+    11 => :inverse_psi_straight_field_line, # Flux surface type with psi as radial label (dim1) and the straight-field line poloidal angle (mod(index,10)=1) (dim2); could be non-equidistant; magnetic axis as centre of grid; following the COCOS=11 convention
+    12 => :inverse_psi_equal_arc, # Flux surface type with psi as radial label (dim1) and the equal arc poloidal angle (mod(index,10)=2) (dim2)
+    13 => :inverse_psi_polar, # Flux surface type with psi as radial label (dim1) and the polar poloidal angle (mod(index,10)=3) (dim2); could be non-equidistant
+    14 => :inverse_psi_straight_field_line_fourier, # Flux surface type with psi as radial label (dim1) and Fourier modes in the straight-field line poloidal angle (mod(index,10)=4) (dim2), could be non-equidistant; magnetic axis as centre of grid; following the COCOS=11 convention
+    15 => :inverse_psi_equal_arc_fourier, # Flux surface type with psi as radial label (dim1) and Fourier modes in the equal arc poloidal angle (mod(index,10)=5) (dim2)
+    16 => :inverse_psi_polar_fourier, # Flux surface type with psi as radial label (dim1) and Fourier modes in the polar poloidal angle (mod(index,10)=6) (dim2); could be non-equidistant
+    21 => :inverse_rhopolnorm_straight_field_line, # Flux surface type with radial label sqrt[(psi-psi_axis)/(psi_edge-psi_axis)] (dim1) and the straight-field line poloidal angle (dim2)
+    22 => :inverse_rhopolnorm_equal_arc, # Flux surface type with radial label sqrt[(psi-psi_axis)/(psi_edge-psi_axis)] (dim1) and the equal arc poloidal angle (dim2)
+    23 => :inverse_rhopolnorm_polar, # Flux surface type with radial label sqrt[(psi-psi_axis)/(psi_edge-psi_axis)] (dim1) and the polar poloidal angle (dim2)
+    24 => :inverse_rhopolnorm_straight_field_line_fourier, # Flux surface type with radial label sqrt[(psi-psi_axis)/(psi_edge-psi_axis)] (dim1) and Fourier modes in the straight-field line poloidal angle (dim2)
+    25 => :inverse_rhopolnorm_equal_arc_fourier, # Flux surface type with radial label sqrt[(psi-psi_axis)/(psi_edge-psi_axis)] (dim1) and Fourier modes in the equal arc poloidal angle (dim2)
+    26 => :inverse_rhopolnorm_polar_fourier, # Flux surface type with radial label sqrt[(psi-psi_axis)/(psi_edge-psi_axis)] (dim1) and Fourier modes in the polar poloidal angle (dim2)
+    31 => :inverse_rhotornorm_straight_field_line, # Flux surface type with radial label sqrt[Phi/Phi_edge] (dim1) and the straight-field line poloidal angle (dim2)
+    32 => :inverse_rhotornorm_equal_arc, # Flux surface type with radial label sqrt[Phi/Phi_edge] (dim1) and the equal arc poloidal angle (dim2)
+    33 => :inverse_rhotornorm_polar, # Flux surface type with radial label sqrt[Phi/Phi_edge] (dim1) and the polar poloidal angle (dim2)
+    34 => :inverse_rhotornorm_straight_field_line_fourier, # Flux surface type with radial label sqrt[Phi/Phi_edge] (dim1) and Fourier modes in the straight-field line poloidal angle (dim2)
+    35 => :inverse_rhotornorm_equal_arc_fourier, # Flux surface type with radial label sqrt[Phi/Phi_edge] (dim1) and Fourier modes in the equal arc poloidal angle (dim2)
+    36 => :inverse_rhotornorm_polar_fourier, # Flux surface type with radial label sqrt[Phi/Phi_edge] (dim1) and Fourier modes in the polar poloidal angle (dim2)
+    41 => :inverse_rhopol_straight_field_line, # Flux surface type with radial label sqrt[psi-psi_axis] (dim1) and the straight-field line poloidal angle (dim2)
+    42 => :inverse_rhopol_equal_arc, # Flux surface type with radial label sqrt[psi-psi_axis] (dim1) and the equal arc poloidal angle (dim2)
+    43 => :inverse_rhopol_polar, # Flux surface type with radial label sqrt[psi-psi_axis] (dim1) and the polar poloidal angle (dim2)
+    44 => :inverse_rhopol_straight_field_line_fourier, # Flux surface type with radial label sqrt[psi-psi_axis] (dim1) and Fourier modes in the straight-field line poloidal angle (dim2)
+    45 => :inverse_rhopol_equal_arc_fourier, # Flux surface type with radial label sqrt[psi-psi_axis] (dim1) and Fourier modes in the equal arc poloidal angle (dim2)
+    46 => :inverse_rhopol_polar_fourier, # Flux surface type with radial label sqrt[psi-psi_axis] (dim1) and Fourier modes in the polar poloidal angle (dim2)
+    51 => :inverse_rhotor_straight_field_line, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and the straight-field line poloidal angle (dim2)
+    52 => :inverse_rhotor_equal_arc, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and the equal arc poloidal angle (dim2)
+    53 => :inverse_rhotor_polar, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and the polar poloidal angle (dim2)
+    54 => :inverse_rhotor_straight_field_line_fourier, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and Fourier modes in the straight-field line poloidal angle (dim2)
+    55 => :inverse_rhotor_equal_arc_fourier, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and Fourier modes in the equal arc poloidal angle (dim2)
+    56 => :inverse_rhotor_polar_fourier, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and Fourier modes in the polar poloidal angle (dim2)
+    91 => :irregular_rz_na) # Irregular grid, thus give list of vertices in dim1(1:ndim1), dim2(1:ndim1) and then all fields are on values(1:ndim1,1)
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.equilibrium__time_slice___profiles_2d___grid_type}
+    return index_2_name__equilibrium__time_slice___profiles_2d___grid_type
+end
+
+const index_2_name__balance_of_plant__power_electric_plant_operation =
+    Dict((k - 1) => item for (k, item) in enumerate((:total, :HCD, :plant, :cryostat, :tritium_handling, :pumping, :pf_active)))
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:balance_of_plant__power_electric_plant_operation__system}
     return index_2_name__balance_of_plant__power_electric_plant_operation
 end
 
 """
-    name_2_index(ids::Union{IDS, IDSvector})
+    identifier_index(ids::IDS)
+
+Return ids.identifier.index`
+"""
+function identifier_index(ids::IDS; error_on_missing::Bool=true)
+    if :identifier in fieldnames(typeof(ids))
+        if hasdata(ids.identifier, :index) || error_on_missing
+            return ids.identifier.index
+        else
+            return nothing
+        end
+    elseif :index in fieldnames(typeof(ids))
+        if hasdata(ids, :index) || error_on_missing
+            return ids.index
+        else
+            return nothing
+        end
+    else
+        error("$(ulocation(ids)) does not have a `.identifier.index` or `.index` field.")
+    end
+end
+
+function identifier_index(ids::IDS, default::Int)
+    index = identifier_index(ids; error_on_missing=false)
+    if index === nothing
+        return default
+    else
+        return index
+    end
+end
+
+"""
+    identifier_name(ids::IDS)
+
+Return name (Symbol) based on ids.identifier.index`
+"""
+function identifier_name(ids::IDS; error_on_missing::Bool=true)
+    index = identifier_index(ids; error_on_missing)
+    if index === nothing
+        return nothing
+    end
+    name = get(index_2_name(ids), index, nothing)
+    if name === nothing
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
+    end
+    return name
+end
+
+function identifier_name(ids::IDS, default::Symbol)
+    name = identifier_name(ids; error_on_missing=false)
+    if name === nothing
+        return default
+    else
+        return name
+    end
+end
+
+"""
+    name_2_index(ids::Union{IDS,IDSvector})
 
 Return dict of name to IMAS indentifier.index
 """
@@ -193,7 +292,13 @@ NOTE: `error_multiple_matches` will delete all extra entries matching the condit
 
 Returns the selected IDS
 """
-function Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; wipe::Bool=true, error_multiple_matches::Bool=true)::T where {T<:IDSvectorElement}
+function Base.resize!(
+    @nospecialize(ids::IDSvector{T}),
+    identifier_name::Symbol,
+    conditions::Pair{String}...;
+    wipe::Bool=true,
+    error_multiple_matches::Bool=true
+)::T where {T<:IDSvectorElement}
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")

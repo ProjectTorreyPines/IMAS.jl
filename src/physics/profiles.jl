@@ -1,7 +1,7 @@
 """
     beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
 
-Normalised toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA] 
+Normalised toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA]
 """
 function beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
     return beta_tor(eq, cp1d; norm=true, thermal=true)
@@ -10,7 +10,7 @@ end
 """
     beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
 
-Normalised toroidal beta from total pressure, defined as 100 * beta_tor * a[m] * B0 [T] / ip [MA] 
+Normalised toroidal beta from total pressure, defined as 100 * beta_tor * a[m] * B0 [T] / ip [MA]
 """
 function beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
     return beta_tor(eq, cp1d; norm=true, thermal=false)
@@ -205,7 +205,8 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) / integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
+        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
+        integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = vacuum_r0_b0(eqt)
 
@@ -239,7 +240,8 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
     total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) / integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
+        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
+        integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = vacuum_r0_b0(eqt)
 
@@ -355,6 +357,8 @@ Generate H-mode density and temperature profiles evenly spaced in your favorite 
 :param width: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    @assert core >= 0.0
+
     xpsi = LinRange(0.0, 1.0, ngrid)
 
     w_E1 = 0.5 * widthp  # width as defined in eped
@@ -367,17 +371,116 @@ function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
     val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge + core * 0.0
 
     # core tanh+polynomial part
-    if core >= 0.0
-        xped = xphalf - w_E1
-        xtoped = xpsi ./ xped
-        for i in 1:ngrid
-            if xtoped[i] < 1.0
-                @inbounds val[i] += (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+    xped = xphalf - w_E1
+    xtoped = xpsi ./ xped
+    for i in 1:ngrid
+        if xtoped[i] < 1.0
+            @inbounds val[i] += (core - coretanh) * (1.0 - xtoped[i]^expin)^expout
+        end
+    end
+
+    return val
+end
+
+"""
+    Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+
+Generate H-mode density and temperature profiles evenly spaced in your favorite radial coordinate
+
+NOTE: The core value is allowed to float
+
+:param edge: separatrix height
+
+:param ped: pedestal height
+
+:param ngrid: number of radial grid points
+
+:param expin: inner core exponent for H-mode pedestal profile
+
+:param expout: outer core exponent for H-mode pedestal profile
+
+:param width: width of pedestal
+"""
+function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+
+    @assert expin >= 0.0
+    @assert expout >= 0.0
+
+    xpsi = LinRange(0.0, 1.0, ngrid)
+
+    w_E1 = 0.5 * widthp  # width as defined in eped
+    xphalf = 1.0 - w_E1
+    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
+
+    # edge tanh part
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge
+
+    # core tanh+polynomial part
+    xped = xphalf - w_E1
+    xtoped = xpsi ./ xped
+    integral = 0.0
+    factor = Inf
+    for i in ngrid:-1:1
+        if xtoped[i] < 1.0
+            @inbounds val[i] += integral
+            if i > 1
+                factor = min(factor, val[i])
+                xi = (xtoped[i] + xtoped[i-1]) / 2.0
+                dx = (xtoped[i] - xtoped[i-1])
+                if expin == 0.0
+                    v1 = 0.0
+                else
+                    v1 = expin * expout * xi^(expin - 1.0) * (1.0 - xi^expin)^(expout - 1.0)
+                end
+                integral += v1 * dx * factor
             end
         end
     end
 
     return val
+end
+
+"""
+    species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Symbol=:all, only_thermal_fast::Symbol=:all)
+
+Returns species index and names (followed by "_fast" if density_fast is present), for example:
+
+    (0, :electrons)
+    (0, :electrons_fast)
+    (1, :DT)
+    (2, :Kr83)
+    (3, :He4)
+    (1, :DT_fast)
+    (3, :He4_fast)
+"""
+function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Symbol=:all, only_thermal_fast::Symbol=:all)
+    @assert only_electrons_ions ∈ (:all, :electrons, :ions) "only_electrons_ions can be one of (:all, :electrons, :ions)"
+    @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
+    out = []
+    if only_electrons_ions ∈ (:all, :electrons)
+        if only_thermal_fast ∈ (:all, :thermal) && sum(cp1d.electrons.density_thermal) > 0.0
+            push!(out, (0, :electrons))
+        end
+        if only_thermal_fast ∈ (:all, :fast) && sum(cp1d.electrons.density_fast) > 0.0
+            push!(out, (0, :electrons_fast))
+        end
+    end
+    if only_electrons_ions ∈ (:all, :ions)
+        if only_thermal_fast ∈ (:all, :thermal)
+            dd_thermal = ((k, Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if sum(ion.density_thermal) > 0.0)
+            for item in dd_thermal
+                push!(out, item)
+            end
+        end
+        if only_thermal_fast ∈ (:all, :fast)
+            dd_fast = ((k, Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if sum(ion.density_fast) > 0.0)
+            for item in dd_fast
+                push!(out, item)
+            end
+        end
+    end
+    return out
 end
 
 """
@@ -422,15 +525,20 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
     end
     species_indx = findfirst(Symbol(ion.label) == species for ion in cp1d.ion)
     @assert species_indx !== nothing
-    cp1d.ion[species_indx].density_thermal = (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum(ion.density .* ion.z_ion for ion in cp1d.ion)) ./ cp1d.ion[species_indx].z_ion
+    return cp1d.ion[species_indx].density_thermal =
+        (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum(ion.density .* ion.z_ion for ion in cp1d.ion)) ./
+        cp1d.ion[species_indx].z_ion
 end
 
 """
     lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
 
-Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities 
+Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities
 """
-function lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}}, rho_tor_norm::Vector{<:T})::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where{T<:Real}
+function lump_ions_as_bulk_and_impurity(
+    ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}},
+    rho_tor_norm::Vector{<:T}
+)::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where {T<:Real}
     if length(ions) < 2
         error("lump_ions_as_bulk_and_impurity requires at least two ion species")
     end
@@ -497,14 +605,14 @@ end
 
 Returns average ionization state of an ion at a given temperature
 """
-function avgZ(Z::Float64, Ti::T,)::T where {T}
+function avgZ(Z::Float64, Ti::T)::T where {T}
     func = avgZinterpolator(joinpath(dirname(dirname(pathof(@__MODULE__))), "data", "Zavg_z_t.dat"))
     return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
 end
 
 Memoize.@memoize function avgZinterpolator(filename::String)
     txt = open(filename, "r") do io
-        strip(read(io, String))
+        return strip(read(io, String))
     end
 
     iion = Vector{Int}()

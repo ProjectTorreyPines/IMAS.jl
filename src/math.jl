@@ -23,7 +23,7 @@ function to_range(vector::AbstractVector{<:Real})
     if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
-    return range(vector[1], vector[end], length=N)
+    return range(vector[1], vector[end]; length=N)
 end
 
 function gradient(arr::AbstractVector; method::Symbol=:second_order)
@@ -33,29 +33,50 @@ end
 """
     gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real, A<:Real}
 
-Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
+Finite difference method of the gradient: [:third_order, :second_order, :central, :backward, :forward]
 
 The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 
 For `:central` the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries.
 
 For `:second_order` the gradient is computed using second order accurate central differences in the interior points, and 2nd order differences at the boundaries.
+
+For `:third_order` the gradient is computed from the cubic spline passing through the points
 """
 function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real,A<:Real}
-    @assert length(coord) == length(arr) "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $(length(arr)))"
+    grad = Array{promote_type(A, C)}(undef, length(arr))
+    return gradient!(grad, coord, arr; method)
+end
 
+"""
+    gradient!(grad::AbstractVector, coord::AbstractVector, arr::AbstractVector; method::Symbol=:second_order)
+
+In place version of gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:second_order)
+"""
+function gradient!(grad::Union{AbstractVector,SubArray{<:Real,1}}, coord::AbstractVector, arr::Union{AbstractVector,SubArray{<:Real,1}}; method::Symbol=:second_order)
     np = length(arr)
-    grad = Array{promote_type(A, C)}(undef, np)
+    @assert length(grad) == np "The length of your grad vector (length = $(length(grad))) is not equal to the length of your arr (length = $np)"
+    @assert length(coord) == np "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $np)"
 
-    if method != :second_order
+    if np < 3 && method == :second_order
+        method = :central
+    end
+
+    if method ∈ [:central, :backward, :forward]
         # Forward difference at the beginning
         grad[1] = (arr[2] - arr[1]) / (coord[2] - coord[1])
         # backward difference at the end
         grad[end] = (arr[end] - arr[end-1]) / (coord[end] - coord[end-1])
     end
 
-    # Central difference in interior using numpy method
-    if method in [:central, :second_order]
+    if method == :third_order
+        itp = DataInterpolations.CubicSpline(arr, coord)
+        for k in eachindex(arr)
+            grad[k] = DataInterpolations.derivative(itp, coord[k])
+        end
+
+    elseif method ∈ [:central, :second_order]
+        # Central difference in interior using numpy method
         for p in 2:np-1
             hs = coord[p] - coord[p-1]
             fs = arr[p-1]
@@ -87,14 +108,17 @@ function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symb
             ccd2 = c^2 / (c + d)^2
             grad[end] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
         end
+
     elseif method == :backward
         for p in 2:np-1
             grad[p] = (arr[p] - arr[p-1]) / (coord[p] - coord[p-1])
         end
+
     elseif method == :forward
         for p in 2:np-1
             grad[p] = (arr[p+1] - arr[p]) / (coord[p+1] - coord[p])
         end
+
     else
         error("difference method $(method) doesn't exist in gradient function")
     end
@@ -102,29 +126,49 @@ function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symb
     return grad
 end
 
-function gradient(arr::Matrix; method::Symbol=:second_order)
-    return gradient(1:size(arr)[1], 1:size(arr)[2], arr; method)
+function gradient(mat::Matrix; method::Symbol=:second_order)
+    return gradient(1:size(mat)[1], 1:size(mat)[2], mat; method)
+end
+
+function gradient(mat::Matrix, dim::Int; method::Symbol=:second_order)
+    return gradient(1:size(mat)[1], 1:size(mat)[2], mat, dim; method)
 end
 
 """
-    gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
+    gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix, dim::Int; method::Symbol=:second_order)
 
 Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
-Can apply to both dimensions (dim=0) or either the first (dim=1) or second (dim=2) dimension.
+
+Can be applied to either the first (dim=1) or second (dim=2) dimension
 """
-function gradient(coord1::AbstractVector, coord2::AbstractVector, arr::Matrix; method::Symbol=:second_order, dim::Int=0)
-    if dim ∈ (0, 1)
-        d1 = hcat(map(x -> gradient(coord1, x; method), eachcol(arr))...)
-        if dim == 1
-            return d1
+function gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix, dim::Int; method::Symbol=:second_order)
+    nrows, ncols = size(mat)
+    d = Matrix{eltype(mat)}(undef, nrows, ncols)
+    if dim == 1
+        for i in 1:ncols
+            gradient!(@views(d[:, i]), coord1, @views(mat[:, i]); method)
         end
-    end
-    if dim ∈ (0, 2)
-        d2 = transpose(hcat(map(x -> gradient(coord2, x; method), eachrow(arr))...))
-        if dim == 2
-            return d2
+        return d
+    elseif dim == 2
+        for i in 1:nrows
+            gradient!(@views(d[i, :]), coord2, @views(mat[i, :]); method)
         end
+        return d
+    else
+        throw(ArgumentError("dim should be either 1 or 2"))
     end
+end
+
+"""
+    gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix)
+
+Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
+
+Computes the gradient in both dimensions
+"""
+function gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix; method::Symbol=:second_order)
+    d1 = gradient(coord1, coord2, mat, 1; method)
+    d2 = gradient(coord1, coord2, mat, 2; method)
     return d1, d2
 end
 
@@ -176,7 +220,13 @@ end
 
 returns angles of intersections between two paths and intersection_indexes given by intersection() function
 """
-function intersection_angles(path1_r::AbstractVector{T}, path1_z::AbstractVector{T}, path2_r::AbstractVector{T}, path2_z::AbstractVector{T}, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:Real}
+function intersection_angles(
+    path1_r::AbstractVector{T},
+    path1_z::AbstractVector{T},
+    path2_r::AbstractVector{T},
+    path2_z::AbstractVector{T},
+    intersection_indexes::Vector{Tuple{Int,Int}}
+) where {T<:Real}
     n = length(intersection_indexes)
     angles = Vector{T}(undef, n)
 
@@ -214,10 +264,10 @@ function intersection(
     indexes = NTuple{2,Int}[]
     crossings = NTuple{2,T}[]
 
-    for k1 = 1:(length(l1_x)-1)
+    for k1 in 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
         s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
-        for k2 = 1:(length(l2_x)-1)
+        for k2 in 1:(length(l2_x)-1)
             s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
             crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
@@ -294,11 +344,11 @@ allowed between a point on the original line and its simplified representation.
 """
 function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
     n = length(x)
-    if n < 3 || n != length(y)
+    if n != length(y)
         error("Input arrays must have at least 3 elements and the same length")
     end
 
-    if n == 3
+    if n <= 3
         return x, y
     else
         # Find the point with the maximum distance from the line between the first and last points
@@ -429,8 +479,19 @@ function resample_2d_path(
         end
     end
 
+    # interpolate
     t = range(s[1], s[end]; length=n_points)
-    return interp1d(s, x, method).(t), interp1d(s, y, method).(t)
+    xi = interp1d(s, x, method).(t)
+    yi = interp1d(s, y, method).(t)
+
+    # if original path closed, make sure resampled path closes too
+    # independently of interpolation method used
+    if x[1] == x[end] && y[1] == y[end]
+        xi[end] = xi[1]
+        yi[end] = yi[1]
+    end
+
+    return xi, yi
 end
 
 """
@@ -565,12 +626,13 @@ Calculate the curvature of a 2D path defined by `pr` and `pz` using a finite dif
 The path is assumed to be closed if the first and last points are the same, and open otherwise.
 
 # Arguments
-- `pr`: Real abstract vector representing the r-coordinates of the path.
-- `pz`: Real abstract vector representing the z-coordinates of the path.
+
+  - `pr`: Real abstract vector representing the r-coordinates of the path.
+  - `pz`: Real abstract vector representing the z-coordinates of the path.
 
 # Returns
-- A vector of the same length as `pr` and `pz` with the calculated curvature values.
 
+  - A vector of the same length as `pr` and `pz` with the calculated curvature values.
 """
 function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     n = length(pr)
@@ -604,13 +666,10 @@ end
 
 Returns the gradient scale lengths of vector f on x
 
-NOTE: negative inverse scale length for typical density/temperature profiles
+NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
 function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
-    f[findall(ff -> (ff < 1e-32), f)] .= 1e-32
-    itp = DataInterpolations.CubicSpline(f, x)
-    g = [DataInterpolations.derivative(itp, x0) for x0 in x]
-    return g ./ f
+    return gradient(x, f; method=:third_order) ./ f
 end
 
 """
@@ -619,7 +678,7 @@ end
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    f = interp1d(rho, z_profile, :quadratic)
+    f = interp1d(rho, z_profile, :quadratic) # do not change this from being :quadratic
     profile_new = similar(rho)
     profile_new[end] = bc
     for i in length(rho)-1:-1:1
@@ -693,4 +752,44 @@ function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_point
     tmp .-= tmp[1]
     tmp ./= tmp[end]
     return interp1d(tmp, x).(LinRange(0.0, 1.0, n_points))
+end
+
+"""
+    chunk_indices(dims::Tuple{Vararg{Int}}, N::Int)
+
+Split the indices of an array with dimensions `dims` into `N` chunks of similar size.
+Each chunk is a generator of `CartesianIndex` objects.
+
+# Arguments
+
+  - `dims::Tuple{Vararg{Int}}`: A tuple specifying the dimensions of the array. For a 2D array, this would be `(rows, cols)`.
+  - `N::Int`: The number of chunks to split the indices into.
+
+# Returns
+
+  - Vector with chunks of cartesian indices. Each chunk can be iterated over to get the individual `CartesianIndex` objects.
+"""
+function chunk_indices(dims::Tuple{Vararg{Int}}, N::Int)
+    # Total number of elements
+    total_elements = prod(dims)
+
+    # Calculate chunk size
+    chunk_size, remainder = divrem(total_elements, N)
+
+    # Split indices into N chunks
+    chunks = []
+    start_idx = 1
+    for i in 1:N
+        end_idx = start_idx + chunk_size - 1
+        # Distribute the remainder among the first few chunks
+        if i <= remainder
+            end_idx += 1
+        end
+        chunk_1d = start_idx:end_idx
+        chunk_multi = (CartesianIndices(dims)[i] for i in chunk_1d)
+        push!(chunks, chunk_multi)
+        start_idx = end_idx + 1
+    end
+
+    return chunks
 end

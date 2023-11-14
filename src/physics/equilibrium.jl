@@ -208,19 +208,24 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
 end
 
 """
-    vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64})
+    vacuum_r0_b0_time(dd::IMAS.dd, time::Vector{Float64})
 
 Returns R0 and B0 interpolated at a given set of times
 """
-function vacuum_r0_b0_time(dd::IMAS.dd, time0::Vector{Float64})
-    R0, B0, time, source = vacuum_r0_b0_time(dd)
-    B0_interp = extrap1d(interp1d_itp(time, B0); first=:flat, last=:flat).(time0)
-    return R0, B0_interp
+function vacuum_r0_b0_time(dd::IMAS.dd, time::Vector{Float64})
+    R0, B0_, time_, source = vacuum_r0_b0_time(dd)
+    B0 = extrap1d(interp1d_itp(time_, B0_); first=:flat, last=:flat).(time)
+    return R0, B0
 end
 
+"""
+    vacuum_r0_b0_time(dd::IMAS.dd{T}, time0::Float64)::Tuple{T,T}
+
+Returns R0 and B0 interpolated at one time
+"""
 function vacuum_r0_b0_time(dd::IMAS.dd{T}, time0::Float64)::Tuple{T,T} where{T<:Real}
-    R0, B0_interp = vacuum_r0_b0_time(dd, [time0])
-    return R0, B0_interp[1]
+    R0, B0 = vacuum_r0_b0_time(dd, [time0])
+    return R0, B0[1]
 end
 
 """

@@ -10,23 +10,40 @@ import Measures
     plot_pf_active_cx(pfa::pf_active)
 
 Plots pf active cross-section
+
 NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
 """
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time=nothing, cname=:roma)
-    @assert typeof(time) <: Union{Nothing,Float64}
+@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time0=global_time(pfa), cname=:vik)
+    @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
 
-    if time === nothing
-        time = global_time(pfa)
+    if isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
+        currents = [0.0 for c in pfa.coil]
+    else
+        if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
+            index = 1
+        elseif pfa.coil[1].current.time[1] == -Inf
+            index = 2:length(pfa.coil[1].current.time)
+        else
+            index = 1:length(pfa.coil[1].current.time)
+        end
+
+        currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
+
+        CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
+        if maximum(currents) > 1e6
+            currents = currents ./ 1e6
+            CURRENT = CURRENT ./ 1e6
+            c_unit = "MA"
+        else
+            c_unit = "A"
+        end
     end
 
     if what ∈ (:cx, :coils_flux)
         label --> ""
         aspect --> :equal
-        colorbar_title --> "PF currents [A]"
-
-        currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
-        CURRENT = maximum(abs, currents)
+        colorbar_title --> "PF currents [$c_unit]"
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)
@@ -40,12 +57,12 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
         # plot individual coils
-        for c in pfa.coil
-            current_color_index = (get_time_array(c.current, :data, time) * c.element[1].turns_with_sign + CURRENT) / (2 * CURRENT)
+        for (k, c) in enumerate(pfa.coil)
             @series begin
                 if all(currents .== 0.0)
                     color --> :black
                 else
+                    current_color_index = (currents[k] + CURRENT) / (2 * CURRENT)
                     color --> PlotUtils.cgrad(cname)[current_color_index]
                 end
                 c
@@ -53,18 +70,17 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
     elseif what == :currents
-        label --> "$(get_time_array(pfa.coil[1].current, :time, time)) s"
-        currents = [get_time_array(c.current, :data, time) * c.element[1].turns_with_sign for c in pfa.coil]
+        label --> "$(time0) s"
         @series begin
             linestyle --> :dash
             marker --> :circle
-            ["$k" for k = 1:length(currents)], currents
+            ["$k" for k in 1:length(currents)], currents
         end
 
         Imax = []
         for c in pfa.coil
             if !ismissing(c.b_field_max_timed, :data)
-                b_max = get_time_array(c.b_field_max_timed, :data, time)
+                b_max = get_time_array(c.b_field_max_timed, :data, time0)
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
                 #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
@@ -79,12 +95,12 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             @series begin
                 marker --> :cross
                 label := "Max current"
-                ["$k" for k = 1:length(currents)], Imax
+                ["$k" for k in 1:length(currents)], Imax
             end
             @series begin
                 marker --> :cross
                 primary := false
-                ["$k" for k = 1:length(currents)], -Imax
+                ["$k" for k in 1:length(currents)], -Imax
             end
         end
 
@@ -275,12 +291,19 @@ end
     end
 
     @series begin
-        subplot := 1
+        if !cx
+            subplot := 1
+        end
         eqt.profiles_2d
     end
 
     if !cx
         coordinate := coordinate
+
+        if core_profiles_overlay
+            cp = top_dd(eqt).core_profiles
+            cp1d = top_dd(eqt).core_profiles.profiles_1d[argmin(abs.(cp.time .- eqt.time))]
+        end
 
         # pressure
         if !ismissing(eqt.profiles_1d, :pressure)
@@ -295,7 +318,6 @@ end
             end
         end
         if core_profiles_overlay
-            cp1d = top_dd(eqt).core_profiles.profiles_1d[eqt.time]
             if !ismissing(cp1d, :pressure)
                 @series begin
                     primary := false
@@ -325,7 +347,6 @@ end
             end
         end
         if core_profiles_overlay
-            cp1d = top_dd(eqt).core_profiles.profiles_1d[eqt.time]
             if !ismissing(cp1d, :pressure)
                 @series begin
                     primary := false
@@ -377,7 +398,6 @@ end
             end
         end
     end
-
 end
 
 @recipe function plot_eqt2dv(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
@@ -418,7 +438,8 @@ end
     # plot cx
     # handle psi levels
     psi__boundary_level = eqt.profiles_1d.psi[end]
-    tmp = find_psi_boundary(eqt, raise_error_on_not_open=false) # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    # do not trust eqt.profiles_1d.psi[end], and find boundary level that is closest to lcfs
+    tmp = find_psi_boundary(eqt; raise_error_on_not_open=false, raise_error_on_not_closed=false)
     if tmp !== nothing
         psi__boundary_level = tmp
     end
@@ -428,18 +449,18 @@ end
     else
         npsi = 11
         if psi_levels_in === nothing
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=npsi)
+            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=npsi)
         elseif isa(psi_levels_in, Int)
             if psi_levels_in > 1
                 npsi = psi_levels_in
-                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, length=psi_levels_in)
+                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=psi_levels_in)
             else
                 psi_levels_in = []
             end
         end
         delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
         if psi_levels_out === nothing
-            psi_levels_out = delta_psi .* range(0, 1, length=npsi) .+ psi__boundary_level
+            psi_levels_out = delta_psi .* range(0, 1; length=npsi) .+ psi__boundary_level
         elseif isa(psi_levels_out, Int)
             if psi_levels_out > 1
                 psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
@@ -637,7 +658,7 @@ Plot build cross-section
 
         # everything after first vacuum in _out_
         if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
-            for k in get_build_indexes(bd.layer, fs=_out_)[2:end]
+            for k in get_build_indexes(bd.layer; fs=_out_)[2:end]
                 if !wireframe
                     @series begin
                         seriestype --> :shape
@@ -649,7 +670,7 @@ Plot build cross-section
                             bd.layer[k].outline.r,
                             bd.layer[k].outline.z,
                             bd.layer[k-1].outline.r,
-                            bd.layer[k-1].outline.z,
+                            bd.layer[k-1].outline.z
                         )
                     end
                 end
@@ -666,7 +687,7 @@ Plot build cross-section
 
         # first vacuum in _out_
         if !wireframe
-            k = get_build_indexes(bd.layer, fs=_out_)[1]
+            k = get_build_indexes(bd.layer; fs=_out_)[1]
             @series begin
                 seriestype --> :shape
                 linewidth := 0.0
@@ -676,8 +697,8 @@ Plot build cross-section
                 join_outlines(
                     bd.layer[k].outline.r,
                     bd.layer[k].outline.z,
-                    get_build_layer(bd.layer, type=_plasma_).outline.r,
-                    get_build_layer(bd.layer, type=_plasma_).outline.z,
+                    get_build_layer(bd.layer; type=_plasma_).outline.r,
+                    get_build_layer(bd.layer; type=_plasma_).outline.z
                 )
             end
             @series begin
@@ -702,9 +723,9 @@ Plot build cross-section
 
         # all layers inside of the TF
         if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
-            for k in get_build_indexes(bd.layer, fs=_in_)
+            for k in get_build_indexes(bd.layer; fs=_in_)
                 layer = bd.layer[k]
-                if layer.material != "Vacuum"
+                if getproperty(layer, :material, "not_vacuum") != "Vacuum"
                     if !wireframe
                         @series begin
                             seriestype --> :shape
@@ -728,7 +749,7 @@ Plot build cross-section
         end
 
         # all layers between the OH and the plasma
-        for k in get_build_indexes(bd.layer, fs=_hfs_)
+        for k in get_build_indexes(bd.layer; fs=_hfs_)
             l = bd.layer[k]
             l1 = bd.layer[k+1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
@@ -786,7 +807,7 @@ Plot build cross-section
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                get_build_layer(bd.layer, type=_plasma_).outline.r, get_build_layer(bd.layer, type=_plasma_).outline.z
+                get_build_layer(bd.layer; type=_plasma_).outline.r, get_build_layer(bd.layer; type=_plasma_).outline.z
             end
         end
 
@@ -874,41 +895,54 @@ end
 # ========= #
 # transport #
 # ========= #
-@recipe function plot_core_transport(ct::IMAS.core_transport)
+@recipe function plot_core_transport(ct::IMAS.core_transport{D}; time0=global_time(ct)) where {D<:Real}
     model_type = name_2_index(ct.model)
+
+    rhos = D[]
+    for model in ct.model
+        if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
+            continue
+        end
+        append!(rhos, model.profiles_1d[].grid_flux.rho_tor_norm)
+    end
+    rhos = unique(rhos)
+
+    dd = top_dd(ct)
+    if dd !== nothing
+        @series begin
+            linewidth := 2
+            color := :blue
+            label := "Total source"
+            flux := true
+            total_sources(dd; time0)
+        end
+    end
+
+    @series begin
+        linewidth := 2
+        color := :red
+        label := "Total transport"
+        total_fluxes(ct, rhos; time0)
+    end
+
     for model in ct.model
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
         @series begin
             label := model.identifier.name
-            if model.identifier.index == model_type[:neoclassical]
-                markershape := :cross
-                color := :blue
-            elseif model.identifier.index == model_type[:anomalous]
+            if model.identifier.index == model_type[:anomalous]
                 markershape := :diamond
-                color := :red
+                markerstrokewidth := 0.5
+                linewidth := 0
+                color := :orange
+            elseif model.identifier.index == model_type[:neoclassical]
+                markershape := :cross
+                linewidth := 0
+                color := :purple
             end
-            model.profiles_1d[]
+            model.profiles_1d[time0]
         end
-    end
-
-    dd = top_dd(ct)
-    if dd !== nothing
-        @series begin
-            linewidth := 2
-            color := :green
-            label := "Total source"
-            flux := true
-            total_sources(dd)
-        end
-    end
-
-    @series begin
-        linewidth := 2
-        color := :black
-        label := "Total transport"
-        total_fluxes(ct)
     end
 end
 
@@ -987,36 +1021,72 @@ end
 # ======= #
 # sources #
 # ======= #
-@recipe function plot_core_sources(cs::IMAS.core_sources)
+@recipe function plot_core_sources(cs::IMAS.core_sources{T}; time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
+    @assert typeof(time0) <: Float64
+    @assert typeof(aggregate_radiation) <: Bool
+
     for source in cs.source
         @series begin
+            if aggregate_radiation
+                only_positive_negative := 1
+            end
             nozeros := true
+            time0 := time0
             source
         end
     end
 
     dd = top_dd(cs)
     if dd !== nothing
+
+        if aggregate_radiation
+            @series begin
+                rad_source = IMAS.core_sources__source{T}()
+                resize!(rad_source.profiles_1d, 1)
+                fill!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
+                rad_source.identifier.index = 200
+                rad_source.identifier.name = "radiation"
+                rad_source
+            end
+        end
+
         @series begin
             name := "total"
             linewidth := 2
             color := :black
-            total_sources(dd)
+            total_sources(dd; time0)
         end
     end
 end
 
-@recipe function plot_source(source::IMAS.core_sources__source)
+@recipe function plot_source(source::IMAS.core_sources__source; time0=global_time(source))
     @series begin
         name := source.identifier.name
-        source.profiles_1d[]
+        source.profiles_1d[time0]
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d; name="", label="", integrated=false, flux=false, only=nothing, nozeros=false, show_source_number=false)
+@recipe function plot_source1d(
+    cs1d::IMAS.core_sources__source___profiles_1d;
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    only=nothing,
+    show_zeros=false,
+    min_power=0.0,
+    only_positive_negative=0,
+    show_source_number=false
+)
     @assert typeof(name) <: AbstractString
     @assert typeof(integrated) <: Bool
+    @assert typeof(flux) <: Bool
     @assert typeof(label) <: Union{Nothing,AbstractString}
+    @assert typeof(show_zeros) <: Bool
+    @assert typeof(min_power) <: Float64
+    @assert typeof(only_positive_negative) <: Int
+    @assert typeof(show_source_number) <: Bool
+
     if label === nothing
         label = ""
     end
@@ -1033,31 +1103,47 @@ end
     end
 
     if parent(cs1d) !== nothing && parent(parent(cs1d)) !== nothing
-        idx = index(parent(parent(cs1d)))
+        source = parent(parent(cs1d))
+        idx = index(source)
         if show_source_number
             name = "[$idx] $name"
         end
     else
+        source = nothing
         idx = 1
     end
+    if source !== nothing
+        source_name = identifier_name(source)
+    else
+        source_name = :undefined
+    end
 
+    # electron energy
     if only === nothing || only == 1
+        tot = 0.0
+        if !ismissing(cs1d.electrons, :energy) && !flux
+            tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
+        end
+        show_condition =
+            flux || show_zeros || source_name == :collisional_equipartition || (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
         @series begin
             if only === nothing
                 subplot := 1
             end
-            color := idx
-            title := "Electron Energy"
-            tot = 0.0
-            if !ismissing(cs1d.electrons, :energy) && !flux
-                tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
-                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
+            if source_name == :collisional_equipartition
+                linestyle --> :dash
             end
-            if !nozeros || abs(tot) > 0.0
+            color := idx
+            title --> "Electron Energy"
+            if show_condition
+                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d.electrons, :power_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :energy)
+                    if source_name in [:ec, :ic, :lh, :nbi]
+                        fill0 --> true
+                    end
                     cs1d.electrons, :energy
                 elseif integrated && !ismissing(cs1d.electrons, :power_inside)
                     cs1d.electrons, :power_inside
@@ -1072,22 +1158,30 @@ end
         end
     end
 
+    # ion energy
     if only === nothing || only == 2
+        tot = 0.0
+        if !ismissing(cs1d, :total_ion_energy) && !flux
+            tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
+        end
+        show_condition = flux || show_zeros || abs(tot) > min_power
         @series begin
             if only === nothing
                 subplot := 2
             end
-            color := idx
-            title := "Ion Energy"
-            tot = 0.0
-            if !ismissing(cs1d, :total_ion_energy) && !flux
-                tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
-                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
+            if source_name == :collisional_equipartition
+                linestyle --> :dash
             end
-            if !nozeros || abs(tot) > 0.0
+            color := idx
+            title --> "Ion Energy"
+            if show_condition
+                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d, :total_ion_energy)
+                    if source_name in [:ec, :ic, :lh, :nbi]
+                        fill0 --> true
+                    end
                     cs1d, :total_ion_energy
                 elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
                     cs1d, :total_ion_power_inside
@@ -1102,23 +1196,28 @@ end
         end
     end
 
+    # particles
     if only === nothing || only == 3
+        tot = 0.0
+        if !ismissing(cs1d.electrons, :particles) && !flux
+            tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
+        end
+        show_condition = flux || show_zeros || abs(tot) > 0.0
         @series begin
             if only === nothing
                 subplot := 3
             end
             color := idx
-            title := "Electron Particle"
-            tot = 0.0
-            if !ismissing(cs1d.electrons, :particles) && !flux
-                tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
+            title --> "Electron Particle"
+            if show_condition
                 label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
-            end
-            if !nozeros || abs(tot) > 0.0
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :particles)
+                    if source_name in [:ec, :ic, :lh, :nbi]
+                        fill0 --> true
+                    end
                     cs1d.electrons, :particles
                 elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
                     cs1d.electrons, :particles_inside
@@ -1133,14 +1232,14 @@ end
         end
     end
 
-    # current or momentum (if plotting flux)
+    # current (or momentum, if plotting flux)
     if only === nothing || only == 4
         if flux
             if only === nothing
                 subplot := 4
             end
             color := idx
-            title := "Momentum Tor"
+            title --> "Momentum Tor"
             if !ismissing(cs1d, :torque_tor_inside)
                 label := :none
                 cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
@@ -1149,19 +1248,23 @@ end
                 [NaN], [NaN]
             end
         else
+            tot = 0.0
+            if !ismissing(cs1d, :j_parallel)
+                tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+            end
+            show_condition = flux || show_zeros || abs(tot) > 0.0
             @series begin
                 if only === nothing
                     subplot := 4
                 end
                 color := idx
-                title := "Parallel Current"
-                tot = 0.0
-                if !ismissing(cs1d, :j_parallel)
-                    tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+                title --> "Parallel Current"
+                if show_condition
                     label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
-                end
-                if !nozeros || abs(tot) > 0.0
                     if !integrated && !ismissing(cs1d, :j_parallel)
+                        if source_name in [:ec, :ic, :lh, :nbi]
+                            fill0 --> true
+                        end
                         cs1d, :j_parallel
                     elseif integrated && !ismissing(cs1d, :current_parallel_inside)
                         cs1d, :current_parallel_inside
@@ -1178,9 +1281,9 @@ end
     end
 end
 
-# ======== #
-# profiles #
-# ======== #
+# ============= #
+# core_profiles #
+# ============= #
 @recipe function plot_core_profiles(cp::IMAS.core_profiles)
     @series begin
         return cp.profiles_1d[]
@@ -1306,7 +1409,9 @@ end
 # =============== #
 # solid_mechanics #
 # =============== #
-@recipe function plot_solid_mechanics(stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises})
+@recipe function plot_solid_mechanics(
+    stress::Union{IMAS.solid_mechanics__center_stack__stress__hoop,IMAS.solid_mechanics__center_stack__stress__radial,IMAS.solid_mechanics__center_stack__stress__vonmises}
+)
     smcs = parent(parent(stress))
 
     r_oh = smcs.grid.r_oh
@@ -1569,30 +1674,18 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control, time::Float64)
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
+    @assert typeof(time0) <: Float64
     @series begin
         aspect_ratio := :equal
-        boundary(pc, time)
+        boundary(pc; time0)
     end
 end
 
-@recipe function plot_pc(pc::IMAS.pulse_schedule__position_control)
-    time = global_time(pc)
-    @series begin
-        pc, time
-    end
-end
-
-@recipe function plot_ps(ps::IMAS.pulse_schedule)
-    time = global_time(ps)
-    @series begin
-        ps, time
-    end
-end
-
-@recipe function plot_ps(ps::IMAS.pulse_schedule, time::Float64)
+@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
+    @assert typeof(time0) <: Float64
     plots = []
-    for (ids, field) in filled_ids_fields(ps; eval_expr=true)
+    for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
         if field != :data
             continue
         end
@@ -1618,6 +1711,8 @@ end
             else
                 plt[:label] = "$(path[end-2]) $(path[end-1])"
             end
+        elseif path[end-1] in ["power"]
+            plt[:label] = "$(path[end-2]) $(path[end-1])"
         else
             plt[:label] = path[end-1]
         end
@@ -1632,11 +1727,12 @@ end
         subplot := 1
         label := "$(time) [s]"
         aspect_ratio := :equal
-        ps.position_control, time
+        time0 := time0
+        ps.position_control
     end
 
     eqt = try
-        top_dd(ps).equilibrium.time_slice[time]
+        top_dd(ps).equilibrium.time_slice[time0]
     catch
         nothing
     end
@@ -1678,37 +1774,116 @@ end
             markerstrokewidth := 0.0
             title := nice_field(plt[:label])
             #link := :x
-            [time], interp1d(plt[:x], plt[:y]).([time])
+            [time0], interp1d(plt[:x], plt[:y]).([time0])
         end
     end
 end
+#= =========== =#
+#  controllers  #
+#= =========== =#
+@recipe function plot_controllers(controller_outputs::controllers__linear_controller___outputs)
+    controller = IMAS.parent(controller_outputs)
+
+    data = controller.inputs.data[1, :]
+    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in 1:length(controller.inputs.time)-1)
+    derivative = diff(data) ./ diff(controller.inputs.time)
+
+    @series begin
+        label := "PID"
+        color := :black
+        lw := 2
+        controller.outputs.time, controller.outputs.data[1, :]
+    end
+
+    @series begin
+        label := "P=$(controller.pid.p.data[1])"
+        controller.outputs.time, data .* controller.pid.p.data[1]
+    end
+
+    @series begin
+        label := "I=$(controller.pid.i.data[1])"
+        controller.outputs.time[2:end], integral .* controller.pid.i.data[1]
+    end
+
+    @series begin
+        label := "D=$(controller.pid.d.data[1])"
+        controller.outputs.time[2:end], derivative .* controller.pid.d.data[1]
+    end
+
+    @series begin
+        label := "PI"
+        controller.outputs.time[2:end], data[2:end] .* controller.pid.p.data[1] .+ integral .* controller.pid.i.data[1]
+    end
+
+    @series begin
+        label := "PID"
+        controller.outputs.time[2:end], data[2:end] .* controller.pid.p.data[1] .+ integral .* controller.pid.i.data[1] .+ derivative .* controller.pid.d.data[1]
+    end
+
+end
+
+@recipe function plot_controllers(controller_inputs::controllers__linear_controller___inputs)
+    controller = IMAS.parent(controller_inputs)
+    label = "P=$(controller.pid.p.data[1]), I=$(controller.pid.i.data[1]), D=$(controller.pid.d.data[1])"
+    @series begin
+        label := "$(controller.input_names[1]) ($label)"
+        controller.inputs.time, controller.inputs.data[1, :]
+    end
+end
+
+@recipe function plot_controllers(controller::controllers__linear_controller)
+    layout := (2, 1)
+    size --> (800, 600)
+    margin --> 5 * Measures.mm
+    @series begin
+        subplot := 1
+        controller.inputs
+    end
+    @series begin
+        subplot := 2
+        controller.outputs
+    end
+end
+
 
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing)
-
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing, weighted=:none, fill0=false)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
     @assert typeof(normalization) <: Real
     @assert typeof(coordinate) <: Union{Nothing,Symbol}
+    @assert typeof(weighted) <: Symbol
+    @assert typeof(fill0) <: Bool
 
     coords = coordinates(ids, field; coord_leaves=[coordinate])
     coordinate_name = coords.names[1]
     coordinate_value = coords.values[1]
 
-    @series begin
-        xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
-        ylabel --> nice_units(units(ids, field))
-        label --> nice_field(field)
+    xvalue = coordinate_value
+    yvalue = getproperty(ids, field) .* normalization
 
+    @series begin
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
         if endswith(coordinate_name, "_norm")
             xlim --> (0.0, 1.0)
         end
 
-        xvalue = coordinate_value
-        yvalue = getproperty(ids, field) .* normalization
+        # multiply y by things like `:area` or `:volume`
+        if weighted != :none
+            weight = coordinates(ids, field; coord_leaves=[weighted])
+            yvalue .*= weight.values[1]
+            ylabel = nice_units(units(ids, field) * "*" * units(weight.names[1]))
+            label = nice_field("$field*$weighted")
+        else
+            ylabel = nice_units(units(ids, field))
+            label = nice_field(field)
+        end
+
+        xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+        ylabel --> ylabel
+        label --> label
 
         # plot 1D Measurements with ribbon
         if (eltype(yvalue) <: Measurement) && !((eltype(xvalue) <: Measurement))
@@ -1718,6 +1893,24 @@ end
 
         xvalue, yvalue
     end
+    if fill0
+        @series begin
+            label := ""
+            primary := false
+            alpha := 0.25
+            fillrange := yvalue
+            xvalue, yvalue .* 0.0
+        end
+    end
+end
+
+@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurements.Measurement}, err::Symbol=:ribbon)
+    if err == :ribbon
+        ribbon := Measurements.uncertainty.(y)
+    elseif err == :bar
+        yerror := Measurements.uncertainty.(y)
+    end
+    return x, Measurements.value.(y)
 end
 
 #= ================== =#
@@ -1737,6 +1930,11 @@ function nice_field(field::AbstractString)
     else
         field = replace(field, r"_tor" => " toroidal")
         field = replace(field, r"_pol" => " poloidal")
+        field = replace(field, r"\bec\b" => "EC")
+        field = replace(field, r"\bic\b" => "IC")
+        field = replace(field, r"\blh\b" => "LH")
+        field = replace(field, r"\bnb\b" => "NB")
+        field = replace(field, r"\bnbi\b" => "NBI")
         if length(field) > 1
             field = uppercasefirst(replace(field, "_" => " "))
         end
@@ -1745,7 +1943,7 @@ function nice_field(field::AbstractString)
 end
 
 function nice_field(field::Symbol)
-    nice_field(String(field))
+    return nice_field(String(field))
 end
 
 function nice_units(units::String)

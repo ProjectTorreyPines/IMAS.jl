@@ -15,7 +15,7 @@ function build_radii(bd::IMAS.build)
 end
 
 function get_build(bd::IMAS.build; kw...)
-    get_build(bd.layer; kw...)
+    return get_build(bd.layer; kw...)
 end
 
 """
@@ -147,13 +147,13 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
-    rmask = range(xlim[1], xlim[2], length=ngrid)
-    zmask = range(ylim[1], ylim[2], length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    rmask = range(xlim[1], xlim[2]; length=ngrid)
+    zmask = range(ylim[1], ylim[2]; length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
     # start from the first vacuum that goes to zero outside of the TF
     start_from = -1
-    for k in get_build_indexes(bd.layer, fs=_out_)
+    for k in get_build_indexes(bd.layer; fs=_out_)
         if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
             start_from = k
             break
@@ -187,7 +187,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
             end
         end
     end
-    rlim_oh = get_build_layer(bd.layer, type=_oh_).start_radius
+    rlim_oh = get_build_layer(bd.layer; type=_oh_).start_radius
     for (kr, rr) in enumerate(rmask)
         for (kz, zz) in enumerate(zmask)
             if rr < rlim_oh
@@ -240,7 +240,7 @@ end
 Calculate area of a build layer outline
 """
 function area(layer::IMAS.build__layer)
-    func_nested_layers(layer, l -> area(l.outline.r, l.outline.z))
+    return func_nested_layers(layer, l -> area(l.outline.r, l.outline.z))
 end
 
 """
@@ -285,8 +285,7 @@ end
 """
     R_tf_ripple(r, ripple::Real, N_tf::Integer)
 
-Evaluate location of toroidal field coils outer leg `R_tf`` [m] at which `N_tf`
-toroidal field coils generate a given fraction of toroidal magnetic field ripple at `r` [m]
+Evaluate location of toroidal field coils outer leg `R_tf`` [m] at which `N_tf`toroidal field coils generate a given fraction of toroidal magnetic field ripple at`r` [m]
 """
 function R_tf_ripple(r, ripple::Real, N_tf::Integer)
     return r .* (ripple ./ (ripple .+ 1.0)) .^ (-1 / N_tf)
@@ -311,8 +310,8 @@ end
 Returns the plasma geometric center and the maximum vacuum toroidal magnetic field at the plasma geometric center that the TF build allows
 """
 function build_max_R0_B0(bd::IMAS.build)
-    TFhfs = get_build_layer(bd.layer, type=_tf_, fs=_hfs_)
-    plasma = get_build_layer(bd.layer, type=_plasma_)
+    TFhfs = get_build_layer(bd.layer; type=_tf_, fs=_hfs_)
+    plasma = get_build_layer(bd.layer; type=_plasma_)
     R0 = (plasma.start_radius + plasma.end_radius) / 2.0
     B0 = bd.tf.max_b_field / TFhfs.end_radius * R0
     return R0, B0
