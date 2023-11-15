@@ -1678,7 +1678,14 @@ end
     @assert typeof(time0) <: Float64
     @series begin
         aspect_ratio := :equal
+        label := ""
         boundary(pc; time0)
+    end
+    @series begin
+        seriestype := :scatter
+        primary := false
+        Xs = x_points(pc.x_point; time0)
+        [x[1] for x in Xs],[x[2] for x in Xs]
     end
 end
 
