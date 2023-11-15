@@ -439,10 +439,12 @@ end
         step::Float64=0.0,
         n_points::Integer=0,
         curvature_weight::Float64=0.0,
+        retain_extrema::Bool=false,
         method::Symbol=:cubic) where {T<:Real}
 
 Resample 2D line with uniform stepping (or number of points)
-and with option to add more points where curvature is highest
+with option to add more points where curvature is highest
+and option to retain extrema in x and y (in this case stepping is not constant anymore!)
 """
 function resample_2d_path(
     x::AbstractVector{T},
@@ -450,39 +452,51 @@ function resample_2d_path(
     step::Float64=0.0,
     n_points::Integer=0,
     curvature_weight::Float64=0.0,
+    retain_extrema::Bool=false,
     method::Symbol=:cubic) where {T<:Real}
 
-    s = similar(x)
-    s[1] = zero(T)
-    for i in 2:length(s)
+    t = similar(x)
+    t[1] = zero(T)
+    for i in 2:length(t)
         dx = x[i] - x[i-1]
         dy = y[i] - y[i-1]
-        s[i] = s[i-1] + sqrt(dx^2 + dy^2)
+        t[i] = t[i-1] + sqrt(dx^2 + dy^2)
     end
 
     if curvature_weight > 0.0
-        s0 = s[end]
-        s ./= s0
-        c = similar(s)
+        s0 = t[end]
+        t ./= s0
+        c = similar(t)
         c = abs.(curvature(x, y))
         c ./= maximum(c)
-        s .+= (c .* curvature_weight)
-        s ./= s[end]
-        s .*= s0
+        t .+= (c .* curvature_weight)
+        t ./= t[end]
+        t .*= s0
     end
 
     if n_points === 0
         if step !== 0.0
-            n_points = ceil(Int, s[end] / step)
+            n_points = ceil(Int, t[end] / step)
         else
             n_points = length(x)
         end
     end
 
     # interpolate
-    t = range(s[1], s[end]; length=n_points)
-    xi = interp1d(s, x, method).(t)
-    yi = interp1d(s, y, method).(t)
+    ti = range(t[1], t[end]; length=n_points)
+    xi = interp1d(t, x, method).(ti)
+    yi = interp1d(t, y, method).(ti)
+
+    # retain extrema in x and y
+    if retain_extrema
+        ti = collect(ti)
+        for k in (argmax(x), argmax(y), argmin(x), argmin(y))
+            index = argmin(abs.(ti .- t[k]))
+            ti[index] = t[k]
+            xi[index] = x[k]
+            yi[index] = y[k]
+        end
+    end
 
     # if original path closed, make sure resampled path closes too
     # independently of interpolation method used
