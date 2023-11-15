@@ -276,3 +276,18 @@ Beturns r,z vectors from pulse_schedule.position_control.equilibrium__time_slice
 function boundary(pc::IMAS.pulse_schedule__position_control; time0::Float64=global_time(pc))
     return boundary(pc, time0)
 end
+
+"""
+    x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__x_point{T}}; time0::Float64=global_time(x_points)) where {T<:Real}
+
+Beturns vector with tuples of R,Z coordinates of x-points in pulse_schedule at time0
+"""
+function x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__x_point{T}}; time0::Float64=global_time(x_points)) where {T<:Real}
+    x_points0 = Tuple{T,T}[]
+    for x_point in x_points
+        Rx = get_time_array(x_point.r.reference, :data, time0)
+        Zx = get_time_array(x_point.z.reference, :data, time0)
+        push!(x_points0, (Rx, Zx))
+    end
+    return x_points0
+end
