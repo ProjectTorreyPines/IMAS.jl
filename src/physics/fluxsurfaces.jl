@@ -259,8 +259,6 @@ end
 
 """
     find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation,r::T) where {T<:Real}
-    or
-    find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation,r::T) where {T<:AbstractVector{<:Real}}
 
     Returns ψ(r): the poloidal flux ψ of the flux surface that intersects the midplane at the coordinate r (major radius)
 """
@@ -907,7 +905,6 @@ end
 """
     find_x_point!(eqt::IMAS.equilibrium__time_slice)::eqt.boundary.x_point
 
-Firnd X-points on the last closed flux surface
 Find X-points on the last closed flux surface
 """
 function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}
