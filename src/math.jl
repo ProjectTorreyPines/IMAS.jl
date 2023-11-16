@@ -433,6 +433,27 @@ function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplificati
 end
 
 """
+    moving_average(data::Vector{<:Real}, window_size::Int)
+
+Calculate the moving average of a data vector using a specified window size.
+The window size is always rounded up to the closest odd number to maintain symmetry around each data point.
+"""
+function moving_average(data::Vector{<:Real}, window_size::Int)
+    smoothed_data = copy(data)
+    window_size = isodd(window_size) ? window_size : window_size + 1
+    pad_size = div(window_size - 1, 2)
+    if pad_size < 1
+        return smoothed_data
+    end
+    for i in eachindex(data)
+        window_start = max(1, i - pad_size)
+        window_end = min(length(data), i + pad_size)
+        smoothed_data[i] = sum(data[window_start:window_end]) / (window_end - window_start + 1)
+    end
+    return smoothed_data
+end
+
+"""
     resample_2d_path(
         x::AbstractVector{T},
         y::AbstractVector{T};
