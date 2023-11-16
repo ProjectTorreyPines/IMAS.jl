@@ -294,7 +294,7 @@ end
 
 function find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, r::T ) where {T<:AbstractVector{<:Real}}
     # if r is a vector
-    PSI = r*0.0 # initialize float
+    PSI = similar(r)
 
     for index in 1:length(PSI)
         
