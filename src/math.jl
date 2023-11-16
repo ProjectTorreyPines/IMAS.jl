@@ -528,6 +528,30 @@ function resample_2d_path(
 end
 
 """
+    resample_plasma_boundary(
+        x::AbstractVector{T},
+        y::AbstractVector{T};
+        step::Float64=0.0,
+        n_points::Integer=0,
+        curvature_weight::Float64=0.0,
+        retain_extrema::Bool=true,
+        method::Symbol=:linear) where {T<:Real}
+
+Like resample_2d_path but with retain_extrema=true and method=linear as defaults
+"""
+function resample_plasma_boundary(
+    x::AbstractVector{T},
+    y::AbstractVector{T};
+    step::Float64=0.0,
+    n_points::Integer=0,
+    curvature_weight::Float64=0.0,
+    retain_extrema::Bool=true,
+    method::Symbol=:linear) where {T<:Real}
+    x, y = resample_2d_path(x, y; step, n_points, curvature_weight, retain_extrema, method)
+    return x, y
+end
+
+"""
     minimum_distance_two_shapes(
         R_obj1::AbstractVector{<:T},
         Z_obj1::AbstractVector{<:T},
