@@ -297,7 +297,6 @@ function find_ψ_from_r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpol
     PSI = similar(r)
 
     for index in 1:length(PSI)
-        
         PSI[index] = find_ψ_from_r_midplane(eqt, PSI_interpolant, r[index])
 
     end
