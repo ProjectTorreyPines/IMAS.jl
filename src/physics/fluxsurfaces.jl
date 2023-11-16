@@ -357,7 +357,7 @@ end
 
 function find_r_midplane_from_ψ(eqt::IMAS.equilibrium__time_slice, psi::T) where {T<:AbstractVector{<:Real}}
     # if psi is a vector
-    R_midplane = psi*0.0
+    R_midplane = similar(psi)
     for index in 1:length(psi)
         R_midplane[index] = find_r_midplane_from_ψ(eqt,psi[index])
     end
