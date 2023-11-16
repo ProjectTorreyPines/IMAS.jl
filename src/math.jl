@@ -465,7 +465,7 @@ end
 
 Resample 2D line with uniform stepping (or number of points)
 with option to add more points where curvature is highest
-and option to retain extrema in x and y (in this case stepping is not constant anymore!)
+and option to retain extrema in x and y (in these cases stepping is not constant anymore!)
 """
 function resample_2d_path(
     x::AbstractVector{T},
@@ -484,15 +484,13 @@ function resample_2d_path(
         t[i] = t[i-1] + sqrt(dx^2 + dy^2)
     end
 
-    if curvature_weight > 0.0
-        s0 = t[end]
-        t ./= s0
-        c = similar(t)
-        c = abs.(curvature(x, y))
-        c ./= maximum(c)
-        t .+= (c .* curvature_weight)
-        t ./= t[end]
-        t .*= s0
+    if curvature_weight != 0.0
+        @assert 0.0 < curvature_weight < 1.0
+        c = moving_average(abs.(curvature(x, y)), Int(ceil(length(x) / 2.0 * (1.0 - curvature_weight))))
+        c = c ./ maximum(c)
+        c = cumsum((1.0 - curvature_weight) .+ c * curvature_weight)
+        #c = moving_average(c, Int(ceil(length(x) / 20)))
+        t = (c .- c[1]) ./ (c[end] - c[1]) .* (t[end] - t[1]) .+ t[1]
     end
 
     if n_points === 0
