@@ -761,16 +761,21 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         for k in reverse!(sort(i_x))
             deleteat!(eqt.boundary.x_point, k)
             deleteat!(psidist_lcfs_xpoints, k)
+            deleteat!(z_x,k)
         end
 
         # remove x-points that have fallen on the magnetic axis
         index = psidist_lcfs_xpoints .> -5E-3 # positive means outside of the lcfs
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
         eqt.boundary.x_point = eqt.boundary.x_point[index]
+        z_x = z_x[index]
 
         # sort a second time now by distance in psi
         index = sortperm(abs.(psidist_lcfs_xpoints))
         eqt.boundary.x_point = eqt.boundary.x_point[index]
+        z_x = z_x[index]
+        # save up to the x_point with Z coordinate opposite to first x point; note z_x.*z_x[1] is < 0 only in one x_point
+        eqt.boundary.x_point = eqt.boundary.x_point[1:argmin(z_x.*z_x[1])]
     end
 
     return eqt.boundary.x_point
