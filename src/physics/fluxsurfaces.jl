@@ -17,7 +17,7 @@ function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 end
 
 function ψ_interpolant(dd::IMAS.dd)
-    return ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[1])
 end
 
 """
@@ -149,7 +149,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpol
 end
 
 function find_psi_2nd_separatrix(dd::IMAS.dd)
-        rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+        rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[1])
     return find_psi_2nd_separatrix(dd.equilibrium.time_slice[],  PSI_interpolant)
 end
 
