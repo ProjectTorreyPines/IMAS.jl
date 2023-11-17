@@ -17,7 +17,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
     @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
 
-    if isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
+    if ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
     else
         if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
@@ -59,6 +59,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         # plot individual coils
         for (k, c) in enumerate(pfa.coil)
             @series begin
+                aspect_ratio --> :equal
                 if all(currents .== 0.0)
                     color --> :black
                 else
@@ -111,12 +112,13 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 end
 
 """
-    plot_coil_cx(coil::pf_active__coil; color = :gray)
+    plot_coil_cx(coil::pf_active__coil; color=:black, coil_names=false)
 
 Plots cross-section of individual coils
 """
-@recipe function plot_coil_cx(coil::pf_active__coil; color=:black)
+@recipe function plot_coil_cx(coil::pf_active__coil; color=:black, coil_names=false)
     @assert typeof(color) <: Symbol
+    @assert typeof(coil_names) <: Bool
 
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
@@ -139,6 +141,12 @@ Plots cross-section of individual coils
             color --> color
             label --> ""
             [-Δr, Δr, Δr, -Δr, -Δr] .+ r, [-Δz, -Δz, Δz, Δz, -Δz] .+ z
+        end
+        if coil_names
+            @series begin
+                series_annotations := [(coil.name, :center, :middle, :red, 6)]
+                [r], [z]
+            end
         end
     end
 end
@@ -1687,7 +1695,7 @@ end
         markerstrokewidth --> 0
         primary := false
         Xs = x_points(pc.x_point; time0)
-        [x[1] for x in Xs],[x[2] for x in Xs]
+        [x[1] for x in Xs], [x[2] for x in Xs]
     end
 end
 
