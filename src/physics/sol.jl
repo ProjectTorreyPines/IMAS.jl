@@ -8,7 +8,11 @@ struct OpenFieldLine
     pitch::Vector{Float64}
     s::Vector{Float64}
     midplane_index::Int
-    strike_angles::Vector{Float64}
+    strike_angles::Vector{Float64}      # angle in radiants between flux surface and the wall; poloidal angle
+    pitch_angles::Vector{Float64}       # angle in radiants between B and Btoroidal; atan(Bp/Bt)
+    grazing_angles::Vector{Float64}     # angle in radiants between B and the wall; grazing angle
+    F::Vector{Float64}                  # Total flux expansion
+    f::Vector{Float64}                  # Poloidal flux expansion
 end
 
 @recipe function plot_ofl(ofl::OpenFieldLine)
@@ -103,11 +107,18 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             Br, Bz = Br_Bz(PSI_interpolant, rr, zz)
             Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
             Bt = abs.(B0 .* R0 ./ rr)
+            B = sqrt.(Bp.^2+Bt.^2) 
             dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0)
             pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2)
             s = cumsum(pitch .* dp)
             s = abs.(s .- s[midplane_index])
 
+            # Parameters to map heat flux from OMP to wall
+            pitch_angles = atan.(Bp,Bt)
+            grazing_angles = asin.( sin.([pitch_angles[1], pitch_angles[end]]) .* sin.(strike_angles) )
+            F = B[midplane_index]./B # total flux expansion -  F(r,z) =  Bomp / B(r,z) [magentic flux conservation]
+            f = F.*rr[midplane_index]./rr.*sin(pitch_angles[midplane_index])./sin.(pitch_angles) # poloidal flux expansion
+            
             # select HFS or LFS and add line to the list 
             if rr[midplane_index] < RA 
                 # Add SOL surface in OFL_hfs
@@ -121,7 +132,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                     OFL = OFL_lfs_far
                 end
             end
-            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles))
+            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, F, f)) # add result
         end
     end
     OFL = OrderedCollections.OrderedDict( :hfs     => OFL_hfs,
