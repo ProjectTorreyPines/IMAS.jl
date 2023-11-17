@@ -21,11 +21,15 @@ end
     end
 end
 
-@recipe function plot_OFL(OFL_hfs_lfs::Tuple{Vector{OpenFieldLine},Vector{OpenFieldLine}})
-    for OFL in OFL_hfs_lfs
-        @series begin
-            OFL
-        end
+@recipe function plot_OFL(OFL_hfs_lfs_lfsfar::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}})
+    @series begin
+        OFL_hfs_lfs_lfsfar[:hfs]
+    end
+    @series begin
+        OFL_hfs_lfs_lfsfar[:lfs]
+    end
+    @series begin
+        OFL_hfs_lfs_lfsfar[:lfs_far]
     end
 end
 
@@ -70,8 +74,11 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         levels = psi__boundary_level .+ levels .* abs(psi_wall_midplane - psi__boundary_level)
     end
 
-    OFL_hfs = OpenFieldLine[]
-    OFL_lfs = OpenFieldLine[]
+    OFL_hfs     = OpenFieldLine[]      # field lines magnetically isolated from OMP
+    OFL_lfs     = OpenFieldLine[]      # field lines magnetically connected to OMP inside  last diverted flux surface
+    OFL_lfs_far = OpenFieldLine[]      # field lines magnetically connected to OMP outside last diverted flux surface
+    # TO DO for the future: insert private flux regions (upper and lower)
+
     for level in levels
         lines = flux_surface(eqt, level, false)
         for (r, z) in lines
@@ -101,16 +108,26 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             s = cumsum(pitch .* dp)
             s = abs.(s .- s[midplane_index])
 
-            # select HFS or LFS and add line to the list
-            if rr[midplane_index] < RA
-                OFL = OFL_hfs
+            # select HFS or LFS and add line to the list 
+            if rr[midplane_index] < RA 
+                # Add SOL surface in OFL_hfs
+                OFL = OFL_hfs # surfaces magnetically isolated from OMP
             else
-                OFL = OFL_lfs
+                if zz[1]*zz[end] > 0 # z cordinate have same sign 
+                    # Add SOL surface in OFL_lfs
+                    OFL = OFL_lfs
+                else
+                    # Add SOL surface in OFL_lfs_far
+                    OFL = OFL_lfs_far
+                end
             end
             push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles))
         end
     end
-    return OFL_hfs, OFL_lfs
+    OFL = OrderedCollections.OrderedDict( :hfs     => OFL_hfs,
+                                          :lfs     => OFL_lfs,
+                                          :lfs_far => OFL_lfs_far)
+    return OFL
 end
 
 function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20)
