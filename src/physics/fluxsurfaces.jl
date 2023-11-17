@@ -154,6 +154,39 @@ function find_psi_2nd_separatrix(dd::IMAS.dd)
 end
 
 """
+r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation; dim::Int64=1000)
+   
+Returns the interpolants r_mid(ψ) to compute the r at the midplane of the flux surface identified by ψ
+
+"""
+
+function r_midplane(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation; dim::Int64=1000)
+    @assert dim > 1 #check that dim is greater than 1
+
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
+    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+    rmax = eqt.profiles_2d[1].grid.dim1[end] # maximum point in R of the grid of psi
+    psi_separatrix = find_psi_boundary(eqt) # psi on separatrix
+    # compute (r,z) of open surface with psi = psi_separatrix;
+    surface   = flux_surface(eqt, psi_separatrix, true)
+    ind, crossings = intersection([RA, 20], [ZA, ZA], surface[1], surface[2]) #cross surface with OMP - segment from RA to 100 m
+    r_separatrix = crossings[1][1]
+
+    # discretize midplane
+    R = collect(LinRange(r_separatrix-0.01,r_separatrix+0.1,dim)) # near lcfs be more dense [sep-1cm, sep+10cm]
+    R = vcat(R, collect(LinRange(R[end]+0.0001, rmax, dim))) # less dense up to rmax
+    psi = PSI_interpolant.(R,ZA.*ones(2*dim)) # compute psi at those locations
+    r_mid = Interpolations.linear_interpolation(psi,R) # interpolant r_mid(ψ)
+
+    return r_mid
+end
+
+function r_midplane(dd::IMAS.dd; dim::Int64=1000)
+    r, z, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[1])
+    return r_midplane(dd.equilibrium.time_slice[], PSI_interpolant; dim)
+end
+
+"""
     flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities in the equilibrium IDS
