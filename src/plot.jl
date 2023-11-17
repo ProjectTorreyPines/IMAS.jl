@@ -43,10 +43,10 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
     if what ∈ (:cx, :coils_flux)
         label --> ""
         aspect --> :equal
-        colorbar_title --> "PF currents [$c_unit]"
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)
+            colorbar_title --> "PF currents [$c_unit]"
             @series begin
                 seriestype --> :scatter
                 color --> cname
