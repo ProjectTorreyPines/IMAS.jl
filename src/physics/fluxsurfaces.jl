@@ -669,7 +669,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
     empty!(eqt.boundary.x_point)
 
     dist_lcfs_xpoints = Float64[]
-    z_xpoints = Float64[]
     for (pr, pz) in private
         if sign(pz[1] - Z0) != sign(pz[end] - Z0)
             # open flux surface does not encicle the plasma
@@ -687,7 +686,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
         eqt.boundary.x_point[end].r = pr[index]
         eqt.boundary.x_point[end].z = pz[index]
-        push!(z_xpoints, eqt.boundary.x_point[end].z) # save Z coordinate of x-point
 
         # record the distance from this x-point to the separatrix
         indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
