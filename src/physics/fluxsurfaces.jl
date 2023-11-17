@@ -133,6 +133,27 @@ function find_psi_boundary(
 end
 
 """
+    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation) 
+
+    Returns psi of the second magentic separatrix. This relies on the fact that find_x_points! saves the x points in such a way 
+    that the last one is the null with Z opposite to the first x point which is the closest in psi to the lcfs
+
+"""
+function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation) 
+    # This relies on the fact that find_x_points! saves the x points in such a way that the last one
+    # is the null with Z opposite to the first x point which is the closest in psi to the lcfs
+    
+    psi_2nd_separatix = PSI_interpolant.(eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z) # psi of second separatrix
+
+    return psi_2nd_separatix
+end
+
+function find_psi_2nd_separatrix(dd::IMAS.dd)
+        rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return find_psi_2nd_separatrix(dd.equilibrium.time_slice[],  PSI_interpolant)
+end
+
+"""
     flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
 
 Update flux surface averaged and geometric quantities in the equilibrium IDS
