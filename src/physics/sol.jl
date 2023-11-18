@@ -290,28 +290,6 @@ function identify_strike_surface(ofl::OpenFieldLine, divertors::IMAS.divertors)
 end
 
 """
-    flux_expansion(OFL::Vector{OpenFieldLine})
-
-Returns the λq_target/λq_omp ratio
-"""
-function flux_expansion(OFL::Vector{OpenFieldLine})
-    sol1 = OFL[1]
-    sol2 = OFL[2]
-    tmp = Float64[]
-    for strike_index in (1, 2)
-        if strike_index == 1
-            strike_index1 = 1
-            strike_index2 = 1
-        else
-            strike_index1 = length(sol1.r)
-            strike_index2 = length(sol2.r)
-        end
-        push!(tmp, sqrt((sol2.r[strike_index2] - sol1.r[strike_index1])^2 + (sol2.z[strike_index2] - sol1.z[strike_index1])^2) / (sol2.r[sol2.midplane_index] - sol1.r[sol1.midplane_index]))
-    end
-    return tmp
-end
-
-"""
     divertor_totals_from_targets(divertor::IMAS.divertors__divertor, field::Symbol)
 
 Returns time dependent vectors of :field summed over all divertor targets
