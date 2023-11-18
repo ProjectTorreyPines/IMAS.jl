@@ -226,7 +226,7 @@ function intersection_angles(
     path2_r::AbstractVector{T},
     path2_z::AbstractVector{T},
     intersection_indexes::Vector{Tuple{Int,Int}};
-    mod_pi::Bool=true 
+    mod_pi::Bool=true
 ) where {T<:Real}
     n = length(intersection_indexes)
     angles = Vector{T}(undef, n)
