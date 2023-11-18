@@ -668,8 +668,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
     Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
 
-    dist_lcfs_xpoints = Float64[]
-    z_xpoints = Float64[]
     for (pr, pz) in private
         if sign(pz[1] - Z0) != sign(pz[end] - Z0)
             # open flux surface does not encicle the plasma
@@ -687,28 +685,18 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         resize!(eqt.boundary.x_point, length(eqt.boundary.x_point) + 1)
         eqt.boundary.x_point[end].r = pr[index]
         eqt.boundary.x_point[end].z = pz[index]
-        push!(z_xpoints, eqt.boundary.x_point[end].z) # save Z coordinate of x-point
 
-        # record the distance from this x-point to the separatrix
-        indexcfs = argmin((rlcfs .- pr[index]) .^ 2 .+ (zlcfs .- pz[index]) .^ 2)
-        dr = (pr[index] - rlcfs[indexcfs]) / 2.0
-        dz = (pz[index] - zlcfs[indexcfs]) / 2.0
-        push!(dist_lcfs_xpoints, sqrt(dr^2 + dz^2))
     end
 
     # if only one x-point is found, then look on the other side of the magnetic axis to find the other one
-    if length(dist_lcfs_xpoints) == 1
+    if length(eqt.boundary.x_point) == 1
         push!(eqt.boundary.x_point, deepcopy(eqt.boundary.x_point[1]))
         eqt.boundary.x_point[2].z = -(eqt.boundary.x_point[2].z - eqt.global_quantities.magnetic_axis.z) + eqt.global_quantities.magnetic_axis.z
-        push!(dist_lcfs_xpoints, dist_lcfs_xpoints[1])
     end
 
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
 
-    if !isempty(dist_lcfs_xpoints)
-        # sort x-point by distance from lcfs and pick only the first n_xpoints
-        index = sortperm(dist_lcfs_xpoints)
-        eqt.boundary.x_point = eqt.boundary.x_point[index]
+    if !isempty(eqt.boundary.x_point)
 
         # refine x-points location and re-sort
         psidist_lcfs_xpoints = Float64[]
@@ -726,12 +714,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             # record the distance from this x-point to the separatrix
             push!(psidist_lcfs_xpoints, PSI_interpolant(x_point.r, x_point.z)[1] - psi_separatrix)
 
-            # stop when current x-point flips sign with respect to first x-point
-            # NOTE: this is to define the flux surface that determines the heat flux on the secondary divertor
-            if sign(x_point.z) != sign(eqt.boundary.x_point[1].z)
-                eqt.boundary.x_point = eqt.boundary.x_point[1:k]
-                break
-            end
         end
 
         # find distances among pairs of x-points (d_x) and record which one is closest to each (i_x)
@@ -774,8 +756,9 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         index = sortperm(abs.(psidist_lcfs_xpoints))
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
-        # save up to the x_point with Z coordinate opposite to first x point; note z_x.*z_x[1] is < 0 only in one x_point
-        eqt.boundary.x_point = eqt.boundary.x_point[1:argmin(z_x.*z_x[1])]
+        # save up to the x_point with Z coordinate opposite to first x point
+        # save up to first index where z_x.*z_x[1].<0 is 1 
+        eqt.boundary.x_point = eqt.boundary.x_point[1:argmax(z_x.*z_x[1].<0)]
     end
 
     return eqt.boundary.x_point
