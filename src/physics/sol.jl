@@ -46,13 +46,13 @@ end
 end
 
 """
-    sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}, levels::Union{Int,AbstractVector=20) where {T<:Real}
+    sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true) where {T<:Real}
 
 Returns vectors of hfs and lfs OpenFieldLine
 
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
-function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20, no_wall::Bool=false) where {T<:Real}
+function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true) where {T<:Real}
     ############ 
     R0, B0 = vacuum_r0_b0(eqt)
     RA = eqt.global_quantities.magnetic_axis.r
@@ -60,7 +60,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     ############
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
-    r_mid_itp = interp_rmid_at_psi(eqt, PSI_interpolant) # interpolant to find r at outer midplane of a flux surface of known psi (valid only for :lfs and :lfs_far)
     crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
@@ -68,17 +67,17 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     # find psi at second magnetic separatrix 
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
-    if no_wall
-        # SOL without wall
-        psi_wall_midplane = maximum(psi_sign .* eqt.profiles_2d[1].psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
-        psi__boundary_level = minimum(psi_sign .* eqt.profiles_2d[1].psi)
-        null_is_inside = true
-    else
+    if use_wall
         # SOL with wall
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
         psi_last_diverted, null_is_inside = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
+    else
+        # SOL without wall
+        psi_wall_midplane = maximum(psi_sign .* eqt.profiles_2d[1].psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        psi__boundary_level = minimum(psi_sign .* eqt.profiles_2d[1].psi)
+        null_is_inside = true
     end
     ############
 
@@ -111,21 +110,26 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     OFL_lfs_far = OpenFieldLine[] # field lines magnetically connected to OMP outside last diverted flux surface
     # TO DO for the future: insert private flux regions (upper and lower)
 
+    # r_mid(ψ) interpolator for region of interest
+    r_mid_of_interest = 10.0 .^ LinRange(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_wall_midplane), 1000)
+    r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
+
     for level in levels
         lines = flux_surface(eqt, level, false) #returns (r,z) of surfaces with psi = level
         for (r, z) in lines
-            if no_wall
-                # SOL without wall
-                rr = r
-                zz = z
-                strike_angles = [NaN, NaN]
-            else
+            if use_wall
                 # SOL with wall
-                rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA) # returns poloidal angles of each surface
+                # returns poloidal angles of each surface
                 # rr and zz are clockwise
                 # crossing points with wall = (rr[1], zz[1]) (rr[end], zz[end])
                 # this is the order at which angles are computed (strike, pitch and grazing)
                 # Example - OFL[2].[1<n<length(levels)].strike_angle[1] is computed at (rr[1], zz[1])
+                rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+            else
+                # SOL without wall
+                rr = r
+                zz = z
+                strike_angles = [NaN, NaN]
             end
             if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
                 continue
@@ -181,12 +185,12 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     return OrderedCollections.OrderedDict(:hfs => OFL_hfs, :lfs => OFL_lfs, :lfs_far => OFL_lfs_far)
 end
 
-function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, no_wall::Bool=false)
-    return sol(eqt, first_wall(wall).r, first_wall(wall).z; levels, no_wall)
+function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
+    return sol(eqt, first_wall(wall).r, first_wall(wall).z; levels, use_wall)
 end
 
-function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, no_wall::Bool=false)
-    return sol(dd.equilibrium.time_slice[], dd.wall; levels, no_wall)
+function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
+    return sol(dd.equilibrium.time_slice[], dd.wall; levels, use_wall)
 end
 
 """

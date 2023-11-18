@@ -179,24 +179,28 @@ function find_psi_last_diverted(
     Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
     sign_z = sign(Xpoint2[2]) # sign of Z coordinate of 2nd null
 
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # psi second magnetic separatrix
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
-    # inteprolant for inverse function of PSI_interpolant(r,ZA)
-    r_mid_itp = interp_rmid_at_psi(eqt, PSI_interpolant)
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # psi second magnetic separatrix
 
     # intersect 2nd separatrix with wall, and look 
     surface = flux_surface(eqt, psi_2ndseparatrix * 1.0001, false)
     r_intersect = Float64[]
     z_intersect = Float64[]
+    r_max = 0.0
     for (r, z) in surface
-        rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+        rr, zz, _ = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
         if isempty(rr)
             continue
         end
         # save intersections with wall 
         push!(r_intersect, rr[1], rr[end])
         push!(z_intersect, zz[1], zz[end])
+        r_max = max(r_max, maximum(r))
     end
+
+    # r_mid(ψ) interpolator for region of interest
+    r_mid_of_interest = 10.0 .^ LinRange(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
+    r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
     # take intersections above midplane
     r_intersect = r_intersect[z_intersect.>ZA]
@@ -210,13 +214,13 @@ function find_psi_last_diverted(
     vec = [diff(r_intersect)[1], diff(z_intersect)[1]]
     vec2 = Xpoint2 - [r_intersect[1], z_intersect[1]]
     if vec[1] * vec2[2] - vec[2] * vec2[1] > 0
-        #upper null on the left = is outside wall
+        # upper null on the left = is outside wall
         null_is_inside = false
     else
-        #upper null on the right = is inside wall
+        # upper null on the right = is inside wall
         null_is_inside = true
     end
-    # find the two surfaces psi_up (inside OFL[:lfs_far])  and psi_low (inside OFL[:lfs]) around the last diverted flux surface
+    # find the two surfaces psi_up (inside OFL[:lfs_far]) and psi_low (inside OFL[:lfs]) around the last diverted flux surface
     counter_max = 50
     counter = 0
     psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
@@ -273,34 +277,14 @@ function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7)
 end
 
 """
-    interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation; n_points::Int64=1000)
+    interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{<:Real})
 
-Returns the interpolants r_mid(ψ) to compute the r at the midplane of the flux surface identified by ψ
+Returns the interpolant r_mid(ψ) to compute the r at the midplane of the flux surface identified by ψ
+
+The vector `R` defines the sampling of interest for thie interpolation
 """
-function interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation; n_points::Int64=1000)
-    @assert n_points > 1
-
-    RA = eqt.global_quantities.magnetic_axis.r
-    ZA = eqt.global_quantities.magnetic_axis.z
-
-    rmax = eqt.profiles_2d[1].grid.dim1[end] # maximum point in R of the grid of psi
-    psi_separatrix = find_psi_boundary(eqt) # psi on separatrix
-
-    # compute (r,z) of open surface with psi = psi_separatrix;
-    surface = flux_surface(eqt, psi_separatrix, true)
-    ind, crossings = intersection([RA, RA * 10.0], [ZA, ZA], surface[1], surface[2]) # cross surface with OMP - segment from RA to 100 m
-    r_separatrix = crossings[1][1]
-
-    # discretize midplane
-    R = LinRange(r_separatrix - 0.01, r_separatrix + 0.1, n_points) # near lcfs be more dense [sep-1cm, sep+10cm]
-    R = vcat(R, LinRange(R[end], rmax, n_points+1)[2:end]) # less dense up to rmax
-    psi = PSI_interpolant.(R, ZA .* ones(2 * n_points)) # compute psi at those locations
-    return Interpolations.cubic_interpolation(psi, R) # interpolant r_mid(ψ)
-end
-
-function interp_rmid_at_psi(dd::IMAS.dd; n_points::Int64=1000)
-    r, z, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[1])
-    return interp_rmid_at_psi(dd.equilibrium.time_slice[], PSI_interpolant; n_points)
+function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{T}, ZA::T) where {T<:Real}
+    return Interpolations.cubic_interpolation(PSI_interpolant.(R, R .* 0.0 .+ ZA), R)
 end
 
 """
