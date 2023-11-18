@@ -55,12 +55,12 @@ If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane.
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20, no_wall::Bool=false) where {T<:Real}
     ############ 
     R0, B0 = vacuum_r0_b0(eqt)
-    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
-    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
 
     ############
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
-    r_mid = r_midplane(eqt, PSI_interpolant) # interpolant to find r at outer midplane of a flux surface of known psi (valid only for :lfs and :lfs_far)
+    r_mid_itp = interp_rmid_at_psi(eqt, PSI_interpolant) # interpolant to find r at outer midplane of a flux surface of known psi (valid only for :lfs and :lfs_far)
     crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
@@ -81,7 +81,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         psi_last_diverted, null_is_inside = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
     end
     ############
-    # pack points near lcfs
+
+    # pack more points near lcfs
     if typeof(levels) <: Int
         levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
 
@@ -94,7 +95,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         end
 
     else
-
         #levels is a vector of psi_levels for the discretization of the SOL
         @assert levels[1] >= psi__boundary_level
         @assert levels[end] <= psi_wall_midplane
@@ -104,11 +104,11 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
         levels[1] = psi__boundary_level + psi_sign * 0.00001 * abs(psi__boundary_level) # if psi = psi__boundary_level, flux_surface does not work
         levels[end] = psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane)
-
     end
-    OFL_hfs = OpenFieldLine[]      # field lines magnetically isolated from OMP
-    OFL_lfs = OpenFieldLine[]      # field lines magnetically connected to OMP inside  last diverted flux surface
-    OFL_lfs_far = OpenFieldLine[]      # field lines magnetically connected to OMP outside last diverted flux surface
+
+    OFL_hfs = OpenFieldLine[] # field lines magnetically isolated from OMP
+    OFL_lfs = OpenFieldLine[] # field lines magnetically connected to OMP inside  last diverted flux surface
+    OFL_lfs_far = OpenFieldLine[] # field lines magnetically connected to OMP outside last diverted flux surface
     # TO DO for the future: insert private flux regions (upper and lower)
 
     for level in levels
@@ -165,7 +165,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 OFL = OFL_hfs # surfaces magnetically isolated from OMP
             else
                 # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
-                rr[midplane_index] = r_mid(level)
+                rr[midplane_index] = r_mid_itp(level)
                 if zz[1] * zz[end] > 0 # z cordinate have same sign 
                     # Add SOL surface in OFL_lfs
                     OFL = OFL_lfs
@@ -177,10 +177,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, F, f)) # add result
         end
     end
-    OFL = OrderedCollections.OrderedDict(:hfs => OFL_hfs,
-        :lfs => OFL_lfs,
-        :lfs_far => OFL_lfs_far)
-    return OFL
+
+    return OrderedCollections.OrderedDict(:hfs => OFL_hfs, :lfs => OFL_lfs, :lfs_far => OFL_lfs_far)
 end
 
 function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, no_wall::Bool=false)
@@ -195,10 +193,10 @@ end
     line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
 
 Returns r, z coordinates of open field line contained within wall, as well as angles of incidence at the strike locations
+
 RA and ZA are the coordinate of the magnetic axis
 """
 function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
-
     indexes, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
     # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"
     # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
@@ -275,6 +273,7 @@ end
     identify_strike_surface(ofl::OpenFieldLine, divertors::IMAS.divertors)
 
 Returns vector of two tuples with three integers each, identifying the indexes of the divertor/target/tile that the field line intersections
+
 When a field line does not intersect a divertor target, then the tuple returned is (0, 0, 0)
 """
 function identify_strike_surface(ofl::OpenFieldLine, divertors::IMAS.divertors)
