@@ -284,7 +284,7 @@ Returns the interpolant r_mid(ψ) to compute the r at the midplane of the flux s
 The vector `R` defines the sampling of interest for thie interpolation
 """
 function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{T}, ZA::T) where {T<:Real}
-    return Interpolations.cubic_interpolation(PSI_interpolant.(R, R .* 0.0 .+ ZA), R)
+    return interp1d(PSI_interpolant.(R, R .* 0.0 .+ ZA), R, :cubic)
 end
 
 """
