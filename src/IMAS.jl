@@ -22,10 +22,15 @@ include("constants.jl")
 include("math.jl")
 include("extract.jl")
 include("get_from.jl")
+
 #= ======= =#
 #= PHYSICS =#
 #= ======= =#
 include("physics.jl")
+
+#= =========== =#
+#= EXPRESSIONS =#
+#= =========== =#
 include(joinpath(["expressions", "onetime.jl"]))
 include(joinpath(["expressions", "dynamic.jl"]))
 

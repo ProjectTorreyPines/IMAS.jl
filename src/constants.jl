@@ -167,12 +167,23 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.equilibrium__ti
     return index_2_name__equilibrium__time_slice___profiles_2d___grid_type
 end
 
+const index_2_name__pf_active__coil___function = Dict(
+    0 => :flux, # Generate flux (drive toroidal current)
+    1 => :b_field_shaping, # Generate magnetic field for shaping
+    2 => :b_field_fb) # Generate magnetic field for vertical force balance
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.pf_active__coil___function}
+    return index_2_name__pf_active__coil___function
+end
+
 const index_2_name__balance_of_plant__power_electric_plant_operation =
     Dict((k - 1) => item for (k, item) in enumerate((:total, :HCD, :plant, :cryostat, :tritium_handling, :pumping, :pf_active)))
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:balance_of_plant__power_electric_plant_operation__system}
     return index_2_name__balance_of_plant__power_electric_plant_operation
 end
+
+# ============= #
 
 """
     identifier_index(ids::IDS)

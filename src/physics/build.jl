@@ -316,4 +316,3 @@ function build_max_R0_B0(bd::IMAS.build)
     B0 = bd.tf.max_b_field / TFhfs.end_radius * R0
     return R0, B0
 end
-
