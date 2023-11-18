@@ -60,6 +60,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     ############
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
+    r_mid = r_midplane(eqt,PSI_interpolant) # interpolant to find r at outer midplane of a flux surface of known psi (valid only for :lfs and :lfs_far)
     crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
     psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
@@ -119,7 +120,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             end
 
             # add a point exactly at the (preferably outer) midplane
-            crossing_index, crossings = intersection([minimum(wall_r), maximum(wall_r)], [ZA, ZA], rr, zz)
+            crossing_index, crossings = intersection([0, maximum(wall_r)*1.5], [ZA, ZA], rr, zz)
             r_midplane = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
             z_midplane = [cr[2] for cr in crossings] # Z coordinate of points in SOL surface at MP (inner and outer)
             outer_index = argmax(r_midplane)  #index of point @ MP: this is OMP (for OFL_lfs); IMP for OFL_hfs
@@ -151,6 +152,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 # Add SOL surface in OFL_hfs
                 OFL = OFL_hfs # surfaces magnetically isolated from OMP
             else
+                # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
+                rr[midplane_index] = r_mid(level)
                 if zz[1]*zz[end] > 0 # z cordinate have same sign 
                     # Add SOL surface in OFL_lfs
                     OFL = OFL_lfs
