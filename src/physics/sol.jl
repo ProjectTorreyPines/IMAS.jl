@@ -8,11 +8,11 @@ struct OpenFieldLine
     pitch::Vector{Float64}
     s::Vector{Float64}
     midplane_index::Int
-    strike_angles::Vector{Float64}      # angle in radiants between flux surface and the wall; poloidal angle
-    pitch_angles::Vector{Float64}       # angle in radiants between B and Btoroidal; atan(Bp/Bt)
-    grazing_angles::Vector{Float64}     # angle in radiants between B and the wall; grazing angle
-    F::Vector{Float64}                  # Total flux expansion
-    f::Vector{Float64}                  # Poloidal flux expansion
+    strike_angles::Vector{Float64}           # Angle in radiants between flux surface and the wall; poloidal angle
+    pitch_angles::Vector{Float64}            # Angle in radiants between B and Btoroidal; atan(Bp/Bt)
+    grazing_angles::Vector{Float64}          # Angle in radiants between B and the wall; grazing angle
+    total_flux_expansion::Vector{Float64}    # Total flux expansion
+    poloidal_flux_expansion::Vector{Float64} # Poloidal flux expansion
 end
 
 @recipe function plot_ofl(ofl::OpenFieldLine)
@@ -80,11 +80,16 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     end
     ############
 
-    # pack more points near lcfs
-    if typeof(levels) <: Int
-        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
+    # smart picking of psi levels
+    if levels == 1
+        levels = [psi__boundary_level + psi_sign .* 1E-3]
 
+    elseif levels == 2
+        levels = [psi__boundary_level + psi_sign .* 1E-3, psi__2nd_separatix]
+
+    elseif typeof(levels) <: Int
         if null_is_inside
+            levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
             levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix + psi_sign * 0.0001 * abs(psi__2nd_separatix)# make sure 2nd separatrix is in levels
         else
             indexx = argmin(abs.(levels .- psi_last_diverted[1]))
@@ -159,8 +164,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             # Parameters to map heat flux from OMP to wall
             pitch_angles = atan.(Bp, Bt)
             grazing_angles = asin.(sin.([pitch_angles[1], pitch_angles[end]]) .* sin.(strike_angles))
-            F = B[midplane_index] ./ B # total flux expansion -  F(r,z) =  Bomp / B(r,z) [magentic flux conservation]
-            f = F .* rr[midplane_index] ./ rr .* sin(pitch_angles[midplane_index]) ./ sin.(pitch_angles) # poloidal flux expansion
+            total_flux_expansion = B[midplane_index] ./ B # total flux expansion(r,z) =  Bomp / B(r,z) [magentic flux conservation]
+            poloidal_flux_expansion = total_flux_expansion .* rr[midplane_index] ./ rr .* sin(pitch_angles[midplane_index]) ./ sin.(pitch_angles) # poloidal flux expansion
 
             # select HFS or LFS and add line to the list 
             if rr[midplane_index] < RA
@@ -177,7 +182,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                     OFL = OFL_lfs_far
                 end
             end
-            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, F, f)) # add result
+            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)) # add result
         end
     end
 
