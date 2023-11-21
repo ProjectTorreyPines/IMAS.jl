@@ -60,8 +60,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     ############
     r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
-    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
-    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
     # find psi at second magnetic separatrix 
@@ -76,6 +74,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     else
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt.profiles_2d[1].psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        r_wall_midplane = eqt.profiles_2d[1].grid.dim1[end] # if no wall, take max R in psi grid
         psi__boundary_level = minimum(psi_sign .* eqt.profiles_2d[1].psi)
         null_is_inside = true
     end
