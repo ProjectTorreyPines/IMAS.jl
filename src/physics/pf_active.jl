@@ -24,7 +24,7 @@ Returns true/false if coil is part of the OH
 """
 function is_ohmic_coil(coil::IMAS.pf_active__coil)
     if isempty(coil.function)
-        error("`$(location(coil)).function` is not set. You may need to run `IMAS.set_pf_active_function(dd.pf_active)`.")
+        error("`$(location(coil)).function` is not set. You may need to run `IMAS.set_coils_function(dd.pf_active)`.")
     end
     return findfirst(:flux, coil.function) !== nothing
 end
