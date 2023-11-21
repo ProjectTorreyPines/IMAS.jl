@@ -16,6 +16,10 @@ function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     end
 end
 
+function ψ_interpolant(dd::IMAS.dd)
+    return ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[1])
+end
+
 """
     Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
 
@@ -65,6 +69,10 @@ function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64
     R0 = eqt.global_quantities.magnetic_axis.r
     Z0 = eqt.global_quantities.magnetic_axis.z
     return find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; precision, raise_error_on_not_open, raise_error_on_not_closed)
+end
+
+function find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
+    return find_psi_boundary(dd.equilibrium.time_slice[]; precision, raise_error_on_not_open, raise_error_on_not_closed)
 end
 
 function find_psi_boundary(
@@ -122,6 +130,161 @@ function find_psi_boundary(
     end
 
     return error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
+end
+
+"""
+    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation) 
+
+    Returns psi of the second magentic separatrix. This relies on the fact that find_x_points! saves the x points in such a way 
+    that the last one is the null with Z opposite to the first x point which is the closest in psi to the lcfs
+"""
+function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation)
+    # This relies on the fact that find_x_points! saves the x points in such a way that the last one
+    # is the null with Z opposite to the first x point which is the closest in psi to the lcfs
+
+    psi_2nd_separatix = PSI_interpolant.(eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z) # psi of second separatrix
+
+    return psi_2nd_separatix
+end
+
+function find_psi_2nd_separatrix(dd::IMAS.dd)
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[1])
+    return find_psi_2nd_separatrix(dd.equilibrium.time_slice[], PSI_interpolant)
+end
+
+"""
+    find_psi_last_diverted(
+        eqt::IMAS.equilibrium__time_slice,
+        wall_r::Vector{<:Real},
+        wall_z::Vector{<:Real},
+        PSI_interpolant::Interpolations.AbstractInterpolation;
+        precision::Float64=1e-7)
+
+Returns `[psi_low, psi_up], null_is_inside` of the two flux surfaces around the last diverted flux surface.
+
+psi_up will be the first surface inside OFL[:lfs_far]; psi_low will be the last surface inside OFL[:lfs]
+
+Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_up and psi_low ~ 0)
+"""
+function find_psi_last_diverted(
+    eqt::IMAS.equilibrium__time_slice,
+    wall_r::Vector{<:Real},
+    wall_z::Vector{<:Real},
+    PSI_interpolant::Interpolations.AbstractInterpolation;
+    precision::Float64=1e-7)
+
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+
+    Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
+    sign_z = sign(Xpoint2[2]) # sign of Z coordinate of 2nd null
+
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # psi second magnetic separatrix
+
+    # intersect 2nd separatrix with wall, and look 
+    surface = flux_surface(eqt, psi_2ndseparatrix * 1.0001, false)
+    r_intersect = Float64[]
+    z_intersect = Float64[]
+    r_max = 0.0
+    for (r, z) in surface
+        rr, zz, _ = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+        if isempty(rr)
+            continue
+        end
+        # save intersections with wall 
+        push!(r_intersect, rr[1], rr[end])
+        push!(z_intersect, zz[1], zz[end])
+        r_max = max(r_max, maximum(r))
+    end
+
+    # r_mid(ψ) interpolator for region of interest
+    r_mid_of_interest = 10.0 .^ LinRange(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
+    r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
+
+    # take intersections above midplane
+    r_intersect = r_intersect[z_intersect.>ZA]
+    z_intersect = z_intersect[z_intersect.>ZA]
+    order = sortperm(r_intersect)
+    z_intersect = z_intersect[order]
+    r_intersect = r_intersect[order]
+
+    # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
+    # This is an approximation (should work except for exotic walls)
+    vec = [diff(r_intersect)[1], diff(z_intersect)[1]]
+    vec2 = Xpoint2 - [r_intersect[1], z_intersect[1]]
+    if vec[1] * vec2[2] - vec[2] * vec2[1] > 0
+        # upper null on the left = is outside wall
+        null_is_inside = false
+    else
+        # upper null on the right = is inside wall
+        null_is_inside = true
+    end
+    # find the two surfaces psi_up (inside OFL[:lfs_far]) and psi_low (inside OFL[:lfs]) around the last diverted flux surface
+    counter_max = 50
+    counter = 0
+    psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_sign = sign(psi_separatrix - psi_axis_level) # sign of the poloidal flux taking psi_axis = 0
+    psi_wall = PSI_interpolant.(wall_r, wall_z)
+    if psi_sign > 0
+        psi_up = minimum([psi_2ndseparatrix + psi_sign, maximum(psi_wall) * 0.999]) # increase value just to be sure of being inside OFL[:lfs_far]
+    else
+        psi_up = maximum([psi_2ndseparatrix + psi_sign, minimum(psi_wall) * 1.001]) # increase value just to be sure of being inside OFL[:lfs_far]
+    end
+
+    psi_low = psi_separatrix
+    psi = (psi_up + psi_low) / 2
+    err = 1
+    while abs(err) > precision && counter < counter_max
+        surface = flux_surface(eqt, psi, false)
+        for (r, z) in surface
+            rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+
+            if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
+                continue
+            end
+
+            if sign_z * zz[1] > 0 || sign_z * zz[end] > 0
+                # psi intersects FW -> update upper bound
+                psi_up = psi
+            else
+                #psi intersects divertor -> update lower bound
+                psi_low = psi
+            end
+        end
+
+        # better to compute error on poloidal area between [psi_low, psi_up] (needed for accurate power balance)
+        r_up = r_mid_itp(psi_up)
+        r_low = r_mid_itp(psi_low)
+
+        A = π * (r_up^2 - r_low^2) # annular area between r_up and r_low [m^2] 
+        err = abs(A)
+        psi = (psi_up + psi_low) / 2
+
+        counter = counter + 1
+    end
+
+    return [psi_low, psi_up], null_is_inside # return both psi_up and psi_low to increase resolution around last diverted flux surface
+end
+
+function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
+    return find_psi_last_diverted(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant; precision)
+end
+
+function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7)
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d[])
+    return find_psi_last_diverted(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant; precision)
+end
+
+"""
+    interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{<:Real})
+
+Returns the interpolant r_mid(ψ) to compute the r at the midplane of the flux surface identified by ψ
+
+The vector `R` defines the sampling of interest for thie interpolation
+"""
+function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{T}, ZA::T) where {T<:Real}
+    return interp1d(PSI_interpolant.(R, R .* 0.0 .+ ZA), R, :cubic)
 end
 
 """
@@ -743,7 +906,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         for k in reverse!(sort(i_x))
             deleteat!(eqt.boundary.x_point, k)
             deleteat!(psidist_lcfs_xpoints, k)
-            deleteat!(z_x,k)
+            deleteat!(z_x, k)
         end
 
         # remove x-points that have fallen on the magnetic axis
@@ -758,7 +921,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         z_x = z_x[index]
         # save up to the x_point with Z coordinate opposite to first x point
         # save up to first index where z_x.*z_x[1].<0 is 1 
-        eqt.boundary.x_point = eqt.boundary.x_point[1:argmax(z_x.*z_x[1].<0)]
+        eqt.boundary.x_point = eqt.boundary.x_point[1:argmax(z_x .* z_x[1] .< 0)]
     end
 
     return eqt.boundary.x_point
