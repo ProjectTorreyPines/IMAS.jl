@@ -59,7 +59,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     ZA = eqt.global_quantities.magnetic_axis.z
 
     ############
-    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
     # find psi at second magnetic separatrix 
@@ -73,9 +74,9 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         psi_last_diverted, null_is_inside = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
     else
         # SOL without wall
-        psi_wall_midplane = maximum(psi_sign .* eqt.profiles_2d[1].psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
-        r_wall_midplane = eqt.profiles_2d[1].grid.dim1[end] # if no wall, take max R in psi grid
-        psi__boundary_level = minimum(psi_sign .* eqt.profiles_2d[1].psi)
+        psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
+        psi__boundary_level = minimum(psi_sign .* eqt2d.psi)
         null_is_inside = true
     end
     ############
@@ -341,7 +342,7 @@ end
 Poloidal magnetic field magnitude evaluated at the outer midplane
 """
 function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
-    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d)
     eq1d = eqt.profiles_1d
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z

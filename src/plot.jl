@@ -479,10 +479,11 @@ end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
+    # eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     # @series begin
     #     seriestype --> :contour
     #     levels --> psi_levels
-    #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
+    #     eqt2d.grid.dim1, eqt2d.grid.dim2, transpose(eqt2d.psi)
     # end
     for psi_level in psi_levels
         for (pr, pz) in flux_surface(eqt, psi_level, nothing)

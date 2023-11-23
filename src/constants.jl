@@ -161,9 +161,10 @@ const index_2_name__equilibrium__time_slice___profiles_2d___grid_type = Dict(
     54 => :inverse_rhotor_straight_field_line_fourier, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and Fourier modes in the straight-field line poloidal angle (dim2)
     55 => :inverse_rhotor_equal_arc_fourier, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and Fourier modes in the equal arc poloidal angle (dim2)
     56 => :inverse_rhotor_polar_fourier, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and Fourier modes in the polar poloidal angle (dim2)
+    57 => :inverse_rhotor_mxh, # Flux surface type with radial label sqrt[Phi/pi/B0] (dim1), Phi being toroidal flux, and MXH coefficients R0, Z0, ϵ, κ, c0, c[...], s[...] describing each flux surface (dim2)
     91 => :irregular_rz_na) # Irregular grid, thus give list of vertices in dim1(1:ndim1), dim2(1:ndim1) and then all fields are on values(1:ndim1,1)
 
-function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.equilibrium__time_slice___profiles_2d___grid_type}
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.equilibrium__time_slice___profiles_2d}
     return index_2_name__equilibrium__time_slice___profiles_2d___grid_type
 end
 
@@ -186,14 +187,20 @@ end
 # ============= #
 
 """
-    identifier_index(ids::IDS)
+    identifier_index(@nospecialize(ids::IDS); error_on_missing::Bool=true)
 
 Return ids.identifier.index`
 """
-function identifier_index(ids::IDS; error_on_missing::Bool=true)
+function identifier_index(@nospecialize(ids::IDS); error_on_missing::Bool=true)
     if :identifier in fieldnames(typeof(ids))
         if hasdata(ids.identifier, :index) || error_on_missing
             return ids.identifier.index
+        else
+            return nothing
+        end
+    elseif :grid_type in fieldnames(typeof(ids))
+        if hasdata(ids.grid_type, :index) || error_on_missing
+            return ids.grid_type.index
         else
             return nothing
         end
@@ -204,11 +211,11 @@ function identifier_index(ids::IDS; error_on_missing::Bool=true)
             return nothing
         end
     else
-        error("$(ulocation(ids)) does not have a `.identifier.index` or `.index` field.")
+        error("$(ulocation(ids)) does not have a `.index` field")
     end
 end
 
-function identifier_index(ids::IDS, default::Int)
+function identifier_index(@nospecialize(ids::IDS), default::Int)
     index = identifier_index(ids; error_on_missing=false)
     if index === nothing
         return default
@@ -218,11 +225,11 @@ function identifier_index(ids::IDS, default::Int)
 end
 
 """
-    identifier_name(ids::IDS)
+    identifier_name(@nospecialize(ids::IDS); error_on_missing::Bool=true)
 
-Return name (Symbol) based on ids.identifier.index`
+Return name (Symbol) based on `index` of `index_2_name(ids)`
 """
-function identifier_name(ids::IDS; error_on_missing::Bool=true)
+function identifier_name(@nospecialize(ids::IDS); error_on_missing::Bool=true)
     index = identifier_index(ids; error_on_missing)
     if index === nothing
         return nothing
@@ -234,7 +241,7 @@ function identifier_name(ids::IDS; error_on_missing::Bool=true)
     return name
 end
 
-function identifier_name(ids::IDS, default::Symbol)
+function identifier_name(@nospecialize(ids::IDS), default::Symbol)
     name = identifier_name(ids; error_on_missing=false)
     if name === nothing
         return default
@@ -244,25 +251,27 @@ function identifier_name(ids::IDS, default::Symbol)
 end
 
 """
-    name_2_index(ids::Union{IDS,IDSvector})
+    name_2_index(@nospecialize(ids::Union{IDS,IDSvector}))
 
 Return dict of name to IMAS indentifier.index
 """
-function name_2_index(ids::Union{IDS,IDSvector})
+function name_2_index(@nospecialize(ids::Union{IDS,IDSvector}))
     return Dict(v => k for (k, v) in index_2_name(ids))
 end
 
 """
-    findfirst(identifier_name::Symbol, ids::IDSvector)
+    findfirst(identifier_name::Symbol, @nospecialize(ids::IDSvector))
 
-Return item from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
+Return item from IDSvector based on `index` of `index_2_name(ids)`
 """
-function Base.findfirst(identifier_name::Symbol, ids::IDSvector)
+function Base.findfirst(identifier_name::Symbol, @nospecialize(ids::IDSvector))
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
     elseif :identifier in fieldnames(eltype(ids))
         index = findfirst(idx -> idx.identifier.index == i, ids)
+    elseif :grid_type in fieldnames(eltype(ids))
+        index = findfirst(idx -> idx.grid_type.index == i, ids)
     else
         index = findfirst(idx -> idx.index == i, ids)
     end
@@ -274,16 +283,18 @@ function Base.findfirst(identifier_name::Symbol, ids::IDSvector)
 end
 
 """
-    findall(identifier_name::Symbol, ids::IDSvector)
+    findall(identifier_name::Symbol, @nospecialize(ids::IDSvector))
 
-Return items from IDSvector based on `ids.identifier.index` of `index_2_name(ids)`
+Return items from IDSvector based on `index` of `index_2_name(ids)`
 """
-function Base.findall(identifier_name::Symbol, ids::IDSvector)
+function Base.findall(identifier_name::Symbol, @nospecialize(ids::IDSvector))
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
     elseif :identifier in fieldnames(eltype(ids))
         indexes = findall(idx -> idx.identifier.index == i, ids)
+    elseif :grid_type in fieldnames(eltype(ids))
+        indexes = findall(idx -> idx.grid_type.index == i, ids)
     else
         indexes = findall(idx -> idx.index == i, ids)
     end
@@ -291,9 +302,15 @@ function Base.findall(identifier_name::Symbol, ids::IDSvector)
 end
 
 """
-    Base.resize!(@nospecialize(ids::IDSvector{T}), identifier_name::Symbol, conditions::Pair{String}...; wipe::Bool=true, error_multiple_matches::Bool=true)::T where {T<:IDSvectorElement}
+    resize!(
+        @nospecialize(ids::IDSvector{T}),
+        identifier_name::Symbol,
+        conditions::Pair{String}...;
+        wipe::Bool=true,
+        error_multiple_matches::Bool=true
+    )::T where {T<:IDSvectorElement}
 
-Resize ids if `identifier_name` is not found based on `ids.identifier.index` of `index_2_name(ids)` and a set of conditions are not met.
+Resize ids if `identifier_name` is not found based on `index` of `index_2_name(ids)` and a set of conditions are not met.
 
 If wipe=true and an entry matching the condition is found, then the content of the matching IDS is emptied.
 
@@ -315,15 +332,17 @@ function Base.resize!(
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
     elseif :identifier in fieldnames(eltype(ids))
         return resize!(ids, "identifier.index" => i, conditions...; wipe, error_multiple_matches)
+    elseif :grid_type in fieldnames(eltype(ids))
+        return resize!(ids, "grid_type.index" => i, conditions...; wipe, error_multiple_matches)
     else
         return resize!(ids, "index" => i, conditions...; wipe, error_multiple_matches)
     end
 end
 
 """
-    Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol)::T where {T<:IDSvector}
+    deleteat!(@nospecialize(ids::T), identifier_name::Symbol, conditions::Pair{String}...)::T where {T<:IDSvector}
 
-Deletes all entries that match based on `ids.identifier.index` of `index_2_name(ids)`
+Deletes all entries that match based on `index` of `index_2_name(ids)`
 """
 function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol, conditions::Pair{String}...)::T where {T<:IDSvector}
     i = get(name_2_index(ids), identifier_name, nothing)
@@ -331,6 +350,8 @@ function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol, conditio
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
     elseif :identifier in fieldnames(eltype(ids))
         return deleteat!(ids, "identifier.index" => i, conditions...)
+    elseif :grid_type in fieldnames(eltype(ids))
+        return deleteat!(ids, "grid_type.index" => i, conditions...)
     else
         return deleteat!(ids, "index" => i, conditions...)
     end
