@@ -921,8 +921,9 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             deleteat!(z_x, k)
         end
 
-        # remove x-points that have fallen on the magnetic axis
-        index = psidist_lcfs_xpoints .> -5E-3 # positive means outside of the lcfs
+
+        # remove x-points that have fallen on the magnetic axis 
+        index = psidist_lcfs_xpoints .>= psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
