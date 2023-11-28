@@ -110,17 +110,17 @@ const index_2_name__stability__model = Dict(
     0 => :force_fail, # Instantly causes the actor to fail
     # 100s: Beta Limit Models
     101 => :beta_troyon_1984, # Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
-    102 => :beta_troyon_1985, # Beta limit defined by
-    103 => :beta_tuda_1985, # Beta limit defined by
-    104 => :beta_bernard_1983, # Beta limit defined by
-    105 => :beta_model_105, # Beta limit defined by
+    102 => :beta_troyon_1985,
+    103 => :beta_tuda_1985,
+    104 => :beta_bernard_1983,
+    105 => :beta_model_105,
     # 200s: Current Limit Models
-    201 => :model_201, # Current limit defined by
-    202 => :safety_factor_rho_08_lt_2, # q(@rho=0.8) > 2.
+    201 => :q95_gt_2, # q(@rho=0.95) > 2.
+    202 => :q08_gt_2, # q(@rho=0.8) > 2.
     # 300s: Density Limit Models
-    301 => :model_301, # Density limit defined by
+    301 => :gw_density, # Density limit defined by Greenwald fraction
     # 400s: Shaping Limit Models
-    401 => :model_401, # Elongation limit defined by
+    401 => :κ_controllability,
     # 900s: Stability Codes
     999 => :unknown) #Unknown model type
 
