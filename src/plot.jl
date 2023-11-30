@@ -457,18 +457,18 @@ end
     else
         npsi = 11
         if psi_levels_in === nothing
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=npsi)
+            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, npsi)
         elseif isa(psi_levels_in, Int)
             if psi_levels_in > 1
                 npsi = psi_levels_in
-                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=psi_levels_in)
+                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
             else
                 psi_levels_in = []
             end
         end
         delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
         if psi_levels_out === nothing
-            psi_levels_out = delta_psi .* range(0, 1; length=npsi) .+ psi__boundary_level
+            psi_levels_out = delta_psi .* range(0.0, 1.0, npsi) .+ psi__boundary_level
         elseif isa(psi_levels_out, Int)
             if psi_levels_out > 1
                 psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level

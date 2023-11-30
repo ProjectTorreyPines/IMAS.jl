@@ -359,7 +359,7 @@ Generate H-mode density and temperature profiles evenly spaced in your favorite 
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
     @assert core >= 0.0
 
-    xpsi = LinRange(0.0, 1.0, ngrid)
+    xpsi = range(0.0, 1.0, ngrid)
 
     w_E1 = 0.5 * widthp  # width as defined in eped
     xphalf = 1.0 - w_E1
@@ -406,7 +406,7 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     @assert expin >= 0.0
     @assert expout >= 0.0
 
-    xpsi = LinRange(0.0, 1.0, ngrid)
+    xpsi = range(0.0, 1.0, ngrid)
 
     w_E1 = 0.5 * widthp  # width as defined in eped
     xphalf = 1.0 - w_E1

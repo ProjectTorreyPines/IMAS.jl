@@ -6,8 +6,8 @@ using LinearAlgebra
 Returns r, z, and ψ interpolant
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end]; length=length(eqt2d.grid.dim1))
-    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end]; length=length(eqt2d.grid.dim2))
+    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length(eqt2d.grid.dim1))
+    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length(eqt2d.grid.dim2))
     return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi; extrapolation_bc=Interpolations.Line())
 end
 
@@ -215,7 +215,7 @@ function find_psi_last_diverted(
     end
 
     # r_mid(ψ) interpolator for region of interest
-    r_mid_of_interest = 10.0 .^ LinRange(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
+    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
     r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
     # take intersections above midplane
@@ -352,8 +352,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
 
     # upsampling for high-resolution r,z flux surface coordinates
     if upsample_factor > 1
-        r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end]; length=length(eqt2d.grid.dim1) * upsample_factor)
-        z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end]; length=length(eqt2d.grid.dim2) * upsample_factor)
+        r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length(eqt2d.grid.dim1) * upsample_factor)
+        z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length(eqt2d.grid.dim2) * upsample_factor)
         PSI = PSI_interpolant(r, z)
     end
 
@@ -410,7 +410,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
             a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
             b = eqt.profiles_1d.elongation[1] * a
 
-            t = range(0, 2π; length=17)
+            t = range(0, 2π, 17)
             pr = cos.(t) .* a .+ eqt.global_quantities.magnetic_axis.r
             pz = sin.(t) .* b .+ eqt.global_quantities.magnetic_axis.z
 

@@ -113,7 +113,7 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
 
     Z1 = (maximum(z) + minimum(z)) / 2.0
     zz = z .- Z1 .+ Z0
-    zz = LinRange(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
+    zz = range(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
 
     psi = PSI_interpolant(r, zz)
 

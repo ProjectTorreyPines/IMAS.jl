@@ -147,8 +147,8 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
-    rmask = range(xlim[1], xlim[2]; length=ngrid)
-    zmask = range(ylim[1], ylim[2]; length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    rmask = range(xlim[1], xlim[2], ngrid)
+    zmask = range(ylim[1], ylim[2], ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
     # start from the first vacuum that goes to zero outside of the TF
