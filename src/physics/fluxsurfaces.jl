@@ -192,14 +192,12 @@ function find_psi_last_diverted(
         if isempty(crossings)
             continue
         end
-        rr = [cr[1] for cr in crossings] # R coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
-        zz = [cr[2] for cr in crossings] # Z coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
+        rr = (cr[1] for cr in crossings) # R coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
+        zz = (cr[2] for cr in crossings) # Z coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
 
         # save all intersections with wall 
-        # push!(r_intersect, rr[1], rr[end])
-        # push!(z_intersect, zz[1], zz[end])
-        r_intersect = vcat(r_intersect,rr)
-        z_intersect = vcat(z_intersect,zz)
+        append!(r_intersect, rr)
+        append!(z_intersect, zz)
         r_max = max(r_max, maximum(r))
     end
 
