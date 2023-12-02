@@ -98,7 +98,7 @@ function boundary_shape(;
             uisq = zetaol
         end
 
-        ang = LinRange(0, 2 * π, (npts * 4 + 1))
+        ang = range(0, 2 * π, (npts * 4 + 1))
         i1 = findall((ang .>= 0 * π / 2.0) .&& (ang .< 1 * π / 2.0))
         i2 = findall((ang .>= 1 * π / 2.0) .&& (ang .< 2 * π / 2.0))
         ang1 = ang[i1]
@@ -123,8 +123,8 @@ function boundary_shape(;
         z2ref .= @. zoffset + amin * ukap * sin(ang2)
 
         if (upnull && is_upper) || (lonull && !is_upper)
-            f = LinRange(0.0, 1.0, 100)[2:end]
-            n = LinRange(1.0, 5.0, 100)[2:end]
+            f = range(0.0, 1.0, 100)[2:end]
+            n = range(1.0, 5.0, 100)[2:end]
             h1 = @. 1.0 - (1.0 - uosq) * cc
             h2 = @. 1.0 - (1.0 - uisq) * cc
             a1 = @. amin * (1.0 + utri)

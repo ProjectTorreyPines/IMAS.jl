@@ -403,20 +403,20 @@ dyexp["build.layer[:].identifier"] =
     (; build, layer, _...) -> begin
         plasma_index = index(get_build_layer(build.layer; type=_plasma_))
         in_len = length(get_build_layers(build.layer; fs=_in_))
-        return -(index(layer) - plasma_index) * layer.fs
+        return -(index(layer) - plasma_index) * layer.side
     end
 
 dyexp["build.layer[:].outline.r"] =
-    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
+    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
 
 dyexp["build.layer[:].outline.z"] =
-    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
+    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
 
 dyexp["build.layer[:].shape"] =
-    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape
+    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).shape
 
 dyexp["build.layer[:].shape_parameters"] =
-    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.fs == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
+    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
 
 dyexp["build.layer[:].start_radius"] =
     (; build, layer_index, _...) -> build_radii(build)[1:end-1][layer_index]

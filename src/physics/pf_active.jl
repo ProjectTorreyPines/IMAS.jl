@@ -24,7 +24,7 @@ Returns true/false if coil is part of the OH
 """
 function is_ohmic_coil(coil::IMAS.pf_active__coil)
     if isempty(coil.function)
-        error("`$(location(coil)).function` is not set. You may need to run `IMAS.set_coils_function(dd.pf_active)`.")
+        error("`$(location(coil)).function` is not set. You may need to run `IMAS.set_coils_function(dd.pf_active.coil)`.")
     end
     return findfirst(:flux, coil.function) !== nothing
 end
@@ -49,6 +49,9 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
             func.description = "OH"
         else
             deleteat!(coil.function, :flux)
+        end
+        if isempty(coil.element[1], :turns_with_sign)
+            coil.element[1].turns_with_sign = 1.0
         end
     end
     return coils

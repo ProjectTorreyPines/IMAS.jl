@@ -40,7 +40,7 @@ function get_build_layers(
         if (name === nothing || l.name == name) &&
            (type === nothing || l.type == Int(type)) &&
            (identifier === nothing || l.identifier == identifier) &&
-           (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.fs in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.fs == Int(fs)))
+           (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.side in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.side == Int(fs)))
             push!(valid_layers, l)
         end
     end
@@ -70,7 +70,7 @@ function get_build_indexes(
         if (name === nothing || l.name == name) &&
            (type === nothing || l.type == Int(type)) &&
            (identifier === nothing || l.identifier == identifier) &&
-           (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.fs in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.fs == Int(fs)))
+           (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.side in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.side == Int(fs)))
             push!(valid_layers_indexes, k)
         end
     end
@@ -147,8 +147,8 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
-    rmask = range(xlim[1], xlim[2]; length=ngrid)
-    zmask = range(ylim[1], ylim[2]; length=ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
+    rmask = range(xlim[1], xlim[2], ngrid)
+    zmask = range(ylim[1], ylim[2], ngrid * Int(round((ylim[2] - ylim[1]) / (xlim[2] - xlim[1]))))
     mask = ones(length(rmask), length(zmask))
 
     # start from the first vacuum that goes to zero outside of the TF
@@ -168,7 +168,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
         end
         if valid && !ismissing(layer.outline, :r)
             outline = collect(zip(layer.outline.r, layer.outline.z))
-            if (layer.material == "Vacuum") && (layer.fs != Int(_in_))
+            if (layer.material == "Vacuum") && (layer.side != Int(_in_))
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) != 0
@@ -206,26 +206,26 @@ function func_nested_layers(layer::IMAS.build__layer{D}, func::Function)::D wher
     i = index(layer)
     layers = parent(layer)
     # _in_ layers or plasma
-    if layer.fs ∈ (Int(_in_), Int(_lhfs_))
+    if layer.side ∈ (Int(_in_), Int(_lhfs_))
         return func(layer)
         # anular layers
-    elseif layer.fs ∈ (Int(_hfs_), Int(_lfs_))
+    elseif layer.side ∈ (Int(_hfs_), Int(_lfs_))
         i = index(layer)
-        if layer.fs == Int(_hfs_)
+        if layer.side == Int(_hfs_)
             layer_in = layers[i+1]
         else
             layer_in = layers[i-1]
         end
         return func(layer) - func(layer_in)
         # _out_ layers
-    elseif layer.fs == Int(_out_)
+    elseif layer.side == Int(_out_)
         layer_in = layers[i-1]
-        if layer_in.fs == Int(_out_)
+        if layer_in.side == Int(_out_)
             return func(layer) - func(layer_in)
-        elseif layer_in.fs == Int(_lfs_)
+        elseif layer_in.side == Int(_lfs_)
             func_in = 0.0
             for l in layers
-                if l.fs == Int(_in_)
+                if l.side == Int(_in_)
                     func_in += func(l)
                 end
             end

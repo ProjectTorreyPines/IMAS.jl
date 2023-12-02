@@ -90,7 +90,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     elseif typeof(levels) <: Int
         if null_is_inside
-            levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
+            levels = psi__boundary_level .+ psi_sign .* 10.0 .^ range(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
             levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix + psi_sign * 0.0001 * abs(psi__2nd_separatix)# make sure 2nd separatrix is in levels
         else
             indexx = argmin(abs.(levels .- psi_last_diverted[1]))
@@ -116,7 +116,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     # TO DO for the future: insert private flux regions (upper and lower)
 
     # r_mid(ψ) interpolator for region of interest
-    r_mid_of_interest = 10.0 .^ LinRange(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(maximum(r_wall_midplane)), 1000)
+    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(maximum(r_wall_midplane)), 1000)
     r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
     for level in levels

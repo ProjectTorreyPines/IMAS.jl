@@ -28,9 +28,9 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             index = 1:length(pfa.coil[1].current.time)
         end
 
-        currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
+        currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
 
-        CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
+        CURRENT = maximum((maximum(abs, c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)) for c in pfa.coil))
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
@@ -85,7 +85,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
                 #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
-                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * c.element[1].turns_with_sign)(b_max)
+                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max)
                 push!(Imax, Icrit)
             else
                 push!(Imax, NaN)
@@ -457,18 +457,18 @@ end
     else
         npsi = 11
         if psi_levels_in === nothing
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=npsi)
+            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, npsi)
         elseif isa(psi_levels_in, Int)
             if psi_levels_in > 1
                 npsi = psi_levels_in
-                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=psi_levels_in)
+                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
             else
                 psi_levels_in = []
             end
         end
         delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
         if psi_levels_out === nothing
-            psi_levels_out = delta_psi .* range(0, 1; length=npsi) .+ psi__boundary_level
+            psi_levels_out = delta_psi .* range(0.0, 1.0, npsi) .+ psi__boundary_level
         elseif isa(psi_levels_out, Int)
             if psi_levels_out > 1
                 psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level

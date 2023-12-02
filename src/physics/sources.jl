@@ -297,38 +297,38 @@ function new_source(
     cs1d.grid.area = area
 
     if electrons_energy !== missing
-        cs1d.electrons.energy = interp1d(LinRange(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.energy = interp1d(range(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
     end
     if electrons_power_inside !== missing
-        cs1d.electrons.power_inside = interp1d(LinRange(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.power_inside = interp1d(range(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if total_ion_energy !== missing
-        cs1d.total_ion_energy = interp1d(LinRange(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_energy = interp1d(range(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
     end
     if total_ion_power_inside !== missing
-        cs1d.total_ion_power_inside = interp1d(LinRange(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_power_inside = interp1d(range(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if electrons_particles !== missing
-        cs1d.electrons.particles = interp1d(LinRange(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles = interp1d(range(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
     end
     if electrons_particles_inside !== missing
-        cs1d.electrons.particles_inside = interp1d(LinRange(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles_inside = interp1d(range(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if j_parallel !== missing
-        cs1d.j_parallel = interp1d(LinRange(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
+        cs1d.j_parallel = interp1d(range(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
     end
     if current_parallel_inside !== missing
-        cs1d.current_parallel_inside = interp1d(LinRange(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.current_parallel_inside = interp1d(range(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
     end
 
     if momentum_tor !== missing
-        cs1d.momentum_tor = interp1d(LinRange(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
+        cs1d.momentum_tor = interp1d(range(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
     end
     if torque_tor_inside !== missing
-        cs1d.torque_tor_inside = interp1d(LinRange(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.torque_tor_inside = interp1d(range(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
     end
 
     return source
