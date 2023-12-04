@@ -187,6 +187,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         end
     end
 
+    # In the case of a perfectly balanced double null OFL_lfs will be empty and all of the flux surfaces will appear in OFL_lfs_far
+    # Here we switch the two
+    if isempty(OFL_lfs)
+        tmp = OFL_lfs_far
+        OFL_lfs_far = OFL_lfs
+        OFL_lfs = tmp
+    end
+
     return OrderedCollections.OrderedDict(:hfs => OFL_hfs, :lfs => OFL_lfs, :lfs_far => OFL_lfs_far)
 end
 
