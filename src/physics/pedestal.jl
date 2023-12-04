@@ -47,7 +47,6 @@ function blend_core_edge_Hmode(
     return profile_new
 end
 
-
 function cost_find_exps(
     x::AbstractVector{<:Real},
     ped_height::Real,
@@ -183,6 +182,7 @@ end
     pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
 
 Finds the pedetal height and width using the EPED1 definition
+
 returns ped_height, ped_width
 """
 function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}

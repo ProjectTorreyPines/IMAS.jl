@@ -3,28 +3,39 @@
         profile_old::AbstractVector{<:Real},
         rho::AbstractVector{<:Real},
         transport_grid::AbstractVector{<:Real},
-        z_transport_grid::Vector{<:Real})
+        z_transport_grid::AbstractVector{<:Real},
+        rho_ped::Real=0.0)
 
 Updates profile_old with the scale lengths given by z_transport_grid
+
+If `rho_ped` > transport_grid[end]` then scale-length is linearly interpolated between `transport_grid[end]` and `rho_ped`
 """
 function profile_from_z_transport(
     profile_old::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     transport_grid::AbstractVector{<:Real},
-    z_transport_grid::AbstractVector{<:Real})
-
-    transport_idices = [argmin((rho_x .- rho) .^ 2) for rho_x in transport_grid]
-    transport_idices = vcat(1, transport_idices)
-    z_transport_grid = vcat(0.0, z_transport_grid)
-
-    rho_transport_grid = rho[transport_idices]
+    z_transport_grid::AbstractVector{<:Real},
+    rho_ped::Real=0.0)
 
     z = -calc_z(rho, profile_old)
-    z[1:transport_idices[end]] = .-interp1d(rho_transport_grid, z_transport_grid).(rho[1:transport_idices[end]])
+
+    transport_idices = [argmin(abs.(rho .- rho_x)) for rho_x in transport_grid]
+    index_nml = argmin(abs.(rho .- rho_ped))
+    if index_nml > transport_idices[end]
+        transport_idices = vcat(1, transport_idices, index_nml)
+        z_transport_grid = vcat(0.0, z_transport_grid, -z[index_nml])
+    else
+        transport_idices = vcat(1, transport_idices)
+        z_transport_grid = vcat(0.0, z_transport_grid)
+    end
+    rho_transport_grid = rho[transport_idices]
+
+    z[1:transport_idices[end]] = -interp1d(rho_transport_grid, z_transport_grid).(rho[1:transport_idices[end]])
 
     profile_new = similar(profile_old)
     profile_new[transport_idices[end]:end] = profile_old[transport_idices[end]:end]
     profile_new[1:transport_idices[end]] = integ_z(rho[1:transport_idices[end]], z[1:transport_idices[end]], profile_new[transport_idices[end]])
+
     return profile_new
 end
 

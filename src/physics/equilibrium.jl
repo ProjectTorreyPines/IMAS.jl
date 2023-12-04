@@ -105,19 +105,20 @@ Flux surfaces should re-traced after this operation.
 NOTE: Use with care! This operation will change the flux surfaces (LCFS included) and as such quantities may change
 """
 function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
-    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
 
     psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
     R0, Z0 = find_magnetic_axis!(r, z, PSI_interpolant, psi_sign)
 
     Z1 = (maximum(z) + minimum(z)) / 2.0
     zz = z .- Z1 .+ Z0
-    zz = LinRange(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
+    zz = range(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
 
     psi = PSI_interpolant(r, zz)
 
-    eqt.profiles_2d[1].grid.dim2 = zz
-    eqt.profiles_2d[1].psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
+    eqt2d.grid.dim2 = zz
+    eqt2d.psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
 
     tweak_psi_to_match_psilcfs!(eqt)
 end

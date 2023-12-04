@@ -59,7 +59,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     ZA = eqt.global_quantities.magnetic_axis.z
 
     ############
-    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])  #interpolation of PSI in equilirium at locations (r,z)
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
     # find psi at second magnetic separatrix 
@@ -73,8 +74,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         psi_last_diverted, null_is_inside = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
     else
         # SOL without wall
-        psi_wall_midplane = maximum(psi_sign .* eqt.profiles_2d[1].psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
-        r_wall_midplane = eqt.profiles_2d[1].grid.dim1[end] # if no wall, take max R in psi grid
+        psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
         null_is_inside = true
     end
     ############
@@ -114,7 +115,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     # TO DO for the future: insert private flux regions (upper and lower)
 
     # r_mid(ψ) interpolator for region of interest
-    r_mid_of_interest = 10.0 .^ LinRange(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(maximum(r_wall_midplane)), 1000)
+    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(maximum(r_wall_midplane)), 1000)
     r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
     for level in levels
@@ -183,6 +184,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             end
             push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)) # add result
         end
+    end
+
+    # In the case of a perfectly balanced double null OFL_lfs will be empty and all of the flux surfaces will appear in OFL_lfs_far
+    # Here we switch the two
+    if isempty(OFL_lfs)
+        tmp = OFL_lfs_far
+        OFL_lfs_far = OFL_lfs
+        OFL_lfs = tmp
     end
 
     return OrderedCollections.OrderedDict(:hfs => OFL_hfs, :lfs => OFL_lfs, :lfs_far => OFL_lfs_far)
@@ -340,7 +349,7 @@ end
 Poloidal magnetic field magnitude evaluated at the outer midplane
 """
 function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
-    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d[1])
+    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d)
     eq1d = eqt.profiles_1d
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z

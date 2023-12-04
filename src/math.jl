@@ -23,7 +23,7 @@ function to_range(vector::AbstractVector{<:Real})
     if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
-    return range(vector[1], vector[end]; length=N)
+    return range(vector[1], vector[end], N)
 end
 
 function gradient(arr::AbstractVector; method::Symbol=:second_order)
@@ -503,7 +503,7 @@ function resample_2d_path(
     end
 
     # interpolate
-    ti = range(t[1], t[end]; length=n_points)
+    ti = range(t[1], t[end], n_points)
     xi = interp1d(t, x, method).(ti)
     yi = interp1d(t, y, method).(ti)
 
@@ -809,7 +809,7 @@ function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_point
     cumsum!(tmp, tmp)
     tmp .-= tmp[1]
     tmp ./= tmp[end]
-    return interp1d(tmp, x).(LinRange(0.0, 1.0, n_points))
+    return interp1d(tmp, x).(range(0.0, 1.0, n_points))
 end
 
 """
