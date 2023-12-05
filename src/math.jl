@@ -462,6 +462,7 @@ end
         n_points::Integer=0,
         curvature_weight::Float64=0.0,
         retain_extrema::Bool=false,
+        retain_original_xy::Bool=false,
         method::Symbol=:cubic) where {T<:Real}
 
 Resample 2D line with uniform stepping (or number of points)
@@ -475,6 +476,7 @@ function resample_2d_path(
     n_points::Integer=0,
     curvature_weight::Float64=0.0,
     retain_extrema::Bool=false,
+    retain_original_xy::Bool=false,
     method::Symbol=:cubic) where {T<:Real}
 
     t = similar(x)
@@ -502,8 +504,13 @@ function resample_2d_path(
         end
     end
 
-    # interpolate
+    # points of interest
     ti = range(t[1], t[end], n_points)
+    if retain_original_xy
+        ti = unique(vcat(t,ti))
+    end
+
+    # interpolate
     xi = interp1d(t, x, method).(ti)
     yi = interp1d(t, y, method).(ti)
 
@@ -536,6 +543,7 @@ end
         n_points::Integer=0,
         curvature_weight::Float64=0.0,
         retain_extrema::Bool=true,
+        retain_original_xy::Bool=false,
         method::Symbol=:linear) where {T<:Real}
 
 Like resample_2d_path but with retain_extrema=true and method=linear as defaults
@@ -547,8 +555,9 @@ function resample_plasma_boundary(
     n_points::Integer=0,
     curvature_weight::Float64=0.0,
     retain_extrema::Bool=true,
+    retain_original_xy::Bool=false,
     method::Symbol=:linear) where {T<:Real}
-    x, y = resample_2d_path(x, y; step, n_points, curvature_weight, retain_extrema, method)
+    x, y = resample_2d_path(x, y; step, n_points, curvature_weight, retain_extrema, retain_original_xy, method)
     return x, y
 end
 
