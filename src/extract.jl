@@ -97,6 +97,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:currents, :ip_bs, "MA", dd -> @ddtime(dd.summary.global_quantities.current_bootstrap.value) / 1E6)
     ExtractLibFunction(:currents, :ip_aux, "MA", dd -> EFL[:ip_ni](dd) - EFL[:ip_bs](dd))
     ExtractLibFunction(:currents, :ip_ohm, "MA", dd -> @ddtime(dd.summary.global_quantities.current_ohm.value) / 1E6)
+    ExtractLibFunction(:currents, :ejima, "-", dd -> @ddtime(dd.core_profiles.global_quantities.ejima))
     ExtractLibFunction(:currents, :flattop, "Hours", dd -> dd.build.oh.flattop_duration / 3600.0)
 
     ExtractLibFunction(:bop, :Pfusion, "MW", dd -> fusion_power(dd.core_profiles.profiles_1d[]) / 1E6)
