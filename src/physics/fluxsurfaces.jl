@@ -8,7 +8,8 @@ Returns r, z, and ψ interpolant
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length(eqt2d.grid.dim1))
     z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length(eqt2d.grid.dim2))
-    return r, z, Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi; extrapolation_bc=Interpolations.Line())
+    PSI_interpolant = Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi; extrapolation_bc=Interpolations.Line())
+    return r, z, PSI_interpolant
 end
 
 """

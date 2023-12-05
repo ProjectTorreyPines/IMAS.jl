@@ -75,6 +75,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         @series begin
             linestyle --> :dash
             marker --> :circle
+            ylabel := "[$c_unit]"
             ["$k" for k in 1:length(currents)], currents
         end
 
@@ -1685,8 +1686,8 @@ end
 #= ============== =#
 @recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
     @assert typeof(time0) <: Float64
+    aspect_ratio --> :equal
     @series begin
-        aspect_ratio --> :equal
         label := ""
         boundary(pc; time0)
     end
