@@ -224,7 +224,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     elseif length(r_z_index) == 1
         error("line_wall_2_wall: open field line should intersect wall at least twice.
             If it does not it's likely because the equilibrium grid was too small.
-            Suggestion: plot dd.wall + eqt.profiles_2d[1] to debug.")
+            Suggestion: plot dd.wall + eqt.profiles_2d to debug.")
     end
 
     # angle of incidence
