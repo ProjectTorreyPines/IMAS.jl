@@ -76,7 +76,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
         r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
-        psi__boundary_level = minimum(psi_sign .* eqt2d.psi)
         null_is_inside = true
     end
     ############
@@ -89,8 +88,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         levels = [psi__boundary_level + psi_sign .* 1E-3, psi__2nd_separatix]
 
     elseif typeof(levels) <: Int
+        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
         if null_is_inside
-            levels = psi__boundary_level .+ psi_sign .* 10.0 .^ range(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
             levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix + psi_sign * 0.0001 * abs(psi__2nd_separatix)# make sure 2nd separatrix is in levels
         else
             indexx = argmin(abs.(levels .- psi_last_diverted[1]))
@@ -225,7 +224,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     elseif length(r_z_index) == 1
         error("line_wall_2_wall: open field line should intersect wall at least twice.
             If it does not it's likely because the equilibrium grid was too small.
-            Suggestion: plot dd.wall + + eqt.profiles_2d[1] to debug.")
+            Suggestion: plot dd.wall + eqt.profiles_2d[1] to debug.")
     end
 
     # angle of incidence

@@ -204,13 +204,16 @@ function find_psi_last_diverted(
     z_intersect = Float64[]
     r_max = 0.0
     for (r, z) in surface
-        rr, zz, _ = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
-        if isempty(rr)
+        indexes, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
+        if isempty(crossings)
             continue
         end
-        # save intersections with wall 
-        push!(r_intersect, rr[1], rr[end])
-        push!(z_intersect, zz[1], zz[end])
+        rr = (cr[1] for cr in crossings) # R coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
+        zz = (cr[2] for cr in crossings) # Z coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
+
+        # save all intersections with wall 
+        append!(r_intersect, rr)
+        append!(z_intersect, zz)
         r_max = max(r_max, maximum(r))
     end
 
@@ -218,12 +221,19 @@ function find_psi_last_diverted(
     r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
     r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
-    # take intersections above midplane
-    r_intersect = r_intersect[z_intersect.>ZA]
-    z_intersect = z_intersect[z_intersect.>ZA]
-    order = sortperm(r_intersect)
-    z_intersect = z_intersect[order]
-    r_intersect = r_intersect[order]
+    if length(r_intersect)>2
+        # pick only the two intersections closest to 2nd Xpoint
+        dist = (r_intersect .- Xpoint2[1]).^2+ (z_intersect .- Xpoint2[2]).^2
+        r_intersect = r_intersect[partialsortperm(dist,1:2)] 
+        z_intersect = z_intersect[partialsortperm(dist,1:2)]
+    end
+
+    # order intersection clockwise (needed for null_is_inside)
+    angle = 2 * π .- mod.(atan.(z_intersect .- ZA, r_intersect .- RA), 2 * π) # clockwise angle from midplane
+    r_intersect = r_intersect[sortperm(angle)]
+    z_intersect = z_intersect[sortperm(angle)]
+
+    @assert length(r_intersect) == 2 # for safety, and to simplify eventual debugging
 
     # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
     # This is an approximation (should work except for exotic walls)
@@ -918,8 +928,9 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             deleteat!(z_x, k)
         end
 
-        # remove x-points that have fallen on the magnetic axis
-        index = psidist_lcfs_xpoints .> -5E-3 # positive means outside of the lcfs
+
+        # remove x-points that have fallen on the magnetic axis 
+        index = psidist_lcfs_xpoints .>= psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
