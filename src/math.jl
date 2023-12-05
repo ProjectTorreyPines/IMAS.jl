@@ -23,7 +23,7 @@ function to_range(vector::AbstractVector{<:Real})
     if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
         error("to_range requires vector data to be equally spaced")
     end
-    return range(vector[1], vector[end]; length=N)
+    return range(vector[1], vector[end], N)
 end
 
 function gradient(arr::AbstractVector; method::Symbol=:second_order)
@@ -225,7 +225,8 @@ function intersection_angles(
     path1_z::AbstractVector{T},
     path2_r::AbstractVector{T},
     path2_z::AbstractVector{T},
-    intersection_indexes::Vector{Tuple{Int,Int}}
+    intersection_indexes::Vector{Tuple{Int,Int}};
+    mod_pi::Bool=true
 ) where {T<:Real}
     n = length(intersection_indexes)
     angles = Vector{T}(undef, n)
@@ -237,7 +238,7 @@ function intersection_angles(
         r2_next, z2_next = path2_r[index[2]+1], path2_z[index[2]+1]
 
         angle = mod(angle_between_two_vectors((r1, z1), (r1_next, z1_next), (r2, z2), (r2_next, z2_next)), π)
-        if angle > (π / 2.0)
+        if angle > (π / 2.0) && mod_pi
             angle = π - angle
         end
         angles[i] = angle
@@ -433,16 +434,40 @@ function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplificati
 end
 
 """
+    moving_average(data::Vector{<:Real}, window_size::Int)
+
+Calculate the moving average of a data vector using a specified window size.
+The window size is always rounded up to the closest odd number to maintain symmetry around each data point.
+"""
+function moving_average(data::Vector{<:Real}, window_size::Int)
+    smoothed_data = copy(data)
+    window_size = isodd(window_size) ? window_size : window_size + 1
+    pad_size = div(window_size - 1, 2)
+    if pad_size < 1
+        return smoothed_data
+    end
+    for i in eachindex(data)
+        window_start = max(1, i - pad_size)
+        window_end = min(length(data), i + pad_size)
+        smoothed_data[i] = sum(data[window_start:window_end]) / (window_end - window_start + 1)
+    end
+    return smoothed_data
+end
+
+"""
     resample_2d_path(
         x::AbstractVector{T},
         y::AbstractVector{T};
         step::Float64=0.0,
         n_points::Integer=0,
         curvature_weight::Float64=0.0,
+        retain_extrema::Bool=false,
+        retain_original_xy::Bool=false,
         method::Symbol=:cubic) where {T<:Real}
 
 Resample 2D line with uniform stepping (or number of points)
-and with option to add more points where curvature is highest
+with option to add more points where curvature is highest
+and option to retain extrema in x and y (in these cases stepping is not constant anymore!)
 """
 function resample_2d_path(
     x::AbstractVector{T},
@@ -450,39 +475,55 @@ function resample_2d_path(
     step::Float64=0.0,
     n_points::Integer=0,
     curvature_weight::Float64=0.0,
+    retain_extrema::Bool=false,
+    retain_original_xy::Bool=false,
     method::Symbol=:cubic) where {T<:Real}
 
-    s = similar(x)
-    s[1] = zero(T)
-    for i in 2:length(s)
+    t = similar(x)
+    t[1] = zero(T)
+    for i in 2:length(t)
         dx = x[i] - x[i-1]
         dy = y[i] - y[i-1]
-        s[i] = s[i-1] + sqrt(dx^2 + dy^2)
+        t[i] = t[i-1] + sqrt(dx^2 + dy^2)
     end
 
-    if curvature_weight > 0.0
-        s0 = s[end]
-        s ./= s0
-        c = similar(s)
-        c = abs.(curvature(x, y))
-        c ./= maximum(c)
-        s .+= (c .* curvature_weight)
-        s ./= s[end]
-        s .*= s0
+    if curvature_weight != 0.0
+        @assert 0.0 < curvature_weight < 1.0
+        c = moving_average(abs.(curvature(x, y)), Int(ceil(length(x) / 2.0 * (1.0 - curvature_weight))))
+        c = c ./ maximum(c)
+        c = cumsum((1.0 - curvature_weight) .+ c * curvature_weight)
+        #c = moving_average(c, Int(ceil(length(x) / 20)))
+        t = (c .- c[1]) ./ (c[end] - c[1]) .* (t[end] - t[1]) .+ t[1]
     end
 
     if n_points === 0
         if step !== 0.0
-            n_points = ceil(Int, s[end] / step)
+            n_points = ceil(Int, t[end] / step)
         else
             n_points = length(x)
         end
     end
 
+    # points of interest
+    ti = range(t[1], t[end], n_points)
+    if retain_original_xy
+        ti = unique(vcat(t,ti))
+    end
+
     # interpolate
-    t = range(s[1], s[end]; length=n_points)
-    xi = interp1d(s, x, method).(t)
-    yi = interp1d(s, y, method).(t)
+    xi = interp1d(t, x, method).(ti)
+    yi = interp1d(t, y, method).(ti)
+
+    # retain extrema in x and y
+    if retain_extrema
+        ti = collect(ti)
+        for k in (argmax(x), argmax(y), argmin(x), argmin(y))
+            index = argmin(abs.(ti .- t[k]))
+            ti[index] = t[k]
+            xi[index] = x[k]
+            yi[index] = y[k]
+        end
+    end
 
     # if original path closed, make sure resampled path closes too
     # independently of interpolation method used
@@ -492,6 +533,32 @@ function resample_2d_path(
     end
 
     return xi, yi
+end
+
+"""
+    resample_plasma_boundary(
+        x::AbstractVector{T},
+        y::AbstractVector{T};
+        step::Float64=0.0,
+        n_points::Integer=0,
+        curvature_weight::Float64=0.0,
+        retain_extrema::Bool=true,
+        retain_original_xy::Bool=false,
+        method::Symbol=:linear) where {T<:Real}
+
+Like resample_2d_path but with retain_extrema=true and method=linear as defaults
+"""
+function resample_plasma_boundary(
+    x::AbstractVector{T},
+    y::AbstractVector{T};
+    step::Float64=0.0,
+    n_points::Integer=0,
+    curvature_weight::Float64=0.0,
+    retain_extrema::Bool=true,
+    retain_original_xy::Bool=false,
+    method::Symbol=:linear) where {T<:Real}
+    x, y = resample_2d_path(x, y; step, n_points, curvature_weight, retain_extrema, retain_original_xy, method)
+    return x, y
 end
 
 """
@@ -751,7 +818,7 @@ function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_point
     cumsum!(tmp, tmp)
     tmp .-= tmp[1]
     tmp ./= tmp[end]
-    return interp1d(tmp, x).(LinRange(0.0, 1.0, n_points))
+    return interp1d(tmp, x).(range(0.0, 1.0, n_points))
 end
 
 """

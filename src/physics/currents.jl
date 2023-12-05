@@ -54,7 +54,7 @@ Includes_bootstrap set to true if input current includes bootstrap
 
 NOTE: Jtor ≂̸ JtoR
 
-    JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+    JtoR = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
 
 NOTE: Jpar ≂̸ JparB
 
@@ -86,7 +86,7 @@ Includes_bootstrap set to true if input current includes bootstrap
 
 NOTE: Jtor ≂̸ JtoR
 
-    JtoR = = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+    JtoR = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
 
 NOTE: Jpar ≂̸ JparB
 

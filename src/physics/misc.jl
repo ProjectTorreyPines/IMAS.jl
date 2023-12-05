@@ -1,22 +1,4 @@
 """
-    area(coil::IMAS.pf_active__coil)
-
-Returns cross sectional area of PF coils
-"""
-function area(coil::IMAS.pf_active__coil)
-    return coil.element[1].geometry.rectangle.width * coil.element[1].geometry.rectangle.height
-end
-
-"""
-    volume(coil::IMAS.pf_active__coil)
-
-Returns volume of PF coils
-"""
-function volume(coil::IMAS.pf_active__coil)
-    return area(coil) * 2π * coil.element[1].geometry.rectangle.r
-end
-
-"""
     ω_pe(ne::Real)
 
 Retunrs electron plasma frequency [rad/s] given electron density in m⁻³
@@ -32,6 +14,51 @@ Retunrs electron cyclotron frequency [rad/s] given magnetic field B in T
 """
 function ω_ce(B::Real)
     return constants.e * abs(B) / constants.m_e
+end
+
+"""
+    B_ω_ce(ω::Real)
+
+Retunrs magnetic field B in T for a given electron cyclotron frequency [rad/s]
+"""
+function B_ω_ce(ω::Real)
+    return ω / constants.e * constants.m_e
+end
+
+"""
+    ω_ci(B::Real, Z::Real, A::Real)
+
+Retunrs ion cyclotron frequency [rad/s] given magnetic field B in T and the ion charge and mass in amu
+"""
+function ω_ci(B::Real, Z::Real, A::Real)
+    return constants.e * abs(B) * Z / A * constants.m_p
+end
+
+"""
+    stix_P(ω::Real, ne::Real)
+
+P (Plasma term) of the Stix dielectric tensor
+"""
+function stix_P(ω::Real, ne::Real)
+    return 1.0 - (w_p(ne) / ω)^2
+end
+
+"""
+    stix_S(ω::Real, ne::Real, B::Real)
+
+S (Sum term) of the Stix dielectric tensor
+"""
+function stix_S(ω::Real, ne::Real, B::Real)
+    return 1.0 - ω_p(ne)^2 / (ω^2 - ω_ce(B)^2)
+end
+
+"""
+    stix_D(ω::Real, ne::Real, B::Real)
+
+D (Difference term) of the Stix dielectric tensor
+"""
+function stix_D(ω::Real, ne::Real, B::Real)
+    return 1.0 - ω_ce(B) * ω_p(ne)^2 / (ω * (ω^2 - ω_ce(B)^2))
 end
 
 """

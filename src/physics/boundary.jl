@@ -98,7 +98,7 @@ function boundary_shape(;
             uisq = zetaol
         end
 
-        ang = LinRange(0, 2 * π, (npts * 4 + 1))
+        ang = range(0, 2 * π, (npts * 4 + 1))
         i1 = findall((ang .>= 0 * π / 2.0) .&& (ang .< 1 * π / 2.0))
         i2 = findall((ang .>= 1 * π / 2.0) .&& (ang .< 2 * π / 2.0))
         ang1 = ang[i1]
@@ -123,8 +123,8 @@ function boundary_shape(;
         z2ref .= @. zoffset + amin * ukap * sin(ang2)
 
         if (upnull && is_upper) || (lonull && !is_upper)
-            f = LinRange(0.0, 1.0, 100)[2:end]
-            n = LinRange(1.0, 5.0, 100)[2:end]
+            f = range(0.0, 1.0, 100)[2:end]
+            n = range(1.0, 5.0, 100)[2:end]
             h1 = @. 1.0 - (1.0 - uosq) * cc
             h2 = @. 1.0 - (1.0 - uisq) * cc
             a1 = @. amin * (1.0 + utri)
@@ -275,4 +275,19 @@ Beturns r,z vectors from pulse_schedule.position_control.equilibrium__time_slice
 """
 function boundary(pc::IMAS.pulse_schedule__position_control; time0::Float64=global_time(pc))
     return boundary(pc, time0)
+end
+
+"""
+    x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__x_point{T}}; time0::Float64=global_time(x_points)) where {T<:Real}
+
+Beturns vector with tuples of R,Z coordinates of x-points in pulse_schedule at time0
+"""
+function x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__x_point{T}}; time0::Float64=global_time(x_points)) where {T<:Real}
+    x_points0 = Tuple{T,T}[]
+    for x_point in x_points
+        Rx = get_time_array(x_point.r.reference, :data, time0)
+        Zx = get_time_array(x_point.z.reference, :data, time0)
+        push!(x_points0, (Rx, Zx))
+    end
+    return x_points0
 end

@@ -17,7 +17,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
     @assert typeof(time0) <: Float64
     @assert typeof(cname) <: Symbol
 
-    if isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
+    if ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
     else
         if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
@@ -28,9 +28,9 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             index = 1:length(pfa.coil[1].current.time)
         end
 
-        currents = [get_time_array(c.current, :data, time0) * c.element[1].turns_with_sign for c in pfa.coil]
+        currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
 
-        CURRENT = maximum((maximum(abs, c.current.data[index] * c.element[1].turns_with_sign) for c in pfa.coil))
+        CURRENT = maximum((maximum(abs, c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)) for c in pfa.coil))
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
@@ -43,10 +43,10 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
     if what ∈ (:cx, :coils_flux)
         label --> ""
         aspect --> :equal
-        colorbar_title --> "PF currents [$c_unit]"
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)
+            colorbar_title --> "PF currents [$c_unit]"
             @series begin
                 seriestype --> :scatter
                 color --> cname
@@ -59,6 +59,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         # plot individual coils
         for (k, c) in enumerate(pfa.coil)
             @series begin
+                aspect_ratio --> :equal
                 if all(currents .== 0.0)
                     color --> :black
                 else
@@ -74,6 +75,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         @series begin
             linestyle --> :dash
             marker --> :circle
+            ylabel := "[$c_unit]"
             ["$k" for k in 1:length(currents)], currents
         end
 
@@ -84,7 +86,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
                 #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
-                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * c.element[1].turns_with_sign)(b_max)
+                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max)
                 push!(Imax, Icrit)
             else
                 push!(Imax, NaN)
@@ -111,12 +113,13 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 end
 
 """
-    plot_coil_cx(coil::pf_active__coil; color = :gray)
+    plot_coil_cx(coil::pf_active__coil; color=:black, coil_names=false)
 
 Plots cross-section of individual coils
 """
-@recipe function plot_coil_cx(coil::pf_active__coil; color=:black)
+@recipe function plot_coil_cx(coil::pf_active__coil; color=:black, coil_names=false)
     @assert typeof(color) <: Symbol
+    @assert typeof(coil_names) <: Bool
 
     if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
         @series begin
@@ -139,6 +142,12 @@ Plots cross-section of individual coils
             color --> color
             label --> ""
             [-Δr, Δr, Δr, -Δr, -Δr] .+ r, [-Δz, -Δz, Δz, Δz, -Δz] .+ z
+        end
+        if coil_names
+            @series begin
+                series_annotations := [(coil.name, :center, :middle, :red, 6)]
+                [r], [z]
+            end
         end
     end
 end
@@ -449,18 +458,18 @@ end
     else
         npsi = 11
         if psi_levels_in === nothing
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=npsi)
+            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, npsi)
         elseif isa(psi_levels_in, Int)
             if psi_levels_in > 1
                 npsi = psi_levels_in
-                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level; length=psi_levels_in)
+                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
             else
                 psi_levels_in = []
             end
         end
         delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
         if psi_levels_out === nothing
-            psi_levels_out = delta_psi .* range(0, 1; length=npsi) .+ psi__boundary_level
+            psi_levels_out = delta_psi .* range(0.0, 1.0, npsi) .+ psi__boundary_level
         elseif isa(psi_levels_out, Int)
             if psi_levels_out > 1
                 psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
@@ -471,10 +480,11 @@ end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
+    # eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     # @series begin
     #     seriestype --> :contour
     #     levels --> psi_levels
-    #     eqt.profiles_2d[1].grid.dim1, eqt.profiles_2d[1].grid.dim2, transpose(eqt.profiles_2d[1].psi)
+    #     eqt2d.grid.dim1, eqt2d.grid.dim2, transpose(eqt2d.psi)
     # end
     for psi_level in psi_levels
         for (pr, pz) in flux_surface(eqt, psi_level, nothing)
@@ -1676,9 +1686,18 @@ end
 #= ============== =#
 @recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
     @assert typeof(time0) <: Float64
+    aspect_ratio --> :equal
     @series begin
-        aspect_ratio := :equal
+        label := ""
         boundary(pc; time0)
+    end
+    @series begin
+        seriestype := :scatter
+        marker --> :circle
+        markerstrokewidth --> 0
+        primary := false
+        Xs = x_points(pc.x_point; time0)
+        [x[1] for x in Xs], [x[2] for x in Xs]
     end
 end
 
