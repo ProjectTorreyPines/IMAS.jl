@@ -135,16 +135,30 @@ end
 """
     vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
 
-Vloop = η*J: method emphasizes the resistive nature of the plasma.
+Vloop = 2π * η * <J_oh⋅B> / (F * <R⁻²>: method emphasizes the resistive nature of the plasma.
 """
-function vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
-    return integrate(cp1d.grid.area, cp1d.j_tor ./ cp1d.conductivity_parallel) / cp1d.grid.area[end]
+function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}; method::Symbol=:area)::T where {T<:Real}
+    rho_tor_norm = cp1d.grid.rho_tor_norm
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    F = IMAS.interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
+    gm1 = IMAS.interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
+    _, B0 = IMAS.vacuum_r0_b0(eqt)
+    Vls = 2π .* cp1d.j_ohmic .* B0 ./ (cp1d.conductivity_parallel .* F .* gm1)
+    if method === :area
+        return integrate(cp1d.grid.area, Vls) / cp1d.grid.area[end]
+    elseif method === :edge
+        return Vls[end]
+    elseif method === :mean
+        return sum(Vls) / length(Vls)
+    else
+        throw(ArgumentError("method should be :area, :mean, or :edge"))
+    end
 end
 
 """
     vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
 
-`Vloop = dψ/dt` method emphasizes the inductive nature of the loop voltage.
+`Vloop = dψ/dt` method emphasizes the inductive nature of the loop voltage. Correct for COCOS 11
 """
 function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
     @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
