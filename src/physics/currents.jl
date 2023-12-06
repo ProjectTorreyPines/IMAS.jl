@@ -2,11 +2,16 @@
     j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
 
 Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
+Requires constant loop voltage: Vl = 2π * η * <J_oh⋅B> / (F * <R⁻²>) = constant
 """
 function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
-    j_oh_par_norm = cp1d.conductivity_parallel ./ integrate(cp1d.grid.area, cp1d.conductivity_parallel)
 
     rho_tor_norm = cp1d.grid.rho_tor_norm
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    F = IMAS.interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
+    gm1 = IMAS.interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
+    j_oh_par_norm = cp1d.conductivity_parallel .* F .* gm1  # arbitrary normalized Joh,par = <Joh.B> / B0 (constant)
+
     j_non_inductive = cp1d.j_non_inductive
 
     j_non_inductive_tor = Jpar_2_Jtor(rho_tor_norm, j_non_inductive, true, eqt)
