@@ -992,7 +992,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 
 
         # remove x-points that have fallen on the magnetic axis 
-        index = psidist_lcfs_xpoints .>= psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
+        sign_closest = psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # sign of psi of closest X-point in psi to LCFS
+        index = psidist_lcfs_xpoints .>= (1-sign_closest*0.00001)*psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
