@@ -23,6 +23,15 @@ function ψ_interpolant(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profi
 end
 
 """
+    ψ_interpolant(dd::IMAS.dd)
+
+Returns r, z, and ψ interpolant automatically choosing from dd
+"""
+function ψ_interpolant(dd::IMAS.dd)
+    return ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
+end
+
+"""
     Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
 
 Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
@@ -160,6 +169,16 @@ function find_psi_boundary(
 end
 
 """
+    find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
+
+Find psi value of the last closed flux surface
+"""
+function find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
+    return find_psi_boundary(dd.equilibrium.time_slice[]; precision, raise_error_on_not_open, raise_error_on_not_closed)
+end
+
+
+"""
     find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation) 
 
 Returns psi of the second magentic separatrix. This relies on the fact that find_x_points! saves the x points in such a way 
@@ -167,6 +186,18 @@ that the last one is the null with Z opposite to the first x point which is the 
 """
 function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation)
     return PSI_interpolant.(eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z)
+end
+
+"""
+    find_psi_2nd_separatrix(dd::IMAS.dd) 
+
+Returns psi of the second magentic separatrix. This relies on the fact that find_x_points! saves the x points in such a way 
+that the last one is the null with Z opposite to the first x point which is the closest in psi to the lcfs
+"""
+
+function find_psi_2nd_separatrix(dd::IMAS.dd)
+    r,z,PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
+    return find_psi_2nd_separatrix(dd.equilibrium.time_slice[], PSI_interpolant)
 end
 
 """
@@ -293,6 +324,36 @@ function find_psi_last_diverted(
 
     return [psi_low, psi_up], null_is_inside # return both psi_up and psi_low to increase resolution around last diverted flux surface
 end
+
+"""
+    find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
+
+Returns `[psi_low, psi_up], null_is_inside` of the two flux surfaces around the last diverted flux surface.
+
+psi_up will be the first surface inside OFL[:lfs_far]; psi_low will be the last surface inside OFL[:lfs]
+
+Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_up and psi_low ~ 0)
+"""
+
+function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
+    return find_psi_last_diverted(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant; precision)
+end
+
+"""
+    find_psi_last_diverted(dd.IMAS.dd; precision::Float64=1e-7)
+
+Returns `[psi_low, psi_up], null_is_inside` of the two flux surfaces around the last diverted flux surface.
+
+psi_up will be the first surface inside OFL[:lfs_far]; psi_low will be the last surface inside OFL[:lfs]
+
+Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_up and psi_low ~ 0)
+"""
+
+function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7)
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
+    return find_psi_last_diverted(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant; precision)
+end
+
 
 """
     interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{<:Real})
@@ -931,7 +992,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 
 
         # remove x-points that have fallen on the magnetic axis 
-        index = psidist_lcfs_xpoints .>= psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
+        sign_closest = psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # sign of psi of closest X-point in psi to LCFS
+        index = psidist_lcfs_xpoints .>= (1-sign_closest*0.00001)*psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
