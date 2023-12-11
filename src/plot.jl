@@ -19,6 +19,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 
     if ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
+        c_unit = "A"
     else
         if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
             index = 1
@@ -86,7 +87,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
                 #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
-                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max)
+                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max) / 1E6
                 push!(Imax, Icrit)
             else
                 push!(Imax, NaN)
@@ -918,6 +919,7 @@ end
     rhos = unique(rhos)
 
     dd = top_dd(ct)
+
     if dd !== nothing
         @series begin
             linewidth := 2
