@@ -207,6 +207,35 @@ function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=t
     return sol(dd.equilibrium.time_slice[], dd.wall; levels, use_wall)
 end
 
+
+"""
+
+function find_levels_from_wall(wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
+
+    Function for that computes the value of psi at the points of the wall mesh in dd
+"""
+function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
+    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) #psi on separatrix
+    crossings = intersection([(minimum(wall_r)+maximum(wall_r))/2, maximum(wall_r)*1.05], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+    r_wall_midplane = r_wall_midplane[1];
+    psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA); 
+
+    levels =  PSI_interpolant.(wall_r,wall_z)
+    levels = levels[levels .>= psi_separatrix .&& levels.<= psi_wall_midplane]
+    return sort!(levels)
+end
+
+function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall,PSI_interpolant::Interpolations.AbstractInterpolation) 
+    return find_levels_from_wall(eqt,first_wall(wall).r,first_wall(wall).z, PSI_interpolant)
+end
+
+function find_levels_from_wall(dd::IMAS.dd) 
+    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
+return find_levels_from_wall(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant)
+end
+
 """
     line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
 
