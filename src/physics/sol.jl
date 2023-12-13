@@ -90,11 +90,11 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     elseif typeof(levels) <: Int
         levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
         if null_is_inside
-            levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix + psi_sign * 0.0001 * abs(psi__2nd_separatix)# make sure 2nd separatrix is in levels
+            levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix # make sure 2nd separatrix is in levels
         else
             indexx = argmin(abs.(levels .- psi_last_diverted[1]))
             levels = vcat(levels[1:indexx-1], psi_last_diverted, levels[indexx+1:end]) # remove closest point + add LDFS (it is a vector)
-            levels = sort(vcat(levels, psi__2nd_separatix + psi_sign * 0.0001 * abs(psi__2nd_separatix)))
+            levels = sort(vcat(levels, psi__2nd_separatix))
         end
 
     else
@@ -119,7 +119,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
     for level in levels
-        lines = flux_surface(eqt, level, false) #returns (r,z) of surfaces with psi = level
+        lines, _ = flux_surface(eqt, level, :open) #returns (r,z) of surfaces with psi = level
         for (r, z) in lines
             if use_wall
                 # SOL with wall
@@ -555,7 +555,7 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
     Zx = Float64[]
     θx = Float64[]
 
-    private = flux_surface(eqt, eqt.profiles_1d.psi[end], false)
+    private, _ = flux_surface(eqt, eqt.profiles_1d.psi[end], :open)
     for (pr, pz) in private
         pvx, pvy, angles = find_strike_points(wall_outline_r, wall_outline_z, pr, pz)
         append!(Rx, pvx)

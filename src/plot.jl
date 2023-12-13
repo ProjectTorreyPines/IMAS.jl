@@ -427,6 +427,7 @@ end
     psi_levels_in=nothing,
     psi_levels_out=nothing,
     lcfs=false,
+    secondary_separatrix=false,
     show_x_points=false,
     magnetic_axis=true)
 
@@ -488,7 +489,7 @@ end
     #     eqt2d.grid.dim1, eqt2d.grid.dim2, transpose(eqt2d.psi)
     # end
     for psi_level in psi_levels
-        for (pr, pz) in flux_surface(eqt, psi_level, nothing)
+        for (pr, pz) in flux_surface(eqt, psi_level, :any)[1]
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
@@ -501,6 +502,14 @@ end
                 pr, pz
             end
         end
+    end
+
+    if secondary_separatrix
+        @series begin
+            primary --> false
+            linewidth --> 1.5
+            eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
+        end        
     end
 
     if magnetic_axis
