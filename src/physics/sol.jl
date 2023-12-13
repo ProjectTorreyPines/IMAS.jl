@@ -76,6 +76,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
         r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
+        psi_last_diverted = [0,1].*0.00001.* abs(psi__boundary_level)
         null_is_inside = true
     end
     ############
@@ -104,8 +105,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
-
-        levels[1] = psi__boundary_level + psi_sign * 0.00001 * abs(psi__boundary_level) # if psi = psi__boundary_level, flux_surface does not work
+        levels[1] = psi__boundary_level + psi_sign * abs.(diff(psi_last_diverted))[1] # if psi = psi__boundary_level, flux_surface does not work
         levels[end] = psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane)
     end
 
