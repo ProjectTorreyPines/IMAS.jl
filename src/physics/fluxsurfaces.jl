@@ -732,7 +732,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
 
     # secondary separatrix
     psi2nd = find_psi_2nd_separatrix(eqt, PSI_interpolant)
-    (tmp,), _ = flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi2nd, :encircling)
+    (tmp,), _ = flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi2nd, :open)
     if !isempty(tmp)
         (pr2nd, pz2nd) = tmp
         eqt.boundary_secondary_separatrix.outline.r = pr2nd
