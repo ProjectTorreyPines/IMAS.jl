@@ -287,9 +287,9 @@ function find_psi_last_diverted(
     psi_sign = sign(psi_separatrix - psi_axis_level) # sign of the poloidal flux taking psi_axis = 0
     psi_wall = PSI_interpolant.(wall_r, wall_z)
     if psi_sign > 0
-        psi_up = minimum([psi_2ndseparatrix + psi_sign, maximum(psi_wall) * 0.999]) # increase value just to be sure of being inside OFL[:lfs_far]
+        psi_up = minimum([psi_2ndseparatrix + psi_sign*0.1, maximum(psi_wall) * 0.999]) # increase value just to be sure of being inside OFL[:lfs_far]
     else
-        psi_up = maximum([psi_2ndseparatrix + psi_sign, minimum(psi_wall) * 1.001]) # increase value just to be sure of being inside OFL[:lfs_far]
+        psi_up = maximum([psi_2ndseparatrix + psi_sign*0.1, minimum(psi_wall) * 1.001]) # increase value just to be sure of being inside OFL[:lfs_far]
     end
 
     psi_low = psi_separatrix
