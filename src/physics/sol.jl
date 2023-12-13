@@ -174,7 +174,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             else
                 # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
                 rr[midplane_index] = r_mid_itp(level)
-                if zz[1] * zz[end] > 0 # z cordinate have same sign 
+                if level <= sum(psi_last_diverted)/length(psi_last_diverted)
                     # Add SOL surface in OFL_lfs
                     OFL = OFL_lfs
                 else
