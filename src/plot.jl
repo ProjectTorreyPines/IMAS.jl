@@ -434,6 +434,7 @@ end
     @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(lcfs) <: Bool
+    @assert typeof(secondary_separatrix) <: Bool
     @assert typeof(show_x_points) <: Bool
     @assert typeof(magnetic_axis) <: Bool
 
@@ -482,12 +483,6 @@ end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
-    # eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    # @series begin
-    #     seriestype --> :contour
-    #     levels --> psi_levels
-    #     eqt2d.grid.dim1, eqt2d.grid.dim2, transpose(eqt2d.psi)
-    # end
     for psi_level in psi_levels
         for (pr, pz) in flux_surface(eqt, psi_level, :any)[1]
             @series begin
@@ -509,7 +504,7 @@ end
             primary --> false
             linewidth --> 1.5
             eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
-        end        
+        end
     end
 
     if magnetic_axis
