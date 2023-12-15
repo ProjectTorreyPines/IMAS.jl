@@ -30,12 +30,15 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
         currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
-
         CURRENT = maximum((maximum(abs, c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)) for c in pfa.coil))
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
             c_unit = "MA"
+        elseif maximum(currents) > 1e3
+            currents = currents ./ 1e3
+            CURRENT = CURRENT ./ 1e3
+            c_unit = "kA"
         else
             c_unit = "A"
         end
@@ -77,7 +80,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             linestyle --> :dash
             marker --> :circle
             ylabel := "[$c_unit]"
-            ["$k" for k in 1:length(currents)], currents
+            ["$k" for k in eachindex(currents)], currents
         end
 
         Imax = []
@@ -98,12 +101,14 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             @series begin
                 marker --> :cross
                 label := "Max current"
-                ["$k" for k in 1:length(currents)], Imax
+                ylabel := "[$c_unit]"
+                ["$k" for k in eachindex(currents)], Imax
             end
             @series begin
                 marker --> :cross
                 primary := false
-                ["$k" for k in 1:length(currents)], -Imax
+                ylabel := "[$c_unit]"
+                ["$k" for k in eachindex(currents)], -Imax
             end
         end
 
@@ -1810,7 +1815,7 @@ end
     controller = IMAS.parent(controller_outputs)
 
     data = controller.inputs.data[1, :]
-    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in 1:length(controller.inputs.time)-1)
+    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in eachindex(controller.inputs.time)-1)
     derivative = diff(data) ./ diff(controller.inputs.time)
 
     @series begin
