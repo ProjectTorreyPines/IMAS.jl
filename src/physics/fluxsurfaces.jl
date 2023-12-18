@@ -183,7 +183,7 @@ end
     find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation) 
 
 Returns psi of the second magentic separatrix. This relies on the fact that find_x_points! saves the x points in such a way
-that the last one is the null with Z opposite to the first x point which is the closest in psi to the lcfs
+that the last one is the null with Z opposite to the first x point which is the closest in psi to the lcfs.
 """
 function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation)
     psi2nd = PSI_interpolant.(eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z)
@@ -731,12 +731,14 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
     find_strike_points!(eqt)
 
     # secondary separatrix
-    psi2nd = find_psi_2nd_separatrix(eqt, PSI_interpolant)
-    tmp, _ = flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi2nd, :encircling)
-    if !isempty(tmp)
-        (pr2nd, pz2nd) = tmp[1]
-        eqt.boundary_secondary_separatrix.outline.r = pr2nd
-        eqt.boundary_secondary_separatrix.outline.z = pz2nd
+    if length(eqt.boundary.x_point) > 1
+        psi2nd = find_psi_2nd_separatrix(eqt, PSI_interpolant)
+        tmp, _ = flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi2nd, :encircling)
+        if !isempty(tmp)
+            (pr2nd, pz2nd) = tmp[1]
+            eqt.boundary_secondary_separatrix.outline.r = pr2nd
+            eqt.boundary_secondary_separatrix.outline.z = pz2nd
+        end
     end
 
     return eqt
