@@ -19,6 +19,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 
     if ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
+        c_unit = "A"
     else
         if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
             index = 1
@@ -29,12 +30,15 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
         currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
-
         CURRENT = maximum((maximum(abs, c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)) for c in pfa.coil))
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
             c_unit = "MA"
+        elseif maximum(currents) > 1e3
+            currents = currents ./ 1e3
+            CURRENT = CURRENT ./ 1e3
+            c_unit = "kA"
         else
             c_unit = "A"
         end
@@ -76,7 +80,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             linestyle --> :dash
             marker --> :circle
             ylabel := "[$c_unit]"
-            ["$k" for k in 1:length(currents)], currents
+            ["$k" for k in eachindex(currents)], currents
         end
 
         Imax = []
@@ -86,7 +90,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
                 #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
-                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max)
+                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max) / 1E6
                 push!(Imax, Icrit)
             else
                 push!(Imax, NaN)
@@ -97,12 +101,14 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             @series begin
                 marker --> :cross
                 label := "Max current"
-                ["$k" for k in 1:length(currents)], Imax
+                ylabel := "[$c_unit]"
+                ["$k" for k in eachindex(currents)], Imax
             end
             @series begin
                 marker --> :cross
                 primary := false
-                ["$k" for k in 1:length(currents)], -Imax
+                ylabel := "[$c_unit]"
+                ["$k" for k in eachindex(currents)], -Imax
             end
         end
 
@@ -426,12 +432,14 @@ end
     psi_levels_in=nothing,
     psi_levels_out=nothing,
     lcfs=false,
+    secondary_separatrix=false,
     show_x_points=false,
     magnetic_axis=true)
 
     @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(lcfs) <: Bool
+    @assert typeof(secondary_separatrix) <: Bool
     @assert typeof(show_x_points) <: Bool
     @assert typeof(magnetic_axis) <: Bool
 
@@ -480,14 +488,8 @@ end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
-    # eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    # @series begin
-    #     seriestype --> :contour
-    #     levels --> psi_levels
-    #     eqt2d.grid.dim1, eqt2d.grid.dim2, transpose(eqt2d.psi)
-    # end
     for psi_level in psi_levels
-        for (pr, pz) in flux_surface(eqt, psi_level, nothing)
+        for (pr, pz) in flux_surface(eqt, psi_level, :any)[1]
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
@@ -499,6 +501,14 @@ end
                 end
                 pr, pz
             end
+        end
+    end
+
+    if secondary_separatrix
+        @series begin
+            primary --> false
+            linewidth --> 1.5
+            eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
         end
     end
 
@@ -918,6 +928,7 @@ end
     rhos = unique(rhos)
 
     dd = top_dd(ct)
+
     if dd !== nothing
         @series begin
             linewidth := 2
@@ -1804,7 +1815,7 @@ end
     controller = IMAS.parent(controller_outputs)
 
     data = controller.inputs.data[1, :]
-    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in 1:length(controller.inputs.time)-1)
+    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in eachindex(controller.inputs.time)-1)
     derivative = diff(data) ./ diff(controller.inputs.time)
 
     @series begin

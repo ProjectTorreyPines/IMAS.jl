@@ -340,12 +340,13 @@ function lnLambda_i(ni, Ti, Zavg)
 end
 
 """
-    nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the neo 2021 modifcation and stores it in dd
-More info see omfit_classes.utils_fusion.py nclass_conductivity function
+Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the NEO 2021 modifcation and stores it in dd
+
+More info see omfit_classes.utils_fusion.py neo_conductivity function
 """
-function nclass_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density
