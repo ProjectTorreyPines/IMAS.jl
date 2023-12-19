@@ -221,7 +221,7 @@ end
 
     size --> (1000, 300)
     cols = 1 + length(filter!(!isempty, cost_series))
-    layout := @layout (1, cols)
+    layout := RecipesBase.@layout (1, cols)
     margin --> 5 * Measures.mm
 
     @series begin
@@ -301,7 +301,7 @@ end
     @assert typeof(coordinate) <: Symbol
 
     if !cx
-        layout := @layout [a{0.35w} [a b; c d]]
+        layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
         size --> (800, 500)
     end
 
@@ -1749,7 +1749,7 @@ end
         push!(plots, plt)
     end
 
-    layout := @layout [length(plots) + 1]
+    layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1000, 1000)
     margin --> 5 * Measures.mm
 
