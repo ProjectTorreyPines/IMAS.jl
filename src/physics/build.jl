@@ -296,11 +296,11 @@ end
 
 return outline of first wall or an empty outline if not present
 """
-function first_wall(wall::IMAS.wall)
+function first_wall(wall::IMAS.wall{T})::wall__description_2d___limiter__unit___outline{T} where {T<:Real}
     if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
         return wall.description_2d[1].limiter.unit[1].outline
     else
-        fw = IMAS.wall__description_2d___limiter__unit___outline()
+        fw = IMAS.wall__description_2d___limiter__unit___outline{T}()
         fw.r = Float64[]
         fw.z = Float64[]
         return fw
