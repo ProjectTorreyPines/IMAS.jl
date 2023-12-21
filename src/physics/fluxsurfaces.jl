@@ -338,7 +338,8 @@ Precision between the two is defined on the poloidal crossection area at the OMP
 """
 
 function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
-    return find_psi_last_diverted(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant; precision)
+    fw = first_wall(wall)
+    return find_psi_last_diverted(eqt, fw.r, fw.z, PSI_interpolant; precision)
 end
 
 """

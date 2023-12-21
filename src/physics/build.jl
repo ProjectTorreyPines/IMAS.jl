@@ -294,13 +294,16 @@ end
 """
     first_wall(wall::IMAS.wall)
 
-return outline of first wall
+return outline of first wall or an empty outline if not present
 """
 function first_wall(wall::IMAS.wall)
-    if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 5)
+    if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
         return wall.description_2d[1].limiter.unit[1].outline
     else
-        return missing
+        fw = IMAS.wall__description_2d___limiter__unit___outline()
+        fw.r = Float64[]
+        fw.z = Float64[]
+        return fw
     end
 end
 

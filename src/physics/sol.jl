@@ -53,6 +53,10 @@ Returns vectors of hfs and lfs OpenFieldLine
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true) where {T<:Real}
+    if isempty(wall_r) || isempty(wall_z)
+        use_wall = false
+    end
+
     ############ 
     R0, B0 = vacuum_r0_b0(eqt)
     RA = eqt.global_quantities.magnetic_axis.r
@@ -140,7 +144,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             end
 
             # add a point exactly at the (preferably outer) midplane
-            crossing_index, crossings = intersection([0, maximum(wall_r) * 1.5], [ZA, ZA], rr, zz)
+            crossing_index, crossings = intersection([0.0, 1000.0], [ZA, ZA], rr, zz)
             r_midplane = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
             z_midplane = [cr[2] for cr in crossings] # Z coordinate of points in SOL surface at MP (inner and outer)
             outer_index = argmax(r_midplane)  #index of point @ MP: this is OMP (for OFL_lfs); IMP for OFL_hfs
@@ -198,7 +202,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 end
 
 function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
-    return sol(eqt, first_wall(wall).r, first_wall(wall).z; levels, use_wall)
+    fw = first_wall(wall)
+    return sol(eqt, fw.r, fw.z; levels, use_wall)
 end
 
 function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
@@ -620,7 +625,7 @@ end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall)
     wall_outline = first_wall(wall)
-    if wall_outline !== missing
+    if !isempty(wall_outline.r)
         return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
     end
 end
@@ -628,7 +633,7 @@ end
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice)
     dd = top_dd(eqt)
     wall_outline = first_wall(dd.wall)
-    if wall_outline !== missing
+    if !isempty(wall_outline.r)
         return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
     elseif !isempty(dd.build.layer)
         return find_strike_points!(eqt, dd.build)
