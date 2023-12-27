@@ -269,7 +269,9 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
     rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
-
+    if sum(rr .< minimum(wall_r))>0 || sum(rr .> maximum(wall_r))>0
+        return Float64[], Float64[], Float64[], Int64[]
+    end
     # sort clockwise (COCOS 11) 
     angle = mod.(atan.(zz .- ZA, rr .- RA), 2 * π) # counterclockwise angle from midplane
     angle_is_monotonic = all(abs.(diff(angle)) .< π) # this finds if the field line crosses the OMP
