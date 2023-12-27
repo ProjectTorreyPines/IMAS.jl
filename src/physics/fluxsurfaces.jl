@@ -223,6 +223,11 @@ function find_psi_last_diverted(
     PSI_interpolant::Interpolations.AbstractInterpolation;
     precision::Float64=1e-7)
 
+    # if no wall in dd, psi_last diverted not defined
+    if isempty(wall_r) || isempty(wall_z)
+        return [Float64[], Float64[]], true # [psi_low, psi_up], null_is_inside
+    end
+
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
