@@ -968,6 +968,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
     end
 
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_sign = sign(psi_separatrix - psi_axis_level) # +1 if psi increases / -1 if psi decreases
 
     if !isempty(eqt.boundary.x_point)
 
@@ -1021,8 +1023,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 
 
         # remove x-points that have fallen on the magnetic axis 
-        sign_closest = psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # sign of psi of closest X-point in psi to LCFS
-        index = psidist_lcfs_xpoints .>= (1 - sign_closest * 0.00001) * psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
+        sign_closest = sign(psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] )# sign of psi of closest X-point in psi to LCFS
+        index = psidist_lcfs_xpoints.*psi_sign .>= (psi_sign - sign_closest * 1E-5) * psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] 
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
