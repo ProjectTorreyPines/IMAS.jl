@@ -80,7 +80,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
         r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
-        psi_last_diverted = [0,1].*0.00001.* abs(psi__boundary_level)
+        psi_last_diverted = [0,1].*1E-5.* abs(psi__boundary_level)
         null_is_inside = true
     end
     ############
@@ -178,13 +178,27 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             else
                 # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
                 rr[midplane_index] = r_mid_itp(level)
-                if zz[1] * zz[end] > 0 # z cordinate have same sign 
-                    # Add SOL surface in OFL_lfs
-                    OFL = OFL_lfs
+                if use_wall
+                    # if use_wall, :lfs and :lfs_far are located based on a condirion on psi
+                    threshold = sum(psi_last_diverted)/length(psi_last_diverted)
+                    if psi_sign*level <= psi_sign*threshold # psi_sign to account for increasing/decreasing psi
+                        # Add SOL surface in OFL_lfs
+                        OFL = OFL_lfs
+                    else
+                        # Add SOL surface in OFL_lfs_far
+                        OFL = OFL_lfs_far
+                    end
                 else
-                    # Add SOL surface in OFL_lfs_far
-                    OFL = OFL_lfs_far
+                    # if no wall, see if lines encircle the plasma
+                    if zz[1] * zz[end] > 0
+                        # Add SOL surface in OFL_lfs
+                        OFL = OFL_lfs
+                    else
+                        # Add SOL surface in OFL_lfs_far
+                        OFL = OFL_lfs_far
+                    end
                 end
+                
             end
             push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)) # add result
         end
