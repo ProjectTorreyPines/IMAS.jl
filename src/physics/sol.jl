@@ -179,7 +179,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
                 rr[midplane_index] = r_mid_itp(level)
                 if use_wall
-                    # if use_wall, :lfs and :lfs_far are located based on a condirion on psi
+                    # if use_wall, :lfs and :lfs_far are located based on a condition on psi
                     threshold = sum(psi_last_diverted) / length(psi_last_diverted)
                     if psi_sign * level <= psi_sign * threshold # psi_sign to account for increasing/decreasing psi
                         # Add SOL surface in OFL_lfs
