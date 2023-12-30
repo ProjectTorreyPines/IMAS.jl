@@ -80,7 +80,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
         r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
-        psi_last_diverted = [0,1].*1E-5.* abs(psi__boundary_level)
+        psi_last_diverted = [0, 1] .* 1E-5 .* abs(psi__boundary_level)
         null_is_inside = true
     end
     ############
@@ -180,8 +180,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 rr[midplane_index] = r_mid_itp(level)
                 if use_wall
                     # if use_wall, :lfs and :lfs_far are located based on a condirion on psi
-                    threshold = sum(psi_last_diverted)/length(psi_last_diverted)
-                    if psi_sign*level <= psi_sign*threshold # psi_sign to account for increasing/decreasing psi
+                    threshold = sum(psi_last_diverted) / length(psi_last_diverted)
+                    if psi_sign * level <= psi_sign * threshold # psi_sign to account for increasing/decreasing psi
                         # Add SOL surface in OFL_lfs
                         OFL = OFL_lfs
                     else
@@ -198,7 +198,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                         OFL = OFL_lfs_far
                     end
                 end
-                
+
             end
             push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)) # add result
         end
@@ -241,9 +241,9 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         return Float64[], Float64[], Float64[]
 
     elseif length(r_z_index) == 1
-        error("line_wall_2_wall: open field line should intersect wall at least twice.
-            If it does not it's likely because the equilibrium grid was too small.
-            Suggestion: plot dd.wall + eqt.profiles_2d to debug.")
+        error("""line_wall_2_wall: open field line should intersect wall at least twice.
+                 If it does not it's likely because the extent of the equilibrium grid is too small.
+                 Suggestion: plot dd.wall + eqt.profiles_2d to debug.""")
     end
 
     # angle of incidence
@@ -283,7 +283,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
     rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
-    if sum(rr .< minimum(wall_r))>0 || sum(rr .> maximum(wall_r))>0
+    if sum(rr .< minimum(wall_r)) > 0 || sum(rr .> maximum(wall_r)) > 0
         return Float64[], Float64[], Float64[], Int64[]
     end
     # sort clockwise (COCOS 11) 
