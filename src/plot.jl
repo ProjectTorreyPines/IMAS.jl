@@ -1070,7 +1070,7 @@ end
             @series begin
                 rad_source = IMAS.core_sources__source{T}()
                 resize!(rad_source.profiles_1d, 1)
-                fill!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
+                merge!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
                 rad_source.identifier.index = 200
                 rad_source.identifier.name = "radiation"
                 rad_source
