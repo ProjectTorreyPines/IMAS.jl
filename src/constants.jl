@@ -170,11 +170,27 @@ end
 
 const index_2_name__pf_active__coil___function = Dict(
     0 => :flux, # Generate flux (drive toroidal current)
-    1 => :b_field_shaping, # Generate magnetic field for shaping
-    2 => :b_field_fb) # Generate magnetic field for vertical force balance
+    1 => :shaping, # Generate magnetic field for shaping
+    2 => :vertical) # Generate magnetic field for vertical force balance
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.pf_active__coil___function}
     return index_2_name__pf_active__coil___function
+end
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.pf_active__coil}
+    return index_2_name__pf_active__coil___function
+end
+
+const index_2_name__pf_active__coil___element___geometry__geometry_type = Dict(
+    1 => :outline,
+    2 => :rectangle,
+    3 => :oblique,
+    4 => :arcs_of_circle,
+    5 => :annulus,
+    6 => :thick_line)
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.pf_active__coil___element___geometry}
+    return index_2_name__pf_active__coil___element___geometry__geometry_type
 end
 
 const index_2_name__balance_of_plant__power_electric_plant_operation =
@@ -201,6 +217,12 @@ function identifier_index(@nospecialize(ids::IDS); error_on_missing::Bool=true)
     elseif :grid_type in fieldnames(typeof(ids))
         if hasdata(ids.grid_type, :index) || error_on_missing
             return ids.grid_type.index
+        else
+            return nothing
+        end
+    elseif :geometry_type in fieldnames(typeof(ids))
+        if hasdata(ids, :geometry_type) || error_on_missing
+            return ids.geometry_type
         else
             return nothing
         end
@@ -236,7 +258,7 @@ function identifier_name(@nospecialize(ids::IDS); error_on_missing::Bool=true)
     end
     name = get(index_2_name(ids), index, nothing)
     if name === nothing
-        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     end
     return name
 end
@@ -267,11 +289,15 @@ Return item from IDSvector based on `index` of `index_2_name(ids)`
 function Base.findfirst(identifier_name::Symbol, @nospecialize(ids::IDSvector))
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
-        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
-    elseif :identifier in fieldnames(eltype(ids))
-        index = findfirst(idx -> idx.identifier.index == i, ids)
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         index = findfirst(idx -> idx.grid_type.index == i, ids)
+    elseif :function in fieldnames(eltype(ids))
+        index = findfirst(idx -> any(func.index == i for func in idx.function), ids)
+    elseif :geometry_type in fieldnames(eltype(ids))
+        index = findfirst(idx -> idx.geometry_type == i, ids)
+    elseif :identifier in fieldnames(eltype(ids))
+        index = findfirst(idx -> idx.identifier.index == i, ids)
     else
         index = findfirst(idx -> idx.index == i, ids)
     end
@@ -290,11 +316,15 @@ Return items from IDSvector based on `index` of `index_2_name(ids)`
 function Base.findall(identifier_name::Symbol, @nospecialize(ids::IDSvector))
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
-        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
-    elseif :identifier in fieldnames(eltype(ids))
-        indexes = findall(idx -> idx.identifier.index == i, ids)
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         indexes = findall(idx -> idx.grid_type.index == i, ids)
+    elseif :function in fieldnames(eltype(ids))
+        indexes = findall(idx -> any(func.index == i for func in idx.function), ids)
+    elseif :geometry_type in fieldnames(eltype(ids))
+        indexes = findall(idx -> idx.geometry_type == i, ids)
+    elseif :identifier in fieldnames(eltype(ids))
+        indexes = findall(idx -> idx.identifier.index == i, ids)
     else
         indexes = findall(idx -> idx.index == i, ids)
     end
@@ -329,11 +359,13 @@ function Base.resize!(
 )::T where {T<:IDSvectorElement}
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
-        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
-    elseif :identifier in fieldnames(eltype(ids))
-        return resize!(ids, "identifier.index" => i, conditions...; wipe, error_multiple_matches)
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         return resize!(ids, "grid_type.index" => i, conditions...; wipe, error_multiple_matches)
+    elseif :geometry_type in fieldnames(eltype(ids))
+        return resize!(ids, "geometry_type" => i, conditions...; wipe, error_multiple_matches)
+    elseif :identifier in fieldnames(eltype(ids))
+        return resize!(ids, "identifier.index" => i, conditions...; wipe, error_multiple_matches)
     else
         return resize!(ids, "index" => i, conditions...; wipe, error_multiple_matches)
     end
@@ -347,11 +379,13 @@ Deletes all entries that match based on `index` of `index_2_name(ids)`
 function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol, conditions::Pair{String}...)::T where {T<:IDSvector}
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
-        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids)))")
-    elseif :identifier in fieldnames(eltype(ids))
-        return deleteat!(ids, "identifier.index" => i, conditions...)
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         return deleteat!(ids, "grid_type.index" => i, conditions...)
+    elseif :geometry_type in fieldnames(eltype(ids))
+        return deleteat!(ids, "geometry_type" => i, conditions...)
+    elseif :identifier in fieldnames(eltype(ids))
+        return deleteat!(ids, "identifier.index" => i, conditions...)
     else
         return deleteat!(ids, "index" => i, conditions...)
     end

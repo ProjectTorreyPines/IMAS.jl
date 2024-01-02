@@ -80,6 +80,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
         r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
+        psi_last_diverted = [0, 1] .* 1E-5 .* abs(psi__boundary_level)
         null_is_inside = true
     end
     ############
@@ -108,8 +109,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
-
-        levels[1] = psi__boundary_level + psi_sign * 0.00001 * abs(psi__boundary_level) # if psi = psi__boundary_level, flux_surface does not work
+        levels[1] = psi__boundary_level + psi_sign * abs.(diff(psi_last_diverted))[1] # if psi = psi__boundary_level, flux_surface does not work
         levels[end] = psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane)
     end
 
@@ -178,13 +178,27 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             else
                 # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
                 rr[midplane_index] = r_mid_itp(level)
-                if zz[1] * zz[end] > 0 # z cordinate have same sign 
-                    # Add SOL surface in OFL_lfs
-                    OFL = OFL_lfs
+                if use_wall
+                    # if use_wall, :lfs and :lfs_far are located based on a condition on psi
+                    threshold = sum(psi_last_diverted) / length(psi_last_diverted)
+                    if psi_sign * level <= psi_sign * threshold # psi_sign to account for increasing/decreasing psi
+                        # Add SOL surface in OFL_lfs
+                        OFL = OFL_lfs
+                    else
+                        # Add SOL surface in OFL_lfs_far
+                        OFL = OFL_lfs_far
+                    end
                 else
-                    # Add SOL surface in OFL_lfs_far
-                    OFL = OFL_lfs_far
+                    # if no wall, see if lines encircle the plasma
+                    if zz[1] * zz[end] > 0
+                        # Add SOL surface in OFL_lfs
+                        OFL = OFL_lfs
+                    else
+                        # Add SOL surface in OFL_lfs_far
+                        OFL = OFL_lfs_far
+                    end
                 end
+
             end
             push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)) # add result
         end
@@ -227,9 +241,9 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         return Float64[], Float64[], Float64[]
 
     elseif length(r_z_index) == 1
-        error("line_wall_2_wall: open field line should intersect wall at least twice.
-            If it does not it's likely because the equilibrium grid was too small.
-            Suggestion: plot dd.wall + eqt.profiles_2d to debug.")
+        error("""line_wall_2_wall: open field line should intersect wall at least twice.
+                 If it does not it's likely because the extent of the equilibrium grid is too small.
+                 Suggestion: plot dd.wall + eqt.profiles_2d to debug.""")
     end
 
     # angle of incidence
@@ -269,7 +283,9 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
     rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
-
+    if sum(rr .< minimum(wall_r)) > 0 || sum(rr .> maximum(wall_r)) > 0
+        return Float64[], Float64[], Float64[], Int64[]
+    end
     # sort clockwise (COCOS 11) 
     angle = mod.(atan.(zz .- ZA, rr .- RA), 2 * π) # counterclockwise angle from midplane
     angle_is_monotonic = all(abs.(diff(angle)) .< π) # this finds if the field line crosses the OMP

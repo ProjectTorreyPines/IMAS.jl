@@ -223,6 +223,11 @@ function find_psi_last_diverted(
     PSI_interpolant::Interpolations.AbstractInterpolation;
     precision::Float64=1e-7)
 
+    # if no wall in dd, psi_last diverted not defined
+    if isempty(wall_r) || isempty(wall_z)
+        return [Float64[], Float64[]], true # [psi_low, psi_up], null_is_inside
+    end
+
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
@@ -231,6 +236,9 @@ function find_psi_last_diverted(
 
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # psi second magnetic separatrix
+    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+    psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
 
     # intersect 2nd separatrix with wall, and look 
     surface, _ = flux_surface(eqt, psi_2ndseparatrix, :open)
@@ -285,13 +293,7 @@ function find_psi_last_diverted(
     counter = 0
     psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     psi_sign = sign(psi_separatrix - psi_axis_level) # sign of the poloidal flux taking psi_axis = 0
-    psi_wall = PSI_interpolant.(wall_r, wall_z)
-    if psi_sign > 0
-        psi_up = minimum([psi_2ndseparatrix + psi_sign, maximum(psi_wall) * 0.999]) # increase value just to be sure of being inside OFL[:lfs_far]
-    else
-        psi_up = maximum([psi_2ndseparatrix + psi_sign, minimum(psi_wall) * 1.001]) # increase value just to be sure of being inside OFL[:lfs_far]
-    end
-
+    psi_up = psi_wall_midplane
     psi_low = psi_separatrix
     psi = (psi_up + psi_low) / 2
     err = 1
@@ -968,6 +970,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
     end
 
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_sign = sign(psi_separatrix - psi_axis_level) # +1 if psi increases / -1 if psi decreases
 
     if !isempty(eqt.boundary.x_point)
 
@@ -1021,8 +1025,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 
 
         # remove x-points that have fallen on the magnetic axis 
-        sign_closest = psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # sign of psi of closest X-point in psi to LCFS
-        index = psidist_lcfs_xpoints .>= (1 - sign_closest * 0.00001) * psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] # positive means outside of the lcfs, psi increase montonically 
+        sign_closest = sign(psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] )# sign of psi of closest X-point in psi to LCFS
+        index = psidist_lcfs_xpoints.*psi_sign .>= (psi_sign - sign_closest * 1E-5) * psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))] 
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
