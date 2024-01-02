@@ -36,7 +36,20 @@ Setup the pf_active.coil[:].function
 """
 function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
 
-    # find innermost coil
+    # set coil elements geometry_type attribute
+    geometry_types = name_2_index(coils[1].element[1].geometry)
+    for coil in coils
+        for element in coil.element
+            for geometry_type in keys(element.geometry)
+                if geometry_type != :geometry_type && !ismissing(getproperty(element.geometry, geometry_type), :r)
+                    element.geometry.geometry_type = geometry_types[geometry_type]
+                    break
+                end
+            end
+        end
+    end
+
+    # find innermost coil... that should be an OH!
     oh_min_radius = Inf
     for coil in coils
         for element in coil.element
