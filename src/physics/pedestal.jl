@@ -186,25 +186,46 @@ Finds the pedetal height and width using the EPED1 definition
 returns ped_height, ped_width
 """
 function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}
-    function cost_function(profile, weight_func, params)
-        if any(x -> (x < 0.0), params)
-            return 1e10
-        end
-        profile_fit = Hmode_profiles(profile[end], params[1], profile[1], length(profile), 2.0, 2.0, params[2])
-        return sqrt(sum(((profile .- profile_fit) .^ 2 ./ profile[1]^2) .* weight_func))
+    function cost_function(profile, params)
+        params = abs.(params)
+        height = params[1]
+        width = min(max(0.0, params[2]), 0.5)
+        expin = params[3]
+        expout = params[4]
+        psi_norm_fit = range(0, 1, length(profile))
+
+        tmp = Hmode_profiles(profile[end], height, profile[1], length(profile), expin, expout, width)
+        profile_fit = interp1d(psi_norm_fit, tmp).(psi_norm)
+
+        p1 = abs.(profile .- profile_fit) ./ maximum(profile)
+        p2 = abs.(gradient(psi_norm, profile) .- gradient(psi_norm, profile_fit)) ./ maximum(abs.(gradient(psi_norm, profile)))
+
+        return sum(((p1 .+ p2) .* weight) .^ 2.0)
     end
-    ngrid = length(profile)
-    half_grid = Int(floor(ngrid / 2))
 
-    inversion_point = argmin(gradient(psi_norm[half_grid:end], profile[half_grid:end])) + half_grid
-    inversion_point_margin = inversion_point - Int(floor(0.1 * ngrid))
+    weight = gradient(psi_norm)
 
-    weight_func = zeros(ngrid)
-    weight_func[inversion_point_margin:end] .+= 1.0
+    width0 = 0.05
+    height0 = interp1d(psi_norm, profile)(1.0 - width0)
+    expin0 = 1.0
+    expout0 = 1.0
+    guess = [height0, width0, expin0, expout0]
+    res = Optim.optimize(params -> cost_function(profile, params), guess, Optim.NelderMead(), Optim.Options(; g_tol=1E-5))
 
-    width0 = 1.0 - psi_norm[inversion_point]
-    guess = [interp1d(psi_norm, profile)(1.0 - 2.0 * width0), width0]
-    res = Optim.optimize(params -> cost_function(profile, weight_func, params), guess, Optim.NelderMead(), Optim.Options(; g_tol=1E-5))
+    params = abs.(res.minimizer)
+    height = params[1]
+    width = min(max(0.0, params[2]), 0.5)
+    expin = params[3]
+    expout = params[4]
 
-    return res.minimizer
+    # psi_norm_fit = range(0, 1, length(profile_fit))
+    # profile_fit = Hmode_profiles(profile[end], height, profile[1], length(profile), expin, expout, width)
+    # p = plot(psi_norm, profile)
+    # plot!(p, psi_norm_fit, profile_fit)
+    # hline!([height])
+    # vline!([1.0 .- width])
+    # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)])
+    # display(p)
+
+    return height, width
 end

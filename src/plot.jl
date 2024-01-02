@@ -30,12 +30,15 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         end
 
         currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
-
         CURRENT = maximum((maximum(abs, c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)) for c in pfa.coil))
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
             c_unit = "MA"
+        elseif maximum(currents) > 1e3
+            currents = currents ./ 1e3
+            CURRENT = CURRENT ./ 1e3
+            c_unit = "kA"
         else
             c_unit = "A"
         end
@@ -77,7 +80,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             linestyle --> :dash
             marker --> :circle
             ylabel := "[$c_unit]"
-            ["$k" for k in 1:length(currents)], currents
+            ["$k" for k in eachindex(currents)], currents
         end
 
         Imax = []
@@ -98,12 +101,14 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             @series begin
                 marker --> :cross
                 label := "Max current"
-                ["$k" for k in 1:length(currents)], Imax
+                ylabel := "[$c_unit]"
+                ["$k" for k in eachindex(currents)], Imax
             end
             @series begin
                 marker --> :cross
                 primary := false
-                ["$k" for k in 1:length(currents)], -Imax
+                ylabel := "[$c_unit]"
+                ["$k" for k in eachindex(currents)], -Imax
             end
         end
 
@@ -114,42 +119,48 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 end
 
 """
-    plot_coil_cx(coil::pf_active__coil; color=:black, coil_names=false)
+    plot_coil(coil::pf_active__coil{T}; coil_names=false) where {T<:Real}
 
 Plots cross-section of individual coils
 """
-@recipe function plot_coil_cx(coil::pf_active__coil; color=:black, coil_names=false)
-    @assert typeof(color) <: Symbol
+@recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false) where {T<:Real}
     @assert typeof(coil_names) <: Bool
 
-    if (coil.element[1].geometry.rectangle.width == 0.0) || (coil.element[1].geometry.rectangle.height == 0.0)
+    r = T[]
+    z = T[]
+    for (k,element) in enumerate(coil.element)
+        oute = outline(element)
         @series begin
-            color --> color
-            linewidth := 0.0
-            seriestype --> :scatter
-            markershape --> :star
-            colorbar --> :right
-            [(coil.element[1].geometry.rectangle.r, coil.element[1].geometry.rectangle.z)]
+            primary := k==1
+            oute
         end
-    else
-        r = coil.element[1].geometry.rectangle.r
-        z = coil.element[1].geometry.rectangle.z
-        Δr = coil.element[1].geometry.rectangle.width / 2.0
-        Δz = coil.element[1].geometry.rectangle.height / 2.0
+        append!(r, oute.r)
+        append!(z, oute.z)
+    end
+
+    if coil_names
+        r_avg = sum(r) / length(r)
+        z_avg = sum(z) / length(z)
         @series begin
-            seriestype --> :shape
-            linewidth --> 0.5
-            colorbar --> :right
-            color --> color
-            label --> ""
-            [-Δr, Δr, Δr, -Δr, -Δr] .+ r, [-Δz, -Δz, Δz, Δz, -Δz] .+ z
+            series_annotations := [(coil.name, :center, :middle, :red, 6)]
+            [r_avg], [z_avg]
         end
-        if coil_names
-            @series begin
-                series_annotations := [(coil.name, :center, :middle, :red, 6)]
-                [r], [z]
-            end
-        end
+    end
+
+end
+
+"""
+    plot_coil_element_outlne(oute::pf_active__coil___element___geometry__outline{T}) where {T<:Real}
+
+Plots cross-section of individual coil elements
+"""
+@recipe function plot_coil_element_outlne(oute::pf_active__coil___element___geometry__outline{T}) where {T<:Real}
+    @series begin
+        seriestype --> :shape
+        linewidth --> 0.25
+        colorbar --> :right
+        label --> ""
+        oute.r, oute.z
     end
 end
 
@@ -216,7 +227,7 @@ end
 
     size --> (1000, 300)
     cols = 1 + length(filter!(!isempty, cost_series))
-    layout := @layout (1, cols)
+    layout := RecipesBase.@layout (1, cols)
     margin --> 5 * Measures.mm
 
     @series begin
@@ -296,7 +307,7 @@ end
     @assert typeof(coordinate) <: Symbol
 
     if !cx
-        layout := @layout [a{0.35w} [a b; c d]]
+        layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
         size --> (800, 500)
     end
 
@@ -434,6 +445,7 @@ end
     @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
     @assert typeof(lcfs) <: Bool
+    @assert typeof(secondary_separatrix) <: Bool
     @assert typeof(show_x_points) <: Bool
     @assert typeof(magnetic_axis) <: Bool
 
@@ -482,12 +494,6 @@ end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
-    # eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    # @series begin
-    #     seriestype --> :contour
-    #     levels --> psi_levels
-    #     eqt2d.grid.dim1, eqt2d.grid.dim2, transpose(eqt2d.psi)
-    # end
     for psi_level in psi_levels
         for (pr, pz) in flux_surface(eqt, psi_level, :any)[1]
             @series begin
@@ -509,7 +515,7 @@ end
             primary --> false
             linewidth --> 1.5
             eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
-        end        
+        end
     end
 
     if magnetic_axis
@@ -1064,7 +1070,7 @@ end
             @series begin
                 rad_source = IMAS.core_sources__source{T}()
                 resize!(rad_source.profiles_1d, 1)
-                fill!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
+                merge!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
                 rad_source.identifier.index = 200
                 rad_source.identifier.name = "radiation"
                 rad_source
@@ -1749,7 +1755,7 @@ end
         push!(plots, plt)
     end
 
-    layout := @layout [length(plots) + 1]
+    layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1000, 1000)
     margin --> 5 * Measures.mm
 
@@ -1815,7 +1821,7 @@ end
     controller = IMAS.parent(controller_outputs)
 
     data = controller.inputs.data[1, :]
-    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in 1:length(controller.inputs.time)-1)
+    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in eachindex(controller.inputs.time) - 1)
     derivative = diff(data) ./ diff(controller.inputs.time)
 
     @series begin
