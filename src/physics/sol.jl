@@ -79,7 +79,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     else
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
-        r_wall_midplane = eqt2d.grid.dim1[end] # if no wall, take max R in psi grid
         psi_last_diverted = [0, 1] .* 1E-5 .* abs(psi__boundary_level)
         null_is_inside = true
     end
@@ -118,10 +117,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     OFL_lfs_far = OpenFieldLine[] # field lines magnetically connected to OMP outside last diverted flux surface
     # TO DO for the future: insert private flux regions (upper and lower)
 
-    # r_mid(ψ) interpolator for region of interest
-    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(maximum(r_wall_midplane)), 1000)
-    r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
-
     for level in levels
         lines, _ = flux_surface(eqt, level, :open) #returns (r,z) of surfaces with psi = level
         for (r, z) in lines
@@ -146,13 +141,11 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             # add a point exactly at the (preferably outer) midplane
             crossing_index, crossings = intersection([0.0, 1000.0], [ZA, ZA], rr, zz)
             r_midplane = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
-            z_midplane = [cr[2] for cr in crossings] # Z coordinate of points in SOL surface at MP (inner and outer)
             outer_index = argmax(r_midplane)  #index of point @ MP: this is OMP (for OFL_lfs); IMP for OFL_hfs
             crossing_index = crossing_index[outer_index] #indexes of point at MP in SOL surface
             r_midplane = r_midplane[outer_index] # R coordinate of point at MP in SOL surface
-            z_midplane = z_midplane[outer_index] # Z coordinate of point at MP in SOL surface
             rr = [rr[1:crossing_index[2]]; r_midplane; rr[crossing_index[2]+1:end]] #Insert in r of SOL surface a point @ MP
-            zz = [zz[1:crossing_index[2]]; z_midplane; zz[crossing_index[2]+1:end]] #Insert in z of SOL surface a point @ MP
+            zz = [zz[1:crossing_index[2]]; ZA; zz[crossing_index[2]+1:end]] #Insert in z of SOL surface a point @ MP
             midplane_index = crossing_index[2] + 1 #index at which point @ MP
 
             # calculate quantities along field line
@@ -177,7 +170,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 OFL = OFL_hfs # surfaces magnetically isolated from OMP
             else
                 # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
-                rr[midplane_index] = r_mid_itp(level)
                 if use_wall
                     # if use_wall, :lfs and :lfs_far are located based on a condition on psi
                     threshold = sum(psi_last_diverted) / length(psi_last_diverted)
