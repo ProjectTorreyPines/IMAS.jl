@@ -128,10 +128,10 @@ Plots cross-section of individual coils
 
     r = T[]
     z = T[]
-    for (k,element) in enumerate(coil.element)
+    for (k, element) in enumerate(coil.element)
         oute = outline(element)
         @series begin
-            primary := k==1
+            primary := k == 1
             oute
         end
         append!(r, oute.r)
@@ -786,6 +786,12 @@ Plot build cross-section
             if l.type == Int(_gap_)
                 name = ""
                 color = :white
+            elseif l.type == Int(_oh_)
+                if l.side == _in_
+                    color = :gray
+                else
+                    color = :white
+                end
             elseif l.type == Int(_tf_)
                 color = :green
             elseif l.type == Int(_shield_)
@@ -881,7 +887,11 @@ Plot build cross-section
                 elseif l.type == Int(_gap_)
                     color --> :white
                 elseif l.type == Int(_oh_)
-                    color --> :gray
+                    if l.side == _in_
+                        color --> :gray
+                    else
+                        color --> :white
+                    end
                 elseif l.type == Int(_tf_)
                     color --> :green
                 elseif l.type == Int(_shield_)
