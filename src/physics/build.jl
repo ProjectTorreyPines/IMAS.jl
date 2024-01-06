@@ -319,3 +319,46 @@ function build_max_R0_B0(bd::IMAS.build)
     B0 = bd.tf.max_b_field / TFhfs.end_radius * R0
     return R0, B0
 end
+
+"""
+    vertical_maintenance(bd::IMAS.build; modularity::Int=2)
+
+Returns the radial dimensions of the vertical vacuum port for blanket maintenance
+"""
+function vertical_maintenance(bd::IMAS.build; tor_modularity::Int=2, pol_modularity::Int=1)
+    TFhfs = get_build_layer(bd.layer; type=_tf_, fs=_hfs_)
+    VV = get_build_layer(bd.layer; type=_vessel_, fs=_lfs_)
+    BLhfs = get_build_layer(bd.layer; type=_blanket_, fs=_hfs_)
+    BLlfs = get_build_layer(bd.layer; type=_blanket_, fs=_lfs_)
+    gapVVLTS = get_build_layer(bd.layer; name="hfs gap vacuum vessel low temp shield")
+
+    n_TF = bd.tf.coils_n
+    n_modules = n_TF * tor_modularity
+    phi_TF = 2*π/n_TF
+    phi_module = 2*π/n_modules
+
+    tor_thickness_TF = 2*TFhfs.end_radius*tan(phi_TF/2)
+    wall_thickness_VV = VV.end_radius - VV.start_radius
+    gap_VV_TF = gapVVLTS.end_radius - gapVVLTS.start_radius
+    gap_VV_BL = 0.1
+    if pol_modularity == 1
+        rBL_ib = BLhfs.start_radius
+        rBL_ob = BLlfs.end_radius
+    elseif pol_modularity == 2
+        rBL_ib = (BLlfs.end_radius + BLhfs.start_radius)/2
+        rBL_ob = BLlfs.end_radius
+    else
+        error("pol_modularity is an unallowed value - must be either 1 or 2")
+    end
+
+    w = tor_thickness_TF/2 + gap_VV_TF + wall_thickness_VV + gap_VV_BL
+    r = (w - rBL_ib * sin(0.5 * (phi_TF-phi_module))) / sin(phi_TF/2)
+
+    rVP_hfs_ob = rBL_ib + r -  gap_VV_BL
+    rVP_hfs_ib = rVP_hfs_ob - wall_thickness_VV
+    rVP_lfs_ib = rVP_hfs_ob + 2*gap_VV_BL + (rBL_ob - rBL_ib)
+    rVP_lfs_ob = rVP_lfs_ib + wall_thickness_VV
+
+    return rVP_hfs_ib, rVP_hfs_ob, rVP_lfs_ib, rVP_lfs_ob
+
+end
