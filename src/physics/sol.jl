@@ -15,6 +15,79 @@ struct OpenFieldLine
     poloidal_flux_expansion::Vector{Float64} # Poloidal flux expansion
 end
 
+"""
+    OpenFieldLine(
+        PSI_interpolant,
+        r::AbstractVector{T},
+        z::AbstractVector{T},
+        wall_r::AbstractVector{T},
+        wall_z::AbstractVector{T},
+        B0::T,
+        R0::T,
+        RA::T,
+        ZA::T)
+
+OpenFieldLine constructor
+"""
+function OpenFieldLine(
+    PSI_interpolant,
+    r::AbstractVector{T},
+    z::AbstractVector{T},
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T},
+    B0::T,
+    R0::T,
+    RA::T,
+    ZA::T
+) where {T<:Real}
+    if isempty(wall_r)
+        # SOL without wall
+        rr = r
+        zz = z
+        strike_angles = [NaN, NaN]
+    else
+        # SOL with wall
+        # returns poloidal angles of each surface
+        # rr and zz are clockwise
+        # crossing points with wall = (rr[1], zz[1]) (rr[end], zz[end])
+        # this is the order at which angles are computed (strike, pitch and grazing)
+        # Example - OFL[2].[1<n<length(levels)].strike_angle[1] is computed at (rr[1], zz[1])
+        rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+    end
+
+    if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
+        return nothing
+    end
+
+    # add a point exactly at the (preferably outer) midplane
+    crossing_index, crossings = intersection([0.0, 1000.0], [ZA, ZA], rr, zz)
+    r_midplane = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
+    outer_index = argmax(r_midplane)  #index of point @ MP: this is OMP (for OFL_lfs); IMP for OFL_hfs
+    crossing_index = crossing_index[outer_index] #indexes of point at MP in SOL surface
+    r_midplane = r_midplane[outer_index] # R coordinate of point at MP in SOL surface
+    rr = [rr[1:crossing_index[2]]; r_midplane; rr[crossing_index[2]+1:end]] #Insert in r of SOL surface a point @ MP
+    zz = [zz[1:crossing_index[2]]; ZA; zz[crossing_index[2]+1:end]] #Insert in z of SOL surface a point @ MP
+    midplane_index = crossing_index[2] + 1 #index at which point @ MP
+
+    # calculate quantities along field line
+    Br, Bz = Br_Bz(PSI_interpolant, rr, zz) # r and z component of B for each point in (r,z)
+    Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)     # poloidal component of B for each point in (r,z)
+    Bt = abs.(B0 .* R0 ./ rr)              # toroidal component of B for each point in (r,z)
+    B = sqrt.(Bp .^ 2 + Bt .^ 2)           # total magnetic field B for each point in (r,z)
+    dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0) # curvilinear abscissa increments of poloidal projection of SOL surface
+    pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2) # ds = dp*sqrt(1 + (Bt/Bp)^2) (pythagora)
+    s = cumsum(pitch .* dp) # s = integral(ds)
+    s = abs.(s .- s[midplane_index]) # fix 0 at outer midplane
+
+    # Parameters to map heat flux from OMP to wall
+    pitch_angles = atan.(Bp, Bt)
+    grazing_angles = asin.(sin.([pitch_angles[1], pitch_angles[end]]) .* sin.(strike_angles))
+    total_flux_expansion = B[midplane_index] ./ B # total flux expansion(r,z) =  Bomp / B(r,z) [magentic flux conservation]
+    poloidal_flux_expansion = total_flux_expansion .* rr[midplane_index] ./ rr .* sin(pitch_angles[midplane_index]) ./ sin.(pitch_angles) # poloidal flux expansion
+
+    return OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)
+end
+
 @recipe function plot_ofl(ofl::OpenFieldLine)
     @series begin
         aspect_ratio --> :equal
@@ -53,8 +126,10 @@ Returns vectors of hfs and lfs OpenFieldLine
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true) where {T<:Real}
-    if isempty(wall_r) || isempty(wall_z)
-        use_wall = false
+    # force use_wall = false if wall_r is empty
+    if use_wall == false
+        wall_r = Float64[]
+        wall_z = Float64[]
     end
 
     ############ 
@@ -70,17 +145,18 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     # find psi at second magnetic separatrix 
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
-    if use_wall
+    if !isempty(wall_r)
         # SOL with wall
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
-        psi_last_diverted, null_is_inside = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
+        psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
     else
         # SOL without wall
         psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
-        psi_last_diverted = [0, 1] .* 1E-5 .* abs(psi__boundary_level)
-        null_is_inside = true
+        psi_last_lfs = psi__boundary_level
+        psi_first_lfs_far = psi__boundary_level .+ 1E-5
+        null_within_wall = true
     end
     ############
 
@@ -93,11 +169,11 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     elseif typeof(levels) <: Int
         levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
-        if null_is_inside
+        if null_within_wall
             levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix # make sure 2nd separatrix is in levels
         else
-            indexx = argmin(abs.(levels .- psi_last_diverted[1]))
-            levels = vcat(levels[1:indexx-1], psi_last_diverted, levels[indexx+1:end]) # remove closest point + add LDFS (it is a vector)
+            indexx = argmin(abs.(levels .- psi_last_lfs))
+            levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add LDFS (it is a vector)
             levels = sort(vcat(levels, psi__2nd_separatix))
         end
 
@@ -108,103 +184,62 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
-        levels[1] = psi__boundary_level + psi_sign * abs.(diff(psi_last_diverted))[1] # if psi = psi__boundary_level, flux_surface does not work
+        levels[1] = psi__boundary_level + psi_sign * abs(psi_last_lfs - psi_first_lfs_far) # if psi = psi__boundary_level, flux_surface does not work
         levels[end] = psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane)
     end
 
-    OFL_hfs = OpenFieldLine[] # field lines magnetically isolated from OMP
-    OFL_lfs = OpenFieldLine[] # field lines magnetically connected to OMP inside  last diverted flux surface
-    OFL_lfs_far = OpenFieldLine[] # field lines magnetically connected to OMP outside last diverted flux surface
+    OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
     # TO DO for the future: insert private flux regions (upper and lower)
-
+    
     for level in levels
         lines, _ = flux_surface(eqt, level, :open) #returns (r,z) of surfaces with psi = level
+
         for (r, z) in lines
-            if use_wall
-                # SOL with wall
-                # returns poloidal angles of each surface
-                # rr and zz are clockwise
-                # crossing points with wall = (rr[1], zz[1]) (rr[end], zz[end])
-                # this is the order at which angles are computed (strike, pitch and grazing)
-                # Example - OFL[2].[1<n<length(levels)].strike_angle[1] is computed at (rr[1], zz[1])
-                rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
-            else
-                # SOL without wall
-                rr = r
-                zz = z
-                strike_angles = [NaN, NaN]
-            end
-            if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
+            ofl = OpenFieldLine(PSI_interpolant, r, z, wall_r, wall_z, B0, R0, RA, ZA)
+            if ofl === nothing
                 continue
             end
 
-            # add a point exactly at the (preferably outer) midplane
-            crossing_index, crossings = intersection([0.0, 1000.0], [ZA, ZA], rr, zz)
-            r_midplane = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
-            outer_index = argmax(r_midplane)  #index of point @ MP: this is OMP (for OFL_lfs); IMP for OFL_hfs
-            crossing_index = crossing_index[outer_index] #indexes of point at MP in SOL surface
-            r_midplane = r_midplane[outer_index] # R coordinate of point at MP in SOL surface
-            rr = [rr[1:crossing_index[2]]; r_midplane; rr[crossing_index[2]+1:end]] #Insert in r of SOL surface a point @ MP
-            zz = [zz[1:crossing_index[2]]; ZA; zz[crossing_index[2]+1:end]] #Insert in z of SOL surface a point @ MP
-            midplane_index = crossing_index[2] + 1 #index at which point @ MP
-
-            # calculate quantities along field line
-            Br, Bz = Br_Bz(PSI_interpolant, rr, zz) #r and z component of B for each point in (r,z)
-            Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)     #poloidal component of B for each point in (r,z)
-            Bt = abs.(B0 .* R0 ./ rr)              #toroidal component of B for each point in (r,z)
-            B = sqrt.(Bp .^ 2 + Bt .^ 2)                 # total magnetic field B for each point in (r,z)
-            dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0) # curvilinear abscissa increments of poloidal projection of SOL surface
-            pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2) # ds = dp*sqrt(1 + (Bt/Bp)^2) (pythagora)
-            s = cumsum(pitch .* dp) # s = integral(ds)
-            s = abs.(s .- s[midplane_index]) # fix 0 at outer midplane
-
-            # Parameters to map heat flux from OMP to wall
-            pitch_angles = atan.(Bp, Bt)
-            grazing_angles = asin.(sin.([pitch_angles[1], pitch_angles[end]]) .* sin.(strike_angles))
-            total_flux_expansion = B[midplane_index] ./ B # total flux expansion(r,z) =  Bomp / B(r,z) [magentic flux conservation]
-            poloidal_flux_expansion = total_flux_expansion .* rr[midplane_index] ./ rr .* sin(pitch_angles[midplane_index]) ./ sin.(pitch_angles) # poloidal flux expansion
-
-            # select HFS or LFS and add line to the list 
-            if rr[midplane_index] < RA
+            # identify field line as `hfs`, `lfs`, or `lfs_far`
+            if ofl.r[ofl.midplane_index] < RA
                 # Add SOL surface in OFL_hfs
-                OFL = OFL_hfs # surfaces magnetically isolated from OMP
+                ofl_type = :hfs
             else
-                # update R coordinate of point at OMP in SOL surface, such that PSI_interpolant(rr[midplane_index],ZA) == level
-                if use_wall
-                    # if use_wall, :lfs and :lfs_far are located based on a condition on psi
-                    threshold = sum(psi_last_diverted) / length(psi_last_diverted)
-                    if psi_sign * level <= psi_sign * threshold # psi_sign to account for increasing/decreasing psi
+                if isempty(wall_r)
+                    # if no wall, see if lines encircle the plasma
+                    if ofl.z[1] * ofl.z[end] > 0
                         # Add SOL surface in OFL_lfs
-                        OFL = OFL_lfs
+                        ofl_type = :lfs
                     else
                         # Add SOL surface in OFL_lfs_far
-                        OFL = OFL_lfs_far
+                        ofl_type = :lfs_far
                     end
                 else
-                    # if no wall, see if lines encircle the plasma
-                    if zz[1] * zz[end] > 0
+                    # if use_wall, :lfs and :lfs_far are located based on a condition on psi
+                    threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
+                    if psi_sign * level <= psi_sign * threshold # psi_sign to account for increasing/decreasing psi
                         # Add SOL surface in OFL_lfs
-                        OFL = OFL_lfs
+                        ofl_type = :lfs
                     else
                         # Add SOL surface in OFL_lfs_far
-                        OFL = OFL_lfs_far
+                        ofl_type = :lfs_far
                     end
                 end
-
             end
-            push!(OFL, OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)) # add result
+
+            push!(OFL[ofl_type], ofl) # add result
         end
     end
 
     # In the case of a perfectly balanced double null OFL_lfs will be empty and all of the flux surfaces will appear in OFL_lfs_far
     # Here we switch the two
-    if isempty(OFL_lfs)
-        tmp = OFL_lfs_far
-        OFL_lfs_far = OFL_lfs
-        OFL_lfs = tmp
+    if isempty(OFL[:lfs])
+        tmp = OFL[:lfs_far]
+        OFL[:lfs_far] = OFL[:lfs]
+        OFL[:lfs] = tmp
     end
 
-    return OrderedCollections.OrderedDict(:hfs => OFL_hfs, :lfs => OFL_lfs, :lfs_far => OFL_lfs_far)
+    return OFL
 end
 
 function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
@@ -229,7 +264,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
     r_z_index = [k[1] for k in indexes] #index of vectors (r,z) of all crossing point
 
-    if length(r_z_index) == 0 # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
+    if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[]
 
     elseif length(r_z_index) == 1
