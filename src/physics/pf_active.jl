@@ -5,7 +5,12 @@
 Returns cross sectional area of PF coils
 """
 function area(coil::IMAS.pf_active__coil)
-    return coil.element[1].geometry.rectangle.width * coil.element[1].geometry.rectangle.height
+    A = 0.0
+    for element in coil.element
+        oute = outline(element)
+        A += area(oute.r, oute.z)
+    end
+    return A
 end
 
 """
@@ -14,7 +19,14 @@ end
 Returns volume of PF coils
 """
 function volume(coil::IMAS.pf_active__coil)
-    return area(coil) * 2π * coil.element[1].geometry.rectangle.r
+    V = 0.0
+    for element in coil.element
+        oute = outline(element)
+        A = area(oute.r, oute.z)
+        RC, ZC = centroid(oute.r, oute.z)
+        V += A * 2π * RC
+    end
+    return V
 end
 
 """
