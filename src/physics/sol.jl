@@ -213,7 +213,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 # Add SOL surface in OFL_hfs
                 ofl_type = :hfs
             else
-                if isempty(wall_r)
+                if isempty(wall_r) || isempty(wall_z)
                     # if no wall, see if lines encircle the plasma
                     if ofl.z[1] * ofl.z[end] > 0
                         # Add SOL surface in OFL_lfs
@@ -284,15 +284,26 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
 
     _, psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix 
-    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
-    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-    r_wall_midplane = r_wall_midplane[1] # make it float
-    psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA)[1]
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt,PSI_interpolant) # psi of the second magnetic separatrix
     r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
-    psi_last_lfs, psi_first_lfs_far, null_within_wall  = find_psi_last_diverted(eqt,wall_r,wall_z,PSI_interpolant) # psi of grazing surface
-    r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
 
+    if isempty(wall_r) .|| isempty(wall_z)
+        # no wall
+        psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+        psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
+        psi_wall_midplane = psi_sign*maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        r_wall_midplane = rmax
+        null_within_wall = true
+        r_last_diverted = [1, 1]*r_2ndseparatrix_midplane
+    else
+        # there is a wall
+        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+        r_wall_midplane = r_wall_midplane[1] # make it float
+        psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA)[1]
+        psi_last_lfs, psi_first_lfs_far, null_within_wall  = find_psi_last_diverted(eqt,wall_r,wall_z,PSI_interpolant) # psi of grazing surface
+        r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
+    end
     r = r .+ r_separatrix_midplane
     order = sortperm(r)
     q = q[order] 
@@ -436,10 +447,17 @@ function find_levels_from_wall(wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, P
 """
 function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
     _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) #psi on separatrix
-    crossings = intersection([(minimum(wall_r)+maximum(wall_r))/2, maximum(wall_r)*1.05], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
-    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-    r_wall_midplane = r_wall_midplane[1];
+    if isempty(wall_r) .|| isempty(wall_z)
+        # no wall
+        return Float64[]
+    else
+        # there is a wall
+        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+        r_wall_midplane = r_wall_midplane[1] # make it float
+    end
     psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA); 
 
     levels =  PSI_interpolant.(wall_r,wall_z)
