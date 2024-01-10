@@ -32,7 +32,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
     rmax = eqt2d.grid.dim1[end]
     r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(rmax), 1000)
     r_mid = IMAS.interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
-    psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    _, psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     r_separatrix = r_mid(psi_separatrix)      # R OMP at separatrix 
     psi_2ndseparatrix = IMAS.find_psi_2nd_separatrix(eqt,PSI_interpolant)
 
@@ -305,7 +305,7 @@ function WallHFMapper(dd::IMAS.dd,
     add_psi =  IMAS.find_levels_from_wall(eqt,wall_r,wall_z,PSI_interpolant)
     psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
 
-    psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    _, psi_separatrix = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     
     psi_levels[1] = psi_separatrix
 
