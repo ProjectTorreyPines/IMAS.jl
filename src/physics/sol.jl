@@ -205,7 +205,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 # Add SOL surface in OFL_hfs
                 ofl_type = :hfs
             else
-                if isempty(wall_r)
+                if isempty(wall_r) || isempty(wall_z)
                     # if no wall, see if lines encircle the plasma
                     if ofl.z[1] * ofl.z[end] > 0
                         # Add SOL surface in OFL_lfs
