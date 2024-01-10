@@ -155,9 +155,9 @@ function find_psi_boundary(
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
                 if any(abs.([(minimum(pr) - minimum(dimR)), (maximum(pr) - maximum(dimR)), (minimum(pz) - minimum(dimZ)), (maximum(pz) - maximum(dimZ))]) .< δd)
-                    return psi[end]
+                    return psi[end], psi[end]
                 else
-                    return psimid
+                    return psimid, psirange[end]
                 end
             end
             # open flux surface
@@ -234,7 +234,7 @@ function find_psi_last_diverted(
     Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
     sign_z = sign(Xpoint2[2]) # sign of Z coordinate of 2nd null
 
-    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
+    _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # psi second magnetic separatrix
     crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
@@ -799,7 +799,7 @@ function flux_surface(
 
     elseif psi_level == psi[end]
         # handle boundary by finding accurate lcfs psi
-        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; raise_error_on_not_open=false, raise_error_on_not_closed=false)
+        psi__boundary_level, _ = find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; raise_error_on_not_open=false, raise_error_on_not_closed=false)
         if psi__boundary_level !== nothing
             if abs(psi__boundary_level - psi_level) < abs(psi[end] - psi[end-1])
                 psi_level = psi__boundary_level
@@ -883,7 +883,7 @@ function tweak_psi_to_match_psilcfs!(eqt::IMAS.equilibrium__time_slice{D}; ψbou
     end
 
     # retrace the last closed flux surface
-    true_psib = IMAS.find_psi_boundary(eqt)
+    true_psib, _ = IMAS.find_psi_boundary(eqt)
     if true_psib !== nothing
         # scale psirz so to match original psi bounds (also add delta_psib to get desired ψbound)
         @. eqt2d.psi = (eqt2d.psi - psia) * (psib - psia) / (true_psib - psia) + psia + delta_psib
@@ -970,7 +970,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         eqt.boundary.x_point[2].z = -(eqt.boundary.x_point[2].z - eqt.global_quantities.magnetic_axis.z) + eqt.global_quantities.magnetic_axis.z
     end
 
-    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    psi_separatrix, _ = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     psi_sign = sign(psi_separatrix - psi_axis_level) # +1 if psi increases / -1 if psi decreases
 
