@@ -141,7 +141,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
-    psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
+    _, psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
     # find psi at second magnetic separatrix 
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
@@ -162,18 +162,18 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     # smart picking of psi levels
     if levels == 1
-        levels = [psi__boundary_level + psi_sign .* 1E-3]
+        levels = [psi__boundary_level]
 
     elseif levels == 2
-        levels = [psi__boundary_level + psi_sign .* 1E-3, psi__2nd_separatix]
+        levels = [psi__boundary_level, psi__2nd_separatix]
 
     elseif typeof(levels) <: Int
-        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-3, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
+        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
         if null_within_wall
             levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix # make sure 2nd separatrix is in levels
         else
             indexx = argmin(abs.(levels .- psi_last_lfs))
-            levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add LDFS (it is a vector)
+            levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
             levels = sort(vcat(levels, psi__2nd_separatix))
         end
 
@@ -184,8 +184,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
-        levels[1] = psi__boundary_level + psi_sign * abs(psi_last_lfs - psi_first_lfs_far) # if psi = psi__boundary_level, flux_surface does not work
-        levels[end] = psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane)
+        levels[1] = psi__boundary_level
+        levels[end] = psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane)
     end
 
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
