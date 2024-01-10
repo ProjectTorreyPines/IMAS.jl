@@ -898,11 +898,11 @@ function bisector(v1, v2, v3)
 end
 
 """
-    polygon_rays(vertices::AbstractVector{AbstractVector{<:Real}}, fact::Float64=1.0)
+    polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
 
 Returns bisecting "rays" (lines) that radiate from vertices of a polygon
 """
-function polygon_rays(vertices::AbstractVector, fact_a::Float64=1.0, fact_b::Float64=0.0)
+function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
     @assert vertices[1][1] != vertices[end][1] || vertices[1][2] != vertices[end][2]
 
     # Create rays
@@ -917,7 +917,7 @@ function polygon_rays(vertices::AbstractVector, fact_a::Float64=1.0, fact_b::Flo
         bisect = bisector(v1, v2, v3)
 
         # Define the ray
-        ray = [(v2[1] + fact_b * bisect[1], v2[2] + fact_b * bisect[2]), (v2[1] - fact_a * bisect[1], v2[2] - fact_a * bisect[2])]
+        ray = [(v2[1] + extent_a * bisect[1], v2[2] + extent_a * bisect[2]), (v2[1] + extent_b * bisect[1], v2[2] + extent_b * bisect[2])]
         push!(rays, ray)
     end
 
