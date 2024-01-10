@@ -344,6 +344,8 @@ Ramer-Douglas-Peucker algorithm. The `epsilon` parameter controls the maximum di
 allowed between a point on the original line and its simplified representation.
 """
 function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
+    @assert x[1] != x[end] || y[1] != y[end]
+
     n = length(x)
     if n != length(y)
         error("Input arrays must have at least 3 elements and the same length")
@@ -507,7 +509,7 @@ function resample_2d_path(
     # points of interest
     ti = range(t[1], t[end], n_points)
     if retain_original_xy
-        ti = unique(vcat(t,ti))
+        ti = sort!(unique!(vcat(t, ti)))
     end
 
     # interpolate
