@@ -46,7 +46,7 @@ function OpenFieldLine(
         rr = r
         zz = z
         strike_angles = [NaN, NaN]
-        wall_index = [NaN, NaN]
+        wall_index = Int64[]
     else
         # SOL with wall
         # returns poloidal angles of each surface
