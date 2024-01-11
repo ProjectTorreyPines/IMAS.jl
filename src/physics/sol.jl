@@ -157,10 +157,13 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
     else
         # SOL without wall
-        psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        # psi__axis_level is either the maximum or the minimum of the psi field
+        # psi_wall_midplane should be the other one: sum([minimum(eqt2d.psi), maximum(eqt2d.psi)] .- psi__boundary_level) + psi__boundary_level
+        psi_wall_midplane = sum([minimum(eqt2d.psi), maximum(eqt2d.psi)] .- psi__boundary_level) + psi__boundary_level - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
         psi_last_lfs = psi__boundary_level
         psi_first_lfs_far = psi__boundary_level .+ 1E-5
         null_within_wall = true
+        threshold = psi__2nd_separatix
     end
     ############
 
@@ -193,7 +196,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         # make sure levels includes separatrix and wall
         levels[1] = psi__boundary_level
         levels[end] = psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane)
-
     end
 
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
@@ -213,25 +215,20 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 # Add SOL surface in OFL_hfs
                 ofl_type = :hfs
             else
-                if isempty(wall_r) || isempty(wall_z)
-                    # if no wall, see if lines encircle the plasma
-                    if ofl.z[1] * ofl.z[end] > 0
+                    if ofl.z[1] * ofl.z[end] < 0
+                        # if z[1] and z[end] have different sign, for sure it is :lfs_far
                         # Add SOL surface in OFL_lfs
+                        ofl_type = :lfs_far
+                    elseif psi_sign * level <= psi_sign * threshold
+                        # if z[1] and z[end] have same sign, check psi
+                        # Add SOL surface in OFL_lfs_far
+
                         ofl_type = :lfs
                     else
-                        # Add SOL surface in OFL_lfs_far
+                        
                         ofl_type = :lfs_far
                     end
-                else
-                    # if use_wall, :lfs and :lfs_far are located based on a condition on psi
-                    if psi_sign * level <= psi_sign * threshold # psi_sign to account for increasing/decreasing psi
-                        # Add SOL surface in OFL_lfs
-                        ofl_type = :lfs
-                    else
-                        # Add SOL surface in OFL_lfs_far
-                        ofl_type = :lfs_far
-                    end
-                end
+
             end
 
             push!(OFL[ofl_type], ofl) # add result
