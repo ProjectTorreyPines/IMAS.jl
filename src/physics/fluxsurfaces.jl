@@ -449,7 +449,6 @@ function find_psi_max(
         # decresing psi
         psi_up = minimum(eqt2d.psi)
     end
-    @show psi_up
 
     # check first if psi_up is already the psi we want
     surface, _ = flux_surface(eqt, psi_up, :open)
@@ -485,7 +484,7 @@ function find_psi_max(
     psi = (psi_up + psi_low) / 2.0
     zmax = maximum(eqt2d.grid.dim2)
     zmin = minimum(eqt2d.grid.dim2)
-    @show psi
+
     err = Inf
     while abs(err) > precision && counter < counter_max
         surface, _ = flux_surface(eqt, psi, :open)
@@ -531,10 +530,10 @@ function find_psi_max(
 
         err = abs(psi_up - psi_low)/abs(psi_low)
         psi = (psi_up + psi_low) / 2.0
-        @show (psi_low,psi_up)
+
         counter = counter + 1
     end
-    @show counter
+
 
     return psi_low
 end
