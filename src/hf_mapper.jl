@@ -34,7 +34,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
     r_mid = IMAS.interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
     _, psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     r_separatrix = r_mid(psi_separatrix)      # R OMP at separatrix 
-    psi_2ndseparatrix = IMAS.find_psi_2nd_separatrix(eqt,PSI_interpolant)
+    psi_2ndseparatrix = IMAS.find_psi_2nd_separatrix(eqt)
 
     r = r .+ r_separatrix
     q_interp = IMAS.interp1d(r, q, :cubic) 

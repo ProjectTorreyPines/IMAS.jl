@@ -279,7 +279,7 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
 
     _, psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix 
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt,PSI_interpolant) # psi of the second magnetic separatrix
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi of the second magnetic separatrix
     r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
 
     if isempty(wall_r) .|| isempty(wall_z)
