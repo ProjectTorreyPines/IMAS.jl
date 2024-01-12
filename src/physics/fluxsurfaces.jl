@@ -306,7 +306,7 @@ function find_psi_last_diverted(
     z_intersect = Float64[]
     r_max = 0.0
     for (r, z) in surface
-        indexes, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
+        _, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
         if isempty(crossings)
             continue
         end
@@ -352,8 +352,6 @@ function find_psi_last_diverted(
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     counter_max = 50
     counter = 0
-    psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
-    psi_sign = sign(psi_separatrix - psi_axis_level) # sign of the poloidal flux taking psi_axis = 0
     psi_first_lfs_far = psi_wall_midplane
     psi_last_lfs = psi_separatrix
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
@@ -361,7 +359,7 @@ function find_psi_last_diverted(
     while abs(err) > precision && counter < counter_max
         surface, _ = flux_surface(eqt, psi, :open)
         for (r, z) in surface
-            rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+            rr, zz, _ = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
 
             if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
                 continue
