@@ -154,7 +154,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
     else
         # SOL without wall
-        psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        psi_wall_midplane = find_psi_max(eqt)
         psi_last_lfs = psi__boundary_level
         psi_first_lfs_far = psi__boundary_level .+ 1E-5
         null_within_wall = true
