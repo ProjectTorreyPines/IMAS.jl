@@ -146,7 +146,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     _, psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
     # find psi at second magnetic separatrix 
-    psi__2nd_separatix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # find psi at 2nd magnetic separatrix
+    psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
         # SOL with wall
@@ -157,9 +157,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
     else
         # SOL without wall
-        # psi__axis_level is either the maximum or the minimum of the psi field
-        # psi_wall_midplane should be the other one: sum([minimum(eqt2d.psi), maximum(eqt2d.psi)] .- psi__axis_level) + psi__axis_level
-        psi_wall_midplane = sum([minimum(eqt2d.psi), maximum(eqt2d.psi)] .- psi__axis_level) + psi__axis_level # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        psi_wall_midplane = find_psi_max(eqt)
         psi_last_lfs = psi__boundary_level
         psi_first_lfs_far = psi__boundary_level .+ 1E-5
         null_within_wall = true
@@ -219,7 +217,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                         # if z[1] and z[end] have different sign, for sure it is :lfs_far
                         # Add SOL surface in OFL_lfs
                         ofl_type = :lfs_far
-                    elseif psi_sign * level <= psi_sign * threshold
+                    elseif psi_sign * level < psi_sign * threshold
                         # if z[1] and z[end] have same sign, check psi
                         # Add SOL surface in OFL_lfs_far
 
