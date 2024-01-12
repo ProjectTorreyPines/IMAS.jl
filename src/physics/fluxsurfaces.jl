@@ -420,6 +420,125 @@ function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7)
     return find_psi_last_diverted(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant; precision)
 end
 
+"""
+    find_psi_max(
+        eqt::IMAS.equilibrium__time_slice,
+        precision::Float64=1e-3)
+
+Returns the max psi useful for an ofl in the SOL with no wall. 
+"""
+function find_psi_max(
+    eqt::IMAS.equilibrium__time_slice;
+    precision::Float64=1e-2)
+
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt)
+    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_sign = sign(psi_2ndseparatrix - psi_axis) # +1 for increasing psi / -1 for decreasing psi
+
+    # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
+    counter_max = 50
+    counter = 0
+    if psi_sign > 0
+        # increasing psi
+        psi_up = maximum(eqt2d.psi)
+    else
+        # decresing psi
+        psi_up = minimum(eqt2d.psi)
+    end
+    @show psi_up
+
+    # check first if psi_up is already the psi we want
+    surface, _ = flux_surface(eqt, psi_up, :open)
+    for (r,z) in surface
+
+        if isempty(r) || all(z .> ZA) || all(z .< ZA)
+            continue
+        end
+
+        _, crossings = intersection(r, z, [1, 10]*RA, [1, 1]*ZA) # find intersection with midplane
+
+        if isempty(crossings) 
+            continue
+        end
+
+        rr = crossings[1][1] # R coordiante of intersection
+        zz = crossings[1][2] # Z coordiante of intersection
+  
+        if rr < RA
+            # surface is in :hfs
+            continue
+        end
+
+        if z[1]*z[end] < 0
+            #surface starts and finishes in opposite sides of the midplane is the surface we want
+            return psi_up
+        end
+
+    end
+
+    # psi_up corresponds to a surface that does not start and finish on opposite sides of the midplane
+    psi_low = psi_2ndseparatrix # psi_low starts and finishes on opposite sides of the midlpane
+    psi = (psi_up + psi_low) / 2.0
+    zmax = maximum(eqt2d.grid.dim2)
+    zmin = minimum(eqt2d.grid.dim2)
+    @show psi
+    err = Inf
+    while abs(err) > precision && counter < counter_max
+        surface, _ = flux_surface(eqt, psi, :open)
+        for (r, z) in surface
+
+            if isempty(r) || all(z .> ZA) || all(z .< ZA)
+                continue
+            end
+
+            _, crossings = intersection(r, z, [1, 10]*RA, [1, 1]*ZA) # find intersection of surface with midplane
+
+            if isempty(crossings) 
+                continue
+            end
+
+            rr = crossings[1][1] # R coordiante of intersection
+            zz = crossings[1][2] # Z coordiante of intersection
+    
+            if rr < RA
+                # surface is in :hfs
+                continue
+            end
+
+            if z[end] * z[1] < 0
+                # psi starts and finishes on opposite sides of the midplane
+                if abs(z[end] * z[1] - zmax * zmin)/(zmax^2) <  0.1
+                    # make sure that indeed the surface goes from zmin to zmax, or close to that
+                    psi_low = psi
+                else
+                    psi_up = psi
+                end
+            else
+                # psi does not start and finish on opposite sides of the midplane
+                psi_up = psi
+            end
+        end
+        
+        if err == abs(psi_up - psi_low)/abs(psi_low)
+            # neither psi_up nor psi_low were updated; all surfaces in surface were discarded
+            # update psi_up, because psi_low is intrinsically safe for the algorithm
+            psi_up = psi 
+        end
+
+        err = abs(psi_up - psi_low)/abs(psi_low)
+        psi = (psi_up + psi_low) / 2.0
+        @show (psi_low,psi_up)
+        counter = counter + 1
+    end
+    @show counter
+
+    return psi_low
+end
+
 
 """
     interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{<:Real})
