@@ -143,7 +143,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
     _, psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
     # find psi at second magnetic separatrix 
-    psi__2nd_separatix = find_psi_2nd_separatrix(eqt, PSI_interpolant) # find psi at 2nd magnetic separatrix
+    psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
         # SOL with wall
@@ -151,12 +151,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
         psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
+        threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
     else
         # SOL without wall
-        psi_wall_midplane = maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        psi_wall_midplane = find_psi_max(eqt)
         psi_last_lfs = psi__boundary_level
         psi_first_lfs_far = psi__boundary_level .+ 1E-5
         null_within_wall = true
+        threshold = psi__2nd_separatix
     end
     ############
 
@@ -205,26 +207,20 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 # Add SOL surface in OFL_hfs
                 ofl_type = :hfs
             else
-                if isempty(wall_r)
-                    # if no wall, see if lines encircle the plasma
-                    if ofl.z[1] * ofl.z[end] > 0
+                    if ofl.z[1] * ofl.z[end] < 0
+                        # if z[1] and z[end] have different sign, for sure it is :lfs_far
                         # Add SOL surface in OFL_lfs
+                        ofl_type = :lfs_far
+                    elseif psi_sign * level < psi_sign * threshold
+                        # if z[1] and z[end] have same sign, check psi
+                        # Add SOL surface in OFL_lfs_far
+
                         ofl_type = :lfs
                     else
-                        # Add SOL surface in OFL_lfs_far
+                        
                         ofl_type = :lfs_far
                     end
-                else
-                    # if use_wall, :lfs and :lfs_far are located based on a condition on psi
-                    threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
-                    if psi_sign * level <= psi_sign * threshold # psi_sign to account for increasing/decreasing psi
-                        # Add SOL surface in OFL_lfs
-                        ofl_type = :lfs
-                    else
-                        # Add SOL surface in OFL_lfs_far
-                        ofl_type = :lfs_far
-                    end
-                end
+
             end
 
             push!(OFL[ofl_type], ofl) # add result
