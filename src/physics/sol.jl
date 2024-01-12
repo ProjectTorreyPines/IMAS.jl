@@ -598,9 +598,15 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
     Rx = Float64[]
     Zx = Float64[]
     θx = Float64[]
+    # find separatrix as first surface in SOL, not in private region
+    _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi of "first" open
+    sep, _ = flux_surface(eqt, psi_separatrix, :open)
+    for (pr, pz) in sep
 
-    private, _ = flux_surface(eqt, eqt.profiles_1d.psi[end], :open)
-    for (pr, pz) in private
+        if isempty(pr) || all(pz .> 0) || all(pz .< 0)
+            continue
+        end
+
         pvx, pvy, angles = find_strike_points(wall_outline_r, wall_outline_z, pr, pz)
         append!(Rx, pvx)
         append!(Zx, pvy)
