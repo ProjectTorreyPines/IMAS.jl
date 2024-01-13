@@ -352,6 +352,10 @@ function find_psi_last_diverted(
         null_within_wall = true
     end
 
+    if isempty(eqt.boundary_separatrix.strike_point)
+        find_strike_points!(eqt)
+    end
+
     # First we treat the double null case:
     # if we have 4 strike points, it is a double null
     if length(eqt.boundary_separatrix.strike_point) == 4
