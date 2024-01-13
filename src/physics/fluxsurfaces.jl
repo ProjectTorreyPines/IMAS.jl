@@ -365,7 +365,9 @@ function find_psi_last_diverted(
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     counter_max = 50
     counter = 0
-    psi_first_lfs_far = find_psi_2nd_separatrix(eqt, type = :diverted) # psi second magnetic separatrix
+    psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, type = :diverted)
+    psi_first_lfs_far = psi_2ndseparatrix
     psi_last_lfs = psi_separatrix
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
     err = Inf
@@ -429,6 +431,11 @@ function find_psi_last_diverted(
         psi = (psi_first_lfs_far + psi_last_lfs) / 2
 
         counter = counter + 1
+    end
+    # if LDFS is the 2nd separatrix, be consistent with the find_psi_2nd_separatrix function
+    if psi_first_lfs_far == psi_2ndseparatrix
+        psi_last_lfs = psi_first_lfs_far
+        psi_first_lfs_far = psi_2ndseparatrix_notdiverted
     end
 
     return (psi_last_lfs=psi_last_lfs, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
