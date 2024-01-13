@@ -297,13 +297,11 @@ function find_psi_last_diverted(
     ZA = eqt.global_quantities.magnetic_axis.z
 
     Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
-    sign_z = sign(Xpoint2[2]) # sign of Z coordinate of 2nd null
 
+    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis 
     _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
-    crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
-    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-    psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
+    psi_sign =  sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
 
     # intersect 2nd separatrix with wall, and look 
     surface, _ = flux_surface(eqt, psi_2ndseparatrix, :open)
@@ -354,28 +352,65 @@ function find_psi_last_diverted(
         null_within_wall = true
     end
 
+    # First we treat the double null case:
+    # if we have 4 strike points, it is a double null
+    if length(eqt.boundary_separatrix.strike_point) == 4
+        # LDFS is the separatrix
+        # psi_first_lfs_far is determined using the precision condition
+        psi_first_lfs_far = psi_separatrix + psi_sign * precision * abs(psi_separatrix)
+        return (psi_last_lfs=psi_separatrix, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
+    end
+
+    # Single_null case
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     counter_max = 50
     counter = 0
-    psi_first_lfs_far = psi_wall_midplane
+    psi_first_lfs_far = find_psi_2nd_separatrix(eqt, type = :diverted) # psi second magnetic separatrix
     psi_last_lfs = psi_separatrix
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
     err = Inf
     while abs(err) > precision && counter < counter_max
         surface, _ = flux_surface(eqt, psi, :open)
         for (r, z) in surface
-            rr, zz, _ = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
 
-            if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
+            if isempty(r) || all(z .> ZA) || all(z .< ZA)
                 continue
             end
 
-            if sign_z * zz[1] > 0 || sign_z * zz[end] > 0
-                # psi intersects FW -> update upper bound
-                psi_first_lfs_far = psi
-            else
-                # psi intersects divertor -> update lower bound
+            _, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
+
+            if isempty(crossings)
+                continue
+            end
+
+            r_intersect = (cr[1] for cr in crossings) # R coordiante of intersections with wall
+            z_intersect = (cr[2] for cr in crossings) # Z coordiante of intersections with wall
+
+            closest_to_strike_points = Int64[]
+            for point in eqt.boundary_separatrix.strike_point
+                dist = (r_intersect .- point.r).^2 .+ (z_intersect .- point.z).^2
+                push!(closest_to_strike_points,argmin(dist))
+            end
+            sort!(closest_to_strike_points)
+
+            # discard crossings occuring after second strike point
+            if closest_to_strike_points[end]<length(crossings)
+                for k in reverse(closest_to_strike_points[end]+1:length(crossings))
+                    deleteat!(crossings,k)
+                end
+            end
+            # discard crossings occuring before first strike point
+            if closest_to_strike_points[1]>1
+                for k in reverse(1:closest_to_strike_points[1]-1)
+                    deleteat!(crossings,k)
+                end
+            end
+            
+            if length(crossings) == 2 
+                # psi corresonds to a diverted surface
                 psi_last_lfs = psi
+            else
+                psi_first_lfs_far = psi
             end
         end
 
@@ -384,6 +419,12 @@ function find_psi_last_diverted(
         r_low = r_mid_itp(psi_last_lfs)
 
         A = π * (r_up^2 - r_low^2) # annular area between r_up and r_low [m^2] 
+
+        if err == abs(A)
+            # no psi was updated; update psi_first_lfs_far because psi_last_lfs is safe
+            psi_first_lfs_far = psi
+        end
+        
         err = abs(A)
         psi = (psi_first_lfs_far + psi_last_lfs) / 2
 
