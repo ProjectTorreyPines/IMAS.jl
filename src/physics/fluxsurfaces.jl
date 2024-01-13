@@ -184,7 +184,7 @@ end
 
 Returns psi of the second magentic separatrix. This relies only on eqt and finds the 2nd sep geometrically.
 """
-function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice)
+function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol= :not_diverted, precision::Float64=1E-7)
 
     ZA = eqt.global_quantities.magnetic_axis.z
 
@@ -218,7 +218,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice)
     err = Inf
     counter = 0
     counter_max = 50
-    while abs(err) > 1E-7 && counter < counter_max
+    while abs(err) > precision && counter < counter_max
         surface, _ = flux_surface(eqt, psi, :open)
         for (r, z) in surface
 
@@ -249,7 +249,12 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice)
         counter = counter + 1
     end
 
-    return psi_up
+    if type == :not_diverted
+        return psi_up
+    end
+    if type == :diverted
+        return psi_low
+    end
 end
 
 """
