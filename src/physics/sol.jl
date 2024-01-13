@@ -150,14 +150,13 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
-        psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
+        psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
     else
         # SOL without wall
         psi_wall_midplane = find_psi_max(eqt)
         psi_last_lfs = psi__boundary_level
         psi_first_lfs_far = psi__boundary_level .+ 1E-5
-        null_within_wall = true
         threshold = psi__2nd_separatix
     end
     ############
@@ -171,12 +170,15 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     elseif typeof(levels) <: Int
         levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
-        if null_within_wall
-            levels[argmin(abs.(levels .- psi__2nd_separatix))] = psi__2nd_separatix # make sure 2nd separatrix is in levels
-        else
-            indexx = argmin(abs.(levels .- psi_last_lfs))
-            levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
-            levels = sort(vcat(levels, psi__2nd_separatix))
+    
+        indexx = argmin(abs.(levels .- psi_last_lfs))
+        levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
+        # add 2nd sep, sort in increasing order and remove doubles (it could happen that psi__boundary_level = psi_last_lfs = psi_2ndseparatrix in DN)
+        levels = unique!(sort(vcat(levels, psi__2nd_separatix))) 
+        
+        if psi_sign == -1
+            # if psi is decreasing we must sort in decreasing order
+            levels = reverse!(levels)
         end
 
     else
