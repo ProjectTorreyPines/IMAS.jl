@@ -378,8 +378,7 @@ function find_psi_last_diverted(
     while abs(err) > precision && counter < counter_max
         surface, _ = flux_surface(eqt, psi, :open)
         for (r, z) in surface
-            rr, zz, strike_angles, wall_index = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
-
+            
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
                 continue
             end
