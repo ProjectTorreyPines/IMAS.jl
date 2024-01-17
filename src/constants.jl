@@ -95,6 +95,15 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:core_sources__source
     return index_2_name__core_sources__source
 end
 
+const index_2_name__pellets__time_slice___pellet___shape__type = Dict(
+    1 => :spherical,
+    2 => :cylinderical,
+    3 => :rectangular)
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:pellets__time_slice___pellet___shape__type}
+    return index_2_name__pellets__time_slice___pellet___shape__type
+end    
+    
 const index_2_name__stability__collection = Dict(
     1 => :default_limits,
     11 => :beta_limits, # Run all beta limits
