@@ -279,7 +279,7 @@ function intersection(
         end
     end
 
-    return indexes, crossings
+    return (indexes=indexes, crossings=crossings)
 end
 
 function _ccw(A, B, C)
@@ -344,6 +344,8 @@ Ramer-Douglas-Peucker algorithm. The `epsilon` parameter controls the maximum di
 allowed between a point on the original line and its simplified representation.
 """
 function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
+    @assert x[1] != x[end] || y[1] != y[end]
+
     n = length(x)
     if n != length(y)
         error("Input arrays must have at least 3 elements and the same length")
@@ -507,7 +509,7 @@ function resample_2d_path(
     # points of interest
     ti = range(t[1], t[end], n_points)
     if retain_original_xy
-        ti = unique(vcat(t,ti))
+        ti = sort!(unique!(vcat(t, ti)))
     end
 
     # interpolate
@@ -800,7 +802,8 @@ Return the element of the vector `vec` at the position `idx`.
 If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
 """
 function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
-    return vec[(idx-1)%length(vec)+1]
+    cidx = mod(idx - 1, length(vec)) + 1
+    return vec[cidx]
 end
 
 """
@@ -859,4 +862,94 @@ function chunk_indices(dims::Tuple{Vararg{Int}}, N::Int)
     end
 
     return chunks
+end
+
+"""
+    bisector(v1, v2, v3)
+
+Returns signed unitary bisector given three vertices
+"""
+function bisector(v1, v2, v3)
+    # Convert points to vectors
+    a = [v1[1] - v2[1], v1[2] - v2[2]]
+    b = [v3[1] - v2[1], v3[2] - v2[2]]
+
+    # Normalize vectors
+    @assert norm(a) > 0.0 "$a"
+    a /= norm(a)
+    @assert norm(b) > 0.0 "$b"
+    b /= norm(b)
+
+    # Check if vectors are opposite to each other, indicating a straight line
+    if isapprox(a, -b; atol=1e-8)
+        # Choose a vector that is perpendicular to a (or b)
+        bisect = [-a[2], a[1]]
+    else
+        # Otherwise, calculate the bisector
+        bisect = a + b
+        bisect /= norm(bisect)
+    end
+
+    # cross product to make bisector always point in/out
+    # depending if v1,v2,v3 are clockwise or counter-clockwise
+    cross_prod = a[1] * bisect[2] - a[2] * bisect[1]
+
+    return bisect * sign(cross_prod)
+end
+
+"""
+    polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
+
+Returns bisecting "rays" (lines) that radiate from vertices of a polygon
+"""
+function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
+    @assert vertices[1][1] != vertices[end][1] || vertices[1][2] != vertices[end][2]
+
+    # Create rays
+    rays = []
+    for i in eachindex(vertices)
+        # Get the current vertex and the adjacent ones
+        v1 = vertices[mod(i - 1, length(vertices))+1]
+        v2 = vertices[mod(i + 0, length(vertices))+1]
+        v3 = vertices[mod(i + 1, length(vertices))+1]
+
+        # Calculate bisector
+        bisect = bisector(v1, v2, v3)
+
+        # Define the ray
+        ray = [(v2[1] + extent_a * bisect[1], v2[2] + extent_a * bisect[2]), (v2[1] + extent_b * bisect[1], v2[2] + extent_b * bisect[2])]
+        push!(rays, ray)
+    end
+
+    return rays
+end
+
+"""
+    split_long_segments(R::AbstractVector{T},Z::AbstractVector{T},max_length::T) where {T<:Real}
+
+Split long segments of a polygon so that each resulting segment is always <= max_length
+"""
+function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::T) where {T<:Real}
+    @assert R[1] != R[end] || Z[1] != Z[end]
+
+    Rout = [R[1]]
+    Zout = [Z[1]]
+    for k in eachindex(R)
+        r1 = IMAS.getindex_circular(R, k)
+        z1 = IMAS.getindex_circular(Z, k)
+        r2 = IMAS.getindex_circular(R, k + 1)
+        z2 = IMAS.getindex_circular(Z, k + 1)
+        d = sqrt((r2 - r1)^2 + (z2 - z1)^2)
+        if d > max_length
+            n = Int(ceil(d / max_length)) + 1
+            rr = range(r1, r2, n)
+            zz = range(z1, z2, n)
+            append!(Rout, collect(rr)[2:end])
+            append!(Zout, collect(zz)[2:end])
+        else
+            push!(Rout, r2)
+            push!(Zout, z2)
+        end
+    end
+    return Rout[1:end-1], Zout[1:end-1]
 end

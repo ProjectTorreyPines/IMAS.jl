@@ -132,13 +132,13 @@ function optimal_kappa_delta(eqt::IMAS.equilibrium__time_slice, γτw::T, ∆o::
 end
 
 """
-    A_effective(cp1d::IMAS.core_profiles__profiles_1d)
+    A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
 A_effective towards L to H scaling see G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 """
-function A_effective(cp1d::IMAS.core_profiles__profiles_1d)
-    numerator = []
-    denominator = []
+function A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+    numerator = T[]
+    denominator = T[]
     for ion in cp1d.ion
         if ion.element[1].z_n == 1
             n_int = integrate(cp1d.grid.volume, ion.density)
