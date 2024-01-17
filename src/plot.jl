@@ -142,11 +142,11 @@ Plots cross-section of individual coils
         r_avg = sum(r) / length(r)
         z_avg = sum(z) / length(z)
         @series begin
+            label := ""
             series_annotations := [(coil.name, :center, :middle, :red, 6)]
             [r_avg], [z_avg]
         end
     end
-
 end
 
 """
@@ -203,12 +203,49 @@ end
     end
 end
 
-@recipe function plot_pf_passive(loop::IMAS.pf_passive__loop)
+"""
+    plot_coil_element_outlne(oute::pf_passive__loop___element___geometry__outline{T}) where {T<:Real}
+
+Plots cross-section of individual loop elements
+"""
+@recipe function plot_coil_element_outlne(oute::pf_passive__loop___element___geometry__outline{T}) where {T<:Real}
     @series begin
-        aspect_ratio --> :equal
-        label --> loop.name
         seriestype --> :shape
-        loop.element[1].geometry.outline.r, loop.element[1].geometry.outline.z
+        linewidth --> 0.25
+        colorbar --> :right
+        label --> ""
+        oute.r, oute.z
+    end
+end
+
+"""
+    plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
+
+Plots cross-section of individual loops
+"""
+@recipe function plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
+    @assert typeof(loop_names) <: Bool
+
+    r = T[]
+    z = T[]
+    for (k, element) in enumerate(loop.element)
+        oute = outline(element)
+        @series begin
+            primary := k == 1
+            oute
+        end
+        append!(r, oute.r)
+        append!(z, oute.z)
+    end
+
+    if loop_names
+        r_avg = sum(r) / length(r)
+        z_avg = sum(z) / length(z)
+        @series begin
+            label := ""
+            series_annotations := [(loop.name, :center, :middle, :red, 6)]
+            [r_avg], [z_avg]
+        end
     end
 end
 
