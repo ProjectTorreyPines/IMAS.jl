@@ -930,7 +930,13 @@ end
 Split long segments of a polygon so that each resulting segment is always <= max_length
 """
 function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::T) where {T<:Real}
-    @assert R[1] != R[end] || Z[1] != Z[end]
+    # check if the input polygon is closed or not
+    closed = false
+    if R[1] == R[end] || Z[1] == Z[end]
+        closed = true
+        R = R[1:end-1]
+        Z = Z[1:end-1]
+    end
 
     Rout = [R[1]]
     Zout = [Z[1]]
@@ -951,7 +957,11 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
             push!(Zout, z2)
         end
     end
-    return Rout[1:end-1], Zout[1:end-1]
+    if closed
+        return Rout, Zout
+    else
+        return Rout[1:end-1], Zout[1:end-1]
+    end
 end
 
 """
