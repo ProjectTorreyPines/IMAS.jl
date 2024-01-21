@@ -989,3 +989,34 @@ function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real
 
     return perimeter
 end
+
+"""
+    is_clockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+
+Returns true/false if polygon is defined clockwise
+"""
+function is_clockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+    # Check if the vectors are of the same length
+    if length(r) != length(z)
+        error("Vectors must be of the same length")
+    end
+
+    area = zero(T)
+    n = length(r)
+
+    for i in 1:n-1
+        area += (r[i] * z[i+1] - r[i+1] * z[i])
+    end
+    area += (r[n] * z[1] - r[1] * z[n])
+
+    return area < 0
+end
+
+"""
+    is_counterclockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+
+Returns true/false if polygon is defined counterclockwise
+"""
+function is_counterclockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+    return !is_clockwise(r, z)
+end
