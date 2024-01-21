@@ -953,3 +953,29 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
     end
     return Rout[1:end-1], Zout[1:end-1]
 end
+
+"""
+    perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 
+
+Calculate the perimeter of a polygon
+"""
+function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real}
+    @assert length(r) == length(z) error("Vectors must be of the same length")
+    n = length(r)
+    perimeter = 0.0
+    for i in 1:n-1
+        dx = r[i+1] - r[i]
+        dy = z[i+1] - z[i]
+        perimeter += sqrt(dx^2 + dy^2)
+    end
+
+    # Check if the polygon is closed (optional)
+    # If not closed, add distance from last point to first point
+    if r[1] != r[end] || z[1] != z[end]
+        dx = r[1] - r[end]
+        dy = z[1] - z[end]
+        perimeter += sqrt(dx^2 + dy^2)
+    end
+
+    return perimeter
+end
