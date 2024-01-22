@@ -965,6 +965,63 @@ Plot build cross-section
     end
 end
 
+# ======== #
+# build tf #
+# ======== #
+@recipe function plot_build_tf(tf::IMAS.build__tf)
+    layers = parent(tf).layer
+    TF = get_build_layers(layers; type=IMAS._tf_)
+
+    ϕwedge = 2pi / tf.coils_n / 2
+    ϕend = atan(TF[1].end_radius * sin(ϕwedge), TF[2].end_radius)
+
+    ϕ = range(0, 2pi, 101)
+
+    for ϕrot in collect(range(0.0, 2pi, tf.coils_n + 1))[1:end-1]
+        r = [TF[1].start_radius * cos(ϕwedge), TF[1].end_radius * cos(ϕwedge), TF[2].end_radius]
+        y = [TF[1].start_radius * sin(ϕwedge), TF[1].end_radius * sin(ϕwedge), TF[2].end_radius * sin(ϕend)]
+
+        r1 = r .* cos(ϕrot) .- (+y) .* sin(ϕrot)
+        y1 = r .* sin(ϕrot) .+ (+y) .* cos(ϕrot)
+
+        r2 = r .* cos(ϕrot) .- (-y) .* sin(ϕrot)
+        y2 = r .* sin(ϕrot) .+ (-y) .* cos(ϕrot)
+
+        @series begin
+            linewidth := 2
+            label := ""
+            seriestype := :shape
+            [r1; reverse(r2)], [y1; reverse(y2)]
+        end
+    end
+
+    @series begin
+        color := :black
+        label := ""
+        TF[1].start_radius .* cos.(ϕ), TF[1].start_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        TF[1].end_radius .* cos.(ϕ), TF[1].end_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        TF[2].start_radius .* cos.(ϕ), TF[2].start_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        aspect_ratio := :equal
+        TF[2].end_radius .* cos.(ϕ), TF[2].end_radius .* sin.(ϕ)
+    end
+
+end
+
 # ========= #
 # transport #
 # ========= #
