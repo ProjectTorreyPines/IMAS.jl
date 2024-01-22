@@ -17,6 +17,7 @@ using RecipesBase
 
 include("physics/equilibrium.jl")
 include("physics/build.jl")
+include("physics/tf.jl")
 include("physics/currents.jl")
 include("physics/control.jl")
 include("physics/fluxsurfaces.jl")

@@ -972,29 +972,21 @@ end
     layers = parent(tf).layer
     TF = get_build_layers(layers; type=IMAS._tf_)
 
-    ϕwedge = 2pi / tf.coils_n / 2
-    ϕend = atan(TF[1].end_radius * sin(ϕwedge), TF[2].end_radius)
-
-    ϕ = range(0, 2pi, 101)
+    x, y = top_outline(tf)
 
     for ϕrot in collect(range(0.0, 2pi, tf.coils_n + 1))[1:end-1]
-        r = [TF[1].start_radius * cos(ϕwedge), TF[1].end_radius * cos(ϕwedge), TF[2].end_radius]
-        y = [TF[1].start_radius * sin(ϕwedge), TF[1].end_radius * sin(ϕwedge), TF[2].end_radius * sin(ϕend)]
-
-        r1 = r .* cos(ϕrot) .- (+y) .* sin(ϕrot)
-        y1 = r .* sin(ϕrot) .+ (+y) .* cos(ϕrot)
-
-        r2 = r .* cos(ϕrot) .- (-y) .* sin(ϕrot)
-        y2 = r .* sin(ϕrot) .+ (-y) .* cos(ϕrot)
+        x_rot = x .* cos(ϕrot) .- (+y) .* sin(ϕrot)
+        y_rot = x .* sin(ϕrot) .+ (+y) .* cos(ϕrot)
 
         @series begin
             linewidth := 2
             label := ""
             seriestype := :shape
-            [r1; reverse(r2)], [y1; reverse(y2)]
+            x_rot, y_rot
         end
     end
 
+    ϕ = range(0, 2pi, 101)
     @series begin
         color := :black
         label := ""
