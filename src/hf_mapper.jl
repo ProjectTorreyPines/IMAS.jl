@@ -300,6 +300,9 @@ function WallHFMapper(dd::IMAS.dd,
     add_psi =  IMAS.find_levels_from_wall(eqt,wall_r,wall_z,PSI_interpolant)
    
     psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
+    if psi_sign == -1
+        psi_levels = reverse!(psi_levels) # if psi is decreasing, sort in descending order
+    end
 
     _, psi_separatrix = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     
