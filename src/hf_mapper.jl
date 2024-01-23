@@ -295,9 +295,10 @@ function WallHFMapper(dd::IMAS.dd,
     end
     
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    rr, zz, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
-    psi_levels, R, p_levels  =  IMAS.find_levels_from_P(eqt,wall_r,wall_z,PSI_interpolant,r,q,levels)
+    _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
+    psi_levels, _, _  =  IMAS.find_levels_from_P(eqt,wall_r,wall_z,PSI_interpolant,r,q,levels)
     add_psi =  IMAS.find_levels_from_wall(eqt,wall_r,wall_z,PSI_interpolant)
+   
     psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
 
     _, psi_separatrix = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
