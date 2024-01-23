@@ -290,7 +290,10 @@ function WallHFMapper(dd::IMAS.dd,
     eqt = dd.equilibrium.time_slice[]
     wall_r = IMAS.first_wall(dd.wall).r
     wall_z = IMAS.first_wall(dd.wall).z
-
+    if isempty(wall_r) || isempty(wall_z)
+        error("Impossible to map the heat flux onto the wall because dd.wall is empty")
+    end
+    
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     rr, zz, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi_levels, R, p_levels  =  IMAS.find_levels_from_P(eqt,wall_r,wall_z,PSI_interpolant,r,q,levels)
