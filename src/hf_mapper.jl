@@ -53,7 +53,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
     end
  
     # lower single null case
-    if case == :lower
+    if case == :lower || case == :upper
         #order clockwise starting from midplane
         for sol in reverse(SOL[:lfs_far])
             qmid = q_interp(sol.r[sol.midplane_index]) # compute parallell heat flux at omp
@@ -81,21 +81,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
             push!(Qpara, qmid/(sol.total_flux_expansion[1]))
             push!(indexes,sol.wall_index[1])
         end
-        for sol in SOL[:hfs]
-            #order clockwise starting from midplane
-            push!(Rwall,sol.r[1]) # R of points after midplane
-            push!(Zwall,sol.z[1]) # z of points after midplane
-            push!(Qwall,0)
-            push!(Qpara,0)
-            push!(indexes,sol.wall_index[1])
-        end
-        for sol in reverse(SOL[:hfs])
-            push!(Rwall,sol.r[end]) # R of points after midplane
-            push!(Zwall,sol.z[end]) # z of points after midplane
-            push!(Qwall,0)
-            push!(Qpara,0)
-            push!(indexes,sol.wall_index[end])
-        end
+
         for sol in SOL[:lfs_far]
             qmid = q_interp(sol.r[sol.midplane_index]) # compute parallell heat flux at omp
             push!(Rwall,sol.r[1]) # R of points after midplane
@@ -104,12 +90,54 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
             push!(Qpara, qmid/(sol.total_flux_expansion[1]))
             push!(indexes,sol.wall_index[1])
         end
+
+        Rwall_hfs =  Float64[]
+        Zwall_hfs =  Float64[]
+        Qwall_hfs =  Float64[]
+        Qpara_hfs =  Float64[]
+        indexes_hfs =  Int64[] 
+
+        if !isempty(SOL[:hfs])
+            for sol in SOL[:hfs]
+                #order clockwise starting from midplane
+                push!(Rwall_hfs,sol.r[1]) # R of points after midplane
+                push!(Zwall_hfs,sol.z[1]) # z of points after midplane
+                push!(Qwall_hfs,0.0)
+                push!(Qpara_hfs,0.0)
+                push!(indexes_hfs,sol.wall_index[1])
+            end
+            for sol in reverse(SOL[:hfs])
+                push!(Rwall_hfs,sol.r[end]) # R of points after midplane
+                push!(Zwall_hfs,sol.z[end]) # z of points after midplane
+                push!(Qwall_hfs,0.0)
+                push!(Qpara_hfs,0.0)
+                push!(indexes_hfs,sol.wall_index[end])
+            end
+
+            
+            # insert hfs
+            Rwall   = vcat(Rwall[1:argmin(abs.(indexes.-maximum(indexes_hfs)))-1], 
+                        Rwall_hfs, 
+                        Rwall[argmin(abs.(indexes.-maximum(indexes_hfs))):end])
+            Zwall   = vcat(Zwall[1:argmin(abs.(indexes.-maximum(indexes_hfs)))-1], 
+                        Zwall_hfs, 
+                        Zwall[argmin(abs.(indexes.-maximum(indexes_hfs))):end])
+            Qwall   = vcat(Qwall[1:argmin(abs.(indexes.-maximum(indexes_hfs)))-1], 
+                        Qwall_hfs, 
+                        Qwall[argmin(abs.(indexes.-maximum(indexes_hfs))):end])
+            Qpara   = vcat(Qpara[1:argmin(abs.(indexes.-maximum(indexes_hfs)))-1], 
+                        Qpara_hfs, 
+                        Qpara[argmin(abs.(indexes.-maximum(indexes_hfs))):end])
+            indexes = vcat(indexes[1:argmin(abs.(indexes.-maximum(indexes_hfs)))-1], 
+                        indexes_hfs, 
+                        indexes[argmin(abs.(indexes.-maximum(indexes_hfs))):end])
+        end
     end
 
-    # upper single null case
-    if case == :upper
+    # double null case - SOL[:lfs_far] is empty
+    if case == :double
         #order clockwise starting from midplane
-        for sol in reverse(SOL[:lfs_far])
+        for sol in reverse(SOL[:lfs])
             qmid = q_interp(sol.r[sol.midplane_index]) # compute parallell heat flux at omp
             push!(Rwall,sol.r[end]) # R of points after midplane
             push!(Zwall,sol.z[end]) # z of points after midplane
@@ -132,26 +160,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
             push!(Qpara,0)
             push!(indexes,sol.wall_index[end])
         end
-        for  sol in reverse(SOL[:lfs])
-            # Outer target
-            qmid = q_interp(sol.r[sol.midplane_index])
-            push!(Rwall,sol.r[end]) # R of points after midplane
-            push!(Zwall,sol.z[end]) # z of points after midplane
-            push!(Qwall,qmid/(sol.total_flux_expansion[end])*sin(sol.grazing_angles[end]))
-            push!(Qpara, qmid/(sol.total_flux_expansion[end]))
-            push!(indexes,sol.wall_index[end])
-        end
-        for  sol in SOL[:lfs]
-            # Inner target
-            qmid = q_interp(sol.r[sol.midplane_index]) # compute parallell heat flux at omp
-            push!(Rwall,sol.r[1]) # R of points after midplane
-            push!(Zwall,sol.z[1]) # z of points after midplane
-            push!(Qwall, qmid/(sol.total_flux_expansion[1])*sin(sol.grazing_angles[1]))
-            push!(Qpara, qmid/(sol.total_flux_expansion[1]))
-            push!(indexes,sol.wall_index[1])
-        end
-        
-        for sol in SOL[:lfs_far]
+        for sol in SOL[:lfs]
             qmid = q_interp(sol.r[sol.midplane_index]) # compute parallell heat flux at omp
             push!(Rwall,sol.r[1]) # R of points after midplane
             push!(Zwall,sol.z[1]) # z of points after midplane
@@ -160,42 +169,6 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
             push!(indexes,sol.wall_index[1])
         end
     end
-
-# double null case - SOL[:lfs_far] is empty
-if case == :double
-    #order clockwise starting from midplane
-    for sol in reverse(SOL[:lfs])
-        qmid = q_interp(sol.r[sol.midplane_index]) # compute parallell heat flux at omp
-        push!(Rwall,sol.r[end]) # R of points after midplane
-        push!(Zwall,sol.z[end]) # z of points after midplane
-        push!(Qwall, qmid/(sol.total_flux_expansion[end])*sin(sol.grazing_angles[end]))
-        push!(Qpara, qmid/(sol.total_flux_expansion[end]))
-        push!(indexes,sol.wall_index[end])
-    end
-    for sol in SOL[:hfs]
-        #order clockwise starting from midplane
-        push!(Rwall,sol.r[1]) # R of points after midplane
-        push!(Zwall,sol.z[1]) # z of points after midplane
-        push!(Qwall,0)
-        push!(Qpara,0)
-        push!(indexes,sol.wall_index[1])
-    end
-    for sol in reverse(SOL[:hfs])
-        push!(Rwall,sol.r[end]) # R of points after midplane
-        push!(Zwall,sol.z[end]) # z of points after midplane
-        push!(Qwall,0)
-        push!(Qpara,0)
-        push!(indexes,sol.wall_index[end])
-    end
-    for sol in SOL[:lfs]
-        qmid = q_interp(sol.r[sol.midplane_index]) # compute parallell heat flux at omp
-        push!(Rwall,sol.r[1]) # R of points after midplane
-        push!(Zwall,sol.z[1]) # z of points after midplane
-        push!(Qwall, qmid/(sol.total_flux_expansion[1])*sin(sol.grazing_angles[1]))
-        push!(Qpara, qmid/(sol.total_flux_expansion[1]))
-        push!(indexes,sol.wall_index[1])
-    end
-end
 
 
     if merge_wall
