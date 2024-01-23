@@ -276,7 +276,7 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(rmax), 1000)
     r_mid = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
     psi_mid = PSI_interpolant.(r_mid_of_interest,r_mid_of_interest.*0.0 .+ ZA)
-    psi_sign = psi_mid[end]-psi_mid[1]
+    psi_sign = sign(psi_mid[end]-psi_mid[1])
     if psi_sign < 0
         r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolate=true)
     end
