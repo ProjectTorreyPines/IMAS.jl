@@ -25,6 +25,10 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
     Qpara =  Float64[]
     indexes =  Int64[] 
 
+    if isempty(wall_r) || isempty(wall_z)
+        error("Impossible to map the heat flux onto the wall because dd.wall is empty")
+    end
+
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
     # r_mid(ψ) interpolator for region of interest
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
