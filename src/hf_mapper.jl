@@ -304,7 +304,7 @@ function WallHFMapper(dd::IMAS.dd,
         psi_levels = reverse!(psi_levels) # if psi is decreasing, sort in descending order
     end
 
-    _, psi_separatrix = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    _, psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     
     psi_levels[1] = psi_separatrix
 
