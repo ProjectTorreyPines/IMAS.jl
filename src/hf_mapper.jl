@@ -196,7 +196,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1];
         psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA); 
-        psi_last_lfs, psi_first_lfs_far, null_within_wall = IMAS.find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
+        _, psi_first_lfs_far, null_within_wall = IMAS.find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(wall_r,wall_z)
         add_indexes =  collect((1:length(psi_wall)))
         add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .||
