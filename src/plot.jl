@@ -968,21 +968,18 @@ end
 # ======== #
 # build tf #
 # ======== #
-@recipe function plot_build_tf(tf::IMAS.build__tf)
+@recipe function plot_build_tf(tf::IMAS.build__tf; cutouts=false)
+    @assert typeof(cutouts) <: Bool
     layers = parent(tf).layer
     TF = get_build_layers(layers; type=IMAS._tf_)
 
-    x, y = top_outline(tf)
-
-    for ϕrot in collect(range(0.0, 2pi, tf.coils_n + 1))[1:end-1]
-        x_rot = x .* cos(ϕrot) .- (+y) .* sin(ϕrot)
-        y_rot = x .* sin(ϕrot) .+ (+y) .* cos(ϕrot)
-
+    for n in 1:tf.coils_n
+        x, y = top_outline(tf, n; cutouts)
         @series begin
             linewidth := 2
             label := ""
             seriestype := :shape
-            x_rot, y_rot
+            x, y
         end
     end
 
