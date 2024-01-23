@@ -183,8 +183,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     else
         #levels is a vector of psi_levels for the discretization of the SOL
-        @assert levels[1] >= psi__boundary_level
-        @assert levels[end] <= psi_wall_midplane
+        @assert psi_sign*levels[1] >= psi_sign*psi__boundary_level
+        @assert psi_sign*levels[end] <= psi_sign*psi_wall_midplane
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
