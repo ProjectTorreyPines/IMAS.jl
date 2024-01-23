@@ -30,16 +30,30 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
     end
 
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
-    # r_mid(ψ) interpolator for region of interest
-    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    rr, zz, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
-    rmax = eqt2d.grid.dim1[end]
-    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(rmax), 1000)
-    r_mid = IMAS.interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
-    _, psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
-    r_separatrix = r_mid(psi_separatrix)      # R OMP at separatrix 
-    psi_2ndseparatrix = IMAS.find_psi_2nd_separatrix(eqt)
+    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
 
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
+    _, psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    surface, _ =  IMAS.flux_surface(eqt, psi_separatrix, :open)
+    r_separatrix =  Float64[]
+    for (rr,zz) in surface
+        if isempty(rr) || all(zz .> ZA) || all(zz .< ZA) 
+            continue
+        end
+
+        _, crossings = IMAS.intersection(rr, zz, [1, 10]*RA, [1, 1]*ZA) # find intersection with midplane
+
+        if isempty(crossings)
+            continue
+        end
+        
+        rsep = [cr[1] for cr in crossings]
+        
+        push!(r_separatrix,rsep[1])
+
+    end
+    r_separatrix =  r_separatrix[1]
     r = r .+ r_separatrix
     q_interp = IMAS.interp1d(r, q, :cubic) 
 
@@ -51,6 +65,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
     if isempty(SOL[:lfs_far])
         case = :double
     end
+    
  
     # lower single null case
     if case == :lower || case == :upper
