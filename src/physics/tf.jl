@@ -19,31 +19,61 @@ function R_tf_ripple(r, ripple::Real, N_tf::Integer)
 end
 
 """
-    top_outline(tf::IMAS.build__tf)
+    top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
 
-returns x,y outline (top view) of the tf coil
+returns x,y outline (top view) of the n'th TF coil
 """
 function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
     layers = parent(tf).layer
     TF = get_build_layers(layers; type=IMAS._tf_)
 
+    N = mod(abs(n) - 1, tf.coils_n) + 1
+
+    ϕROT = collect(range(0.0, 2pi, tf.coils_n + 1))[1:end-1]
     ϕwedge = 2pi / tf.coils_n / 2
 
     if cutouts
         ϕstart = atan(TF[1].end_radius * sin(ϕwedge), TF[2].start_radius)
         ϕend2 = atan(TF[1].end_radius * sin(ϕwedge), TF[2].end_radius * 2.0)
 
-        x = [
-            TF[1].start_radius / 2.0 * cos(ϕwedge),
-            TF[1].end_radius * cos(ϕwedge),
-            TF[2].end_radius * 2.0
-        ]
-    
-        y = [
-            TF[1].start_radius / 2.0 * sin(ϕwedge),
-            TF[1].end_radius * sin(ϕwedge),
-            TF[2].end_radius * 2.0 * sin(ϕend2)
-        ]
+        @assert n!=0
+        if n>0
+            x = [
+                0.1 * cos(ϕwedge),
+                TF[1].end_radius * cos(ϕwedge),
+                TF[2].end_radius * 2.0
+            ]
+        
+            y = [
+                0.1 * sin(ϕwedge),
+                TF[1].end_radius * sin(ϕwedge),
+                TF[2].end_radius * 2.0 * sin(ϕend2)
+            ]
+        else
+            x1 = [
+                TF[1].end_radius * cos(ϕwedge),
+                TF[2].end_radius * 2.0
+            ]
+        
+            y1 = [
+                TF[1].end_radius * sin(ϕwedge),
+                TF[2].end_radius * 2.0 * sin(ϕend2)
+            ]
+
+            ϕrot = ϕROT[2]
+            x2 = x1 .* cos(ϕrot) .+ y1 .* sin(ϕrot)
+            y2 = x1 .* sin(ϕrot) .- y1 .* cos(ϕrot)
+
+            x = [x1;reverse(x2)]
+            y = [y1;reverse(y2)]
+            x[end] = x[1]
+            y[end] = y[1]
+
+            ϕrot = ϕROT[N]
+            xrot = x .* cos(ϕrot) .- y .* sin(ϕrot)
+            yrot = x .* sin(ϕrot) .+ y .* cos(ϕrot)
+            return (x=xrot, y=yrot)
+        end
 
     else
         ϕstart = atan(TF[1].end_radius * sin(ϕwedge), TF[2].start_radius)
@@ -67,12 +97,8 @@ function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
     x = [x; reverse(x); x[1]]
     y = [y; reverse(-y); y[1]]
 
-    if n != 1
-        ϕrot = collect(range(0.0, 2pi, tf.coils_n + 1))[1:end-1][n]
-        xrot = x .* cos(ϕrot) .- y .* sin(ϕrot)
-        yrot = x .* sin(ϕrot) .+ y .* cos(ϕrot)
-        return (x=xrot, y=yrot)
-    else
-        return (x=x, y=y)
-    end
+    ϕrot = ϕROT[N]
+    xrot = x .* cos(ϕrot) .- y .* sin(ϕrot)
+    yrot = x .* sin(ϕrot) .+ y .* cos(ϕrot)
+    return (x=xrot, y=yrot)
 end
