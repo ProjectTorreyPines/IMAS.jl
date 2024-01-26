@@ -201,10 +201,6 @@ end
 end
 
 
-function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, y::Real, z::Real, vx::Real, vy::Real, vz::Real)
-    return toroidal_intersection(r1, z1, r2, z2, x, y, z, vx, vy, vz, vx^2 + vy^2, vz^2)
-end
-
 function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, y::Real, z::Real, vx::Real, vy::Real, vz::Real, v2::Real, vz2::Real)
     m = (z2 - z1) / (r2 - r1)
     z0 = z1 - m * r1
