@@ -21,10 +21,10 @@ end
 
 
 """
-define_particles(dd::IMAS.dd, rho::Vector{T}, source_1d::rho::Vector{T} , N::Int) where {T<:Real}
+    define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T} , N::Int) where {T<:Real}
 
-Creates a vector of particles from a 1D source (rho, source_1d) launching N particles.
-Returns also a vector (I_per_trace) of the intensity per trace.
+Creates a vector of particles from a 1D source (psi, source_1d) launching N particles.
+Returns also a scalar (I_per_trace) which is the intensity per trace.
 
 """
 
