@@ -272,26 +272,6 @@ function volume(structure::IMAS.build__structure)
 end
 
 """
-    tf_ripple(r, R_tf::Real, N_tf::Integer)
-
-Evaluate fraction of toroidal magnetic field ripple at `r` [m]
-generated from `N_tf` toroidal field coils with outer leg at `R_tf` [m]
-"""
-function tf_ripple(r, R_tf::Real, N_tf::Integer)
-    eta = (r ./ R_tf) .^ N_tf
-    return eta ./ (1.0 .- eta)
-end
-
-"""
-    R_tf_ripple(r, ripple::Real, N_tf::Integer)
-
-Evaluate location of toroidal field coils outer leg `R_tf`` [m] at which `N_tf`toroidal field coils generate a given fraction of toroidal magnetic field ripple at`r` [m]
-"""
-function R_tf_ripple(r, ripple::Real, N_tf::Integer)
-    return r .* (ripple ./ (ripple .+ 1.0)) .^ (-1 / N_tf)
-end
-
-"""
     first_wall(wall::IMAS.wall)
 
 return outline of first wall or an empty outline if not present
