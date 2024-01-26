@@ -27,10 +27,7 @@ Creates a vector of particles from a 1D source (psi, source_1d) launching N part
 Returns also a scalar (I_per_trace) which is the intensity per trace.
 
 """
-
-function define_particles(dd::IMAS.dd, psi::Vector{T}, source_1d::Vector{T} , N::Int) where {T<:Real}
-        
-    eqt = dd.equilibrium.time_slice[]
+function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T} , N::Int) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
 
     # in-plasma mask
