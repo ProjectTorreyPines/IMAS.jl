@@ -965,6 +965,52 @@ Plot build cross-section
     end
 end
 
+# ======== #
+# build tf #
+# ======== #
+@recipe function plot_build_tf(tf::IMAS.build__tf; cutouts=false)
+    @assert typeof(cutouts) <: Bool
+    layers = parent(tf).layer
+    TF = get_build_layers(layers; type=IMAS._tf_)
+
+    for n in 1:tf.coils_n
+        x, y = top_outline(tf, n; cutouts)
+        @series begin
+            linewidth := 2
+            label := ""
+            seriestype := :shape
+            x, y
+        end
+    end
+
+    ϕ = range(0, 2pi, 101)
+    @series begin
+        color := :black
+        label := ""
+        TF[1].start_radius .* cos.(ϕ), TF[1].start_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        TF[1].end_radius .* cos.(ϕ), TF[1].end_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        TF[2].start_radius .* cos.(ϕ), TF[2].start_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        aspect_ratio := :equal
+        TF[2].end_radius .* cos.(ϕ), TF[2].end_radius .* sin.(ϕ)
+    end
+
+end
+
 # ========= #
 # transport #
 # ========= #

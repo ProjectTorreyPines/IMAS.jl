@@ -930,7 +930,13 @@ end
 Split long segments of a polygon so that each resulting segment is always <= max_length
 """
 function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::T) where {T<:Real}
-    @assert R[1] != R[end] || Z[1] != Z[end]
+    # check if the input polygon is closed or not
+    closed = false
+    if R[1] == R[end] || Z[1] == Z[end]
+        closed = true
+        R = R[1:end-1]
+        Z = Z[1:end-1]
+    end
 
     Rout = [R[1]]
     Zout = [Z[1]]
@@ -951,5 +957,66 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
             push!(Zout, z2)
         end
     end
-    return Rout[1:end-1], Zout[1:end-1]
+    if closed
+        return Rout, Zout
+    else
+        return Rout[1:end-1], Zout[1:end-1]
+    end
+end
+
+"""
+    perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 
+
+Calculate the perimeter of a polygon
+"""
+function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real}
+    @assert length(r) == length(z) error("Vectors must be of the same length")
+    n = length(r)
+    perimeter = 0.0
+    for i in 1:n-1
+        dx = r[i+1] - r[i]
+        dy = z[i+1] - z[i]
+        perimeter += sqrt(dx^2 + dy^2)
+    end
+
+    # Check if the polygon is closed (optional)
+    # If not closed, add distance from last point to first point
+    if r[1] != r[end] || z[1] != z[end]
+        dx = r[1] - r[end]
+        dy = z[1] - z[end]
+        perimeter += sqrt(dx^2 + dy^2)
+    end
+
+    return perimeter
+end
+
+"""
+    is_clockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+
+Returns true/false if polygon is defined clockwise
+"""
+function is_clockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+    # Check if the vectors are of the same length
+    if length(r) != length(z)
+        error("Vectors must be of the same length")
+    end
+
+    area = zero(T)
+    n = length(r)
+
+    for i in 1:n-1
+        area += (r[i] * z[i+1] - r[i+1] * z[i])
+    end
+    area += (r[n] * z[1] - r[1] * z[n])
+
+    return area < 0
+end
+
+"""
+    is_counterclockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+
+Returns true/false if polygon is defined counterclockwise
+"""
+function is_counterclockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
+    return !is_clockwise(r, z)
 end
