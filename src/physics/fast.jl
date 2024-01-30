@@ -225,8 +225,9 @@ function critical_energy(
 )
     avg_cmr = sum(ni .* (Zi .^ 2) ./ mi) / ne
     Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
-    if !(approximate)
-        Ec = Roots.find_zero(x -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, x, mf, Zf), (0.5 * Ec, 2 * Ec))
+    if !approximate
+        index = ni .> 0
+        Ec = Roots.find_zero(Ec0 -> _electron_ion_drag_difference(ne, Te, ni[index], Ti[index], mi[index], Zi[index], Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
     end
     return Ec
 end
@@ -401,6 +402,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     c_a = zeros(tp, length(rho))
     for ion in cp1d.ion
         ni = ion.density_thermal
+        @assert all(ni .>= 0.0) "$ni"
         Zi = avgZ(ion.element[1].z_n, ion.temperature)
         mi = ion.element[1].a
         c_a .+= (ni ./ ne) .* Zi .^ 2 ./ (mi ./ particle_mass)

@@ -543,7 +543,7 @@ Returns true if quasi neutrality is satisfied within a relative tolerance
 function is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
     Nis = sum(sum(ion.density .* ion.z_ion for ion in cp1d.ion))
     Ne = sum(cp1d.electrons.density)
-    if (1 + rtol) > (Ne / Nis) > (1 - rtol)
+    if (1.0 + rtol) >= (Ne / Nis) >= (1.0 - rtol)
         return true
     else
         return false
@@ -560,19 +560,37 @@ end
 """
     enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
 
-Enforce quasi neutrality by using density_thermal of species and makes sure density is set to the original expression
+Evaluates the difference in number of charges needed to reach quasineutrality,
+and assigns positive difference  to target ion density_thermal species
+and negative difference to electrons density_thermal
+
+Also, makes sure `density` is set to the original expression
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
-    # Make sure expression is used for density
+    # identify ion species
+    species_indx = findfirst(Symbol(ion.label) == species for ion in cp1d.ion)
+    @assert species_indx !== nothing
+    ion0 = cp1d.ion[species_indx]
+
+    # Make sure expressions are used for total densities
     empty!(cp1d.electrons, :density)
     for ion in cp1d.ion
         empty!(ion, :density)
     end
-    species_indx = findfirst(Symbol(ion.label) == species for ion in cp1d.ion)
-    @assert species_indx !== nothing
-    return cp1d.ion[species_indx].density_thermal =
-        (cp1d.electrons.density .+ cp1d.ion[species_indx].density .* cp1d.ion[species_indx].z_ion .- sum(ion.density .* ion.z_ion for ion in cp1d.ion)) ./
-        cp1d.ion[species_indx].z_ion
+
+    # evaluate the difference in number of charges needed to reach quasineutrality
+    q_density_difference = cp1d.electrons.density .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion != ion0) .- ion0.density_fast .* ion0.z_ion
+
+    # positive difference is assigned to target ion density_thermal
+    index = q_density_difference .> 0.0
+    ion0.density_thermal = zero(cp1d.electrons.density_thermal)
+    ion0.density_thermal[index] .= q_density_difference[index] .* ion0.z_ion
+
+    # negative difference is assigned to electrons density_thermal
+    index = q_density_difference .< 0.0
+    cp1d.electrons.density_thermal[index] .+= abs.(q_density_difference[index])
+
+    return ion0.density_thermal
 end
 
 """

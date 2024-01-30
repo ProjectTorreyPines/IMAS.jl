@@ -17,6 +17,15 @@ struct flux_solution{T<:Real}
     ENERGY_FLUX_i::T
 end
 
+function Base.show(io::IO, sol::flux_solution)
+    txt = """
+    Γe = $(sol.PARTICLE_FLUX_e)
+    Πi = $(sol.STRESS_TOR_i)
+    Qe = $(sol.ENERGY_FLUX_e)
+    Qi = $(sol.ENERGY_FLUX_i)
+    """
+    print(io, txt)
+end
 
 function c_s(cp1d::IMAS.core_profiles__profiles_1d)
     return sqrt.(gacode_units.k .* cp1d.electrons.temperature ./ (cp1d.ion[1].element[1].a .* gacode_units.mp))

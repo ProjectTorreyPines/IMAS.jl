@@ -193,6 +193,18 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.pf_active__coil
     return index_2_name__pf_active__coil___element___geometry__geometry_type
 end
 
+const index_2_name__pf_passive__loop___element___geometry__geometry_type = Dict(
+    1 => :outline,
+    2 => :rectangle,
+    3 => :oblique,
+    4 => :arcs_of_circle,
+    5 => :annulus,
+    6 => :thick_line)
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.pf_passive__loop___element___geometry}
+    return index_2_name__pf_passive__loop___element___geometry__geometry_type
+end
+
 const index_2_name__balance_of_plant__power_electric_plant_operation =
     Dict((k - 1) => item for (k, item) in enumerate((:total, :HCD, :plant, :cryostat, :tritium_handling, :pumping, :pf_active)))
 
