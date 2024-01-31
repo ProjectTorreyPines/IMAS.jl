@@ -788,7 +788,7 @@ Plot build cross-section
         if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
             for k in get_build_indexes(bd.layer; fs=_in_)
                 layer = bd.layer[k]
-                if getproperty(layer, :material, "not_vacuum") != "Vacuum"
+                if getproperty(layer, :material, "not_vacuum") != "vacuum"
                     if !wireframe
                         @series begin
                             seriestype --> :shape
