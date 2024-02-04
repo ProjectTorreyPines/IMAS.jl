@@ -260,12 +260,12 @@ function boundary_shape(;
 end
 
 function boundary(pc::IMAS.pulse_schedule__position_control, time0::Float64)
-    return [extrap1d(interp1d_itp(pcb.r.reference.time, pcb.r.reference.data); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline],
-    [extrap1d(interp1d_itp(pcb.z.reference.time, pcb.z.reference.data); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline]
+    return [extrap1d(interp1d_itp(pc.time, pcb.r.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline],
+    [extrap1d(interp1d_itp(pc.time, pcb.z.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline]
 end
 
 function boundary(pc::IMAS.pulse_schedule__position_control, time_index::Int)
-    return [pcb.r.reference.data[time_index] for pcb in pc.boundary_outline], [pcb.z.reference.data[time_index] for pcb in pc.boundary_outline]
+    return [pcb.r.reference[time_index] for pcb in pc.boundary_outline], [pcb.z.reference[time_index] for pcb in pc.boundary_outline]
 end
 
 """
@@ -285,8 +285,8 @@ Beturns vector with tuples of R,Z coordinates of x-points in pulse_schedule at t
 function x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__x_point{T}}; time0::Float64=global_time(x_points)) where {T<:Real}
     x_points0 = Tuple{T,T}[]
     for x_point in x_points
-        Rx = get_time_array(x_point.r.reference, :data, time0)
-        Zx = get_time_array(x_point.z.reference, :data, time0)
+        Rx = get_time_array(x_point.r, :reference, time0)
+        Zx = get_time_array(x_point.z, :reference, time0)
         push!(x_points0, (Rx, Zx))
     end
     return x_points0

@@ -11,7 +11,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ip}}, from_where::Symbol; time
     elseif from_where == :core_profiles
         return IMAS.get_time_array(dd.core_profiles.global_quantities, :ip, time0, :linear)
     elseif from_where == :pulse_schedule
-        return IMAS.get_time_array(dd.pulse_schedule.flux_control.i_plasma.reference, :data, time0, :linear)
+        return IMAS.get_time_array(dd.pulse_schedule.flux_control.i_plasma, :reference, time0, :linear)
     else
         error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
@@ -24,7 +24,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:vloop}}, from_where::Symbol; t
     elseif from_where == :core_profiles
         return vloop(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[time0])
     elseif from_where == :pulse_schedule
-        return IMAS.get_time_array(dd.pulse_schedule.flux_control.loop_voltage.reference, :data, time0, :linear)
+        return IMAS.get_time_array(dd.pulse_schedule.flux_control.loop_voltage, :reference, time0, :linear)
     else
         error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
