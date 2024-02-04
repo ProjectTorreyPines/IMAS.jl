@@ -1261,7 +1261,7 @@ end
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :energy)
-                    if source_name in [:ec, :ic, :lh, :nbi]
+                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
                     cs1d.electrons, :energy
@@ -1299,7 +1299,7 @@ end
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d, :total_ion_energy)
-                    if source_name in [:ec, :ic, :lh, :nbi]
+                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
                     cs1d, :total_ion_energy
@@ -1335,7 +1335,7 @@ end
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :particles)
-                    if source_name in [:ec, :ic, :lh, :nbi]
+                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
                     cs1d.electrons, :particles
@@ -1382,7 +1382,7 @@ end
                 if show_condition
                     label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
                     if !integrated && !ismissing(cs1d, :j_parallel)
-                        if source_name in [:ec, :ic, :lh, :nbi]
+                        if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                             fill0 --> true
                         end
                         cs1d, :j_parallel
