@@ -1865,10 +1865,13 @@ end
     end
 
     for (k, plt) in enumerate(plots)
+        x = plt[:x]
+        y = plt[:y]
+        n = min(length(x), length(y))
         @series begin
             subplot := k + 1
             label := ""
-            plt[:x], plt[:y]
+            x[1:n], y[1:n]
         end
         @series begin
             subplot := k + 1
@@ -1877,8 +1880,7 @@ end
             marker := :dot
             markerstrokewidth := 0.0
             title := nice_field(plt[:label])
-            #link := :x
-            [time0], interp1d(plt[:x], plt[:y]).([time0])
+            [time0], interp1d(x[1:n], y[1:n]).([time0])
         end
     end
 end
