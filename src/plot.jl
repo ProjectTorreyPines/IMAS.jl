@@ -1794,28 +1794,11 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
-    @assert typeof(time0) <: Float64
-    aspect_ratio --> :equal
-    @series begin
-        label := ""
-        boundary(pc; time0)
-    end
-    @series begin
-        seriestype := :scatter
-        marker --> :circle
-        markerstrokewidth --> 0
-        primary := false
-        Xs = x_points(pc.x_point; time0)
-        [x[1] for x in Xs], [x[2] for x in Xs]
-    end
-end
-
 @recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
     @assert typeof(time0) <: Float64
     plots = []
     for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
-        if field != :data
+        if field != :reference
             continue
         end
         path = collect(f2p(ids))
@@ -1823,8 +1806,8 @@ end
             continue
         end
 
-        time_value = getproperty(ids, :time)
-        data_value = getproperty(ids, :data)
+        time_value = time_array_parent(ids)
+        data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> x ∉ (-Inf, Inf), time_value))) == 1
             continue
@@ -1834,17 +1817,9 @@ end
         plt[:ids] = ids
         plt[:x] = time_value
         plt[:y] = data_value
-        if path[end-1] in ["r", "z"]
-            if isdigit(path[end-2][1])
-                plt[:label] = "$(path[end-3]) $(path[end-2]) $(path[end-1])"
-            else
-                plt[:label] = "$(path[end-2]) $(path[end-1])"
-            end
-        elseif path[end-1] in ["power"]
-            plt[:label] = "$(path[end-2]) $(path[end-1])"
-        else
-            plt[:label] = path[end-1]
-        end
+        remove = ("antenna", "flux_control", "beam", "unit")
+        substitute = ("deposition_rho_tor_norm" => "ρ₀", "deposition_rho_tor_norm_width" => "w₀", "power_launched" => "power")
+        plt[:label] = p2i(replace(filter(x -> x ∉ remove, path[2:end]), substitute...))
         push!(plots, plt)
     end
 
@@ -1907,6 +1882,24 @@ end
         end
     end
 end
+
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
+    @assert typeof(time0) <: Float64
+    aspect_ratio --> :equal
+    @series begin
+        label := ""
+        boundary(pc; time0)
+    end
+    @series begin
+        seriestype := :scatter
+        marker --> :circle
+        markerstrokewidth --> 0
+        primary := false
+        Xs = x_points(pc.x_point; time0)
+        [x[1] for x in Xs], [x[2] for x in Xs]
+    end
+end
+
 #= =========== =#
 #  controllers  #
 #= =========== =#
@@ -2040,6 +2033,32 @@ end
         yerror := Measurements.uncertainty.(y)
     end
     return x, Measurements.value.(y)
+end
+
+#= ============= =#
+#  time plotting  #
+#= ============= =#
+# This plot recipe handles time dependent quantities that are shorter than their time coordinate
+@recipe function f(::Type{Val{:time}}, plt::AbstractPlot)
+    x, y = plotattributes[:x], plotattributes[:y]
+
+    # Determine the length of the shorter vector
+    min_length = min(length(x), length(y))
+
+    # Truncate x and y to the length of the shorter vector
+    x = x[1:min_length]
+    y = y[1:min_length]
+
+    # plot
+    @series begin
+        if sum(.!isnan.(y .* x)) <= 1
+            markerstrokewidth := 0.0
+            seriestype := :scatter
+        else
+            seriestype := :path
+        end
+        x, y
+    end
 end
 
 #= ================== =#
