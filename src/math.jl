@@ -527,9 +527,8 @@ function resample_2d_path(
         end
     end
 
-    # if original path closed, make sure resampled path closes too
-    # independently of interpolation method used
-    if x[1] == x[end] && y[1] == y[end]
+    # if original path closed, make sure resampled path closes too, independently of interpolation method used
+    if is_closed_polygon(x, y)
         xi[end] = xi[1]
         yi[end] = yi[1]
     end
@@ -706,10 +705,12 @@ The path is assumed to be closed if the first and last points are the same, and 
 function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     n = length(pr)
     curvature_res = Vector{T}(undef, n)
-    dr1, dz1 = if pr[1] == pr[end] && pz[1] == pz[end]
-        pr[end-1] - pr[end], pz[end-1] - pz[end]
+    if is_closed_polygon(pr, pz)
+        dr1 = pr[end-1] - pr[1]
+        dz1 = pz[end-1] - pz[1]
     else
-        0.0, 0.0
+        dr1 = 0.0
+        dz1 = 0.0
     end
     a1 = sqrt(dr1^2 + dz1^2) + 1E-32
     for i in 1:n
@@ -903,7 +904,7 @@ end
 Returns bisecting "rays" (lines) that radiate from vertices of a polygon
 """
 function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
-    @assert vertices[1][1] != vertices[end][1] || vertices[1][2] != vertices[end][2]
+    @assert is_open_polygon(vertices)
 
     # Create rays
     rays = []
@@ -930,21 +931,15 @@ end
 Split long segments of a polygon so that each resulting segment is always <= max_length
 """
 function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::T) where {T<:Real}
-    # check if the input polygon is closed or not
-    closed = false
-    if R[1] == R[end] || Z[1] == Z[end]
-        closed = true
-        R = R[1:end-1]
-        Z = Z[1:end-1]
-    end
+    opoly = open_polygon(R, Z)
 
-    Rout = [R[1]]
-    Zout = [Z[1]]
-    for k in eachindex(R)
-        r1 = IMAS.getindex_circular(R, k)
-        z1 = IMAS.getindex_circular(Z, k)
-        r2 = IMAS.getindex_circular(R, k + 1)
-        z2 = IMAS.getindex_circular(Z, k + 1)
+    Rout = [opoly.R[1]]
+    Zout = [opoly.Z[1]]
+    for k in eachindex(opoly.R)
+        r1 = IMAS.getindex_circular(opoly.R, k)
+        z1 = IMAS.getindex_circular(opoly.Z, k)
+        r2 = IMAS.getindex_circular(opoly.R, k + 1)
+        z2 = IMAS.getindex_circular(opoly.Z, k + 1)
         d = sqrt((r2 - r1)^2 + (z2 - z1)^2)
         if d > max_length
             n = Int(ceil(d / max_length)) + 1
@@ -957,11 +952,77 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
             push!(Zout, z2)
         end
     end
-    if closed
+    if opoly.was_closed
         return Rout, Zout
     else
         return Rout[1:end-1], Zout[1:end-1]
     end
+end
+
+"""
+    is_open_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+
+Determine if a polygon, defined by separate vectors for R and Z coordinates, is open.
+"""
+function is_open_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+    return R[1] != R[end] || Z[1] != Z[end]
+end
+
+function is_open_polygon(vertices::AbstractVector)::Bool
+    r1 = vertices[1][1]
+    z1 = vertices[1][2]
+    rend = vertices[end][1]
+    zend = vertices[end][2]
+    return r1 != rend || z1 != zend
+end
+
+"""
+    is_closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+
+Determine if a polygon, defined by separate vectors for R and Z coordinates, is closed.
+"""
+function is_closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+    return !is_open_polygon(R, Z)
+end
+
+function is_closed_polygon(vertices::AbstractVector)::Bool
+    return !is_open_polygon(vertices)
+end
+
+"""
+    open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+
+Convert a closed polygon into an open polygon by removing the last vertex if it is the same as the first.
+
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+"""
+function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+    if is_open_polygon(R, Z)
+        was_closed = false
+    else
+        was_closed = true
+        R = R[1:end-1]
+        Z = Z[1:end-1]
+    end
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+end
+
+"""
+closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+
+Convert an open polygon into a closed polygon by adding the first vertex to the end if it is not already closed.
+
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+"""
+function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+    if is_open_polygon(R, Z)
+        was_closed = false
+        R = [R; R[1]]
+        Z = [Z; Z[1]]
+    else
+        was_closed = true
+    end
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
 end
 
 """
@@ -979,9 +1040,8 @@ function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real
         perimeter += sqrt(dx^2 + dy^2)
     end
 
-    # Check if the polygon is closed (optional)
-    # If not closed, add distance from last point to first point
-    if r[1] != r[end] || z[1] != z[end]
+    # If open, add distance from last point to first point
+    if is_open_polygon(r,z)
         dx = r[1] - r[end]
         dy = z[1] - z[end]
         perimeter += sqrt(dx^2 + dy^2)
