@@ -135,7 +135,7 @@ end
 """
     vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
 
-Vloop = 2π * η * <J_oh⋅B> / (F * <R⁻²>: method emphasizes the resistive nature of the plasma.
+Vloop = 2π * η * <J_oh⋅B> / (F * <R⁻²>): method emphasizes the resistive nature of the plasma
 """
 function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}; method::Symbol=:area)::T where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
@@ -158,7 +158,7 @@ end
 """
     vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
 
-`Vloop = dψ/dt` method emphasizes the inductive nature of the loop voltage. Correct for COCOS 11
+`Vloop = dψ/dt`: method emphasizes the inductive nature of the loop voltage. Assumes COCOS 11.
 """
 function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
     @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"

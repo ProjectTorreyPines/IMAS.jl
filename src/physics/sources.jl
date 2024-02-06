@@ -244,6 +244,10 @@ function total_radiation_sources(
     exclude_indexes::Vector{Int}=Int[]
 ) where {T<:Real}
 
+    # we need to exclude the collisional_equipartition term
+    index = IMAS.name_2_index(core_sources.source)[:collisional_equipartition]
+    push!(exclude_indexes, index)
+
     fields = [:power_inside, :energy]
     only_positive_negative = -1
     return total_sources(core_sources, cp1d; include_indexes, exclude_indexes, fields, only_positive_negative)

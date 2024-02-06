@@ -114,11 +114,11 @@ end
 
 
 """
-    outline(element::IMAS.pf_active__coil___element{T})::IMAS.pf_active__coil___element___geometry__outline{T} where {T<:Real}
+    outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
 
-Returns pf_active__coil___element___geometry__outline independenty of geometry_type used to describe the coil element
+Returns geometry outline independenty of geometry_type used to describe the element
 """
-function outline(element::IMAS.pf_active__coil___element{T})::IMAS.pf_active__coil___element___geometry__outline{T} where {T<:Real}
+function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
     geometry_type = index_2_name(element.geometry)[element.geometry.geometry_type]
 
     # rectangle

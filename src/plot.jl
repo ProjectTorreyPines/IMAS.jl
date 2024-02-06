@@ -142,11 +142,11 @@ Plots cross-section of individual coils
         r_avg = sum(r) / length(r)
         z_avg = sum(z) / length(z)
         @series begin
+            label := ""
             series_annotations := [(coil.name, :center, :middle, :red, 6)]
             [r_avg], [z_avg]
         end
     end
-
 end
 
 """
@@ -203,12 +203,49 @@ end
     end
 end
 
-@recipe function plot_pf_passive(loop::IMAS.pf_passive__loop)
+"""
+    plot_coil_element_outlne(oute::pf_passive__loop___element___geometry__outline{T}) where {T<:Real}
+
+Plots cross-section of individual loop elements
+"""
+@recipe function plot_coil_element_outlne(oute::pf_passive__loop___element___geometry__outline{T}) where {T<:Real}
     @series begin
-        aspect_ratio --> :equal
-        label --> loop.name
         seriestype --> :shape
-        loop.element[1].geometry.outline.r, loop.element[1].geometry.outline.z
+        linewidth --> 0.25
+        colorbar --> :right
+        label --> ""
+        oute.r, oute.z
+    end
+end
+
+"""
+    plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
+
+Plots cross-section of individual loops
+"""
+@recipe function plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
+    @assert typeof(loop_names) <: Bool
+
+    r = T[]
+    z = T[]
+    for (k, element) in enumerate(loop.element)
+        oute = outline(element)
+        @series begin
+            primary := k == 1
+            oute
+        end
+        append!(r, oute.r)
+        append!(z, oute.z)
+    end
+
+    if loop_names
+        r_avg = sum(r) / length(r)
+        z_avg = sum(z) / length(z)
+        @series begin
+            label := ""
+            series_annotations := [(loop.name, :center, :middle, :red, 6)]
+            [r_avg], [z_avg]
+        end
     end
 end
 
@@ -751,7 +788,7 @@ Plot build cross-section
         if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
             for k in get_build_indexes(bd.layer; fs=_in_)
                 layer = bd.layer[k]
-                if getproperty(layer, :material, "not_vacuum") != "Vacuum"
+                if getproperty(layer, :material, "not_vacuum") != "vacuum"
                     if !wireframe
                         @series begin
                             seriestype --> :shape
@@ -926,6 +963,52 @@ Plot build cross-section
             end
         end
     end
+end
+
+# ======== #
+# build tf #
+# ======== #
+@recipe function plot_build_tf(tf::IMAS.build__tf; cutouts=false)
+    @assert typeof(cutouts) <: Bool
+    layers = parent(tf).layer
+    TF = get_build_layers(layers; type=IMAS._tf_)
+
+    for n in 1:tf.coils_n
+        x, y = top_outline(tf, n; cutouts)
+        @series begin
+            linewidth := 2
+            label := ""
+            seriestype := :shape
+            x, y
+        end
+    end
+
+    ϕ = range(0, 2pi, 101)
+    @series begin
+        color := :black
+        label := ""
+        TF[1].start_radius .* cos.(ϕ), TF[1].start_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        TF[1].end_radius .* cos.(ϕ), TF[1].end_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        TF[2].start_radius .* cos.(ϕ), TF[2].start_radius .* sin.(ϕ)
+    end
+    @series begin
+        primary := false
+        color := :black
+        label := ""
+        aspect_ratio := :equal
+        TF[2].end_radius .* cos.(ϕ), TF[2].end_radius .* sin.(ϕ)
+    end
+
 end
 
 # ========= #
@@ -1178,7 +1261,7 @@ end
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :energy)
-                    if source_name in [:ec, :ic, :lh, :nbi]
+                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
                     cs1d.electrons, :energy
@@ -1216,7 +1299,7 @@ end
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d, :total_ion_energy)
-                    if source_name in [:ec, :ic, :lh, :nbi]
+                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
                     cs1d, :total_ion_energy
@@ -1252,7 +1335,7 @@ end
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :particles)
-                    if source_name in [:ec, :ic, :lh, :nbi]
+                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
                     cs1d.electrons, :particles
@@ -1299,7 +1382,7 @@ end
                 if show_condition
                     label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
                     if !integrated && !ismissing(cs1d, :j_parallel)
-                        if source_name in [:ec, :ic, :lh, :nbi]
+                        if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                             fill0 --> true
                         end
                         cs1d, :j_parallel
@@ -1711,28 +1794,11 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
-    @assert typeof(time0) <: Float64
-    aspect_ratio --> :equal
-    @series begin
-        label := ""
-        boundary(pc; time0)
-    end
-    @series begin
-        seriestype := :scatter
-        marker --> :circle
-        markerstrokewidth --> 0
-        primary := false
-        Xs = x_points(pc.x_point; time0)
-        [x[1] for x in Xs], [x[2] for x in Xs]
-    end
-end
-
 @recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
     @assert typeof(time0) <: Float64
     plots = []
     for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
-        if field != :data
+        if field != :reference
             continue
         end
         path = collect(f2p(ids))
@@ -1740,8 +1806,8 @@ end
             continue
         end
 
-        time_value = getproperty(ids, :time)
-        data_value = getproperty(ids, :data)
+        time_value = time_array_parent(ids)
+        data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> x ∉ (-Inf, Inf), time_value))) == 1
             continue
@@ -1751,17 +1817,9 @@ end
         plt[:ids] = ids
         plt[:x] = time_value
         plt[:y] = data_value
-        if path[end-1] in ["r", "z"]
-            if isdigit(path[end-2][1])
-                plt[:label] = "$(path[end-3]) $(path[end-2]) $(path[end-1])"
-            else
-                plt[:label] = "$(path[end-2]) $(path[end-1])"
-            end
-        elseif path[end-1] in ["power"]
-            plt[:label] = "$(path[end-2]) $(path[end-1])"
-        else
-            plt[:label] = path[end-1]
-        end
+        remove = ("antenna", "flux_control", "beam", "unit")
+        substitute = ("deposition_rho_tor_norm" => "ρ₀", "deposition_rho_tor_norm_width" => "w₀", "power_launched" => "power")
+        plt[:label] = p2i(replace(filter(x -> x ∉ remove, path[2:end]), substitute...))
         push!(plots, plt)
     end
 
@@ -1807,10 +1865,13 @@ end
     end
 
     for (k, plt) in enumerate(plots)
+        x = plt[:x]
+        y = plt[:y]
+        n = min(length(x), length(y))
         @series begin
             subplot := k + 1
             label := ""
-            plt[:x], plt[:y]
+            x[1:n], y[1:n]
         end
         @series begin
             subplot := k + 1
@@ -1819,11 +1880,28 @@ end
             marker := :dot
             markerstrokewidth := 0.0
             title := nice_field(plt[:label])
-            #link := :x
-            [time0], interp1d(plt[:x], plt[:y]).([time0])
+            [time0], interp1d(x[1:n], y[1:n]).([time0])
         end
     end
 end
+
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
+    @assert typeof(time0) <: Float64
+    aspect_ratio --> :equal
+    @series begin
+        label := ""
+        boundary(pc; time0)
+    end
+    @series begin
+        seriestype := :scatter
+        marker --> :circle
+        markerstrokewidth --> 0
+        primary := false
+        Xs = x_points(pc.x_point; time0)
+        [x[1] for x in Xs], [x[2] for x in Xs]
+    end
+end
+
 #= =========== =#
 #  controllers  #
 #= =========== =#
@@ -1957,6 +2035,32 @@ end
         yerror := Measurements.uncertainty.(y)
     end
     return x, Measurements.value.(y)
+end
+
+#= ============= =#
+#  time plotting  #
+#= ============= =#
+# This plot recipe handles time dependent quantities that are shorter than their time coordinate
+@recipe function f(::Type{Val{:time}}, plt::AbstractPlot)
+    x, y = plotattributes[:x], plotattributes[:y]
+
+    # Determine the length of the shorter vector
+    min_length = min(length(x), length(y))
+
+    # Truncate x and y to the length of the shorter vector
+    x = x[1:min_length]
+    y = y[1:min_length]
+
+    # plot
+    @series begin
+        if sum(.!isnan.(y .* x)) <= 1
+            markerstrokewidth := 0.0
+            seriestype := :scatter
+        else
+            seriestype := :path
+        end
+        x, y
+    end
 end
 
 #= ================== =#

@@ -540,6 +540,22 @@ dyexp["divertors.divertor[:].power_recombination_plasma.time"] =
 dyexp["divertors.divertor[:].power_recombination_plasma.data"] =
     (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_plasma)[2]
 
+#= ============== =#
+#  pulse_schedule  #
+#= ============== =#
+dyexp["pulse_schedule.time"] =
+    (time; pulse_schedule, _...) -> begin
+        all_times = Float64[]
+        for item in keys(pulse_schedule)
+            if typeof(getfield(pulse_schedule, item)) <: IDS
+                ids = getfield(pulse_schedule, item)
+                if hasfield(typeof(ids), :time) && !ismissing(ids, :time)
+                    append!(all_times, ids.time)
+                end
+            end
+        end
+        return sort!(unique(all_times))
+    end
 
 #= ========= =#
 #  stability  #

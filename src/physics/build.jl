@@ -154,7 +154,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     # start from the first vacuum that goes to zero outside of the TF
     start_from = -1
     for k in get_build_indexes(bd.layer; fs=_out_)
-        if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
+        if bd.layer[k].material == "vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
             start_from = k
             break
         end
@@ -168,7 +168,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
         end
         if valid && !ismissing(layer.outline, :r)
             outline = collect(zip(layer.outline.r, layer.outline.z))
-            if (layer.material == "Vacuum") && (layer.side != Int(_in_))
+            if (layer.material == "vacuum") && (layer.side != Int(_in_))
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) != 0
@@ -269,26 +269,6 @@ function volume(structure::IMAS.build__structure)
         toroidal_angles = structure.toroidal_angles
     end
     return area(structure.outline.r, structure.outline.z) * structure.toroidal_extent * length(toroidal_angles)
-end
-
-"""
-    tf_ripple(r, R_tf::Real, N_tf::Integer)
-
-Evaluate fraction of toroidal magnetic field ripple at `r` [m]
-generated from `N_tf` toroidal field coils with outer leg at `R_tf` [m]
-"""
-function tf_ripple(r, R_tf::Real, N_tf::Integer)
-    eta = (r ./ R_tf) .^ N_tf
-    return eta ./ (1.0 .- eta)
-end
-
-"""
-    R_tf_ripple(r, ripple::Real, N_tf::Integer)
-
-Evaluate location of toroidal field coils outer leg `R_tf`` [m] at which `N_tf`toroidal field coils generate a given fraction of toroidal magnetic field ripple at`r` [m]
-"""
-function R_tf_ripple(r, ripple::Real, N_tf::Integer)
-    return r .* (ripple ./ (ripple .+ 1.0)) .^ (-1 / N_tf)
 end
 
 """

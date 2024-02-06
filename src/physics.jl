@@ -17,6 +17,7 @@ using RecipesBase
 
 include("physics/equilibrium.jl")
 include("physics/build.jl")
+include("physics/tf.jl")
 include("physics/currents.jl")
 include("physics/control.jl")
 include("physics/fluxsurfaces.jl")
@@ -33,4 +34,5 @@ include("physics/pedestal.jl")
 include("physics/radiation.jl")
 include("physics/collisions.jl")
 include("physics/boundary.jl")
+include("physics/particles.jl")
 include("physics/pf_active.jl")

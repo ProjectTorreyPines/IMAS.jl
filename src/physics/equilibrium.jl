@@ -177,9 +177,9 @@ function vacuum_r0_b0_time(dd::IMAS.dd{T}) where {T<:Real}
         push!(source, :tf)
 
         # from: pulse_schedule
-    elseif hasdata(dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference, :data)
-        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.data::Vector{T} / R0
-        time = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference.time::Vector{Float64}
+    elseif hasdata(dd.pulse_schedule.tf.b_field_tor_vacuum_r, :reference)
+        B0 = dd.pulse_schedule.tf.b_field_tor_vacuum_r.reference::Vector{T} / R0
+        time = dd.pulse_schedule.tf.time::Vector{Float64}
         push!(source, :pulse_schedule)
 
         # from: all other IDSs that have that info
