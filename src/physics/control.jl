@@ -47,6 +47,7 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
 
     if stream_has_controller(dd, controller.name)
         control = stream_controller(dd, controller.name, 1.0; time=time0, setpoint, value, P, I, D)
+
     else
         error = setpoint - value
         push!(controller.inputs.time, time0)
@@ -72,10 +73,10 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
 end
 
 function stream_controller(dd::IMAS.dd, controller_name::String, timeout::Float64; kw...)
-    channel_fuse2ctrl = "$(controller_name)__fuse2ctrl"
-    channel_ctrl2fuse = "$(controller_name)__ctrl2fuse"
-    IMAS.stream_push!(dd, channel_fuse2ctrl; kw...)
-    return IMAS.stream_pop!(dd, channel_ctrl2fuse; timeout)[:control]
+    stream_fuse2ctrl = "$(controller_name)__fuse2ctrl"
+    stream_ctrl2fuse = "$(controller_name)__ctrl2fuse"
+    IMAS.stream_push!(dd, stream_fuse2ctrl; kw...)
+    return IMAS.stream_pop!(dd, stream_ctrl2fuse; timeout)[:control]
 end
 
 function stream_has_controller(::Nothing, controller_name::String)

@@ -50,8 +50,8 @@ function stream_identifier(dd::IMAS.dd)
     end
 end
 
-function stream_channel(dd::IMAS.dd, channel_name::String)
-    return "$(stream_identifier(dd))__$(channel_name)"
+function stream_name(dd::IMAS.dd, name::String)
+    return "$(stream_identifier(dd))__$(name)"
 end
 
 function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
@@ -91,10 +91,10 @@ function Base.push!(client::Jedis.Client, stream::String; data...)
     return Jedis.execute(["XADD", stream, "*", "data", JSON.sprint(data)], client)
 end
 
-function stream_push!(dd::IMAS.dd, channel_name::String; data...)
+function stream_push!(dd::IMAS.dd, name::String; data...)
     client = stream_client(dd)
-    dd_channel_name = stream_channel(dd, channel_name)
-    return push!(client, dd_channel_name; data...)
+    dd_stream_name = stream_name(dd, name)
+    return push!(client, dd_stream_name; data...)
 end
 
 #######
@@ -118,50 +118,49 @@ function Base.pop!(client::Jedis.Client, stream::String; timeout::Float64, error
     return Dict(Symbol(k) => v for (k,v) in data)
 end
 
-function stream_pop!(dd::IMAS.dd, channel_name::String; timeout::Float64)
+function stream_pop!(dd::IMAS.dd, name::String; timeout::Float64)
     client = stream_client(dd)
-    dd_channel_name = stream_channel(dd, channel_name)
-    return pop!(client, dd_channel_name; timeout)
+    dd_stream_name = stream_name(dd, name)
+    return pop!(client, dd_stream_name; timeout)
 end
 
 ####################
 # REGISTER SERVICE #
 ####################
-function stream_register_service(dd_channel_name::String; client::Jedis.Client)
-    if dd_channel_name ∈ client.subscriptions
+function stream_register_service(dd_stream_name::String; client::Jedis.Client)
+    if dd_stream_name ∈ client.subscriptions
         return nothing
     else
         serviced = []
-        @async Jedis.subscribe(dd_channel_name; client) do msg
+        @async Jedis.subscribe(dd_stream_name; client) do msg
             push!(serviced, msg)
         end
         Jedis.wait_until_subscribed(client)
-        @show client.subscriptions
         return serviced
     end
 end
 
-function stream_register_service(dd::IMAS.dd, channel_name::String)
-    dd_channel_name = stream_channel(dd, channel_name)
+function stream_register_service(dd::IMAS.dd, name::String)
     client = pubsub_client(dd)
-    return stream_register_service(dd_channel_name; client)
+    dd_stream_name = stream_name(dd, name)
+    return stream_register_service(dd_stream_name; client)
 end
 
 ###########################
 # CHECK SERVICE PROVIDERS #
 ###########################
-function stream_has_service_provider(dd::IMAS.dd, channel_name::String)
-    subs = subscribers(dd, channel_name)
+function stream_has_service_provider(dd::IMAS.dd, name::String)
+    subs = subscribers(dd, name)
     @assert length(subs) <= 1 "Too many service providers: $(subs)"
     return length(subs) == 1
 end
 
-function subscribers(dd::IMAS.dd, channel_name::String)
+function subscribers(dd::IMAS.dd, name::String)
     aux = getfield(dd, :_aux)
     if :stream ∈ keys(aux)
         client = stream_client(dd)
-        dd_channel_name = stream_channel(dd, channel_name)
-        return Jedis.execute("PUBSUB CHANNELS $(dd_channel_name)*", client)
+        dd_stream_name = stream_name(dd, name)
+        return Jedis.execute("PUBSUB CHANNELS $(dd_stream_name)*", client)
     else
         return []
     end
