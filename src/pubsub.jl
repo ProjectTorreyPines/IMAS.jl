@@ -31,14 +31,38 @@ function pubsub(dd::IMAS.dd, enable::Bool; host::String="localhost", port::Int=5
     return enable
 end
 
+function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
+    if haskey(dict, x)
+        return dict[x]
+    end
+    
+    # Use the default `deepcopy_internal` to handle the copying process.
+    # This creates a shallow copy of `x`, so all mutable fields will
+    # still be copied correctly later.
+    new_obj = IMAS.dd{T}()
+    
+    # Register the new object in `dict` to handle cyclic references.
+    dict[x] = new_obj
+    
+    # Explicitly perform a deep copy on all fields using the default behavior.
+    # Since `copy` has already been used, we don't need to copy primitive fields,
+    # but we do need to ensure deep copying of mutable fields.
+    fields = fieldnames(typeof(x))
+    for field in fields
+        field_val = getfield(x, field)
+        copied_val = Base.deepcopy_internal(field_val, dict)
+        setfield!(new_obj, field, copied_val)
+    end
+
+    if :fuse_pubsub ∈ keys(getfield(x, :_aux))
+        getfield(new_obj, :_aux)[:fuse_pubsub] = getfield(x, :_aux)[:fuse_pubsub]
+    end
+
+    return new_obj
+end
+
 function pubsub_client(dd)
     aux = getfield(dd, :_aux)
-    if :fuse_pubsub ∈ keys(aux) # temporary fix
-        identifier = aux[:fuse_pubsub].identifier
-        delete!(aux, :fuse_pubsub)
-        pubsub(dd, true)
-        aux[:fuse_pubsub].identifier = identifier
-    end
     if :fuse_pubsub ∈ keys(aux)
         return aux[:fuse_pubsub].client
     else
