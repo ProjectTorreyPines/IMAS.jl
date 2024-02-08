@@ -1,49 +1,72 @@
 import Jedis
 import JSON
 
-mutable struct Pubsub
+mutable struct StreamDD
     enabled::Bool
     identifier::String
     client::Jedis.Client
 end
 
-function pubsub(dd::IMAS.dd)
+function stream(dd::IMAS.dd, enable_switch::Bool=true; host::String="localhost", port::Int=55000, password::String="redispw")
     aux = getfield(dd, :_aux)
-    if :fuse_pubsub ∉ keys(aux)
-        return false
-    else
-        return aux[:fuse_pubsub].enabled
-    end
-end
-
-function pubsub(dd::IMAS.dd, enable::Bool; host::String="localhost", port::Int=55000, password::String="redispw")
-    aux = getfield(dd, :_aux)
-    if :fuse_pubsub ∈ keys(aux)
-        aux[:fuse_pubsub].enabled = enable
-    elseif enable
+    if :stream ∈ keys(aux)
+        aux[:stream].enabled = enable_switch
+    elseif enable_switch
         client = Jedis.Client(; host, port, password, keepalive_enable=true)
         identifier = string(objectid(dd))
         b = Base.text_colors[:bold]
         n = Base.disable_text_style[:bold]
-        @info("dd pubsub @ $(b)HOST$(n):$host, $(b)PORT$(n):$port, $(b)CHANNEL$(n):$identifier")
-        aux[:fuse_pubsub] = Pubsub(enable, identifier, client)
+        @info("dd stream @ $(b)HOST$(n):$host, $(b)PORT$(n):$port, $(b)CHANNEL$(n):$identifier")
+        aux[:stream] = StreamDD(enable_switch, identifier, client)
     end
-    return enable
+    return enable_switch
+end
+
+function is_streaming(dd::IMAS.dd)
+    aux = getfield(dd, :_aux)
+    if :stream ∉ keys(aux)
+        return false
+    else
+        client = stream_client(dd)
+        return aux[:stream].enabled && !Jedis.isclosed(client)
+    end
+end
+
+function stream_client(dd)
+    aux = getfield(dd, :_aux)
+    if :stream ∈ keys(aux)
+        return aux[:stream].client
+    else
+        return nothing
+    end
+end
+
+function stream_identifier(dd::IMAS.dd)
+    aux = getfield(dd, :_aux)
+    if :stream ∈ keys(aux)
+        return aux[:stream].identifier
+    else
+        return string(objectid(dd))
+    end
+end
+
+function stream_channel(dd::IMAS.dd, channel_name::String)
+    return "$(stream_identifier(dd))__$(channel_name)"
 end
 
 function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
     if haskey(dict, x)
         return dict[x]
     end
-    
+
     # Use the default `deepcopy_internal` to handle the copying process.
     # This creates a shallow copy of `x`, so all mutable fields will
     # still be copied correctly later.
     new_obj = IMAS.dd{T}()
-    
+
     # Register the new object in `dict` to handle cyclic references.
     dict[x] = new_obj
-    
+
     # Explicitly perform a deep copy on all fields using the default behavior.
     # Since `copy` has already been used, we don't need to copy primitive fields,
     # but we do need to ensure deep copying of mutable fields.
@@ -54,113 +77,92 @@ function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
         setfield!(new_obj, field, copied_val)
     end
 
-    if :fuse_pubsub ∈ keys(getfield(x, :_aux))
-        getfield(new_obj, :_aux)[:fuse_pubsub] = getfield(x, :_aux)[:fuse_pubsub]
+    if :stream ∈ keys(getfield(x, :_aux))
+        getfield(new_obj, :_aux)[:stream] = getfield(x, :_aux)[:stream]
     end
 
     return new_obj
 end
 
-function pubsub_client(dd)
-    aux = getfield(dd, :_aux)
-    if :fuse_pubsub ∈ keys(aux)
-        return aux[:fuse_pubsub].client
-    else
+########
+# PUSH #
+########
+function Base.push!(client::Jedis.Client, stream::String; data...)
+    return Jedis.execute(["XADD", stream, "*", "data", JSON.sprint(data)], client)
+end
+
+function stream_push!(dd::IMAS.dd, channel_name::String; data...)
+    client = stream_client(dd)
+    dd_channel_name = stream_channel(dd, channel_name)
+    return push!(client, dd_channel_name; data...)
+end
+
+#######
+# POP #
+#######
+function Base.pop!(client::Jedis.Client, stream::String; timeout::Float64, error_on_timeout::Bool=true)
+    ms_timeout = Int(round(timeout * 1000))
+    out = Jedis.execute(String["XREAD", "BLOCK", string(ms_timeout), "COUNT", "1", "STREAMS", stream, "0-0"], client)
+    if isempty(out)
+        if error_on_timeout
+            error("Reading data from stream `$stream` has timed out")
+        else
+            return nothing
+        end
+    end
+    payload = out[1][2][1][2]
+    @assert payload[1] == "data"
+    data = JSON.parse(payload[2])
+    delkey = out[1][2][1][1]
+    Jedis.execute(["XDEL", stream, delkey], client)
+    return Dict(Symbol(k) => v for (k,v) in data)
+end
+
+function stream_pop!(dd::IMAS.dd, channel_name::String; timeout::Float64)
+    client = stream_client(dd)
+    dd_channel_name = stream_channel(dd, channel_name)
+    return pop!(client, dd_channel_name; timeout)
+end
+
+####################
+# REGISTER SERVICE #
+####################
+function stream_register_service(dd_channel_name::String; client::Jedis.Client)
+    if dd_channel_name ∈ client.subscriptions
         return nothing
-    end
-end
-
-function Jedis.publish(dd::IMAS.dd, channel_name::String, message::String)
-    client = pubsub_client(dd)
-    dd_channel_name = channel(dd, channel_name)
-    return Jedis.publish(dd_channel_name, message; client)
-end
-
-function Jedis.publish(dd::IMAS.dd, channel_name::String; kw...)
-    message = JSON.sprint(kw)
-    return Jedis.publish(dd, channel_name, message)
-end
-
-function identifier(dd::IMAS.dd)
-    aux = getfield(dd, :_aux)
-    if :fuse_pubsub ∈ keys(aux)
-        return aux[:fuse_pubsub].identifier
     else
-        return string(objectid(dd))
+        serviced = []
+        @async Jedis.subscribe(dd_channel_name; client) do msg
+            push!(serviced, msg)
+        end
+        Jedis.wait_until_subscribed(client)
+        @show client.subscriptions
+        return serviced
     end
 end
 
-function channel(dd::IMAS.dd, channel_name::String)
-    return "$(identifier(dd))__$(channel_name)"
+function stream_register_service(dd::IMAS.dd, channel_name::String)
+    dd_channel_name = stream_channel(dd, channel_name)
+    client = pubsub_client(dd)
+    return stream_register_service(dd_channel_name; client)
 end
 
-function has_one_subscriber(dd::IMAS.dd, channel_name::String)
+###########################
+# CHECK SERVICE PROVIDERS #
+###########################
+function stream_has_service_provider(dd::IMAS.dd, channel_name::String)
     subs = subscribers(dd, channel_name)
-    @assert length(subs) <= 1 "Too many subscribers: $(subs)"
+    @assert length(subs) <= 1 "Too many service providers: $(subs)"
     return length(subs) == 1
 end
 
 function subscribers(dd::IMAS.dd, channel_name::String)
     aux = getfield(dd, :_aux)
-    if :fuse_pubsub ∈ keys(aux)
-        client = pubsub_client(dd)
-        dd_channel_name = channel(dd, channel_name)
+    if :stream ∈ keys(aux)
+        client = stream_client(dd)
+        dd_channel_name = stream_channel(dd, channel_name)
         return Jedis.execute("PUBSUB CHANNELS $(dd_channel_name)*", client)
     else
         return []
     end
-end
-
-function listen_and_wait(dd::IMAS.dd, channel_name::String; timeout::Float64)
-    dd_channel_name = channel(dd, channel_name)
-    client = pubsub_client(dd)
-    return listen_and_wait(dd_channel_name; client, timeout)
-end
-
-function listen_and_wait(dd_channel_name::String; client::Jedis.Client, timeout::Float64)
-    # julia channel for blocking
-    jchannel = Channel{String}(2)
-
-    # async subscribe
-    @async Jedis.subscribe(dd_channel_name; client) do msg
-        return put!(jchannel, msg[end])
-    end
-    Jedis.wait_until_subscribed(client)
-
-    # async timeout
-    @async begin
-        sleep(timeout)
-        put!(jchannel, "")
-    end
-
-    # Wait for either the message to come or the timeout
-    result = take!(jchannel)
-
-    # unsubscribe
-    Jedis.unsubscribe(dd_channel_name; client)
-
-    if isempty(result)
-        error("$(dd_channel_name) timeout")
-    end
-
-    return Dict(Symbol(k) => v for (k, v) in JSON.parse(result))
-end
-
-function listen_and_call(dd::IMAS.dd, channel_name::String, f::Function)
-    dd_channel_name = channel(dd, channel_name)
-    client = pubsub_client(dd)
-    return listen_and_call(dd_channel_name, f; client)
-end
-
-function listen_and_call(dd_channel_name::String, f::Function; client::Jedis.Client)
-    @async Jedis.subscribe(dd_channel_name; client) do msg
-        try
-            data = Dict(Symbol(k) => v for (k, v) in JSON.parse(msg[3]))
-            return f(msg[2]; data...)
-        catch
-            return "failed"
-        end
-    end
-    Jedis.wait_until_subscribed(client)
-    return dd_channel_name
 end
