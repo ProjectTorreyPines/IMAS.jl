@@ -77,8 +77,12 @@ function redis_controller(dd::IMAS.dd, controller_name::String; kw...)
     channel_fuse2ctrl = "$(controller_name)__fuse2ctrl"
     channel_ctrl2fuse = "$(controller_name)__ctrl2fuse"
     Jedis.publish(dd, channel_fuse2ctrl; kw...)
-    timeout = get(ENV, "FUSE_CONTROLLER_TIMEOUT", 1.0)
+    timeout = get(ENV, "FUSE_CONTROLLER_TIMEOUT", 5.0)
     return listen_and_wait(dd, channel_ctrl2fuse; timeout)
+end
+
+function has_redis_controller(::Nothing, controller_name::String)
+    return false
 end
 
 function has_redis_controller(dd::IMAS.dd, controller_name::String)
