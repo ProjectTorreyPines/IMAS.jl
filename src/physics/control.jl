@@ -1,3 +1,6 @@
+import Dates
+import ExpiringCaches
+
 """
     controller(ct::IMAS.controllers, name::String)
 
@@ -83,6 +86,6 @@ function stream_has_controller(::Nothing, controller_name::String)
     return false
 end
 
-function stream_has_controller(dd::IMAS.dd, controller_name::String)
+ExpiringCaches.@cacheable Dates.Second(1) function stream_has_controller(dd::IMAS.dd, controller_name::String)::Bool
     return is_streaming(dd) && stream_has_service_provider(dd, controller_name)
 end
