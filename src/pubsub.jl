@@ -114,7 +114,10 @@ end
 function listen_and_wait(dd::IMAS.dd, channel_name::String; timeout::Float64)
     dd_channel_name = channel(dd, channel_name)
     client = pubsub_client(dd)
+    return listen_and_wait(dd_channel_name; client, timeout)
+end
 
+function listen_and_wait(dd_channel_name::String; client::Jedis.Client, timeout::Float64)
     # julia channel for blocking
     jchannel = Channel{String}(2)
 
@@ -140,5 +143,24 @@ function listen_and_wait(dd::IMAS.dd, channel_name::String; timeout::Float64)
         error("$(dd_channel_name) timeout")
     end
 
-    return JSON.parse(result)
+    return Dict(Symbol(k) => v for (k, v) in JSON.parse(result))
+end
+
+function listen_and_call(dd::IMAS.dd, channel_name::String, f::Function)
+    dd_channel_name = channel(dd, channel_name)
+    client = pubsub_client(dd)
+    return listen_and_call(dd_channel_name, f; client)
+end
+
+function listen_and_call(dd_channel_name::String, f::Function; client::Jedis.Client)
+    @async Jedis.subscribe(dd_channel_name; client) do msg
+        try
+            data = Dict(Symbol(k) => v for (k, v) in JSON.parse(msg[3]))
+            return f(msg[2]; data...)
+        catch
+            return "failed"
+        end
+    end
+    Jedis.wait_until_subscribed(client)
+    return dd_channel_name
 end
