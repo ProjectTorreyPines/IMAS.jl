@@ -7,17 +7,22 @@ mutable struct StreamDD
     client::Jedis.Client
 end
 
-function stream(dd::IMAS.dd, enable_switch::Bool=true; host::String="localhost", port::Int=55000, password::String="redispw")
+function stream(dd::IMAS.dd; host::String="localhost", port::Int=55000, password::String="redispw")
+    aux = getfield(dd, :_aux)
+    client = Jedis.Client(; host, port, password, keepalive_enable=true)
+    identifier = string(objectid(dd))
+    b = Base.text_colors[:bold]
+    n = Base.disable_text_style[:bold]
+    @info("dd stream @ $(b)HOST$(n):$host, $(b)PORT$(n):$port, $(b)CHANNEL$(n):$identifier")
+    aux[:stream] = StreamDD(true, identifier, client)
+end
+
+function stream(dd::IMAS.dd, enable_switch::Bool=true)
     aux = getfield(dd, :_aux)
     if :stream ∈ keys(aux)
         aux[:stream].enabled = enable_switch
-    elseif enable_switch
-        client = Jedis.Client(; host, port, password, keepalive_enable=true)
-        identifier = string(objectid(dd))
-        b = Base.text_colors[:bold]
-        n = Base.disable_text_style[:bold]
-        @info("dd stream @ $(b)HOST$(n):$host, $(b)PORT$(n):$port, $(b)CHANNEL$(n):$identifier")
-        aux[:stream] = StreamDD(enable_switch, identifier, client)
+    else
+        return false
     end
     return enable_switch
 end
@@ -50,8 +55,8 @@ function stream_identifier(dd::IMAS.dd)
     end
 end
 
-function stream_name(dd::IMAS.dd, name::String)
-    return "$(stream_identifier(dd))__$(name)"
+function dd_service(dd::IMAS.dd, service_name::String)
+    return "$(stream_identifier(dd))__$(service_name)"
 end
 
 function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
@@ -91,10 +96,10 @@ function Base.push!(client::Jedis.Client, stream::String; data...)
     return Jedis.execute(["XADD", stream, "*", "data", JSON.sprint(data)], client)
 end
 
-function stream_push!(dd::IMAS.dd, name::String; data...)
+function stream_push!(dd::IMAS.dd, service_name::String; data...)
     client = stream_client(dd)
-    dd_stream_name = stream_name(dd, name)
-    return push!(client, dd_stream_name; data...)
+    dd_service_name = dd_service(dd, service_name)
+    return push!(client, dd_service_name; data...)
 end
 
 #######
@@ -115,53 +120,54 @@ function Base.pop!(client::Jedis.Client, stream::String; timeout::Float64, error
     data = JSON.parse(payload[2])
     delkey = out[1][2][1][1]
     Jedis.execute(["XDEL", stream, delkey], client)
-    return Dict(Symbol(k) => v for (k,v) in data)
+    return Dict(Symbol(k) => v for (k, v) in data)
 end
 
-function stream_pop!(dd::IMAS.dd, name::String; timeout::Float64)
+function stream_pop!(dd::IMAS.dd, service_name::String; timeout::Float64)
     client = stream_client(dd)
-    dd_stream_name = stream_name(dd, name)
-    return pop!(client, dd_stream_name; timeout)
+    dd_service_name = dd_service(dd, service_name)
+    return pop!(client, dd_service_name; timeout)
 end
 
 ####################
 # REGISTER SERVICE #
 ####################
-function stream_register_service(dd_stream_name::String; client::Jedis.Client)
-    if dd_stream_name ∈ client.subscriptions
-        return nothing
-    else
-        serviced = []
-        @async Jedis.subscribe(dd_stream_name; client) do msg
-            push!(serviced, msg)
-        end
-        Jedis.wait_until_subscribed(client)
-        return serviced
+function stream_register_service(service_name::String, service_function::Function=(x -> x); client::Jedis.Client)
+    @async Jedis.subscribe(service_name; client) do msg
+        return service_function(msg[3])
     end
+    Jedis.wait_until_subscribed(client)
 end
 
-function stream_register_service(dd::IMAS.dd, name::String)
-    client = pubsub_client(dd)
-    dd_stream_name = stream_name(dd, name)
-    return stream_register_service(dd_stream_name; client)
-end
-
-###########################
-# CHECK SERVICE PROVIDERS #
-###########################
-function stream_has_service_provider(dd::IMAS.dd, name::String)
-    subs = subscribers(dd, name)
+###################
+# REQUEST SERVICE #
+###################
+function stream_has_service_provider(dd::IMAS.dd, service_name::String)
+    subs = subscribers(dd, service_name)
     @assert length(subs) <= 1 "Too many service providers: $(subs)"
     return length(subs) == 1
 end
 
-function subscribers(dd::IMAS.dd, name::String)
+function subscribers(dd::IMAS.dd, service_name::String)
     aux = getfield(dd, :_aux)
     if :stream ∈ keys(aux)
         client = stream_client(dd)
-        dd_stream_name = stream_name(dd, name)
-        return Jedis.execute("PUBSUB CHANNELS $(dd_stream_name)*", client)
+        return Jedis.execute("PUBSUB CHANNELS $(service_name)", client)
     else
-        return []
+        return String[]
     end
+end
+
+function stream_negotiate_service(dd::IMAS.dd, service_name::String)
+    client = stream_client(dd)
+    dd_service_name = dd_service(dd, service_name)
+    return Jedis.publish(service_name, dd_service_name; client)
+end
+
+function stream_request_service(dd::IMAS.dd, service_name::String)
+    if is_streaming(dd) && stream_has_service_provider(dd, service_name)
+        stream_negotiate_service(dd, service_name)
+        return true
+    end
+    return false
 end

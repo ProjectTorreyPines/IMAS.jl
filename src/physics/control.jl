@@ -41,15 +41,12 @@ end
 Operates the linear controller
 """
 function (controller::controllers__linear_controller{T})(setpoint::T, value::T, time0::Float64) where {T<:Real}
-
     P = controller.pid.p.data[1]
     I = controller.pid.i.data[1]
     D = controller.pid.d.data[1]
 
-    dd = top_dd(controller)
-
-    if stream_has_controller(dd, controller.name)
-        control = stream_controller(dd, controller.name, 1.0; time=time0, setpoint, value, P, I, D)
+    if stream_has_controller(controller)
+        control = stream_controller(controller, 1.0; time=time0, setpoint, value, P, I, D)
 
     else
         error = setpoint - value
@@ -75,17 +72,26 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
     return control
 end
 
-function stream_controller(dd::IMAS.dd, controller_name::String, timeout::Float64; kw...)
-    stream_fuse2ctrl = "$(controller_name)__fuse2ctrl"
-    stream_ctrl2fuse = "$(controller_name)__ctrl2fuse"
+function stream_request_service(controller::controllers__linear_controller)::Bool
+    controller.description = "serviced"
+    return stream_request_service(top_dd(controller), controller.name)
+end
+
+function stream_controller(controller::controllers__linear_controller, timeout::Float64; kw...)
+    dd = top_dd(controller)
+    stream_fuse2ctrl = "$(controller.name)__fuse2ctrl"
+    stream_ctrl2fuse = "$(controller.name)__ctrl2fuse"
     IMAS.stream_push!(dd, stream_fuse2ctrl; kw...)
     return IMAS.stream_pop!(dd, stream_ctrl2fuse; timeout)[:control]
 end
 
-function stream_has_controller(::Nothing, controller_name::String)
-    return false
-end
-
-ExpiringCaches.@cacheable Dates.Second(1) function stream_has_controller(dd::IMAS.dd, controller_name::String)::Bool
-    return is_streaming(dd) && stream_has_service_provider(dd, controller_name)
+ExpiringCaches.@cacheable Dates.Second(1) function stream_has_controller(controller::controllers__linear_controller)::Bool
+    if ismissing(controller, :description) || controller.description != "serviced"
+        return false
+    end
+    dd = top_dd(controller)
+    if dd === nothing
+        return false
+    end
+    return is_streaming(dd) && stream_has_service_provider(dd, controller.name)
 end
