@@ -165,3 +165,13 @@ function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where
     index = causal_time_index(eq.time, time0)
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
 end
+
+function vloop_time(ct::IMAS.controllers{T}) where {T<:Real}
+    ctrl = controller(ct, "ip")
+    return (time=ctrl.outputs.time, data=ctrl.outputs.data[1, :])
+end
+
+function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
+    vl = vloop_time(ct)
+    return IMAS.get_time_array(vl.time, vl.data, [time0], :linear)[1]
+end

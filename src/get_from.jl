@@ -20,11 +20,13 @@ end
 # vloop [V]
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:vloop}}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :equilibrium
-        return vloop(dd.equilibrium, time0)
+        return vloop(dd.equilibrium; time0)
     elseif from_where == :core_profiles
-        return vloop(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[time0])
+        return vloop(dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0])
     elseif from_where == :pulse_schedule
         return IMAS.get_time_array(dd.pulse_schedule.flux_control.loop_voltage, :reference, time0, :linear)
+    elseif from_where == :controllers__ip
+        return vloop(dd.controllers; time0)
     else
         error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
