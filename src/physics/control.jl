@@ -74,13 +74,13 @@ end
 
 function stream_request_service(controller::controllers__linear_controller)::Bool
     controller.description = "serviced"
-    return stream_request_service(top_dd(controller), controller.name)
+    return stream_request_service(top_dd(controller), "$(controller.name)_control")
 end
 
 function stream_controller(controller::controllers__linear_controller, timeout::Float64; kw...)
     dd = top_dd(controller)
-    stream_fuse2ctrl = "$(controller.name)__fuse2ctrl"
-    stream_ctrl2fuse = "$(controller.name)__ctrl2fuse"
+    stream_fuse2ctrl = "$(controller.name)_control__fuse2ctrl"
+    stream_ctrl2fuse = "$(controller.name)_control__ctrl2fuse"
     IMAS.stream_push!(dd, stream_fuse2ctrl; kw...)
     return IMAS.stream_pop!(dd, stream_ctrl2fuse; timeout)[:control]
 end
@@ -93,5 +93,5 @@ ExpiringCaches.@cacheable Dates.Second(1) function stream_has_controller(control
     if dd === nothing
         return false
     end
-    return is_streaming(dd) && stream_has_service_provider(dd, controller.name)
+    return is_streaming(dd) && stream_has_service_provider(dd, "$(controller.name)_control")
 end
