@@ -7,7 +7,7 @@ mutable struct StreamDD
     client::Jedis.Client
 end
 
-function stream(dd::IMAS.dd; host::String="localhost", port::Int=55000, password::String="redispw")
+function stream_connect(dd::IMAS.dd; host::String="localhost", port::Int=55000, password::String="redispw")
     aux = getfield(dd, :_aux)
     client = Jedis.Client(; host, port, password, keepalive_enable=true)
     identifier = string(objectid(dd))
@@ -17,7 +17,7 @@ function stream(dd::IMAS.dd; host::String="localhost", port::Int=55000, password
     aux[:stream] = StreamDD(true, identifier, client)
 end
 
-function stream(dd::IMAS.dd, enable_switch::Bool=true)
+function stream_enable(dd::IMAS.dd, enable_switch::Bool=true)
     aux = getfield(dd, :_aux)
     if :stream ∈ keys(aux)
         aux[:stream].enabled = enable_switch
@@ -92,47 +92,41 @@ end
 ########
 # PUSH #
 ########
-function Base.push!(client::Jedis.Client, stream::String; data...)
-    return Jedis.execute(["XADD", stream, "*", "data", JSON.sprint(data)], client)
+function stream_push!(client::Jedis.Client, dd_service_name::String; data...)
+    return Jedis.lpush(dd_service_name, JSON.sprint(data); client)
 end
 
 function stream_push!(dd::IMAS.dd, service_name::String; data...)
     client = stream_client(dd)
     dd_service_name = dd_service(dd, service_name)
-    return push!(client, dd_service_name; data...)
+    return stream_push!(client, dd_service_name; data...)
 end
 
 #######
 # POP #
 #######
-function Base.pop!(client::Jedis.Client, stream::String; timeout::Float64, error_on_timeout::Bool=true)
-    ms_timeout = Int(round(timeout * 1000))
-    out = Jedis.execute(String["XREAD", "BLOCK", string(ms_timeout), "COUNT", "1", "STREAMS", stream, "0-0"], client)
-    if isempty(out)
+function stream_pop!(client::Jedis.Client, dd_service_name::String; timeout::Float64, error_on_timeout::Bool=true)
+    data = Jedis.brpop(dd_service_name; timeout, client)
+    if isempty(data)
         if error_on_timeout
-            error("Reading data from stream `$stream` has timed out")
+            error("Wait for data from `$dd_service_name` has timed out")
         else
             return nothing
         end
     end
-    payload = out[1][2][1][2]
-    @assert payload[1] == "data"
-    data = JSON.parse(payload[2])
-    delkey = out[1][2][1][1]
-    Jedis.execute(["XDEL", stream, delkey], client)
-    return Dict(Symbol(k) => v for (k, v) in data)
+    return Dict(Symbol(k) => v for (k, v) in JSON.parse(data[2]))
 end
 
 function stream_pop!(dd::IMAS.dd, service_name::String; timeout::Float64)
     client = stream_client(dd)
     dd_service_name = dd_service(dd, service_name)
-    return pop!(client, dd_service_name; timeout)
+    return stream_pop!(client, dd_service_name; timeout)
 end
 
 ####################
 # REGISTER SERVICE #
 ####################
-function stream_register_service(service_name::String, service_function::Function=(x -> x); client::Jedis.Client)
+function stream_register_service(service_name::String, service_function::Function; client::Jedis.Client)
     @async Jedis.subscribe(service_name; client) do msg
         return service_function(msg[3])
     end
