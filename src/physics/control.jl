@@ -73,20 +73,21 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
 end
 
 function fxp_request_service(controller::controllers__linear_controller)::Bool
-    controller.description = "serviced"
+    controller.description = "fxp_serviced"
     return fxp_request_service(top_dd(controller), "$(controller.name)_control")
 end
 
 function fxp_controller(controller::controllers__linear_controller, timeout::Float64; kw...)
     dd = top_dd(controller)
-    fxp_fuse2ctrl = "$(controller.name)_control__fuse2ctrl"
-    fxp_ctrl2fuse = "$(controller.name)_control__ctrl2fuse"
-    IMAS.fxp_push!(dd, fxp_fuse2ctrl; kw...)
-    return IMAS.fxp_pop!(dd, fxp_ctrl2fuse; timeout)[:control]
+    client = fxp_client(dd)
+    session_id = fxp_identifier(dd)
+    service_name = "$(controller.name)_control"
+    FXP.push!(client, session_id, service_name, :client; kw...)
+    return FXP.pop!(client, session_id, service_name, :client; timeout)[:control]
 end
 
 ExpiringCaches.@cacheable Dates.Second(1) function fxp_has_controller(controller::controllers__linear_controller)::Bool
-    if ismissing(controller, :description) || controller.description != "serviced"
+    if ismissing(controller, :description) || controller.description != "fxp_serviced"
         return false
     end
     dd = top_dd(controller)

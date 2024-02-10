@@ -55,10 +55,6 @@ function fxp_identifier(dd::IMAS.dd)
     end
 end
 
-function dd_service(dd::IMAS.dd, service_name::String)
-    return "$(fxp_identifier(dd))__$(service_name)"
-end
-
 function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
     if haskey(dict, x)
         return dict[x]
@@ -89,23 +85,11 @@ function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
     return new_obj
 end
 
-function fxp_push!(dd::IMAS.dd, service_name::String; data...)
-    client = fxp_client(dd)
-    dd_service_name = dd_service(dd, service_name)
-    return push!(client, dd_service_name; data...)
-end
-
-function fxp_pop!(dd::IMAS.dd, service_name::String; timeout::Float64)
-    client = fxp_client(dd)
-    dd_service_name = dd_service(dd, service_name)
-    return pop!(client, dd_service_name; timeout)
-end
-
 function fxp_has_service_provider(dd::IMAS.dd, service_name::String)
     aux = getfield(dd, :_aux)
     if :fxp ∈ keys(aux)
         client = fxp_client(dd)
-        return FXP.has_service_provider(service_name; client)
+        return FXP.has_service_provider(client, service_name)
     else
         return false
     end
@@ -113,7 +97,7 @@ end
 
 function fxp_negotiate_service(dd::IMAS.dd, service_name::String)
     client = fxp_client(dd)
-    return FXP.negotiate_service(fxp_identifier(dd), service_name; client)
+    return FXP.negotiate_service(client, fxp_identifier(dd), service_name)
 end
 
 function fxp_request_service(dd::IMAS.dd, service_name::String)
