@@ -45,8 +45,8 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
     I = controller.pid.i.data[1]
     D = controller.pid.d.data[1]
 
-    if stream_has_controller(controller)
-        control = stream_controller(controller, 1.0; time=time0, setpoint, value, P, I, D)
+    if fxp_has_controller(controller)
+        control = fxp_controller(controller, 1.0; time=time0, setpoint, value, P, I, D)
 
     else
         error = setpoint - value
@@ -72,20 +72,20 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
     return control
 end
 
-function stream_request_service(controller::controllers__linear_controller)::Bool
+function fxp_request_service(controller::controllers__linear_controller)::Bool
     controller.description = "serviced"
-    return stream_request_service(top_dd(controller), "$(controller.name)_control")
+    return fxp_request_service(top_dd(controller), "$(controller.name)_control")
 end
 
-function stream_controller(controller::controllers__linear_controller, timeout::Float64; kw...)
+function fxp_controller(controller::controllers__linear_controller, timeout::Float64; kw...)
     dd = top_dd(controller)
-    stream_fuse2ctrl = "$(controller.name)_control__fuse2ctrl"
-    stream_ctrl2fuse = "$(controller.name)_control__ctrl2fuse"
-    IMAS.stream_push!(dd, stream_fuse2ctrl; kw...)
-    return IMAS.stream_pop!(dd, stream_ctrl2fuse; timeout)[:control]
+    fxp_fuse2ctrl = "$(controller.name)_control__fuse2ctrl"
+    fxp_ctrl2fuse = "$(controller.name)_control__ctrl2fuse"
+    IMAS.fxp_push!(dd, fxp_fuse2ctrl; kw...)
+    return IMAS.fxp_pop!(dd, fxp_ctrl2fuse; timeout)[:control]
 end
 
-ExpiringCaches.@cacheable Dates.Second(1) function stream_has_controller(controller::controllers__linear_controller)::Bool
+ExpiringCaches.@cacheable Dates.Second(1) function fxp_has_controller(controller::controllers__linear_controller)::Bool
     if ismissing(controller, :description) || controller.description != "serviced"
         return false
     end
@@ -93,5 +93,5 @@ ExpiringCaches.@cacheable Dates.Second(1) function stream_has_controller(control
     if dd === nothing
         return false
     end
-    return is_streaming(dd) && stream_has_service_provider(dd, "$(controller.name)_control")
+    return is_fxping(dd) && fxp_has_service_provider(dd, "$(controller.name)_control")
 end
