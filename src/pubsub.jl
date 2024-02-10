@@ -136,26 +136,32 @@ end
 ###################
 # REQUEST SERVICE #
 ###################
-function stream_has_service_provider(dd::IMAS.dd, service_name::String)
-    subs = subscribers(dd, service_name)
+function stream_has_service_provider(service_name::String; client::Jedis.Client)
+    subs = Jedis.execute("PUBSUB CHANNELS $(service_name)", client)
     @assert length(subs) <= 1 "Too many service providers: $(subs)"
     return length(subs) == 1
 end
 
-function subscribers(dd::IMAS.dd, service_name::String)
+function stream_negotiate_service(session_id::String, service_name::String; client::Jedis.Client)
+    id_service_name = "$(session_id)__$(service_name)"
+    return Jedis.publish(service_name, id_service_name; client)
+end
+
+
+
+function stream_has_service_provider(dd::IMAS.dd, service_name::String)
     aux = getfield(dd, :_aux)
     if :stream ∈ keys(aux)
         client = stream_client(dd)
-        return Jedis.execute("PUBSUB CHANNELS $(service_name)", client)
+        return stream_has_service_provider(service_name; client)
     else
-        return String[]
+        return false
     end
 end
 
 function stream_negotiate_service(dd::IMAS.dd, service_name::String)
     client = stream_client(dd)
-    dd_service_name = dd_service(dd, service_name)
-    return Jedis.publish(service_name, dd_service_name; client)
+    return stream_negotiate_service(stream_identifier(dd), service_name; client)
 end
 
 function stream_request_service(dd::IMAS.dd, service_name::String)
