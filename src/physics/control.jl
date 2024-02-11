@@ -82,8 +82,8 @@ function fxp_controller(controller::controllers__linear_controller, timeout::Flo
     client = fxp_client(dd)
     session_id = fxp_identifier(dd)
     service_name = "$(controller.name)_control"
-    FXP.push!(client, session_id, service_name, :client; kw...)
-    return FXP.pop!(client, session_id, service_name, :client; timeout)[:control]
+    FXP.json_push(client, session_id, service_name, :requestor; kw...)
+    return FXP.json_pop(client, session_id, service_name, :requestor; timeout)[:control]
 end
 
 ExpiringCaches.@cacheable Dates.Second(1) function fxp_has_controller(controller::controllers__linear_controller)::Bool
@@ -94,5 +94,5 @@ ExpiringCaches.@cacheable Dates.Second(1) function fxp_has_controller(controller
     if dd === nothing
         return false
     end
-    return is_fxping(dd) && fxp_has_service_provider(dd, "$(controller.name)_control")
+    return fxp_has_service_provider(dd, "$(controller.name)_control")
 end
