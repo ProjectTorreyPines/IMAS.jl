@@ -193,7 +193,7 @@ function total_sources(
         elseif (source.identifier.index) == 1 && any(all_indexes .> 1)
             @debug "total_sources() skipping total source with index $(source.identifier.index)"
             continue
-        elseif (source.identifier.index) == 200 && any(300 > all_indexes > 200)
+        elseif (source.identifier.index) == 200 && any(300 .> all_indexes .> 200)
             @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
         elseif source.identifier.index ∈ exclude_indexes
