@@ -116,6 +116,12 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
+dyexp["core_profiles.profiles_1d[:].q"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        q = eqt.profiles_1d.q
+        return interp1d(eqt.profiles_1d.rho_tor_norm, q, :cubic).(rho_tor_norm)
+    end 
 #  core_profiles.vacuum_toroidal_field  #
 
 dyexp["core_profiles.vacuum_toroidal_field.b0"] =
