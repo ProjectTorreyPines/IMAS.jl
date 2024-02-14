@@ -129,6 +129,9 @@ function find_psi_boundary(
     else
         index = psi_edge .<= psi[end]
     end
+    if sum(index) == 0.0
+        index = 1:length(psi_edge)
+    end
     psi_edge0 = (maximum(psi_edge[index]) + minimum(psi_edge[index])) / 2.0
     psirange_init = [psi[1] * 0.5 + psi[end] * 0.5, psi_edge0]
 
