@@ -171,6 +171,18 @@ function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
     return 3.0 / 2.0 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
 end
 
+"""
+    energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary)
+
+Calculates the pedestal contribution to the thermal stored energy by integrating over entire domain but with pedestal pressure in the core
+"""
+function energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary)
+    rho_index = argmin(abs.(cp1d.grid.rho_tor_norm .- su.local.pedestal.position.rho_tor_norm))
+    pressure = cp1d.pressure_thermal
+    pressure[1:rho_index] .= cp1d.pressure_thermal[rho_index]
+    return 3.0 / 2.0 * integrate(cp1d.grid.volume, pressure)
+end
+
 function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
     return integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
 end
