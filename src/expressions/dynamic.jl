@@ -141,6 +141,11 @@ dyexp["core_profiles.global_quantities.beta_tor_norm"] =
 dyexp["core_profiles.global_quantities.v_loop"] =
     (time; dd, _...) -> [v_loop(core_profiles.profiles_1d[Float64(time)]) for time in dd.core_profiles.time]
 
+dyexp["core_profiles.profiles_1d[:].time"] =
+    (; core_profiles, profiles_1d_index, _...) -> begin
+        return core_profiles.time[profiles_1d_index]
+    end
+    
 #= ============ =#
 # core_transport #
 #= ============ =#
@@ -309,6 +314,12 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =
         return (dBrdZ - dBzdR) ./ constants.μ_0
     end
 
+
+dyexp["equilibrium.time_slice[:].time"] =
+    (; equilibrium, time_slice_index, _...) -> begin
+        return equilibrium.time[time_slice_index]
+    end
+
 #= ============ =#
 #  core_sources  #
 #= ============ =#
@@ -395,6 +406,12 @@ dyexp["core_sources.vacuum_toroidal_field.b0"] =
 
 dyexp["core_sources.vacuum_toroidal_field.r0"] =
     (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
+
+
+dyexp["core_sources.source[:].profiles_1d[:].time"] =
+    (; core_sources, profiles_1d_index, _...) -> begin
+        return core_sources.time[profiles_1d_index]
+    end
 
 #= ===== =#
 #  build  #
