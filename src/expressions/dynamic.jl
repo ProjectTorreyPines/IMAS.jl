@@ -155,6 +155,12 @@ dyexp["core_transport.vacuum_toroidal_field.b0"] =
 dyexp["core_transport.vacuum_toroidal_field.r0"] =
     (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
 
+
+dyexp["core_transport.model[:].profiles_1d[:].time"] =
+    (; core_transport, profiles_1d_index, _...) -> begin
+        return core_transport.time[profiles_1d_index]
+    end    
+
 #= ========= =#
 # equilibrium #
 #= ========= =#
