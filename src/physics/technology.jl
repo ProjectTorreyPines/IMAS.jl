@@ -97,30 +97,6 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
     return coil_tech
 end
 
-"""
-    coil_J_B_crit(Bext, coil_tech::Union{IMAS.build__pf_active__technology,IMAS.build__oh__technology,IMAS.build__tf__technology})
-
-Returns critical current density and magnetic field given an external magnetic field and coil technology
-"""
-function coil_J_B_crit(Bext, coil_tech::Union{IMAS.build__pf_active__technology,IMAS.build__oh__technology,IMAS.build__tf__technology})
-    if coil_tech.material == "copper"
-        mat = Material(:copper)
-    elseif coil_tech.material == "nb3sn"
-        mat = Material(:nb3sn; coil_tech, Bext)
-    elseif coil_tech.material == "nbti"
-        mat = Material(:nbti; coil_tech, Bext)
-    elseif coil_tech.material == "nb3sn_kdemo"
-        mat = Material(:nb3sn_kdemo; coil_tech, Bext)
-    elseif coil_tech.material == "nb3sn_iter"
-        mat = Material(:nb3sn_iter; coil_tech, Bext)
-    elseif coil_tech.material == "rebco"
-        mat = Material(:rebco; coil_tech, Bext)
-    end
-    Jcrit, Bcrit = mat.critical_current_density, mat.critical_magnetic_field
-
-    return (Jcrit=Jcrit, Bcrit=Bcrit)
-end
-
 function GAMBL_blanket(bm::IMAS.blanket__module)
     layers = resize!(bm.layer, 3)
 
