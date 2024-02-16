@@ -97,6 +97,16 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
     return coil_tech
 end
 
+function fraction_conductor(coil_tech::Union{IMAS.build__pf_active__technology,IMAS.build__oh__technology,IMAS.build__tf__technology})
+    frac = 1.0 - coil_tech.fraction_steel - coil_tech.fraction_void # fraction of coil that is a conductor
+    @assert frac > 0.0 "coil technology has no room for conductor"
+    if coil_tech.material == "copper"
+        return frac
+    else
+        return frac * coil_tech.ratio_SC_to_copper / (1.0 + coil_tech.ratio_SC_to_copper) # fraction of coil that is Nb3Sn superconductor
+    end
+end
+
 function GAMBL_blanket(bm::IMAS.blanket__module)
     layers = resize!(bm.layer, 3)
 
