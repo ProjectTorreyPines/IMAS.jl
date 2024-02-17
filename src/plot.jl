@@ -1877,7 +1877,7 @@ end
             subplot := k + 1
             seriestype := :scatter
             primary := false
-            marker := :dot
+            marker := :circle
             markerstrokewidth := 0.0
             title := nice_field(plt[:label])
             [time0], interp1d(x[1:n], y[1:n]).([time0])
