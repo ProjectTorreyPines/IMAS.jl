@@ -1291,12 +1291,17 @@ end
 """
     x_points_in_wall(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}, wall::IMAS.wall)
 
-Returns index of the x_points that are inside of the first wall
+Returns vector of x_points that are inside of the first wall
 """
-function x_points_in_wall(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}, wall::IMAS.wall)
+function x_points_in_wall(x_points::IDSvector{T}, wall::IMAS.wall) where {T<:IMAS.equilibrium__time_slice___boundary__x_point}
     outline = first_wall(wall)
-    outline = collect(zip(outline.r, outline.z))
-    return findall(x_point -> PolygonOps.inpolygon((x_point.r, x_point.z), outline) == 1, x_points) 
+    if isempty(outline.r)
+        return T[x_point for x_point in x_points]
+    else
+        outline = collect(zip(outline.r, outline.z))
+        indexes = findall(x_point -> PolygonOps.inpolygon((x_point.r, x_point.z), outline) == 1, x_points) 
+        return T[x_points[index] for index in indexes]
+    end
 end
 
 """
