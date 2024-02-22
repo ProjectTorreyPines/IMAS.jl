@@ -1289,6 +1289,17 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 end
 
 """
+    x_points_in_wall(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}, wall::IMAS.wall)
+
+Returns index of the x_points that are inside of the first wall
+"""
+function x_points_in_wall(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}, wall::IMAS.wall)
+    outline = first_wall(wall)
+    outline = collect(zip(outline.r, outline.z))
+    return findall(x_point -> PolygonOps.inpolygon((x_point.r, x_point.z), outline) == 1, x_points) 
+end
+
+"""
     miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
 
 Returns R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu of a contour
