@@ -14,7 +14,7 @@ const onetime_expressions = otexp = Dict{String,Function}()
 #
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
-# 
+#
 # For example, this will FAIL:
 #    otexp["core_profiles.profiles_1d[:].electrons.pressure"] =
 #         (; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
@@ -54,7 +54,12 @@ otexp["core_profiles.profiles_1d[:].grid.psi"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         psi = eqt.profiles_1d.psi
-        return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
+        psia, psib = psi[1], psi[end]
+        rhop_eq = sqrt.((psi .- psia) ./ (psib - psia))
+        rhop_eq[1]   = 0.0
+        rhop_eq[end] = 1.0
+        rhop_cp =  interp1d(eqt.profiles_1d.rho_tor_norm, rhop_eq, :cubic).(rho_tor_norm)
+        return (psib - psia) .* rhop_cp .^ 2 .+ psia
     end
 
 #= ============ =#
