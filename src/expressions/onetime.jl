@@ -33,14 +33,14 @@ otexp["core_profiles.profiles_1d[:].grid.volume"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         volume = eqt.profiles_1d.volume
-        return interp1d(eqt.profiles_1d.rho_tor_norm, volume, :cubic).(rho_tor_norm)
+        return interp1d(eqt.profiles_1d.rho_tor_norm, sqrt.(volume), :cubic).(rho_tor_norm) .^ 2
     end
 
 otexp["core_profiles.profiles_1d[:].grid.area"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         area = eqt.profiles_1d.area
-        return interp1d(eqt.profiles_1d.rho_tor_norm, area, :cubic).(rho_tor_norm)
+        return interp1d(eqt.profiles_1d.rho_tor_norm, sqrt.(area), :cubic).(rho_tor_norm) .^ 2
     end
 
 otexp["core_profiles.profiles_1d[:].grid.surface"] =
@@ -50,16 +50,13 @@ otexp["core_profiles.profiles_1d[:].grid.surface"] =
         return interp1d(eqt.profiles_1d.rho_tor_norm, surface, :cubic).(rho_tor_norm)
     end
 
+
 otexp["core_profiles.profiles_1d[:].grid.psi"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         psi = eqt.profiles_1d.psi
-        psia, psib = psi[1], psi[end]
-        rhop_eq = sqrt.((psi .- psia) ./ (psib - psia))
-        rhop_eq[1]   = 0.0
-        rhop_eq[end] = 1.0
-        rhop_cp =  interp1d(eqt.profiles_1d.rho_tor_norm, rhop_eq, :cubic).(rho_tor_norm)
-        return (psib - psia) .* rhop_cp .^ 2 .+ psia
+        sign_psi = sign(0.5 * (psi[1] + psi[end]))
+        return sign_psi .* (interp1d(eqt.profiles_1d.rho_tor_norm, sqrt.(abs.(psi .- psi[1])), :cubic).(rho_tor_norm) .^ 2) .+ psi[1]
     end
 
 #= ============ =#
