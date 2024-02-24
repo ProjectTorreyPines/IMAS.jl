@@ -41,7 +41,7 @@ function collision_frequencies(dd::IMAS.dd)
         nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
     end
 
-    return nue, nui, nu_exch
+    return (nue=nue, nui=nui, nu_exch=nu_exch)
 end
 
 function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool=true, same_ne_ni::Bool=false)

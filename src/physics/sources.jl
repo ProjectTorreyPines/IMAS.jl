@@ -27,7 +27,7 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
 
-    nu_exch = collision_frequencies(dd)[3]
+    nu_exch = collision_frequencies(dd).nu_exch
     delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
 
     source = resize!(dd.core_sources.source, :collisional_equipartition; wipe=false)
