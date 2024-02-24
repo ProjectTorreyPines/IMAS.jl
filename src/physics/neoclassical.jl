@@ -21,11 +21,13 @@ function collision_frequencies(dd::IMAS.dd)
     # 1/tau_ii (Belli 2008) in 1/s
     nui = zeros(length(Te))
     for ion in cp1d.ion
-        Ti = ion.temperature
-        ni = ion.density / 1E6
-        Zi = avgZ(ion.element[1].z_n, Ti)
-        mi = ion.element[1].a * mp
-        nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
+        if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
+            Ti = ion.temperature
+            ni = ion.density / 1E6
+            Zi = avgZ(ion.element[1].z_n, Ti)
+            mi = ion.element[1].a * mp
+            nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
+        end
     end
 
     # c_exch = 1.8e-19 is the formulary exch. coefficient
@@ -34,11 +36,13 @@ function collision_frequencies(dd::IMAS.dd)
     # nu_exch in 1/s
     nu_exch = zeros(length(Te))
     for ion in cp1d.ion
-        Ti = ion.temperature
-        ni = ion.density / 1E6
-        Zi = avgZ(ion.element[1].z_n, Ti)
-        mi = ion.element[1].a * mp
-        nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
+        if !ismissing(ion, :temperature)
+            Ti = ion.temperature
+            ni = ion.density / 1E6
+            Zi = avgZ(ion.element[1].z_n, Ti)
+            mi = ion.element[1].a * mp
+            nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
+        end
     end
 
     return (nue=nue, nui=nui, nu_exch=nu_exch)

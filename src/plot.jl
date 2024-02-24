@@ -1437,7 +1437,7 @@ end
 
         same_temps = false
         if length(cpt.ion) > 1
-            same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end]])
+            same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end] if !ismissing(iion, :temperature)])
             if same_temps
                 @series begin
                     if only === nothing
@@ -1452,19 +1452,19 @@ end
             end
         end
 
-        for ion in cpt.ion
-            if same_temps
-                nothing
-            else
-                @series begin
-                    if only === nothing
-                        subplot := 1
+        if !same_temps
+            for ion in cpt.ion
+                if !ismissing(ion, :temperature)
+                    @series begin
+                        if only === nothing
+                            subplot := 1
+                        end
+                        title := "Temperatures"
+                        label := ion.label * label
+                        linestyle --> :dash
+                        ylim --> (0, Inf)
+                        ion, :temperature
                     end
-                    title := "Temperatures"
-                    label := ion.label * label
-                    linestyle --> :dash
-                    ylim --> (0, Inf)
-                    ion, :temperature
                 end
             end
         end
@@ -1520,7 +1520,11 @@ end
             end
             title := "Rotation"
             label := "" * label
-            cpt, :rotation_frequency_tor_sonic
+            if !ismissing(cpt, :rotation_frequency_tor_sonic)
+                cpt, :rotation_frequency_tor_sonic
+            else
+                [NaN], [NaN]
+            end
         end
     end
 

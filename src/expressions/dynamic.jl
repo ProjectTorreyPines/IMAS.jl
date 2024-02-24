@@ -61,7 +61,7 @@ dyexp["core_profiles.profiles_1d[:].ion[:].density_fast"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_thermal"] =
-    (rho_tor_norm; ion, _...) -> ion.temperature .* ion.density .* constants.e
+    (rho_tor_norm; ion, _...) -> (ismissing(ion, :temperature) && !ismissing(ion, :density)) ? ion.density .* 0.0 : ion.temperature .* ion.density .* constants.e
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_fast_parallel"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
