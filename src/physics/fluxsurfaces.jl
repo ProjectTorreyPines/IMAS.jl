@@ -930,12 +930,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
     eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
 
     # phi 2D
-    eqt2d.phi =
-        Interpolations.cubic_spline_interpolation(
-            to_range(eqt.profiles_1d.psi) * psi_sign,
-            eqt.profiles_1d.phi;
-            extrapolation_bc=Interpolations.Line()
-        ).(eqt2d.psi * psi_sign)
+    eqt2d.phi = interp1d(eqt.profiles_1d.psi * psi_sign, eqt.profiles_1d.phi, :cubic).(eqt2d.psi * psi_sign)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt2d.phi ./ (π * B0)))
@@ -956,12 +951,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
             eqt.profiles_1d.gm2[k] = flxAvg(dPHI2 ./ PR[k] .^ 2.0, LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
         end
     end
-    eqt.profiles_1d.gm2[1] =
-        Interpolations.cubic_spline_interpolation(
-            to_range(eqt.profiles_1d.psi[2:end]) * psi_sign,
-            eqt.profiles_1d.gm2[2:end];
-            extrapolation_bc=Interpolations.Line()
-        ).(eqt.profiles_1d.psi[1] * psi_sign)
+    eqt.profiles_1d.gm2[1] = interp1d(eqt.profiles_1d.psi[2:end] * psi_sign, eqt.profiles_1d.gm2[2:end], :cubic).(eqt.profiles_1d.psi[1] * psi_sign)
 
     # ip
     eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
