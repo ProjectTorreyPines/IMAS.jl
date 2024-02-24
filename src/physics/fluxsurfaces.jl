@@ -37,8 +37,8 @@ end
 Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
 """
 function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
-    grad = Interpolations.gradient(PSI_interpolant, r ,z)
-    Br =  grad[2] / (2π * r)
+    grad = Interpolations.gradient(PSI_interpolant, r, z)
+    Br = grad[2] / (2π * r)
     Bz = -grad[1] / (2π * r)
     return Br, Bz
 end
@@ -81,7 +81,7 @@ Returns Bp evaluated at r and z starting from ψ interpolant
 
 function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
     Br, Bz = Br_Bz(PSI_interpolant, r, z)
-    return sqrt(Br ^ 2.0 + Bz ^ 2.0)
+    return sqrt(Br^2.0 + Bz^2.0)
 end
 
 function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
@@ -1253,7 +1253,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 
             # record the distance from this x-point to the separatrix
             push!(psidist_lcfs_xpoints, PSI_interpolant(x_point.r, x_point.z)[1] - psi_separatrix)
-
         end
 
         # find distances among pairs of x-points (d_x) and record which one is closest to each (i_x)
@@ -1286,8 +1285,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             deleteat!(z_x, k)
         end
 
-
-        # remove x-points that have fallen on the magnetic axis
+        # remove x-points that have fallen on the magnetic axis 
         sign_closest = sign(psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))])# sign of psi of closest X-point in psi to LCFS
         index = psidist_lcfs_xpoints .* psi_sign .>= (psi_sign - sign_closest * 1E-5) * psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))]
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
@@ -1317,7 +1315,7 @@ function x_points_in_wall(x_points::IDSvector{T}, wall::IMAS.wall) where {T<:IMA
         return T[x_point for x_point in x_points]
     else
         outline = collect(zip(outline.r, outline.z))
-        indexes = findall(x_point -> PolygonOps.inpolygon((x_point.r, x_point.z), outline) == 1, x_points) 
+        indexes = findall(x_point -> PolygonOps.inpolygon((x_point.r, x_point.z), outline) == 1, x_points)
         return T[x_points[index] for index in indexes]
     end
 end

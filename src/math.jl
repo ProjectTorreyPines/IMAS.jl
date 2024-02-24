@@ -21,7 +21,7 @@ function to_range(vector::AbstractVector{<:Real})
     N = length(vector)
     dv = vector[2] - vector[1]
     if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
-        error("to_range requires vector data to be equally spaced")
+        error("to_range requires vector data to be equally spaced: $(vector)")
     end
     return range(vector[1], vector[end], N)
 end

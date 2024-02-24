@@ -1813,7 +1813,7 @@ end
         time_value = time_array_parent(ids)
         data_value = getproperty(ids, :reference)
 
-        if length(collect(filter(x -> x ∉ (-Inf, Inf), time_value))) == 1
+        if length(collect(filter(x -> !isinf(x), time_value))) == 1
             continue
         end
 
