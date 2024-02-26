@@ -318,7 +318,7 @@ function find_psi_last_diverted(
     precision::Float64=1e-7)
 
     # if no wall in dd, psi_last diverted not defined
-    if isempty(wall_r) || isempty(wall_z)
+    if isempty(wall_r) || isempty(wall_z) || isempty(eqt.boundary.x_point)
         return (psi_last_lfs=NaN, psi_first_lfs_far=NaN, null_within_wall=true)
     end
 
