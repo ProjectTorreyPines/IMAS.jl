@@ -1281,7 +1281,7 @@ end
     # ion energy
     if only === nothing || only == 2
         tot = 0.0
-        if !ismissing(cs1d, :total_ion_energy) && !flux
+        if !ismissing(cs1d, :total_ion_energy)
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
         end
         show_condition = flux || show_zeros || abs(tot) > min_power
@@ -1319,7 +1319,7 @@ end
     # particles
     if only === nothing || only == 3
         tot = 0.0
-        if !ismissing(cs1d.electrons, :particles) && !flux
+        if !ismissing(cs1d.electrons, :particles)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
         end
         show_condition = flux || show_zeros || abs(tot) > 0.0
