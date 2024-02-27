@@ -131,8 +131,8 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
         Δr = element.geometry.rectangle.width / 2.0
         Δz = element.geometry.rectangle.height / 2.0
         oute = IMAS.pf_active__coil___element___geometry__outline()
-        oute.r = [-Δr, Δr, Δr, -Δr] .+ r
-        oute.z = [-Δz, -Δz, Δz, Δz] .+ z
+        oute.r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ r
+        oute.z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ z
 
     else
         error("pf_active geometry type `geometry_type` is not yet supported")
