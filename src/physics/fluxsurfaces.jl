@@ -70,15 +70,10 @@ function Br_Bz(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
 end
 
 """
-    Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
 
 Returns Bp evaluated at r and z starting from ψ interpolant
 """
-# function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
-#     Br, Bz = Br_Bz(PSI_interpolant, r, z)
-#     return sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)
-# end
-
 function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
     Br, Bz = Br_Bz(PSI_interpolant, r, z)
     return sqrt(Br^2.0 + Bz^2.0)
