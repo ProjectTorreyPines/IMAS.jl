@@ -399,7 +399,7 @@ function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z
-    return Bp(PSI_interpolant, [R_omp], [Z_omp])[1]
+    return Bp(PSI_interpolant, R_omp, Z_omp)
 end
 
 """
