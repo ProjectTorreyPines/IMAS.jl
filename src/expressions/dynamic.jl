@@ -209,10 +209,25 @@ dyexp["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
     (psi; time_slice, _...) -> psi .* 0.0 .+ time_slice.global_quantities.magnetic_axis.z
 
 dyexp["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
-    (; time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r[end]
+    (; time_slice, _...) -> begin
+        if !ismissing(time_slice.profiles_1d.geometric_axis, :r)
+            return time_slice.profiles_1d.geometric_axis.r[end]
+        else
+            minR, maxR = extrema(time_slice.boundary.outline.r)
+            return (minR + maxR) / 2
+        end
+    end
 
 dyexp["equilibrium.time_slice[:].boundary.geometric_axis.z"] =
-    (; time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[end]
+    (; time_slice, _...) -> begin
+        if !ismissing(time_slice.profiles_1d.geometric_axis, :z)
+            return time_slice.profiles_1d.geometric_axis.z[end]
+        else
+            minZ, maxZ = extrema(time_slice.boundary.outline.z)
+            return (minZ + maxZ) / 2
+        end
+    end
+
 
 dyexp["equilibrium.time_slice[:].boundary.minor_radius"] =
     (; time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] - time_slice.profiles_1d.r_inboard[end]) * 0.5
