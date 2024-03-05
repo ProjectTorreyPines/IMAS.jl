@@ -618,12 +618,6 @@ dyexp["summary.fusion.power.value"] = # NOTE: This is the fusion power that is c
 dyexp["summary.global_quantities.ip.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.ip for time0 in time]
 
-dyexp["summary.global_quantities.b0.value"] =
-    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
-
-dyexp["summary.global_quantities.r0.value"] =
-    (; dd, summary, _...) -> vacuum_r0_b0_time(dd)[1]
-
 dyexp["summary.global_quantities.current_bootstrap.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
