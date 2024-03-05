@@ -116,27 +116,27 @@ end
 """
     outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
 
-Returns geometry outline independenty of geometry_type used to describe the element
+Returns named tuple with r and z arrays outline, independent of geometry_type used to describe the element
 """
 function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
     geometry_type = index_2_name(element.geometry)[element.geometry.geometry_type]
 
-    # rectangle
     if geometry_type == :outline
         oute = element.geometry.outline
+        r = oute.r
+        z = oute.z
 
     elseif geometry_type == :rectangle
         r = element.geometry.rectangle.r
         z = element.geometry.rectangle.z
         Δr = element.geometry.rectangle.width / 2.0
         Δz = element.geometry.rectangle.height / 2.0
-        oute = IMAS.pf_active__coil___element___geometry__outline()
-        oute.r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ r
-        oute.z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ z
+        r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ r
+        z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ z
 
     else
         error("pf_active geometry type `geometry_type` is not yet supported")
     end
 
-    return oute
+    return (r=r, z=z)
 end
