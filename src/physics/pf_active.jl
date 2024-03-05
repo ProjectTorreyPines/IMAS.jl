@@ -127,12 +127,11 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
         z = StaticArrays.SVector{4}(oute.z)
 
     elseif geometry_type == :rectangle
-        r = element.geometry.rectangle.r
-        z = element.geometry.rectangle.z
-        Δr = 0.5 * element.geometry.rectangle.width
-        Δz = 0.5 * element.geometry.rectangle.height
-        r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ r
-        z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ z
+        rect = element.geometry.rectangle
+        Δr = 0.5 * rect.width
+        Δz = 0.5 * rect.height
+        r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ rect.r
+        z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ rect.z
 
     else
         error("pf_active geometry type `geometry_type` is not yet supported")
