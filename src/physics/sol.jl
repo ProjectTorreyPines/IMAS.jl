@@ -133,7 +133,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     end
 
     ############ 
-    R0, B0 = vacuum_r0_b0(eqt)
+    R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
@@ -541,7 +541,7 @@ Parallel heat flux [W/m^2] at the outer midplane based on Eigh λ_q
 """
 function q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     eq1d = eqt.profiles_1d
-    R0, B0 = vacuum_r0_b0(eqt)
+    R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     R_omp = eq1d.r_outboard[end]
     Bt_omp = B0 * R0 / R_omp
     return q_pol_omp_eich(eqt, cp1d, core_sources) / sin(atan(Bpol_omp(eqt) / Bt_omp))
