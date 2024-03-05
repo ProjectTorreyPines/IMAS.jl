@@ -123,6 +123,7 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
 
     if geometry_type == :outline
         oute = element.geometry.outline
+        @assert length(oute.r) == 4 "IMAS.outline(coil) can only handle coils with 4 vertices"
         r = StaticArrays.SVector{4}(oute.r)
         z = StaticArrays.SVector{4}(oute.z)
 
