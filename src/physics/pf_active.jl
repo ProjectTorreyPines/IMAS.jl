@@ -123,14 +123,14 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
 
     if geometry_type == :outline
         oute = element.geometry.outline
-        r = oute.r
-        z = oute.z
+        r = StaticArrays.SVector{4}(oute.r)
+        z = StaticArrays.SVector{4}(oute.z)
 
     elseif geometry_type == :rectangle
         r = element.geometry.rectangle.r
         z = element.geometry.rectangle.z
-        Δr = element.geometry.rectangle.width / 2.0
-        Δz = element.geometry.rectangle.height / 2.0
+        Δr = 0.5 * element.geometry.rectangle.width
+        Δz = 0.5 * element.geometry.rectangle.height
         r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ r
         z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ z
 
