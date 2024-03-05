@@ -322,7 +322,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
-    nis = hcat([ion.density for ion in cp1d.ion]...)
+    nis = hcat((ion.density for ion in cp1d.ion)...)
     ni = sum(nis; dims=2)[:, 1]
     Ti = cp1d.ion[1].temperature
 
