@@ -132,7 +132,11 @@ Plots cross-section of individual coils
         oute = outline(element)
         @series begin
             primary := k == 1
-            oute
+            seriestype --> :shape
+            linewidth --> 0.25
+            colorbar --> :right
+            label --> ""
+            oute.r, oute.z
         end
         append!(r, oute.r)
         append!(z, oute.z)
@@ -146,21 +150,6 @@ Plots cross-section of individual coils
             series_annotations := [(coil.name, :center, :middle, :red, 6)]
             [r_avg], [z_avg]
         end
-    end
-end
-
-"""
-    plot_coil_element_outlne(oute::pf_active__coil___element___geometry__outline{T}) where {T<:Real}
-
-Plots cross-section of individual coil elements
-"""
-@recipe function plot_coil_element_outlne(oute::pf_active__coil___element___geometry__outline{T}) where {T<:Real}
-    @series begin
-        seriestype --> :shape
-        linewidth --> 0.25
-        colorbar --> :right
-        label --> ""
-        oute.r, oute.z
     end
 end
 
@@ -204,21 +193,6 @@ end
 end
 
 """
-    plot_coil_element_outlne(oute::pf_passive__loop___element___geometry__outline{T}) where {T<:Real}
-
-Plots cross-section of individual loop elements
-"""
-@recipe function plot_coil_element_outlne(oute::pf_passive__loop___element___geometry__outline{T}) where {T<:Real}
-    @series begin
-        seriestype --> :shape
-        linewidth --> 0.25
-        colorbar --> :right
-        label --> ""
-        oute.r, oute.z
-    end
-end
-
-"""
     plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
 
 Plots cross-section of individual loops
@@ -232,7 +206,11 @@ Plots cross-section of individual loops
         oute = outline(element)
         @series begin
             primary := k == 1
-            oute
+            seriestype --> :shape
+            linewidth --> 0.25
+            colorbar --> :right
+            label --> ""
+            oute.r, oute.z
         end
         append!(r, oute.r)
         append!(z, oute.z)
