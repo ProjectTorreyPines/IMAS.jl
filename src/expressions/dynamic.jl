@@ -153,13 +153,6 @@ dyexp["core_transport.model[:].profiles_1d[:].time"] =
 #= ========= =#
 # equilibrium #
 #= ========= =#
-# IMAS does not hold B0 information in a given time slice, but we can get that info from `B0=f/R0`
-# This trick propagates the B0 information to a time_slice even when that time_slice has not been initialized with profiles_1d data
-
-dyexp["equilibrium.time_slice[:].profiles_1d.f"] =
-    (psi; time_slice, _...) ->
-        (psi === missing ? [1] : ones(size(psi))) .* (time_slice.global_quantities.vacuum_toroidal_field.b0 * time_slice.global_quantities.vacuum_toroidal_field.r0)
-
 dyexp["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (; time_slice, _...) -> 3 / 2 * integrate(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
@@ -186,14 +179,13 @@ dyexp["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
 
 
 dyexp["equilibrium.time_slice[:].global_quantities.vacuum_toroidal_field.b0"] =
-    (; equilibrium, _...) -> @ddtime(equilibrium.vacuum_toroidal_field.b0)
+    (; dd, time_slice, _...) -> get_time_array(dd.pulse_schedule.tf.b_field_tor_vacuum, :reference, time_slice.time, :linear)
 
 dyexp["equilibrium.time_slice[:].global_quantities.vacuum_toroidal_field.r0"] =
-    (; equilibrium, _...) -> equilibrium.vacuum_toroidal_field.r0
+    (; dd, _...) -> dd.pulse_schedule.tf.r0
 
 dyexp["equilibrium.time_slice[:].global_quantities.magnetic_axis.b_field_tor"] =
-    (; time_slice, _...) ->
-    time_slice.global_quantities.vacuum_toroidal_field.b0 * time_slice.global_quantities.vacuum_toroidal_field.r0 / time_slice.boundary.geometric_axis.r
+    (; time_slice, _...) -> time_slice.global_quantities.vacuum_toroidal_field.b0 * time_slice.global_quantities.vacuum_toroidal_field.r0 / time_slice.boundary.geometric_axis.r
 
 dyexp["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
     (psi; time_slice, _...) -> (time_slice.profiles_1d.r_outboard .+ time_slice.profiles_1d.r_inboard) .* 0.5
@@ -581,13 +573,17 @@ dyexp["pulse_schedule.time"] =
     end
 
 dyexp["pulse_schedule.tf.b_field_tor_vacuum_r.reference"] =
-    (time; pulse_schedule, _...) ->  pulse_schedule.tf.r0 .* pulse_schedule.tf.b_field_tor_vacuum.reference 
+    (time; tf, _...) ->  tf.r0 .* tf.b_field_tor_vacuum.reference 
 
 dyexp["pulse_schedule.tf.r0"] =
     (; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.r0
 
 dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
-    (; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.b0
+    (time; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.b0
+
+dyexp["pulse_schedule.tf.time"] =
+    (time; dd, _...) ->  dd.equilibrium.time
+
 #= ========= =#
 #  stability  #
 #= ========= =#

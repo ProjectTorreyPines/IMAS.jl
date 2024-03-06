@@ -52,7 +52,7 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
     geometry_types = name_2_index(coils[1].element[1].geometry)
     for coil in coils
         for element in coil.element
-            for geometry_type in keys(element.geometry)
+            for geometry_type in (:outline, :rectangle, :oblique)
                 if geometry_type != :geometry_type && !ismissing(getproperty(element.geometry, geometry_type), :r)
                     element.geometry.geometry_type = geometry_types[geometry_type]
                     break

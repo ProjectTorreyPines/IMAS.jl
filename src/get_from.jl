@@ -20,11 +20,10 @@ end
 # vacuum_r0_b0 [m], [T]
 function get_from(dd::IMAS.dd, what::Type{Val{:vacuum_r0_b0}}, from_where::Symbol; time0::Float64=dd.global_time)
     if from_where == :equilibrium
-        return (r0=dd.equilibrium.time_slice[time0].global_quantities.vacuum_toroidal_field.r0,
-        b0=dd.equilibrium.time_slice[time0].global_quantities.vacuum_toroidal_field.b0)
+        eqt = dd.equilibrium.time_slice[time0]
+        return (r0=eqt.global_quantities.vacuum_toroidal_field.r0, b0=eqt.global_quantities.vacuum_toroidal_field.b0)
     elseif from_where == :pulse_schedule
-        return (r0=dd.pulse_schedule.tf.r0,
-         b0=IMAS.get_time_array(dd.pulse_schedule.tf.b_field_tor_vacuum, :reference, time0, :linear))
+        return (r0=dd.pulse_schedule.tf.r0, b0=IMAS.get_time_array(dd.pulse_schedule.tf.b_field_tor_vacuum, :reference, time0, :linear))
     else
         error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
