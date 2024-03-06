@@ -1172,7 +1172,7 @@ end
     flux=false,
     only=nothing,
     show_zeros=false,
-    min_power=0.0,
+    min_power=1e3,
     only_positive_negative=0,
     show_source_number=false
 )
