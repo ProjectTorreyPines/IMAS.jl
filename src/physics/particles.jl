@@ -88,7 +88,6 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
 
     # advance neutrons until they hit the wall
     for p in particles
-        #println(n)
         ti = Inf
 
         xn = p.x
@@ -112,7 +111,12 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
 
             rw1 == rw2 && zw1 == zw2 && continue
 
-            if zw1 > zw2
+            if isapprox(zw1, zw2)
+                if (rw1 > rw2)
+                    rw1, rw2 = rw2, rw1
+                    zw1, zw2 = zw2, zw1
+                end
+            elseif (zw1 > zw2)
                 rw1, rw2 = rw2, rw1
                 zw1, zw2 = zw2, zw1
             end
@@ -126,6 +130,12 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
                 ti = t
             end
         end
+
+        if ti == Inf
+            @show p
+            error("Infinity while moving particles")
+        end
+
         p.x += vx * ti
         p.y += vy * ti
         p.z += vz * ti
@@ -199,49 +209,66 @@ end
 
 
 function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, y::Real, z::Real, vx::Real, vy::Real, vz::Real, v2::Real, vz2::Real)
-    m = (z2 - z1) / (r2 - r1)
-    z0 = z1 - m * r1
-    m2 = m^2
-
-    a = 0.0
-    b = 0.0
-    c = 0.0
-    if isfinite(m)
-        z_z0 = z - z0
-        a = m2 * v2 - vz2
-        b = 2 * (m2 * (vx * x + vy * y) - z_z0 * vz)
-        c = m2 * (x^2 + y^2) - z_z0^2
-    else
-        a = v2
-        b = 2 * (vx * x + vy * y)
-        c = x^2 + y^2 - r1^2
-    end
-
-    t1 = -Inf
-    t2 = -Inf
-    if a == 0
-        b != 0 && (t2 = -c / b)
-    else
-        nb_2a = -b / (2a)
-        b2a_ca = nb_2a^2 - c / a
-        if b2a_ca >= 0
-            t_sq = sqrt(b2a_ca)
-            t1 = nb_2a - t_sq
-            t2 = nb_2a + t_sq
-        end
-    end
 
     t = Inf
-    if t1 > 0
-        zi = vz * t1 + z
-        if zi > z1 && zi < z2
-            t = t1
+    if isapprox(z1, z2)
+        # a horizontal segment: time for how long it takes to get to this z, then check if r is between segment bounds
+        ti = (vz == 0.0) ? -Inf : (z1 - z) / vz
+        if ti >= 0
+            ri = sqrt((x + vx * ti) ^ 2 + (y + vy * ti) ^ 2)
+            if ri >= r1 && ri <= r2
+                t = ti
+            end
         end
-    end
-    if !isfinite(t) && t2 > 0
-        zi = vz * t2 + z
-        if zi > z1 && zi < z2
-            t = t2
+    else
+        # parameterize parabola intersection with a line
+        m = (z2 - z1) / (r2 - r1)
+        z0 = z1 - m * r1
+        m2 = m^2
+
+        a = 0.0
+        b = 0.0
+        c = 0.0
+        if isfinite(m)
+            z_z0 = z - z0
+            a = m2 * v2 - vz2
+            b = 2 * (m2 * (vx * x + vy * y) - z_z0 * vz)
+            c = m2 * (x^2 + y^2) - z_z0^2
+        else
+            a = v2
+            b = 2 * (vx * x + vy * y)
+            c = x^2 + y^2 - r1^2
+        end
+
+        t1 = -Inf
+        t2 = -Inf
+        if a == 0
+            b != 0 && (t2 = -c / b)
+        else
+            nb_2a = -b / (2a)
+            b2a_ca = (b^2 - 4 * a * c) / (4 * a ^ 2)
+            if b2a_ca > 0
+                t_sq = sqrt(b2a_ca)
+                t1 = nb_2a - t_sq
+                t2 = nb_2a + t_sq
+            elseif b2a_ca ≈ 0.0
+                t2 = nb_2a
+            end
+        end
+
+        # check if intersection points are at positive time and fall between segment
+        t = Inf
+        if t1 >= 0
+            zi = vz * t1 + z
+            if zi >= z1 && zi <= z2
+                t = t1
+            end
+        end
+        if !isfinite(t) && t2 >= 0
+            zi = vz * t2 + z
+            if zi >= z1 && zi <= z2
+                t = t2
+            end
         end
     end
 
