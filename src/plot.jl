@@ -596,16 +596,6 @@ end
     end
 end
 
-# ==== #
-# wall #
-# ==== #
-@recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
-    @series begin
-        :aspect_ratio := :equal
-        outline.r, outline.z
-    end
-end
-
 # ========= #
 # divertors #
 # ========= #
@@ -1743,7 +1733,6 @@ end
 
 @recipe function plot_wd2d_list(wd2d_list::IDSvector{<:IMAS.wall__description_2d})
     label := ""
-    lw := 3
     for wd2d in wd2d_list
         @series begin
             return wd2d
@@ -1753,23 +1742,93 @@ end
 
 @recipe function plot_wd2d(wd2d::IMAS.wall__description_2d)
     @series begin
+        lw := 2
         return wd2d.limiter.unit
+    end
+    @series begin
+        return wd2d.vessel.unit
     end
 end
 
-@recipe function plot_wd2du_list(wd2du_list::IDSvector{<:IMAS.wall__description_2d___limiter__unit})
-    for wd2du in wd2du_list
+# --- Vessel
+
+"""
+    thick_line_polygon(r1, z1, r2, z2, thickness1, thickness2)
+
+Casts thick line as a polygon. Returns points of the quadrilateral polygon
+"""
+function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, thickness1::Float64, thickness2::Float64)
+    direction = normalize([z2 - z1, -(r2 - r1)]) # Perpendicular direction
+    offset1 = direction .* thickness1 / 2
+    offset2 = direction .* thickness2 / 2
+    p1 = [r1, z1] + offset1
+    p2 = [r2, z2] + offset2
+    p3 = [r2, z2] - offset2
+    p4 = [r1, z1] - offset1
+    return [p1, p2, p3, p4, p1]
+end
+
+@recipe function plot_wd2dvu_list(wd2dvu_list::IDSvector{<:IMAS.wall__description_2d___vessel__unit})
+    for wd2dvu in wd2dvu_list
         @series begin
-            return wd2du
+            return wd2dvu
         end
     end
 end
 
-@recipe function plot_wd2du(wd2du::IMAS.wall__description_2d___limiter__unit)
+@recipe function plot_wd2dvu(wd2dvu::IMAS.wall__description_2d___vessel__unit)
+    centreline = closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed))
+
+    if !ismissing(wd2dvu.annular, :thickness)
+        thickness = wd2dvu.annular.thickness
+        if Bool(wd2dvu.annular.centreline.closed)
+            thickness = [thickness; thickness[1]]
+        end
+
+        for i in 1:length(centreline.R)-1
+            pts = thick_line_polygon(centreline.R[i], centreline.Z[i], centreline.R[i+1], centreline.Z[i+1], thickness[i], thickness[i+1])
+            # Extract x and y coordinates for plotting
+            xs, ys = map(collect, zip(pts...))
+            @series begin
+                :primary := i == 1
+                :linewidth := 0.1
+                :aspect_ratio := :equal
+                :fill := (0, 0.5, :gray)
+                :xlim := (0, Inf)
+                xs, ys
+            end
+        end
+    else
+        @series begin
+            label --> getproperty(wd2dvu, :name, "")
+            :aspect_ratio := :equal
+            centreline.R, centreline.Z
+        end
+    end
+end
+
+# --- Limiter
+
+@recipe function plot_wd2dlu_list(wd2dlu_list::IDSvector{<:IMAS.wall__description_2d___limiter__unit})
+    for wd2dlu in wd2dlu_list
+        @series begin
+            return wd2dlu
+        end
+    end
+end
+
+@recipe function plot_wd2dlu(wd2dlu::IMAS.wall__description_2d___limiter__unit)
     @series begin
-        label --> getproperty(wd2du, :name, "")
-        aspect_ratio := :equal
-        wd2du.outline.r, wd2du.outline.z
+        label --> getproperty(wd2dlu, :name, "")
+        wd2dlu.outline
+    end
+end
+
+@recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
+    poly = closed_polygon(outline.r, outline.z)
+    @series begin
+        :aspect_ratio := :equal
+        poly.R, poly.Z
     end
 end
 

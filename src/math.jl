@@ -1008,7 +1008,7 @@ function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real
 end
 
 """
-closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
 
 Convert an open polygon into a closed polygon by adding the first vertex to the end if it is not already closed.
 
@@ -1024,6 +1024,23 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Re
     end
     return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
 end
+
+"""
+    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
+
+Returns a closed polygon depending on `closed`
+"""
+function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
+    if is_open_polygon(R, Z) && closed
+        was_closed = false
+        R = [R; R[1]]
+        Z = [Z; Z[1]]
+    else
+        was_closed = true
+    end
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+end
+
 
 """
     perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 
