@@ -135,7 +135,7 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
         z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ rect.z
 
     else
-        error("pf_active geometry type `geometry_type` is not yet supported")
+        error("pf_active geometry type `$(geometry_type)` is not yet supported")
     end
 
     return (r=r, z=z)
