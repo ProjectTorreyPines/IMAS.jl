@@ -34,7 +34,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:geometry, :Volume, "m³", dd -> dd.equilibrium.time_slice[].profiles_1d.volume[end])
     ExtractLibFunction(:geometry, :Surface, "m²", dd -> dd.equilibrium.time_slice[].profiles_1d.surface[end])
 
-    ExtractLibFunction(:equilibrium, :B0, "T", dd -> @ddtime(dd.summary.global_quantities.b0.value))
+    ExtractLibFunction(:equilibrium, :B0, "T", dd -> dd.equilibrium.time_slice[].global_quantities.vacuum_toroidal_field.b0)
     ExtractLibFunction(:equilibrium, :ip, "MA", dd -> @ddtime(dd.summary.global_quantities.ip.value) / 1e6)
     ExtractLibFunction(:equilibrium, :q95, "-", dd -> dd.equilibrium.time_slice[].global_quantities.q_95)
     ExtractLibFunction(:equilibrium, Symbol("<Bpol>"), "T", dd -> IMAS.Bpol(EFL[:a](dd), EFL[:κ](dd), EFL[:ip](dd) * 1e6))

@@ -1172,7 +1172,7 @@ end
     flux=false,
     only=nothing,
     show_zeros=false,
-    min_power=0.0,
+    min_power=1e3,
     only_positive_negative=0,
     show_source_number=false
 )
@@ -1870,9 +1870,10 @@ end
 @recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
     @assert typeof(time0) <: Float64
     aspect_ratio --> :equal
+    bnd = boundary(pc; time0)
     @series begin
         label := ""
-        boundary(pc; time0)
+        bnd.r, bnd.z
     end
     @series begin
         seriestype := :scatter
