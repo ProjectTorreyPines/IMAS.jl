@@ -838,19 +838,21 @@ Plot build cross-section
 
         # plasma
         if (isempty(only) || (:plasma in only)) && (!(:plasma in exclude_layers))
+            plasma_outline = outline(get_build_layer(bd.layer; type=_plasma_))
             @series begin
                 seriestype --> :path
                 linewidth --> 1.0
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
-                get_build_layer(bd.layer; type=_plasma_).outline.r, get_build_layer(bd.layer; type=_plasma_).outline.z
+                plasma_outline.r, plasma_outline.z
             end
         end
 
         if any([structure.type == Int(_divertor_) for structure in bd.structure])
             if (isempty(only) || (:divertor in only)) && (!(:divertor in exclude_layers))
                 for (k, index) in enumerate(findall(x -> x.type == Int(_divertor_), bd.structure))
+                    structure_outline = outline(bd.structure[index])
                     if !wireframe
                         @series begin
                             seriestype --> :shape
@@ -858,7 +860,7 @@ Plot build cross-section
                             color --> :mediumpurple1
                             label --> (!wireframe && k == 1 ? "Divertor" : "")
                             xlim --> [0, rmax]
-                            bd.structure[index].outline.r, bd.structure[index].outline.z
+                            structure_outline.r, structure_outline.z
                         end
                     end
                     @series begin
@@ -867,7 +869,7 @@ Plot build cross-section
                         color --> :black
                         label --> ""
                         xlim --> [0, rmax]
-                        bd.structure[index].outline.r, bd.structure[index].outline.z
+                        structure_outline.r, structure_outline.z
                     end
                 end
             end

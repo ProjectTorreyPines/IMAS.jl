@@ -299,3 +299,19 @@ function build_max_R0_B0(bd::IMAS.build)
     B0 = bd.tf.max_b_field / TFhfs.end_radius * R0
     return R0, B0
 end
+
+"""
+    outline(layer::Union{IMAS.build__layer, IMAS.build__structure})
+
+Returns outline as named tuple with (r,z)
+
+NOTE: returns a polygon that always closes
+"""
+function outline(layer::Union{IMAS.build__layer, IMAS.build__structure})
+    return outline(layer.outline)
+end
+
+function outline(out::Union{IMAS.build__layer___outline,IMAS.build__structure___outline})
+    tmp = closed_polygon(out.r, out.z)
+    return (r=tmp.R, z=tmp.Z)
+end
