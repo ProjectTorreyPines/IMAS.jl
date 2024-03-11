@@ -151,6 +151,10 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
         psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
+        # limited plasma
+        if isnan(psi_last_lfs) && isnan(psi_first_lfs_far)
+            error("IMAS.sol cannot yet handle limited plasmas")
+        end
     else
         # SOL without wall
         psi_wall_midplane = find_psi_max(eqt)
