@@ -740,7 +740,7 @@ The finite difference `method` of the gradient can be one of [:third_order, :sec
 
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
-function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
+function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:backward)
     return gradient(x, f; method) ./ f
 end
 
@@ -750,7 +750,7 @@ end
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    f = interp1d(rho, z_profile, :quadratic) # do not change this from being :quadratic
+    f = interp1d(rho, z_profile, :cubic)
     profile_new = similar(rho)
     profile_new[end] = bc
     for i in length(rho)-1:-1:1
