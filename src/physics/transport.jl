@@ -18,24 +18,23 @@ function profile_from_z_transport(
     z_transport_grid::AbstractVector{<:Real},
     rho_ped::Real=0.0)
 
-    z = calc_z(rho, profile_old)
-
     transport_indices = [argmin(abs.(rho .- rho_x)) for rho_x in transport_grid]
     index_ped = argmin(abs.(rho .- rho_ped))
     index_last = transport_indices[end]
     if index_ped > index_last
+        z_old = calc_z(rho, profile_old)
         transport_indices = vcat(1, transport_indices, index_ped)
-        z_transport_grid = vcat(0.0, z_transport_grid, z[index_ped])
+        z_transport_grid = vcat(0.0, z_transport_grid, z_old[index_ped])
     else
         transport_indices = vcat(1, transport_indices)
         z_transport_grid = vcat(0.0, z_transport_grid)
     end
 
-    z[1:index_last] = interp1d(transport_indices, z_transport_grid).(1:index_last)
+    z = interp1d(transport_indices, z_transport_grid).(1:index_last)
 
     profile_new = similar(profile_old)
     profile_new[index_last:end] = @views profile_old[index_last:end]
-    profile_new[1:index_last] = @views integ_z(rho[1:index_last], -z[1:index_last], profile_new[index_last])
+    profile_new[1:index_last] = @views integ_z(rho[1:index_last], -z, profile_new[index_last])
 
     return profile_new
 end
