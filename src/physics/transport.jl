@@ -8,7 +8,8 @@
 
 Updates profile_old with the scale lengths given by z_transport_grid
 
-If `rho_ped` > transport_grid[end]` then scale-length is linearly interpolated between `transport_grid[end]` and `rho_ped`
+If `rho_ped > transport_grid[end]` then scale-length is linearly interpolated between `transport_grid[end]` and `rho_ped`
+if `rho_ped < transport_grid[end]` then scale-length then boundary condition is at `transport_grid[end]`
 """
 function profile_from_z_transport(
     profile_old::AbstractVector{<:Real},
@@ -17,24 +18,24 @@ function profile_from_z_transport(
     z_transport_grid::AbstractVector{<:Real},
     rho_ped::Real=0.0)
 
-    z = -calc_z(rho, profile_old)
+    z = calc_z(rho, profile_old)
 
-    transport_idices = [argmin(abs.(rho .- rho_x)) for rho_x in transport_grid]
-    index_nml = argmin(abs.(rho .- rho_ped))
-    if index_nml > transport_idices[end]
-        transport_idices = vcat(1, transport_idices, index_nml)
-        z_transport_grid = vcat(0.0, z_transport_grid, -z[index_nml])
+    transport_indices = [argmin(abs.(rho .- rho_x)) for rho_x in transport_grid]
+    index_ped = argmin(abs.(rho .- rho_ped))
+    index_last = transport_indices[end]
+    if index_ped > index_last
+        transport_indices = vcat(1, transport_indices, index_ped)
+        z_transport_grid = vcat(0.0, z_transport_grid, z[index_ped])
     else
-        transport_idices = vcat(1, transport_idices)
+        transport_indices = vcat(1, transport_indices)
         z_transport_grid = vcat(0.0, z_transport_grid)
     end
-    rho_transport_grid = rho[transport_idices]
 
-    z[1:transport_idices[end]] = -interp1d(rho_transport_grid, z_transport_grid).(rho[1:transport_idices[end]])
+    z[1:index_last] = interp1d(transport_indices, z_transport_grid).(1:index_last)
 
     profile_new = similar(profile_old)
-    profile_new[transport_idices[end]:end] = profile_old[transport_idices[end]:end]
-    profile_new[1:transport_idices[end]] = integ_z(rho[1:transport_idices[end]], z[1:transport_idices[end]], profile_new[transport_idices[end]])
+    profile_new[index_last:end] = @views profile_old[index_last:end]
+    profile_new[1:index_last] = @views integ_z(rho[1:index_last], -z[1:index_last], profile_new[index_last])
 
     return profile_new
 end

@@ -740,8 +740,9 @@ The finite difference `method` of the gradient can be one of [:third_order, :sec
 
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
-function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:backward)
-    return gradient(x, f; method) ./ f
+function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
+    g = gradient(x, f; method)
+    return g ./ f
 end
 
 """
@@ -750,7 +751,6 @@ end
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    f = interp1d(rho, z_profile, :cubic)
     profile_new = similar(rho)
     profile_new[end] = bc
     for i in length(rho)-1:-1:1
@@ -758,8 +758,8 @@ function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real},
         fa = z_profile[i]
         b = rho[i+1]
         fb = z_profile[i+1]
-        simpson_integral = (b - a) / 6 * (fa + 4 * f((a + b) * 0.5) + fb)
-        profile_new[i] = profile_new[i+1] * exp(simpson_integral)
+        trapz_integral = (b - a) * (fa + fb) / 2.0
+        profile_new[i] = profile_new[i+1] * exp(trapz_integral)
     end
     return profile_new
 end
@@ -1060,7 +1060,7 @@ function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real
     end
 
     # If open, add distance from last point to first point
-    if is_open_polygon(r,z)
+    if is_open_polygon(r, z)
         dx = r[1] - r[end]
         dy = z[1] - z[end]
         perimeter += sqrt(dx^2 + dy^2)
