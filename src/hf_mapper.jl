@@ -8,13 +8,133 @@ mutable struct WallHeatFlux
     s::Vector{Float64}                  # wall curvilinear abscissa                         - m
 end
 
+"""
+    ActorHeatFlux
+
+"""
+
+#NOTE: re-do better when writing actor
 function WallHFMapper(eqt::IMAS.equilibrium__time_slice, 
                       SOL::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}}, 
                       wall_r::Vector{<:Real}, 
                       wall_z::Vector{<:Real}, 
                       r::Vector{<:Real}, 
-                      q::Vector{<:Real}; 
+                      q::Vector{<:Real},
+                      psi::Vector{<:Real}, 
+                      source_1d::Vector{<:Real},
+                      N::Int,
+                      Prad_core::Real; 
                       merge_wall::Bool = true)
+
+      
+    # Compute the heat flux due to the influx of charged particles
+    # (Rwall, Zwall)        wall mesh -  m
+    # Qpart                 Heat flux due to particles perpendicular to the wall       - W/m2
+    # Qpara                 Heat flux due to particles parallel to the magnetic field  - W/m2
+    # s                     curvilinear abscissa, clockwise starting at OMP - m
+
+    Rwall,Zwall,Qpart,Qpara,s = particle_HF(eqt, SOL, wall_r, wall_z, r, q; merge_wall)
+
+
+
+    # Compute the heat flux due to the core radiation - Qrad - W/m2
+    # Make sure (Rwall,Zwall) is closed
+    if !((Rwall[1], Zwall[1]) == (Rwall[end], Zwall[end]))
+        # Mesh not closed!
+        push!(Rwall,Rwall[1])
+        push!(Zwall,Zwall[1])
+        push!(Qpart,Qpart[1])
+        push!(Qpara,Qpara[1])
+        push!(s, s[end]+sqrt((Rwall[1]-Rwall[end])^2 + (Zwall[1]-Zwall[end])^2))
+    end
+
+    Qrad = core_radiation_HF(eqt, psi, source_1d, N, Rwall, Zwall, Prad_core)
+
+    HF = WallHeatFlux(zeros(2), zeros(2), zeros(2), zeros(2), zeros(2), zeros(2), zeros(2))
+    HF.r          = Rwall
+    HF.z          = Zwall
+    HF.q_wall     = Qpart + Qrad
+    HF.q_part     = Qpart
+    HF.q_core_rad = Qrad
+    HF.q_parallel = Qpara
+    HF.s          = s 
+
+    return HF
+end
+
+
+
+# NOTE: multiple dispatch must be revised when building actor. For now use this
+function WallHFMapper(dd::IMAS.dd, 
+    r::Vector{<:Real}, 
+    q::Vector{<:Real}; 
+    merge_wall::Bool = true, levels::Int = 20, N::Int = Int(1E6), step::Float64 = 0.1)
+
+    eqt = dd.equilibrium.time_slice[]
+    wall_r = IMAS.first_wall(dd.wall).r
+    wall_z = IMAS.first_wall(dd.wall).z
+
+    if isempty(wall_r) || isempty(wall_z)
+        error("Impossible to map the heat flux onto the wall because dd.wall is empty")
+    end
+
+    # resample wall and make sure it's clockwise (for COCOS = 11)
+    rwall, zwall = IMAS.resample_2d_path(wall_r, wall_z; step, method=:linear, retain_original_xy = true)
+    R0 = eqt.global_quantities.magnetic_axis.r
+    Z0 = eqt.global_quantities.magnetic_axis.z
+    IMAS.reorder_flux_surface!(rwall, zwall, R0, Z0; force_close=true)
+
+    # Parameters for particle heat flux
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
+    psi_levels, _, _  =  IMAS.find_levels_from_P(eqt,rwall,zwall,PSI_interpolant,r,q,levels)
+    add_psi =  IMAS.find_levels_from_wall(eqt,rwall,zwall,PSI_interpolant)
+
+    psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
+    psi_sign = sign(psi_levels[end]-psi_levels[1])
+
+    if psi_sign == -1
+        psi_levels = reverse!(psi_levels) # if psi is decreasing, sort in descending order
+    end
+
+    _, psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    
+    psi_levels[1] = psi_separatrix
+
+    SOL = IMAS.sol(eqt, rwall, zwall, levels = psi_levels, use_wall = true)
+
+    #Parameters for heat flux due to core radiarion
+    psi       = dd.core_sources.source[1].profiles_1d[1].grid.psi
+    source_1d = -IMAS.total_radiation_sources(dd).electrons.energy # minus sign because loss for dd.core_sources
+    Prad_core = -IMAS.total_radiation_sources(dd).electrons.power_inside[end]
+
+
+    return WallHFMapper(eqt, SOL, rwall, zwall, r, q, psi, source_1d, N, Prad_core; merge_wall)
+
+end
+
+
+"""
+function particle_HF(eqt::IMAS.equilibrium__time_slice, 
+    SOL::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}}, 
+    wall_r::Vector{<:Real}, 
+    wall_z::Vector{<:Real}, 
+    r::Vector{<:Real}, 
+    q::Vector{<:Real}; 
+    merge_wall::Bool = true)
+
+    Computes the heat flux on the wall due to the influx of charged particles, using the magnetic equilibrium, 
+    the Scrape Off-Layer, the wall, and an hypothesis of the decay of the parallel heat flux at the OMP
+
+"""
+
+function particle_HF(eqt::IMAS.equilibrium__time_slice, 
+    SOL::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}}, 
+    wall_r::Vector{<:Real}, 
+    wall_z::Vector{<:Real}, 
+    r::Vector{<:Real}, 
+    q::Vector{<:Real}; 
+    merge_wall::Bool = true)
 
     @assert length(r) == length(q)
     @assert all(q .>=0) # q is all positive
@@ -35,7 +155,6 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
     RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     _, psi_separatrix   = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
     surface, _ =  IMAS.flux_surface(eqt, psi_separatrix, :open)
     r_separatrix =  Float64[]
@@ -185,11 +304,12 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
             push!(Qpara, qmid/(sol.total_flux_expansion[1]))
             push!(indexes,sol.wall_index[1])
         end
-    end
-
+    end   
 
     if merge_wall
-        if wall_z[1]>ZA # correction if first point is above midplane (wall not respecting COCOS11)
+        _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
+        
+        if wall_z[1]>ZA # correction if first point is above midplane 
             indexes[indexes .== 1 .&& Zwall.>ZA] .= length(wall_r) # put it after index = end  
             indexes[indexes .== 1 .&& Zwall.>wall_z[2] .&& Zwall.<=ZA] .= 0   # put before index = 1
         end
@@ -226,7 +346,7 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
             # we have outliers, which are shadowed areas.
             # in the outliears dist > average + 3 standard deviations
             indexes = 1:length(dist)
-            indexes = indexes[dist.> avg+3*std]
+            indexes = indexes[dist.> avg+4*std]
 
             for ind in reverse(indexes)
                 # if vertical lines
@@ -264,8 +384,16 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
             counter += 1
             save_length = length(Rwall)
         end
+        # add OMP point
+        # NOTE: this treatment of the OMP_wall point must be revised (physics missing)
+        if (r_wall_midplane,ZA) in (Rwall,Zwall)
+        else
+            Rwall = vcat(r_wall_midplane,Rwall)
+            Zwall = vcat(ZA, Zwall)
+            Qwall = vcat(0.0,Qwall) # this must be modified according to physics
+            Qpara = vcat(q_interp(r_wall_midplane),Qpara)
+        end
     end
-    
 
     s = similar(Rwall)
     ds= sqrt.(diff(Rwall).^2 + diff(Zwall).^2)
@@ -274,17 +402,11 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
         s[i+1]= s[i]+ds[i]
     end
 
-    HF = WallHeatFlux(zeros(2), zeros(2), zeros(2), zeros(2), zeros(2))
-    HF.r = Rwall
-    HF.z = Zwall
-    HF.q_wall = Qwall
-    HF.q_parallel = Qpara
-    HF.s = s
-
-    return HF
+    return Rwall,Zwall,Qwall,Qpara,s
 end
 
-function WallHFMapper(dd::IMAS.dd, 
+# NOTE: multiple dispatch must be revised when building actor. For now use this
+function particle_HF(dd::IMAS.dd, 
     r::Vector{<:Real}, 
     q::Vector{<:Real}; 
     merge_wall::Bool = true, levels::Int = 20)
@@ -313,7 +435,80 @@ function WallHFMapper(dd::IMAS.dd,
 
     SOL = IMAS.sol(eqt, wall_r, wall_z, levels = psi_levels, use_wall = true)
 
-    return WallHFMapper(eqt, SOL, wall_r, wall_z, r, q; merge_wall)
+    return particle_HF(eqt, SOL, wall_r, wall_z, r, q; merge_wall)
+
+end
+
+"""
+ core_radiation_HF(eqt::IMAS.equilibrium__time_slice, 
+                   psi::Vector{T}, 
+                   source_1d::Vector{T} , 
+                   N::Int)
+
+"""
+
+function core_radiation_HF(eqt::IMAS.equilibrium__time_slice, 
+                           psi::Vector{<:Real}, 
+                           source_1d::Vector{<:Real} , 
+                           N::Int,
+                           wall_r::Vector{<:Real}, 
+                           wall_z::Vector{<:Real},
+                           Prad_core::Float64)
+
+    photons, W_per_trace,dr,dz = IMAS.define_particles(eqt,psi,source_1d,N)
+
+    @show W_per_trace
+    @show dr,dz
+
+    qflux_r, qflux_z, wall_s = IMAS.find_flux(photons, W_per_trace, wall_r, wall_z, dr,dz)
+
+    @show minimum(wall_s./1e6)
+    
+    q = sqrt.(qflux_r.^2 + qflux_z.^2) # norm of the heat flux
+    power = q.*wall_s
+
+    @show Prad_core/sum(wall_s)/1e6
+
+    # normalization to match perfectly the power in core_sources
+    norm = Prad_core/sum(power)
+    q *= norm 
+    @show sum(power), norm
+    # q is defined in the midpoints of the grid (wall_r, wall_z), which is the center of the cells where the heat flux is computed
+    # Interpolate the values on the nodes (wall_r, wall_z)
+    Qrad = similar(wall_r)
+    Qrad[1] = (q[1] + q[end])/2
+    # Qrad[1] = 0
+    @show length(wall_r)
+    @show length(q)
+
+    if ((wall_r[1], wall_z[1]) == (wall_r[end], wall_z[end]))
+        # Wall is closed, therefore length(wall_s) = length(wall_r) - 1
+        # length(q) = length(wall_s)
+
+        # q is defined in the midpoint between nodes in the wall mesh (ss vector)
+        # Qrad shall be instead defined on the Rwall,Zwall mesh (s vector)
+
+        s = similar(wall_r)
+        ds= sqrt.(diff(wall_r).^2 + diff(wall_z).^2)
+        s[1] = 0
+        for i in 1:length(ds)
+            s[i+1]= s[i]+ds[i]
+        end
+
+        ss = (s[2:end]+s[1:end-1])./2
+
+        ss = vcat(0.0,ss)
+        q  = vcat((q[1] + q[end])/2,q)
+
+        interp = IMAS.interp1d(vcat(ss .- s[end], ss,ss.+ s[end]), vcat(q,q,q), :cubic) 
+        Qrad = interp.(s)
+
+    else
+        # Wall is NOT closed, therefore length(wall_s) = length(wall_r)
+        error("wall is not closed")
+    end
+
+    return Qrad
 
 end
 
