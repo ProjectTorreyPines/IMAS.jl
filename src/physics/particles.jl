@@ -3,7 +3,7 @@
 #= ======================================= =#
 
 mutable struct particle{T<:Real}
-    x::T
+    x::T        # cartesian coordinate system centered in (R=0, Z=0); R = sqrt(X^2 + Y^2) Z = Z
     y::T
     z::T
     δvx::T
@@ -55,9 +55,11 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     particles = Vector{particle{Float64}}(undef, N)
     for k in eachindex(particles)
         dk = Int(ceil(ICDF(rand())))
-        ϕ = rand() * 2π
-        θv = rand() * 2π
-        ϕv = acos(rand() * 2.0 - 1.0)
+        ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D 
+
+        θv = rand() * 2π            # toroidal angle of velocity - put to 0 for 2D
+        ϕv  = acos(rand() * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand() * 2π
+
         Rk = R[dk]
         Zk = Z[dk]
         yk, xk = Rk .* sincos(ϕ)
@@ -86,7 +88,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     rz_wall = collect(zip(rwall, zwall))
     Nw = length(rz_wall)
 
-    # advance neutrons until they hit the wall
+    # advance particles until they hit the wall
     for p in particles
         ti = Inf
 
@@ -100,9 +102,9 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         v2 = vx^2 + vy^2
         vz2 = vz^2
 
-        a = v2
+        a = v2 # V_R^2
         b = 2 * (vx * xn + vy * yn)
-        c = xn^2 + yn^2
+        c = xn^2 + yn^2 # R^2 coordinate of the particle
         rmin = sqrt(c - b^2 / (4a))
 
         @inbounds for k in eachindex(rz_wall)
@@ -135,10 +137,11 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
             @show p
             error("Infinity while moving particles")
         end
-
+        
         p.x += vx * ti
         p.y += vy * ti
         p.z += vz * ti
+
     end
 
     # find flux [quantity/s/m²]
