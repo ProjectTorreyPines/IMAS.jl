@@ -33,6 +33,9 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     # in-plasma mask
     r = eqt2d.grid.dim1
     z = eqt2d.grid.dim2
+    dr = (maximum(diff(r))) # save grid dimension and carry the info to find_flux
+    dz = (maximum(diff(z)))
+
     R = [rr for rr in r, zz in z] # 2D
     Z = [zz for rr in r, zz in z] # 2D
     rz_lcfs = collect(zip(eqt.boundary.outline.r, eqt.boundary.outline.z))
@@ -69,7 +72,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
         particles[k] = particle(xk, yk, zk, δvxk, δvyk, δvzk)
     end
 
-    return particles, I_per_trace
+    return particles, I_per_trace, dr, dz
 
 end
 
