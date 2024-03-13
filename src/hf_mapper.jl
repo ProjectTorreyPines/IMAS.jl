@@ -176,6 +176,8 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
     end
     r_separatrix =  r_separatrix[1]
     r = r .+ r_separatrix
+    @assert maximum(r) > maximum(wall_r)
+
     q_interp = IMAS.interp1d(r, q, :cubic) 
 
     if eqt.boundary.x_point[1].z < ZA
