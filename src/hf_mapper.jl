@@ -471,29 +471,20 @@ function core_radiation_HF(eqt::IMAS.equilibrium__time_slice,
 
     photons, W_per_trace,dr,dz = IMAS.define_particles(eqt,psi,source_1d,N)
 
-    @show W_per_trace
-    @show dr,dz
-
     qflux_r, qflux_z, wall_s = IMAS.find_flux(photons, W_per_trace, wall_r, wall_z, dr,dz)
 
-    @show minimum(wall_s./1e6)
     
     q = sqrt.(qflux_r.^2 + qflux_z.^2) # norm of the heat flux
     power = q.*wall_s
 
-    @show Prad_core/sum(wall_s)/1e6
-
     # normalization to match perfectly the power in core_sources
     norm = Prad_core/sum(power)
     q *= norm 
-    @show sum(power), norm
+
     # q is defined in the midpoints of the grid (wall_r, wall_z), which is the center of the cells where the heat flux is computed
     # Interpolate the values on the nodes (wall_r, wall_z)
     Qrad = similar(wall_r)
     Qrad[1] = (q[1] + q[end])/2
-    # Qrad[1] = 0
-    @show length(wall_r)
-    @show length(q)
 
     if ((wall_r[1], wall_z[1]) == (wall_r[end], wall_z[end]))
         # Wall is closed, therefore length(wall_s) = length(wall_r) - 1
