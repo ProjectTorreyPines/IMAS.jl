@@ -78,21 +78,23 @@ end
 
 """
 
-find_flux(particles::Vector{particle{T}}, I_per_trace:T, rwall::Vector{T}, zwall::Vector{T}; ns::Int = 10)
+find_flux(particles::Vector{particle{T}}, I_per_trace:T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10)
 
 Returns the flux at the wall of the quantity brought by particles, together with a vector of the surface elements on the wall (wall_s)
 
 I_per_trace is the intensity per trace
 (rwall, zwall) is the coordinate of the wall
+dr,dz is the grid size used for the 2d source generation
 ns is the window size
 
 """
-function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}; ns::Int = 10) where {T<:Real}
+function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10) where {T<:Real}
     rz_wall = collect(zip(rwall, zwall))
     Nw = length(rz_wall)
 
     # advance particles until they hit the wall
     for p in particles
+        
         ti = Inf
 
         xn = p.x
@@ -150,12 +152,24 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     # find flux [quantity/s/m²]
     # smooth the load of each particle within a window
     # note: flux is defined at the cells, not at the nodes
-    wall_r = (rwall[1:end-1] .+ rwall[2:end]) ./ 2.0
-    wall_z = (zwall[1:end-1] .+ zwall[2:end]) ./ 2.0
-    d = sqrt.(IMAS.gradient(rwall) .^ 2.0 .+ IMAS.gradient(zwall) .^ 2.0)
-    d = @views (d[1:end-1] .+ d[2:end]) ./ 2.0
-    l = cumsum(d)
-    wall_s = d .* wall_r .* 2π
+
+      # Check if (rwall, zwall) is closed, if not add a point at the end equal to the first
+    if (rwall[1], zwall[1]) == (rwall[end], zwall[end])
+        # wall is closed - length(wall_s) = length(rwall) - 1 
+        d = sqrt.(diff(rwall) .^ 2.0 .+ diff(zwall) .^ 2.0) # length of each cell
+        l = cumsum(d)
+
+        wall_r = (rwall[1:end-1] .+ rwall[2:end]) ./ 2.0
+        wall_z = (zwall[1:end-1] .+ zwall[2:end]) ./ 2.0
+        wall_s = d .* wall_r .* 2π
+
+    else
+        # wall NOT closed - length(wall_s) = length(rwall)
+        error(" Wall mesh does not close on itself ")
+    end
+        # l[end]/200 ensures smooth solution (if st dev small you get noise) 
+        # 1500*l[end]/N ensures enough particle density to have decent statistics
+        σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])])  # standard deviation of the distribution
 
     stencil = collect(-ns:ns)
 
@@ -180,8 +194,9 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
 
         @views cumsum!(ll, d[index])
         ll .-= ll[ns+1]
-        window .= exp.(.-(ll ./ (l[end] / length(l)) ./ (2ns + 1.0) .* 5.0) .^ 2)
-        window ./= sum(window)
+        window .= exp.(-(1/2) .* (ll ./ σw) .^ 2)
+        norm = integrate(ll,window) # - m
+        window ./= norm #  - 1/m 
         unit_vector = sqrt((new_r - old_r)^2 + (new_z - old_z)^2)
 
         @inbounds for (k, i) in enumerate(index)
