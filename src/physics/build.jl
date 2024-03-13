@@ -274,16 +274,15 @@ end
 """
     first_wall(wall::IMAS.wall)
 
-return outline of first wall or an empty outline if not present
+returns named tuple with (closed) outline of first wall, or an empty outline if not present
 """
-function first_wall(wall::IMAS.wall{T})::wall__description_2d___limiter__unit___outline{T} where {T<:Real}
+function first_wall(wall::IMAS.wall{T}) where {T<:Real}
     if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
-        return wall.description_2d[1].limiter.unit[1].outline
+        outline = wall.description_2d[1].limiter.unit[1].outline
+        tmp = closed_polygon(outline.r, outline.z)
+        return (r=tmp.R, z=tmp.Z)
     else
-        fw = IMAS.wall__description_2d___limiter__unit___outline{T}()
-        fw.r = Float64[]
-        fw.z = Float64[]
-        return fw
+        return (r=Float64[], z=Float64[])
     end
 end
 
@@ -298,4 +297,20 @@ function build_max_R0_B0(bd::IMAS.build)
     R0 = (plasma.start_radius + plasma.end_radius) / 2.0
     B0 = bd.tf.max_b_field / TFhfs.end_radius * R0
     return R0, B0
+end
+
+"""
+    outline(layer::Union{IMAS.build__layer, IMAS.build__structure})
+
+Returns outline as named tuple with (r,z)
+
+NOTE: returns a polygon that always closes
+"""
+function outline(layer::Union{IMAS.build__layer,IMAS.build__structure})
+    return outline(layer.outline)
+end
+
+function outline(out::Union{IMAS.build__layer___outline,IMAS.build__structure___outline})
+    tmp = closed_polygon(out.r, out.z)
+    return (r=tmp.R, z=tmp.Z)
 end

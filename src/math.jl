@@ -21,7 +21,7 @@ function to_range(vector::AbstractVector{<:Real})
     N = length(vector)
     dv = vector[2] - vector[1]
     if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
-        error("to_range requires vector data to be equally spaced")
+        error("to_range requires vector data to be equally spaced: $(vector)")
     end
     return range(vector[1], vector[end], N)
 end
@@ -33,9 +33,9 @@ end
 """
     gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real, A<:Real}
 
-Finite difference method of the gradient: [:third_order, :second_order, :central, :backward, :forward]
+The finite difference `method` of the gradient can be one of [:third_order, :second_order, :central, :backward, :forward]
 
-The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+The returned gradient has the same shape as the input array https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
 
 For `:central` the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries.
 
@@ -547,7 +547,7 @@ end
         retain_original_xy::Bool=false,
         method::Symbol=:linear) where {T<:Real}
 
-Like resample_2d_path but with retain_extrema=true and method=linear as defaults
+Like resample_2d_path but with `retain_extrema=true` and `method=:linear` as defaults
 """
 function resample_plasma_boundary(
     x::AbstractVector{T},
@@ -732,14 +732,17 @@ function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
 end
 
 """
-    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
+    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
 
 Returns the gradient scale lengths of vector f on x
 
+The finite difference `method` of the gradient can be one of [:third_order, :second_order, :central, :backward, :forward]
+
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
-function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
-    return gradient(x, f; method=:third_order) ./ f
+function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
+    g = gradient(x, f; method)
+    return g ./ f
 end
 
 """
@@ -748,7 +751,6 @@ end
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    f = interp1d(rho, z_profile, :quadratic) # do not change this from being :quadratic
     profile_new = similar(rho)
     profile_new[end] = bc
     for i in length(rho)-1:-1:1
@@ -756,8 +758,8 @@ function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real},
         fa = z_profile[i]
         b = rho[i+1]
         fb = z_profile[i+1]
-        simpson_integral = (b - a) / 6 * (fa + 4 * f((a + b) * 0.5) + fb)
-        profile_new[i] = profile_new[i+1] * exp(simpson_integral)
+        trapz_integral = (b - a) * (fa + fb) / 2.0
+        profile_new[i] = profile_new[i+1] * exp(trapz_integral)
     end
     return profile_new
 end
@@ -1008,7 +1010,7 @@ function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real
 end
 
 """
-closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
 
 Convert an open polygon into a closed polygon by adding the first vertex to the end if it is not already closed.
 
@@ -1026,6 +1028,23 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Re
 end
 
 """
+    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
+
+Returns a closed polygon depending on `closed`
+"""
+function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
+    if is_open_polygon(R, Z) && closed
+        was_closed = false
+        R = [R; R[1]]
+        Z = [Z; Z[1]]
+    else
+        was_closed = true
+    end
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+end
+
+
+"""
     perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 
 
 Calculate the perimeter of a polygon
@@ -1041,7 +1060,7 @@ function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real
     end
 
     # If open, add distance from last point to first point
-    if is_open_polygon(r,z)
+    if is_open_polygon(r, z)
         dx = r[1] - r[end]
         dy = z[1] - z[end]
         perimeter += sqrt(dx^2 + dy^2)

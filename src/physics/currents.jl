@@ -142,7 +142,7 @@ function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__
     rho_eq = eqt.profiles_1d.rho_tor_norm
     F = IMAS.interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
     gm1 = IMAS.interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
-    _, B0 = IMAS.vacuum_r0_b0(eqt)
+    _, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     Vls = 2π .* cp1d.j_ohmic .* B0 ./ (cp1d.conductivity_parallel .* F .* gm1)
     if method === :area
         return integrate(cp1d.grid.area, Vls) / cp1d.grid.area[end]
@@ -164,4 +164,14 @@ function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where
     @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
     index = causal_time_index(eq.time, time0)
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
+end
+
+function vloop_time(ct::IMAS.controllers{T}) where {T<:Real}
+    ctrl = controller(ct, "ip")
+    return (time=ctrl.outputs.time, data=ctrl.outputs.data[1, :])
+end
+
+function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
+    vl = vloop_time(ct)
+    return IMAS.get_time_array(vl.time, vl.data, [time0], :linear)[1]
 end

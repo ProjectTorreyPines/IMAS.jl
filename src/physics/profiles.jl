@@ -171,6 +171,18 @@ function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
     return 3.0 / 2.0 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
 end
 
+"""
+    energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary)
+
+Calculates the pedestal contribution to the thermal stored energy by integrating over entire domain but with pedestal pressure in the core
+"""
+function energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary)
+    rho_index = argmin(abs.(cp1d.grid.rho_tor_norm .- su.local.pedestal.position.rho_tor_norm))
+    pressure = cp1d.pressure_thermal
+    pressure[1:rho_index] .= cp1d.pressure_thermal[rho_index]
+    return 3.0 / 2.0 * integrate(cp1d.grid.volume, pressure)
+end
+
 function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
     return integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
 end
@@ -208,7 +220,7 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
         integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
-    R0, B0 = vacuum_r0_b0(eqt)
+    R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
     tau98 = (
         0.0562 *
@@ -243,7 +255,7 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
         integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
-    R0, B0 = vacuum_r0_b0(eqt)
+    R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
     tauds03 = (
         0.028 *
@@ -551,27 +563,27 @@ end
 """
     lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
 
-Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities
+Changes core_profiles.ion to 2 species, one bulk species (H, D, T) and one combined impurity species
 """
-function lump_ions_as_bulk_and_impurity(
-    ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}},
-    rho_tor_norm::Vector{<:T}
-)::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where {T<:Real}
+function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T})::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where {T<:Real}
+
+    ions = cp1d.ion
+
     if length(ions) < 2
         error("lump_ions_as_bulk_and_impurity requires at least two ion species")
     end
 
     zs = [ion.element[1].z_n for ion in ions]
     as = [ion.element[1].a for ion in ions]
-
     bulk_index = findall(zs .== 1)
     impu_index = findall(zs .!= 1)
 
-    ratios = zeros(length(ions[1].density_thermal), length(ions))
+    rho_tor_norm = cp1d.grid.rho_tor_norm
+    ratios = zeros(length(rho_tor_norm), length(ions))
     for index in (bulk_index, impu_index)
-        ntot = zeros(length(ions[1].density_thermal))
+        ntot = zeros(length(rho_tor_norm))
         for ix in index
-            tmp = ions[ix].density_thermal * sum(avgZ(zs[ix], ions[ix].temperature)) / length(ions[ix].temperature)
+            tmp = ions[ix].density_thermal
             ratios[:, ix] = tmp
             ntot .+= tmp
         end
@@ -580,6 +592,17 @@ function lump_ions_as_bulk_and_impurity(
         end
     end
 
+    ne = cp1d.electrons.density_thermal
+    n1 = zero(ne)
+    for ion in cp1d.ion
+        if ion.element[1].z_n == 1
+            n1 .+= ion.density_thermal
+        end
+    end
+    Zi = (n1 .- ne .* cp1d.zeff) ./ (n1 .- ne)
+    Zi = sum(Zi) / length(Zi) # make Zi constant as function of radius
+    ni = (ne .- n1) ./ Zi
+
     ions2 = IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}()
 
     # bulk ions
@@ -587,27 +610,28 @@ function lump_ions_as_bulk_and_impurity(
     bulk = ions2[end]
     resize!(bulk.element, 1)
     bulk.label = "bulk"
+    bulk.element[1].z_n = 1.0
+    IMAS.setraw!(bulk, :density_thermal, n1)
 
     # impurity ions
     push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
     impu = ions2[end]
     resize!(impu.element, 1)
     impu.label = "impurity"
+    impu.element[1].z_n = Zi
+    IMAS.setraw!(impu, :density_thermal, ni)
 
     # weight different ion quantities based on their density
     for (index, ion2) in ((bulk_index, bulk), (impu_index, impu))
-        ion2.element[1].z_n = 0.0
         ion2.element[1].a = 0.0
-        for ix in index # z_average is tricky since it's a single constant for the whole profile
-            ion2.element[1].z_n += sum(zs[ix] .* ratios[:, ix]) / length(ratios[:, ix])
-            ion2.element[1].a += sum(as[ix] .* ratios[:, ix]) / length(ratios[:, ix])
+        for ix in index
+            ion2.element[1].a += as[ix] * sum(ratios[:, ix]) / length(ratios[:, ix])
         end
-        for item in (:density_thermal, :temperature, :rotation_frequency_tor)
+        for item in (:temperature, :rotation_frequency_tor)
             value = rho_tor_norm .* 0.0
             IMAS.setraw!(ion2, item, value)
             for ix in index
-                tp = Vector{typeof(ions[ix]).parameters[1]}
-                tmp = getproperty(ions[ix], item, tp())::tp
+                tmp = getproperty(ions[ix], item, T[])
                 if !isempty(tmp)
                     value .+= tmp .* ratios[:, ix]
                 end
@@ -616,6 +640,28 @@ function lump_ions_as_bulk_and_impurity(
     end
 
     return ions2
+end
+
+"""
+    zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ionization_state::Bool=true)
+
+Returns plasma effective charge
+
+`temperature_dependent_ionization_state` evaluates Zeff with average ionization state of an ion at a given temperature
+"""
+function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ionization_state::Bool=true)
+    num = zero(cp1d.grid.rho_tor_norm)
+    den = zero(cp1d.grid.rho_tor_norm)
+    for ion in cp1d.ion
+        if temperature_dependent_ionization_state
+            Zi = avgZ(ion.element[1].z_n, ion.temperature)
+        else
+            Zi = ion.element[1].z_n
+        end
+        num .+= ion.density .* Zi .^ 2
+        den .+= ion.density .* Zi
+    end
+    return num ./ cp1d.electrons.density
 end
 
 """

@@ -27,7 +27,7 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
 
-    nu_exch = collision_frequencies(dd)[3]
+    nu_exch = collision_frequencies(dd).nu_exch
     delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
 
     source = resize!(dd.core_sources.source, :collisional_equipartition; wipe=false)
@@ -193,7 +193,7 @@ function total_sources(
         elseif (source.identifier.index) == 1 && any(all_indexes .> 1)
             @debug "total_sources() skipping total source with index $(source.identifier.index)"
             continue
-        elseif (source.identifier.index) == 200 && any(300 > all_indexes > 200)
+        elseif (source.identifier.index) == 200 && any(300 .> all_indexes .> 200)
             @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
         elseif source.identifier.index ∈ exclude_indexes
