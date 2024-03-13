@@ -322,10 +322,22 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
         psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA); 
         _, psi_first_lfs_far, null_within_wall = IMAS.find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(wall_r,wall_z)
+        tollZ = max(abs(ZA), 2*abs(wall_z[2]-wall_z[1]))
+        if Zwall[1]>= -tollZ # check if the particle reach the wall around the midplane
+            # if so, do not add any point
+            add_omp = false
+        else
+            # add points
+            add_omp = true
+        end
+        
         add_indexes =  collect((1:length(psi_wall)))
-        add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .||
-                                (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&& 
-                                sign(eqt.boundary.x_point[end].z).*wall_z.>abs(eqt.boundary.x_point[end].z)).&& null_within_wall]
+        add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .|| # add private flux regions (psi<psi_sep) + add everyhting above psi midplane
+                                (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&& # add also points with flux inside SOL[:lfs] above second null
+                                sign(eqt.boundary.x_point[end].z).*wall_z.>abs(eqt.boundary.x_point[end].z)).&& null_within_wall .||
+                                psi_wall .>= psi_first_lfs_far .&& (wall_r.<eqt.boundary.x_point[end].r) .&& sign(eqt.boundary.x_point[end].z).*wall_z.> 0.0 .|| # add points at hfs opposite to first X-point
+                                psi_wall .< psi_wall_midplane .&& (wall_z.<=tollZ) .&& (wall_z .>= -tollZ) .&& (wall_r.>eqt.boundary.x_point[end].r) .&& add_omp # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
+                                ] 
         add_indexes = reverse!(add_indexes)
 
         for ind in add_indexes
