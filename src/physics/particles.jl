@@ -167,9 +167,39 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         # wall NOT closed - length(wall_s) = length(rwall)
         error(" Wall mesh does not close on itself ")
     end
+
+    diagnostics = false # true to debug, false to turn it off
+    
+    if diagnostics
+        @show length(d)
+        @show length(l)
+        @show ns 
+        # @show σw = (l[end] / length(l)) * (2ns + 1.0) / 5.0 / sqrt(2) # old standard deviation of the distribution
+        @show length(particles)
+        # @show σw = 2*(l[end] / length(l)) 
+        # @show σw = l[1]
+        # @show σw = 2*maximum(d)
+        # @show σw = (l[end] / length(l)) 
+        # @show σw = minimum(d) 
+        # @show σw = 0.001
+        # @show σw = 2*sqrt(dr^2 + dz^2)
+        # @show σw = l[end]/200
+        # @show σw = 2*maximum([dr,dz])
+        @show 2*maximum([dr,dz])
+        # @show l[end]/200
+        @show 1250*l[end]/length(particles)
+        @show σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])]) # standard deviation of the distribution
+        @show length(particles)*σw/l[end]
+        # @show length(particles)*σw/minimum(d)
+        @show I_per_trace/sqrt(2π)/σw # - W/m
+        @show I_per_trace/sqrt(2π)/σw/2/π/minimum(wall_r) # - W/m2
+    else
+        # when not debugging, just define std dev
         # l[end]/200 ensures smooth solution (if st dev small you get noise) 
         # 1500*l[end]/N ensures enough particle density to have decent statistics
         σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])])  # standard deviation of the distribution
+    end
+
     ns = maximum([ns, Int(ceil(5*σw/minimum(d)))])
 
     # check that the window size is smaller than the whole wall
@@ -198,6 +228,16 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
             counter = counter + 1
         end        
     end
+  
+    if diagnostics
+        norm_th = sqrt(2π)*σw
+        @show ns
+        @show minimum(d)
+        @show argmin(d)
+        @show d[end]
+        @show norm_th
+        max_norm = 0
+    end
 
     stencil = collect(-ns:ns)
 
@@ -207,6 +247,11 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     index = zero(stencil)
     ll = zeros(2ns + 1)
     window = zeros(2ns + 1)
+    if diagnostics
+        # power_linear_density = zero(wall_r)
+        # flux = zero(wall_r)
+    end
+    
     for p in particles
         old_r = Rcoord(p)
         old_z = Zcoord(p)
@@ -224,6 +269,14 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         ll .-= ll[ns+1]
         window .= exp.(-(1/2) .* (ll ./ σw) .^ 2)
         norm = integrate(ll,window) # - m
+        
+        if diagnostics && (norm > max_norm)
+            # this is to check that the numerical norm is very close to the theoretical norm of the gaussian
+            @show norm
+            @show abs(norm-norm_th)/norm_th
+            max_norm = norm
+        end
+        
         window ./= norm #  - 1/m 
         unit_vector = sqrt((new_r - old_r)^2 + (new_z - old_z)^2)
 
@@ -231,6 +284,11 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
             flux_r[i] += @. (new_r - old_r) / unit_vector * window[k] * I_per_trace / 2 / π / wall_r[i] # - W/m2
             flux_z[i] += @. (new_z - old_z) / unit_vector * window[k] * I_per_trace / 2 / π / wall_r[i] # - W/m2
         end
+    end
+    
+    if diagnostics
+        # power_linear_density[index] .= window .* I_per_trace 
+        # flux[index] .= window .* I_per_trace ./ 2 ./ π ./ wall_r[index]
     end
 
     return flux_r, flux_z, wall_s
