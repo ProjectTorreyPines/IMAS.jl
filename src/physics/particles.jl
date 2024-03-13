@@ -170,6 +170,34 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         # l[end]/200 ensures smooth solution (if st dev small you get noise) 
         # 1500*l[end]/N ensures enough particle density to have decent statistics
         σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])])  # standard deviation of the distribution
+    ns = maximum([ns, Int(ceil(5*σw/minimum(d)))])
+
+    # check that the window size is smaller than the whole wall
+    if ns > length(wall_r) / 2
+        # what is the minimum set of ns elements that covers at least 5*σw?
+        ns = 10
+        counter_max = floor(length(wall_r)/2)-1
+        counter = 0
+        dist_min = 5σw
+        while dist_min <= 5*σw && counter < counter_max
+            # find minimum distance for a set of succesive NN element in d
+            for k in 1:length(d) - ns
+                dist = sum(d[k:k + ns])
+                if dist < dist_min
+                    dist_min = dist
+                end
+            end
+            if dist_min < 5σw
+                # need to increase
+                dist_min = 5σw
+                ns = ns + 1
+            else
+                # ns is enough to cover 5σw
+                dist_min = Inf
+            end
+            counter = counter + 1
+        end        
+    end
 
     stencil = collect(-ns:ns)
 
@@ -200,8 +228,8 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         unit_vector = sqrt((new_r - old_r)^2 + (new_z - old_z)^2)
 
         @inbounds for (k, i) in enumerate(index)
-            flux_r[i] += @. (new_r - old_r) / unit_vector * window[k] * I_per_trace / wall_s[i]
-            flux_z[i] += @. (new_z - old_z) / unit_vector * window[k] * I_per_trace / wall_s[i]
+            flux_r[i] += @. (new_r - old_r) / unit_vector * window[k] * I_per_trace / 2 / π / wall_r[i] # - W/m2
+            flux_z[i] += @. (new_z - old_z) / unit_vector * window[k] * I_per_trace / 2 / π / wall_r[i] # - W/m2
         end
     end
 
