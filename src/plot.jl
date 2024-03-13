@@ -1690,7 +1690,7 @@ end
         wall_z = wall_z[index]
 
         d = sqrt.(IMAS.gradient(neutronics.first_wall.r) .^ 2.0 .+ IMAS.gradient(neutronics.first_wall.z) .^ 2.0)
-        d = @views (d[1:end-1] .+ d[2:end]) ./ 2.0
+        d = sqrt.(diff(neutronics.first_wall.r) .^ 2.0 .+ diff(neutronics.first_wall.z) .^ 2.0)
         l = cumsum(d)
 
         legend_position --> :top
