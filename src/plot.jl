@@ -1108,9 +1108,9 @@ end
     end
 end
 
-# ======= #
-# sources #
-# ======= #
+# ============ #
+# core_sources #
+# ============ #
 @recipe function plot_core_sources(cs::IMAS.core_sources{T}; time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
     @assert typeof(time0) <: Float64
     @assert typeof(aggregate_radiation) <: Bool
@@ -1150,9 +1150,11 @@ end
 end
 
 @recipe function plot_source(source::IMAS.core_sources__source; time0=global_time(source))
-    @series begin
-        name := source.identifier.name
-        source.profiles_1d[time0]
+    if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
+        @series begin
+            name := source.identifier.name
+            source.profiles_1d[time0]
+        end
     end
 end
 
