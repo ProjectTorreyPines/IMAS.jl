@@ -1742,13 +1742,31 @@ end
     end
 end
 
-@recipe function plot_wd2d(wd2d::IMAS.wall__description_2d)
+@recipe function plot_wd2d(wd2d::IMAS.wall__description_2d; show_limiter=true, show_vessel=true)
+    @assert typeof(show_limiter) <: Bool
+    @assert typeof(show_vessel) <: Bool
+    if show_limiter
+        @series begin
+            return wd2d.limiter
+        end
+    end
+    if show_vessel
+        @series begin
+            return wd2d.vessel
+        end
+    end
+end
+
+@recipe function plot_wd2dl(wd2dl::IMAS.wall__description_2d___limiter)
     @series begin
         lw := 2
-        return wd2d.limiter.unit
+        return wd2dl.unit
     end
+end
+
+@recipe function plot_wd2dv(wd2dv::IMAS.wall__description_2d___vessel)
     @series begin
-        return wd2d.vessel.unit
+        return wd2dv.unit
     end
 end
 
@@ -1901,6 +1919,8 @@ end
     end
     if wall !== nothing
         @series begin
+            show_limiter := true
+            show_vessel := false
             subplot := 1
             legend := false
             wall
