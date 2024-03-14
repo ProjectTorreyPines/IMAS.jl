@@ -723,6 +723,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
         :gm5,
         :gm8,
         :gm9,
+        :gm10,
         :fsa_bp,
         :trapped_fraction
     )
@@ -882,6 +883,9 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
 
         # gm9 = <1/R>
         eqt.profiles_1d.gm9[k] = flxAvg(1.0 ./ pr, ll, fluxexpansion, int_fluxexpansion_dl)
+
+        # gm10 = <R^2>
+        eqt.profiles_1d.gm1[k] = flxAvg(pr .^ 2, ll, fluxexpansion, int_fluxexpansion_dl)
 
         # fsa_bp = <Bp>
         eqt.profiles_1d.fsa_bp[k] = flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)
