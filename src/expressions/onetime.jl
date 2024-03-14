@@ -16,12 +16,12 @@ const onetime_expressions = otexp = Dict{String,Function}()
 # the coordinates of the quantitiy you are writing the expression of
 #
 # For example, this will FAIL:
-#    otexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 #
 # This is GOOD:
-#    otexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 
 #= =========== =#
 # core_profiles #

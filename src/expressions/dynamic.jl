@@ -10,12 +10,12 @@ const dynamic_expressions = dyexp = Dict{String,Function}()
 # the coordinates of the quantitiy you are writing the expression of
 # 
 # For example, this will FAIL:
-#    dyexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 #
 # This is GOOD:
-#    dyexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 
 #= =========== =#
 # core_profiles #
@@ -30,7 +30,7 @@ dyexp["core_profiles.profiles_1d[:].electrons.density_fast"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
-    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density .* constants.e
+    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal .* constants.e
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_fast_parallel"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
@@ -55,13 +55,26 @@ dyexp["core_profiles.profiles_1d[:].t_i_average"] =
     (rho_tor_norm; profiles_1d, _...) -> t_i_average(profiles_1d)
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density"] =
-    (rho_tor_norm; ion, _...) -> ion.density_thermal .+ ion.density_fast
+    (rho_tor_norm; ion, _...) -> begin
+        if ismissing(ion, :density_thermal) && ismissing(ion, :density_fast)
+            return zero(rho_tor_norm)
+        elseif ismissing(ion, :density_thermal) && !ismissing(ion, :density_fast)
+            return ion.density_fast
+        elseif !ismissing(ion, :density_thermal) && ismissing(ion, :density_fast)
+            return ion.density_thermal
+        else
+            return ion.density_thermal .+ ion.density_fast
+        end
+    end    
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density_fast"] =
-    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+    (rho_tor_norm; ion, _...) -> ion.density .- ion.density_thermal
+
+dyexp["core_profiles.profiles_1d[:].ion[:].density_thermal"] =
+    (rho_tor_norm; ion, _...) -> ion.density .- ion.density_fast
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_thermal"] =
-    (rho_tor_norm; ion, _...) -> (ismissing(ion, :temperature) && !ismissing(ion, :density)) ? ion.density .* 0.0 : ion.temperature .* ion.density .* constants.e
+    (rho_tor_norm; ion, _...) -> ion.temperature .* ion.density_thermal .* constants.e
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_fast_parallel"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
