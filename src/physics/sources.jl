@@ -252,13 +252,16 @@ function total_sources(
         elseif source.identifier.index ∈ exclude_indexes
             continue
         end
-        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
-
         if isempty(source.profiles_1d)
-            continue
+            continue # skip sources that have no profiles_1d
+        end
+        if source.profiles_1d[1].time > Float64(cp1d.time)
+            continue # skip sources that start after time of interest
         end
 
+        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
+
         source1d = source.profiles_1d[Float64(cp1d.time)]
         x = source1d.grid.rho_tor_norm
         for sub in (nothing, :electrons)
