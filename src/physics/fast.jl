@@ -328,9 +328,8 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     empty!(cp1d, :pressure_thermal)
     # empty all cp1d fast-ion related quantities (expressions)
     for ion in cp1d.ion
-        freeze!(ion, :pressure_thermal)
+        empty!(ion, :pressure_thermal)
         empty!(ion, :pressure)
-        freeze!(ion, :density_thermal)
         empty!(ion, :density)
     end
     # zero out all cp1d fast-ion related quantities

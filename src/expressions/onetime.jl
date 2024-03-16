@@ -16,12 +16,12 @@ const onetime_expressions = otexp = Dict{String,Function}()
 # the coordinates of the quantitiy you are writing the expression of
 #
 # For example, this will FAIL:
-#    otexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 #
 # This is GOOD:
-#    otexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 
 #= =========== =#
 # core_profiles #
@@ -63,10 +63,10 @@ otexp["core_profiles.profiles_1d[:].grid.psi"] =
 # core_transport #
 #= ============ =#
 otexp["core_transport.model[:].profiles_1d[:].grid_flux.rho_tor_norm"] =
-    (rho_tor_norm; profiles_1d, _...) -> profiles_1d[profiles_1d_index].grid_d.rho_tor_norm
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.grid_d.rho_tor_norm
 
 otexp["core_transport.model[:].profiles_1d[:].grid_d.rho_tor_norm"] =
-    (rho_tor_norm; profiles_1d, _...) -> profiles_1d[profiles_1d_index].grid_flux.rho_tor_norm
+    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.grid_flux.rho_tor_norm
 
 otexp["core_transport.model[:].profiles_1d[:].grid_flux.psi_norm"] =
     (rho_tor_norm; grid_flux, _...) -> norm01(grid_flux.psi)

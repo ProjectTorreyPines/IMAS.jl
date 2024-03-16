@@ -86,6 +86,7 @@ const index_2_name__core_sources__source = Dict(
     401 => :neoclassical, # Source term related to neoclassical processes
     402 => :equipartition, # Equipartition due to collisions and turbulence
     403 => :turbulent_equipartition, # Turbulent equipartition
+    409 => :time_derivative, # Source based on d/dt term in transport equations
     501 => :runaways, # Source from run-away processes; includes both electron and ion run-away
     601 => :ionisation, # Source from ionisation processes (not accounting for charge exchange)
     602 => :recombination, # Source from recombination processes (not accounting for charge exchange)
