@@ -333,12 +333,25 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
         end
         
         add_indexes =  collect((1:length(psi_wall)))
-        add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .|| # add private flux regions (psi<psi_sep) + add everyhting above psi midplane
-                                (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&& # add also points with flux inside SOL[:lfs] above second null
+        add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .|| # add private flux region  around first null (psi<psi_sep) + add everyhting above psi midplane
+                                (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&&  # add also points inside the private region around second null (only if null is within wall)
                                 sign(eqt.boundary.x_point[end].z).*wall_z.>abs(eqt.boundary.x_point[end].z)).&& null_within_wall .||
-                                psi_wall .>= psi_first_lfs_far .&& (wall_r.<eqt.boundary.x_point[end].r) .&& sign(eqt.boundary.x_point[end].z).*wall_z.> 0.0 .|| # add points at hfs opposite to first X-point
-                                psi_wall .< psi_wall_midplane .&& (wall_z.<=tollZ) .&& (wall_z .>= -tollZ) .&& (wall_r.>eqt.boundary.x_point[end].r) .&& add_omp # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
+                                psi_wall .> psi_first_lfs_far .&& (wall_r.<eqt.boundary.x_point[end].r) .|| # add point in :hfs 
+                                (psi_wall .< psi_wall_midplane .&& (wall_z.<=tollZ) .&& (wall_z .>= -tollZ) .&& (wall_r.>eqt.boundary.x_point[end].r) .&& add_omp) # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
                                 ] 
+
+        L = length(add_indexes)
+        average_step = sum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))./(length(wall_r)-1)
+        #filter out point that are for some reason already inside Rwall,Zwall
+        for (k,ind) in enumerate(reverse(add_indexes))
+            #check if these points have been already saved in Rwall, Zwall
+            dist = sqrt.( (Rwall .- wall_r[ind]).^2 + (Zwall .- wall_z[ind]).^2)
+            if minimum(dist) <= average_step # if a point is at less than average_step  from an already saved point, do not save it
+                #point is already in and must be removed
+                deleteat!(add_indexes, L+1-k)
+            end
+        end
+
         add_indexes = reverse!(add_indexes)
 
         for ind in add_indexes
