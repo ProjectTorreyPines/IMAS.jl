@@ -482,6 +482,8 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
     psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA); 
 
     levels =  PSI_interpolant.(wall_r,wall_z)
+    psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt,wall_r,wall_z,PSI_interpolant)
+    push!(levels, psi_tangent)
     levels = levels[levels .>= psi_separatrix .&& levels.<= psi_wall_midplane]
     return sort!(levels)
 end
