@@ -25,9 +25,8 @@ end
 
 Creates a vector of particles from a 1D source (psi, source_1d) launching N particles.
 Returns also a scalar (I_per_trace) which is the intensity per trace.
-
 """
-function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T} , N::Int) where {T<:Real}
+function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
 
     # in-plasma mask
@@ -61,7 +60,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
         ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D 
 
         θv = rand() * 2π            # toroidal angle of velocity - put to 0 for 2D
-        ϕv  = acos(rand() * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand() * 2π
+        ϕv = acos(rand() * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand() * 2π
 
         Rk = R[dk]
         Zk = Z[dk]
@@ -72,12 +71,11 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
         particles[k] = particle(xk, yk, zk, δvxk, δvyk, δvzk)
     end
 
-    return (particles = particles, I_per_trace = I_per_trace, dr = dr, dz = dz)
+    return (particles=particles, I_per_trace=I_per_trace, dr=dr, dz=dz)
 
 end
 
 """
-
 find_flux(particles::Vector{particle{T}}, I_per_trace:T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10)
 
 Returns the flux at the wall of the quantity brought by particles, together with a vector of the surface elements on the wall (wall_s)
@@ -87,15 +85,14 @@ I_per_trace is the intensity per trace
 dr,dz is the grid size used for the 2d source generation
 ns is the window size
 if debug = true activates code for debugging
-
 """
-function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10, debug::Bool = false) where {T<:Real}
+function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int=10, debug::Bool=false) where {T<:Real}
     rz_wall = collect(zip(rwall, zwall))
     Nw = length(rz_wall)
 
     # advance particles until they hit the wall
     for p in particles
-        
+
         ti = Inf
 
         xn = p.x
@@ -143,7 +140,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
             @show p
             error("Infinity while moving particles")
         end
-        
+
         p.x += vx * ti
         p.y += vy * ti
         p.z += vz * ti
@@ -165,7 +162,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     if debug
         @show length(d)
         @show length(l)
-        @show ns 
+        @show ns
         @show length(particles)
         # @show σw = (l[end] / length(l)) * (2ns + 1.0) / 5.0 / sqrt(2) # old standard deviation of the distribution
         # @show σw = 2*(l[end] / length(l)) 
@@ -177,33 +174,33 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         # @show σw = 2*sqrt(dr^2 + dz^2)
         # @show σw = l[end]/200
         # @show σw = 2*maximum([dr,dz])
-        @show 2*maximum([dr,dz])
-        @show 1250*l[end]/length(particles)
-        @show σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])]) # standard deviation of the distribution
+        @show 2 * maximum([dr, dz])
+        @show 1250 * l[end] / length(particles)
+        @show σw = maximum([1250 * l[end] / length(particles), 2 * maximum([dr, dz])]) # standard deviation of the distribution
         # @show length(particles)*σw/l[end]
         # @show length(particles)*σw/minimum(d)
-        @show I_per_trace/sqrt(2π)/σw # - W/m
-        @show I_per_trace/sqrt(2π)/σw/2/π/minimum(wall_r) # - W/m2
+        @show I_per_trace / sqrt(2π) / σw # - W/m
+        @show I_per_trace / sqrt(2π) / σw / 2 / π / minimum(wall_r) # - W/m2
     else
         # when not debugging, just define std dev
         # 2*maximum([dr,dz]) ensures gaussian is wider than the resolution of the grid of the 2d source (smooth solution)
         # 1250*l[end]/N ensures enough particle density to have decent statistics
 
-        σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])])  # standard deviation of the distribution
+        σw = maximum([1250 * l[end] / length(particles), 2 * maximum([dr, dz])])  # standard deviation of the distribution
     end
 
-    ns = maximum([ns, Int(ceil(5*σw/minimum(d)))])
+    ns = maximum([ns, Int(ceil(5 * σw / minimum(d)))])
 
     # check that the window size is smaller than the whole wall
     if ns > length(wall_r) / 2
         # what is the minimum set of ns elements that covers at least 5*σw?
         ns = 10
-        counter_max = Int(floor(length(wall_r)/2)-1)
+        counter_max = Int(floor(length(wall_r) / 2) - 1)
         dist_min = 5σw
         for counter in 1:counter_max
             # find minimum distance for a set of succesive ns element in d
-            for k in 1:length(d) - ns
-                dist = sum(d[k:k + ns])
+            for k in 1:length(d)-ns
+                dist = sum(d[k:k+ns])
                 if dist < dist_min
                     dist_min = dist
                 end
@@ -216,11 +213,11 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
                 # ns is enough to cover 5σw
                 break
             end
-        end        
+        end
     end
 
     if debug
-        norm_th = sqrt(2π)*σw
+        norm_th = sqrt(2π) * σw
         @show ns
         @show minimum(d)
         @show argmin(d)
@@ -237,7 +234,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     index = zero(stencil)
     ll = zeros(2ns + 1)
     window = zeros(2ns + 1)
-    
+
     for p in particles
         old_r = Rcoord(p)
         old_z = Zcoord(p)
@@ -253,16 +250,16 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
 
         @views cumsum!(ll, d[index])
         ll .-= ll[ns+1]
-        window .= exp.(-(1/2) .* (ll ./ σw) .^ 2)
-        norm = integrate(ll,window) # - m
-        
+        window .= exp.(-(1 / 2) .* (ll ./ σw) .^ 2)
+        norm = integrate(ll, window) # - m
+
         if debug && (norm > max_norm)
             # this is to check that the numerical norm is very close to the theoretical norm of the gaussian
             @show norm
-            @show abs(norm-norm_th)/norm_th
+            @show abs(norm - norm_th) / norm_th
             max_norm = norm
         end
-        
+
         window ./= norm #  - 1/m 
         unit_vector = sqrt((new_r - old_r)^2 + (new_z - old_z)^2)
 
@@ -271,15 +268,15 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
             flux_z[i] += @. (new_z - old_z) / unit_vector * window[k] * I_per_trace / 2 / π / wall_r[i] # - W/m2
         end
     end
-    
+
     if debug
         power_linear_density = zero(wall_r)
         flux = zero(wall_r)
-        power_linear_density[index] .= window .* I_per_trace 
+        power_linear_density[index] .= window .* I_per_trace
         flux[index] .= window .* I_per_trace ./ 2 ./ π ./ wall_r[index]
     end
 
-    return (flux_r = flux_r, flux_z = flux_z, wall_s = wall_s)
+    return (flux_r=flux_r, flux_z=flux_z, wall_s=wall_s)
 end
 
 
@@ -310,7 +307,7 @@ function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, 
         # a horizontal segment: time for how long it takes to get to this z, then check if r is between segment bounds
         ti = (vz == 0.0) ? -Inf : (z1 - z) / vz
         if ti >= 0
-            ri = sqrt((x + vx * ti) ^ 2 + (y + vy * ti) ^ 2)
+            ri = sqrt((x + vx * ti)^2 + (y + vy * ti)^2)
             if ri >= r1 && ri <= r2
                 t = ti
             end
@@ -341,7 +338,7 @@ function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, 
             b != 0 && (t2 = -c / b)
         else
             nb_2a = -b / (2a)
-            b2a_ca = (b^2 - 4 * a * c) / (4 * a ^ 2)
+            b2a_ca = (b^2 - 4 * a * c) / (4 * a^2)
             if b2a_ca > 0
                 t_sq = sqrt(b2a_ca)
                 t1 = nb_2a - t_sq
