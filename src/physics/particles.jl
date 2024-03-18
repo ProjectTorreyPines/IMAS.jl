@@ -153,20 +153,13 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     # smooth the load of each particle within a window
     # note: flux is defined at the cells, not at the nodes
 
-      # Check if (rwall, zwall) is closed, if not add a point at the end equal to the first
-    if (rwall[1], zwall[1]) == (rwall[end], zwall[end])
-        # wall is closed - length(wall_s) = length(rwall) - 1 
-        d = sqrt.(diff(rwall) .^ 2.0 .+ diff(zwall) .^ 2.0) # length of each cell
-        l = cumsum(d)
+    @assert (rwall[1], zwall[1]) == (rwall[end], zwall[end]) "Wall mesh must be closed"
 
-        wall_r = (rwall[1:end-1] .+ rwall[2:end]) ./ 2.0
-        wall_z = (zwall[1:end-1] .+ zwall[2:end]) ./ 2.0
-        wall_s = d .* wall_r .* 2π
-
-    else
-        # wall NOT closed - length(wall_s) = length(rwall)
-        error(" Wall mesh does not close on itself ")
-    end
+    d = sqrt.(diff(rwall) .^ 2.0 .+ diff(zwall) .^ 2.0) # length of each cell
+    l = cumsum(d)
+    wall_r = (rwall[1:end-1] .+ rwall[2:end]) ./ 2.0
+    wall_z = (zwall[1:end-1] .+ zwall[2:end]) ./ 2.0
+    wall_s = d .* wall_r .* 2π
 
     diagnostics = false # true to debug, false to turn it off
     
