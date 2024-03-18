@@ -205,10 +205,9 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     if ns > length(wall_r) / 2
         # what is the minimum set of ns elements that covers at least 5*σw?
         ns = 10
-        counter_max = floor(length(wall_r)/2)-1
-        counter = 0
+        counter_max = Int(floor(length(wall_r)/2)-1)
         dist_min = 5σw
-        while dist_min <= 5*σw && counter < counter_max
+        for counter in 1:counter_max
             # find minimum distance for a set of succesive NN element in d
             for k in 1:length(d) - ns
                 dist = sum(d[k:k + ns])
@@ -216,15 +215,14 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
                     dist_min = dist
                 end
             end
-            if dist_min < 5σw
+            if dist_min <= 5σw
                 # need to increase
                 dist_min = 5σw
                 ns = ns + 1
             else
                 # ns is enough to cover 5σw
-                dist_min = Inf
+                break
             end
-            counter = counter + 1
         end        
     end
   
