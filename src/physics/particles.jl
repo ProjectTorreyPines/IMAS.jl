@@ -269,13 +269,6 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         end
     end
 
-    if debug
-        power_linear_density = zero(wall_r)
-        flux = zero(wall_r)
-        power_linear_density[index] .= window .* I_per_trace
-        flux[index] .= window .* I_per_trace ./ 2 ./ π ./ wall_r[index]
-    end
-
     return (flux_r=flux_r, flux_z=flux_z, wall_s=wall_s)
 end
 
