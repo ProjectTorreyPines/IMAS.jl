@@ -370,23 +370,23 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
         std = sqrt(sum((dist.-avg).^2)/(length(dist)-1)) #standard deviation of distance adjacent points in mesh
         save_length = length(Rwall)
         counter = 0
-        while sum(dist.> avg+3*std)>0 && counter < 10
+        while sum(dist.> avg+4*std)>0 && counter < 10
             # we have outliers, which are shadowed areas.
-            # in the outliears dist > average + 3 standard deviations
+            # in the outliears dist > average + 4 standard deviations
             indexes = 1:length(dist)
             indexes = indexes[dist.> avg+4*std]
 
             for ind in reverse(indexes)
                 # if vertical lines
                 if abs.(diff([Rwall[ind],Rwall[ind+1]]))[1]>0.01
-                    dr = 0
+                    dr = 0.0
                 else
                     # dr = 1.0*maximum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))
                     dr = sqrt(2)*sum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))/length(dist)
                 end
                 #if horizontal lines
                 if abs.(diff([Zwall[ind],Zwall[ind+1]]))[1]>0.01
-                    dz = 0
+                    dz = 0.0
                 else
                     # dz = 1.0*maximum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))
                     dz = sqrt(2)*sum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))/length(dist)
@@ -425,7 +425,7 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
 
     s = similar(Rwall)
     ds= sqrt.(diff(Rwall).^2 + diff(Zwall).^2)
-    s[1] = 0
+    s[1] = 0.0
     for i in 1:length(ds)
         s[i+1]= s[i]+ds[i]
     end
