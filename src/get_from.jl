@@ -12,9 +12,8 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ip}}, from_where::Symbol; time
         return IMAS.get_time_array(dd.core_profiles.global_quantities, :ip, time0, :linear)
     elseif from_where == :pulse_schedule
         return IMAS.get_time_array(dd.pulse_schedule.flux_control.i_plasma, :reference, time0, :linear)
-    else
-        error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
+    error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
 
 # vacuum_r0_b0 [m], [T]
@@ -24,9 +23,8 @@ function get_from(dd::IMAS.dd, what::Type{Val{:vacuum_r0_b0}}, from_where::Symbo
         return (r0=eqt.global_quantities.vacuum_toroidal_field.r0, b0=eqt.global_quantities.vacuum_toroidal_field.b0)
     elseif from_where == :pulse_schedule
         return (r0=dd.pulse_schedule.tf.r0, b0=IMAS.get_time_array(dd.pulse_schedule.tf.b_field_tor_vacuum, :reference, time0, :linear))
-    else
-        error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
+    error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
 
 # vloop [V]
@@ -39,9 +37,8 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:vloop}}, from_where::Symbol; t
         return IMAS.get_time_array(dd.pulse_schedule.flux_control.loop_voltage, :reference, time0, :linear)
     elseif from_where == :controllers__ip
         return vloop(dd.controllers; time0)
-    else
-        error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
+    error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
 
 # beta_normal [-]
@@ -50,7 +47,46 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:βn}}, from_where::Symbol; tim
         return dd.equilibrium.time_slice[time0].global_quantities.beta_normal
     elseif from_where == :core_profiles
         return IMAS.get_time_array(dd.core_profiles.global_quantities, :beta_tor_norm, time0, :linear)
-    else
-        error("`get_from(dd, $what, $from_where)` doesn't exist yet")
     end
+    error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
+end
+
+# ne_ped [m^-3]
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+    if from_where == :summary
+        return IMAS.get_time_array(dd.summary.local.pedestal.n_e, :value, time0, :linear)
+    elseif from_where == :core_profiles
+        cp1d = dd.core_profiles.profiles_1d[time0]
+        pe_ped, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
+        return IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(1 - w_ped)
+    elseif from_where == :pulse_schedule
+        if !ismissing(dd.pulse_schedule.density_control.n_e_pedestal, :reference)
+            return IMAS.get_time_array(dd.pulse_schedule.density_control.n_e_pedestal, :reference, time0, :linear)
+        elseif !ismissing(dd.pulse_schedule.density_control.n_e_pedestal_greenwald_fraction, :reference)
+            ne_ped_frac = IMAS.get_time_array(dd.pulse_schedule.density_control.n_e_pedestal_greenwald_fraction, :reference, time0, :linear)
+            ne_gw = IMAS.greenwald_density(dd.pulse_schedule; time0) # must evaluate the greenwald density from pulse_schedule!
+            return ne_ped_frac * ne_gw
+        end
+        error("`get_from(dd, $what, Val{:$from_where})` does not have data")
+    end
+    error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
+end
+
+# zeff_ped [-]
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+    if from_where == :summary
+        return IMAS.get_time_array(dd.summary.local.pedestal.zeff, :value, time0, :linear)
+    elseif from_where == :core_profiles
+        cp1d = dd.core_profiles.profiles_1d[time0]
+        pe_ped, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
+        return IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(1 - w_ped)
+    elseif from_where == :pulse_schedule
+        if !ismissing(dd.pulse_schedule.density_control.zeff_pedestal, :reference)
+            return IMAS.get_time_array(dd.pulse_schedule.density_control.zeff_pedestal, :reference, time0, :linear)
+        elseif !ismissing(dd.pulse_schedule.density_control.zeff, :reference)
+            return IMAS.get_time_array(dd.pulse_schedule.density_control.zeff_pedestal, :reference, time0, :linear)
+        end
+        error("`get_from(dd, $what, Val{:$from_where})` does not have data")
+    end
+    error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end

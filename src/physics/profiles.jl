@@ -290,11 +290,21 @@ end
 Simple greenwald line-averaged density limit
 """
 function greenwald_density(eqt::IMAS.equilibrium__time_slice)
-    return (eqt.global_quantities.ip / 1e6) / (pi * eqt.boundary.minor_radius^2) * 1e20
+    return greenwald_density(eqt.global_quantities.ip, eqt.boundary.minor_radius)
 end
 
-function greenwald_fraction(dd::IMAS.dd)
-    return greenwald_fraction(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
+function greenwald_density(ip::T, minor_radius::T) where {T<:Real}
+    return (ip / 1e6) / (pi * minor_radius^2) * 1e20
+end
+
+function greenwald_density(dd::IMAS.dd)
+    return greenwald_density(dd.equilibrium.time_slice[])
+end
+
+function greenwald_density(ps::IMAS.pulse_schedule; time0=global_time(ps))
+    ip = IMAS.get_time_array(ps.flux_control.i_plasma, :reference, time0, :linear)
+    minor_radius = IMAS.get_time_array(ps.position_control.minor_radius, :reference, time0, :linear)
+    return greenwald_density(ip, minor_radius)
 end
 
 """
@@ -306,6 +316,10 @@ function greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_p
     nel = IMAS.geometric_midplane_line_averaged_density(eqt, cp1d)
     ngw = greenwald_density(eqt)
     return nel / ngw
+end
+
+function greenwald_fraction(dd::IMAS.dd)
+    return greenwald_fraction(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
 end
 
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
@@ -710,8 +724,9 @@ end
 Returns the average ion temperature weighted by each species density over the total number of ion particles
 """
 function t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
-    t_i_a = zeros(length(cp1d.ion[1].density_thermal))
-    ntot = zeros(length(cp1d.ion[1].density_thermal))
+    n = length(cp1d.grid.rho_tor_norm)
+    t_i_a = zeros(n)
+    ntot = zeros(n)
     for ion in cp1d.ion
         t_i_a += ion.density_thermal .* ion.temperature
         ntot += ion.density_thermal
