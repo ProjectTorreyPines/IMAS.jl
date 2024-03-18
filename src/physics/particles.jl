@@ -72,7 +72,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
         particles[k] = particle(xk, yk, zk, δvxk, δvyk, δvzk)
     end
 
-    return particles, I_per_trace, dr, dz
+    return (particles = particles, I_per_trace = I_per_trace, dr = dr, dz = dz)
 
 end
 
@@ -291,7 +291,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         # flux[index] .= window .* I_per_trace ./ 2 ./ π ./ wall_r[index]
     end
 
-    return flux_r, flux_z, wall_s
+    return (flux_r = flux_r, flux_z = flux_z, wall_s = wall_s)
 end
 
 
