@@ -35,8 +35,6 @@ function WallHFMapper(eqt::IMAS.equilibrium__time_slice,
 
     Rwall,Zwall,Qpart,Qpara,s = particle_HF(eqt, SOL, wall_r, wall_z, r, q; merge_wall)
 
-
-
     # Compute the heat flux due to the core radiation - Qrad - W/m2
     # Make sure (Rwall,Zwall) is closed
     if !((Rwall[1], Zwall[1]) == (Rwall[end], Zwall[end]))
@@ -109,7 +107,6 @@ function WallHFMapper(dd::IMAS.dd,
     source_1d = -IMAS.total_radiation_sources(dd).electrons.energy # minus sign because loss for dd.core_sources
     Prad_core = -IMAS.total_radiation_sources(dd).electrons.power_inside[end]
 
-
     return WallHFMapper(eqt, SOL, rwall, zwall, r, q, psi, source_1d, N, Prad_core; merge_wall)
 
 end
@@ -141,7 +138,7 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
     @assert all(q .>=0) # q is all positive
     @assert all(r .>=0) # r is all positive  
     @assert r[1] == 0
-                      
+
     Rwall =  Float64[]
     Zwall =  Float64[]
     Qwall =  Float64[]
@@ -331,7 +328,7 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
             # add points
             add_omp = true
         end
-        
+
         add_indexes =  collect((1:length(psi_wall)))
         add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .|| # add private flux region  around first null (psi<psi_sep) + add everyhting above psi midplane
                                 (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&&  # add also points inside the private region around second null (only if null is within wall)
@@ -355,7 +352,7 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
         add_indexes = reverse!(add_indexes)
 
         for ind in add_indexes
-            if ind !=1
+            if ind != 1
             Rwall = append!(Rwall[indexes.<ind],[wall_r[ind]], Rwall[indexes.>=ind])
             Zwall = append!(Zwall[indexes.<ind],[wall_z[ind]], Zwall[indexes.>=ind])
             Qwall = append!(Qwall[indexes.<ind],[0.0], Qwall[indexes.>=ind])
@@ -493,7 +490,7 @@ function core_radiation_HF(eqt::IMAS.equilibrium__time_slice,
 
     # normalization to match perfectly the power in core_sources
     norm = Prad_core/sum(power)
-    q *= norm 
+    qq *= norm 
 
     # qq is defined in the midpoints of the grid (wall_r, wall_z), which is the center of the cells where the heat flux is computed
     # Interpolate the values on the nodes (wall_r, wall_z)
