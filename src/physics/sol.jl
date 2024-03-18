@@ -433,6 +433,12 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     #force psi_sep and psi_wall_midplane
     psi_levels[1] = psi__boundary_level
     psi_levels[end] = psi_wall_midplane
+    # filter possible errors
+    if psi_sign > 0
+        psi_levels = psi_levels[psi_levels.>=psi__boundary_level]
+    else
+        psi_levels = psi_levels[psi_levels.<=psi__boundary_level]
+    end
     return psi_levels, R, p_levels
     
 end
