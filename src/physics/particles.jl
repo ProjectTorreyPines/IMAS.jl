@@ -208,15 +208,15 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         counter_max = Int(floor(length(wall_r)/2)-1)
         dist_min = 5σw
         for counter in 1:counter_max
-            # find minimum distance for a set of succesive NN element in d
+            # find minimum distance for a set of succesive ns element in d
             for k in 1:length(d) - ns
                 dist = sum(d[k:k + ns])
                 if dist < dist_min
                     dist_min = dist
                 end
             end
-            if dist_min <= 5σw
-                # need to increase
+            if dist_min < 5σw
+                # need to increase ns
                 dist_min = 5σw
                 ns = ns + 1
             else
@@ -225,7 +225,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
             end
         end        
     end
-  
+
     if debug
         norm_th = sqrt(2π)*σw
         @show ns
