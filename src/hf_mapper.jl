@@ -488,23 +488,23 @@ function core_radiation_HF(eqt::IMAS.equilibrium__time_slice,
     qflux_r, qflux_z, wall_s = IMAS.find_flux(photons, W_per_trace, wall_r, wall_z, dr,dz)
 
     
-    q = sqrt.(qflux_r.^2 + qflux_z.^2) # norm of the heat flux
-    power = q.*wall_s
+    qq = sqrt.(qflux_r.^2 + qflux_z.^2) # norm of the heat flux
+    power = qq.*wall_s
 
     # normalization to match perfectly the power in core_sources
     norm = Prad_core/sum(power)
     q *= norm 
 
-    # q is defined in the midpoints of the grid (wall_r, wall_z), which is the center of the cells where the heat flux is computed
+    # qq is defined in the midpoints of the grid (wall_r, wall_z), which is the center of the cells where the heat flux is computed
     # Interpolate the values on the nodes (wall_r, wall_z)
     Qrad = similar(wall_r)
-    Qrad[1] = (q[1] + q[end])/2
+    Qrad[1] = (qq[1] + qq[end])/2
 
     if ((wall_r[1], wall_z[1]) == (wall_r[end], wall_z[end]))
         # Wall is closed, therefore length(wall_s) = length(wall_r) - 1
         # length(q) = length(wall_s)
 
-        # q is defined in the midpoint between nodes in the wall mesh (ss vector)
+        # qq is defined in the midpoint between nodes in the wall mesh (ss vector)
         # Qrad shall be instead defined on the Rwall,Zwall mesh (s vector)
 
         s = similar(wall_r)
@@ -517,9 +517,9 @@ function core_radiation_HF(eqt::IMAS.equilibrium__time_slice,
         ss = (s[2:end]+s[1:end-1])./2
 
         ss = vcat(0.0,ss)
-        q  = vcat((q[1] + q[end])/2,q)
+        qq  = vcat((qq[1] + qq[end])/2,qq)
 
-        interp = IMAS.interp1d(vcat(ss .- s[end], ss,ss.+ s[end]), vcat(q,q,q), :cubic) 
+        interp = IMAS.interp1d(vcat(ss .- s[end], ss,ss.+ s[end]), vcat(qq,qq,qq), :cubic) 
         Qrad = interp.(s)
 
     else
