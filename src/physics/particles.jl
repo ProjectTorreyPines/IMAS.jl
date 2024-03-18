@@ -173,8 +173,8 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         @show length(d)
         @show length(l)
         @show ns 
-        # @show σw = (l[end] / length(l)) * (2ns + 1.0) / 5.0 / sqrt(2) # old standard deviation of the distribution
         @show length(particles)
+        # @show σw = (l[end] / length(l)) * (2ns + 1.0) / 5.0 / sqrt(2) # old standard deviation of the distribution
         # @show σw = 2*(l[end] / length(l)) 
         # @show σw = l[1]
         # @show σw = 2*maximum(d)
@@ -185,17 +185,17 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         # @show σw = l[end]/200
         # @show σw = 2*maximum([dr,dz])
         @show 2*maximum([dr,dz])
-        # @show l[end]/200
         @show 1250*l[end]/length(particles)
         @show σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])]) # standard deviation of the distribution
-        @show length(particles)*σw/l[end]
+        # @show length(particles)*σw/l[end]
         # @show length(particles)*σw/minimum(d)
         @show I_per_trace/sqrt(2π)/σw # - W/m
         @show I_per_trace/sqrt(2π)/σw/2/π/minimum(wall_r) # - W/m2
     else
         # when not debugging, just define std dev
-        # l[end]/200 ensures smooth solution (if st dev small you get noise) 
-        # 1500*l[end]/N ensures enough particle density to have decent statistics
+        # 2*maximum([dr,dz]) ensures gaussian is wider than the resolution of the grid of the 2d source (smooth solution)
+        # 1250*l[end]/N ensures enough particle density to have decent statistics
+
         σw = maximum([1250*l[end]/length(particles), 2*maximum([dr,dz])])  # standard deviation of the distribution
     end
 
