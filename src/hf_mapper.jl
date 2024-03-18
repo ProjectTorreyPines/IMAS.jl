@@ -78,6 +78,7 @@ function WallHFMapper(dd::IMAS.dd,
         error("Impossible to map the heat flux onto the wall because dd.wall is empty")
     end
 
+    step = minimum([step, sum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))/250]) # ensure decent resolution of the wall
     # resample wall and make sure it's clockwise (for COCOS = 11)
     rwall, zwall = IMAS.resample_2d_path(wall_r, wall_z; step, method=:linear, retain_original_xy = true)
     R0 = eqt.global_quantities.magnetic_axis.r
