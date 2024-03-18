@@ -86,9 +86,10 @@ I_per_trace is the intensity per trace
 (rwall, zwall) is the coordinate of the wall
 dr,dz is the grid size used for the 2d source generation
 ns is the window size
+if debug = true activates code for debugging
 
 """
-function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10) where {T<:Real}
+function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10, debug::Bool = false) where {T<:Real}
     rz_wall = collect(zip(rwall, zwall))
     Nw = length(rz_wall)
 
@@ -167,10 +168,8 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         # wall NOT closed - length(wall_s) = length(rwall)
         error(" Wall mesh does not close on itself ")
     end
-
-    diagnostics = false # true to debug, false to turn it off
     
-    if diagnostics
+    if debug
         @show length(d)
         @show length(l)
         @show ns 
@@ -229,7 +228,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         end        
     end
   
-    if diagnostics
+    if debug
         norm_th = sqrt(2π)*σw
         @show ns
         @show minimum(d)
@@ -247,10 +246,6 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     index = zero(stencil)
     ll = zeros(2ns + 1)
     window = zeros(2ns + 1)
-    if diagnostics
-        # power_linear_density = zero(wall_r)
-        # flux = zero(wall_r)
-    end
     
     for p in particles
         old_r = Rcoord(p)
@@ -270,7 +265,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         window .= exp.(-(1/2) .* (ll ./ σw) .^ 2)
         norm = integrate(ll,window) # - m
         
-        if diagnostics && (norm > max_norm)
+        if debug && (norm > max_norm)
             # this is to check that the numerical norm is very close to the theoretical norm of the gaussian
             @show norm
             @show abs(norm-norm_th)/norm_th
@@ -286,9 +281,11 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         end
     end
     
-    if diagnostics
-        # power_linear_density[index] .= window .* I_per_trace 
-        # flux[index] .= window .* I_per_trace ./ 2 ./ π ./ wall_r[index]
+    if debug
+        power_linear_density = zero(wall_r)
+        flux = zero(wall_r)
+        power_linear_density[index] .= window .* I_per_trace 
+        flux[index] .= window .* I_per_trace ./ 2 ./ π ./ wall_r[index]
     end
 
     return (flux_r = flux_r, flux_z = flux_z, wall_s = wall_s)
