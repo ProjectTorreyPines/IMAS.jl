@@ -1217,7 +1217,7 @@ end
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
         end
         show_condition =
-            flux || show_zeros || source_name == :collisional_equipartition || (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
+            flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] || (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
         @series begin
             if only === nothing
                 subplot := 1
@@ -1256,7 +1256,7 @@ end
         if !ismissing(cs1d, :total_ion_energy)
             tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
         end
-        show_condition = flux || show_zeros || abs(tot) > min_power
+        show_condition = flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] || abs(tot) > min_power
         @series begin
             if only === nothing
                 subplot := 2
@@ -1294,7 +1294,7 @@ end
         if !ismissing(cs1d.electrons, :particles)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
         end
-        show_condition = flux || show_zeros || abs(tot) > 0.0
+        show_condition = flux || show_zeros || source_name == :time_derivative || abs(tot) > 0.0
         @series begin
             if only === nothing
                 subplot := 3
