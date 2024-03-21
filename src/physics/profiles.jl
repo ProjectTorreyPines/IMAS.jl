@@ -575,11 +575,14 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
 end
 
 """
-    lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
+    broken_lump_ions_as_bulk_and_impurity((ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
 
 Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities
+
+NOTE: This version of lump_ions_as_bulk_and_impurity is not correct, but we keep it around for now because that's how some NNs have been trained.
+DO NOT USE IF YOU DON'T KNOW WHAT YOU ARE DOING.
 """
-function lump_ions_as_bulk_and_impurity(
+function broken_lump_ions_as_bulk_and_impurity(
     ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}},
     rho_tor_norm::Vector{<:T}
 )::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where {T<:Real}
