@@ -577,6 +577,76 @@ end
 """
     lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
 
+Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities
+"""
+function lump_ions_as_bulk_and_impurity(
+    ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}},
+    rho_tor_norm::Vector{<:T}
+)::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where {T<:Real}
+    if length(ions) < 2
+        error("lump_ions_as_bulk_and_impurity requires at least two ion species")
+    end
+
+    zs = [ion.element[1].z_n for ion in ions]
+    as = [ion.element[1].a for ion in ions]
+
+    bulk_index = findall(zs .== 1)
+    impu_index = findall(zs .!= 1)
+
+    ratios = zeros(length(ions[1].density_thermal), length(ions))
+    for index in (bulk_index, impu_index)
+        ntot = zeros(length(ions[1].density_thermal))
+        for ix in index
+            tmp = ions[ix].density_thermal * sum(avgZ(zs[ix], ions[ix].temperature)) / length(ions[ix].temperature)
+            ratios[:, ix] = tmp
+            ntot .+= tmp
+        end
+        for ix in index
+            ratios[:, ix] ./= ntot
+        end
+    end
+
+    ions2 = IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}()
+
+    # bulk ions
+    push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
+    bulk = ions2[end]
+    resize!(bulk.element, 1)
+    bulk.label = "bulk"
+
+    # impurity ions
+    push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
+    impu = ions2[end]
+    resize!(impu.element, 1)
+    impu.label = "impurity"
+
+    # weight different ion quantities based on their density
+    for (index, ion2) in ((bulk_index, bulk), (impu_index, impu))
+        ion2.element[1].z_n = 0.0
+        ion2.element[1].a = 0.0
+        for ix in index # z_average is tricky since it's a single constant for the whole profile
+            ion2.element[1].z_n += sum(zs[ix] .* ratios[:, ix]) / length(ratios[:, ix])
+            ion2.element[1].a += sum(as[ix] .* ratios[:, ix]) / length(ratios[:, ix])
+        end
+        for item in (:density_thermal, :temperature, :rotation_frequency_tor)
+            value = rho_tor_norm .* 0.0
+            IMAS.setraw!(ion2, item, value)
+            for ix in index
+                tp = Vector{typeof(ions[ix]).parameters[1]}
+                tmp = getproperty(ions[ix], item, tp())::tp
+                if !isempty(tmp)
+                    value .+= tmp .* ratios[:, ix]
+                end
+            end
+        end
+    end
+
+    return ions2
+end
+
+"""
+    lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
+
 Changes core_profiles.ion to 2 species, one bulk species (H, D, T) and one combined impurity species
 """
 function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T})::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where {T<:Real}
