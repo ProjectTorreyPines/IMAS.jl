@@ -137,8 +137,8 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
     elseif geometry_type == :annulus
         # approximate annulus as square coil that has the same conducting area of the original coil
         ann = element.geometry.annulus
-        Aout = π * ann.radius_outer ^ 2
-        Ain = π * ann.radius_inner ^ 2
+        Aout = π * ann.radius_outer^2
+        Ain = π * ann.radius_inner^2
         A = Aout - Ain
         Δr = Δz = sqrt(A) / 2.0
         r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ ann.r

@@ -16,16 +16,17 @@ This method returns the P' and FF' given P or P' and J or J/R based on the curre
 
 Arguments:
 psi::T,
-- R: <R>
-- one_R: <1/R>
-- one_R2: <1/R²>
-- R0: R at which B0 is defined
-- B0: vacuum magnetic field
-- press: pressure
-- pprime: pressure * pressure'
-- jtor: toroidal current
-- jtor_over_R: flux surface averaged toroidal current density over major radius
-- fpol: F
+
+  - R: <R>
+  - one_R: <1/R>
+  - one_R2: <1/R²>
+  - R0: R at which B0 is defined
+  - B0: vacuum magnetic field
+  - press: pressure
+  - pprime: pressure * pressure'
+  - jtor: toroidal current
+  - jtor_over_R: flux surface averaged toroidal current density over major radius
+  - fpol: F
 
 returns (P', FF', F)
 """
@@ -120,7 +121,7 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
     eqt2d.grid.dim2 = zz
     eqt2d.psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
 
-    tweak_psi_to_match_psilcfs!(eqt)
+    return tweak_psi_to_match_psilcfs!(eqt)
 end
 
 """
@@ -128,7 +129,7 @@ end
 
 Returns vacuum B0 at the plasma geometric center
 """
-function B0_geo(eqt::IMAS.equilibrium__time_slice{T})::T where{T<:Real}
+function B0_geo(eqt::IMAS.equilibrium__time_slice{T})::T where {T<:Real}
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     Rgeo = eqt.boundary.geometric_axis.r
     return R0 .* B0 ./ Rgeo

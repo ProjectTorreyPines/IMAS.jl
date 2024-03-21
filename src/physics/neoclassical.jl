@@ -57,9 +57,9 @@ end
 """
     Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=true, same_ne_ni::Bool=false)
 
-* neo_2021: A.Redl, et al., Phys. Plasma 28, 022502 (2021) instead of O Sauter, et al., Phys. Plasmas 9, 5140 (2002); doi:10.1063/1.1517052 (https://crppwww.epfl.ch/~sauter/neoclassical)
+  - neo_2021: A.Redl, et al., Phys. Plasma 28, 022502 (2021) instead of O Sauter, et al., Phys. Plasmas 9, 5140 (2002); doi:10.1063/1.1517052 (https://crppwww.epfl.ch/~sauter/neoclassical)
 
-* same_ne_ni: assume same inverse scale length for electrons and ions
+  - same_ne_ni: assume same inverse scale length for electrons and ions
 """
 function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=false, same_ne_ni::Bool=false)
     psi = cp1d.grid.psi
@@ -87,7 +87,23 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, nuestar, nuistar, ip, B0; neo_2021, same_ne_ni)
 end
 
-function Sauter_neo2021_bootstrap(psi::T, ne::T, Te::T, Ti::T, pe::T, p::T, Zeff::T, fT::T, I_psi::T, nuestar::T, nuistar::T, ip::Real, B0::Real; neo_2021::Bool=false, same_ne_ni::Bool=false) where {T<:AbstractVector{<:Real}}
+function Sauter_neo2021_bootstrap(
+    psi::T,
+    ne::T,
+    Te::T,
+    Ti::T,
+    pe::T,
+    p::T,
+    Zeff::T,
+    fT::T,
+    I_psi::T,
+    nuestar::T,
+    nuistar::T,
+    ip::Real,
+    B0::Real;
+    neo_2021::Bool=false,
+    same_ne_ni::Bool=false
+) where {T<:AbstractVector{<:Real}}
     psi = psi ./ 2π # COCOS 11 to COCOS 1 --> 1/2π
     dP_dpsi = gradient(psi, p)
     dTi_dpsi = gradient(psi, Ti)
@@ -275,7 +291,7 @@ end
 function collisionless_bootstrap_coefficient(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
-    collisionless_bootstrap_coefficient(eqt, cp1d)
+    return collisionless_bootstrap_coefficient(eqt, cp1d)
 end
 
 """
@@ -289,7 +305,7 @@ function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, 
     βp = eqt.global_quantities.beta_pol
     ϵ = eqt.boundary.minor_radius / eqt.boundary.geometric_axis.r
     jbootfract = IMAS.integrate(cp1d.grid.area, cp1d.j_bootstrap) / eqt.global_quantities.ip
-    jbootfract / (sqrt(ϵ) * βp)
+    return jbootfract / (sqrt(ϵ) * βp)
 end
 
 function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
