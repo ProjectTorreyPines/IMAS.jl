@@ -214,14 +214,21 @@ function total_sources(
         end
     end
 
-    all_indexes = [source.identifier.index for source in core_sources.source]
+    # initialize total_sources.profiles_1d[].ion
+    total_source1d_ions = IMAS.core_sources__source___profiles_1d___ion[]
+    for source in core_sources.source
+        source1d = source.profiles_1d[Float64(cp1d.time)]
+        for ion in source1d.ion
+            l = length(total_source1d.ion)
+            tmp = resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+            if l != length(total_source1d.ion)
+                push!(total_source1d_ions, tmp)
+            end
+        end
+    end
 
     # zero out total_sources
-    for sub in (nothing, :electrons)
-        ids1 = total_source1d
-        if sub !== nothing
-            ids1 = getproperty(ids1, sub)
-        end
+    for ids1 in [[total_source1d, total_source1d.electrons]; total_source1d_ions]
         for field in keys(ids1)
             if field in keys(matching)
                 setproperty!(ids1, field, zeros(T, size(rho)))
@@ -229,7 +236,8 @@ function total_sources(
         end
     end
 
-    # start accumulating 
+    # start accumulating
+    all_indexes = [source.identifier.index for source in core_sources.source]
     for source in core_sources.source
         if isempty(include_indexes) || source.identifier.index ∈ include_indexes
             # pass
@@ -263,14 +271,20 @@ function total_sources(
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
 
         source1d = source.profiles_1d[Float64(cp1d.time)]
-        x = source1d.grid.rho_tor_norm
-        for sub in (nothing, :electrons)
-            ids1 = total_source1d
-            ids2 = source1d
-            if sub !== nothing
-                ids1 = getproperty(ids1, sub)
-                ids2 = getproperty(ids2, sub)
+
+        # ions that this source contributes to
+        ion_ids1_ids2 = []
+        for total_source1d_ion in total_source1d_ions
+            for source1d_ion in source1d.ion
+                if total_source1d_ion.label == source1d_ion.label
+                    push!(ion_ids1_ids2, (total_source1d_ion, source1d_ion))
+                end
             end
+        end
+
+        # add to the tallies for this source
+        x = source1d.grid.rho_tor_norm
+        for (ids1, ids2) in [[(total_source1d, source1d), (total_source1d.electrons, source1d.electrons)]; ion_ids1_ids2]
             for field in keys(ids1)
                 if (isempty(fields) || field ∈ fields || (field ∈ keys(matching) && matching[field] ∈ fields)) && field ∈ keys(matching)
                     if hasdata(ids2, field) || hasdata(ids2, matching[field])
@@ -283,6 +297,11 @@ function total_sources(
                 end
             end
         end
+    end
+
+    # ion.energy source is always zero
+    for total_source1d_ion in total_source1d_ions
+        empty!(total_source1d_ion, :energy)
     end
 
     return total_source1d

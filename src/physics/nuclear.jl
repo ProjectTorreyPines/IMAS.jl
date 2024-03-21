@@ -206,7 +206,9 @@ function fusion_particle_source(
     ion = resize!(s1d.ion, k)[k]
     ion_element!(ion, out; fast=true)
     ion.particles = reactivity
-    return ion.fast_particles_energy = eV
+    ion.fast_particles_energy = eV
+
+    return nothing
 end
 
 """
