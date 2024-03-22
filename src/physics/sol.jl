@@ -195,7 +195,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
         levels[1] = psi__boundary_level
-        levels[end] = psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane)
+        push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))
+        levels = unique!(sort!(levels)) 
+
+        if psi_sign == -1
+            # if psi is decreasing we must sort in decreasing order
+            levels = reverse!(levels)
+        end
+
     end
 
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
