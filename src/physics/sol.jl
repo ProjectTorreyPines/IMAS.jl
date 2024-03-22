@@ -519,6 +519,14 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     r_wall_omp = r_wall_omp[1] # make it float
 
+    crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw inner midplane (IMP) with wall
+    r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP  
+    r_wall_imp = r_wall_imp[1] # make it float
+
+    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
+    r_wall_omp = r_wall_omp[1] # make it float
+
     if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[], Int64[]
 
