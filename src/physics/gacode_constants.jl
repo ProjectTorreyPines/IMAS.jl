@@ -11,18 +11,26 @@ const gacode_units = (
 )
 
 struct flux_solution{T<:Real}
-    PARTICLE_FLUX_e::T
-    STRESS_TOR_i::T
     ENERGY_FLUX_e::T
     ENERGY_FLUX_i::T
+    PARTICLE_FLUX_e::T
+    PARTICLE_FLUX_i::Vector{T}
+    STRESS_TOR_i::T
+end
+
+function flux_solution(PARTICLE_FLUX_e::T, STRESS_TOR_i::T, ENERGY_FLUX_e::T, ENERGY_FLUX_i::T) where {T<:Real}
+    # function used for backward compatibility when we used not to track PARTICLE_FLUX_i for individual ion species
+    # NOTE: also order of field has changed!
+    return flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[], STRESS_TOR_i)
 end
 
 function Base.show(io::IO, sol::flux_solution)
     txt = """
-    Γe = $(sol.PARTICLE_FLUX_e)
-    Πi = $(sol.STRESS_TOR_i)
     Qe = $(sol.ENERGY_FLUX_e)
     Qi = $(sol.ENERGY_FLUX_i)
+    Γe = $(sol.PARTICLE_FLUX_e)
+    Γi = $(sol.PARTICLE_FLUX_i)
+    Πi = $(sol.STRESS_TOR_i)
     """
     return print(io, txt)
 end
@@ -78,8 +86,7 @@ function flux_gacode_to_fuse(
     flux_solutions::Vector{<:IMAS.flux_solution},
     m1d::IMAS.core_transport__model___profiles_1d,
     eqt::IMAS.equilibrium__time_slice,
-    cp1d::core_profiles__profiles_1d
-)
+    cp1d::core_profiles__profiles_1d)
 
     rho_eq_idxs = [argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
     rho_cp_idxs = [argmin(abs.(cp1d.grid.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
@@ -98,5 +105,4 @@ function flux_gacode_to_fuse(
 
         setproperty!(ga_tr[flux_type][1], :flux, result)
     end
-
 end
