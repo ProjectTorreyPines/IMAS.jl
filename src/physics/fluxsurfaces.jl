@@ -518,7 +518,7 @@ function find_psi_tangent_omp(
 
     # if no wall in dd, psi_last diverted not defined
     if isempty(wall_r) || isempty(wall_z)
-        return (NaN, NaN)
+        return (psi_tangent_in = NaN, psi_tangent_out = NaN)
     end
 
     RA = eqt.global_quantities.magnetic_axis.r
@@ -552,14 +552,14 @@ function find_psi_tangent_omp(
     counter_max = 50
     counter = 0
     if psi_sign == 1
-        psi_up  = maximum(PSI_interpolant.(wallr,wallz)) # psi increases
+        psi_tangent_out  = maximum(PSI_interpolant.(wallr,wallz)) # psi increases
     else
-        psi_up  = minimum(PSI_interpolant.(wallr,wallz)) # psi decreases
+        psi_tangent_out  = minimum(PSI_interpolant.(wallr,wallz)) # psi decreases
     end
 
-    psi_low = psi_separatrix
+    psi_tangent_in = psi_separatrix
 
-    psi = (psi_up + psi_low) / 2
+    psi = (psi_tangent_out + psi_tangent_in) / 2
     err = Inf
     while abs(err) > precision && counter < counter_max
         surface, _ = flux_surface(eqt, psi, :open)
@@ -571,18 +571,18 @@ function find_psi_tangent_omp(
             end
 
             if maximum(r) > r_wall_omp
-                psi_up = psi
-                psi = (psi_up + psi_low) / 2
+                psi_tangent_out = psi
+                psi = (psi_tangent_out + psi_tangent_in) / 2
             else
-                psi_low = psi
-                psi = (psi_up + psi_low) / 2
+                psi_tangent_in = psi
+                psi = (psi_tangent_out + psi_tangent_in) / 2
             end
         end
         
-        err = abs(psi_up-psi_low)/abs(psi_low)
+        err = abs(psi_tangent_out-psi_tangent_in)/abs(psi_tangent_in)
         counter = counter + 1
     end
-    return (psi_low, psi_up)
+    return (psi_tangent_in = psi_tangent_in, psi_tangent_out = psi_tangent_out)
 end
 
 """
