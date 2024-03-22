@@ -495,8 +495,94 @@ Precision between the two is defined on the poloidal crossection area at the OMP
 """
 
 function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7)
-    rr, zz, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
+    _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
     return find_psi_last_diverted(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant; precision)
+end
+
+"""
+    find_psi_tangent_omp(
+        eqt::IMAS.equilibrium__time_slice,
+        wall_r::Vector{<:Real},
+        wall_z::Vector{<:Real},
+        PSI_interpolant::Interpolations.AbstractInterpolation;
+        precision::Float64=1e-7)
+
+Returns the psi of the magnetic surface in the SOL which is tangent to the wall near the outer midplane
+"""
+function find_psi_tangent_omp(
+    eqt::IMAS.equilibrium__time_slice,
+    wall_r::Vector{<:Real},
+    wall_z::Vector{<:Real},
+    PSI_interpolant::Interpolations.AbstractInterpolation;
+    precision::Float64=1e-7)
+
+    # if no wall in dd, psi_last diverted not defined
+    if isempty(wall_r) || isempty(wall_z)
+        return (psi_tangent_in = NaN, psi_tangent_out = NaN)
+    end
+
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+
+    # find intersection of the wall with the outer midlpane
+    crossings2 = intersection([RA, maximum(wall_r)*2], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
+    r_wall_omp = r_wall_omp[1] # make it float
+
+    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_separatrix, _ = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS, closed
+    psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
+
+    ((_,zsep),), _ = flux_surface(eqt, psi_separatrix, :closed)
+    
+    b = maximum(abs.([minimum(zsep), maximum(zsep)]))
+
+    wallr = wall_r[wall_r.> RA .&& abs.(wall_z).<b/2]
+    wallz = wall_z[wall_r.> RA .&& abs.(wall_z).<b/2]
+
+    # add intersection at +/- b/2 meter
+    _, crossings = intersection([RA, 3*RA],[ 1.0,  1.0]*b/2, wall_r, wall_z) # find where flux surface crosses wall around MP
+    wallr = vcat(crossings[1][1],wallr)    
+    wallz = vcat(crossings[1][2],wallz)    
+    _, crossings = intersection([RA, 3*RA],[-1.0, -1.0]*b/2, wall_r, wall_z) # find where flux surface crosses wall around MP
+    push!(wallr,crossings[1][1])
+    push!(wallz,crossings[1][2])
+
+    # find the two surfaces `psi_wall_up` and `psi_wall_low` around the tangent surface to the wall at OMP
+    counter_max = 50
+    counter = 0
+    if psi_sign == 1
+        psi_tangent_out  = maximum(PSI_interpolant.(wallr,wallz)) # psi increases
+    else
+        psi_tangent_out  = minimum(PSI_interpolant.(wallr,wallz)) # psi decreases
+    end
+
+    psi_tangent_in = psi_separatrix
+
+    psi = (psi_tangent_out + psi_tangent_in) / 2
+    err = Inf
+    while abs(err) > precision && counter < counter_max
+        surface, _ = flux_surface(eqt, psi, :open)
+        for (r, z) in surface
+            
+            # exclude empty vectors, surfaces that do not cross the midplane ans surfaces that cross the midplane at the HFS
+            if isempty(r) || all(z .> ZA) || all(z .< ZA) || sum(r.>RA) == 0
+                continue
+            end
+
+            if maximum(r) > r_wall_omp
+                psi_tangent_out = psi
+                psi = (psi_tangent_out + psi_tangent_in) / 2
+            else
+                psi_tangent_in = psi
+                psi = (psi_tangent_out + psi_tangent_in) / 2
+            end
+        end
+        
+        err = abs(psi_tangent_out-psi_tangent_in)/abs(psi_tangent_in)
+        counter = counter + 1
+    end
+    return (psi_tangent_in = psi_tangent_in, psi_tangent_out = psi_tangent_out)
 end
 
 """
