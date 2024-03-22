@@ -267,6 +267,14 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     r_z_index = [k[1] for k in indexes] #index of vectors (r,z) of all crossing point
     wall_index = [k[2] for k in indexes] #index of vectors (wall_r, wall_z) of all crossing point
 
+    crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw inner midplane (IMP) with wall
+    r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP  
+    r_wall_imp = r_wall_imp[1] # make it float
+
+    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
+    r_wall_omp = r_wall_omp[1] # make it float
+
     if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[], Int64[]
 
@@ -314,7 +322,8 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
     rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
-    if sum(rr .< minimum(wall_r)) > 0 || sum(rr .> maximum(wall_r)) > 0
+    # remove surfaces that cross midplane outiside the wall
+    if sum(rr .< r_wall_imp) > 0 || sum(rr .> r_wall_omp) > 0
         return Float64[], Float64[], Float64[], Int64[]
     end
     # sort clockwise (COCOS 11) 
