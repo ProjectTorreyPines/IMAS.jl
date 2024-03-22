@@ -32,6 +32,72 @@ function WallHeatFlux(;
     return WallHeatFlux(r,z,q_wall,q_part,q_core_rad,q_parallel,s)
 end
 
+
+"""
+ core_radiation_HF(eqt::IMAS.equilibrium__time_slice, 
+                   psi::Vector{T}, 
+                   source_1d::Vector{T} , 
+                   N::Int)
+
+"""
+
+function core_radiation_HF(eqt::IMAS.equilibrium__time_slice, 
+                           psi::Vector{<:Real}, 
+                           source_1d::Vector{<:Real} , 
+                           N::Int,
+                           wall_r::Vector{<:Real}, 
+                           wall_z::Vector{<:Real},
+                           Prad_core::Float64)
+
+    photons, W_per_trace,dr,dz = IMAS.define_particles(eqt,psi,source_1d,N)
+
+    qflux_r, qflux_z, wall_s = IMAS.find_flux(photons, W_per_trace, wall_r, wall_z, dr,dz)
+
+    
+    qq = sqrt.(qflux_r.^2 + qflux_z.^2) # norm of the heat flux
+    power = qq.*wall_s
+
+    # normalization to match perfectly the power in core_sources
+    norm = Prad_core/sum(power)
+    qq *= norm 
+
+    # qq is defined in the midpoints of the grid (wall_r, wall_z), which is the center of the cells where the heat flux is computed
+    # Interpolate the values on the nodes (wall_r, wall_z)
+    Qrad = similar(wall_r)
+    Qrad[1] = (qq[1] + qq[end])/2
+
+    if ((wall_r[1], wall_z[1]) == (wall_r[end], wall_z[end]))
+        # Wall is closed, therefore length(wall_s) = length(wall_r) - 1
+        # length(q) = length(wall_s)
+
+        # qq is defined in the midpoint between nodes in the wall mesh (ss vector)
+        # Qrad shall be instead defined on the Rwall,Zwall mesh (s vector)
+
+        s = similar(wall_r)
+        ds= sqrt.(diff(wall_r).^2 + diff(wall_z).^2)
+        s[1] = 0
+        for i in 1:length(ds)
+            s[i+1]= s[i]+ds[i]
+        end
+
+        ss = (s[2:end]+s[1:end-1])./2
+
+        ss = vcat(0.0,ss)
+        qq  = vcat((qq[1] + qq[end])/2,qq)
+
+        interp = IMAS.interp1d(vcat(ss .- s[end], ss,ss.+ s[end]), vcat(qq,qq,qq), :cubic) 
+        Qrad = interp.(s)
+
+    else
+        # Wall is NOT closed, therefore length(wall_s) = length(wall_r)
+        error("wall is not closed")
+    end
+
+    return Qrad
+
+end
+
+
 """
     mesher_HF(  dd::IMAS.dd; 
                 r::AbstractVector{T}=Float64[], 
