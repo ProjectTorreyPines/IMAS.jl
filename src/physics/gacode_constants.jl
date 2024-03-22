@@ -77,7 +77,12 @@ function volume_prime_miller_correction(eqt::IMAS.equilibrium__time_slice)
 end
 
 """
-    flux_gacode_to_fuse(flux_types::Vector{Symbol}, flux_solutions::Vector{<:IMAS.flux_solution}, m1d::IMAS.core_transport__model___profiles_1d, eqt::IMAS.equilibrium__time_slice, cp1d::core_profiles__profiles_1d)
+    flux_gacode_to_fuse(
+        flux_types::Vector{Symbol},
+        flux_solutions::Vector{<:IMAS.flux_solution},
+        m1d::IMAS.core_transport__model___profiles_1d,
+        eqt::IMAS.equilibrium__time_slice,
+        cp1d::core_profiles__profiles_1d)
 
 Normalizes specified transport fluxes output by GA code via gyrobohm normalization and Miller volume correction
 """
@@ -100,8 +105,7 @@ function flux_gacode_to_fuse(
     vprime_miller = volume_prime_miller_correction(eqt)
 
     for flux_type in flux_types
-        result = ga_tr[flux_type][2](cp1d, eqt)[rho_cp_idxs] .*
-                 [getproperty(f, ga_tr[flux_type][3]) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
+        result = ga_tr[flux_type][2](cp1d, eqt)[rho_cp_idxs] .* [getproperty(f, ga_tr[flux_type][3]) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
 
         setproperty!(ga_tr[flux_type][1], :flux, result)
     end
