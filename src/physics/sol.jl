@@ -13,6 +13,7 @@ struct OpenFieldLine
     grazing_angles::Vector{Float64}          # Angle in radiants between B and the wall; grazing angle
     total_flux_expansion::Vector{Float64}    # Total flux expansion
     poloidal_flux_expansion::Vector{Float64} # Poloidal flux expansion
+    wall_index::Vector{Int}                  # index in dd.wall where strike points intersect
 end
 
 """
@@ -45,6 +46,7 @@ function OpenFieldLine(
         rr = r
         zz = z
         strike_angles = [NaN, NaN]
+        wall_index = Int64[]
     else
         # SOL with wall
         # returns poloidal angles of each surface
@@ -52,7 +54,7 @@ function OpenFieldLine(
         # crossing points with wall = (rr[1], zz[1]) (rr[end], zz[end])
         # this is the order at which angles are computed (strike, pitch and grazing)
         # Example - OFL[2].[1<n<length(levels)].strike_angle[1] is computed at (rr[1], zz[1])
-        rr, zz, strike_angles = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
+        rr, zz, strike_angles, wall_index = line_wall_2_wall(r, z, wall_r, wall_z, RA, ZA)
     end
 
     if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
@@ -85,8 +87,9 @@ function OpenFieldLine(
     total_flux_expansion = B[midplane_index] ./ B # total flux expansion(r,z) =  Bomp / B(r,z) [magentic flux conservation]
     poloidal_flux_expansion = total_flux_expansion .* rr[midplane_index] ./ rr .* sin(pitch_angles[midplane_index]) ./ sin.(pitch_angles) # poloidal flux expansion
 
-    return OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion)
+    return OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion, wall_index)
 end
+
 
 @recipe function plot_ofl(ofl::OpenFieldLine)
     @series begin
@@ -262,9 +265,10 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"
     # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
     r_z_index = [k[1] for k in indexes] #index of vectors (r,z) of all crossing point
+    wall_index = [k[2] for k in indexes] #index of vectors (wall_r, wall_z) of all crossing point
 
     if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
-        return Float64[], Float64[], Float64[]
+        return Float64[], Float64[], Float64[], Int64[]
 
     elseif length(r_z_index) == 1
         error("""line_wall_2_wall: open field line should intersect wall at least twice.
@@ -303,6 +307,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         end
         i = sort([i1, i2])
         r_z_index = r_z_index[i]
+        wall_index = wall_index[i]
         crossings = crossings[i]
         strike_angles = strike_angles[i]
     end
@@ -320,16 +325,18 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
             rr = reverse(rr)
             zz = reverse(zz)
             strike_angles = reverse(strike_angles)
+            wall_index = reverse(wall_index)
         end
     else
         if angle[1] > angle[end]
             rr = reverse(rr)
             zz = reverse(zz)
             strike_angles = reverse(strike_angles)
+            wall_index = reverse(wall_index)
         end
     end
 
-    return rr, zz, strike_angles
+    return rr, zz, strike_angles, wall_index
 end
 
 """
