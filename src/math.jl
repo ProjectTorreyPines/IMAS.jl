@@ -860,7 +860,7 @@ function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real
         R = R[1:end-1]
         Z = Z[1:end-1]
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
 
 """
@@ -878,7 +878,7 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Re
     else
         was_closed = true
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
 
 """
@@ -894,9 +894,8 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool
     else
         was_closed = true
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
-
 
 """
     perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 
