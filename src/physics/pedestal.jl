@@ -25,7 +25,7 @@ function blend_core_edge_Hmode(
     iped = argmin(abs.(rho .- ped_bound))
     inml = argmin(abs.(rho .- nml_bound))
 
-    z_profile = -calc_z(rho, profile)
+    z_profile = -calc_z(rho, profile, :backward)
     z_nml = z_profile[inml]
 
     # H-mode profile used for pedestal
@@ -35,7 +35,7 @@ function blend_core_edge_Hmode(
 
     # linear z between nml and pedestal
     if nml_bound < ped_bound
-        z_profile_ped = -calc_z(rho, profile_ped)
+        z_profile_ped = -calc_z(rho, profile_ped,:backward)
         z_ped = z_profile_ped[iped]
         z_profile[inml:iped] = (z_nml - z_ped) ./ (rho[inml] - rho[iped]) .* (rho[inml:iped] .- rho[inml]) .+ z_nml
     end
@@ -58,7 +58,7 @@ function cost_find_exps(
 )
     x = abs.(x)
     profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
-    z_ped = -calc_z(rho, profile_ped)
+    z_ped = -calc_z(rho, profile_ped, :backward)
     z_ped_values = interp1d(rho, z_ped).(rho_targets)
     return sum(abs.(z_targets .- z_ped_values))
 end
@@ -84,7 +84,7 @@ function blend_core_edge_Hmode(
     tr_bound0::Real,
     tr_bound1::Real)
 
-    z_profile = -calc_z(rho, profile)
+    z_profile = -calc_z(rho, profile, :backward)
     z_targets = interp1d(rho, z_profile).([tr_bound0, tr_bound1])
 
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport

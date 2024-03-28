@@ -586,7 +586,7 @@ function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
 end
 
 """
-    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
+    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol)
 
 Returns the gradient scale lengths of vector f on x
 
@@ -594,7 +594,7 @@ The finite difference `method` of the gradient can be one of [:third_order, :sec
 
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
-function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
+function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
     g = gradient(x, f; method)
     return g ./ f
 end
