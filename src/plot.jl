@@ -1633,7 +1633,7 @@ end
         linewidth := linewidth + 1
         linestyle --> :dash
         color := "Black"
-        bop.thermal_cycle, :power_electric_generated
+        bop.power_plant, :power_electric_generated
     end
 
     for sys in bop.power_electric_plant_operation.system
