@@ -220,7 +220,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol
         if isempty(r) || all(z .> ZA) || all(z .< ZA)
             continue
         end
-        if z[1] * z[end] < 0
+        if (z[end]-ZA) * (z[1]-ZA) < 0
             #if double null, all open surfaces in the SOL start and finish in opposite sides of the midplane
             return psi_separatrix
         end
@@ -250,7 +250,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol
                 continue
             end
 
-            if z[end] * z[1] > 0
+            if (z[end]-ZA) * (z[1]-ZA) > 0
                 # the surface starts and finishes on the same side of the midplane; aka is diverted
                 psi_low = psi
             else
