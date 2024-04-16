@@ -79,7 +79,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
 
     r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
 
-    theta = Ti ./ (1.0 .- r0)
+    theta = abs.(Ti ./ (1.0 .- r0))
+    
+#    @show theta, model
     xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
     sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
 
