@@ -685,7 +685,7 @@ Plot build cross-section
 
     # cx
     if cx
-        rmax = maximum(bd.layer[end].outline.r)
+        rmax = maximum(bd.layer[end].outline.r)*1.15
 
         # everything after first vacuum in _out_
         if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
@@ -874,6 +874,33 @@ Plot build cross-section
                 end
             end
         end
+
+        # maintenance port (if any)
+        if any([structure.type == Int(_port_) for structure in bd.structure])
+            if (isempty(only) || (:port in only)) && (!(:port in exclude_layers))
+                for (k, index) in enumerate(findall(x -> x.type == Int(_port_), bd.structure))
+                    if !wireframe
+                        @series begin
+                            seriestype --> :path
+                            linewidth := 2.0
+                            color --> :lightblue
+                            label --> (!wireframe && k == 1 ? "Vessel Port" : "")
+                            xlim --> [0, rmax]
+                            bd.structure[index].outline.r, bd.structure[index].outline.z
+                        end
+                    end
+                    @series begin
+                        seriestype --> :path
+                        linewidth --> 0.5
+                        color --> :black
+                        label --> ""
+                        xlim --> [0, rmax]
+                        bd.structure[index].outline.r, bd.structure[index].outline.z
+                    end
+                end
+            end
+        end
+        
 
     else  # not-cx
 
