@@ -326,7 +326,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
     
     # remove surfaces that cross midplane outiside the wall
-    crossings2 = intersection([0, RA], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw inner midplane (IMP) with wall
+    crossings2 = intersection([0, RA], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw inner midplane (IMP) with magnetic surface in the SOL
     r_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP
     if !isempty(r_imp)
         r_imp = r_imp[1] # make it float
@@ -334,7 +334,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         r_imp = RA # the surface crosses only at the OMP
     end
         
-    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw outer midplane (OMP) with magnetic surface in the SOL
     r_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     if !isempty(r_omp)
         r_omp = r_omp[1] # make it float
