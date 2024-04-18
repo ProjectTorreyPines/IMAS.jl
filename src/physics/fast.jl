@@ -226,7 +226,7 @@ function critical_energy(
     avg_cmr = sum(ni .* (Zi .^ 2) ./ mi) / ne
     Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     if !approximate
-        index = ni .> 0
+        index = ni .> 0.0 .&& Ti .> 0.0
         Ec = Roots.find_zero(Ec0 -> _electron_ion_drag_difference(ne, Te, ni[index], Ti[index], mi[index], Zi[index], Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
     end
     return Ec
@@ -312,10 +312,12 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     Zi = zeros(Int, Nions)
     mi = zeros(Nions)
     for (idx, ion) in enumerate(cp1d.ion)
-        ni[idx, :] = ion.density_thermal
-        Ti[idx, :] = ion.temperature
-        Zi[idx] = Int(ion.element[1].z_n)
-        mi[idx] = ion.element[1].a
+        if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
+            ni[idx, :] = ion.density_thermal
+            Ti[idx, :] = ion.temperature
+            Zi[idx] = Int(ion.element[1].z_n)
+            mi[idx] = ion.element[1].a
+        end
     end
 
     # empty cp1d pressures (expressions)
@@ -326,9 +328,8 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     empty!(cp1d, :pressure_thermal)
     # empty all cp1d fast-ion related quantities (expressions)
     for ion in cp1d.ion
-        freeze!(ion, :pressure_thermal)
+        empty!(ion, :pressure_thermal)
         empty!(ion, :pressure)
-        freeze!(ion, :density_thermal)
         empty!(ion, :density)
     end
     # zero out all cp1d fast-ion related quantities
@@ -373,7 +374,6 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                     for i in 1:Npsi
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
                         taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
-
                         i2tmp, i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
                         i4[i] = i4tmp
                     end
@@ -401,11 +401,13 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     tp = typeof(promote(Te[1], ne[1], rho[1])[1])
     c_a = zeros(tp, length(rho))
     for ion in cp1d.ion
-        ni = ion.density_thermal
-        @assert all(ni .>= 0.0) "$ni"
-        Zi = avgZ(ion.element[1].z_n, ion.temperature)
-        mi = ion.element[1].a
-        c_a .+= (ni ./ ne) .* Zi .^ 2 ./ (mi ./ particle_mass)
+        if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
+            ni = ion.density_thermal
+            @assert all(ni .>= 0.0) "$ni"
+            Zi = avgZ(ion.element[1].z_n, ion.temperature)
+            mi = ion.element[1].a
+            c_a .+= (ni ./ ne) .* Zi .^ 2 ./ (mi ./ particle_mass)
+        end
     end
 
     W_crit = Te .* (4.0 .* sqrt.(constants.m_e / (constants.m_p * particle_mass)) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)

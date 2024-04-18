@@ -21,155 +21,9 @@ function to_range(vector::AbstractVector{<:Real})
     N = length(vector)
     dv = vector[2] - vector[1]
     if !(1 - sum(abs(vector[k] - vector[k-1] - dv) for k in 2:N) / (N - 1) ≈ 1.0)
-        error("to_range requires vector data to be equally spaced")
+        error("to_range requires vector data to be equally spaced: $(vector)")
     end
     return range(vector[1], vector[end], N)
-end
-
-function gradient(arr::AbstractVector; method::Symbol=:second_order)
-    return gradient(1:length(arr), arr; method)
-end
-
-"""
-    gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real, A<:Real}
-
-Finite difference method of the gradient: [:third_order, :second_order, :central, :backward, :forward]
-
-The returned gradient hence has the same shape as the input array. https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
-
-For `:central` the gradient is computed using second order accurate central differences in the interior points and first order accurate one-sides (forward or backward) differences at the boundaries.
-
-For `:second_order` the gradient is computed using second order accurate central differences in the interior points, and 2nd order differences at the boundaries.
-
-For `:third_order` the gradient is computed from the cubic spline passing through the points
-"""
-function gradient(coord::AbstractVector{C}, arr::AbstractVector{A}; method::Symbol=:second_order) where {C<:Real,A<:Real}
-    grad = Array{promote_type(A, C)}(undef, length(arr))
-    return gradient!(grad, coord, arr; method)
-end
-
-"""
-    gradient!(grad::AbstractVector, coord::AbstractVector, arr::AbstractVector; method::Symbol=:second_order)
-
-In place version of gradient(coord::AbstractVector, arr::AbstractVector; method::Symbol=:second_order)
-"""
-function gradient!(grad::Union{AbstractVector,SubArray{<:Real,1}}, coord::AbstractVector, arr::Union{AbstractVector,SubArray{<:Real,1}}; method::Symbol=:second_order)
-    np = length(arr)
-    @assert length(grad) == np "The length of your grad vector (length = $(length(grad))) is not equal to the length of your arr (length = $np)"
-    @assert length(coord) == np "The length of your coord (length = $(length(coord))) is not equal to the length of your arr (length = $np)"
-
-    if np < 3 && method == :second_order
-        method = :central
-    end
-
-    if method ∈ [:central, :backward, :forward]
-        # Forward difference at the beginning
-        grad[1] = (arr[2] - arr[1]) / (coord[2] - coord[1])
-        # backward difference at the end
-        grad[end] = (arr[end] - arr[end-1]) / (coord[end] - coord[end-1])
-    end
-
-    if method == :third_order
-        itp = DataInterpolations.CubicSpline(arr, coord)
-        for k in eachindex(arr)
-            grad[k] = DataInterpolations.derivative(itp, coord[k])
-        end
-
-    elseif method ∈ [:central, :second_order]
-        # Central difference in interior using numpy method
-        for p in 2:np-1
-            hs = coord[p] - coord[p-1]
-            fs = arr[p-1]
-            hd = coord[p+1] - coord[p]
-            fd = arr[p+1]
-            grad[p] = (hs^2 * fd + (hd^2 - hs^2) * arr[p] - hd^2 * fs) / (hs * hd * (hd + hs))
-        end
-        if method == :second_order
-            # Derived using Numerical Mathematics, section 10.10 and lecture notes by A. Yew
-            # and checked against formula from A. Yew for the case of equal spacing.
-            # Numerical Mathematics: A. Quarteroni, R. Sacco, F. Saleri, Springer (2007)
-            #   https://sites.math.washington.edu/~morrow/464_17/sacco%20saleri%20numerical.pdf
-            # A. Yew: Lecture notes for APMA 0160 at Brown University
-            #    https://www.dam.brown.edu/people/alcyew/handouts/numdiff.pdf
-            c = coord[2] - coord[1]
-            d = coord[3] - coord[2]
-            f = arr[1]
-            g = arr[2]
-            h = arr[3]
-            ccd = c / (c + d)
-            ccd2 = c^2 / (c + d)^2
-            grad[1] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
-            c = coord[end-1] - coord[end]
-            d = coord[end-2] - coord[end-1]
-            f = arr[end]
-            g = arr[end-1]
-            h = arr[end-2]
-            ccd = c / (c + d)
-            ccd2 = c^2 / (c + d)^2
-            grad[end] = (-f * (1 - ccd2) + g - h * ccd2) / (c * (1 - ccd))
-        end
-
-    elseif method == :backward
-        for p in 2:np-1
-            grad[p] = (arr[p] - arr[p-1]) / (coord[p] - coord[p-1])
-        end
-
-    elseif method == :forward
-        for p in 2:np-1
-            grad[p] = (arr[p+1] - arr[p]) / (coord[p+1] - coord[p])
-        end
-
-    else
-        error("difference method $(method) doesn't exist in gradient function")
-    end
-
-    return grad
-end
-
-function gradient(mat::Matrix; method::Symbol=:second_order)
-    return gradient(1:size(mat)[1], 1:size(mat)[2], mat; method)
-end
-
-function gradient(mat::Matrix, dim::Int; method::Symbol=:second_order)
-    return gradient(1:size(mat)[1], 1:size(mat)[2], mat, dim; method)
-end
-
-"""
-    gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix, dim::Int; method::Symbol=:second_order)
-
-Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
-
-Can be applied to either the first (dim=1) or second (dim=2) dimension
-"""
-function gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix, dim::Int; method::Symbol=:second_order)
-    nrows, ncols = size(mat)
-    d = Matrix{eltype(mat)}(undef, nrows, ncols)
-    if dim == 1
-        for i in 1:ncols
-            gradient!(@views(d[:, i]), coord1, @views(mat[:, i]); method)
-        end
-        return d
-    elseif dim == 2
-        for i in 1:nrows
-            gradient!(@views(d[i, :]), coord2, @views(mat[i, :]); method)
-        end
-        return d
-    else
-        throw(ArgumentError("dim should be either 1 or 2"))
-    end
-end
-
-"""
-    gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix)
-
-Finite difference method of the gradient: [:second_order, :central, :backward, :forward]
-
-Computes the gradient in both dimensions
-"""
-function gradient(coord1::AbstractVector, coord2::AbstractVector, mat::Matrix; method::Symbol=:second_order)
-    d1 = gradient(coord1, coord2, mat, 1; method)
-    d2 = gradient(coord1, coord2, mat, 2; method)
-    return d1, d2
 end
 
 """
@@ -527,9 +381,8 @@ function resample_2d_path(
         end
     end
 
-    # if original path closed, make sure resampled path closes too
-    # independently of interpolation method used
-    if x[1] == x[end] && y[1] == y[end]
+    # if original path closed, make sure resampled path closes too, independently of interpolation method used
+    if is_closed_polygon(x, y)
         xi[end] = xi[1]
         yi[end] = yi[1]
     end
@@ -548,7 +401,7 @@ end
         retain_original_xy::Bool=false,
         method::Symbol=:linear) where {T<:Real}
 
-Like resample_2d_path but with retain_extrema=true and method=linear as defaults
+Like resample_2d_path but with `retain_extrema=true` and `method=:linear` as defaults
 """
 function resample_plasma_boundary(
     x::AbstractVector{T},
@@ -706,10 +559,12 @@ The path is assumed to be closed if the first and last points are the same, and 
 function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     n = length(pr)
     curvature_res = Vector{T}(undef, n)
-    dr1, dz1 = if pr[1] == pr[end] && pz[1] == pz[end]
-        pr[end-1] - pr[end], pz[end-1] - pz[end]
+    if is_closed_polygon(pr, pz)
+        dr1 = pr[end-1] - pr[1]
+        dz1 = pz[end-1] - pz[1]
     else
-        0.0, 0.0
+        dr1 = 0.0
+        dz1 = 0.0
     end
     a1 = sqrt(dr1^2 + dz1^2) + 1E-32
     for i in 1:n
@@ -731,14 +586,17 @@ function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
 end
 
 """
-    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
+    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
 
 Returns the gradient scale lengths of vector f on x
 
+The finite difference `method` of the gradient can be one of [:third_order, :second_order, :central, :backward, :forward]
+
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
-function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real})
-    return gradient(x, f; method=:third_order) ./ f
+function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
+    g = gradient(x, f; method)
+    return g ./ f
 end
 
 """
@@ -747,7 +605,6 @@ end
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    f = interp1d(rho, z_profile, :quadratic) # do not change this from being :quadratic
     profile_new = similar(rho)
     profile_new[end] = bc
     for i in length(rho)-1:-1:1
@@ -755,8 +612,8 @@ function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real},
         fa = z_profile[i]
         b = rho[i+1]
         fb = z_profile[i+1]
-        simpson_integral = (b - a) / 6 * (fa + 4 * f((a + b) * 0.5) + fb)
-        profile_new[i] = profile_new[i+1] * exp(simpson_integral)
+        trapz_integral = (b - a) * (fa + fb) / 2.0
+        profile_new[i] = profile_new[i+1] * exp(trapz_integral)
     end
     return profile_new
 end
@@ -903,7 +760,7 @@ end
 Returns bisecting "rays" (lines) that radiate from vertices of a polygon
 """
 function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
-    @assert vertices[1][1] != vertices[end][1] || vertices[1][2] != vertices[end][2]
+    @assert is_open_polygon(vertices)
 
     # Create rays
     rays = []
@@ -930,21 +787,15 @@ end
 Split long segments of a polygon so that each resulting segment is always <= max_length
 """
 function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::T) where {T<:Real}
-    # check if the input polygon is closed or not
-    closed = false
-    if R[1] == R[end] || Z[1] == Z[end]
-        closed = true
-        R = R[1:end-1]
-        Z = Z[1:end-1]
-    end
+    opoly = open_polygon(R, Z)
 
-    Rout = [R[1]]
-    Zout = [Z[1]]
-    for k in eachindex(R)
-        r1 = IMAS.getindex_circular(R, k)
-        z1 = IMAS.getindex_circular(Z, k)
-        r2 = IMAS.getindex_circular(R, k + 1)
-        z2 = IMAS.getindex_circular(Z, k + 1)
+    Rout = [opoly.R[1]]
+    Zout = [opoly.Z[1]]
+    for k in eachindex(opoly.R)
+        r1 = IMAS.getindex_circular(opoly.R, k)
+        z1 = IMAS.getindex_circular(opoly.Z, k)
+        r2 = IMAS.getindex_circular(opoly.R, k + 1)
+        z2 = IMAS.getindex_circular(opoly.Z, k + 1)
         d = sqrt((r2 - r1)^2 + (z2 - z1)^2)
         if d > max_length
             n = Int(ceil(d / max_length)) + 1
@@ -957,11 +808,93 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
             push!(Zout, z2)
         end
     end
-    if closed
+    if opoly.was_closed
         return Rout, Zout
     else
         return Rout[1:end-1], Zout[1:end-1]
     end
+end
+
+"""
+    is_open_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+
+Determine if a polygon, defined by separate vectors for R and Z coordinates, is open.
+"""
+function is_open_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+    return R[1] != R[end] || Z[1] != Z[end]
+end
+
+function is_open_polygon(vertices::AbstractVector)::Bool
+    r1 = vertices[1][1]
+    z1 = vertices[1][2]
+    rend = vertices[end][1]
+    zend = vertices[end][2]
+    return r1 != rend || z1 != zend
+end
+
+"""
+    is_closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+
+Determine if a polygon, defined by separate vectors for R and Z coordinates, is closed.
+"""
+function is_closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
+    return !is_open_polygon(R, Z)
+end
+
+function is_closed_polygon(vertices::AbstractVector)::Bool
+    return !is_open_polygon(vertices)
+end
+
+"""
+    open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+
+Convert a closed polygon into an open polygon by removing the last vertex if it is the same as the first.
+
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+"""
+function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+    if is_open_polygon(R, Z)
+        was_closed = false
+    else
+        was_closed = true
+        R = R[1:end-1]
+        Z = Z[1:end-1]
+    end
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
+end
+
+"""
+    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+
+Convert an open polygon into a closed polygon by adding the first vertex to the end if it is not already closed.
+
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+"""
+function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+    if is_open_polygon(R, Z)
+        was_closed = false
+        R = [R; R[1]]
+        Z = [Z; Z[1]]
+    else
+        was_closed = true
+    end
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
+end
+
+"""
+    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
+
+Returns a closed polygon depending on `closed`
+"""
+function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
+    if is_open_polygon(R, Z) && closed
+        was_closed = false
+        R = [R; R[1]]
+        Z = [Z; Z[1]]
+    else
+        was_closed = true
+    end
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
 
 """
@@ -979,9 +912,8 @@ function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real
         perimeter += sqrt(dx^2 + dy^2)
     end
 
-    # Check if the polygon is closed (optional)
-    # If not closed, add distance from last point to first point
-    if r[1] != r[end] || z[1] != z[end]
+    # If open, add distance from last point to first point
+    if is_open_polygon(r, z)
         dx = r[1] - r[end]
         dy = z[1] - z[end]
         perimeter += sqrt(dx^2 + dy^2)

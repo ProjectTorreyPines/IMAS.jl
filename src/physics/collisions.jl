@@ -40,7 +40,7 @@ function lnΛ_ei(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi:
     lnΛ = zeros(promote_type(S, P, Q, R, T), ni)
     m_e = constants.m_e / constants.m_u
 
-    for i = 1:length(ni)
+    for i in 1:length(ni)
         mr = m_e / mi[i]
         if Ti[i] * mr < Te < 10Zi[i]^2
             lnΛ[i] = 23 - log(sqrt(ne) * Zi[i] * Te^(-3 / 2))

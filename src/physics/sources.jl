@@ -1,7 +1,7 @@
 """
     fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
 
-Calculates fusion source from D-T and D-D reactions and modifies dd.core_sources
+Calculates fusion source from D-T and D-D reactions and adds them to `dd.core_sources`
 """
 function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; only_DT::Bool=false)
     D_T_to_He4_source!(cs, cp)
@@ -19,7 +19,7 @@ end
 """
     collisional_exchange_source!(dd::IMAS.dd)
 
-Calculates collisional exchange source and modifies `dd.core_sources`
+Calculates collisional exchange source and adds it to `dd.core_sources`
 """
 function collisional_exchange_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -27,18 +27,19 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.ion[1].temperature
 
-    nu_exch = collision_frequencies(dd)[3]
+    nu_exch = collision_frequencies(dd).nu_exch
     delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
 
     source = resize!(dd.core_sources.source, :collisional_equipartition; wipe=false)
-    new_source(source, source.identifier.index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=-delta, total_ion_energy=delta)
+    new_source(source, source.identifier.index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+        electrons_energy=-delta, total_ion_energy=delta)
     return source
 end
 
 """
     ohmic_source!(dd::IMAS.dd)
 
-Calculates the ohmic source from data in `dd.core_profiles` and modifies `dd.core_sources`
+Calculates the ohmic source from data in `dd.core_profiles` and adds it to `dd.core_sources`
 """
 function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -46,7 +47,8 @@ function ohmic_source!(dd::IMAS.dd)
     if j_ohmic !== missing
         powerDensityOhm = j_ohmic .^ 2 ./ cp1d.conductivity_parallel
         source = resize!(dd.core_sources.source, :ohmic; wipe=false)
-        new_source(source, source.identifier.index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
+        new_source(source, source.identifier.index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+            electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
         return source
     end
 end
@@ -54,14 +56,15 @@ end
 """
     bootstrap_source!(dd::IMAS.dd)
 
-Calculates the bootsrap current source from data in `dd.core_profiles` and modifies `dd.core_sources`
+Calculates the bootsrap current source from data in `dd.core_profiles` and adds it to `dd.core_sources`
 """
 function bootstrap_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     j_bootstrap = getproperty(cp1d, :j_bootstrap, missing)
     if j_bootstrap !== missing
         source = resize!(dd.core_sources.source, :bootstrap_current; wipe=false)
-        new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; j_parallel=j_bootstrap)
+        new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+            j_parallel=j_bootstrap)
         return source
     end
 end
@@ -69,7 +72,7 @@ end
 """
     sources!(dd::IMAS.dd)
 
-Calculates intrisic sources and sinks and adds them to dd.core_sources
+Calculates intrisic sources and sinks and adds them to `dd.core_sources`
 """
 function sources!(dd::IMAS.dd)
     IMAS.bootstrap_source!(dd)
@@ -78,7 +81,57 @@ function sources!(dd::IMAS.dd)
     IMAS.bremsstrahlung_source!(dd)
     IMAS.line_radiation_source!(dd)
     IMAS.synchrotron_source!(dd)
-    return IMAS.fusion_source!(dd)
+    IMAS.fusion_source!(dd)
+    return nothing
+end
+
+"""
+    time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
+
+Calculates the time dependent sources and sinks and adds them to `dd.core_sources`
+"""
+function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
+    cp1d = dd.core_profiles.profiles_1d[]
+    eqt = dd.equilibrium.time_slice[]
+
+    R_flux_avg = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.gm8).(cp1d.grid.rho_tor_norm)
+    ddt_sources = time_derivative_source!(cp1d, cp1d_old, Δt, R_flux_avg)
+
+    source = resize!(dd.core_sources.source, :time_derivative; wipe=false)
+    new_source(source, source.identifier.index, "∂/∂t term", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+        electrons_energy=ddt_sources.Qe, total_ion_energy=ddt_sources.Qi, electrons_particles=ddt_sources.Sne, momentum_tor=ddt_sources.PI)
+
+    return source
+end
+
+"""
+    time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
+
+These are the ∂/∂t term in the transport equations
+"""
+function time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R2_flux_avg::Vector)
+    Sne = -(cp1d_new.electrons.density .- cp1d_old.electrons.density) / Δt
+
+    Qe = -1.5 * (cp1d_new.electrons.pressure .- cp1d_old.electrons.pressure) / Δt
+
+    Qi = -1.5 * (cp1d_new.pressure_ion_total .- cp1d_old.pressure_ion_total) / Δt
+
+    d1 = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R2_flux_avg / Δt
+    d2 = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R2_flux_avg / Δt
+    PI = d2 - d1
+
+    return (Sne=Sne, Qi=Qi, Qe=Qe, PI=PI)
+end
+
+"""
+    total_mass_density(cp1d::IMAS.core_profiles__profiles_1d)
+"""
+function total_mass_density(cp1d::IMAS.core_profiles__profiles_1d)
+    mass_density = constants.m_e * cp1d.electrons.density
+    for ion in cp1d.ion
+        mass_density .+= ion.density * ion.element[1].a * constants.m_p
+    end
+    return mass_density
 end
 
 """
@@ -161,14 +214,21 @@ function total_sources(
         end
     end
 
-    all_indexes = [source.identifier.index for source in core_sources.source]
+    # initialize total_sources.profiles_1d[].ion
+    total_source1d_ions = IMAS.core_sources__source___profiles_1d___ion[]
+    for source in core_sources.source
+        source1d = source.profiles_1d[Float64(cp1d.time)]
+        for ion in source1d.ion
+            l = length(total_source1d.ion)
+            tmp = resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+            if l != length(total_source1d.ion)
+                push!(total_source1d_ions, tmp)
+            end
+        end
+    end
 
     # zero out total_sources
-    for sub in (nothing, :electrons)
-        ids1 = total_source1d
-        if sub !== nothing
-            ids1 = getproperty(ids1, sub)
-        end
+    for ids1 in [[total_source1d, total_source1d.electrons]; total_source1d_ions]
         for field in keys(ids1)
             if field in keys(matching)
                 setproperty!(ids1, field, zeros(T, size(rho)))
@@ -176,7 +236,8 @@ function total_sources(
         end
     end
 
-    # start accumulating 
+    # start accumulating
+    all_indexes = [source.identifier.index for source in core_sources.source]
     for source in core_sources.source
         if isempty(include_indexes) || source.identifier.index ∈ include_indexes
             # pass
@@ -193,28 +254,37 @@ function total_sources(
         elseif (source.identifier.index) == 1 && any(all_indexes .> 1)
             @debug "total_sources() skipping total source with index $(source.identifier.index)"
             continue
-        elseif (source.identifier.index) == 200 && any(300 > all_indexes > 200)
+        elseif (source.identifier.index) == 200 && any(300 .> all_indexes .> 200)
             @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
             continue
         elseif source.identifier.index ∈ exclude_indexes
             continue
         end
-        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
-
         if isempty(source.profiles_1d)
-            continue
+            continue # skip sources that have no profiles_1d
+        end
+        if source.profiles_1d[1].time > Float64(cp1d.time)
+            continue # skip sources that start after time of interest
         end
 
+        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
         @debug "total_sources() including $source_name source with index $(source.identifier.index)"
+
         source1d = source.profiles_1d[Float64(cp1d.time)]
-        x = source1d.grid.rho_tor_norm
-        for sub in (nothing, :electrons)
-            ids1 = total_source1d
-            ids2 = source1d
-            if sub !== nothing
-                ids1 = getproperty(ids1, sub)
-                ids2 = getproperty(ids2, sub)
+
+        # ions that this source contributes to
+        ion_ids1_ids2 = []
+        for total_source1d_ion in total_source1d_ions
+            for source1d_ion in source1d.ion
+                if total_source1d_ion.label == source1d_ion.label
+                    push!(ion_ids1_ids2, (total_source1d_ion, source1d_ion))
+                end
             end
+        end
+
+        # add to the tallies for this source
+        x = source1d.grid.rho_tor_norm
+        for (ids1, ids2) in [[(total_source1d, source1d), (total_source1d.electrons, source1d.electrons)]; ion_ids1_ids2]
             for field in keys(ids1)
                 if (isempty(fields) || field ∈ fields || (field ∈ keys(matching) && matching[field] ∈ fields)) && field ∈ keys(matching)
                     if hasdata(ids2, field) || hasdata(ids2, matching[field])
@@ -229,13 +299,17 @@ function total_sources(
         end
     end
 
+    # ion.energy source is always zero
+    for total_source1d_ion in total_source1d_ions
+        empty!(total_source1d_ion, :energy)
+    end
+
     return total_source1d
 end
 
 function total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
     return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
 end
-
 
 function total_radiation_sources(
     core_sources::IMAS.core_sources{T},

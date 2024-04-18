@@ -133,7 +133,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     end
 
     ############ 
-    R0, B0 = vacuum_r0_b0(eqt)
+    R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
@@ -146,12 +146,15 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
-        # SOL with wall
-        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
-        psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS
+        psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
+        # limited plasma
+        if isnan(psi_last_lfs) && isnan(psi_first_lfs_far)
+            error("IMAS.sol cannot yet handle limited plasmas")
+        end
     else
         # SOL without wall
         psi_wall_midplane = find_psi_max(eqt)
@@ -170,12 +173,12 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     elseif typeof(levels) <: Int
         levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
-    
+
         indexx = argmin(abs.(levels .- psi_last_lfs))
         levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
         # add 2nd sep, sort in increasing order and remove doubles (it could happen that psi__boundary_level = psi_last_lfs = psi_2ndseparatrix in DN)
-        levels = unique!(sort(vcat(levels, psi__2nd_separatix))) 
-        
+        levels = unique!(sort(vcat(levels, psi__2nd_separatix)))
+
         if psi_sign == -1
             # if psi is decreasing we must sort in decreasing order
             levels = reverse!(levels)
@@ -183,18 +186,25 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     else
         #levels is a vector of psi_levels for the discretization of the SOL
-        @assert psi_sign*levels[1] >= psi_sign*psi__boundary_level
-        @assert psi_sign*levels[end] <= psi_sign*psi_wall_midplane
+        @assert psi_sign * levels[1] >= psi_sign * psi__boundary_level
+        @assert psi_sign * levels[end] <= psi_sign * psi_wall_midplane
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
         levels[1] = psi__boundary_level
-        levels[end] = psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane)
+        push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))
+        levels = unique!(sort!(levels)) 
+
+        if psi_sign == -1
+            # if psi is decreasing we must sort in decreasing order
+            levels = reverse!(levels)
+        end
+
     end
 
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
     # TO DO for the future: insert private flux regions (upper and lower)
-    
+
     for level in levels
         lines, _ = flux_surface(eqt, level, :open) #returns (r,z) of surfaces with psi = level
 
@@ -209,19 +219,17 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
                 # Add SOL surface in OFL_hfs
                 ofl_type = :hfs
             else
-                    if ofl.z[1] * ofl.z[end] < 0
-                        # if z[1] and z[end] have different sign, for sure it is :lfs_far
-                        # Add SOL surface in OFL_lfs
-                        ofl_type = :lfs_far
-                    elseif psi_sign * level < psi_sign * threshold
-                        # if z[1] and z[end] have same sign, check psi
-                        # Add SOL surface in OFL_lfs_far
-
-                        ofl_type = :lfs
-                    else
-                        
-                        ofl_type = :lfs_far
-                    end
+                if ofl.z[1] * ofl.z[end] < 0
+                    # if z[1] and z[end] have different sign, for sure it is :lfs_far
+                    # Add SOL surface in OFL_lfs
+                    ofl_type = :lfs_far
+                elseif psi_sign * level < psi_sign * threshold
+                    # if z[1] and z[end] have same sign, check psi
+                    # Add SOL surface in OFL_lfs_far
+                    ofl_type = :lfs
+                else
+                    ofl_type = :lfs_far
+                end
 
             end
 
@@ -261,6 +269,14 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"
     # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
     r_z_index = [k[1] for k in indexes] #index of vectors (r,z) of all crossing point
+
+    crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw inner midplane (IMP) with wall
+    r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP  
+    r_wall_imp = r_wall_imp[1] # make it float
+
+    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
+    r_wall_omp = r_wall_omp[1] # make it float
 
     if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[]
@@ -308,7 +324,8 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
     rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
-    if sum(rr .< minimum(wall_r)) > 0 || sum(rr .> maximum(wall_r)) > 0
+    # remove surfaces that cross midplane outiside the wall
+    if sum(rr .< r_wall_imp) > 0 || sum(rr .> r_wall_omp) > 0
         return Float64[], Float64[], Float64[], Int64[]
     end
     # sort clockwise (COCOS 11) 
@@ -399,7 +416,7 @@ function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z
-    return Bp(PSI_interpolant, [R_omp], [Z_omp])[1]
+    return Bp(PSI_interpolant, R_omp, Z_omp)
 end
 
 """
@@ -541,7 +558,7 @@ Parallel heat flux [W/m^2] at the outer midplane based on Eigh λ_q
 """
 function q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     eq1d = eqt.profiles_1d
-    R0, B0 = vacuum_r0_b0(eqt)
+    R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     R_omp = eq1d.r_outboard[end]
     Bt_omp = B0 * R0 / R_omp
     return q_pol_omp_eich(eqt, cp1d, core_sources) / sin(atan(Bpol_omp(eqt) / Bt_omp))

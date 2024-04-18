@@ -7,6 +7,7 @@ on:
     branches:
       - master
   pull_request:
+
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
@@ -35,7 +36,7 @@ jobs:
             using Pkg
             Pkg.activate(".")
             dependencies = PackageSpec[]
-            for package in ("IMASDD", "CoordinateConventions", "MillerExtendedHarmonic")
+            for package in ("IMASDD", "CoordinateConventions", "MillerExtendedHarmonic", "FXP")
               push!(dependencies, PackageSpec(url="https://project-torrey-pines:${{secrets.PTP_READ_TOKEN}}@github.com/ProjectTorreyPines/$package.jl.git"))
             end
             Pkg.add(dependencies)

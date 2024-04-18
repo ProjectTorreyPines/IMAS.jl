@@ -10,12 +10,12 @@ const dynamic_expressions = dyexp = Dict{String,Function}()
 # the coordinates of the quantitiy you are writing the expression of
 # 
 # For example, this will FAIL:
-#    dyexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 #
 # This is GOOD:
-#    dyexp["core_profiles.profiles_1d[:].electrons.pressure"] =
-#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density * 1.60218e-19
+#    dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
+#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
 
 #= =========== =#
 # core_profiles #
@@ -30,7 +30,7 @@ dyexp["core_profiles.profiles_1d[:].electrons.density_fast"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
-    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density .* constants.e
+    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal .* constants.e
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_fast_parallel"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
@@ -55,13 +55,26 @@ dyexp["core_profiles.profiles_1d[:].t_i_average"] =
     (rho_tor_norm; profiles_1d, _...) -> t_i_average(profiles_1d)
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density"] =
-    (rho_tor_norm; ion, _...) -> ion.density_thermal .+ ion.density_fast
+    (rho_tor_norm; ion, _...) -> begin
+        if ismissing(ion, :density_thermal) && ismissing(ion, :density_fast)
+            return zero(rho_tor_norm)
+        elseif ismissing(ion, :density_thermal) && !ismissing(ion, :density_fast)
+            return ion.density_fast
+        elseif !ismissing(ion, :density_thermal) && ismissing(ion, :density_fast)
+            return ion.density_thermal
+        else
+            return ion.density_thermal .+ ion.density_fast
+        end
+    end    
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density_fast"] =
-    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+    (rho_tor_norm; ion, _...) -> ion.density .- ion.density_thermal
+
+dyexp["core_profiles.profiles_1d[:].ion[:].density_thermal"] =
+    (rho_tor_norm; ion, _...) -> ion.density .- ion.density_fast
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_thermal"] =
-    (rho_tor_norm; ion, _...) -> ion.temperature .* ion.density .* constants.e
+    (rho_tor_norm; ion, _...) -> ion.temperature .* ion.density_thermal .* constants.e
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_fast_parallel"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
@@ -86,10 +99,12 @@ dyexp["core_profiles.profiles_1d[:].pressure_thermal"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.electrons.pressure_thermal .+ profiles_1d.pressure_ion_total
 
 dyexp["core_profiles.profiles_1d[:].pressure_parallel"] =
-    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_parallel .+ sum(ion.pressure_fast_parallel for ion in profiles_1d.ion)
+    (rho_tor_norm; profiles_1d, _...) ->
+        profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_parallel .+ sum(ion.pressure_fast_parallel for ion in profiles_1d.ion)
 
 dyexp["core_profiles.profiles_1d[:].pressure_perpendicular"] =
-    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_perpendicular .+ sum(ion.pressure_fast_perpendicular for ion in profiles_1d.ion)
+    (rho_tor_norm; profiles_1d, _...) ->
+        profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_perpendicular .+ sum(ion.pressure_fast_perpendicular for ion in profiles_1d.ion)
 
 dyexp["core_profiles.profiles_1d[:].pressure"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_perpendicular .* 2.0 .+ profiles_1d.pressure_parallel
@@ -116,21 +131,15 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
-#  core_profiles.vacuum_toroidal_field  #
-
-dyexp["core_profiles.vacuum_toroidal_field.b0"] =
-    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
-
-dyexp["core_profiles.vacuum_toroidal_field.r0"] =
-    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
-
 #  core_profiles.global_quantities  #
 
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
-    (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_non_inductive) for time in core_profiles.time]
+    (time; core_profiles, _...) ->
+        [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_non_inductive) for time in core_profiles.time]
 
 dyexp["core_profiles.global_quantities.current_bootstrap"] =
-    (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
+    (time; core_profiles, _...) ->
+        [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
 
 dyexp["core_profiles.global_quantities.ip"] =
     (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_tor) for time in core_profiles.time]
@@ -141,23 +150,22 @@ dyexp["core_profiles.global_quantities.beta_tor_norm"] =
 dyexp["core_profiles.global_quantities.v_loop"] =
     (time; dd, _...) -> [v_loop(core_profiles.profiles_1d[Float64(time)]) for time in dd.core_profiles.time]
 
+dyexp["core_profiles.profiles_1d[:].time"] =
+    (; core_profiles, profiles_1d_index, _...) -> begin
+        return core_profiles.time[profiles_1d_index]
+    end
+
 #= ============ =#
 # core_transport #
 #= ============ =#
-dyexp["core_transport.vacuum_toroidal_field.b0"] =
-    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
-
-dyexp["core_transport.vacuum_toroidal_field.r0"] =
-    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
+dyexp["core_transport.model[:].profiles_1d[:].time"] =
+    (; core_transport, profiles_1d_index, _...) -> begin
+        return core_transport.time[profiles_1d_index]
+    end
 
 #= ========= =#
 # equilibrium #
 #= ========= =#
-# IMAS does not hold B0 information in a given time slice, but we can get that info from `B0=f/R0`
-# This trick propagates the B0 information to a time_slice even when that time_slice has not been initialized with profiles_1d data
-dyexp["equilibrium.time_slice[:].profiles_1d.f"] =
-    (psi; equilibrium, time_slice_index, _...) -> (psi === missing ? [1] : ones(size(psi))) .* (equilibrium.vacuum_toroidal_field.b0[time_slice_index] * equilibrium.vacuum_toroidal_field.r0)
-
 dyexp["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
     (; time_slice, _...) -> 3 / 2 * integrate(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
@@ -182,8 +190,15 @@ dyexp["equilibrium.time_slice[:].global_quantities.magnetic_axis.r"] =
 dyexp["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
     (; time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[1]
 
+
+dyexp["equilibrium.time_slice[:].global_quantities.vacuum_toroidal_field.b0"] =
+    (; dd, time_slice, _...) -> get_time_array(dd.pulse_schedule.tf.b_field_tor_vacuum, :reference, time_slice.time, :linear)
+
+dyexp["equilibrium.time_slice[:].global_quantities.vacuum_toroidal_field.r0"] =
+    (; dd, _...) -> dd.pulse_schedule.tf.r0
+
 dyexp["equilibrium.time_slice[:].global_quantities.magnetic_axis.b_field_tor"] =
-    (; equilibrium, time_slice_index, _...) -> equilibrium.vacuum_toroidal_field.b0[time_slice_index] * equilibrium.vacuum_toroidal_field.r0 / equilibrium.time_slice[time_slice_index].boundary.geometric_axis.r
+    (; time_slice, _...) -> time_slice.global_quantities.vacuum_toroidal_field.b0 * time_slice.global_quantities.vacuum_toroidal_field.r0 / time_slice.boundary.geometric_axis.r
 
 dyexp["equilibrium.time_slice[:].profiles_1d.geometric_axis.r"] =
     (psi; time_slice, _...) -> (time_slice.profiles_1d.r_outboard .+ time_slice.profiles_1d.r_inboard) .* 0.5
@@ -192,10 +207,25 @@ dyexp["equilibrium.time_slice[:].profiles_1d.geometric_axis.z"] =
     (psi; time_slice, _...) -> psi .* 0.0 .+ time_slice.global_quantities.magnetic_axis.z
 
 dyexp["equilibrium.time_slice[:].boundary.geometric_axis.r"] =
-    (; time_slice, _...) -> time_slice.profiles_1d.geometric_axis.r[end]
+    (; time_slice, _...) -> begin
+        if !ismissing(time_slice.profiles_1d.geometric_axis, :r)
+            return time_slice.profiles_1d.geometric_axis.r[end]
+        else
+            minR, maxR = extrema(time_slice.boundary.outline.r)
+            return (minR + maxR) / 2
+        end
+    end
 
 dyexp["equilibrium.time_slice[:].boundary.geometric_axis.z"] =
-    (; time_slice, _...) -> time_slice.profiles_1d.geometric_axis.z[end]
+    (; time_slice, _...) -> begin
+        if !ismissing(time_slice.profiles_1d.geometric_axis, :z)
+            return time_slice.profiles_1d.geometric_axis.z[end]
+        else
+            minZ, maxZ = extrema(time_slice.boundary.outline.z)
+            return (minZ + maxZ) / 2
+        end
+    end
+
 
 dyexp["equilibrium.time_slice[:].boundary.minor_radius"] =
     (; time_slice, _...) -> (time_slice.profiles_1d.r_outboard[end] - time_slice.profiles_1d.r_inboard[end]) * 0.5
@@ -270,13 +300,6 @@ dyexp["equilibrium.time_slice[:].profiles_1d.dpsi_drho_tor"] =
 dyexp["equilibrium.time_slice[:].profiles_1d.psi_norm"] =
     (psi; _...) -> norm01(psi)
 
-
-dyexp["equilibrium.vacuum_toroidal_field.b0"] =
-    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
-
-dyexp["equilibrium.vacuum_toroidal_field.r0"] =
-    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
-
 # 2D
 dyexp["equilibrium.time_slice[:].profiles_2d[:].r"] =
     (dim1, dim2; _...) -> ones(length(dim2))' .* dim1
@@ -307,6 +330,12 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =
         dBzdR = gradient(dim1, dim2, profiles_2d.b_field_z, 1)
         dBrdZ = gradient(dim1, dim2, profiles_2d.b_field_r, 2)
         return (dBrdZ - dBzdR) ./ constants.μ_0
+    end
+
+
+dyexp["equilibrium.time_slice[:].time"] =
+    (; equilibrium, time_slice_index, _...) -> begin
+        return equilibrium.time[time_slice_index]
     end
 
 #= ============ =#
@@ -389,12 +418,10 @@ dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles"] =
         gradient(profiles_1d.grid.volume, ion.particles_inside)
     end
 
-
-dyexp["core_sources.vacuum_toroidal_field.b0"] =
-    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
-
-dyexp["core_sources.vacuum_toroidal_field.r0"] =
-    (; dd, _...) -> vacuum_r0_b0_time(dd)[1]
+dyexp["core_sources.source[:].profiles_1d[:].time"] =
+    (; core_sources, profiles_1d_index, _...) -> begin
+        return core_sources.time[profiles_1d_index]
+    end
 
 #= ===== =#
 #  build  #
@@ -431,10 +458,10 @@ dyexp["build.layer[:].volume"] =
     (; layer, _...) -> volume(layer)
 
 dyexp["build.tf.ripple"] =
-    (; build, _...) -> tf_ripple(get_build_layer(build.layer, type=_plasma_).end_radius, get_build_layer(build.layer, type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
+    (; build, _...) -> tf_ripple(get_build_layer(build.layer; type=_plasma_).end_radius, get_build_layer(build.layer; type=_tf_, fs=_lfs_).start_radius, build.tf.coils_n)
 
 dyexp["build.tf.wedge_thickness"] =
-    (; build, _...) -> 2π * get_build_layer(build.layer, type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
+    (; build, _...) -> 2π * get_build_layer(build.layer; type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
 
 #= ======= =#
 #  costing  #
@@ -461,18 +488,19 @@ dyexp["costing.cost_decommissioning.cost"] =
 #  BalanceOfPlant  #
 #= ============== =#
 dyexp["balance_of_plant.Q_plant"] =
-    (time; balance_of_plant, _...) -> balance_of_plant.thermal_cycle.power_electric_generated ./ balance_of_plant.power_electric_plant_operation.total_power
+    (time; balance_of_plant, _...) -> balance_of_plant.power_plant.power_electric_generated ./ balance_of_plant.power_electric_plant_operation.total_power
 
 dyexp["balance_of_plant.power_electric_net"] =
-    (time; balance_of_plant, _...) -> balance_of_plant.thermal_cycle.power_electric_generated .- balance_of_plant.power_electric_plant_operation.total_power
+    (time; balance_of_plant, _...) -> balance_of_plant.power_plant.power_electric_generated .- balance_of_plant.power_electric_plant_operation.total_power
 
 dyexp["balance_of_plant.power_electric_plant_operation.total_power"] =
     (time; power_electric_plant_operation, _...) -> sum(sys.power for sys in power_electric_plant_operation.system)
 
-dyexp["balance_of_plant.thermal_cycle.total_useful_heat_power"] =
-    (time; balance_of_plant, _...) -> balance_of_plant.heat_transfer.wall.heat_delivered .+ balance_of_plant.heat_transfer.divertor.heat_delivered .+ balance_of_plant.heat_transfer.breeder.heat_delivered
+dyexp["balance_of_plant.power_plant.total_useful_heat_power"] =
+    (time; balance_of_plant, _...) ->
+        balance_of_plant.heat_transfer.wall.heat_delivered .+ balance_of_plant.heat_transfer.divertor.heat_delivered .+ balance_of_plant.heat_transfer.breeder.heat_delivered
 
-dyexp["balance_of_plant.thermal_cycle.power_electric_generated"] =
+dyexp["balance_of_plant.power_plant.power_electric_generated"] =
     (time; balance_of_plant, thermal_cycle, _...) -> thermal_cycle.net_work .* thermal_cycle.generator_conversion_efficiency
 
 #= ========= =#
@@ -540,6 +568,34 @@ dyexp["divertors.divertor[:].power_recombination_plasma.time"] =
 dyexp["divertors.divertor[:].power_recombination_plasma.data"] =
     (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_plasma)[2]
 
+#= ============== =#
+#  pulse_schedule  #
+#= ============== =#
+dyexp["pulse_schedule.time"] =
+    (time; pulse_schedule, _...) -> begin
+        all_times = Float64[]
+        for item in keys(pulse_schedule)
+            if typeof(getfield(pulse_schedule, item)) <: IDS
+                ids = getfield(pulse_schedule, item)
+                if hasfield(typeof(ids), :time) && !ismissing(ids, :time)
+                    append!(all_times, ids.time)
+                end
+            end
+        end
+        return sort!(unique(all_times))
+    end
+
+dyexp["pulse_schedule.tf.b_field_tor_vacuum_r.reference"] =
+    (time; tf, _...) ->  tf.r0 .* tf.b_field_tor_vacuum.reference 
+
+dyexp["pulse_schedule.tf.r0"] =
+    (; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.r0
+
+dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
+    (time; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.b0
+
+dyexp["pulse_schedule.tf.time"] =
+    (time; dd, _...) ->  dd.equilibrium.time
 
 #= ========= =#
 #  stability  #
@@ -570,12 +626,6 @@ dyexp["summary.fusion.power.value"] = # NOTE: This is the fusion power that is c
 
 dyexp["summary.global_quantities.ip.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.ip for time0 in time]
-
-dyexp["summary.global_quantities.b0.value"] =
-    (time; dd, _...) -> vacuum_r0_b0_time(dd, time)[2]
-
-dyexp["summary.global_quantities.r0.value"] =
-    (; dd, summary, _...) -> vacuum_r0_b0_time(dd)[1]
 
 dyexp["summary.global_quantities.current_bootstrap.value"] =
     (time; dd, summary, _...) -> begin
@@ -652,7 +702,11 @@ dyexp["summary.heating_current_drive.power_launched_nbi.value"] =
     (time; dd, summary, _...) -> sum(interp1d(unit.power_launched.time, unit.power_launched.data, :constant).(summary.time) for unit in dd.nbi.unit)
 
 dyexp["summary.heating_current_drive.power_launched_total.value"] =
-    (time; dd, summary, _...) -> getproperty(dd.summary.heating_current_drive.power_launched_nbi, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ec, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_ic, :value, zeros(length(summary.time))) .+ getproperty(dd.summary.heating_current_drive.power_launched_lh, :value, zeros(length(summary.time)))
+    (time; dd, summary, _...) ->
+        getproperty(dd.summary.heating_current_drive.power_launched_nbi, :value, zeros(length(summary.time))) .+
+        getproperty(dd.summary.heating_current_drive.power_launched_ec, :value, zeros(length(summary.time))) .+
+        getproperty(dd.summary.heating_current_drive.power_launched_ic, :value, zeros(length(summary.time))) .+
+        getproperty(dd.summary.heating_current_drive.power_launched_lh, :value, zeros(length(summary.time)))
 
 
 dyexp["summary.local.magnetic_axis.t_e.value"] =

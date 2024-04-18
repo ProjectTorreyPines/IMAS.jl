@@ -11,20 +11,28 @@ const gacode_units = (
 )
 
 struct flux_solution{T<:Real}
-    PARTICLE_FLUX_e::T
-    STRESS_TOR_i::T
     ENERGY_FLUX_e::T
     ENERGY_FLUX_i::T
+    PARTICLE_FLUX_e::T
+    PARTICLE_FLUX_i::Vector{T}
+    STRESS_TOR_i::T
+end
+
+function flux_solution(PARTICLE_FLUX_e::T, STRESS_TOR_i::T, ENERGY_FLUX_e::T, ENERGY_FLUX_i::T) where {T<:Real}
+    # function used for backward compatibility when we used not to track PARTICLE_FLUX_i for individual ion species
+    # NOTE: also order of field has changed!
+    return flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[], STRESS_TOR_i)
 end
 
 function Base.show(io::IO, sol::flux_solution)
     txt = """
-    Γe = $(sol.PARTICLE_FLUX_e)
-    Πi = $(sol.STRESS_TOR_i)
     Qe = $(sol.ENERGY_FLUX_e)
     Qi = $(sol.ENERGY_FLUX_i)
+    Γe = $(sol.PARTICLE_FLUX_e)
+    Γi = $(sol.PARTICLE_FLUX_i)
+    Πi = $(sol.STRESS_TOR_i)
     """
-    print(io, txt)
+    return print(io, txt)
 end
 
 function c_s(cp1d::IMAS.core_profiles__profiles_1d)
@@ -48,13 +56,14 @@ function gyrobohm_energy_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
 end
 
 function gyrobohm_particle_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    norm =  constants.e .* cp1d.electrons.temperature
+    norm = constants.e .* cp1d.electrons.temperature
     return gyrobohm_energy_flux(cp1d, eqt) ./ norm
 end
 
 function gyrobohm_momentum_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     return cp1d.electrons.density_thermal .* gacode_units.m³_to_cm³ .* gacode_units.k .* cp1d.electrons.temperature .*
-           eqt.boundary.minor_radius .* gacode_units.m_to_cm .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.Erg_to_J .* gacode_units.m_to_cm^2
+           eqt.boundary.minor_radius .* gacode_units.m_to_cm .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.Erg_to_J .*
+           gacode_units.m_to_cm^2
 end
 
 """
@@ -68,28 +77,36 @@ function volume_prime_miller_correction(eqt::IMAS.equilibrium__time_slice)
 end
 
 """
-    flux_gacode_to_fuse(flux_types::Vector{Symbol}, flux_solutions::Vector{<:IMAS.flux_solution}, m1d::IMAS.core_transport__model___profiles_1d, eqt::IMAS.equilibrium__time_slice, cp1d::core_profiles__profiles_1d)
+    flux_gacode_to_fuse(
+        flux_types::Vector{Symbol},
+        flux_solutions::Vector{<:IMAS.flux_solution},
+        m1d::IMAS.core_transport__model___profiles_1d,
+        eqt::IMAS.equilibrium__time_slice,
+        cp1d::core_profiles__profiles_1d)
 
 Normalizes specified transport fluxes output by GA code via gyrobohm normalization and Miller volume correction
 """
-function flux_gacode_to_fuse(flux_types::Vector{Symbol}, flux_solutions::Vector{<:IMAS.flux_solution}, m1d::IMAS.core_transport__model___profiles_1d, eqt::IMAS.equilibrium__time_slice, cp1d::core_profiles__profiles_1d)
+function flux_gacode_to_fuse(
+    flux_types::Vector{Symbol},
+    flux_solutions::Vector{<:IMAS.flux_solution},
+    m1d::IMAS.core_transport__model___profiles_1d,
+    eqt::IMAS.equilibrium__time_slice,
+    cp1d::core_profiles__profiles_1d)
 
     rho_eq_idxs = [argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
     rho_cp_idxs = [argmin(abs.(cp1d.grid.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
 
     ga_tr = Dict(
-        :ion_energy_flux=>[m1d.total_ion_energy, gyrobohm_energy_flux, :ENERGY_FLUX_i],
-        :electron_energy_flux=>[m1d.electrons.energy, gyrobohm_energy_flux, :ENERGY_FLUX_e],
-        :electron_particle_flux=>[m1d.electrons.particles, gyrobohm_particle_flux, :PARTICLE_FLUX_e],
-        :momentum_flux=>[m1d.momentum_tor, gyrobohm_momentum_flux, :STRESS_TOR_i])
+        :ion_energy_flux => [m1d.total_ion_energy, gyrobohm_energy_flux, :ENERGY_FLUX_i],
+        :electron_energy_flux => [m1d.electrons.energy, gyrobohm_energy_flux, :ENERGY_FLUX_e],
+        :electron_particle_flux => [m1d.electrons.particles, gyrobohm_particle_flux, :PARTICLE_FLUX_e],
+        :momentum_flux => [m1d.momentum_tor, gyrobohm_momentum_flux, :STRESS_TOR_i])
 
-    vprime_miller = volume_prime_miller_correction(eqt)    
+    vprime_miller = volume_prime_miller_correction(eqt)
 
     for flux_type in flux_types
-        result = ga_tr[flux_type][2](cp1d, eqt)[rho_cp_idxs] .* 
-        [getproperty(f, ga_tr[flux_type][3]) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
+        result = ga_tr[flux_type][2](cp1d, eqt)[rho_cp_idxs] .* [getproperty(f, ga_tr[flux_type][3]) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
 
         setproperty!(ga_tr[flux_type][1], :flux, result)
     end
-
 end

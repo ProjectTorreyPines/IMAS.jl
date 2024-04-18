@@ -36,14 +36,14 @@ function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
         ϕstart = atan(TF[1].end_radius * sin(ϕwedge), TF[2].start_radius)
         ϕend2 = atan(TF[1].end_radius * sin(ϕwedge), TF[2].end_radius * 2.0)
 
-        @assert n!=0
-        if n>0
+        @assert n != 0
+        if n > 0
             x = [
                 0.1 * cos(ϕwedge),
                 TF[1].end_radius * cos(ϕwedge),
                 TF[2].end_radius * 2.0
             ]
-        
+
             y = [
                 0.1 * sin(ϕwedge),
                 TF[1].end_radius * sin(ϕwedge),
@@ -54,7 +54,7 @@ function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
                 TF[1].end_radius * cos(ϕwedge),
                 TF[2].end_radius * 2.0
             ]
-        
+
             y1 = [
                 TF[1].end_radius * sin(ϕwedge),
                 TF[2].end_radius * 2.0 * sin(ϕend2)
@@ -64,8 +64,8 @@ function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
             x2 = x1 .* cos(ϕrot) .+ y1 .* sin(ϕrot)
             y2 = x1 .* sin(ϕrot) .- y1 .* cos(ϕrot)
 
-            x = [x1;reverse(x2)]
-            y = [y1;reverse(y2)]
+            x = [x1; reverse(x2)]
+            y = [y1; reverse(y2)]
             x[end] = x[1]
             y[end] = y[1]
 
@@ -85,7 +85,7 @@ function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
             TF[2].start_radius,
             TF[2].end_radius
         ]
-    
+
         y = [
             TF[1].start_radius * sin(ϕwedge),
             TF[1].end_radius * sin(ϕwedge),

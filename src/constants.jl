@@ -13,6 +13,7 @@ Named tuple with physics constants:
     m_n = 1.67492749804e-27
     atm = 101325.0
     m_u = 1.6605390666e-27
+    avog = 6.02214076e23
 """
 const constants = (
     μ_0=float(Float64, PCs.μ_0).val,
@@ -24,7 +25,8 @@ const constants = (
     m_p=float(Float64, PCs.m_p).val,
     m_n=float(Float64, PCs.m_n).val,
     atm=float(Float64, PCs.atm).val,
-    m_u=float(Float64, PCs.m_u).val
+    m_u=float(Float64, PCs.m_u).val,
+    avog=float(Float64, PCs.AvogadroConstant).val
 )
 
 const index_2_name__core_transport__model = Dict(
@@ -84,6 +86,7 @@ const index_2_name__core_sources__source = Dict(
     401 => :neoclassical, # Source term related to neoclassical processes
     402 => :equipartition, # Equipartition due to collisions and turbulence
     403 => :turbulent_equipartition, # Turbulent equipartition
+    409 => :time_derivative, # Source based on d/dt term in transport equations
     501 => :runaways, # Source from run-away processes; includes both electron and ion run-away
     601 => :ionisation, # Source from ionisation processes (not accounting for charge exchange)
     602 => :recombination, # Source from recombination processes (not accounting for charge exchange)
@@ -93,6 +96,19 @@ const index_2_name__core_sources__source = Dict(
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:core_sources__source}
     return index_2_name__core_sources__source
+end
+
+const index_2_name__pellets__launcher___shape__type = Dict(
+    1 => :spherical,
+    2 => :cylindrical,
+    3 => :rectangular)
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:pellets__launcher___shape}
+    return index_2_name__pellets__launcher___shape__type
+end
+
+function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:pellets__launcher___shape__type}
+    return index_2_name__pellets__launcher___shape__type
 end
 
 const index_2_name__stability__collection = Dict(
@@ -232,6 +248,12 @@ function identifier_index(@nospecialize(ids::IDS); error_on_missing::Bool=true)
         else
             return nothing
         end
+    elseif :type in fieldnames(typeof(ids))
+        if hasdata(ids.type, :index) || error_on_missing
+            return ids.type.index
+        else
+            return nothing
+        end
     elseif :geometry_type in fieldnames(typeof(ids))
         if hasdata(ids, :geometry_type) || error_on_missing
             return ids.geometry_type
@@ -304,6 +326,8 @@ function Base.findfirst(identifier_name::Symbol, @nospecialize(ids::IDSvector))
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         index = findfirst(idx -> idx.grid_type.index == i, ids)
+    elseif :type in fieldnames(eltype(ids))
+        index = findfirst(idx -> idx.type.index == i, ids)
     elseif :function in fieldnames(eltype(ids))
         index = findfirst(idx -> any(func.index == i for func in idx.function), ids)
     elseif :geometry_type in fieldnames(eltype(ids))
@@ -331,6 +355,8 @@ function Base.findall(identifier_name::Symbol, @nospecialize(ids::IDSvector))
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         indexes = findall(idx -> idx.grid_type.index == i, ids)
+    elseif :type in fieldnames(eltype(ids))
+        indexes = findall(idx -> idx.type.index == i, ids)
     elseif :function in fieldnames(eltype(ids))
         indexes = findall(idx -> any(func.index == i for func in idx.function), ids)
     elseif :geometry_type in fieldnames(eltype(ids))
@@ -374,6 +400,8 @@ function Base.resize!(
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         return resize!(ids, "grid_type.index" => i, conditions...; wipe, error_multiple_matches)
+    elseif :type in fieldnames(eltype(ids))
+        return resize!(ids, "type.index" => i, conditions...; wipe, error_multiple_matches)
     elseif :geometry_type in fieldnames(eltype(ids))
         return resize!(ids, "geometry_type" => i, conditions...; wipe, error_multiple_matches)
     elseif :identifier in fieldnames(eltype(ids))
@@ -394,6 +422,8 @@ function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol, conditio
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
     elseif :grid_type in fieldnames(eltype(ids))
         return deleteat!(ids, "grid_type.index" => i, conditions...)
+    elseif :type in fieldnames(eltype(ids))
+        return deleteat!(ids, "type.index" => i, conditions...)
     elseif :geometry_type in fieldnames(eltype(ids))
         return deleteat!(ids, "geometry_type" => i, conditions...)
     elseif :identifier in fieldnames(eltype(ids))

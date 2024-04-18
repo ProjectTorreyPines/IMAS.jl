@@ -154,7 +154,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     # start from the first vacuum that goes to zero outside of the TF
     start_from = -1
     for k in get_build_indexes(bd.layer; fs=_out_)
-        if bd.layer[k].material == "Vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
+        if bd.layer[k].material == "vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
             start_from = k
             break
         end
@@ -168,7 +168,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
         end
         if valid && !ismissing(layer.outline, :r)
             outline = collect(zip(layer.outline.r, layer.outline.z))
-            if (layer.material == "Vacuum") && (layer.side != Int(_in_))
+            if (layer.material == "vacuum") && (layer.side != Int(_in_))
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) != 0
@@ -274,16 +274,15 @@ end
 """
     first_wall(wall::IMAS.wall)
 
-return outline of first wall or an empty outline if not present
+returns named tuple with (closed) outline of first wall, or an empty outline if not present
 """
-function first_wall(wall::IMAS.wall{T})::wall__description_2d___limiter__unit___outline{T} where {T<:Real}
+function first_wall(wall::IMAS.wall{T}) where {T<:Real}
     if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
-        return wall.description_2d[1].limiter.unit[1].outline
+        outline = wall.description_2d[1].limiter.unit[1].outline
+        tmp = closed_polygon(outline.r, outline.z)
+        return (r=tmp.R, z=tmp.Z)
     else
-        fw = IMAS.wall__description_2d___limiter__unit___outline{T}()
-        fw.r = Float64[]
-        fw.z = Float64[]
-        return fw
+        return (r=Float64[], z=Float64[])
     end
 end
 
@@ -340,5 +339,20 @@ function vertical_maintenance(bd::IMAS.build; tor_modularity::Int=2, pol_modular
     rVP_lfs_ob = rVP_lfs_ib + wall_thickness_VV
 
     return rVP_hfs_ib, rVP_hfs_ob, rVP_lfs_ib, rVP_lfs_ob
+end
 
+"""
+   outline(layer::Union{IMAS.build__layer, IMAS.build__structure})
+
+Returns outline as named tuple with (r,z)
+
+NOTE: returns a polygon that always closes
+"""
+function outline(layer::Union{IMAS.build__layer,IMAS.build__structure})
+    return outline(layer.outline)
+end
+
+function outline(out::Union{IMAS.build__layer___outline,IMAS.build__structure___outline})
+    tmp = closed_polygon(out.r, out.z)
+    return (r=tmp.R, z=tmp.Z)
 end

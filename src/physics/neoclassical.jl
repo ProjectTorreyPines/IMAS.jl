@@ -21,11 +21,13 @@ function collision_frequencies(dd::IMAS.dd)
     # 1/tau_ii (Belli 2008) in 1/s
     nui = zeros(length(Te))
     for ion in cp1d.ion
-        Ti = ion.temperature
-        ni = ion.density / 1E6
-        Zi = avgZ(ion.element[1].z_n, Ti)
-        mi = ion.element[1].a * mp
-        nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
+        if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
+            Ti = ion.temperature
+            ni = ion.density / 1E6
+            Zi = avgZ(ion.element[1].z_n, Ti)
+            mi = ion.element[1].a * mp
+            nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
+        end
     end
 
     # c_exch = 1.8e-19 is the formulary exch. coefficient
@@ -34,14 +36,16 @@ function collision_frequencies(dd::IMAS.dd)
     # nu_exch in 1/s
     nu_exch = zeros(length(Te))
     for ion in cp1d.ion
-        Ti = ion.temperature
-        ni = ion.density / 1E6
-        Zi = avgZ(ion.element[1].z_n, Ti)
-        mi = ion.element[1].a * mp
-        nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
+        if !ismissing(ion, :temperature)
+            Ti = ion.temperature
+            ni = ion.density / 1E6
+            Zi = avgZ(ion.element[1].z_n, Ti)
+            mi = ion.element[1].a * mp
+            nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
+        end
     end
 
-    return nue, nui, nu_exch
+    return (nue=nue, nui=nui, nu_exch=nu_exch)
 end
 
 function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool=true, same_ne_ni::Bool=false)
@@ -53,9 +57,9 @@ end
 """
     Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=true, same_ne_ni::Bool=false)
 
-* neo_2021: A.Redl, et al., Phys. Plasma 28, 022502 (2021) instead of O Sauter, et al., Phys. Plasmas 9, 5140 (2002); doi:10.1063/1.1517052 (https://crppwww.epfl.ch/~sauter/neoclassical)
+  - neo_2021: A.Redl, et al., Phys. Plasma 28, 022502 (2021) instead of O Sauter, et al., Phys. Plasmas 9, 5140 (2002); doi:10.1063/1.1517052 (https://crppwww.epfl.ch/~sauter/neoclassical)
 
-* same_ne_ni: assume same inverse scale length for electrons and ions
+  - same_ne_ni: assume same inverse scale length for electrons and ions
 """
 function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=false, same_ne_ni::Bool=false)
     psi = cp1d.grid.psi
@@ -83,7 +87,23 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, nuestar, nuistar, ip, B0; neo_2021, same_ne_ni)
 end
 
-function Sauter_neo2021_bootstrap(psi::T, ne::T, Te::T, Ti::T, pe::T, p::T, Zeff::T, fT::T, I_psi::T, nuestar::T, nuistar::T, ip::Real, B0::Real; neo_2021::Bool=false, same_ne_ni::Bool=false) where {T<:AbstractVector{<:Real}}
+function Sauter_neo2021_bootstrap(
+    psi::T,
+    ne::T,
+    Te::T,
+    Ti::T,
+    pe::T,
+    p::T,
+    Zeff::T,
+    fT::T,
+    I_psi::T,
+    nuestar::T,
+    nuistar::T,
+    ip::Real,
+    B0::Real;
+    neo_2021::Bool=false,
+    same_ne_ni::Bool=false
+) where {T<:AbstractVector{<:Real}}
     psi = psi ./ 2π # COCOS 11 to COCOS 1 --> 1/2π
     dP_dpsi = gradient(psi, p)
     dTi_dpsi = gradient(psi, Ti)
@@ -271,7 +291,7 @@ end
 function collisionless_bootstrap_coefficient(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
-    collisionless_bootstrap_coefficient(eqt, cp1d)
+    return collisionless_bootstrap_coefficient(eqt, cp1d)
 end
 
 """
@@ -285,7 +305,7 @@ function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, 
     βp = eqt.global_quantities.beta_pol
     ϵ = eqt.boundary.minor_radius / eqt.boundary.geometric_axis.r
     jbootfract = IMAS.integrate(cp1d.grid.area, cp1d.j_bootstrap) / eqt.global_quantities.ip
-    jbootfract / (sqrt(ϵ) * βp)
+    return jbootfract / (sqrt(ϵ) * βp)
 end
 
 function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
@@ -318,7 +338,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
-    nis = hcat([ion.density for ion in cp1d.ion]...)
+    nis = hcat((ion.density for ion in cp1d.ion)...)
     ni = sum(nis; dims=2)[:, 1]
     Ti = cp1d.ion[1].temperature
 

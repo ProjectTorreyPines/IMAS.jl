@@ -52,7 +52,7 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
     geometry_types = name_2_index(coils[1].element[1].geometry)
     for coil in coils
         for element in coil.element
-            for geometry_type in keys(element.geometry)
+            for geometry_type in (:outline, :rectangle, :oblique)
                 if geometry_type != :geometry_type && !ismissing(getproperty(element.geometry, geometry_type), :r)
                     element.geometry.geometry_type = geometry_types[geometry_type]
                     break
@@ -116,27 +116,37 @@ end
 """
     outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
 
-Returns geometry outline independenty of geometry_type used to describe the element
+Returns named tuple with r and z arrays outline, independent of geometry_type used to describe the element
 """
 function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
     geometry_type = index_2_name(element.geometry)[element.geometry.geometry_type]
 
-    # rectangle
     if geometry_type == :outline
         oute = element.geometry.outline
+        @assert length(oute.r) == 4 "IMAS.outline(coil) can only handle coils with 4 vertices"
+        r = StaticArrays.SVector{4}(oute.r)
+        z = StaticArrays.SVector{4}(oute.z)
 
     elseif geometry_type == :rectangle
-        r = element.geometry.rectangle.r
-        z = element.geometry.rectangle.z
-        Δr = element.geometry.rectangle.width / 2.0
-        Δz = element.geometry.rectangle.height / 2.0
-        oute = IMAS.pf_active__coil___element___geometry__outline()
-        oute.r = [-Δr, Δr, Δr, -Δr] .+ r
-        oute.z = [-Δz, -Δz, Δz, Δz] .+ z
+        rect = element.geometry.rectangle
+        Δr = 0.5 * rect.width
+        Δz = 0.5 * rect.height
+        r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ rect.r
+        z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ rect.z
+
+    elseif geometry_type == :annulus
+        # approximate annulus as square coil that has the same conducting area of the original coil
+        ann = element.geometry.annulus
+        Aout = π * ann.radius_outer^2
+        Ain = π * ann.radius_inner^2
+        A = Aout - Ain
+        Δr = Δz = sqrt(A) / 2.0
+        r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ ann.r
+        z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ ann.z
 
     else
-        error("pf_active geometry type `geometry_type` is not yet supported")
+        error("pf_active geometry type `$geometry_type` is not yet supported")
     end
 
-    return oute
+    return (r=r, z=z)
 end
