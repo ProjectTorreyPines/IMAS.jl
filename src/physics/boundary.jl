@@ -94,8 +94,8 @@ function boundary_shape(;
         else
             ukap = kapl
             utri = dell
-            uosq = zetail
-            uisq = zetaol
+            uosq = zetaol
+            uisq = zetail
         end
 
         ang = range(0, 2 * π, (npts * 4 + 1))
