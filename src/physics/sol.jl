@@ -244,7 +244,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         OFL[:lfs_far] = OFL[:lfs]
         OFL[:lfs] = tmp
     end
-
+    @assert !isempty(OFL[:lfs]) "No magnetic surfaces are found in the SOL. Try checking IMAS.line_wall_2_wall is working properly."
     return OFL
 end
 
