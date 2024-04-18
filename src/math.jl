@@ -586,7 +586,7 @@ function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
 end
 
 """
-    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
+    calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
 
 Returns the gradient scale lengths of vector f on x
 
@@ -594,7 +594,7 @@ The finite difference `method` of the gradient can be one of [:third_order, :sec
 
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
-function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}; method::Symbol=:third_order)
+function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
     g = gradient(x, f; method)
     return g ./ f
 end
@@ -860,7 +860,7 @@ function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real
         R = R[1:end-1]
         Z = Z[1:end-1]
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
 
 """
@@ -878,7 +878,7 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Re
     else
         was_closed = true
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
 
 """
@@ -894,9 +894,8 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool
     else
         was_closed = true
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
-
 
 """
     perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 

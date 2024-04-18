@@ -55,7 +55,7 @@ otexp["core_profiles.profiles_1d[:].grid.psi"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         psi = eqt.profiles_1d.psi
-        sign_psi = sign(0.5 * (psi[1] + psi[end]))
+        sign_psi = sign(psi[end] - psi[1])
         return sign_psi .* (interp1d(eqt.profiles_1d.rho_tor_norm, sqrt.(abs.(psi .- psi[1])), :cubic).(rho_tor_norm) .^ 2) .+ psi[1]
     end
 

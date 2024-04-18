@@ -849,7 +849,7 @@ Plot build cross-section
             end
         end
 
-        if any([structure.type == Int(_divertor_) for structure in bd.structure])
+        if any(structure.type == Int(_divertor_) for structure in bd.structure)
             if (isempty(only) || (:divertor in only)) && (!(:divertor in exclude_layers))
                 for (k, index) in enumerate(findall(x -> x.type == Int(_divertor_), bd.structure))
                     structure_outline = outline(bd.structure[index])
@@ -874,6 +874,33 @@ Plot build cross-section
                 end
             end
         end
+
+        # maintenance port (if any)
+        if any(structure.type == Int(_port_) for structure in bd.structure)
+            if (isempty(only) || (:port in only)) && (!(:port in exclude_layers))
+                for (k, index) in enumerate(findall(x -> x.type == Int(_port_), bd.structure))
+                    if !wireframe
+                        @series begin
+                            seriestype --> :path
+                            linewidth := 2.0
+                            color --> :lightblue
+                            label --> (!wireframe && k == 1 ? "Vessel Port" : "")
+                            xlim --> [0, maximum(bd.structure[index].outline.r)]
+                            bd.structure[index].outline.r, bd.structure[index].outline.z
+                        end
+                    end
+                    @series begin
+                        seriestype --> :path
+                        linewidth --> 0.5
+                        color --> :black
+                        label --> ""
+                        xlim --> [0, maximum(bd.structure[index].outline.r)]
+                        bd.structure[index].outline.r, bd.structure[index].outline.z
+                    end
+                end
+            end
+        end
+
 
     else  # not-cx
 
@@ -1217,7 +1244,8 @@ end
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
         end
         show_condition =
-            flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] || (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
+            flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] ||
+            (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
         @series begin
             if only === nothing
                 subplot := 1
@@ -1633,7 +1661,7 @@ end
         linewidth := linewidth + 1
         linestyle --> :dash
         color := "Black"
-        bop.thermal_cycle, :power_electric_generated
+        bop.power_plant, :power_electric_generated
     end
 
     for sys in bop.power_electric_plant_operation.system
