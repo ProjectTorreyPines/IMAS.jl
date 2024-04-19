@@ -463,6 +463,60 @@ dyexp["build.tf.ripple"] =
 dyexp["build.tf.wedge_thickness"] =
     (; build, _...) -> 2π * get_build_layer(build.layer; type=_tf_, fs=_hfs_).end_radius / build.tf.coils_n
 
+dyexp["build.tf.technology.fraction_steel"] =
+    (; build, _...) -> begin
+        material = IMAS.get_build_layer(build.layer; type=_tf_, fs=_hfs_).material
+        return sum([mat.name == "steel" ? mat.composition : 0.0 for mat in material])
+    end
+
+dyexp["build.tf.technology.ratio_SC_to_copper"] =
+    (; build, _...) -> begin
+        material = IMAS.get_build_layer(build.layer; type=_tf_, fs=_hfs_).material
+        return sum([contains(mat.name, "rebco") || contains(mat.name, "nb3sn") || contains(mat.name, "nbti") ? mat.composition : 0 for mat in material]) / sum([mat.name == "copper" ? mat.composition : 0 for mat in material])
+    end 
+   
+dyexp["build.tf.technology.fraction_void"] =
+    (; build, _...) -> begin
+    material = IMAS.get_build_layer(build.layer; type=_tf_, fs=_hfs_).material
+    return sum([mat.name == "vacuum" ? mat.composition : 0.0 for mat in material])
+end
+
+dyexp["build.oh.technology.fraction_steel"] =
+    (; build, _...) -> begin
+        material = IMAS.get_build_layer(build.layer; type=_oh_).material
+        return sum([mat.name == "steel" ? mat.composition : 0.0 for mat in material])
+    end
+
+dyexp["build.oh.technology.ratio_SC_to_copper"] =
+    (; build, _...) -> begin
+        material = IMAS.get_build_layer(build.layer; type=_oh_).material
+        return sum([contains(mat.name, "rebco") || contains(mat.name, "nb3sn") || contains(mat.name, "nbti") ? mat.composition : 0 for mat in material]) / sum([mat.name == "copper" ? mat.composition : 0 for mat in material])
+    end 
+   
+dyexp["build.oh.technology.fraction_void"] =
+    (; build, _...) -> begin
+    material = IMAS.get_build_layer(build.layer; type=_oh_).material
+    return sum([mat.name == "vacuum" ? mat.composition : 0.0 for mat in material])
+end
+
+dyexp["build.pf_active.technology.fraction_steel"] =
+    (; build, _...) -> begin
+        material = build.pf_active.technology.material
+        return sum([mat.name == "steel" ? mat.composition : 0.0 for mat in material])
+    end
+
+dyexp["build.pf_active.technology.ratio_SC_to_copper"] =
+    (; build, _...) -> begin
+        material = build.pf_active.technology.material
+        return sum([contains(mat.name, "rebco") || contains(mat.name, "nb3sn") || contains(mat.name, "nbti") ? mat.composition : 0 for mat in material]) / sum([mat.name == "copper" ? mat.composition : 0 for mat in material])
+    end 
+   
+dyexp["build.pf_active.technology.fraction_void"] =
+    (; build, _...) -> begin
+    material = build.pf_active.technology.material
+    return sum([mat.name == "vacuum" ? mat.composition : 0.0 for mat in material])
+end
+
 #= ======= =#
 #  costing  #
 #= ======= =#

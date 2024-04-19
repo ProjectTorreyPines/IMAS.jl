@@ -41,53 +41,131 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
     end
 
     if technology == :copper
-        coil_tech.material = "copper"
+        resize!(coil_tech.material, 2)
         coil_tech.temperature = 293.0
-        coil_tech.fraction_steel = 0.0
-        coil_tech.ratio_SC_to_copper = 0.0
-        coil_tech.fraction_void = 0.2
+        coil_tech.material[1].name = "copper"
+        coil_tech.material[1].composition = 0.8
+
+        coil_tech.material[2].name = "vacuum"
+        coil_tech.material[2].composition = 0.2
 
     elseif technology ∈ (:nb3sn, :nbti, :nb3sn_iter, :nb3sn_kdemo, :rebco)
+        resize!(coil_tech.material, 4)
         if technology == :nb3sn
             coil_tech.temperature = 4.2
-            coil_tech.material = "nb3sn"
-            coil_tech.fraction_void = 0.1
+            coil_tech.material[1].name = "nb3sn"
+            coil_tech.material[1].composition = 0.2
+
+            coil_tech.material[2].name = "vacuum"
+            coil_tech.material[2].composition = 0.1
+
+            coil_tech.material[3].name = "steel"
+            coil_tech.material[3].composition = 0.5
+
+            coil_tech.material[4].name = "copper"
+            coil_tech.material[4].composition = 0.2
         elseif technology == :nbti
             coil_tech.temperature = 4.2
-            coil_tech.material = "nbti"
-            coil_tech.fraction_void = 0.2 # from Supercond. Sci. Technol. 36 (2023) 075009
+            coil_tech.material[1].name = "nbti"
+            coil_tech.material[1].composition = 0.15
+
+            coil_tech.material[2].name = "vacuum"
+            coil_tech.material[2].composition = 0.2 # from Supercond. Sci. Technol. 36 (2023) 075009
+
+            coil_tech.material[3].name = "steel"
+            coil_tech.material[3].composition = 0.5
+
+            coil_tech.material[4].name = "copper"
+            coil_tech.material[4].composition = 0.15
         elseif technology == :nb3sn_iter
             coil_tech.temperature = 4.2
-            coil_tech.material = "nb3sn_iter"
-            coil_tech.fraction_void = 0.1
+            coil_tech.material[1].name = "nb3sn"
+            coil_tech.material[1].composition = 0.2
+
+            coil_tech.material[2].name = "vacuum"
+            coil_tech.material[2].composition = 0.1
+
+            coil_tech.material[3].name = "steel"
+            coil_tech.material[3].composition = 0.5
+
+            coil_tech.material[4].name = "copper"
+            coil_tech.material[4].composition = 0.2
         elseif technology == :nb3sn_kdemo
             coil_tech.temperature = 4.2
-            coil_tech.material = "nb3sn_kdemo"
+            coil_tech.material[1].name = "nb3sn_kdemo"
+            coil_tech.material[1].composition = 0.2
+
+            coil_tech.material[2].name = "vacuum"
+            coil_tech.material[2].composition = 0.1
+
+            coil_tech.material[3].name = "steel"
+            coil_tech.material[3].composition = 0.5
+
+            coil_tech.material[4].name = "copper"
+            coil_tech.material[4].composition = 0.2
+
             if coil_type == :tf
-                coil_tech.fraction_void = 0.26 # from NF 55 (2015) 053027, Table 2
+                coil_tech.material[1].name = "nb3sn_kdemo"
+                coil_tech.material[1].composition = 0.12
+
+                coil_tech.material[2].name = "vacuum"
+                coil_tech.material[2].composition = 0.26 # from NF 55 (2015) 053027, Table 2
+
+                coil_tech.material[3].name = "steel"
+                coil_tech.material[3].composition = 0.5
+
+                coil_tech.material[4].name = "copper"
+                coil_tech.material[4].composition = 0.12 
             end
         else
             coil_tech.temperature = 4.2
-            coil_tech.material = "rebco"
+            coil_tech.material[1].name = "rebco"
+            coil_tech.material[1].composition = 0.2
+
+            coil_tech.material[2].name = "vacuum"
+            coil_tech.material[2].composition = 0.1
+
+            coil_tech.material[3].name = "steel"
+            coil_tech.material[3].composition = 0.5
+
+            coil_tech.material[4].name = "copper"
+            coil_tech.material[4].composition = 0.2
+
         end
-        coil_tech.fraction_steel = 0.5
-        coil_tech.ratio_SC_to_copper = 1.0
-        coil_tech.fraction_void = 0.1
     end
 
     if technology == :nb3sn_iter
+        resize!(coil_tech.material, 4)
+        coil_tech.material[1].name = "nb3sn_iter"
+
+        coil_tech.material[2].name = "vacuum"
+        coil_tech.material[2].composition = 0.1
+
+        coil_tech.material[3].name = "steel"
+
+        coil_tech.material[4].name = "copper"
+
         if coil_type == :oh
             coil_tech.thermal_strain = -0.64
             coil_tech.JxB_strain = -0.05
-            coil_tech.fraction_steel = 0.46
+
+            coil_tech.material[1].composition = 0.22
+            coil_tech.material[3].composition = 0.46
+            coil_tech.material[4].composition = 0.22
         elseif coil_type == :tf
             coil_tech.thermal_strain = -0.69
             coil_tech.JxB_strain = -0.13
-            coil_tech.fraction_steel = 0.55
+
+            coil_tech.material[1].composition = 0.175
+            coil_tech.material[3].composition = 0.55
+            coil_tech.material[4].composition = 0.175
         elseif coil_type == :pf_active
             coil_tech.thermal_strain = -0.64
             coil_tech.JxB_strain = -0.05
-            coil_tech.fraction_steel = 0.46
+
+            coil_tech.material[1].composition = 0.22
+            coil_tech.material[3].composition = 0.46
+            coil_tech.material[4].composition = 0.22
         end
     end
 
@@ -97,15 +175,6 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
     return coil_tech
 end
 
-function fraction_conductor(coil_tech::Union{IMAS.build__pf_active__technology,IMAS.build__oh__technology,IMAS.build__tf__technology})
-    frac = 1.0 - coil_tech.fraction_steel - coil_tech.fraction_void # fraction of coil that is a conductor
-    @assert frac > 0.0 "coil technology has no room for conductor"
-    if coil_tech.material == "copper"
-        return frac
-    else
-        return frac * coil_tech.ratio_SC_to_copper / (1.0 + coil_tech.ratio_SC_to_copper) # fraction of coil that is Nb3Sn superconductor
-    end
-end
 
 function GAMBL_blanket(bm::IMAS.blanket__module)
     layers = resize!(bm.layer, 3)
