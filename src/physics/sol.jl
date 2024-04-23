@@ -247,7 +247,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         OFL[:lfs_far] = OFL[:lfs]
         OFL[:lfs] = tmp
     end
-
+    @assert !isempty(OFL[:lfs]) "No magnetic surfaces are found in the SOL. Try checking IMAS.line_wall_2_wall is working properly."
     return OFL
 end
 
@@ -574,9 +574,26 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
     rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
+    
     # remove surfaces that cross midplane outiside the wall
-    if sum(rr .< r_wall_imp) > 0 || sum(rr .> r_wall_omp) > 0
-        return Float64[], Float64[], Float64[], Int64[]
+    crossings2 = intersection([0, RA], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw inner midplane (IMP) with magnetic surface in the SOL
+    r_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP
+    if !isempty(r_imp)
+        r_imp = r_imp[1] # make it float
+    else
+        r_imp = RA # the surface crosses only at the OMP
+    end
+        
+    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw outer midplane (OMP) with magnetic surface in the SOL
+    r_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
+    if !isempty(r_omp)
+        r_omp = r_omp[1] # make it float
+    else
+        r_omp = RA; # the surface crosses only at the IMP
+    end
+
+    if r_imp .< r_wall_imp  || r_omp .> r_wall_omp
+        return Float64[], Float64[], Float64[]
     end
     # sort clockwise (COCOS 11) 
     angle = mod.(atan.(zz .- ZA, rr .- RA), 2 * π) # counterclockwise angle from midplane
@@ -664,7 +681,7 @@ end
 Poloidal magnetic field magnitude evaluated at the outer midplane
 """
 function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
-    r, z, PSI_interpolant = ψ_interpolant(eqt.profiles_2d)
+    _, _, PSI_interpolant = ψ_interpolant(eqt.profiles_2d)
     eq1d = eqt.profiles_1d
     R_omp = eq1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z
