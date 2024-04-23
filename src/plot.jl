@@ -1583,10 +1583,10 @@ end
 @recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress; linewidth=1)
     @assert typeof(linewidth) <: Real
 
-    legend_position --> :outerbottomright
-    ylabel := "Stresses [MPa]"
-    xlabel := "Radius [m]"
-    title := "Center Stack stresses"
+    legend_position --> :bottomleft
+    ylabel --> "Stresses [MPa]"
+    xlabel --> "Radius [m]"
+    title --> "Center Stack stresses"
 
     center_stack = parent(stress)
 
