@@ -2286,7 +2286,7 @@ Recipe for plot of heat flux
             end
 
             if q == :wall && !isempty(HF.q_wall)
-                colorbar_title := "log₁₀(q wall [W/m^2])"
+                colorbar_title := "log₁₀(q wall [W/m²])"
                 if plot_type == :path
                     line_z := log10.(HF.q_wall .+ 1)
                 elseif plot_type == :scatter
@@ -2294,7 +2294,7 @@ Recipe for plot of heat flux
                 end
 
             elseif q == :core_radiation && !isempty(HF.q_core_rad)
-                colorbar_title := "log₁₀(q core rad [W/m^2])"
+                colorbar_title := "log₁₀(q core rad [W/m²])"
                 if plot_type == :path
                     line_z := log10.(HF.q_core_rad .+ 1)
                 elseif plot_type == :scatter
@@ -2302,15 +2302,16 @@ Recipe for plot of heat flux
                 end
 
             elseif q == :particle && !isempty(HF.q_part)
-                colorbar_title := "log₁₀(q particle [W/m^2])"
+                colorbar_title := "log₁₀(q particle [W/m²])"
+                floor = minimum(HF.q_part[HF.q_part.>0.0]) / 100.0
                 if plot_type == :path
-                    line_z --> log10.(HF.q_part .+ 1)
+                    line_z --> log10.(HF.q_part .+ floor)
                 elseif plot_type == :scatter
-                    zcolor --> log10.(HF.q_part .+ 1)
+                    zcolor --> log10.(HF.q_part .+ floor)
                 end
 
             elseif q == :parallel && !isempty(HF.q_parallel)
-                colorbar_title := "log₁₀(q parallel [W/m^2])"
+                colorbar_title := "log₁₀(q parallel [W/m²])"
                 if plot_type == :path
                     line_z --> log10.(HF.q_parallel .+ 1)
                 end

@@ -448,7 +448,7 @@ function find_psi_last_diverted(
         r_up = r_mid_itp(psi_first_lfs_far)
         r_low = r_mid_itp(psi_last_lfs)
 
-        A = π * (r_up^2 - r_low^2) # annular area between r_up and r_low [m^2]
+        A = π * (r_up^2 - r_low^2) # annular area between r_up and r_low [m²]
 
         if err == abs(A)
             # no psi was updated; update psi_first_lfs_far because psi_last_lfs is safe

@@ -294,8 +294,8 @@ end
 
 
 function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, y::Real, z::Real, vx::Real, vy::Real, vz::Real, v2::Real, vz2::Real)
-
     t = Inf
+
     if isapprox(z1, z2)
         # a horizontal segment: time for how long it takes to get to this z, then check if r is between segment bounds
         ti = (vz == 0.0) ? -Inf : (z1 - z) / vz
@@ -305,6 +305,7 @@ function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, 
                 t = ti
             end
         end
+
     else
         # parameterize parabola intersection with a line
         m = (z2 - z1) / (r2 - r1)
