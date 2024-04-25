@@ -1694,19 +1694,23 @@ end
         title = "Wall neutron power"
         units = "[MW]"
     end
-    data = data ./ 1E6
+    # data = data ./ 1E6
+    
 
     wall_r = (neutronics.first_wall.r[1:end-1] .+ neutronics.first_wall.r[2:end]) ./ 2.0
     wall_z = (neutronics.first_wall.z[1:end-1] .+ neutronics.first_wall.z[2:end]) ./ 2.0
 
     if cx
         seriestype --> :path
-        line_z --> data
+        line_z --> log10.(data.+1)
         aspect_ratio --> :equal
-        linewidth --> 8
+        linewidth --> 3
         label --> ""
+        xlim --> [0.95*minimum(wall_r)-0.05*(maximum(wall_r)), 1.05*maximum(wall_r)-0.05*(minimum(wall_r))]
+        ylim --> [1.05*minimum(wall_z)-0.05*(maximum(wall_z)), 1.05*maximum(wall_z)-0.05*(minimum(wall_z))]
         if component ∈ (:norm, :power)
-            clim --> (0.0, maximum(data))
+            # clim --> (0.0, maximum(log10.(data.+1)))
+            clim --> (5,6)
         else
             linecolor --> :seismic
         end
@@ -1726,30 +1730,45 @@ end
         legend_position --> :top
 
         avg = sum(data[index] .* d) / sum(d)
-        xlabel --> "Clockwise distance along wall [m]"
-        ylabel --> "$title $units"
+        # xlabel --> "Clockwise distance along wall [m]"
+        xlabel --> "s [m]"
+        title --> "log₁₀(NWL [W/m^2])"
+        # ylabel --> "$title $units"
+        ylim -> (5,6)
         @series begin
-            label --> ""
-            l, data[index]
+            legend --> :none
+            color --> :darkorange3
+            l, log10.(data[index].+1)
         end
         @series begin
-            seriestype := :hline
-            style --> :dash
-            label --> @sprintf("Max: %3.3f %s", maximum(data), units)
-            [maximum(data)]
+                legend --> :none
+
+            xlabel --> "s [m]"
+            title --> "log₁₀(NWL [W/m^2])"
+             seriestype --> :scatter
+            markersize --> 2
+            color --> :darkorange3
+            markerstrokewidth --> 0
+            l, log10.(data[index].+1)
         end
-        @series begin
-            seriestype := :hline
-            style --> :dash
-            label --> @sprintf("Avg: %3.3f %s", avg, units)
-            [avg]
-        end
-        @series begin
-            seriestype := :hline
-            style --> :dash
-            label --> @sprintf("Min: %3.3f %s", minimum(data), units)
-            [minimum(data)]
-        end
+        # @series begin
+        #     seriestype := :hline
+        #     style --> :dash
+        #     label --> @sprintf("Max: %3.3f %s", maximum(data), units)
+        #     [maximum(data)]
+        # end
+        # @series begin
+        #     seriestype := :hline
+        #     style --> :dash
+        #     label --> @sprintf("Avg: %3.3f %s", avg, units)
+        #     [avg]
+        # end
+        # @series begin
+        #     seriestype := :hline
+        #     style --> :dash
+        #     label --> @sprintf("Min: %3.3f %s", minimum(data), units)
+        #     [minimum(data)]
+        # end
     end
 end
 
@@ -2230,6 +2249,11 @@ Recipe for plot of heat flux
     else
         cat_jet = :jet
     end
+    # if cat
+    #     cat_jet = cgrad(:CMRmap, categorical = true)
+    # else
+    #     cat_jet = :CMRmap
+    # end
 
     if which_plot == :twoD
         if q == :both
@@ -2246,7 +2270,8 @@ Recipe for plot of heat flux
                 colorbar_title := "log₁₀(q wall [W/m^2])"
                 xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
                 ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
-                clim --> (floor(log10(maximum(HF.q_wall)))-8, floor(log10(maximum(HF.q_wall)))+1)
+                # clim --> (floor(log10(maximum(HF.q_wall)))-8, floor(log10(maximum(HF.q_wall)))+1)
+                clim --> (0,9)
                 if plot_type == :path
                     seriestype --> :path
                     line_z --> log10.(HF.q_wall.+1)
@@ -2275,7 +2300,7 @@ Recipe for plot of heat flux
                 xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
                 ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
                 # clim --> (floor(log10(maximum(HF.q_core_rad)))-8, floor(log10(maximum(HF.q_core_rad)))+1)
-    
+                # clim --> (3,5)
                 if plot_type == :path
                     seriestype --> :path
                     line_z --> log10.(HF.q_core_rad.+1)
@@ -2303,7 +2328,8 @@ Recipe for plot of heat flux
                 colorbar_title := "log₁₀(q particle [W/m^2])"
                 xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
                 ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
-                clim --> (floor(log10(maximum(HF.q_parallel)))-8, floor(log10(maximum(HF.q_parallel)))+1)
+                # clim --> (floor(log10(maximum(HF.q_wall)))-8, floor(log10(maximum(HF.q_wall)))+1)
+                clim --> (0,9)
                 if plot_type == :path
                     seriestype --> :path
                     line_z --> log10.(HF.q_part.+1)
@@ -2331,7 +2357,8 @@ Recipe for plot of heat flux
                 colorbar_title := "log₁₀(q parallel [W/m^2])"
                 xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
                 ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
-                clim --> (floor(log10(maximum(HF.q_parallel)))-8, floor(log10(maximum(HF.q_parallel)))+1)
+                # clim --> (floor(log10(maximum(HF.q_wall)))-8, floor(log10(maximum(HF.q_wall)))+1)
+                clim --> (1,10)
                 if plot_type == :path
                     seriestype --> :path
                     line_z --> log10.(HF.q_parallel.+1)
@@ -2394,7 +2421,8 @@ Recipe for plot of heat flux
                 xlabel --> "s [m]"
                 title --> "log₁₀(q core rad [W/m^2])"
                 color --> :darkgreen
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))
+                # yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))
+                ylim --> (3.5,5)
               
                 HF.s,log10.(HF.q_core_rad .+ 1)
             end
@@ -2407,8 +2435,9 @@ Recipe for plot of heat flux
                 end
                 xlabel --> "s [m]"
                 title --> "log₁₀(q core rad [W/m^2])"
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))
-            
+                # yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))
+                # yticks --> [vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))]
+                ylim --> (3.5,5)
                 seriestype --> :scatter
                 markersize --> 2
                 color --> :darkgreen
