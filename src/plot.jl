@@ -1712,8 +1712,6 @@ end
         HF = neutronics.first_wall
         xlim --> [0.95 * minimum(HF.r) - 0.05 * (maximum(HF.r)), 1.05 * maximum(HF.r) - 0.05 * (minimum(HF.r))]
         ylim --> [1.05 * minimum(HF.z) - 0.05 * (maximum(HF.z)), 1.05 * maximum(HF.z) - 0.05 * (minimum(HF.z))]
-        xlabel --> "R [m]"
-        ylabel --> "Z [m]"
         wall_r, wall_z
 
     else
@@ -2276,8 +2274,6 @@ Recipe for plot of heat flux
             aspect_ratio := :equal
             legend --> false
             colorbar --> true
-            xlabel --> "R [m]"
-            ylabel --> "Z [m]"
             xlim --> [0.95 * minimum(HF.r) - 0.05 * (maximum(HF.r)), 1.05 * maximum(HF.r) - 0.05 * (minimum(HF.r))]
             ylim --> [1.05 * minimum(HF.z) - 0.05 * (maximum(HF.z)), 1.05 * maximum(HF.z) - 0.05 * (minimum(HF.z))]
             if plot_type == :path

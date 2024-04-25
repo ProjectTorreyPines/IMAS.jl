@@ -369,10 +369,9 @@ function core_radiation_HF(
     wall_z::Vector{<:Real},
     Prad_core::Float64)
 
-    photons, W_per_trace,dr,dz = IMAS.define_particles(eqt,psi,source_1d,N)
+    photons, W_per_trace, dr, dz = IMAS.define_particles(eqt, psi,source_1d, N)
 
     qflux_r, qflux_z, wall_s = IMAS.find_flux(photons, W_per_trace, wall_r, wall_z, dr,dz)
-
     
     qq = sqrt.(qflux_r.^2 + qflux_z.^2) # norm of the heat flux
     power = qq.*wall_s
