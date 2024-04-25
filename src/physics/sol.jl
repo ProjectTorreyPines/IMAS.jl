@@ -92,13 +92,12 @@ function OpenFieldLine(
     return OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion, wall_index)
 end
 
-
 @recipe function plot_ofl(ofl::OpenFieldLine)
     @series begin
         aspect_ratio --> :equal
         label --> ""
         colorbar_title := "log₁₀(Connection length [m] + 1.0)"
-        line_z := log10.(ofl.s .+ 1)
+        line_z --> log10.(ofl.s .+ 1)
         ofl.r, ofl.z
     end
 end
@@ -205,7 +204,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
             # if psi is decreasing we must sort in decreasing order
             levels = reverse!(levels)
         end
-
     end
 
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
@@ -263,14 +261,12 @@ function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=t
     return sol(dd.equilibrium.time_slice[], dd.wall; levels, use_wall)
 end
 
-
 """
+    find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
 
-function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
-
-    Function for the discretization of the poloidal flux ψ on the SOL, based on an hypotesis of OMP radial transport through arbitrary q(r)
-    returns vector with level of ψ, vector with matching r_midplane and q.
-    Discretization with even steps of P = integral_sep^wal 2πrq(r)dr (same power in each flux tube)
+Function for the discretization of the poloidal flux ψ on the SOL, based on an hypotesis of OMP radial transport through arbitrary q(r)
+returns vector with level of ψ, vector with matching r_midplane and q.
+Discretization with even steps of P = integral_sep^wal 2πrq(r)dr (same power in each flux tube)
 """
 function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
     ################### Housekeeping on function q(r) ###################
@@ -450,7 +446,6 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
         psi_levels = psi_levels[psi_levels.<=psi__boundary_level]
     end
     return psi_levels, R, p_levels
-    
 end
 
 function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
@@ -464,10 +459,9 @@ end
 
 
 """
+    find_levels_from_wall(wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
 
-function find_levels_from_wall(wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
-
-    Function for that computes the value of psi at the points of the wall mesh in dd
+Function for that computes the value of psi at the points of the wall mesh in dd
 """
 function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
@@ -521,7 +515,6 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     r_wall_omp = r_wall_omp[1] # make it float
-
 
     if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[], Int64[]
@@ -859,16 +852,16 @@ end
 # Zhom #
 # ==== #
 """
-zohm_divertor_figure_of_merit(eqt::IMAS.equilibrium__time_slice)
+    zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
 
 Computes a figure of merit for the divertor (Zohm) PB/R/q/A [W T/m]
 """
-function zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice, T::summary__global_quantities)
+function zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     R0 = eqt.boundary.geometric_axis.r
     a = eqt.boundary.minor_radius
     A = R0 / a
     q95 = eqt.global_quantities.q_95
-    B0 = @ddtime(T.b0.value)
+    B0 = eqt.global_quantities.vacuum_toroidal_field.b0
     Psol = power_sol(core_sources, cp1d)
 
     zohm = Psol * B0 / R0 / A / q95 # W T/m
@@ -876,7 +869,7 @@ function zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IM
 end
 
 function zohm_divertor_figure_of_merit(dd::IMAS.dd)
-    return zohm_divertor_figure_of_merit(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[], dd.summary.global_quantities)
+    return zohm_divertor_figure_of_merit(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
 
 # ============= #

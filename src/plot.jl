@@ -63,7 +63,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         # plot individual coils
         for (k, c) in enumerate(pfa.coil)
             @series begin
-                aspect_ratio --> :equal
+                aspect_ratio := :equal
                 if all(currents .== 0.0)
                     color --> :black
                 else
@@ -465,7 +465,7 @@ end
     @assert typeof(magnetic_axis) <: Bool
 
     label --> ""
-    aspect_ratio --> :equal
+    aspect_ratio := :equal
     @series begin
         [], []
     end
@@ -561,7 +561,7 @@ end
 
 @recipe function plot_eqtb(eqtbo::IMAS.equilibrium__time_slice___boundary__outline)
     label --> ""
-    aspect_ratio --> :equal
+    aspect_ratio := :equal
     @series begin
         eqtbo.r, eqtbo.z
     end
@@ -581,7 +581,7 @@ end
         marker --> :circle
         markerstrokewidth --> 0
         label --> ""
-        aspect_ratio --> :equal
+        aspect_ratio := :equal
         [(x_point.r, x_point.z)]
     end
 end
@@ -591,7 +591,7 @@ end
         seriestype --> :scatter
         markershape --> :cross
         label --> ""
-        aspect_ratio --> :equal
+        aspect_ratio := :equal
         [(mag_axis.r, mag_axis.z)]
     end
 end
@@ -629,7 +629,7 @@ end
 
 @recipe function plot_divertors(target::IMAS.divertors__divertor___target)
     @series begin
-        :label --> target.name
+        label --> target.name
         target.tile
     end
 end
@@ -644,15 +644,15 @@ end
 
 @recipe function plot_divertors(tile::IMAS.divertors__divertor___target___tile)
     @series begin
-        :label --> tile.name
+        label --> tile.name
         tile.surface_outline
     end
 end
 
 @recipe function plot_divertors(surface_outline::IMAS.divertors__divertor___target___tile___surface_outline)
     @series begin
-        :linewidth --> 2
-        :aspect_ratio := :equal
+        linewidth --> 2
+        aspect_ratio := :equal
         surface_outline.r, surface_outline.z
     end
 end
@@ -680,7 +680,7 @@ Plot build cross-section
     @assert typeof(exclude_layers) <: AbstractVector{Symbol}
 
     legend_position --> :outerbottomright
-    aspect_ratio --> :equal
+    aspect_ratio := :equal
     grid --> :none
 
     # cx
@@ -1319,7 +1319,7 @@ end
     # particles
     if only === nothing || only == 3
         tot = 0.0
-        if !ismissing(cs1d.electrons, :particles)
+        if !ismissing(cs1d.electrons, :particle)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
         end
         show_condition = flux || show_zeros || source_name == :time_derivative || abs(tot) > 0.0
@@ -1334,11 +1334,11 @@ end
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
-                elseif !integrated && !ismissing(cs1d.electrons, :particles)
+                elseif !integrated && !ismissing(cs1d.electrons, :particle)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
-                    cs1d.electrons, :particles
+                    cs1d.electrons, :particle
                 elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
                     cs1d.electrons, :particles_inside
                 else
@@ -1681,8 +1681,8 @@ end
     @assert typeof(cx) <: Bool
 
     neutronics = top_ids(nwl)
-    title = "Wall neutron flux"
-    units = "[MW/m²]"
+    title = "Wall flux"
+    units = "[W/m²]"
     if component == :norm
         data = sqrt.(nwl.flux_r .^ 2.0 .+ nwl.flux_z .^ 2.0)
     elseif component == :r
@@ -1692,29 +1692,28 @@ end
     elseif component == :power
         data = nwl.power
         title = "Wall neutron power"
-        units = "[MW]"
+        units = "[W]"
     end
-    # data = data ./ 1E6
-    
+    data = data .+ 1.0
 
     wall_r = (neutronics.first_wall.r[1:end-1] .+ neutronics.first_wall.r[2:end]) ./ 2.0
     wall_z = (neutronics.first_wall.z[1:end-1] .+ neutronics.first_wall.z[2:end]) ./ 2.0
 
     if cx
         seriestype --> :path
-        line_z --> log10.(data.+1)
-        aspect_ratio --> :equal
-        linewidth --> 3
+        line_z --> log10.(data)
+        aspect_ratio := :equal
+        linewidth --> 8
         label --> ""
-        xlim --> [0.95*minimum(wall_r)-0.05*(maximum(wall_r)), 1.05*maximum(wall_r)-0.05*(minimum(wall_r))]
-        ylim --> [1.05*minimum(wall_z)-0.05*(maximum(wall_z)), 1.05*maximum(wall_z)-0.05*(minimum(wall_z))]
-        if component ∈ (:norm, :power)
-            # clim --> (0.0, maximum(log10.(data.+1)))
-            clim --> (5,6)
-        else
+        if component in (:r, :z)
             linecolor --> :seismic
         end
-        colorbar_title --> "\n$title $units"
+        colorbar_title --> "log₁₀(q neutron $units)"
+        HF = neutronics.first_wall
+        xlim --> [0.95 * minimum(HF.r) - 0.05 * (maximum(HF.r)), 1.05 * maximum(HF.r) - 0.05 * (minimum(HF.r))]
+        ylim --> [1.05 * minimum(HF.z) - 0.05 * (maximum(HF.z)), 1.05 * maximum(HF.z) - 0.05 * (minimum(HF.z))]
+        xlabel --> "R [m]"
+        ylabel --> "Z [m]"
         wall_r, wall_z
 
     else
@@ -1726,49 +1725,16 @@ end
         d = sqrt.(IMAS.gradient(neutronics.first_wall.r) .^ 2.0 .+ IMAS.gradient(neutronics.first_wall.z) .^ 2.0)
         d = sqrt.(diff(neutronics.first_wall.r) .^ 2.0 .+ diff(neutronics.first_wall.z) .^ 2.0)
         l = cumsum(d)
+        l .-= l[1]
 
-        legend_position --> :top
-
-        avg = sum(data[index] .* d) / sum(d)
-        # xlabel --> "Clockwise distance along wall [m]"
-        xlabel --> "s [m]"
-        title --> "log₁₀(NWL [W/m^2])"
-        # ylabel --> "$title $units"
-        ylim -> (5,6)
+        xlabel --> "Clockwise distance along wall [m]"
+        ylabel --> "$title $units"
         @series begin
-            legend --> :none
-            color --> :darkorange3
-            l, log10.(data[index].+1)
+            label --> "neutrons"
+            ylabel --> "Wall flux [W/m²]"
+            yscale --> :log10
+            l, data[index]
         end
-        @series begin
-                legend --> :none
-
-            xlabel --> "s [m]"
-            title --> "log₁₀(NWL [W/m^2])"
-             seriestype --> :scatter
-            markersize --> 2
-            color --> :darkorange3
-            markerstrokewidth --> 0
-            l, log10.(data[index].+1)
-        end
-        # @series begin
-        #     seriestype := :hline
-        #     style --> :dash
-        #     label --> @sprintf("Max: %3.3f %s", maximum(data), units)
-        #     [maximum(data)]
-        # end
-        # @series begin
-        #     seriestype := :hline
-        #     style --> :dash
-        #     label --> @sprintf("Avg: %3.3f %s", avg, units)
-        #     [avg]
-        # end
-        # @series begin
-        #     seriestype := :hline
-        #     style --> :dash
-        #     label --> @sprintf("Min: %3.3f %s", minimum(data), units)
-        #     [minimum(data)]
-        # end
     end
 end
 
@@ -1859,18 +1825,18 @@ end
             # Extract x and y coordinates for plotting
             xs, ys = map(collect, zip(pts...))
             @series begin
-                :primary := i == 1
-                :linewidth := 0.1
-                :aspect_ratio := :equal
-                :fill := (0, 0.5, :gray)
-                :xlim := (0, Inf)
+                primary := i == 1
+                linewidth := 0.1
+                aspect_ratio := :equal
+                fill := (0, 0.5, :gray)
+                xlim := (0, Inf)
                 xs, ys
             end
         end
     else
         @series begin
             label --> getproperty(wd2dvu, :name, "")
-            :aspect_ratio := :equal
+            aspect_ratio := :equal
             centreline.R, centreline.Z
         end
     end
@@ -1896,7 +1862,7 @@ end
 @recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
     poly = closed_polygon(outline.r, outline.z)
     @series begin
-        :aspect_ratio := :equal
+        aspect_ratio := :equal
         poly.R, poly.Z
     end
 end
@@ -1999,7 +1965,7 @@ end
 
 @recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
     @assert typeof(time0) <: Float64
-    aspect_ratio --> :equal
+    aspect_ratio := :equal
     bnd = boundary(pc; time0)
     @series begin
         label := ""
@@ -2224,291 +2190,140 @@ end
 #= ================== =#
 # Thernmal loads plots #
 #= ================== =#
-
 """
-
 Recipe for plot of heat flux
-    - which_plot = :twoD, :oneD
-    - plot_type  = :path, :scatter (only for 2D)
-    - cat        = true/false      (only for 2D)
-    - q          = :all (for 1D), 
-                   :wall, 
-                   :parallel, :para
-                   :particle, :part, :particles 
-                   :coreradiation, :core_rad, :core_radiation, :corerad
-                   :both (= q_part and q_parallel)
 
+  - which_plot = :twoD, :oneD
+  - plot_type  = :path, :scatter (only for 2D)
+  - q          =
+    :all (for 1D),
+    :wall,
+    :parallel
+    :particle
+    :core_radiation
+    :both (= :particle + :parallel)
 """
-
-@recipe function plot_heat_flux(HF::WallHeatFlux; which_plot= :twoD, plot_type = :path, cat = false, q=:wall) 
+@recipe function plot_heat_flux(HF::WallHeatFlux; which_plot=:twoD, plot_type=:path, q=:wall)
+    @assert which_plot in (:oneD, :twoD)
+    @assert plot_type in (:path, :scatter)
+    @assert q in (:wall, :parallel, :particle, :core_radiation, :both, :all)
 
     ##### 2D plots
 
-    if cat
-        cat_jet = cgrad(:jet, categorical = true)
-    else
-        cat_jet = :jet
-    end
-    # if cat
-    #     cat_jet = cgrad(:CMRmap, categorical = true)
-    # else
-    #     cat_jet = :CMRmap
-    # end
-
-    if which_plot == :twoD
+    if q in (:both, :all)
         if q == :both
-            layout := (1,2)  
+            qs = (:parallel, :particle)
+        else
+            qs = (:wall, :parallel, :particle, :core_radiation)
+        end
+        if which_plot == :twoD
+            layout := (1, length(qs))
+        end
+        for (k, q) in enumerate(qs)
+            @series begin
+                if which_plot == :twoD
+                    subplot := k
+                end
+                which_plot := which_plot
+                plot_type := plot_type
+                q := q
+                HF
+            end
         end
 
-        if q == :wall 
-            @series begin
-                aspect_ratio --> :equal
-                legend --> false
-                colorbar --> true
-                xlabel --> "R [m]"
-                ylabel --> "Z [m]"
+    elseif which_plot == :oneD
+        @series begin
+            xlabel --> "Clockwise distance along wall [m]"
+            ylabel --> "Wall flux [W/m²]"
+            yscale --> :log10
+
+            x = []
+            y = []
+            if q == :particle
+                label --> "particle"
+                if !isempty(HF.q_part)
+                    x = HF.s
+                    y = HF.q_part .+ 1.0
+                end
+
+            elseif q == :core_radiation
+                label --> "core radiation"
+                if !isempty(HF.q_core_rad)
+                    x = HF.s
+                    y = HF.q_core_rad .+ 1.0
+                end
+
+            elseif q == :wall
+                label --> "wall"
+                if !isempty(HF.q_wall)
+                    x = HF.s
+                    y = HF.q_wall .+ 1.0
+                end
+
+            elseif q == :parallel
+                label --> "parallel"
+                if !isempty(HF.q_parallel)
+                    x = HF.s
+                    y = HF.q_parallel .+ 1.0
+                end
+            end
+
+            x, y
+        end
+
+    elseif which_plot == :twoD
+        @series begin
+            aspect_ratio := :equal
+            legend --> false
+            colorbar --> true
+            xlabel --> "R [m]"
+            ylabel --> "Z [m]"
+            xlim --> [0.95 * minimum(HF.r) - 0.05 * (maximum(HF.r)), 1.05 * maximum(HF.r) - 0.05 * (minimum(HF.r))]
+            ylim --> [1.05 * minimum(HF.z) - 0.05 * (maximum(HF.z)), 1.05 * maximum(HF.z) - 0.05 * (minimum(HF.z))]
+            if plot_type == :path
+                seriestype --> :path
+                linewidth --> 8
+            elseif plot_type == :scatter
+                seriestype --> :scatter
+                markersize --> 2
+                markerstrokewidth --> 0
+            end
+
+            if q == :wall && !isempty(HF.q_wall)
                 colorbar_title := "log₁₀(q wall [W/m^2])"
-                xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
-                ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
-                # clim --> (floor(log10(maximum(HF.q_wall)))-8, floor(log10(maximum(HF.q_wall)))+1)
-                clim --> (0,9)
                 if plot_type == :path
-                    seriestype --> :path
-                    line_z --> log10.(HF.q_wall.+1)
-                    linewidth --> 3
-                    color --> cat_jet
+                    line_z := log10.(HF.q_wall .+ 1)
+                elseif plot_type == :scatter
+                    zcolor := log10.(HF.q_wall .+ 1)
                 end
-                if plot_type == :scatter
-                    seriestype --> :scatter
-                    zcolor --> log10.(HF.q_wall.+1)
-                    markersize --> 2
-                    markerstrokewidth --> 0
-                    color --> cat_jet
-                end
-                HF.r, HF.z
-            end
-         end
 
-         if q == :coreradiation .|| q == :core_radiation .|| q == :core_rad .|| q == :corerad 
-            @series begin
-                aspect_ratio --> :equal
-                legend --> false
-                colorbar --> true
-                xlabel --> "R [m]"
-                ylabel --> "Z [m]"
+            elseif q == :core_radiation && !isempty(HF.q_core_rad)
                 colorbar_title := "log₁₀(q core rad [W/m^2])"
-                xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
-                ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
-                # clim --> (floor(log10(maximum(HF.q_core_rad)))-8, floor(log10(maximum(HF.q_core_rad)))+1)
-                # clim --> (3,5)
                 if plot_type == :path
-                    seriestype --> :path
-                    line_z --> log10.(HF.q_core_rad.+1)
-                    linewidth --> 3
-                    color --> cat_jet
+                    line_z := log10.(HF.q_core_rad .+ 1)
+                elseif plot_type == :scatter
+                    zcolor := log10.(HF.q_core_rad .+ 1)
                 end
-                if plot_type == :scatter
-                    seriestype --> :scatter
-                    zcolor --> log10.(HF.q_core_rad.+1)
-                    markersize --> 2
-                    markerstrokewidth --> 0
-                    color --> cat_jet
-                end
-                HF.r, HF.z
-            end
-         end
 
-         if q == :particle .|| q == :part .|| q == :particles .|| q == :both 
-            @series begin
-                aspect_ratio --> :equal
-                legend --> false
-                colorbar --> true
-                xlabel --> "R [m]"
-                ylabel --> "Z [m]"
+            elseif q == :particle && !isempty(HF.q_part)
                 colorbar_title := "log₁₀(q particle [W/m^2])"
-                xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
-                ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
-                # clim --> (floor(log10(maximum(HF.q_wall)))-8, floor(log10(maximum(HF.q_wall)))+1)
-                clim --> (0,9)
                 if plot_type == :path
-                    seriestype --> :path
-                    line_z --> log10.(HF.q_part.+1)
-                    linewidth --> 3
-                    color --> cat_jet
+                    line_z --> log10.(HF.q_part .+ 1)
+                elseif plot_type == :scatter
+                    zcolor --> log10.(HF.q_part .+ 1)
                 end
-                if plot_type == :scatter
-                    seriestype --> :scatter
-                    zcolor --> log10.(HF.q_part.+1)
-                    markersize --> 2
-                    markerstrokewidth --> 0
-                    color --> cat_jet
-                end
-                HF.r, HF.z
-            end
-        end    
 
-        if q == :parallel .|| q == :para .|| q == :both 
-            @series begin
-                aspect_ratio --> :equal
-                legend --> false
-                colorbar --> true
-                xlabel --> "R [m]"
-                ylabel --> "Z [m]"
+            elseif q == :parallel && !isempty(HF.q_parallel)
                 colorbar_title := "log₁₀(q parallel [W/m^2])"
-                xlim --> [0.95*minimum(HF.r)-0.05*(maximum(HF.r)), 1.05*maximum(HF.r)-0.05*(minimum(HF.r))]
-                ylim --> [1.05*minimum(HF.z)-0.05*(maximum(HF.z)), 1.05*maximum(HF.z)-0.05*(minimum(HF.z))]
-                # clim --> (floor(log10(maximum(HF.q_wall)))-8, floor(log10(maximum(HF.q_wall)))+1)
-                clim --> (1,10)
                 if plot_type == :path
-                    seriestype --> :path
-                    line_z --> log10.(HF.q_parallel.+1)
-                    linewidth --> 3
-                    color --> cat_jet
+                    line_z --> log10.(HF.q_parallel .+ 1)
                 end
                 if plot_type == :scatter
-                    seriestype --> :scatter
-                    zcolor --> log10.(HF.q_parallel.+1)
-                    markersize --> 2
-                    markerstrokewidth --> 0
-                    color --> cat_jet
+                    zcolor --> log10.(HF.q_parallel .+ 1)
                 end
-                HF.r, HF.z
             end
-        end    
+
+            HF.r, HF.z
+        end
     end
-
-    ### 1D plots
-
-    if which_plot == :oneD 
-        if q == :particle .|| q == :particles .|| q == :part .|| q == :all .|| q == :both
-            @series begin
-                if q == :particle .|| q == :particles .|| q == :part
-                    legend --> :none
-                else
-                    label --> ""
-                end
-                xlabel --> "s [m]"
-                title --> "log₁₀(q particles [W/m^2])"
-                color --> :dodgerblue
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_part.+1))+1))
-                HF.s,log10.(HF.q_part .+ 1)
-            end
-            
-            @series begin
-                if q == :particle .|| q == :particles .|| q == :part
-                    legend --> :none
-                else
-                    label --> "q particles"
-                end
-                xlabel --> "s [m]"
-                title --> "log₁₀(q particles [W/m^2])"
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_part.+1))+1))
-                seriestype --> :scatter
-                markersize --> 2
-                color --> :dodgerblue
-                markerstrokewidth --> 0
-                HF.s,log10.(HF.q_part .+ 1)
-            end
-        end
-
-        if q == :coreradiation .|| q == :core_radiation .|| q == :core_rad .|| q == :corerad .|| q == :all 
-            @series begin
-                if q == :coreradiation .|| q == :core_radiation .|| q == :core_rad .|| q == :corerad
-                    legend --> :none
-                else
-                    label --> ""
-                end
-                xlabel --> "s [m]"
-                title --> "log₁₀(q core rad [W/m^2])"
-                color --> :darkgreen
-                # yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))
-                ylim --> (3.5,5)
-              
-                HF.s,log10.(HF.q_core_rad .+ 1)
-            end
-            
-            @series begin
-                if q == :coreradiation .|| q == :core_radiation .|| q == :core_rad .|| q == :corerad
-                    legend --> :none
-                else
-                    label --> "q core rad"
-                end
-                xlabel --> "s [m]"
-                title --> "log₁₀(q core rad [W/m^2])"
-                # yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))
-                # yticks --> [vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_core_rad.+1))+1))]
-                ylim --> (3.5,5)
-                seriestype --> :scatter
-                markersize --> 2
-                color --> :darkgreen
-                markerstrokewidth --> 0
-                HF.s,log10.(HF.q_core_rad .+ 1)
-            end
-        end
-
-        if q == :wall .|| q == :all
-            @series begin
-                if q == :wall
-                    legend --> :none
-                else
-                    label --> ""
-                end
-                xlabel --> "s [m]"
-                title --> "log₁₀(q wall [W/m^2])"
-                color --> :red
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_wall.+1))+1))
-                HF.s,log10.(HF.q_wall .+ 1)
-            end
-            
-            @series begin
-                if q == :wall
-                    legend --> :none
-                    title --> "log₁₀(q wall [W/m^2])"
-                else
-                    label --> "q wall"
-                    title --> "log₁₀(q [W/m^2])"
-                end
-                xlabel --> "s [m]"
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_wall.+1))+1))
-                seriestype --> :scatter
-                markersize --> 2
-                color --> :red
-                markerstrokewidth --> 0
-                HF.s,log10.(HF.q_wall .+ 1)
-            end
-        end
-
-        if q == :parallel .|| q == :para .|| q == :both
-            @series begin
-                if q == :parallel .|| q == :para 
-                    legend --> :none
-                else
-                    label --> ""
-                end
-                xlabel --> "s [m]"
-                title --> "log₁₀(q parallel [W/m^2])"
-                color --> :darkorange3
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_parallel.+1))+1))
-                HF.s,log10.(HF.q_parallel .+ 1)
-            end
-
-            @series begin
-                if q == :parallel .|| q == :para 
-                    legend --> :none
-                    title --> "log₁₀(q parallel [W/m^2])"
-                else
-                    label --> "q parallel"
-                    title --> "log₁₀(q [W/m^2])"
-                end
-                xlabel --> "s [m]"
-                yticks --> vcat([-Inf, 0],collect(1:maximum(log10.(HF.q_wall.+1))+1))
-                seriestype --> :scatter
-                markersize --> 2
-                color --> :darkorange3
-                markerstrokewidth --> 0
-                HF.s,log10.(HF.q_parallel .+ 1)
-            end
-        end
-
-    end
-end 
+end

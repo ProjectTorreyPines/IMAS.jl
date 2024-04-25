@@ -9,17 +9,16 @@ mutable struct WallHeatFlux
 end
 
 """
-WallHeatFlux(; 
-    r::Vector{Float64} = Float64[],
-    z::Vector{Float64} = Float64[],
-    q_wall::Vector{Float64} = Float64[],
-    q_part::Vector{Float64} = Float64[],
-    q_core_rad::Vector{Float64} = Float64[],
-    q_parallel::Vector{Float64} = Float64[],
-    s::Vector{Float64} = Float64[])
+    WallHeatFlux(; 
+        r::Vector{Float64} = Float64[],
+        z::Vector{Float64} = Float64[],
+        q_wall::Vector{Float64} = Float64[],
+        q_part::Vector{Float64} = Float64[],
+        q_core_rad::Vector{Float64} = Float64[],
+        q_parallel::Vector{Float64} = Float64[],
+        s::Vector{Float64} = Float64[])
 
-    Initializes a WallHeatFlux struct. IMAS.WallHeatFlux() returns a WallHeatFlux with all empty entries.
-
+Initializes a WallHeatFlux struct. IMAS.WallHeatFlux() returns a WallHeatFlux with all empty entries.
 """
 function WallHeatFlux(; 
     r::Vector{Float64} = Float64[],
@@ -33,20 +32,20 @@ function WallHeatFlux(;
 end
 
 """
-function particle_HF(eqt::IMAS.equilibrium__time_slice, 
-    SOL::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}}, 
-    wall_r::Vector{<:Real}, 
-    wall_z::Vector{<:Real}, 
-    r::Vector{<:Real}, 
-    q::Vector{<:Real}; 
-    merge_wall::Bool = true)
+    particle_HF(
+        eqt::IMAS.equilibrium__time_slice, 
+        SOL::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}}, 
+        wall_r::Vector{<:Real}, 
+        wall_z::Vector{<:Real}, 
+        r::Vector{<:Real}, 
+        q::Vector{<:Real}; 
+        merge_wall::Bool = true)
 
-    Computes the heat flux on the wall due to the influx of charged particles, using the magnetic equilibrium, 
-    the Scrape Off-Layer, the wall, and an hypothesis of the decay of the parallel heat flux at the OMP
-
+Computes the heat flux on the wall due to the influx of charged particles, using the magnetic equilibrium, 
+the Scrape Off-Layer, the wall, and an hypothesis of the decay of the parallel heat flux at the OMP
 """
-
-function particle_HF(eqt::IMAS.equilibrium__time_slice, 
+function particle_HF(
+    eqt::IMAS.equilibrium__time_slice, 
     SOL::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}}, 
     wall_r::Vector{<:Real}, 
     wall_z::Vector{<:Real}, 
@@ -106,7 +105,6 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
     if isempty(SOL[:lfs_far])
         case = :double
     end
-    
  
     # lower single null case
     if case == :lower || case == :upper
@@ -170,7 +168,6 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
                 push!(indexes_hfs,sol.wall_index[end])
             end
 
-            
             # insert hfs
             Rwall   = vcat(Rwall[1:argmin(abs.(indexes.-maximum(indexes_hfs)))-1], 
                         Rwall_hfs, 
@@ -350,24 +347,27 @@ function particle_HF(eqt::IMAS.equilibrium__time_slice,
         push!(Qpara, Qpara[1])
     end
 
-    return Qwall,Qpara
+    return (Qwall=Qwall, Qpara=Qpara)
 end
 
 """
- core_radiation_HF(eqt::IMAS.equilibrium__time_slice, 
-                   psi::Vector{T}, 
-                   source_1d::Vector{T} , 
-                   N::Int)
-
+    core_radiation_HF(
+        eqt::IMAS.equilibrium__time_slice, 
+        psi::Vector{<:Real}, 
+        source_1d::Vector{<:Real}, 
+        N::Int,
+        wall_r::Vector{<:Real}, 
+        wall_z::Vector{<:Real},
+        Prad_core::Float64)
 """
-
-function core_radiation_HF(eqt::IMAS.equilibrium__time_slice, 
-                           psi::Vector{<:Real}, 
-                           source_1d::Vector{<:Real} , 
-                           N::Int,
-                           wall_r::Vector{<:Real}, 
-                           wall_z::Vector{<:Real},
-                           Prad_core::Float64)
+function core_radiation_HF(
+    eqt::IMAS.equilibrium__time_slice, 
+    psi::Vector{<:Real}, 
+    source_1d::Vector{<:Real}, 
+    N::Int,
+    wall_r::Vector{<:Real}, 
+    wall_z::Vector{<:Real},
+    Prad_core::Float64)
 
     photons, W_per_trace,dr,dz = IMAS.define_particles(eqt,psi,source_1d,N)
 
@@ -414,22 +414,18 @@ function core_radiation_HF(eqt::IMAS.equilibrium__time_slice,
     end
 
     return Qrad
-
 end
 
-
 """
-    mesher_HF(  dd::IMAS.dd; 
-                r::AbstractVector{T}=Float64[], 
-                q::AbstractVector{T}=Float64[], 
-                merge_wall::Bool = true, 
-                levels::Union{Int,AbstractVector} = 20, 
-                step::T = 0.1) where {T<:Real})
+    mesher_HF(dd::IMAS.dd; 
+        r::AbstractVector{T}=Float64[], 
+        q::AbstractVector{T}=Float64[], 
+        merge_wall::Bool = true, 
+        levels::Union{Int,AbstractVector} = 20, 
+        step::T = 0.1) where {T<:Real}
 
-    Computes the wall mesh for the heat flux deposited on the wall
-
+Computes the wall mesh for the heat flux deposited on the wall
 """
-
 function mesher_HF(dd::IMAS.dd; 
     r::AbstractVector{T}=Float64[], 
     q::AbstractVector{T}=Float64[], 
@@ -520,8 +516,7 @@ function mesher_HF(dd::IMAS.dd;
     if isempty(SOL[:lfs_far])
         case = :double
     end
-    
- 
+
     # lower single null case
     if case == :lower || case == :upper
         #order clockwise starting from midplane
@@ -728,6 +723,5 @@ function mesher_HF(dd::IMAS.dd;
         push!(s, s[end]+sqrt((Rwall[1]-Rwall[end])^2 + (Zwall[1]-Zwall[end])^2))
     end
     
-    return Rwall, Zwall, rwall, zwall, s, SOL, r, q
-
+    return (Rwall=Rwall, Zwall=Zwall, rwall=rwall, zwall=zwall, s=s, SOL=SOL, r=r, q=q)
 end
