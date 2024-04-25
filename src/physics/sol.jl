@@ -58,6 +58,8 @@ function OpenFieldLine(
     end
 
     if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
+        # @show ZA, zz[1],zz[end]
+        # @show isempty(rr), all(zz .> ZA), all(zz .< ZA)
         return nothing
     end
 
@@ -151,7 +153,8 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     if !isempty(wall_r)
         crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
+        # psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
+        psi_wall_midplane = find_psi_wall_omp(eqt,wall_r,wall_z)
         psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
         # limited plasma
@@ -175,7 +178,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         levels = [psi__boundary_level, psi__2nd_separatix]
 
     elseif typeof(levels) <: Int
-        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi_sign * 0.001 * abs(psi_wall_midplane) - psi__boundary_level)), levels)
+        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi__boundary_level)), levels)
 
         indexx = argmin(abs.(levels .- psi_last_lfs))
         levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
@@ -189,13 +192,13 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
 
     else
         #levels is a vector of psi_levels for the discretization of the SOL
-        @assert psi_sign * levels[1] >= psi_sign * psi__boundary_level
-        @assert psi_sign * levels[end] <= psi_sign * psi_wall_midplane
+        @assert psi_sign * levels[1] >= psi_sign * psi__boundary_level "psi__boundary_level = $psi__boundary_level , psi_levels[1] = $(levels[1]) "
+        @assert psi_sign * levels[end] <= psi_sign * psi_wall_midplane "psi_wall_midplane = $psi_wall_midplane , psi_levels[end] = $(levels[end]) "
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
         levels[1] = psi__boundary_level
-        push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))
+        # push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))
         levels = unique!(sort!(levels)) 
 
         if psi_sign == -1
@@ -519,13 +522,6 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     r_wall_omp = r_wall_omp[1] # make it float
 
-    crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw inner midplane (IMP) with wall
-    r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP  
-    r_wall_imp = r_wall_imp[1] # make it float
-
-    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
-    r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
-    r_wall_omp = r_wall_omp[1] # make it float
 
     if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[], Int64[]
@@ -565,6 +561,28 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
             # (r,z) is ordered such that the OMP comes after the outer "strike point"
             i2 = i1 + 1 #  inner "strike point" is the second point in r_z_index
         end
+        if abs(j0-j1) == 1
+            # intersection with wall has same index than closest point to the OMP
+            # the intersection occurs at the wall OMP, within 1 index
+            if r[j1 + 1] > r_wall_omp 
+                # the next point is outside the wall at omp
+                # take PREVIOUS intersection
+                i2 = i1 - 1
+            end 
+
+            if r[j1 - 1] > r_wall_omp
+                #the previous point is outside the wall at omp
+                # take NEXT intersection
+                i2 = i1 + 1
+            end 
+
+            # NOTE: if r[j1 + 1] <= r_wall_omp ||  r[j1 - 1] <= r_wall_omp, do nothing!
+        
+        end
+        if i1 == length(r_z_index)
+            i2 = i1 -1
+        end
+
         i = sort([i1, i2])
         r_z_index = r_z_index[i]
         wall_index = wall_index[i]
@@ -593,7 +611,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     end
 
     if r_imp .< r_wall_imp  || r_omp .> r_wall_omp
-        return Float64[], Float64[], Float64[]
+        return Float64[], Float64[], Float64[], Int64[]
     end
     # sort clockwise (COCOS 11) 
     angle = mod.(atan.(zz .- ZA, rr .- RA), 2 * π) # counterclockwise angle from midplane

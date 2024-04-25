@@ -703,6 +703,75 @@ function find_psi_max(
     return psi_low
 end
 
+"""
+    find_psi_wall_omp(
+        eqt::IMAS.equilibrium__time_slice,
+        wall_r::Vector{<:Real},
+        wall_z::Vector{<:Real};
+        precision::Float64=1e-7)
+
+Returns the psi of the magnetic surface in the SOL which intersects the wall at the outer midplane
+"""
+
+function find_psi_wall_omp(
+    eqt::IMAS.equilibrium__time_slice,
+    wall_r::Vector{<:Real},
+    wall_z::Vector{<:Real};
+    precision::Float64=1e-16)
+
+
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+
+    crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
+    r_wall_midplane = r_wall_midplane[1]
+
+    counter_max = 100
+    err = Inf
+
+    psi_max_u = find_psi_max(eqt) 
+    _, psi_max_l = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS, open
+    psi_max = 0.0
+    for k in 1:counter_max
+
+        psi_max = (psi_max_u + psi_max_l)/2
+        surface, _ = IMAS.flux_surface(eqt, psi_max, :open)
+        for (rs,zs) in surface
+            if maximum(rs) < RA 
+                continue
+            end
+            _, crossings = IMAS.intersection([RA, RA*10], [1.0, 1.0]*ZA,rs,zs)
+
+            if !isempty(crossings)
+
+                r = [cr[1] for cr in crossings]
+                r = r[1]
+                if r <= r_wall_midplane
+                    psi_max_l = psi_max
+                else
+                    psi_max_u = psi_max
+                end
+            end
+
+            err = abs(r-r_wall_midplane)/r_wall_midplane
+
+        end
+        
+
+        if err < precision
+            break
+        end
+
+    end
+
+    # check if tangent
+
+
+
+    return psi_max
+end
+
 
 """
     interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{<:Real})
