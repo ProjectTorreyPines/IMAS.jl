@@ -2185,9 +2185,9 @@ function nice_units(units::String)
     return units
 end
 
-#= ================== =#
-# Thernmal loads plots #
-#= ================== =#
+#= ============= =#
+#  Thermal loads #
+#= ============= =#
 """
 Recipe for plot of heat flux
 
@@ -2206,13 +2206,11 @@ Recipe for plot of heat flux
     @assert plot_type in (:path, :scatter)
     @assert q in (:wall, :parallel, :particle, :core_radiation, :both, :all)
 
-    ##### 2D plots
-
     if q in (:both, :all)
         if q == :both
             qs = (:parallel, :particle)
         else
-            qs = (:wall, :parallel, :particle, :core_radiation)
+            qs = (:wall, :particle, :core_radiation)
         end
         if which_plot == :twoD
             layout := (1, length(qs))
