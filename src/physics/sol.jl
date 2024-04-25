@@ -817,7 +817,7 @@ end
 """
     q_pol_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
 
-Poloidal heat flux [W/m²] at the outer midplane based on Eigh λ_q
+Poloidal heat flux [W/m²] at the outer midplane based on Eich λ_q
 """
 function q_pol_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     eq1d = eqt.profiles_1d
@@ -834,7 +834,7 @@ end
 """
     q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
 
-Parallel heat flux [W/m²] at the outer midplane based on Eigh λ_q
+Parallel heat flux [W/m²] at the outer midplane based on Eich λ_q
 """
 function q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     eq1d = eqt.profiles_1d
