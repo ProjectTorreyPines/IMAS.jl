@@ -688,7 +688,7 @@ Plot build cross-section
         rmax = maximum(bd.layer[end].outline.r)
 
         # everything after first vacuum in _out_
-        if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
+        if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
             for k in get_build_indexes(bd.layer; fs=_out_)[2:end]
                 if !wireframe
                     @series begin
@@ -732,13 +732,15 @@ Plot build cross-section
                     get_build_layer(bd.layer; type=_plasma_).outline.z
                 )
             end
-            @series begin
-                seriestype --> :path
-                linewidth --> 1
-                color --> :black
-                label --> ""
-                xlim --> [0, rmax]
-                bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+            if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
+                @series begin
+                    seriestype --> :path
+                    linewidth --> 1
+                    color --> :black
+                    label --> ""
+                    xlim --> [0, rmax]
+                    bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+                end
             end
         end
 
