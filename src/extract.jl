@@ -46,11 +46,15 @@ mutable struct ConstraintFunction
     end
 end
 
+
+
 const ConstraintFunctionsLibrary = Dict{Symbol,ConstraintFunction}() #s
 function update_ConstraintFunctionsLibrary!()
     empty!(ConstraintFunctionsLibrary)
     #! format: off
-    ConstraintFunction(:required_power_electric_net, "%", dd -> abs(@ddtime(dd.balance_of_plant.power_electric_net) - dd.requirements.power_electric_net) / dd.requirements.power_electric_net, ==, 0.0, 0.01) # relative tolerance
+    # logic for creating constraint functions with margin
+    # we want: value/max_value + margin < 1
+    ConstraintFunction(:required_power_electric_net, "%", dd -> abs(@ddtime(dd.balance_of_plant.power_electric_net) - dd.requirements.power_electric_net) / dd.requirements.power_electric_net, ==, 0.0, 0.2) # relative tolerance
     ConstraintFunction(:min_required_power_electric_net, "%", dd -> (@ddtime(dd.balance_of_plant.power_electric_net) - dd.requirements.power_electric_net) / dd.requirements.power_electric_net, >, 0.0)
     ConstraintFunction(:required_flattop, "%", dd -> abs(dd.build.oh.flattop_duration - dd.requirements.flattop_duration) / dd.requirements.flattop_duration, ==, 0.0, 0.01) # relative tolerance
     ConstraintFunction(:min_required_flattop, "%", dd -> (dd.build.oh.flattop_duration - dd.requirements.flattop_duration) / dd.requirements.flattop_duration, >, 0.0)
@@ -60,30 +64,36 @@ function update_ConstraintFunctionsLibrary!()
     ConstraintFunction(:min_lh_power_threshold, "%", dd -> (IMAS.power_sol(dd) / dd.requirements.lh_power_threshold_fraction - IMAS.scaling_L_to_H_power(dd)) / IMAS.scaling_L_to_H_power(dd), >, 0.0)
     ConstraintFunction(:max_ωpe_ωce, "%", dd -> IMAS.ω_pe(@ddtime(dd.summary.local.magnetic_axis.n_e.value)) / IMAS.ω_ce(@ddtime(dd.equilibrium.vacuum_toroidal_field.b0)), <, 1.0)
     ConstraintFunction(:max_qpol_omp, "%", dd -> (IMAS.q_pol_omp_eich(dd) - dd.requirements.q_pol_omp) / dd.requirements.q_pol_omp, <, 0.0)
-    ConstraintFunction(:max_tf_j, "%", dd -> dd.build.tf.critical_j / dd.build.tf.max_j - dd.requirements.coil_j_margin, >, 0.0)
-    ConstraintFunction(:max_oh_j, "%", dd -> dd.build.oh.critical_j / dd.build.oh.max_j - dd.requirements.coil_j_margin, >, 0.0)
-    ConstraintFunction(:max_pl_stress, "%", dd -> ismissing(dd.solid_mechanics.center_stack.stress.vonmises, :pl) ? 0.0 : dd.solid_mechanics.center_stack.properties.yield_strength.pl / maximum(dd.solid_mechanics.center_stack.stress.vonmises.pl) - dd.requirements.coil_stress_margin, >, 0.0)
-    ConstraintFunction(:max_tf_stress, "%", dd -> dd.solid_mechanics.center_stack.properties.yield_strength.tf / maximum(dd.solid_mechanics.center_stack.stress.vonmises.tf) - dd.requirements.coil_stress_margin, >, 0.0)
-    ConstraintFunction(:max_oh_stress, "%", dd -> dd.solid_mechanics.center_stack.properties.yield_strength.oh / maximum(dd.solid_mechanics.center_stack.stress.vonmises.oh) - dd.requirements.coil_stress_margin, >, 0.0)
+    ConstraintFunction(:max_tf_j, "%", dd -> dd.build.tf.max_j / dd.build.tf.critical_j + dd.requirements.coil_j_margin, <, 1.0)
+    ConstraintFunction(:max_oh_j, "%", dd -> dd.build.oh.max_j / dd.build.oh.critical_j + dd.requirements.coil_j_margin, <, 1.0)
+    ConstraintFunction(:max_pl_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.pl) / (ismissing(dd.solid_mechanics.center_stack.stress.vonmises, :pl) ? 0.0 : dd.solid_mechanics.center_stack.properties.yield_strength.pl) + dd.requirements.coil_stress_margin, <, 1.0)
+    ConstraintFunction(:max_tf_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.tf) / dd.solid_mechanics.center_stack.properties.yield_strength.tf + dd.requirements.coil_stress_margin, <, 1.0)
+    ConstraintFunction(:max_oh_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.oh) / dd.solid_mechanics.center_stack.properties.yield_strength.oh + dd.requirements.coil_stress_margin, <, 1.0)
     ConstraintFunction(:max_hds03, "%", dd -> (@ddtime(dd.summary.global_quantities.tau_energy.value)/IMAS.tau_e_ds03(dd) - dd.requirements.hds03)/dd.requirements.hds03, <, 0.0)
-    ConstraintFunction(:min_q95, "%", dd -> (dd.equilibrium.time_slice[].global_quantities.q_95 - dd.requirements.q95)/dd.requirements.q95, >, 0.0)
+    ConstraintFunction(:min_q95, "%", dd -> (dd.equilibrium.time_slice[].global_quantities.q_95 - dd.requirements.q95) / dd.requirements.q95, >, 0.0)
     #! format: on
     return ConstraintFunctionsLibrary
 end
 update_ConstraintFunctionsLibrary!()
 
 function (cnst::ConstraintFunction)(dd::IMAS.dd)
-    if ===(cnst.operation, ==)
-        if cnst.limit === 0.0
-            return abs((cnst.func(dd) - cnst.limit)) - cnst.tolerance
-        else
-            return abs((cnst.func(dd) - cnst.limit) / cnst.limit) - cnst.tolerance
-        end
-    elseif cnst.operation(1.0, 0.0) # > or >=
-        return cnst.limit - cnst.func(dd)
+    return constraint_cost_transform(cnst.func(dd), cnst.operation, cnst.limit, cnst.tolerance)
+end
+
+function constraint_cost_transform(value::Float64, operation::Function, limit::Float64, tolerance::Float64)
+    if ===(operation, ==)
+        out = abs(value - limit) - tolerance
+    elseif operation(1.0, 0.0) # > or >=
+        out = limit - value
     else # < or <=
-        return cnst.func(dd) - cnst.limit
+        out = value - limit
     end
+
+    if out < 0.0
+        out = 0.0
+    end
+
+    return out
 end
 
 function Base.show(io::IO, cnst::ConstraintFunction)
@@ -91,11 +101,7 @@ function Base.show(io::IO, cnst::ConstraintFunction)
     print(io, " $(cnst.operation)")
     print(io, " $(cnst.limit)")
     if ===(cnst.operation, ==)
-        if cnst.limit == 0.0
-            print(io, " ± $(cnst.tolerance)")
-        else
-            print(io, " ± $(cnst.tolerance * cnst.limit)")
-        end
+        print(io, " ± $(cnst.tolerance)")
     end
     return print(io, " [$(cnst.units)]")
 end
@@ -159,7 +165,10 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:transport, :ds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
 
     ExtractLibFunction(:sources, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
+    ExtractLibFunction(:sources, :rho0_ec, "MW", dd -> findfirst(:ec, dd.core_sources.source).profiles_1d[].grid.rho_tor_norm[argmax(findfirst(:ec, dd.core_sources.source).profiles_1d[].electrons.energy)])
     ExtractLibFunction(:sources, :Pnbi, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_nbi.value) / 1E6)
+    ExtractLibFunction(:sources, :Enbi1, "MeV", dd -> @ddtime(dd.nbi.unit[1].energy.data)/1e6)
+
     ExtractLibFunction(:sources, :Pic, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ic.value) / 1E6)
     ExtractLibFunction(:sources, :Plh, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_lh.value) / 1E6)
     ExtractLibFunction(:sources, :Paux_tot, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_total.value) / 1E6)
@@ -196,6 +205,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:bop, :Pelectric_net, "MW", dd -> @ddtime(dd.balance_of_plant.power_electric_net) / 1E6)
     ExtractLibFunction(:bop, :Qplant, "-", dd -> @ddtime(dd.balance_of_plant.Q_plant))
     ExtractLibFunction(:bop, :TBR, "-", dd -> @ddtime(dd.blanket.tritium_breeding_ratio))
+    ExtractLibFunction(:bop, :thermal_cycle_type, "-", dd -> dd.balance_of_plant.power_plant.power_cycle_type)
+
 
     ExtractLibFunction(:build, :PF_material, "-", dd -> dd.build.pf_active.technology.material)
     ExtractLibFunction(:build, :OH_material, "-", dd -> dd.build.oh.technology.material)
@@ -205,6 +216,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
 
     ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
+    ExtractLibFunction(:constraint, :required_power_electric_net, "-", dd -> CFL[:required_power_electric_net](dd))
     ExtractLibFunction(:constraint, :min_q95, "-", dd -> CFL[:min_q95](dd))
     ExtractLibFunction(:constraint, :max_tf_j, "-", dd -> CFL[:max_tf_j](dd))
     ExtractLibFunction(:constraint, :max_oh_j, "-", dd -> CFL[:max_oh_j](dd))
