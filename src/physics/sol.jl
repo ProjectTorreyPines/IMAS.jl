@@ -593,7 +593,7 @@ zohm_divertor_figure_of_merit(eqt::IMAS.equilibrium__time_slice)
 
 Computes a figure of merit for the divertor (Zohm) PB/R/q/A [W T/m]
 """
-function zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice, T::summary__global_quantities)
+function zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice, T::IMAS.summary__global_quantities)
     R0 = eqt.boundary.geometric_axis.r
     a = eqt.boundary.minor_radius
     A = R0 / a
