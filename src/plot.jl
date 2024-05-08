@@ -688,7 +688,7 @@ Plot build cross-section
         rmax = maximum(bd.layer[end].outline.r)
 
         # everything after first vacuum in _out_
-        if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
+        if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
             for k in get_build_indexes(bd.layer; fs=_out_)[2:end]
                 if !wireframe
                     @series begin
@@ -732,13 +732,15 @@ Plot build cross-section
                     get_build_layer(bd.layer; type=_plasma_).outline.z
                 )
             end
-            @series begin
-                seriestype --> :path
-                linewidth --> 1
-                color --> :black
-                label --> ""
-                xlim --> [0, rmax]
-                bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+            if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
+                @series begin
+                    seriestype --> :path
+                    linewidth --> 1
+                    color --> :black
+                    label --> ""
+                    xlim --> [0, rmax]
+                    bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+                end
             end
         end
 
@@ -849,7 +851,7 @@ Plot build cross-section
             end
         end
 
-        if any([structure.type == Int(_divertor_) for structure in bd.structure])
+        if any(structure.type == Int(_divertor_) for structure in bd.structure)
             if (isempty(only) || (:divertor in only)) && (!(:divertor in exclude_layers))
                 for (k, index) in enumerate(findall(x -> x.type == Int(_divertor_), bd.structure))
                     structure_outline = outline(bd.structure[index])
@@ -874,6 +876,33 @@ Plot build cross-section
                 end
             end
         end
+
+        # maintenance port (if any)
+        if any(structure.type == Int(_port_) for structure in bd.structure)
+            if (isempty(only) || (:port in only)) && (!(:port in exclude_layers))
+                for (k, index) in enumerate(findall(x -> x.type == Int(_port_), bd.structure))
+                    if !wireframe
+                        @series begin
+                            seriestype --> :path
+                            linewidth := 2.0
+                            color --> :lightblue
+                            label --> (!wireframe && k == 1 ? "Vessel Port" : "")
+                            xlim --> [0, maximum(bd.structure[index].outline.r)]
+                            bd.structure[index].outline.r, bd.structure[index].outline.z
+                        end
+                    end
+                    @series begin
+                        seriestype --> :path
+                        linewidth --> 0.5
+                        color --> :black
+                        label --> ""
+                        xlim --> [0, maximum(bd.structure[index].outline.r)]
+                        bd.structure[index].outline.r, bd.structure[index].outline.z
+                    end
+                end
+            end
+        end
+
 
     else  # not-cx
 
@@ -1217,7 +1246,8 @@ end
             tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
         end
         show_condition =
-            flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] || (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
+            flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] ||
+            (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
         @series begin
             if only === nothing
                 subplot := 1
@@ -1555,10 +1585,10 @@ end
 @recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress; linewidth=1)
     @assert typeof(linewidth) <: Real
 
-    legend_position --> :outerbottomright
-    ylabel := "Stresses [MPa]"
-    xlabel := "Radius [m]"
-    title := "Center Stack stresses"
+    legend_position --> :bottomleft
+    ylabel --> "Stresses [MPa]"
+    xlabel --> "Radius [m]"
+    title --> "Center Stack stresses"
 
     center_stack = parent(stress)
 
