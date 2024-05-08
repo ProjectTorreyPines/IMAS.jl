@@ -150,7 +150,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
-        crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         # psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
         psi_wall_midplane = find_psi_wall_omp(eqt,wall_r,wall_z)
@@ -306,7 +306,7 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
         r_last_diverted = [1, 1]*r_2ndseparatrix_midplane
     else
         # there is a wall
-        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1] # make it float
         psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA)[1]
@@ -472,7 +472,7 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
         return Float64[]
     else
         # there is a wall
-        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1] # make it float
     end
@@ -508,11 +508,11 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     r_z_index = [k[1] for k in indexes] #index of vectors (r,z) of all crossing point
     wall_index = [k[2] for k in indexes] #index of vectors (wall_r, wall_z) of all crossing point
 
-    crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw inner midplane (IMP) with wall
+    crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw inner midplane (IMP) with wall
     r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP  
     r_wall_imp = r_wall_imp[1] # make it float
 
-    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     r_wall_omp = r_wall_omp[1] # make it float
 
@@ -587,7 +587,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
     
     # remove surfaces that cross midplane outiside the wall
-    crossings2 = intersection([0, RA], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw inner midplane (IMP) with magnetic surface in the SOL
+    crossings2 = intersection([0, RA], [ZA, ZA], rr, zz).crossings # (r,z) point of intersection btw inner midplane (IMP) with magnetic surface in the SOL
     r_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP
     if !isempty(r_imp)
         r_imp = r_imp[1] # make it float
@@ -595,7 +595,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         r_imp = RA # the surface crosses only at the OMP
     end
         
-    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], rr, zz)[2] # (r,z) point of intersection btw outer midplane (OMP) with magnetic surface in the SOL
+    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], rr, zz).crossings # (r,z) point of intersection btw outer midplane (OMP) with magnetic surface in the SOL
     r_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     if !isempty(r_omp)
         r_omp = r_omp[1] # make it float

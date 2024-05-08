@@ -80,7 +80,7 @@ function particle_HF(
             continue
         end
 
-        _, crossings = IMAS.intersection(rr, zz, [1, 10]*RA, [1, 1]*ZA) # find intersection with midplane
+        crossings = intersection(rr, zz, [1, 10]*RA, [1, 1]*ZA).crossings # find intersection with midplane
 
         if isempty(crossings)
             continue
@@ -231,7 +231,7 @@ function particle_HF(
             indexes[indexes .== 1 .&& Zwall.>wall_z[2] .&& Zwall.<=ZA] .= 0   # put before index = 1
         end
 
-        crossings = IMAS.intersection([(minimum(wall_r)+maximum(wall_r))/2, maximum(wall_r)*1.05], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([(minimum(wall_r)+maximum(wall_r))/2, maximum(wall_r)*1.05], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1];
         psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA); 
@@ -457,13 +457,13 @@ function mesher_HF(dd::IMAS.dd;
         NN = 2 # imbalance factor (in/out)  1 < N < 2
         Bt_omp = dd.equilibrium.time_slice[].global_quantities.vacuum_toroidal_field.b0 * R0 / (R0 + a)
 
-        crossings = intersection([R0, 2*maximum(rwall)], [Z0, Z0], rwall, zwall)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([R0, 2*maximum(rwall)], [Z0, Z0], rwall, zwall).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_omp = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_omp = r_wall_omp[1] # make it float
 
         surface,_ = IMAS.flux_surface(eqt,psi_separatrix, :encircling)
         (rr,zz) = surface[1]
-        _, crossings = IMAS.intersection([R0, 2*maximum(rwall)], [Z0, Z0], rr, zz)
+        crossings = intersection([R0, 2*maximum(rwall)], [Z0, Z0], rr, zz).crossings
         r_sep = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
         r_sep = r_sep[1]
 
@@ -608,7 +608,7 @@ function mesher_HF(dd::IMAS.dd;
             indexes[indexes .== 1 .&& Zwall.>wall_z[2] .&& Zwall.<=Z0] .= 0   # put before index = 1
         end
 
-        crossings = IMAS.intersection([(minimum(wall_r)+maximum(wall_r))/2, maximum(wall_r)*1.05], [Z0, Z0], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([(minimum(wall_r)+maximum(wall_r))/2, maximum(wall_r)*1.05], [Z0, Z0], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1];
         psi_wall_midplane = PSI_interpolant(r_wall_midplane,Z0); 

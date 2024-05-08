@@ -220,7 +220,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol
         if isempty(r) || all(z .> ZA) || all(z .< ZA)
             continue
         end
-        if (z[end]-ZA) * (z[1]-ZA) < 0
+        if (z[end] - ZA) * (z[1] - ZA) < 0
             #if double null, all open surfaces in the SOL start and finish in opposite sides of the midplane
             return psi_separatrix
         end
@@ -245,19 +245,17 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol
     while abs(err) > precision && counter < counter_max
         surface, _ = flux_surface(eqt, psi, :open)
         for (r, z) in surface
-
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
                 continue
             end
 
-            if (z[end]-ZA) * (z[1]-ZA) > 0
+            if (z[end] - ZA) * (z[1] - ZA) > 0
                 # the surface starts and finishes on the same side of the midplane; aka is diverted
                 psi_low = psi
             else
                 # the surface starts and finishes on opposite sides of the midplane
                 psi_up = psi
             end
-
         end
 
         if err == abs(psi_up - psi_low) / abs(psi_low)
@@ -333,7 +331,7 @@ function find_psi_last_diverted(
     z_intersect = Float64[]
     r_max = 0.0
     for (r, z) in surface
-        _, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
+        crossings = intersection(r, z, wall_r, wall_z).crossings # find where flux surface crosses wall ("strike points" of surface)
         if isempty(crossings)
             continue
         end
@@ -391,23 +389,23 @@ function find_psi_last_diverted(
 
     # Single_null case
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
-    counter_max = 50
-    counter = 0
     psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:diverted)
     psi_first_lfs_far = psi_2ndseparatrix
     psi_last_lfs = psi_separatrix
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
+
+    counter_max = 50
     err = Inf
-    while abs(err) > precision && counter < counter_max
+    for counter in 1:counter_max
         surface, _ = flux_surface(eqt, psi, :open)
+
         for (r, z) in surface
-            
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
                 continue
             end
 
-            _, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
+            crossings = intersection(r, z, wall_r, wall_z).crossings # find where flux surface crosses wall ("strike points" of surface)
 
             if isempty(crossings)
                 continue
@@ -458,7 +456,9 @@ function find_psi_last_diverted(
         err = abs(A)
         psi = (psi_first_lfs_far + psi_last_lfs) / 2
 
-        counter = counter + 1
+        if abs(err) < precision
+            break
+        end
     end
     # if LDFS is the 2nd separatrix, be consistent with the find_psi_2nd_separatrix function
     if psi_first_lfs_far == psi_2ndseparatrix
@@ -478,7 +478,6 @@ psi_first_lfs_far will be the first surface inside OFL[:lfs_far]; psi_last_lfs w
 
 Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_first_lfs_far and psi_last_lfs ~ 0)
 """
-
 function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
     fw = first_wall(wall)
     return find_psi_last_diverted(eqt, fw.r, fw.z, PSI_interpolant; precision)
@@ -493,7 +492,6 @@ psi_first_lfs_far will be the first surface inside OFL[:lfs_far]; psi_last_lfs w
 
 Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_first_lfs_far and psi_last_lfs ~ 0)
 """
-
 function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
     return find_psi_last_diverted(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant; precision)
@@ -518,14 +516,14 @@ function find_psi_tangent_omp(
 
     # if no wall in dd, psi_last diverted not defined
     if isempty(wall_r) || isempty(wall_z)
-        return (psi_tangent_in = NaN, psi_tangent_out = NaN)
+        return (psi_tangent_in=NaN, psi_tangent_out=NaN)
     end
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
     # find intersection of the wall with the outer midlpane
-    crossings2 = intersection([RA, maximum(wall_r)*2], [ZA, ZA], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+    crossings2 = intersection([RA, maximum(wall_r) * 2], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     r_wall_omp = r_wall_omp[1] # make it float
 
@@ -533,40 +531,38 @@ function find_psi_tangent_omp(
     psi_separatrix, _ = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS, closed
     psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
 
-    ((_,zsep),), _ = flux_surface(eqt, psi_separatrix, :closed)
-    
+    ((_, zsep),), _ = flux_surface(eqt, psi_separatrix, :closed)
+
     b = maximum(abs.([minimum(zsep), maximum(zsep)]))
 
-    wallr = wall_r[wall_r.> RA .&& abs.(wall_z).<b/2]
-    wallz = wall_z[wall_r.> RA .&& abs.(wall_z).<b/2]
+    wallr = wall_r[wall_r.>RA.&&abs.(wall_z).<b/2]
+    wallz = wall_z[wall_r.>RA.&&abs.(wall_z).<b/2]
 
     # add intersection at +/- b/2 meter
-    _, crossings = intersection([RA, 3*RA],[ 1.0,  1.0]*b/2, wall_r, wall_z) # find where flux surface crosses wall around MP
-    wallr = vcat(crossings[1][1],wallr)    
-    wallz = vcat(crossings[1][2],wallz)    
-    _, crossings = intersection([RA, 3*RA],[-1.0, -1.0]*b/2, wall_r, wall_z) # find where flux surface crosses wall around MP
-    push!(wallr,crossings[1][1])
-    push!(wallz,crossings[1][2])
+    crossings = intersection([RA, 3 * RA], [1.0, 1.0] * b / 2, wall_r, wall_z).crossings # find where flux surface crosses wall around MP
+    wallr = vcat(crossings[1][1], wallr)
+    wallz = vcat(crossings[1][2], wallz)
+    crossings = intersection([RA, 3 * RA], [-1.0, -1.0] * b / 2, wall_r, wall_z).crossings # find where flux surface crosses wall around MP
+    push!(wallr, crossings[1][1])
+    push!(wallz, crossings[1][2])
 
     # find the two surfaces `psi_wall_up` and `psi_wall_low` around the tangent surface to the wall at OMP
-    counter_max = 50
-    counter = 0
     if psi_sign == 1
-        psi_tangent_out  = maximum(PSI_interpolant.(wallr,wallz)) # psi increases
+        psi_tangent_out = maximum(PSI_interpolant.(wallr, wallz)) # psi increases
     else
-        psi_tangent_out  = minimum(PSI_interpolant.(wallr,wallz)) # psi decreases
+        psi_tangent_out = minimum(PSI_interpolant.(wallr, wallz)) # psi decreases
     end
-
     psi_tangent_in = psi_separatrix
-
     psi = (psi_tangent_out + psi_tangent_in) / 2
+
+    counter_max = 50
     err = Inf
-    while abs(err) > precision && counter < counter_max
+    for counter in 1:counter_max
         surface, _ = flux_surface(eqt, psi, :open)
         for (r, z) in surface
-            
+
             # exclude empty vectors, surfaces that do not cross the midplane ans surfaces that cross the midplane at the HFS
-            if isempty(r) || all(z .> ZA) || all(z .< ZA) || sum(r.>RA) == 0
+            if isempty(r) || all(z .> ZA) || all(z .< ZA) || sum(r .> RA) == 0
                 continue
             end
 
@@ -578,17 +574,20 @@ function find_psi_tangent_omp(
                 psi = (psi_tangent_out + psi_tangent_in) / 2
             end
         end
-        
-        err = abs(psi_tangent_out-psi_tangent_in)/abs(psi_tangent_in)
-        counter = counter + 1
+
+        err = abs(psi_tangent_out - psi_tangent_in) / abs(psi_tangent_in)
+        if abs(err) < precision
+            break
+        end
     end
-    return (psi_tangent_in = psi_tangent_in, psi_tangent_out = psi_tangent_out)
+
+    return (psi_tangent_in=psi_tangent_in, psi_tangent_out=psi_tangent_out)
 end
 
 """
     find_psi_max(
-        eqt::IMAS.equilibrium__time_slice,
-        precision::Float64=1e-3)
+        eqt::IMAS.equilibrium__time_slice;
+        precision::Float64=1e-2)
 
 Returns the max psi useful for an ofl in the SOL with no wall.
 """
@@ -605,8 +604,6 @@ function find_psi_max(
     psi_sign = sign(psi_2ndseparatrix - psi_axis) # +1 for increasing psi / -1 for decreasing psi
 
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
-    counter_max = 50
-    counter = 0
     if psi_sign > 0
         # increasing psi
         psi_up = maximum(eqt2d.psi)
@@ -623,7 +620,7 @@ function find_psi_max(
             continue
         end
 
-        _, crossings = intersection(r, z, [1, 10] * RA, [1, 1] * ZA) # find intersection with midplane
+        crossings = intersection(r, z, [1, 10] * RA, [1, 1] * ZA).crossings # find intersection with midplane
 
         if isempty(crossings)
             continue
@@ -650,8 +647,9 @@ function find_psi_max(
     zmax = maximum(eqt2d.grid.dim2)
     zmin = minimum(eqt2d.grid.dim2)
 
+    counter_max = 50
     err = Inf
-    while abs(err) > precision && counter < counter_max
+    for counter in 1:counter_max
         surface, _ = flux_surface(eqt, psi, :open)
         for (r, z) in surface
 
@@ -659,7 +657,7 @@ function find_psi_max(
                 continue
             end
 
-            _, crossings = intersection(r, z, [1, 10] * RA, [1, 1] * ZA) # find intersection of surface with midplane
+            crossings = intersection(r, z, [1, 10] * RA, [1, 1] * ZA).crossings # find intersection of surface with midplane
 
             if isempty(crossings)
                 continue
@@ -696,7 +694,9 @@ function find_psi_max(
         err = abs(psi_up - psi_low) / abs(psi_low)
         psi = (psi_up + psi_low) / 2.0
 
-        counter = counter + 1
+        if abs(err) < precision
+            break
+        end
     end
 
 
@@ -708,17 +708,15 @@ end
         eqt::IMAS.equilibrium__time_slice,
         wall_r::Vector{<:Real},
         wall_z::Vector{<:Real};
-        precision::Float64=1e-7)
+        precision::Float64=1e-16)
 
 Returns the psi of the magnetic surface in the SOL which intersects the wall at the outer midplane
 """
-
 function find_psi_wall_omp(
     eqt::IMAS.equilibrium__time_slice,
     wall_r::Vector{<:Real},
     wall_z::Vector{<:Real};
     precision::Float64=1e-16)
-
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
@@ -727,21 +725,20 @@ function find_psi_wall_omp(
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
     r_wall_midplane = r_wall_midplane[1]
 
+    psi_max_u = find_psi_max(eqt)
+    _, psi_max_l = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS, open
+
     counter_max = 100
     err = Inf
-
-    psi_max_u = find_psi_max(eqt) 
-    _, psi_max_l = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS, open
     psi_max = 0.0
-    for k in 1:counter_max
-
-        psi_max = (psi_max_u + psi_max_l)/2
+    for counter in 1:counter_max
+        psi_max = (psi_max_u + psi_max_l) / 2
         surface, _ = IMAS.flux_surface(eqt, psi_max, :open)
-        for (rs,zs) in surface
-            if maximum(rs) < RA 
+        for (rs, zs) in surface
+            if maximum(rs) < RA
                 continue
             end
-            _, crossings = IMAS.intersection([RA, RA*10], [1.0, 1.0]*ZA,rs,zs)
+            crossings = intersection([RA, RA * 10], [1.0, 1.0] * ZA, rs, zs).crossings
 
             if !isempty(crossings)
 
@@ -754,20 +751,15 @@ function find_psi_wall_omp(
                 end
             end
 
-            err = abs(r-r_wall_midplane)/r_wall_midplane
-
+            err = abs(r - r_wall_midplane) / r_wall_midplane
         end
-        
 
         if err < precision
             break
         end
-
     end
 
     # check if tangent
-
-
 
     return psi_max
 end
@@ -1531,28 +1523,28 @@ function luce_squareness(
     # zetaou
     PO = (r_at_max_z, z_at_max_r)
     PE = (max_r, max_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
+    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaou = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetaol
     PO = (r_at_min_z, z_at_max_r)
     PE = (max_r, min_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
+    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaol = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetaiu
     PO = (r_at_max_z, z_at_min_r)
     PE = (min_r, max_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
+    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetaiu = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     # zetail
     PO = (r_at_min_z, z_at_min_r)
     PE = (min_r, min_z)
-    PD = IMAS.intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz)[2][1]
+    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
     PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
     zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
