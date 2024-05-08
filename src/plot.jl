@@ -46,12 +46,12 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 
     if what ∈ (:cx, :coils_flux)
         label --> ""
-        aspect --> :equal
+        aspect_ratio := :equal
 
         # dummy markers to get the colorbar right
         if any(currents .!= 0.0)
-            colorbar_title --> "PF currents [$c_unit]"
             @series begin
+                colorbar_title := "PF currents [$c_unit]"
                 seriestype --> :scatter
                 color --> cname
                 clim --> (-CURRENT, CURRENT)
@@ -63,7 +63,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
         # plot individual coils
         for (k, c) in enumerate(pfa.coil)
             @series begin
-                aspect_ratio := :equal
+                colorbar_entry := false
                 if all(currents .== 0.0)
                     color --> :black
                 else
@@ -90,8 +90,8 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
                 # issue: IMAS does not have a way to store the current pf coil temperature
                 #temperature = c.temperature[1]
                 #Icrit = Interpolations.cubic_spline_interpolation((to_range(c.b_field_max), to_range(c.temperature)), c.current_limit_max * c.element[1].turns_with_sign)(b_max, temperature)
-                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max) / 1E6
-                push!(Imax, Icrit)
+                Icrit = interp1d(c.b_field_max, c.current_limit_max[:, 1] * getproperty(c.element[1], :turns_with_sign, 1.0))(b_max)
+                push!(Imax, Icrit / 1E6)
             else
                 push!(Imax, NaN)
             end
@@ -688,7 +688,7 @@ Plot build cross-section
         rmax = maximum(bd.layer[end].outline.r)
 
         # everything after first vacuum in _out_
-        if (isempty(only) || (:cryostat in only)) && (!(:cryostat in exclude_layers))
+        if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
             for k in get_build_indexes(bd.layer; fs=_out_)[2:end]
                 if !wireframe
                     @series begin
@@ -732,13 +732,15 @@ Plot build cross-section
                     get_build_layer(bd.layer; type=_plasma_).outline.z
                 )
             end
-            @series begin
-                seriestype --> :path
-                linewidth --> 1
-                color --> :black
-                label --> ""
-                xlim --> [0, rmax]
-                bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+            if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
+                @series begin
+                    seriestype --> :path
+                    linewidth --> 1
+                    color --> :black
+                    label --> ""
+                    xlim --> [0, rmax]
+                    bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+                end
             end
         end
 
@@ -1583,10 +1585,10 @@ end
 @recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress; linewidth=1)
     @assert typeof(linewidth) <: Real
 
-    legend_position --> :outerbottomright
-    ylabel := "Stresses [MPa]"
-    xlabel := "Radius [m]"
-    title := "Center Stack stresses"
+    legend_position --> :bottomleft
+    ylabel --> "Stresses [MPa]"
+    xlabel --> "Radius [m]"
+    title --> "Center Stack stresses"
 
     center_stack = parent(stress)
 

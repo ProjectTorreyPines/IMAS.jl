@@ -103,7 +103,7 @@ function fraction_conductor(coil_tech::Union{IMAS.build__pf_active__technology,I
     if coil_tech.material == "copper"
         return frac
     else
-        return frac * coil_tech.ratio_SC_to_copper / (1.0 + coil_tech.ratio_SC_to_copper) # fraction of coil that is Nb3Sn superconductor
+        return frac * coil_tech.ratio_SC_to_copper / (1.0 + coil_tech.ratio_SC_to_copper) # fraction of coil that is superconductor
     end
 end
 
