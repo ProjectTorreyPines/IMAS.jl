@@ -1321,7 +1321,7 @@ end
     # particles
     if only === nothing || only == 3
         tot = 0.0
-        if !ismissing(cs1d.electrons, :particle)
+        if !ismissing(cs1d.electrons, :particles)
             tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
         end
         show_condition = flux || show_zeros || source_name == :time_derivative || abs(tot) > 0.0
@@ -1336,11 +1336,11 @@ end
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
                     label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
-                elseif !integrated && !ismissing(cs1d.electrons, :particle)
+                elseif !integrated && !ismissing(cs1d.electrons, :particles)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
                     end
-                    cs1d.electrons, :particle
+                    cs1d.electrons, :particles
                 elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
                     cs1d.electrons, :particles_inside
                 else
