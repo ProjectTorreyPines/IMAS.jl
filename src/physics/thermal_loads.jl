@@ -80,16 +80,13 @@ function particle_HF(
             continue
         end
 
-        crossings = intersection(rr, zz, [1, 10] * RA, [1, 1] * ZA).crossings # find intersection with midplane
+        crossings = intersection(rr, zz, [RA, 10 * RA], [ZA, ZA]).crossings # find intersection with midplane
 
         if isempty(crossings)
             continue
         end
 
-        rsep = [cr[1] for cr in crossings]
-
-        push!(r_separatrix, rsep[1])
-
+        push!(r_separatrix, crossings[1][1])
     end
     r_separatrix = r_separatrix[1]
     r = r .+ r_separatrix
@@ -571,13 +568,16 @@ function mesher_HF(dd::IMAS.dd;
             end
 
             # insert hfs
-            Rwall = vcat(Rwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+            Rwall = vcat(
+                Rwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
                 Rwall_hfs,
                 Rwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
-            Zwall = vcat(Zwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+            Zwall = vcat(
+                Zwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
                 Zwall_hfs,
                 Zwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
-            indexes = vcat(indexes[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+            indexes = vcat(
+                indexes[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
                 indexes_hfs,
                 indexes[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
         end
@@ -613,7 +613,7 @@ function mesher_HF(dd::IMAS.dd;
         _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
 
         #! format: off
-        if zwall[1]>Z0 # correction if first point is above midplane 
+        if zwall[1] > Z0 # correction if first point is above midplane 
             indexes[indexes .== 1 .&& Zwall.>Z0] .= length(rwall) # put it after index = end  
             indexes[indexes .== 1 .&& Zwall.>zwall[2] .&& Zwall.<=Z0] .= 0   # put before index = 1
         end
@@ -638,7 +638,7 @@ function mesher_HF(dd::IMAS.dd;
         #! format: off
         add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .|| # add private flux region  around first null (psi<psi_sep) + add everyhting above psi midplane
                                 (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&&  # add also points inside the private region around second null (only if null is within wall)
-                                sign(eqt.boundary.x_point[end].z).*zwall.>abs(eqt.boundary.x_point[end].z)).&& null_within_wall .||
+                                sign(eqt.boundary.x_point[end].z).*zwall.>abs(eqt.boundary.x_point[end].z)) .&& null_within_wall .||
                                 psi_wall .> psi_first_lfs_far .&& (rwall.<eqt.boundary.x_point[end].r) .|| # add point in :hfs 
                                 (psi_wall .< psi_wall_midplane .&& (zwall.<=tollZ) .&& (zwall .>= -tollZ) .&& (rwall.>eqt.boundary.x_point[end].r) .&& add_omp) # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
                                 ]
@@ -694,12 +694,12 @@ function mesher_HF(dd::IMAS.dd;
                 end
 
                 #search points in rectangle between two points
-                ##! format: off
+                #! format: off
                 add_r = rwall[rwall.>(minimum([Rwall[ind],Rwall[ind+1]])-dr ).&& rwall .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
-                               zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz )  ]
+                              zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz )  ]
                 add_z = zwall[rwall.>(minimum([Rwall[ind],Rwall[ind+1]])-dr) .&& rwall .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
-                               zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz)   ]
-                ##! format: on
+                              zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz)   ]
+                #! format: on
                 Rwall = append!(Rwall[1:ind], add_r, Rwall[ind+1:end])
                 Zwall = append!(Zwall[1:ind], add_z, Zwall[ind+1:end])
             end
