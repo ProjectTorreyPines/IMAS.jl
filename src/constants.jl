@@ -114,8 +114,8 @@ end
 const index_2_name__stability__collection = Dict(
     1 => :default_limits,
     11 => :beta_limits, # Run all beta limits
-    12 => :current_limit, # Run all current limits
-    13 => :density_limit #Run all density limits
+    12 => :current_limits, # Run all current limits
+    13 => :density_limits #Run all density limits
 )
 
 function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__collection}
