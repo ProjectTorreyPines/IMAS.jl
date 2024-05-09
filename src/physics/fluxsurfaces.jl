@@ -460,6 +460,7 @@ function find_psi_last_diverted(
             break
         end
     end
+
     # if LDFS is the 2nd separatrix, be consistent with the find_psi_2nd_separatrix function
     if psi_first_lfs_far == psi_2ndseparatrix
         psi_last_lfs = psi_first_lfs_far
@@ -559,8 +560,8 @@ function find_psi_tangent_omp(
     err = Inf
     for counter in 1:counter_max
         surface, _ = flux_surface(eqt, psi, :open)
-        for (r, z) in surface
 
+        for (r, z) in surface
             # exclude empty vectors, surfaces that do not cross the midplane ans surfaces that cross the midplane at the HFS
             if isempty(r) || all(z .> ZA) || all(z .< ZA) || sum(r .> RA) == 0
                 continue
@@ -741,7 +742,6 @@ function find_psi_wall_omp(
             crossings = intersection([RA, RA * 10], [1.0, 1.0] * ZA, rs, zs).crossings
 
             if !isempty(crossings)
-
                 r = [cr[1] for cr in crossings]
                 r = r[1]
                 if r <= r_wall_midplane
@@ -749,9 +749,8 @@ function find_psi_wall_omp(
                 else
                     psi_max_u = psi_max
                 end
+                err = abs(r - r_wall_midplane) / r_wall_midplane
             end
-
-            err = abs(r - r_wall_midplane) / r_wall_midplane
         end
 
         if err < precision
