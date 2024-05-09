@@ -123,7 +123,6 @@ function index_2_name(ids::Union{T,IDSvector{T}}) where {T<:IMAS.stability__coll
 end
 
 const index_2_name__stability__model = Dict(
-    0 => :force_fail, # Instantly causes the actor to fail
     # 100s: Beta Limit Models
     101 => :beta_troyon_1984, # Beta limit defined by `F Troyon et al 1984 Plasma Phys. Control. Fusion 26 209`
     102 => :beta_troyon_1985,
