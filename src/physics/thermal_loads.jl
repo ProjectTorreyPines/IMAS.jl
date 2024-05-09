@@ -423,7 +423,13 @@ end
         levels::Union{Int,AbstractVector} = 20, 
         step::T = 0.1) where {T<:Real}
 
-Computes the wall mesh for the heat flux deposited on the wall
+Computes the wall mesh for the heat flux deposited on the wall. Returns: 
+
+(Rwall, Zwall)        wall mesh (with intersections of SOL) -  m
+(rwall, zwall)        evenly spaced wall mesh - m
+s                     curvilinear abscissa computed from (Rwall, Zwall), clockwise starting at OMP - m
+SOL                   list of OpenFieldLines used to compute (Rwall, Zwall) 
+(r,q)                 Hypothesis of power density decay at omp for definition of SOL
 """
 function mesher_HF(dd::IMAS.dd; 
     r::AbstractVector{T}=Float64[], 
@@ -433,10 +439,9 @@ function mesher_HF(dd::IMAS.dd;
     step::T = 0.1) where {T<:Real}
 
     eqt = dd.equilibrium.time_slice[]
-    rwall = IMAS.first_wall(dd.wall).r
-    zwall = IMAS.first_wall(dd.wall).z
+    fw = IMAS.first_wall(dd.wall)
 
-    if isempty(rwall) || isempty(zwall)
+    if isempty(fw.r) || isempty(fw.z)
         error("Impossible to map the heat flux onto the wall because dd.wall is empty")
     end
     
@@ -457,13 +462,13 @@ function mesher_HF(dd::IMAS.dd;
         NN = 2 # imbalance factor (in/out)  1 < N < 2
         Bt_omp = dd.equilibrium.time_slice[].global_quantities.vacuum_toroidal_field.b0 * R0 / (R0 + a)
 
-        crossings = intersection([R0, 2*maximum(rwall)], [Z0, Z0], rwall, zwall).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([R0, 2*maximum(fw.r)], [Z0, Z0], fw.r, fw.z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_omp = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_omp = r_wall_omp[1] # make it float
 
         surface,_ = IMAS.flux_surface(eqt,psi_separatrix, :encircling)
         (rr,zz) = surface[1]
-        crossings = intersection([R0, 2*maximum(rwall)], [Z0, Z0], rr, zz).crossings
+        crossings = intersection([R0, 2*maximum(fw.r)], [Z0, Z0], rr, zz).crossings
         r_sep = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
         r_sep = r_sep[1]
 
@@ -473,20 +478,18 @@ function mesher_HF(dd::IMAS.dd;
             IMAS.power_sol(dd) * frac / 2 / NN/ π / (R0 + a) / l2 / sin(atan(IMAS.Bpol_omp(dd.equilibrium.time_slice[]) / abs(Bt_omp))) * exp.(-r ./ l2)
     end
 
-    step = minimum([step, sum(sqrt.(diff(rwall) .^ 2 + diff(zwall) .^ 2)) / 250]) # ensure decent resolution of the wall
+    step = minimum([step, sum(sqrt.(diff(fw.r) .^ 2 + diff(fw.z) .^ 2)) / 250]) # ensure decent resolution of the wall
     # resample wall and make sure it's clockwise (for COCOS = 11)
-    wall_r, wall_z = IMAS.resample_2d_path(rwall, zwall; step, method=:linear, retain_original_xy=true)
-    IMAS.reorder_flux_surface!(wall_r, wall_z, R0, Z0; force_close=true)
-    rwall = wall_r
-    zwall = wall_z
+    rwall, zwall = IMAS.resample_2d_path(fw.r, fw.z; step, method=:linear, retain_original_xy=true)
+    IMAS.reorder_flux_surface!(rwall, zwall, R0, Z0; force_close=true)
 
     # Parameters for particle heat flux
     if typeof(levels) <: Int
         #levels is an Int, build a vector of psi_levels of that size
         eqt2d = findfirst(:rectangular, eqt.profiles_2d)
         _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
-        psi_levels, _, _ = IMAS.find_levels_from_P(eqt, wall_r, wall_z, PSI_interpolant, r, q, levels)
-        add_psi = IMAS.find_levels_from_wall(eqt, wall_r, wall_z, PSI_interpolant)
+        psi_levels, _, _ = IMAS.find_levels_from_P(eqt, rwall, zwall, PSI_interpolant, r, q, levels)
+        add_psi = IMAS.find_levels_from_wall(eqt, rwall, zwall, PSI_interpolant)
 
         psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
         psi_sign = sign(psi_levels[end] - psi_levels[1])
@@ -501,7 +504,7 @@ function mesher_HF(dd::IMAS.dd;
     
     psi_levels[1] = psi_separatrix
     # build SOL
-    SOL = IMAS.sol(eqt, wall_r, wall_z; levels=psi_levels, use_wall=true)
+    SOL = IMAS.sol(eqt, rwall, zwall; levels=psi_levels, use_wall=true)
 
     Rwall =  Float64[]
     Zwall =  Float64[]
@@ -560,7 +563,6 @@ function mesher_HF(dd::IMAS.dd;
                 push!(indexes_hfs,sol.wall_index[end])
             end
 
-            
             # insert hfs
             Rwall   = vcat(Rwall[1:argmin(abs.(indexes.-maximum(indexes_hfs)))-1], 
                         Rwall_hfs, 
@@ -603,18 +605,18 @@ function mesher_HF(dd::IMAS.dd;
     if merge_wall
         _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
         
-        if wall_z[1]>Z0 # correction if first point is above midplane 
-            indexes[indexes .== 1 .&& Zwall.>Z0] .= length(wall_r) # put it after index = end  
-            indexes[indexes .== 1 .&& Zwall.>wall_z[2] .&& Zwall.<=Z0] .= 0   # put before index = 1
+        if zwall[1]>Z0 # correction if first point is above midplane 
+            indexes[indexes .== 1 .&& Zwall.>Z0] .= length(rwall) # put it after index = end  
+            indexes[indexes .== 1 .&& Zwall.>zwall[2] .&& Zwall.<=Z0] .= 0   # put before index = 1
         end
 
-        crossings = intersection([(minimum(wall_r)+maximum(wall_r))/2, maximum(wall_r)*1.05], [Z0, Z0], wall_r, wall_z)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
+        crossings = intersection([(minimum(rwall)+maximum(rwall))/2, maximum(rwall)*1.05], [Z0, Z0], rwall, zwall)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1];
         psi_wall_midplane = PSI_interpolant(r_wall_midplane,Z0); 
-        _, psi_first_lfs_far, null_within_wall = IMAS.find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
-        psi_wall = PSI_interpolant.(wall_r,wall_z)
-        tollZ = max(abs(Z0), 2*abs(wall_z[2]-wall_z[1]))
+        _, psi_first_lfs_far, null_within_wall = IMAS.find_psi_last_diverted(eqt, rwall, zwall, PSI_interpolant) # psi of grazing surface
+        psi_wall = PSI_interpolant.(rwall,zwall)
+        tollZ = max(abs(Z0), 2*abs(zwall[2]-zwall[1]))
         if Zwall[1]>= -tollZ # check if the particle reach the wall around the midplane
             # if so, do not add any point
             add_omp = false
@@ -626,17 +628,17 @@ function mesher_HF(dd::IMAS.dd;
         add_indexes =  collect((1:length(psi_wall)))
         add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .|| # add private flux region  around first null (psi<psi_sep) + add everyhting above psi midplane
                                 (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&&  # add also points inside the private region around second null (only if null is within wall)
-                                sign(eqt.boundary.x_point[end].z).*wall_z.>abs(eqt.boundary.x_point[end].z)).&& null_within_wall .||
-                                psi_wall .> psi_first_lfs_far .&& (wall_r.<eqt.boundary.x_point[end].r) .|| # add point in :hfs 
-                                (psi_wall .< psi_wall_midplane .&& (wall_z.<=tollZ) .&& (wall_z .>= -tollZ) .&& (wall_r.>eqt.boundary.x_point[end].r) .&& add_omp) # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
+                                sign(eqt.boundary.x_point[end].z).*zwall.>abs(eqt.boundary.x_point[end].z)).&& null_within_wall .||
+                                psi_wall .> psi_first_lfs_far .&& (rwall.<eqt.boundary.x_point[end].r) .|| # add point in :hfs 
+                                (psi_wall .< psi_wall_midplane .&& (zwall.<=tollZ) .&& (zwall .>= -tollZ) .&& (rwall.>eqt.boundary.x_point[end].r) .&& add_omp) # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
                                 ] 
 
         L = length(add_indexes)
-        average_step = sum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))./(length(wall_r)-1)
+        average_step = sum(sqrt.(diff(rwall).^2 + diff(zwall).^2))./(length(rwall)-1)
         #filter out point that are for some reason already inside Rwall,Zwall
         for (k,ind) in enumerate(reverse(add_indexes))
             #check if these points have been already saved in Rwall, Zwall
-            dist = sqrt.( (Rwall .- wall_r[ind]).^2 + (Zwall .- wall_z[ind]).^2)
+            dist = sqrt.( (Rwall .- rwall[ind]).^2 + (Zwall .- zwall[ind]).^2)
             if minimum(dist) <= average_step # if a point is at less than average_step  from an already saved point, do not save it
                 #point is already in and must be removed
                 deleteat!(add_indexes, L+1-k)
@@ -644,11 +646,10 @@ function mesher_HF(dd::IMAS.dd;
         end
 
         add_indexes = reverse!(add_indexes)
-
         for ind in add_indexes
             if ind != 1
-            Rwall = append!(Rwall[indexes.<ind],[wall_r[ind]], Rwall[indexes.>=ind])
-            Zwall = append!(Zwall[indexes.<ind],[wall_z[ind]], Zwall[indexes.>=ind])
+            Rwall = append!(Rwall[indexes.<ind],[rwall[ind]], Rwall[indexes.>=ind])
+            Zwall = append!(Zwall[indexes.<ind],[zwall[ind]], Zwall[indexes.>=ind])
             indexes = append!(indexes[indexes.<ind],[ind], indexes[indexes.>=ind])
             end
         end
@@ -670,22 +671,22 @@ function mesher_HF(dd::IMAS.dd;
                 if abs.(diff([Rwall[ind],Rwall[ind+1]]))[1]>0.01
                     dr = 0.0
                 else
-                    # dr = 1.0*maximum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))
-                    dr = sqrt(2)*sum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))/length(dist)
+                    # dr = 1.0*maximum(sqrt.(diff(rwall).^2 + diff(zwall).^2))
+                    dr = sqrt(2)*sum(sqrt.(diff(rwall).^2 + diff(zwall).^2))/length(dist)
                 end
                 #if horizontal lines
                 if abs.(diff([Zwall[ind],Zwall[ind+1]]))[1]>0.01
                     dz = 0.0
                 else
-                    # dz = 1.0*maximum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))
-                    dz = sqrt(2)*sum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))/length(dist)
+                    # dz = 1.0*maximum(sqrt.(diff(rwall).^2 + diff(zwall).^2))
+                    dz = sqrt(2)*sum(sqrt.(diff(rwall).^2 + diff(zwall).^2))/length(dist)
                 end
 
                 #search points in rectangle between two points 
-                add_r = wall_r[wall_r.>(minimum([Rwall[ind],Rwall[ind+1]])-dr ).&& wall_r .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
-                               wall_z.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& wall_z .< (maximum([Zwall[ind],Zwall[ind+1]])+dz )  ]
-                add_z = wall_z[wall_r.>(minimum([Rwall[ind],Rwall[ind+1]])-dr) .&& wall_r .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
-                               wall_z.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& wall_z .< (maximum([Zwall[ind],Zwall[ind+1]])+dz)   ]
+                add_r = rwall[rwall.>(minimum([Rwall[ind],Rwall[ind+1]])-dr ).&& rwall .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
+                               zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz )  ]
+                add_z = zwall[rwall.>(minimum([Rwall[ind],Rwall[ind+1]])-dr) .&& rwall .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
+                               zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz)   ]
                 Rwall = append!(Rwall[1:ind],add_r, Rwall[ind+1:end])
                 Zwall = append!(Zwall[1:ind],add_z, Zwall[ind+1:end])       
             end
