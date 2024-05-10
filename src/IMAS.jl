@@ -2,9 +2,9 @@ module IMAS
 
 using Printf
 
-#= ======= =#
-#= IMAS DD =#
-#= ======= =#
+#= ====== =#
+#= IMASDD =#
+#= ====== =#
 import IMASDD
 # import all IMASDD.jl as if it was defined in IMAS.jl
 for n in names(IMASDD; all=true)

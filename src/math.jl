@@ -638,7 +638,9 @@ function angle_between_two_vectors(
     v2_x = v2_p2[1] - v2_p1[1]
     v2_y = v2_p2[2] - v2_p1[2]
 
-    return acos((v1_x * v2_x + v1_y * v2_y) / (sqrt(v1_x^2 + v1_y^2) * sqrt(v2_x^2 + v2_y^2)))
+    arg = (v1_x * v2_x + v1_y * v2_y) / (sqrt(v1_x^2 + v1_y^2) * sqrt(v2_x^2 + v2_y^2))
+    # limit arg to [-1.0, 1.0], which is guaranteed mathematically by (a · b) / (|a| |b|)
+    return acos(max(min(arg, 1.0), -1.0))
 end
 
 """
@@ -898,7 +900,7 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool
 end
 
 """
-    perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 
+    perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real}
 
 Calculate the perimeter of a polygon
 """
