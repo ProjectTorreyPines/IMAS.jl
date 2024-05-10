@@ -108,14 +108,13 @@ function update_ExtractFunctionsLibrary!()
 
     ExtractLibFunction(:bop, :Pfusion, "MW", dd -> fusion_power(dd.core_profiles.profiles_1d[]) / 1E6)
     ExtractLibFunction(:bop, :Qfusion, "-", dd -> EFL[:Pfusion](dd) / EFL[:Paux_tot](dd))
+    ExtractLibFunction(:bop, :thermal_cycle_type, "-", dd -> dd.balance_of_plant.power_plant.power_cycle_type)
     ExtractLibFunction(:bop, :thermal_efficiency_plant, "MW", dd -> @ddtime(dd.balance_of_plant.thermal_efficiency_plant) )
     ExtractLibFunction(:bop, :thermal_efficiency_cycle, "MW", dd -> @ddtime(dd.balance_of_plant.thermal_efficiency_cycle) )
     ExtractLibFunction(:bop, :power_electric_generated, "MW", dd -> @ddtime(dd.balance_of_plant.power_plant.power_electric_generated) / 1E6)
-
     ExtractLibFunction(:bop, :Pelectric_net, "MW", dd -> @ddtime(dd.balance_of_plant.power_electric_net) / 1E6)
     ExtractLibFunction(:bop, :Qplant, "-", dd -> @ddtime(dd.balance_of_plant.Q_plant))
     ExtractLibFunction(:bop, :TBR, "-", dd -> @ddtime(dd.blanket.tritium_breeding_ratio))
-    ExtractLibFunction(:bop, :thermal_cycle_type, "-", dd -> dd.balance_of_plant.power_plant.power_cycle_type)
 
     ExtractLibFunction(:build, :PF_material, "-", dd -> dd.build.pf_active.technology.material)
     ExtractLibFunction(:build, :TF_material, "-", dd -> dd.build.tf.technology.material)
