@@ -20,8 +20,6 @@ mutable struct ConstraintFunction
     end
 end
 
-
-
 const ConstraintFunctionsLibrary = Dict{Symbol,ConstraintFunction}() #s
 function update_ConstraintFunctionsLibrary!()
     empty!(ConstraintFunctionsLibrary)
@@ -32,18 +30,18 @@ function update_ConstraintFunctionsLibrary!()
     ConstraintFunction(:min_required_power_electric_net, "%", dd -> (@ddtime(dd.balance_of_plant.power_electric_net) - dd.requirements.power_electric_net) / dd.requirements.power_electric_net, >, 0.0)
     ConstraintFunction(:required_flattop, "%", dd -> abs(dd.build.oh.flattop_duration - dd.requirements.flattop_duration) / dd.requirements.flattop_duration, ==, 0.0, 0.01) # relative tolerance
     ConstraintFunction(:min_required_flattop, "%", dd -> (dd.build.oh.flattop_duration - dd.requirements.flattop_duration) / dd.requirements.flattop_duration, >, 0.0)
-    ConstraintFunction(:min_required_B0, "%", dd -> (abs(prod(IMAS.build_max_R0_B0(dd.build))) - dd.equilibrium.vacuum_toroidal_field.r0 * maximum(abs, dd.equilibrium.vacuum_toroidal_field.b0)) / (dd.equilibrium.vacuum_toroidal_field.r0 * maximum(abs, dd.equilibrium.vacuum_toroidal_field.b0)), >, 0.0)
+    ConstraintFunction(:min_required_B0, "%", dd -> (abs(prod(build_max_R0_B0(dd.build))) - dd.equilibrium.vacuum_toroidal_field.r0 * maximum(abs, dd.equilibrium.vacuum_toroidal_field.b0)) / (dd.equilibrium.vacuum_toroidal_field.r0 * maximum(abs, dd.equilibrium.vacuum_toroidal_field.b0)), >, 0.0)
     ConstraintFunction(:zero_ohmic, "MA", dd -> abs(sum(integrate(dd.core_profiles.profiles_1d[].grid.area, dd.core_profiles.profiles_1d[].j_ohmic))) / 1E6, ==, 0.0, 0.1) # absolute tolerance
     ConstraintFunction(:max_ne_peaking, "%", dd -> ((@ddtime(dd.summary.local.magnetic_axis.n_e.value) / @ddtime(dd.summary.volume_average.n_e.value)) - dd.requirements.ne_peaking) / dd.requirements.ne_peaking, <, 0.0)
-    ConstraintFunction(:min_lh_power_threshold, "%", dd -> (IMAS.power_sol(dd) / dd.requirements.lh_power_threshold_fraction - IMAS.scaling_L_to_H_power(dd)) / IMAS.scaling_L_to_H_power(dd), >, 0.0)
-    ConstraintFunction(:max_ωpe_ωce, "%", dd -> IMAS.ω_pe(@ddtime(dd.summary.local.magnetic_axis.n_e.value)) / IMAS.ω_ce(@ddtime(dd.equilibrium.vacuum_toroidal_field.b0)), <, 1.0)
-    ConstraintFunction(:max_qpol_omp, "%", dd -> (IMAS.q_pol_omp_eich(dd) - dd.requirements.q_pol_omp) / dd.requirements.q_pol_omp, <, 0.0)
+    ConstraintFunction(:min_lh_power_threshold, "%", dd -> (power_sol(dd) / dd.requirements.lh_power_threshold_fraction - scaling_L_to_H_power(dd)) / scaling_L_to_H_power(dd), >, 0.0)
+    ConstraintFunction(:max_ωpe_ωce, "%", dd -> ω_pe(@ddtime(dd.summary.local.magnetic_axis.n_e.value)) / ω_ce(@ddtime(dd.equilibrium.vacuum_toroidal_field.b0)), <, 1.0)
+    ConstraintFunction(:max_qpol_omp, "%", dd -> (q_pol_omp_eich(dd) - dd.requirements.q_pol_omp) / dd.requirements.q_pol_omp, <, 0.0)
     ConstraintFunction(:max_tf_j, "%", dd -> dd.build.tf.max_j / dd.build.tf.critical_j + dd.requirements.coil_j_margin, <, 1.0)
     ConstraintFunction(:max_oh_j, "%", dd -> dd.build.oh.max_j / dd.build.oh.critical_j + dd.requirements.coil_j_margin, <, 1.0)
     ConstraintFunction(:max_pl_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.pl) / (ismissing(dd.solid_mechanics.center_stack.stress.vonmises, :pl) ? 0.0 : dd.solid_mechanics.center_stack.properties.yield_strength.pl) + dd.requirements.coil_stress_margin, <, 1.0)
     ConstraintFunction(:max_tf_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.tf) / dd.solid_mechanics.center_stack.properties.yield_strength.tf + dd.requirements.coil_stress_margin, <, 1.0)
     ConstraintFunction(:max_oh_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.oh) / dd.solid_mechanics.center_stack.properties.yield_strength.oh + dd.requirements.coil_stress_margin, <, 1.0)
-    ConstraintFunction(:max_hds03, "%", dd -> (@ddtime(dd.summary.global_quantities.tau_energy.value)/IMAS.tau_e_ds03(dd) - dd.requirements.hds03)/dd.requirements.hds03, <, 0.0)
+    ConstraintFunction(:max_hds03, "%", dd -> (@ddtime(dd.summary.global_quantities.tau_energy.value)/tau_e_ds03(dd) - dd.requirements.hds03)/dd.requirements.hds03, <, 0.0)
     ConstraintFunction(:min_q95, "%", dd -> (dd.equilibrium.time_slice[].global_quantities.q_95 - dd.requirements.q95) / dd.requirements.q95, >, 0.0)
     #! format: on
     return ConstraintFunctionsLibrary
