@@ -20,6 +20,8 @@ import IMASDD: @ddtime
 include("real.jl")
 include("constants.jl")
 include("math.jl")
+include("constraints.jl")
+include("objectives.jl")
 include("extract.jl")
 include("get_from.jl")
 include("fxp.jl")

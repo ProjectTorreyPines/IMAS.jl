@@ -76,10 +76,16 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
     end
 
     Ti = Ti ./ 1e3  # from eV to keV
-
     r0 = Ti .* (c2 .+ Ti .* (c4 .+ Ti .* c6)) ./ (1.0 .+ Ti .* (c3 .+ Ti .* (c5 .+ Ti .* c7)))
-
+    if model == "D+D→He3"
+        # r0 > 1.0 is undefined, cutoff at r0 of 0.95
+        r0 .= ifelse.(r0 .> 0.95, 0.95, r0)
+        if any(r0 .== 0.95)
+            @warn "r0 in D+D→He3 is incorrect. This is likely a symptom of very high Ti: $Ti [keV]"
+        end
+    end
     theta = Ti ./ (1.0 .- r0)
+    
     xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
     sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
 

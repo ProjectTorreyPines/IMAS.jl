@@ -25,6 +25,8 @@ const ExtractFunctionsLibrary = EFL = OrderedCollections.OrderedDict{Symbol,Extr
 
 function update_ExtractFunctionsLibrary!()
     empty!(EFL)
+    CFL = ConstraintFunctionsLibrary
+    #! format: off
     ExtractLibFunction(:geometry, :R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r)
     ExtractLibFunction(:geometry, :a, "m", dd -> dd.equilibrium.time_slice[].boundary.minor_radius)
     ExtractLibFunction(:geometry, Symbol("1/ϵ"), "-", dd -> EFL[:R0](dd) / EFL[:a](dd))
@@ -37,7 +39,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:equilibrium, :B0, "T", dd -> @ddtime(dd.equilibrium.vacuum_toroidal_field.b0))
     ExtractLibFunction(:equilibrium, :ip, "MA", dd -> @ddtime(dd.summary.global_quantities.ip.value) / 1e6)
     ExtractLibFunction(:equilibrium, :q95, "-", dd -> dd.equilibrium.time_slice[].global_quantities.q_95)
-    ExtractLibFunction(:equilibrium, Symbol("<Bpol>"), "T", dd -> IMAS.Bpol(EFL[:a](dd), EFL[:κ](dd), EFL[:ip](dd) * 1e6))
+    ExtractLibFunction(:equilibrium, Symbol("<Bpol>"), "T", dd -> Bpol(EFL[:a](dd), EFL[:κ](dd), EFL[:ip](dd) * 1e6))
     ExtractLibFunction(:equilibrium, :βpol_MHD, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_pol)
     ExtractLibFunction(:equilibrium, :βtor_MHD, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_tor)
     ExtractLibFunction(:equilibrium, :βn_MHD, "-", dd -> dd.equilibrium.time_slice[].global_quantities.beta_normal)
@@ -53,7 +55,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:densities, :ne_ped, "m⁻³", dd -> @ddtime(dd.summary.local.pedestal.n_e.value))
     ExtractLibFunction(:densities, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
     ExtractLibFunction(:densities, Symbol("ne0/<ne>"), "-", dd -> EFL[:ne0](dd) / EFL[Symbol("<ne>")](dd))
-    ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> IMAS.greenwald_fraction(dd))
+    ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> greenwald_fraction(dd))
     ExtractLibFunction(:densities, :zeff_ped, "-", dd -> @ddtime(dd.summary.local.pedestal.zeff.value))
     ExtractLibFunction(:densities, Symbol("<zeff>"), "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
 
@@ -71,12 +73,15 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:transport, :Hds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
 
     ExtractLibFunction(:sources, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
+    ExtractLibFunction(:sources, :rho0_ec, "MW", dd -> findfirst(:ec, dd.core_sources.source).profiles_1d[].grid.rho_tor_norm[argmax(findfirst(:ec, dd.core_sources.source).profiles_1d[].electrons.energy)])
     ExtractLibFunction(:sources, :Pnbi, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_nbi.value) / 1E6)
+    ExtractLibFunction(:sources, :Enbi1, "MeV", dd -> @ddtime(dd.nbi.unit[1].energy.data)/1e6)
+
     ExtractLibFunction(:sources, :Pic, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ic.value) / 1E6)
     ExtractLibFunction(:sources, :Plh, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_lh.value) / 1E6)
     ExtractLibFunction(:sources, :Paux_tot, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_total.value) / 1E6)
     ExtractLibFunction(:sources, :Pα, "MW", dd -> fusion_plasma_power(dd) / 1E6)
-    ExtractLibFunction(:sources, :Pohm, "MW", dd -> total_power_source(IMAS.ohmic_source!(dd).profiles_1d[])/ 1E6)
+    ExtractLibFunction(:sources, :Pohm, "MW", dd -> total_power_source(ohmic_source!(dd).profiles_1d[])/ 1E6)
     ExtractLibFunction(:sources, :Pheat, "MW", dd ->  EFL[:Paux_tot](dd) + EFL[:Pα](dd) + EFL[:Pohm](dd))
     ExtractLibFunction(:sources, :Prad_tot, "MW", dd -> radiation_losses(dd.core_sources) / 1E6)
 
@@ -103,9 +108,12 @@ function update_ExtractFunctionsLibrary!()
 
     ExtractLibFunction(:bop, :Pfusion, "MW", dd -> fusion_power(dd.core_profiles.profiles_1d[]) / 1E6)
     ExtractLibFunction(:bop, :Qfusion, "-", dd -> EFL[:Pfusion](dd) / EFL[:Paux_tot](dd))
+    ExtractLibFunction(:bop, :thermal_cycle_type, "-", dd -> dd.balance_of_plant.power_plant.power_cycle_type)
+    ExtractLibFunction(:bop, :thermal_efficiency_plant, "MW", dd -> @ddtime(dd.balance_of_plant.thermal_efficiency_plant) )
+    ExtractLibFunction(:bop, :thermal_efficiency_cycle, "MW", dd -> @ddtime(dd.balance_of_plant.thermal_efficiency_cycle) )
+    ExtractLibFunction(:bop, :power_electric_generated, "MW", dd -> @ddtime(dd.balance_of_plant.power_plant.power_electric_generated) / 1E6)
     ExtractLibFunction(:bop, :Pelectric_net, "MW", dd -> @ddtime(dd.balance_of_plant.power_electric_net) / 1E6)
     ExtractLibFunction(:bop, :Qplant, "-", dd -> @ddtime(dd.balance_of_plant.Q_plant))
-    ExtractLibFunction(:bop, :ηthermal_cycle, "-", dd -> @ddtime(dd.balance_of_plant.power_plant.thermal_efficiency))
     ExtractLibFunction(:bop, :TBR, "-", dd -> @ddtime(dd.blanket.tritium_breeding_ratio))
 
     ExtractLibFunction(:build, :PF_material, "-", dd -> dd.build.pf_active.technology.material)
@@ -120,6 +128,16 @@ function update_ExtractFunctionsLibrary!()
 
     ExtractLibFunction(:costing, :levelized_CoE, "\$/kWh", dd -> dd.costing.levelized_CoE)
     ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
+
+    ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
+    ExtractLibFunction(:constraint, :required_power_electric_net, "-", dd -> CFL[:required_power_electric_net](dd))
+    ExtractLibFunction(:constraint, :min_q95, "-", dd -> CFL[:min_q95](dd))
+    ExtractLibFunction(:constraint, :max_tf_j, "-", dd -> CFL[:max_tf_j](dd))
+    ExtractLibFunction(:constraint, :max_oh_j, "-", dd -> CFL[:max_oh_j](dd))
+    ExtractLibFunction(:constraint, :max_pl_stress, "-", dd -> CFL[:max_pl_stress](dd))
+    ExtractLibFunction(:constraint, :max_tf_stress, "-", dd -> CFL[:max_tf_stress](dd))
+    ExtractLibFunction(:constraint, :max_oh_stress, "-", dd -> CFL[:max_oh_stress](dd))
+    #! format: on
 
     return EFL
 end
