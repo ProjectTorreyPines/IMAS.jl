@@ -198,15 +198,18 @@ Ramer-Douglas-Peucker algorithm. The `epsilon` parameter controls the maximum di
 allowed between a point on the original line and its simplified representation.
 """
 function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
-    @assert x[1] != x[end] || y[1] != y[end]
+    #@assert x[1] != x[end] || y[1] != y[end] "p[1] = ($(x[1]),$(y[1]))  p[end] = ($(x[end]),$(y[end])) "
+    closed = false
+    if x[1] == x[end] && y[1] == y[end]
+        closed = true
+        x = x[1:end-1]
+        y = y[1:end-1]
+    end
+    @assert length(x) == length(y) "Input arrays must have at least 3 elements"
 
     n = length(x)
-    if n != length(y)
-        error("Input arrays must have at least 3 elements and the same length")
-    end
-
     if n <= 3
-        return x, y
+        X, Y = x, y
     else
         # Find the point with the maximum distance from the line between the first and last points
         dmax = 0
@@ -228,11 +231,17 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
             # Combine the simplified line segments
             x_simplified = [left_points[1]; right_points[1][2:end]]
             y_simplified = [left_points[2]; right_points[2][2:end]]
-            return (x_simplified, y_simplified)
+            X, Y = x_simplified, y_simplified
         else
             # If the maximum distance is less than epsilon, return the original line segment
-            return x[[1, end]], y[[1, end]]
+            X, Y = x[[1, end]], y[[1, end]]
         end
+    end
+
+    if closed
+        return T[X; X[1]], T[Y; Y[1]]
+    else
+        return X, Y
     end
 end
 
@@ -497,45 +506,52 @@ function mean_distance_error_two_shapes(
     return sqrt(mean_distance_error) / n
 end
 
-function min_mean_distance_error_two_shapes(
+"""
+    min_distance_error_two_shapes(
+        R_obj1::AbstractVector{<:T},
+        Z_obj1::AbstractVector{<:T},
+        R_obj2::AbstractVector{<:T},
+        Z_obj2::AbstractVector{<:T},
+        target_distance::T) where {T<:Real}
+
+Calculate the minimum distance and the normalized root mean square error (NRMSE) of the
+distances between two sets of shape coordinates in a 2D space, relative to a target distance.
+
+# Returns
+
+  - `min_distance::Float64`: The minimum distance between any two points from the two shapes.
+  - `mean_distance_error::Float64`: The normalized root mean square error of the distances between point pairs from the two shapes compared to the target distance.
+"""
+function min_distance_error_two_shapes(
     R_obj1::AbstractVector{<:T},
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
     Z_obj2::AbstractVector{<:T},
-    target_distance::T;
-    above_target::Bool=false,
-    below_target::Bool=false) where {T<:Real}
-
-    min_distance = Inf
+    target_distance::T) where {T<:Real}
+    
     mean_distance_error = 0.0
-    n = 0
-
+    min_distance = Inf
     for k1 in eachindex(R_obj1)
+        min_squared_distance = Inf
         for k2 in eachindex(R_obj2)
-            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
-
-            # Calculate minimum distance
-            if min_distance > d
-                min_distance = d
-            end
-
-            # Calculate mean error distance
-            if above_target && d > target_distance
-                mean_distance_error += (d - target_distance)^2
-                n += 1
-            elseif below_target && d < target_distance
-                mean_distance_error += (d - target_distance)^2
-                n += 1
-            else
-                mean_distance_error += (d - target_distance)^2
-                n += 1
+            @inbounds squared_dist = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            # Update minimum squared distance for the current point in R_obj1
+            if min_squared_distance > squared_dist
+                min_squared_distance = squared_dist
             end
         end
+        # Convert the squared distance to actual distance
+        actual_distance = sqrt(min_squared_distance)
+        # Update global minimum distance
+        if min_distance > actual_distance
+            min_distance = actual_distance
+        end
+        # Accumulate the relative squared difference from the target distance
+        mean_distance_error += ((actual_distance - target_distance) / target_distance) ^2
     end
 
-    # Return results
-    min_distance = sqrt(min_distance)
-    mean_distance_error = sqrt(mean_distance_error) / n
+    # Normalize the mean relative distance error
+    mean_distance_error = sqrt(mean_distance_error) / length(R_obj1)
 
     return min_distance, mean_distance_error
 end
@@ -638,7 +654,9 @@ function angle_between_two_vectors(
     v2_x = v2_p2[1] - v2_p1[1]
     v2_y = v2_p2[2] - v2_p1[2]
 
-    return acos((v1_x * v2_x + v1_y * v2_y) / (sqrt(v1_x^2 + v1_y^2) * sqrt(v2_x^2 + v2_y^2)))
+    arg = (v1_x * v2_x + v1_y * v2_y) / (sqrt(v1_x^2 + v1_y^2) * sqrt(v2_x^2 + v2_y^2))
+    # limit arg to [-1.0, 1.0], which is guaranteed mathematically by (a · b) / (|a| |b|)
+    return acos(max(min(arg, 1.0), -1.0))
 end
 
 """
@@ -782,11 +800,11 @@ function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Flo
 end
 
 """
-    split_long_segments(R::AbstractVector{T},Z::AbstractVector{T},max_length::T) where {T<:Real}
+    split_long_segments(R::AbstractVector{T},Z::AbstractVector{T},max_length::Float64) where {T<:Real}
 
 Split long segments of a polygon so that each resulting segment is always <= max_length
 """
-function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::T) where {T<:Real}
+function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::Float64) where {T<:Real}
     opoly = open_polygon(R, Z)
 
     Rout = [opoly.R[1]]
@@ -813,6 +831,17 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
     else
         return Rout[1:end-1], Zout[1:end-1]
     end
+end
+
+"""
+    split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, n_points::Int) where {T<:Real}
+
+Split long segments of a polygon so that there are at least n_points in it
+"""
+function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, n_points::Int) where {T<:Real}
+    L = sum(sqrt.(diff(R) .^ 2.0 + diff(Z) .^ 2.0))
+    max_length = L / n_points
+    return split_long_segments(R, Z, max_length)
 end
 
 """
@@ -898,7 +927,7 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool
 end
 
 """
-    perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real} 
+    perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real}
 
 Calculate the perimeter of a polygon
 """
