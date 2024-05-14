@@ -784,11 +784,11 @@ function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Flo
 end
 
 """
-    split_long_segments(R::AbstractVector{T},Z::AbstractVector{T},max_length::T) where {T<:Real}
+    split_long_segments(R::AbstractVector{T},Z::AbstractVector{T},max_length::Float64) where {T<:Real}
 
 Split long segments of a polygon so that each resulting segment is always <= max_length
 """
-function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::T) where {T<:Real}
+function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::Float64) where {T<:Real}
     opoly = open_polygon(R, Z)
 
     Rout = [opoly.R[1]]
@@ -815,6 +815,17 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
     else
         return Rout[1:end-1], Zout[1:end-1]
     end
+end
+
+"""
+    split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, n_points::Int) where {T<:Real}
+
+Split long segments of a polygon so that there are at least n_points in it
+"""
+function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, n_points::Int) where {T<:Real}
+    L = sum(sqrt.(diff(R) .^ 2.0 + diff(Z) .^ 2.0))
+    max_length = L / n_points
+    return split_long_segments(R, Z, max_length)
 end
 
 """
