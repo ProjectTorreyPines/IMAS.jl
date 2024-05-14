@@ -239,7 +239,7 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
     end
 
     if closed
-        return T[X;X[1]], T[Y;Y[1]]
+        return T[X; X[1]], T[Y; Y[1]]
     else
         return X, Y
     end
@@ -506,45 +506,52 @@ function mean_distance_error_two_shapes(
     return sqrt(mean_distance_error) / n
 end
 
-function min_mean_distance_error_two_shapes(
+"""
+    min_distance_error_two_shapes(
+        R_obj1::AbstractVector{<:T},
+        Z_obj1::AbstractVector{<:T},
+        R_obj2::AbstractVector{<:T},
+        Z_obj2::AbstractVector{<:T},
+        target_distance::T) where {T<:Real}
+
+Calculate the minimum distance and the normalized root mean square error (NRMSE) of the
+distances between two sets of shape coordinates in a 2D space, relative to a target distance.
+
+# Returns
+
+  - `min_distance::Float64`: The minimum distance between any two points from the two shapes.
+  - `mean_distance_error::Float64`: The normalized root mean square error of the distances between point pairs from the two shapes compared to the target distance.
+"""
+function min_distance_error_two_shapes(
     R_obj1::AbstractVector{<:T},
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
     Z_obj2::AbstractVector{<:T},
-    target_distance::T;
-    above_target::Bool=false,
-    below_target::Bool=false) where {T<:Real}
-
-    min_distance = Inf
+    target_distance::T) where {T<:Real}
+    
     mean_distance_error = 0.0
-    n = 0
-
+    min_distance = Inf
     for k1 in eachindex(R_obj1)
+        min_squared_distance = Inf
         for k2 in eachindex(R_obj2)
-            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
-
-            # Calculate minimum distance
-            if min_distance > d
-                min_distance = d
-            end
-
-            # Calculate mean error distance
-            if above_target && d > target_distance
-                mean_distance_error += (d - target_distance)^2
-                n += 1
-            elseif below_target && d < target_distance
-                mean_distance_error += (d - target_distance)^2
-                n += 1
-            else
-                mean_distance_error += (d - target_distance)^2
-                n += 1
+            @inbounds squared_dist = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
+            # Update minimum squared distance for the current point in R_obj1
+            if min_squared_distance > squared_dist
+                min_squared_distance = squared_dist
             end
         end
+        # Convert the squared distance to actual distance
+        actual_distance = sqrt(min_squared_distance)
+        # Update global minimum distance
+        if min_distance > actual_distance
+            min_distance = actual_distance
+        end
+        # Accumulate the relative squared difference from the target distance
+        mean_distance_error += ((actual_distance - target_distance) / target_distance) ^2
     end
 
-    # Return results
-    min_distance = sqrt(min_distance)
-    mean_distance_error = sqrt(mean_distance_error) / n
+    # Normalize the mean relative distance error
+    mean_distance_error = sqrt(mean_distance_error) / length(R_obj1)
 
     return min_distance, mean_distance_error
 end
