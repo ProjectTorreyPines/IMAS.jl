@@ -198,15 +198,18 @@ Ramer-Douglas-Peucker algorithm. The `epsilon` parameter controls the maximum di
 allowed between a point on the original line and its simplified representation.
 """
 function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
-    @assert x[1] != x[end] || y[1] != y[end]
+    #@assert x[1] != x[end] || y[1] != y[end] "p[1] = ($(x[1]),$(y[1]))  p[end] = ($(x[end]),$(y[end])) "
+    closed = false
+    if x[1] == x[end] && y[1] == y[end]
+        closed = true
+        x = x[1:end-1]
+        y = y[1:end-1]
+    end
+    @assert length(x) == length(y) "Input arrays must have at least 3 elements"
 
     n = length(x)
-    if n != length(y)
-        error("Input arrays must have at least 3 elements and the same length")
-    end
-
     if n <= 3
-        return x, y
+        X, Y = x, y
     else
         # Find the point with the maximum distance from the line between the first and last points
         dmax = 0
@@ -228,11 +231,17 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
             # Combine the simplified line segments
             x_simplified = [left_points[1]; right_points[1][2:end]]
             y_simplified = [left_points[2]; right_points[2][2:end]]
-            return (x_simplified, y_simplified)
+            X, Y = x_simplified, y_simplified
         else
             # If the maximum distance is less than epsilon, return the original line segment
-            return x[[1, end]], y[[1, end]]
+            X, Y = x[[1, end]], y[[1, end]]
         end
+    end
+
+    if closed
+        return T[X;X[1]], T[Y;Y[1]]
+    else
+        return X, Y
     end
 end
 
