@@ -964,6 +964,14 @@ Plot build cross-section
     end
 end
 
+@recipe function plot_build_layer_outline(layer::IMAS.build__layer)
+    @series begin
+        aspect_ratio := :equal
+        label --> layer.name
+        layer.outline.r, layer.outline.z
+    end
+end
+
 # ======== #
 # build tf #
 # ======== #
