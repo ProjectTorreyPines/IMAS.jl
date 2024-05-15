@@ -547,11 +547,11 @@ function min_distance_error_two_shapes(
             min_distance = actual_distance
         end
         # Accumulate the relative squared difference from the target distance
-        mean_distance_error += ((actual_distance - target_distance) / target_distance) ^2
+        mean_distance_error += abs(actual_distance - target_distance)
     end
 
     # Normalize the mean relative distance error
-    mean_distance_error = sqrt(mean_distance_error) / length(R_obj1)
+    mean_distance_error = (mean_distance_error) / length(R_obj1) / target_distance
 
     return min_distance, mean_distance_error
 end
