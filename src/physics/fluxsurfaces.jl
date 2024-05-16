@@ -3,30 +3,20 @@ using LinearAlgebra
 """
     ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
-Returns r, z, and ψ interpolant
+Returns r, z, and ψ interpolant named tuple
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length(eqt2d.grid.dim1))
     z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length(eqt2d.grid.dim2))
     PSI_interpolant = Interpolations.cubic_spline_interpolation((r, z), eqt2d.psi; extrapolation_bc=Interpolations.Line())
-    return r, z, PSI_interpolant
+    return (r=r, z=z, PSI_interpolant=PSI_interpolant)
 end
 
-"""
-    ψ_interpolant(eqt2dv::IDSvector{IMAS.equilibrium__time_slice___profiles_2d})
-
-Returns r, z, and ψ interpolant automatically choosing from available equilibrium profiles_2d grids
-"""
 function ψ_interpolant(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
     eqt2d = findfirst(:rectangular, eqt2dv)
     return ψ_interpolant(eqt2d)
 end
 
-"""
-    ψ_interpolant(dd::IMAS.dd)
-
-Returns r, z, and ψ interpolant automatically choosing from dd
-"""
 function ψ_interpolant(dd::IMAS.dd)
     return ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
 end
@@ -34,20 +24,15 @@ end
 """
     Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
 
-Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
+Returns Br and Bz named tuple evaluated at r and z starting from ψ interpolant
 """
 function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
     grad = Interpolations.gradient(PSI_interpolant, r, z)
     Br = grad[2] / (2π * r)
     Bz = -grad[1] / (2π * r)
-    return Br, Bz
+    return (Br=Br, Bz=Bz)
 end
 
-"""
-    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
-
-Returns Br and Bz tuple evaluated at r and z starting from ψ interpolant
-"""
 function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
     # Check that r and z are the same size
     @assert size(r) == size(z)
@@ -55,7 +40,7 @@ function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T
     for k in eachindex(r)
         Br[k], Bz[k] = Br_Bz(PSI_interpolant, r[k], z[k])
     end
-    return Br, Bz
+    return (Br=Br, Bz=Bz)
 end
 
 function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
@@ -93,7 +78,9 @@ end
 """
     find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
 
-Find psi value of the last closed flux surface
+Find psi value of the last-closed and first-open flux surface
+
+Results are returned as a named tuple `(last_closed=..., first_open=...)`
 """
 function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
@@ -106,24 +93,11 @@ function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64
         Z0 = eqt.global_quantities.magnetic_axis.z
         return find_psi_boundary(dimR, dimZ, PSI, psi, R0, Z0; precision, raise_error_on_not_open, raise_error_on_not_closed)
     else
-        return eqt.profiles_1d.psi[end]
+        # closed boundary equilibrium should end up here
+        return (last_closed=eqt.profiles_1d.psi[end], first_open=nothing)
     end
 end
 
-"""
-    find_psi_boundary(
-        dimR::Union{AbstractVector{T},AbstractRange{T}},
-        dimZ::Union{AbstractVector{T},AbstractRange{T}},
-        PSI::Matrix{T},
-        psi::Union{AbstractVector{T},AbstractRange{T}},
-        R0::T,
-        Z0::T;
-        precision::Float64=1e-6,
-        raise_error_on_not_open::Bool,
-        raise_error_on_not_closed::Bool) where {T<:Real}
-
-Find psi value of the last-closed and first-open flux surface based on the cartesian grid flux surface tracing
-"""
 function find_psi_boundary(
     dimR::Union{AbstractVector{T},AbstractRange{T}},
     dimZ::Union{AbstractVector{T},AbstractRange{T}},
@@ -154,7 +128,7 @@ function find_psi_boundary(
         if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psi[1])...$(psi[end])]")
         else
-            return (closed_psi=nothing, open_psi=nothing)
+            return (last_closed=nothing, first_open=nothing)
         end
     end
 
@@ -164,7 +138,7 @@ function find_psi_boundary(
         if raise_error_on_not_open
             error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psi[1])...$(psi[end])]")
         else
-            return (closed_psi=nothing, open_psi=nothing)
+            return (last_closed=nothing, first_open=nothing)
         end
     end
 
@@ -179,9 +153,9 @@ function find_psi_boundary(
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
                 if any(abs.([(minimum(pr) - minimum(dimR)), (maximum(pr) - maximum(dimR)), (minimum(pz) - minimum(dimZ)), (maximum(pz) - maximum(dimZ))]) .< δd)
-                    return (closed_psi=psi[end], open_psi=psi[end])
+                    return (last_closed=psi[end], first_open=psi[end])
                 else
-                    return (closed_psi=psimid, open_psi=psirange[end])
+                    return (last_closed=psimid, first_open=psirange[end])
                 end
             end
             # open flux surface
@@ -193,15 +167,9 @@ function find_psi_boundary(
     return error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
 end
 
-"""
-    find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
-
-Find psi value of the last closed flux surface
-"""
 function find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
     return find_psi_boundary(dd.equilibrium.time_slice[]; precision, raise_error_on_not_open, raise_error_on_not_closed)
 end
-
 
 """
     find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice)
@@ -210,12 +178,11 @@ Returns psi of the second magentic separatrix. This relies only on eqt and finds
 """
 function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol=:not_diverted, precision::Float64=1E-7)
 
-    ZA = eqt.global_quantities.magnetic_axis.z
-
-    _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi first open flux surface up to precision
+    psi_separatrix = eqt.profiles_1d.psi[end]
     surface, _ = flux_surface(eqt, psi_separatrix, :open)
 
     # First check if we are in a double null configuration
+    ZA = eqt.global_quantities.magnetic_axis.z
     for (r, z) in surface
         if isempty(r) || all(z .> ZA) || all(z .< ZA)
             continue
@@ -321,7 +288,7 @@ function find_psi_last_diverted(
     Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
 
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
-    _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS
+    psi_separatrix = eqt.profiles_1d.psi[end] # psi value on axis
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
     psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
 
@@ -529,7 +496,7 @@ function find_psi_tangent_omp(
     r_wall_omp = r_wall_omp[1] # make it float
 
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis 
-    psi_separatrix, _ = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS, closed
+    psi_separatrix = eqt.profiles_1d.psi[end] # psi LCFS
     psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
 
     ((_, zsep),), _ = flux_surface(eqt, psi_separatrix, :closed)
@@ -727,14 +694,14 @@ function find_psi_wall_omp(
     r_wall_midplane = r_wall_midplane[1]
 
     psi_max_u = find_psi_max(eqt)
-    _, psi_max_l = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi LCFS, open
+    psi_max_l = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi LCFS, open
 
     counter_max = 100
     err = Inf
     psi_max = 0.0
     for counter in 1:counter_max
         psi_max = (psi_max_u + psi_max_l) / 2
-        surface, _ = IMAS.flux_surface(eqt, psi_max, :open)
+        surface, _ = flux_surface(eqt, psi_max, :open)
         for (rs, zs) in surface
             if maximum(rs) < RA
                 continue
@@ -757,8 +724,6 @@ function find_psi_wall_omp(
             break
         end
     end
-
-    # check if tangent
 
     return psi_max
 end
@@ -893,8 +858,16 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
 
         else  # other flux surfaces
             # trace flux surface
-            ((pr, pz),), psi_level =
-                flux_surface(r, z, PSI, eqt.profiles_1d.psi, eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z, psi_level0, :closed)
+            ((pr, pz),), psi_level = flux_surface(
+                r,
+                z,
+                PSI,
+                eqt.profiles_1d.psi,
+                eqt.global_quantities.magnetic_axis.r,
+                eqt.global_quantities.magnetic_axis.z,
+                psi_level0,
+                :closed)
+
             if isempty(pr)
                 # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
                 # contour!(r, z, PSI'; color=:white, levels=100)
@@ -1149,7 +1122,7 @@ end
 """
     flux_surface(eqt::equilibrium__time_slice, psi_level::Real, type::Symbol)
 
-Returns tuple of (r,z) coordiates of flux surface at given psi_level, and `psi_level` actually used
+Returns named tuple of `prpz` with the (r,z) coordiates of flux surface at given psi_level, and `psi_level` actually used
 
   - psi[1] returns psi[2]
   - psi[end] triggers accurate finding of lcfs value
@@ -1188,7 +1161,7 @@ function flux_surface(
 
     elseif psi_level == psi[end]
         # handle boundary by finding accurate lcfs psi
-        psi__boundary_level, _ = find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; raise_error_on_not_open=false, raise_error_on_not_closed=false)
+        psi__boundary_level = find_psi_boundary(dim1, dim2, PSI, psi, R0, Z0; raise_error_on_not_open=false, raise_error_on_not_closed=false).last_closed
         if psi__boundary_level !== nothing
             if abs(psi__boundary_level - psi_level) < abs(psi[end] - psi[end-1])
                 psi_level = psi__boundary_level
@@ -1249,7 +1222,7 @@ function flux_surface(
         error("flux_surface type `$type` is not recognized: can be [:any, :closed, :open, :encircling]")
     end
 
-    return Tuple(prpz), psi_level
+    return (prpz=Tuple(prpz), psi_level=psi_level)
 end
 
 """
@@ -1272,7 +1245,7 @@ function tweak_psi_to_match_psilcfs!(eqt::IMAS.equilibrium__time_slice{D}; ψbou
     end
 
     # retrace the last closed flux surface
-    true_psib, _ = IMAS.find_psi_boundary(eqt)
+    true_psib = IMAS.find_psi_boundary(eqt).last_closed
     if true_psib !== nothing
         # scale psirz so to match original psi bounds (also add delta_psib to get desired ψbound)
         @. eqt2d.psi = (eqt2d.psi - psia) * (psib - psia) / (true_psib - psia) + psia + delta_psib
@@ -1359,7 +1332,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
         eqt.boundary.x_point[2].z = -(eqt.boundary.x_point[2].z - eqt.global_quantities.magnetic_axis.z) + eqt.global_quantities.magnetic_axis.z
     end
 
-    psi_separatrix, _ = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    psi_separatrix = eqt.profiles_1d.psi[end] # psi value at LCFS
     psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis
     psi_sign = sign(psi_separatrix - psi_axis_level) # +1 if psi increases / -1 if psi decreases
 

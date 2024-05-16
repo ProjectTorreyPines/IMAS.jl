@@ -145,7 +145,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
-    _, psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi at LCFS
+    psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi at LCFS
     # find psi at second magnetic separatrix 
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
@@ -288,7 +288,7 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
         r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolate=true)
     end
 
-    _, psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi of the second magnetic separatrix
     if psi_sign > 0
         r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix 
@@ -466,7 +466,7 @@ Function for that computes the value of psi at the points of the wall mesh in dd
 function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
     RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
-    _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) #psi on separatrix
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open #psi on separatrix
     if isempty(wall_r) .|| isempty(wall_z)
         # no wall
         return Float64[]
@@ -898,7 +898,7 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
     Zx = Float64[]
     θx = Float64[]
     # find separatrix as first surface in SOL, not in private region
-    _, psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true) # find psi of "first" open
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
     sep, _ = flux_surface(eqt, psi_separatrix, :open)
     for (pr, pz) in sep
 

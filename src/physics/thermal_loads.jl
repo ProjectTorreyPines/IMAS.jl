@@ -18,7 +18,7 @@ end
         q_parallel::Vector{Float64} = Float64[],
         s::Vector{Float64} = Float64[])
 
-Initializes a WallHeatFlux struct. IMAS.WallHeatFlux() returns a WallHeatFlux with all empty entries.
+Initializes a WallHeatFlux struct. WallHeatFlux() returns a WallHeatFlux with all empty entries.
 """
 function WallHeatFlux(;
     r::Vector{Float64}=Float64[],
@@ -34,7 +34,7 @@ end
 """
     particle_HF(
         eqt::IMAS.equilibrium__time_slice, 
-        SOL::OrderedCollections.OrderedDict{Symbol, Vector{IMAS.OpenFieldLine}}, 
+        SOL::OrderedCollections.OrderedDict{Symbol, Vector{OpenFieldLine}}, 
         wall_r::Vector{<:Real}, 
         wall_z::Vector{<:Real}, 
         r::Vector{<:Real}, 
@@ -46,7 +46,7 @@ the Scrape Off-Layer, the wall, and an hypothesis of the decay of the parallel h
 """
 function particle_HF(
     eqt::IMAS.equilibrium__time_slice,
-    SOL::OrderedCollections.OrderedDict{Symbol,Vector{IMAS.OpenFieldLine}},
+    SOL::OrderedCollections.OrderedDict{Symbol,Vector{OpenFieldLine}},
     wall_r::Vector{<:Real},
     wall_z::Vector{<:Real},
     r::Vector{<:Real},
@@ -72,8 +72,8 @@ function particle_HF(
     RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    _, psi_separatrix = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
-    surface, _ = IMAS.flux_surface(eqt, psi_separatrix, :open)
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
+    surface, _ = flux_surface(eqt, psi_separatrix, :open)
     r_separatrix = Float64[]
     for (rr, zz) in surface
         if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
@@ -92,7 +92,7 @@ function particle_HF(
     r = r .+ r_separatrix
     @assert maximum(r) > maximum(wall_r)
 
-    q_interp = IMAS.interp1d(r, q, :cubic)
+    q_interp = interp1d(r, q, :cubic)
 
     if eqt.boundary.x_point[1].z < ZA
         case = :lower
@@ -221,7 +221,7 @@ function particle_HF(
     end
 
     if merge_wall
-        _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
+        _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
 
         #! format: off
         if wall_z[1]>ZA # correction if first point is above midplane 
@@ -234,7 +234,7 @@ function particle_HF(
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1]
         psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)
-        _, psi_first_lfs_far, null_within_wall = IMAS.find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
+        _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(wall_r, wall_z)
         tollZ = max(abs(ZA), 2 * abs(wall_z[2] - wall_z[1]))
         if Zwall[1] >= -tollZ # check if the particle reach the wall around the midplane
@@ -372,9 +372,9 @@ function core_radiation_HF(
     wall_z::Vector{<:Real},
     Prad_core::Float64)
 
-    photons, W_per_trace, dr, dz = IMAS.define_particles(eqt, psi, source_1d, N)
+    photons, W_per_trace, dr, dz = define_particles(eqt, psi, source_1d, N)
 
-    qflux_r, qflux_z, wall_s = IMAS.find_flux(photons, W_per_trace, wall_r, wall_z, dr, dz)
+    qflux_r, qflux_z, wall_s = find_flux(photons, W_per_trace, wall_r, wall_z, dr, dz)
 
     qq = sqrt.(qflux_r .^ 2 + qflux_z .^ 2) # norm of the heat flux
     power = qq .* wall_s
@@ -407,7 +407,7 @@ function core_radiation_HF(
         ss = vcat(0.0, ss)
         qq = vcat((qq[1] + qq[end]) / 2, qq)
 
-        interp = IMAS.interp1d(vcat(ss .- s[end], ss, ss .+ s[end]), vcat(qq, qq, qq), :cubic)
+        interp = interp1d(vcat(ss .- s[end], ss, ss .+ s[end]), vcat(qq, qq, qq), :cubic)
         Qrad = interp.(s)
 
     else
@@ -442,7 +442,7 @@ function mesher_HF(dd::IMAS.dd;
     step::T=0.1) where {T<:Real}
 
     eqt = dd.equilibrium.time_slice[]
-    fw = IMAS.first_wall(dd.wall)
+    fw = first_wall(dd.wall)
 
     if isempty(fw.r) || isempty(fw.z)
         error("Impossible to map the heat flux onto the wall because dd.wall is empty")
@@ -450,7 +450,7 @@ function mesher_HF(dd::IMAS.dd;
 
     R0 = eqt.global_quantities.magnetic_axis.r # R magentic axis 
     Z0 = eqt.global_quantities.magnetic_axis.z # Z magnetic axis
-    _, psi_separatrix = IMAS.find_psi_boundary(eqt; raise_error_on_not_open=true) # psi at LCFS
+    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
 
     if isempty(r) || isempty(q)
         ##########################################################################
@@ -469,7 +469,7 @@ function mesher_HF(dd::IMAS.dd;
         r_wall_omp = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_omp = r_wall_omp[1] # make it float
 
-        surface, _ = IMAS.flux_surface(eqt, psi_separatrix, :encircling)
+        surface, _ = flux_surface(eqt, psi_separatrix, :encircling)
         (rr, zz) = surface[1]
         crossings = intersection([R0, 2 * maximum(fw.r)], [Z0, Z0], rr, zz).crossings
         r_sep = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
@@ -478,22 +478,22 @@ function mesher_HF(dd::IMAS.dd;
         r = collect(LinRange(0, r_wall_omp - r_sep + 2 * l2, 10000)) # Ideally: from 0 to r max grid - r_separatrix_OMP
         # double exponential
         q =
-            IMAS.power_sol(dd) / 2 / NN / π / (R0 + a) / l / sin(atan(IMAS.Bpol_omp(dd.equilibrium.time_slice[]) / abs(Bt_omp))) * exp.(-r ./ l) +
-            IMAS.power_sol(dd) * frac / 2 / NN / π / (R0 + a) / l2 / sin(atan(IMAS.Bpol_omp(dd.equilibrium.time_slice[]) / abs(Bt_omp))) * exp.(-r ./ l2)
+            power_sol(dd) / 2 / NN / π / (R0 + a) / l / sin(atan(Bpol_omp(dd.equilibrium.time_slice[]) / abs(Bt_omp))) * exp.(-r ./ l) +
+            power_sol(dd) * frac / 2 / NN / π / (R0 + a) / l2 / sin(atan(Bpol_omp(dd.equilibrium.time_slice[]) / abs(Bt_omp))) * exp.(-r ./ l2)
     end
 
     step = minimum([step, sum(sqrt.(diff(fw.r) .^ 2 + diff(fw.z) .^ 2)) / 250]) # ensure decent resolution of the wall
     # resample wall and make sure it's clockwise (for COCOS = 11)
-    rwall, zwall = IMAS.resample_2d_path(fw.r, fw.z; step, method=:linear, retain_original_xy=true)
-    IMAS.reorder_flux_surface!(rwall, zwall, R0, Z0; force_close=true)
+    rwall, zwall = resample_2d_path(fw.r, fw.z; step, method=:linear, retain_original_xy=true)
+    reorder_flux_surface!(rwall, zwall, R0, Z0; force_close=true)
 
     # Parameters for particle heat flux
     if typeof(levels) <: Int
         #levels is an Int, build a vector of psi_levels of that size
         eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-        _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
-        psi_levels, _, _ = IMAS.find_levels_from_P(eqt, rwall, zwall, PSI_interpolant, r, q, levels)
-        add_psi = IMAS.find_levels_from_wall(eqt, rwall, zwall, PSI_interpolant)
+        _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
+        psi_levels, _, _ = find_levels_from_P(eqt, rwall, zwall, PSI_interpolant, r, q, levels)
+        add_psi = find_levels_from_wall(eqt, rwall, zwall, PSI_interpolant)
 
         psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
         psi_sign = sign(psi_levels[end] - psi_levels[1])
@@ -508,7 +508,7 @@ function mesher_HF(dd::IMAS.dd;
 
     psi_levels[1] = psi_separatrix
     # build SOL
-    SOL = IMAS.sol(eqt, rwall, zwall; levels=psi_levels, use_wall=true)
+    SOL = sol(eqt, rwall, zwall; levels=psi_levels, use_wall=true)
 
     Rwall = Float64[]
     Zwall = Float64[]
@@ -610,7 +610,7 @@ function mesher_HF(dd::IMAS.dd;
     end
 
     if merge_wall
-        _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
+        _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
 
         #! format: off
         if zwall[1] > Z0 # correction if first point is above midplane 
@@ -623,7 +623,7 @@ function mesher_HF(dd::IMAS.dd;
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1]
         psi_wall_midplane = PSI_interpolant(r_wall_midplane, Z0)
-        _, psi_first_lfs_far, null_within_wall = IMAS.find_psi_last_diverted(eqt, rwall, zwall, PSI_interpolant) # psi of grazing surface
+        _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, rwall, zwall, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(rwall, zwall)
         tollZ = max(abs(Z0), 2 * abs(zwall[2] - zwall[1]))
         if Zwall[1] >= -tollZ # check if the particle reach the wall around the midplane
