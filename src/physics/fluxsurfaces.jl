@@ -788,17 +788,6 @@ function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
     return eq
 end
 
-"""
-    flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
-
-Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice
-The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
-"""
-function flux_surfaces(eqt::equilibrium__time_slice; upsample_factor::Int=1)
-    R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
-    return flux_surfaces(eqt, B0, R0; upsample_factor)
-end
-
 function find_magnetic_axis!(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, psi_sign::Real)
     res = Optim.optimize(
         x -> begin
@@ -821,12 +810,13 @@ function find_magnetic_axis!(r::AbstractVector{<:Real}, z::AbstractVector{<:Real
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_factor::Int=1) where {T<:Real}
+    flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) where {T<:Real}
 
-Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice, B0 and R0
+Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice.
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
-function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_factor::Int=1) where {T<:Real}
+function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) where {T<:Real}
+
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     PSI = eqt2d.psi
@@ -839,6 +829,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, B0::T, R0::T; upsample_f
     end
 
     psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
+    R0 = eqt.global_quantities.vacuum_toroidal_field.r0
+    B0 = eqt.global_quantities.vacuum_toroidal_field.b0
 
     # find magnetic axis
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = find_magnetic_axis!(r, z, PSI_interpolant, psi_sign)
