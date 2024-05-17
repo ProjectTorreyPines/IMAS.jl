@@ -22,10 +22,21 @@ function ψ_interpolant(dd::IMAS.dd)
 end
 
 """
-    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
+    Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
 Returns Br and Bz named tuple evaluated at r and z starting from ψ interpolant
 """
+function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    Z, R = meshgrid(z, r)
+    return Br_Bz(PSI_interpolant, R, Z)
+end
+
+function Br_Bz(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
+    eqt2d = findfirst(:rectangular, eqt2dv)
+    return Br_Bz(eqt2d)
+end
+
 function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
     grad = Interpolations.gradient(PSI_interpolant, r, z)
     Br = grad[2] / (2π * r)
@@ -43,31 +54,20 @@ function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T
     return (Br=Br, Bz=Bz)
 end
 
-function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
-    Z, R = meshgrid(z, r)
-    return Br_Bz(PSI_interpolant, R, Z)
-end
-
-function Br_Bz(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
-    eqt2d = findfirst(:rectangular, eqt2dv)
-    return Br_Bz(eqt2d)
-end
-
 """
-    Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{T}, z::Vector{T}) where {T<:Real}
+    Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
 Returns Bp evaluated at r and z starting from ψ interpolant
 """
-function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
-    Br, Bz = Br_Bz(PSI_interpolant, r, z)
-    return sqrt(Br^2.0 + Bz^2.0)
-end
-
 function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     Z, R = meshgrid(z, r)
     return Bp.(Ref(PSI_interpolant), R, Z)
+end
+
+function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
+    Br, Bz = Br_Bz(PSI_interpolant, r, z)
+    return sqrt(Br^2.0 + Bz^2.0)
 end
 
 function Bp(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
@@ -172,7 +172,7 @@ function find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_
 end
 
 """
-    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice)
+    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol=:not_diverted, precision::Float64=1E-7)
 
 Returns psi of the second magentic separatrix. This relies only on eqt and finds the 2nd sep geometrically.
 """
@@ -246,23 +246,12 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol
     end
 end
 
-"""
-    find_psi_2nd_separatrix(dd::IMAS.dd)
-
-    Returns psi of the second magentic separatrix. This relies only on eqt and finds the 2nd sep geometrically.
-"""
-
 function find_psi_2nd_separatrix(dd::IMAS.dd)
     return find_psi_2nd_separatrix(dd.equilibrium.time_slice[])
 end
 
 """
-    find_psi_last_diverted(
-        eqt::IMAS.equilibrium__time_slice,
-        wall_r::Vector{<:Real},
-        wall_z::Vector{<:Real},
-        PSI_interpolant::Interpolations.AbstractInterpolation;
-        precision::Float64=1e-7)
+    find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
 
 Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
 
@@ -270,6 +259,11 @@ psi_first_lfs_far will be the first surface inside OFL[:lfs_far]; psi_last_lfs w
 
 Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_first_lfs_far and psi_last_lfs ~ 0)
 """
+function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
+    fw = first_wall(wall)
+    return find_psi_last_diverted(eqt, fw.r, fw.z, PSI_interpolant; precision)
+end
+
 function find_psi_last_diverted(
     eqt::IMAS.equilibrium__time_slice,
     wall_r::Vector{<:Real},
@@ -437,29 +431,6 @@ function find_psi_last_diverted(
     return (psi_last_lfs=psi_last_lfs, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
 end
 
-"""
-    find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
-
-Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
-
-psi_first_lfs_far will be the first surface inside OFL[:lfs_far]; psi_last_lfs will be the last surface inside OFL[:lfs]
-
-Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_first_lfs_far and psi_last_lfs ~ 0)
-"""
-function find_psi_last_diverted(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation; precision::Float64=1e-7)
-    fw = first_wall(wall)
-    return find_psi_last_diverted(eqt, fw.r, fw.z, PSI_interpolant; precision)
-end
-
-"""
-    find_psi_last_diverted(dd.IMAS.dd; precision::Float64=1e-7)
-
-Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
-
-psi_first_lfs_far will be the first surface inside OFL[:lfs_far]; psi_last_lfs will be the last surface inside OFL[:lfs]
-
-Precision between the two is defined on the poloidal crossection area at the OMP (Psol*precision = power flowing between psi_first_lfs_far and psi_last_lfs ~ 0)
-"""
 function find_psi_last_diverted(dd::IMAS.dd; precision::Float64=1e-7)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
     return find_psi_last_diverted(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant; precision)
@@ -728,7 +699,6 @@ function find_psi_wall_omp(
     return psi_max
 end
 
-
 """
     interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{<:Real})
 
@@ -753,7 +723,7 @@ function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
     return eq
 end
 
-function find_magnetic_axis!(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, psi_sign::Real)
+function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, psi_sign::Real)
     res = Optim.optimize(
         x -> begin
             try
@@ -798,7 +768,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     B0 = eqt.global_quantities.vacuum_toroidal_field.b0
 
     # find magnetic axis
-    eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = find_magnetic_axis!(r, z, PSI_interpolant, psi_sign)
+    eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
     psi_axis = PSI_interpolant(eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)
     eqt.profiles_1d.psi =
         (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (eqt.profiles_1d.psi[end] - psi_axis) .+ psi_axis
@@ -1405,11 +1375,11 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
 end
 
 """
-    x_points_in_wall(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}, wall::IMAS.wall)
+    x_points_inside_wall(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point}, wall::IMAS.wall)
 
 Returns vector of x_points that are inside of the first wall
 """
-function x_points_in_wall(x_points::IDSvector{T}, wall::IMAS.wall) where {T<:IMAS.equilibrium__time_slice___boundary__x_point}
+function x_points_inside_wall(x_points::IDSvector{T}, wall::IMAS.wall) where {T<:IMAS.equilibrium__time_slice___boundary__x_point}
     outline = first_wall(wall)
     if isempty(outline.r)
         return T[x_point for x_point in x_points]
@@ -1514,4 +1484,3 @@ function luce_squareness(
 
     return zetaou, zetaol, zetail, zetaiu
 end
-

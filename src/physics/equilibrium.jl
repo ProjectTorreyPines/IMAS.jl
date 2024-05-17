@@ -110,7 +110,7 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
 
     psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
-    R0, Z0 = find_magnetic_axis!(r, z, PSI_interpolant, psi_sign)
+    R0, Z0 = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
 
     Z1 = (maximum(z) + minimum(z)) / 2.0
     zz = z .- Z1 .+ Z0
