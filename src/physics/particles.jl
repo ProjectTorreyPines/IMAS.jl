@@ -19,7 +19,6 @@ function Zcoord(p::particle)
     return p.z
 end
 
-
 """
     define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T} , N::Int) where {T<:Real}
 
