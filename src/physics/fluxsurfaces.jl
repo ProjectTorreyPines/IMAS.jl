@@ -120,6 +120,8 @@ function find_psi_boundary(
     raise_error_on_not_open::Bool,
     raise_error_on_not_closed::Bool) where {T<:Real}
 
+    verbose = false
+
     # define search range for last closed flux surface
     if !isempty(fw_r)
         PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
@@ -134,10 +136,14 @@ function find_psi_boundary(
     end
     psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
-    # plot(aspect_ratio=:equal)
-    # contour!(dimR,dimZ,transpose(PSI);color=:gray,clim=(min(psirange_init...),max(psirange_init...)))
-    # plot!(fw_r,fw_z,color=:black,lw=2)
-    # display(plot!())
+    if verbose
+        plot(; aspect_ratio=:equal)
+        contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
+        if !isempty(fw_r)
+            plot!(fw_r, fw_z; color=:black, lw=2, label="")
+        end
+        display(plot!())
+    end
 
     # innermost tentative flux surface (which should be closed!)
     surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
@@ -148,11 +154,13 @@ function find_psi_boundary(
             return (last_closed=nothing, first_open=nothing)
         end
     end
-    # for surf in surface
-    #     plot!(surf.r,surf.z,color=:blue)
-    # end
-    # display(plot!())
-        
+    if verbose
+        for surf in surface
+            plot!(surf.r, surf.z; color=:blue, label="")
+        end
+        display(plot!())
+    end
+
     # outermost tentative flux surface (which should be open!)
     surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
     if !isempty(surface)
@@ -163,12 +171,14 @@ function find_psi_boundary(
         end
     end
 
-    # surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
-    # for surf in surface
-    #     plot!(surf.r,surf.z,color=:red)
-    # end
-    # display(plot!())
-    
+    if verbose
+        surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
+        for surf in surface
+            plot!(surf.r, surf.z; color=:red, label="")
+        end
+        display(plot!())
+    end
+
     psirange = deepcopy(psirange_init)
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
@@ -176,7 +186,9 @@ function find_psi_boundary(
         # closed flux surface
         if !isempty(surface)
             ((pr, pz),) = surface
-            # display(plot!(pr, pz))
+            if verbose
+                display(plot!(pr, pz;label="",color=:green))
+            end
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
                 return (last_closed=psimid, first_open=psirange[end])
@@ -791,7 +803,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     B0 = eqt.global_quantities.vacuum_toroidal_field.b0
 
     # accurately find magnetic axis and lcfs and scale psi accordingly
-    RA,ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+    RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
     psi_axis = PSI_interpolant(RA, ZA)
     psi_boundary = find_psi_boundary(r, z, PSI, psi_axis, RA, ZA, fw.r, fw.z; raise_error_on_not_open=false, raise_error_on_not_closed=false).last_closed
@@ -1211,36 +1223,6 @@ function flux_surface(
     end
 
     return (prpz=prpz, psi_level=psi_level)
-end
-
-"""
-    tweak_psi_to_match_psilcfs!(eqt::IMAS.equilibrium.time_slice{D}; ψbound::Union{Nothing,D}=nothing) where {D<:Real}
-
-Tweak `eqt.profiles_2d[:].psi` and `eqt.profiles_1d.psi` so that contouring finds LCFS at `eqt.profiles_1d.psi[end]`.
-
-If `ψbound !== nothing` this routine also shifts `eqt.profiles_2d[:].psi` and `eqt.profiles_1d.psi` so that `eqt.profiles_1d.psi[end] == ψbound`.
-"""
-function tweak_psi_to_match_psilcfs!(eqt::IMAS.equilibrium__time_slice{D}; ψbound::Union{Nothing,D}=nothing) where {D<:Real}
-    eqt1d = eqt.profiles_1d
-    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-
-    psia = eqt1d.psi[1]
-    psib = eqt1d.psi[end]
-    if ψbound === nothing
-        delta_psib = 0.0
-    else
-        delta_psib = ψbound - psib
-    end
-
-    # retrace the last closed flux surface
-    true_psib = find_psi_boundary(eqt).last_closed
-    if true_psib !== nothing
-        # scale psirz so to match original psi bounds (also add delta_psib to get desired ψbound)
-        @. eqt2d.psi = (eqt2d.psi - psia) * (psib - psia) / (true_psib - psia) + psia + delta_psib
-        @. eqt1d.psi = eqt1d.psi + delta_psib
-    end
-
-    return nothing
 end
 
 function flxAvg(input::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
