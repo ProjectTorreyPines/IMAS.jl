@@ -459,9 +459,9 @@ function mesher_HF(dd::IMAS.dd;
 
         # define q(r), but could be arbitrary. Here double exponential
         a = dd.equilibrium.time_slice[].boundary.minor_radius      # minor radius
-        l = 0.003 # decay length of first exponential
-        l2 = 0.1  # decay length of second exponential
-        frac = 0.2 # fraction of power flowing in the second esponential
+        l = widthSOL_eich(dd) # decay length of first exponential
+        l2 = 0.1  # decay length of second exponential - NOTE put scaling second lambda q - Loarte 2008
+        frac = 0.2 # fraction of power flowing in the second esponential 
         NN = 2 # imbalance factor (in/out)  1 < N < 2
         Bt_omp = dd.equilibrium.time_slice[].global_quantities.vacuum_toroidal_field.b0 * R0 / (R0 + a)
 

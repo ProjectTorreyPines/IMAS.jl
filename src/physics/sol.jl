@@ -58,8 +58,6 @@ function OpenFieldLine(
     end
 
     if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
-        # @show ZA, zz[1],zz[end]
-        # @show isempty(rr), all(zz .> ZA), all(zz .< ZA)
         return nothing
     end
 
@@ -849,7 +847,7 @@ function q_par_omp_eich(dd::IMAS.dd)
 end
 
 # ==== #
-# Zhom #
+# Zohm #
 # ==== #
 """
     zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)

@@ -2245,7 +2245,7 @@ Recipe for plot of heat flux
             x = []
             y = []
             if q == :particle
-                label --> "particle"
+                label --> "particles"
                 if !isempty(HF.q_part)
                     x = HF.s
                     y = HF.q_part .+ 1.0
