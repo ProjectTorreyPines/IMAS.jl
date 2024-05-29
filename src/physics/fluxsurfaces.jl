@@ -1180,11 +1180,11 @@ function flux_surface(
         # look for closed flux-surface
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
-            # pick flux surface that closes, contains magnetic axis, and does not contain any wall element
+            # pick flux surface that closes, contains magnetic axis, and does not intersect any wall element
             if (
                 (pr[1] == pr[end]) &&
                 (pz[1] == pz[end]) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) &&
-                !any((PolygonOps.inpolygon((rr, zz), collect(zip(pr, pz))) == 1) for (rr, zz) in zip(fw_r, fw_z))
+                !IMAS.intersects(pr, pz, fw_r, fw_z)
             )
                 reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
                 push!(prpz, (r=pr, z=pz))
