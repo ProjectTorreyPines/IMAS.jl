@@ -123,13 +123,13 @@ function find_psi_boundary(
     verbose = false
 
     # define search range for last closed flux surface
+    PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
     if !isempty(fw_r)
-        PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
         psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
     end
-    if psi_axis < maximum(psi_edge)
+    if psi_axis < PSI_interpolant.(RA * 0.99 .+ maximum(dimR) * 0.01, ZA)
         psi_edge0 = maximum(psi_edge)
     else
         psi_edge0 = minimum(psi_edge)
@@ -170,7 +170,6 @@ function find_psi_boundary(
             return (last_closed=nothing, first_open=nothing)
         end
     end
-
     if verbose
         surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
         for surf in surface
@@ -187,7 +186,7 @@ function find_psi_boundary(
         if !isempty(surface)
             ((pr, pz),) = surface
             if verbose
-                display(plot!(pr, pz;label="",color=:green))
+                display(plot!(pr, pz; label="", color=:green))
             end
             psirange[1] = psimid
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
