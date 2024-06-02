@@ -121,7 +121,7 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
     eqt2d.grid.dim2 = zz
     eqt2d.psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
 
-    return tweak_psi_to_match_psilcfs!(eqt)
+    return eqt
 end
 
 """

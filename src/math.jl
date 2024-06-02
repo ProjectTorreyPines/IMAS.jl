@@ -136,6 +136,27 @@ function intersection(
     return (indexes=indexes, crossings=crossings)
 end
 
+function intersects(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T})::Bool where {T<:Real}
+
+    for k1 in 1:(length(l1_x)-1)
+        s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
+        s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
+        for k2 in 1:(length(l2_x)-1)
+            s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
+            s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
+            crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
+            if crossing !== nothing
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function _ccw(A, B, C)
     return (C[2] - A[2]) * (B[1] - A[1]) >= (B[2] - A[2]) * (C[1] - A[1])
 end

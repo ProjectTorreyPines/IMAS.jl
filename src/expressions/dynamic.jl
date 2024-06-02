@@ -496,13 +496,6 @@ dyexp["balance_of_plant.power_electric_net"] =
 dyexp["balance_of_plant.power_electric_plant_operation.total_power"] =
     (time; power_electric_plant_operation, _...) -> sum(sys.power for sys in power_electric_plant_operation.system)
 
-dyexp["balance_of_plant.power_plant.total_useful_heat_power"] =
-    (time; balance_of_plant, _...) ->
-        balance_of_plant.heat_transfer.wall.heat_delivered .+ balance_of_plant.heat_transfer.divertor.heat_delivered .+ balance_of_plant.heat_transfer.breeder.heat_delivered
-
-dyexp["balance_of_plant.power_plant.power_electric_generated"] =
-    (time; balance_of_plant, thermal_cycle, _...) -> thermal_cycle.net_work .* thermal_cycle.generator_conversion_efficiency
-
 #= ========= =#
 #  divertors  #
 #= ========= =#

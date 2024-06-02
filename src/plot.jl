@@ -1885,7 +1885,7 @@ end
             continue
         end
         path = collect(f2p(ids))
-        if "boundary_outline" in path# || "x_point" in path
+        if "boundary_outline" in path
             continue
         end
 
@@ -1900,9 +1900,9 @@ end
         plt[:ids] = ids
         plt[:x] = time_value
         plt[:y] = data_value
-        remove = ("antenna", "flux_control", "beam", "unit")
-        substitute = ("deposition_rho_tor_norm" => "ρ₀", "deposition_rho_tor_norm_width" => "w₀", "power_launched" => "power")
-        plt[:label] = p2i(replace(filter(x -> x ∉ remove, path[2:end]), substitute...))
+        remove = ("antenna", "flux_control", "beam", "unit", "density_control", "position_control")
+        substitute = ("deposition_" => "", "_launched" => "")
+        plt[:label] = replace(p2i(filter(x -> x ∉ remove, path[2:end])), substitute...)
         push!(plots, plt)
     end
 
@@ -2157,21 +2157,32 @@ nice_field_symbols["psi"] = L"\psi"
 nice_field_symbols["psi_norm"] = L"\psi_N"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
 nice_field_symbols["i_plasma"] = "Plasma current"
-nice_field_symbols["b_field_tor_vacuum_r"] = "B0 * R0"
+nice_field_symbols["b_field_tor_vacuum_r"] = "B₀×R₀"
+nice_field_symbols["rho_tor_norm_width"] = "w₀"
+nice_field_symbols["geometric_axis.r"] = "Rgeo"
+nice_field_symbols["geometric_axis.z"] = "Zgeo"
 
 function nice_field(field::AbstractString)
     if field in keys(nice_field_symbols)
         field = nice_field_symbols[field]
     else
-        field = replace(field, r"_tor" => " toroidal")
-        field = replace(field, r"_pol" => " poloidal")
-        field = replace(field, r"\bec\b" => "EC")
-        field = replace(field, r"\bic\b" => "IC")
-        field = replace(field, r"\blh\b" => "LH")
-        field = replace(field, r"\bnb\b" => "NB")
-        field = replace(field, r"\bnbi\b" => "NBI")
-        if length(field) > 1
-            field = uppercasefirst(replace(field, "_" => " "))
+        field = replace(field,
+            r"n_e" => "nₑ",
+            r"n_i" => "nᵢ",
+            r"T_e" => "Tₑ",
+            r"T_i" => "Tᵢ",
+            r"_tor" => " toroidal",
+            r"_greenwald" => " GW",
+            r"_pol" => " poloidal",
+            r"\bip\b" => "Ip",
+            r"\bec\b" => "EC",
+            r"\bic\b" => "IC",
+            r"\blh\b" => "LH",
+            r"\bnb\b" => "NB",
+            r"\bnbi\b" => "NBI",
+            "_" => " ")
+        if length(split(field," ")[1]) > 2
+            field = uppercasefirst(field)
         end
     end
     return field
