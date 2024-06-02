@@ -801,6 +801,11 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     R0 = eqt.global_quantities.vacuum_toroidal_field.r0
     B0 = eqt.global_quantities.vacuum_toroidal_field.b0
 
+    # ensure certain global quantities are consistent with 1d profiles by making them expressions
+    for field in (:psi_boundary, :psi_axis, :q_95, :q_axis, :q_min)
+        empty!(eqt.global_quantities, field)
+    end
+
     # accurately find magnetic axis and lcfs and scale psi accordingly
     RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
