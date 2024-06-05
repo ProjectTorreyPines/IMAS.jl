@@ -62,7 +62,7 @@ function calc_pprime_ffprim_f(
     end
 
     # calculate F from FF' with boundary condition so that f[end]=R0*B0
-    f = 2 * IMAS.cumul_integrate(psi, ffprim)
+    f = 2 * cumtrapz(psi, ffprim)
     if minimum(f) < f[1] && minimum(f) < f[end]
         f .-= maximum(f)
     else

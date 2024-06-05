@@ -56,7 +56,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     particles = Vector{particle{Float64}}(undef, N)
     for k in eachindex(particles)
         dk = Int(ceil(ICDF(rand())))
-        ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D 
+        ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D
 
         θv = rand() * 2π            # toroidal angle of velocity - put to 0 for 2D
         ϕv = acos(rand() * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand() * 2π
@@ -164,11 +164,11 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         @show ns
         @show length(particles)
         # @show σw = (l[end] / length(l)) * (2ns + 1.0) / 5.0 / sqrt(2) # old standard deviation of the distribution
-        # @show σw = 2*(l[end] / length(l)) 
+        # @show σw = 2*(l[end] / length(l))
         # @show σw = l[1]
         # @show σw = 2*maximum(d)
-        # @show σw = (l[end] / length(l)) 
-        # @show σw = minimum(d) 
+        # @show σw = (l[end] / length(l))
+        # @show σw = minimum(d)
         # @show σw = 0.001
         # @show σw = 2*sqrt(dr^2 + dz^2)
         # @show σw = l[end]/200
@@ -250,7 +250,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
         @views cumsum!(ll, d[index])
         ll .-= ll[ns+1]
         window .= exp.(-(1 / 2) .* (ll ./ σw) .^ 2)
-        norm = integrate(ll, window) # - m
+        norm = trapz(ll, window) # - m
 
         if debug && (norm > max_norm)
             # this is to check that the numerical norm is very close to the theoretical norm of the gaussian
@@ -259,7 +259,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
             max_norm = norm
         end
 
-        window ./= norm #  - 1/m 
+        window ./= norm #  - 1/m
         unit_vector = sqrt((new_r - old_r)^2 + (new_z - old_z)^2)
 
         @inbounds for (k, i) in enumerate(index)

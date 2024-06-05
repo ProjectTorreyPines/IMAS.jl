@@ -15,8 +15,8 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
     j_non_inductive = cp1d.j_non_inductive
 
     j_non_inductive_tor = Jpar_2_Jtor(rho_tor_norm, j_non_inductive, true, eqt)
-    I_ohmic_tor = Ip - integrate(cp1d.grid.area, j_non_inductive_tor)
-    I_tor_2_par = integrate(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, fill(I_ohmic_tor, size(rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
+    I_ohmic_tor = Ip - trapz(cp1d.grid.area, j_non_inductive_tor)
+    I_tor_2_par = trapz(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, fill(I_ohmic_tor, size(rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
     I_ohmic_par_guess = I_ohmic_tor .* I_tor_2_par
 
     j_oh_par_norm .*= sign(I_ohmic_par_guess)
@@ -26,7 +26,7 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
         j_ohmic = x[1] .* j_oh_par_norm
         j_total = j_ohmic .+ j_non_inductive
         j_tor = Jpar_2_Jtor(rho_tor_norm, j_total, true, eqt)
-        return abs(Ip - IMAS.integrate(cp1d.grid.area, j_tor)) .^ 2
+        return abs(Ip - trapz(cp1d.grid.area, j_tor)) .^ 2
     end
 
     res = Optim.optimize(cost, [I_ohmic_par_guess], Optim.Newton(); autodiff=:forward)
@@ -145,7 +145,7 @@ function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__
     _, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     Vls = 2π .* cp1d.j_ohmic .* B0 ./ (cp1d.conductivity_parallel .* F .* gm1)
     if method === :area
-        return integrate(cp1d.grid.area, Vls) / cp1d.grid.area[end]
+        return trapz(cp1d.grid.area, Vls) / cp1d.grid.area[end]
     elseif method === :edge
         return Vls[end]
     elseif method === :mean
