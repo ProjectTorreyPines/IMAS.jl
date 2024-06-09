@@ -447,6 +447,16 @@ function resample_plasma_boundary(
 end
 
 """
+    is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
+
+Returns true if boundary is updown symmetric
+"""
+function is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
+    mxh = MXH(pr, pz, order)
+    return sum(abs.(mxh.c)) / length(mxh.c) < precision
+end
+
+"""
     minimum_distance_two_shapes(
         R_obj1::AbstractVector{<:T},
         Z_obj1::AbstractVector{<:T},
