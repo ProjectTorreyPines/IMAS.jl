@@ -1,4 +1,4 @@
-# 
+#
 # D+T→He4   (3.518 MeV)  + n (14.072 MeV) + 17.59MeV
 #
 # D+D→He3   (0.8175 MeV) + n (2.4525 MeV) + 3.27MeV
@@ -85,7 +85,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
         end
     end
     theta = Ti ./ (1.0 .- r0)
-    
+
     xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
     sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
 
@@ -367,7 +367,7 @@ end
 Total power in He4 from D-T reaction [W]
 """
 function D_T_to_He4_plasma_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
-    return integrate(cp1d.grid.volume, D_T_to_He4_heating(cp1d; polarized_fuel_fraction))
+    return trapz(cp1d.grid.volume, D_T_to_He4_heating(cp1d; polarized_fuel_fraction))
 end
 
 """
@@ -376,7 +376,7 @@ end
 Total power in He3 from D-D reaction [W]
 """
 function D_D_to_He3_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
-    return integrate(cp1d.grid.volume, D_D_to_He3_heating(cp1d))
+    return trapz(cp1d.grid.volume, D_D_to_He3_heating(cp1d))
 end
 
 """
@@ -385,7 +385,7 @@ end
 Total power in T from D-D reaction [W]
 """
 function D_D_to_T_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
-    return integrate(cp1d.grid.volume, D_D_to_T_heating(cp1d))
+    return trapz(cp1d.grid.volume, D_D_to_T_heating(cp1d))
 end
 
 function fusion_plasma_power(dd::IMAS.dd)

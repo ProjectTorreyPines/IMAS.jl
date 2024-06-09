@@ -1250,7 +1250,7 @@ end
     if only === nothing || only == 1
         tot = 0.0
         if !ismissing(cs1d.electrons, :energy) && !flux
-            tot = integrate(cs1d.grid.volume, cs1d.electrons.energy)
+            tot = trapz(cs1d.grid.volume, cs1d.electrons.energy)
         end
         show_condition =
             flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] ||
@@ -1291,7 +1291,7 @@ end
     if only === nothing || only == 2
         tot = 0.0
         if !ismissing(cs1d, :total_ion_energy)
-            tot = integrate(cs1d.grid.volume, cs1d.total_ion_energy)
+            tot = trapz(cs1d.grid.volume, cs1d.total_ion_energy)
         end
         show_condition = flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] || abs(tot) > min_power
         @series begin
@@ -1329,7 +1329,7 @@ end
     if only === nothing || only == 3
         tot = 0.0
         if !ismissing(cs1d.electrons, :particles)
-            tot = integrate(cs1d.grid.volume, cs1d.electrons.particles)
+            tot = trapz(cs1d.grid.volume, cs1d.electrons.particles)
         end
         show_condition = flux || show_zeros || source_name == :time_derivative || abs(tot) > 0.0
         @series begin
@@ -1379,7 +1379,7 @@ end
         else
             tot = 0.0
             if !ismissing(cs1d, :j_parallel)
-                tot = integrate(cs1d.grid.area, cs1d.j_parallel)
+                tot = trapz(cs1d.grid.area, cs1d.j_parallel)
             end
             show_condition = flux || show_zeros || abs(tot) > 0.0
             @series begin

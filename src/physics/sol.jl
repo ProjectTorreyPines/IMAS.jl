@@ -134,7 +134,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         wall_z = Float64[]
     end
 
-    ############ 
+    ############
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
@@ -142,9 +142,9 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     ############
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
-    psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis
     psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi at LCFS
-    # find psi at second magnetic separatrix 
+    # find psi at second magnetic separatrix
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
@@ -196,7 +196,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         # make sure levels includes separatrix and wall
         levels[1] = psi__boundary_level
         # push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))
-        levels = unique!(sort!(levels)) 
+        levels = unique!(sort!(levels))
 
         if psi_sign == -1
             # if psi is decreasing we must sort in decreasing order
@@ -260,19 +260,19 @@ function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=t
 end
 
 """
-    find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+    find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
 
 Function for the discretization of the poloidal flux ψ on the SOL, based on an hypotesis of OMP radial transport through arbitrary q(r)
 returns vector with level of ψ, vector with matching r_midplane and q.
 Discretization with even steps of P = integral_sep^wal 2πrq(r)dr (same power in each flux tube)
 """
-function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
     ################### Housekeeping on function q(r) ###################
     @assert length(r) == length(q)
     @assert all(q .>=0) # q is all positive
-    @assert all(r .>=0) # r is all positive  
+    @assert all(r .>=0) # r is all positive
     @assert r[1] == 0
-    
+
     RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
     # r_mid(ψ) interpolator for region of interest
@@ -289,10 +289,10 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi of the second magnetic separatrix
     if psi_sign > 0
-        r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix 
+        r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix
         r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
     else
-        r_separatrix_midplane = r_mid(-psi__boundary_level)      # R OMP at separatrix 
+        r_separatrix_midplane = r_mid(-psi__boundary_level)      # R OMP at separatrix
         r_2ndseparatrix_midplane = r_mid(-psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
     end
 
@@ -318,7 +318,7 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     end
     r = r .+ r_separatrix_midplane
     order = sortperm(r)
-    q = q[order] 
+    q = q[order]
     r = r[order] # r is now increasing monotonically
 
     if r[1] >= r_wall_midplane
@@ -334,7 +334,7 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     end
 
     # r[1] can be either >, = or < than r_separatrix_midplane; add r_separatrix_midplane
-    if r[1] > r_separatrix_midplane 
+    if r[1] > r_separatrix_midplane
         # r starts from inside the sol
         r = append!([r_separatrix_midplane], r) # add a point at R_OMP
         q = append!([q[1]*1.001], q)            # Repeat first value of q with slight increment, favoring monotonic decrease
@@ -345,15 +345,15 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
         index = argmin(abs.(r .- r_separatrix_midplane)) # closest point
         # index2 is the position in r, such that r_separatrix_midplane is between r[index2] and r[index]
         if r[index] > r_separatrix_midplane
-            index2 = index - 1 
+            index2 = index - 1
             #interp linearly value at r_separatrix_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index]) 
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index])
             r = append!([r_separatrix_midplane], r[index:end]) # cut r and q
             q = append!([qq]                   , q[index:end])
         else
             index2 = index + 1
             #interp linearly value at r_separatrix_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index]) 
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index])
             r = append!([r_separatrix_midplane], r[index2:end]) # cut r and q
             q = append!([qq]                   , q[index2:end])
         end
@@ -369,17 +369,17 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     if r[end] > r_wall_midplane
         # r ends inside the wall, q(r) must be cut
         index = argmin(abs.(r .- r_wall_midplane)) # closest point
-        if r[index] > r_wall_midplane 
+        if r[index] > r_wall_midplane
             index2 = index-1
             #interp linearly value at r_wall_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index]) 
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index])
             r = push!(r[1:index-1],r_wall_midplane) # cut + add point between index and index2
             q = push!(q[1:index-1],qq)
         else
             index2 = index+1
             #interp linearly value at r_wall_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index]) 
-            r = push!(r[1:index],r_wall_midplane) # cut + add a point between index and index 
+            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index])
+            r = push!(r[1:index],r_wall_midplane) # cut + add a point between index and index
             q = push!(q[1:index],qq)
         end
     end
@@ -390,11 +390,11 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     # build P(r) = integral_sep^r q(ρ)2πρdρ
     P = q*0;
     for index in 2:length(q)
-        P[index] = P[index-1] + integrate(r[index-1:index], 2*π.*r[index-1:index].*q[index-1:index])
+        P[index] = P[index-1] + trapz(r[index-1:index], 2*π.*r[index-1:index].*q[index-1:index])
     end
     # being 2πr q(r) positive-definite, P(r) is strictly monotonic, therefore also injective (one-to-one)
     # P(r) is always invertible for every q(r)>0
-    r = Interpolations.deduplicate_knots!(r) 
+    r = Interpolations.deduplicate_knots!(r)
     interp_P = interp1d(r, P, :cubic) # interpolant of P(r)
 
     p_levels = collect(LinRange(0,maximum(P),levels))   # levels to interpolate P
@@ -424,10 +424,10 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
         if !(P_up in p_levels)
             p_levels = push!(p_levels,P_up)
         end
-    end 
+    end
 
     p_levels = sort!(p_levels)
-    P = Interpolations.deduplicate_knots!(P) 
+    P = Interpolations.deduplicate_knots!(P)
     interp_inverseP = interp1d(P, r, :cubic) # interpolant of inverse function of r(P)
     R = interp_inverseP.(p_levels)
 
@@ -446,22 +446,22 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     return psi_levels, R, p_levels
 end
 
-function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
     return find_levels_from_P(eqt, first_wall(wall).r,first_wall(wall).z, PSI_interpolant, q, r, levels)
 end
 
-function find_levels_from_P(dd::IMAS.dd, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int) 
+function find_levels_from_P(dd::IMAS.dd, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
-    return find_levels_from_P(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, q, r, levels) 
+    return find_levels_from_P(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, q, r, levels)
 end
 
 
 """
-    find_levels_from_wall(wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
+    find_levels_from_wall(wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation)
 
 Function for that computes the value of psi at the points of the wall mesh in dd
 """
-function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation) 
+function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation)
     ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
     RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open #psi on separatrix
@@ -474,7 +474,7 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1] # make it float
     end
-    psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA); 
+    psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA);
 
     levels =  PSI_interpolant.(wall_r,wall_z)
     psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt,wall_r,wall_z,PSI_interpolant)
@@ -483,11 +483,11 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
     return sort!(levels)
 end
 
-function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall,PSI_interpolant::Interpolations.AbstractInterpolation) 
+function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall,PSI_interpolant::Interpolations.AbstractInterpolation)
     return find_levels_from_wall(eqt,first_wall(wall).r,first_wall(wall).z, PSI_interpolant)
 end
 
-function find_levels_from_wall(dd::IMAS.dd) 
+function find_levels_from_wall(dd::IMAS.dd)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
 return find_levels_from_wall(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant)
 end
@@ -507,7 +507,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     wall_index = [k[2] for k in indexes] #index of vectors (wall_r, wall_z) of all crossing point
 
     crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw inner midplane (IMP) with wall
-    r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP  
+    r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP
     r_wall_imp = r_wall_imp[1] # make it float
 
     crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
@@ -545,7 +545,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
             # (r,z) is ordered such that the outer "strike point" comes after OMP
             i2 = i1 - 1 # inner "strike point" is the point before in r_z_index
             if i2 == 0
-                # if closest intersection of line with wall is below the midplane (j0<j1), i1 = 1 and i2 = 0 
+                # if closest intersection of line with wall is below the midplane (j0<j1), i1 = 1 and i2 = 0
                 i2 = 2 # fix that such that there is no index = 0
             end
         else
@@ -555,20 +555,20 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         if abs(j0-j1) == 1
             # intersection with wall has same index than closest point to the OMP
             # the intersection occurs at the wall OMP, within 1 index
-            if r[j1 + 1] > r_wall_omp 
+            if r[j1 + 1] > r_wall_omp
                 # the next point is outside the wall at omp
                 # take PREVIOUS intersection
                 i2 = i1 - 1
-            end 
+            end
 
             if r[j1 - 1] > r_wall_omp
                 #the previous point is outside the wall at omp
                 # take NEXT intersection
                 i2 = i1 + 1
-            end 
+            end
 
             # NOTE: if r[j1 + 1] <= r_wall_omp ||  r[j1 - 1] <= r_wall_omp, do nothing!
-        
+
         end
         if i1 == length(r_z_index)
             i2 = i1 -1
@@ -583,7 +583,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
     rr = vcat(crossings[1][1], r[r_z_index[1]+1:r_z_index[2]], crossings[2][1]) # r coordinate of magnetic surface between one "strike point" and the other
     zz = vcat(crossings[1][2], z[r_z_index[1]+1:r_z_index[2]], crossings[2][2]) # z coordinate of magnetic surface between one "strike point" and the other
-    
+
     # remove surfaces that cross midplane outiside the wall
     crossings2 = intersection([0, RA], [ZA, ZA], rr, zz).crossings # (r,z) point of intersection btw inner midplane (IMP) with magnetic surface in the SOL
     r_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP
@@ -592,7 +592,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     else
         r_imp = RA # the surface crosses only at the OMP
     end
-        
+
     crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], rr, zz).crossings # (r,z) point of intersection btw outer midplane (OMP) with magnetic surface in the SOL
     r_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     if !isempty(r_omp)
@@ -604,7 +604,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     if r_imp .< r_wall_imp  || r_omp .> r_wall_omp
         return Float64[], Float64[], Float64[], Int64[]
     end
-    # sort clockwise (COCOS 11) 
+    # sort clockwise (COCOS 11)
     angle = mod.(atan.(zz .- ZA, rr .- RA), 2 * π) # counterclockwise angle from midplane
     angle_is_monotonic = all(abs.(diff(angle)) .< π) # this finds if the field line crosses the OMP
     if angle_is_monotonic

@@ -499,7 +499,7 @@ function find_psi_tangent_omp(
     r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     r_wall_omp = r_wall_omp[1] # make it float
 
-    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis 
+    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
     psi_separatrix = eqt.profiles_1d.psi[end] # psi LCFS
     psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
 
@@ -699,7 +699,7 @@ function find_psi_wall_omp(
 
     psi_omp_u = find_psi_max(eqt) # upper bound is psi_max
     psi_omp_l = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # lower bound : psi LCFS, open
-    
+
     counter_max = 100
     err = Inf
     psi_omp = 0.0
@@ -723,7 +723,7 @@ function find_psi_wall_omp(
                 else
                     psi_omp_u = psi_omp
                 end
-                #update error [%] 
+                #update error [%]
                 err = abs(r - r_wall_midplane) / r_wall_midplane
             end
         end
@@ -962,8 +962,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
         dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
         ll = cumsum(dl)
         fluxexpansion = 1.0 ./ Bp_abs
-        int_fluxexpansion_dl = integrate(ll, fluxexpansion)
-        Bpl = integrate(ll, Bp)
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+        Bpl = trapz(ll, Bp)
 
         # save flux surface coordinates for later use
         pushfirst!(PR, pr)
@@ -1042,13 +1042,13 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     end
 
     # area
-    eqt.profiles_1d.area = cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.gm9) ./ 2π
+    eqt.profiles_1d.area = cumtrapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.gm9) ./ 2π
 
     # volume
-    eqt.profiles_1d.volume = cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi)
+    eqt.profiles_1d.volume = cumtrapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi)
 
     # phi
-    eqt.profiles_1d.phi = cumul_integrate(eqt.profiles_1d.volume, eqt.profiles_1d.f .* eqt.profiles_1d.gm1) / (2π)
+    eqt.profiles_1d.phi = cumtrapz(eqt.profiles_1d.volume, eqt.profiles_1d.f .* eqt.profiles_1d.gm1) / (2π)
 
     # rho_tor_norm
     rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * B0)))
@@ -1081,8 +1081,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     eqt.profiles_1d.gm2[1] = interp1d(eqt.profiles_1d.psi[2:end] * psi_sign, eqt.profiles_1d.gm2[2:end], :cubic).(eqt.profiles_1d.psi[1] * psi_sign)
 
     # ip
-    eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
-    # eqt.global_quantities.ip = IMAS.integrate(eqt.profiles_1d.volume, eqt.profiles_1d.j_tor.*eqt.profiles_1d.gm9) / (2π) # equivalent
+    eqt.global_quantities.ip = trapz(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
+    # eqt.global_quantities.ip = trapz(eqt.profiles_1d.volume, eqt.profiles_1d.j_tor.*eqt.profiles_1d.gm9) / (2π) # equivalent
 
     # Geometric major and minor radii
     Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
@@ -1095,7 +1095,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = integrate(eqt.profiles_1d.psi, BPL)
+    Bp2v = trapz(eqt.profiles_1d.psi, BPL)
     eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
@@ -1235,7 +1235,7 @@ function flux_surface(
 end
 
 function flxAvg(input::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
-    return integrate(ll, input .* fluxexpansion) / int_fluxexpansion_dl
+    return trapz(ll, input .* fluxexpansion) / int_fluxexpansion_dl
 end
 
 """
@@ -1244,7 +1244,7 @@ end
 Integrate quantity over volume
 """
 function volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::T where {T<:Real}
-    return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+    return trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
 end
 
 """
@@ -1253,7 +1253,7 @@ end
 Cumulative integrate quantity over volume
 """
 function cumlul_volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
-    return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
+    return cumtrapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what)
 end
 
 """
@@ -1262,7 +1262,7 @@ end
 Integrate quantity over surface
 """
 function surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::T where {T<:Real}
-    return integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2π
+    return trapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2π
 end
 
 """
@@ -1271,7 +1271,7 @@ end
 Cumulative integrate quantity over surface
 """
 function cumlul_surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
-    return cumul_integrate(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2π
+    return cumtrapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* what .* eqt.profiles_1d.gm9) ./ 2π
 end
 
 """
@@ -1362,7 +1362,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice)::IDSvector{<:IMAS.equi
             deleteat!(z_x, k)
         end
 
-        # remove x-points that have fallen on the magnetic axis 
+        # remove x-points that have fallen on the magnetic axis
         sign_closest = sign(psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))])# sign of psi of closest X-point in psi to LCFS
         index = psidist_lcfs_xpoints .* psi_sign .>= (psi_sign - sign_closest * 1E-5) * psidist_lcfs_xpoints[argmin(abs.(psidist_lcfs_xpoints))]
         psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
