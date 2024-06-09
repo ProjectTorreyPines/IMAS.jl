@@ -78,7 +78,7 @@ function A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     denominator = T[]
     for ion in cp1d.ion
         if ion.element[1].z_n == 1
-            n_int = integrate(cp1d.grid.volume, ion.density)
+            n_int = trapz(cp1d.grid.volume, ion.density)
             push!(numerator, n_int * ion.element[1].a)
             push!(denominator, n_int)
         end
@@ -101,7 +101,7 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
     B0 = B0_geo(eqt)
     return scaling_L_to_H_power(
         A_effective(cp1d),
-        integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
+        trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
         B0,
         eqt.profiles_1d.surface[end]
     )

@@ -4,7 +4,7 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
-import NumericalIntegration: integrate, cumul_integrate
+import FuseUtils: trapz, cumtrapz
 import PeriodicTable: elements
 import MillerExtendedHarmonic: MXH, MXH!, flat_coeffs, reorder_flux_surface!
 import Memoize

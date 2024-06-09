@@ -62,7 +62,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:pressures, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
     ExtractLibFunction(:pressures, Symbol("<P>"), "MPa", dd -> begin
         cp1d = dd.core_profiles.profiles_1d[]
-        integrate(cp1d.grid.volume, cp1d.pressure) / cp1d.grid.volume[end] / 1E6
+        trapz(cp1d.grid.volume, cp1d.pressure) / cp1d.grid.volume[end] / 1E6
     end)
     ExtractLibFunction(:pressures, Symbol("P0/<P>"), "-", dd -> EFL[:P0](dd) / EFL[Symbol("<P>")](dd))
     ExtractLibFunction(:pressures, :βn, "-", dd -> @ddtime(dd.summary.global_quantities.beta_tor_norm.value))

@@ -33,7 +33,7 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time, :constant)
     Ip = eqt.global_quantities.ip
     volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
-    pressure_avg = integrate(volume_cp, pressure) / volume_cp[end]
+    pressure_avg = trapz(volume_cp, pressure) / volume_cp[end]
     beta_tor = 2.0 * constants.μ_0 * pressure_avg / B0^2
     if norm
         return beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
@@ -168,7 +168,7 @@ function atomic_mass(Z::Int, N::Int)
 end
 
 function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
-    return 3.0 / 2.0 * integrate(cp1d.grid.volume, cp1d.pressure_thermal)
+    return 3.0 / 2.0 * trapz(cp1d.grid.volume, cp1d.pressure_thermal)
 end
 
 """
@@ -180,11 +180,11 @@ function energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summ
     rho_index = argmin(abs.(cp1d.grid.rho_tor_norm .- su.local.pedestal.position.rho_tor_norm))
     pressure = cp1d.pressure_thermal
     pressure[1:rho_index] .= cp1d.pressure_thermal[rho_index]
-    return 3.0 / 2.0 * integrate(cp1d.grid.volume, pressure)
+    return 3.0 / 2.0 * trapz(cp1d.grid.volume, pressure)
 end
 
 function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
-    return integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
+    return trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
 end
 
 """
@@ -217,8 +217,8 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
-        integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
+        trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
+        trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
@@ -252,8 +252,8 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
     total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
     isotope_factor =
-        integrate(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
-        integrate(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
+        trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
+        trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
@@ -324,7 +324,7 @@ end
 
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
     a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
-    return integrate(a_cp, ne_profile) / a_cp[end]
+    return trapz(a_cp, ne_profile) / a_cp[end]
 end
 
 """

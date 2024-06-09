@@ -423,7 +423,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
             ion_to_electron_fraction[idx] = 1.0 - 0.4 * x_i^1.5
         else
             y = x_i .* range(0, 1, 12)
-            f = integrate(y, 1.0 ./ (1.0 .+ y .^ 1.5))
+            f = trapz(y, 1.0 ./ (1.0 .+ y .^ 1.5))
             ion_to_electron_fraction[idx] = f / x_i
         end
     end
