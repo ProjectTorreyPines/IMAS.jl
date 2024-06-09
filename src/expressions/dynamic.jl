@@ -1,4 +1,4 @@
-import NumericalIntegration: integrate, cumul_integrate
+import FuseUtils: trapz, cumtrapz
 
 function IMASDD.get_expressions(::Type{Val{:dynamic}})
     return dynamic_expressions
@@ -8,7 +8,7 @@ const dynamic_expressions = dyexp = Dict{String,Function}()
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
-# 
+#
 # For example, this will FAIL:
 #    dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
 #         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
@@ -65,7 +65,7 @@ dyexp["core_profiles.profiles_1d[:].ion[:].density"] =
         else
             return ion.density_thermal .+ ion.density_fast
         end
-    end    
+    end
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density_fast"] =
     (rho_tor_norm; ion, _...) -> ion.density .- ion.density_thermal
@@ -135,14 +135,14 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
 
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
     (time; core_profiles, _...) ->
-        [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_non_inductive) for time in core_profiles.time]
+        [trapz(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_non_inductive) for time in core_profiles.time]
 
 dyexp["core_profiles.global_quantities.current_bootstrap"] =
     (time; core_profiles, _...) ->
-        [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
+        [trapz(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
 
 dyexp["core_profiles.global_quantities.ip"] =
-    (time; core_profiles, _...) -> [integrate(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_tor) for time in core_profiles.time]
+    (time; core_profiles, _...) -> [trapz(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_tor) for time in core_profiles.time]
 
 dyexp["core_profiles.global_quantities.beta_tor_norm"] =
     (time; dd, _...) -> [beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in dd.core_profiles.time]
@@ -167,7 +167,7 @@ dyexp["core_transport.model[:].profiles_1d[:].time"] =
 # equilibrium #
 #= ========= =#
 dyexp["equilibrium.time_slice[:].global_quantities.energy_mhd"] =
-    (; time_slice, _...) -> 3 / 2 * integrate(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
+    (; time_slice, _...) -> 3 / 2 * trapz(time_slice.profiles_1d.volume, time_slice.profiles_1d.pressure)
 
 dyexp["equilibrium.time_slice[:].global_quantities.q_95"] =
     (; time_slice, _...) -> Interpolations.linear_interpolation(norm01(time_slice.profiles_1d.psi), time_slice.profiles_1d.q)(0.95)
@@ -344,7 +344,7 @@ dyexp["equilibrium.time_slice[:].time"] =
 dyexp["core_sources.source[:].profiles_1d[:].electrons.power_inside"] =
     (rho_tor_norm; profiles_1d, _...) -> begin
         energy = profiles_1d.electrons.energy
-        cumul_integrate(profiles_1d.grid.volume, energy)
+        cumtrapz(profiles_1d.grid.volume, energy)
     end
 
 dyexp["core_sources.source[:].profiles_1d[:].electrons.energy"] =
@@ -357,7 +357,7 @@ dyexp["core_sources.source[:].profiles_1d[:].electrons.energy"] =
 dyexp["core_sources.source[:].profiles_1d[:].total_ion_power_inside"] =
     (rho_tor_norm; profiles_1d, _...) -> begin
         total_ion_energy = profiles_1d.total_ion_energy
-        cumul_integrate(profiles_1d.grid.volume, total_ion_energy)
+        cumtrapz(profiles_1d.grid.volume, total_ion_energy)
     end
 
 dyexp["core_sources.source[:].profiles_1d[:].total_ion_energy"] =
@@ -370,7 +370,7 @@ dyexp["core_sources.source[:].profiles_1d[:].total_ion_energy"] =
 dyexp["core_sources.source[:].profiles_1d[:].electrons.particles_inside"] =
     (rho_tor_norm; profiles_1d, _...) -> begin
         particles = profiles_1d.electrons.particles
-        cumul_integrate(profiles_1d.grid.volume, particles)
+        cumtrapz(profiles_1d.grid.volume, particles)
     end
 
 dyexp["core_sources.source[:].profiles_1d[:].electrons.particles"] =
@@ -383,7 +383,7 @@ dyexp["core_sources.source[:].profiles_1d[:].electrons.particles"] =
 dyexp["core_sources.source[:].profiles_1d[:].current_parallel_inside"] =
     (rho_tor_norm; profiles_1d, _...) -> begin
         j_parallel = profiles_1d.j_parallel
-        cumul_integrate(profiles_1d.grid.area, j_parallel)
+        cumtrapz(profiles_1d.grid.area, j_parallel)
     end
 
 dyexp["core_sources.source[:].profiles_1d[:].j_parallel"] =
@@ -396,7 +396,7 @@ dyexp["core_sources.source[:].profiles_1d[:].j_parallel"] =
 dyexp["core_sources.source[:].profiles_1d[:].torque_tor_inside"] =
     (rho_tor_norm; profiles_1d, _...) -> begin
         momentum_tor = profiles_1d.momentum_tor
-        cumul_integrate(profiles_1d.grid.volume, momentum_tor)
+        cumtrapz(profiles_1d.grid.volume, momentum_tor)
     end
 
 dyexp["core_sources.source[:].profiles_1d[:].momentum_tor"] =
@@ -409,7 +409,7 @@ dyexp["core_sources.source[:].profiles_1d[:].momentum_tor"] =
 dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles_inside"] =
     (rho_tor_norm; profiles_1d, ion, _...) -> begin
         particles = ion.particles
-        cumul_integrate(profiles_1d.grid.volume, particles)
+        cumtrapz(profiles_1d.grid.volume, particles)
     end
 
 dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles"] =
@@ -579,7 +579,7 @@ dyexp["pulse_schedule.time"] =
     end
 
 dyexp["pulse_schedule.tf.b_field_tor_vacuum_r.reference"] =
-    (time; tf, _...) ->  tf.r0 .* tf.b_field_tor_vacuum.reference 
+    (time; tf, _...) ->  tf.r0 .* tf.b_field_tor_vacuum.reference
 
 dyexp["pulse_schedule.tf.r0"] =
     (; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.r0
@@ -625,7 +625,7 @@ dyexp["summary.global_quantities.current_bootstrap.value"] =
         tmp = eltype(summary)[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-            push!(tmp, integrate(cp1d.grid.area, cp1d.j_bootstrap))
+            push!(tmp, trapz(cp1d.grid.area, cp1d.j_bootstrap))
         end
         return tmp
     end
@@ -635,7 +635,7 @@ dyexp["summary.global_quantities.current_non_inductive.value"] =
         tmp = eltype(summary)[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-            push!(tmp, integrate(cp1d.grid.area, cp1d.j_non_inductive))
+            push!(tmp, trapz(cp1d.grid.area, cp1d.j_non_inductive))
         end
         return tmp
     end
@@ -645,7 +645,7 @@ dyexp["summary.global_quantities.current_ohm.value"] =
         tmp = eltype(summary)[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-            push!(tmp, integrate(cp1d.grid.area, cp1d.j_ohmic))
+            push!(tmp, trapz(cp1d.grid.area, cp1d.j_ohmic))
         end
         return tmp
     end
@@ -733,7 +733,7 @@ dyexp["summary.volume_average.t_e.value"] =
         tmp = eltype(summary)[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-            push!(tmp, integrate(cp1d.grid.volume, cp1d.electrons.temperature) / cp1d.grid.volume[end])
+            push!(tmp, trapz(cp1d.grid.volume, cp1d.electrons.temperature) / cp1d.grid.volume[end])
         end
         return tmp
     end
@@ -743,7 +743,7 @@ dyexp["summary.volume_average.n_e.value"] =
         tmp = eltype(summary)[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-            push!(tmp, integrate(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end])
+            push!(tmp, trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end])
         end
         return tmp
     end
@@ -753,7 +753,7 @@ dyexp["summary.volume_average.t_i_average.value"] =
         tmp = eltype(summary)[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-            push!(tmp, integrate(cp1d.grid.volume, cp1d.t_i_average) / cp1d.grid.volume[end])
+            push!(tmp, trapz(cp1d.grid.volume, cp1d.t_i_average) / cp1d.grid.volume[end])
         end
         return tmp
     end
@@ -763,7 +763,7 @@ dyexp["summary.volume_average.zeff.value"] =
         tmp = eltype(summary)[]
         for time in summary.time
             cp1d = dd.core_profiles.profiles_1d[Float64(time)]
-            push!(tmp, integrate(cp1d.grid.volume, cp1d.zeff) / cp1d.grid.volume[end])
+            push!(tmp, trapz(cp1d.grid.volume, cp1d.zeff) / cp1d.grid.volume[end])
         end
         return tmp
     end

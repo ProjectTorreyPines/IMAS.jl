@@ -304,7 +304,7 @@ See: Wilson et al., Nucl. Fusion 32 257 (1992)
 function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     βp = eqt.global_quantities.beta_pol
     ϵ = eqt.boundary.minor_radius / eqt.boundary.geometric_axis.r
-    jbootfract = IMAS.integrate(cp1d.grid.area, cp1d.j_bootstrap) / eqt.global_quantities.ip
+    jbootfract = trapz(cp1d.grid.area, cp1d.j_bootstrap) / eqt.global_quantities.ip
     return jbootfract / (sqrt(ϵ) * βp)
 end
 

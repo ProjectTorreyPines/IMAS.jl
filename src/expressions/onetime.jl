@@ -1,5 +1,3 @@
-import NumericalIntegration: integrate, cumul_integrate
-
 function IMASDD.get_expressions(::Type{Val{:onetime}})
     return onetime_expressions
 end
