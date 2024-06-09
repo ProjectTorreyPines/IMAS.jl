@@ -472,7 +472,7 @@ end
     ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
 
 Generate H-mode density and temperature profiles with Internal Transport Barrier (ITB).
-This makes an H-mode profile and adds a tanh offset at the ITB radial location. 
+This makes an H-mode profile and adds a tanh offset at the ITB radial location.
 Note that core, ped, and ITBh are all in absolute units, so if core < ped + ITBh there will be negative gradients.
 
 :param edge: separatrix height
@@ -494,7 +494,6 @@ Note that core, ped, and ITBh are all in absolute units, so if core < ped + ITBh
 :param ITBw: width of ITB
 
 :param ITBh: height of ITB
-
 """
 function ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
 
@@ -502,7 +501,7 @@ function ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real
 
     # H mode part
 
-    val = Hmode_profiles(edge, ped, core-ITBh, ngrid, expin, expout, widthp)
+    val = Hmode_profiles(edge, ped, core - ITBh, ngrid, expin, expout, widthp)
 
     # ITB part
 
@@ -850,4 +849,25 @@ function t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
         ntot += ion.density_thermal
     end
     return t_i_a ./= ntot
+end
+
+"""
+    T_edge(x::AbstractArray,x0::Real,T0::Real,T1::Real, alpha::Real)
+
+Function for edge blending
+"""
+function Edge_profile(x::AbstractArray, x0::Real, T0::Real, T1::Real, alpha::Real)
+    if alpha == 0.0
+        sigma = 1E10
+    else
+        sigma = 1 / alpha
+    end
+    y = Edge_profile0(x, x0, sigma)
+    y0 = Edge_profile0(x0, x0, sigma)
+    y1 = Edge_profile0(1.0, x0, sigma)
+    return @. (y - y1) / (y0 - y1) * (T0 - T1) + T1
+end
+
+function Edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
+    return exp.(.-(x .- x0) / sigma)
 end
