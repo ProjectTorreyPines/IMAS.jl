@@ -107,26 +107,34 @@ function blend_core_edge_Hmode(
 end
 
 """
-    blend_core_edge_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped::IMAS.summary__local__pedestal, edge_bound::Real)
+    blend_core_edge_Hmode(cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, edge_bound::Real)
 
-Blends Te, Ti, ne, and nis in core_profiles with H-mode like pedestal defined in summary
+Blends Te, Ti, ne, and nis in core_profiles with H-mode like pedestal defined in summary IDS
 """
-function blend_core_edge_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real)
+function blend_core_edge_Hmode(cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
     rho = cp1d.grid.rho_tor_norm
-    w_ped = 1 - @ddtime(dd_ped.position.rho_tor_norm)
+    w_ped = 1 - @ddtime(summary_ped.position.rho_tor_norm)
 
-    ion_fractions = zeros(Float64, length(cp1d.ion), length(cp1d.electrons.density))
-    for (ii, ion) in enumerate(cp1d.ion)
-        ion_fractions[ii, :] = ion.density_thermal ./ cp1d.electrons.density
+    # NOTE! this does not take into account summary.local.pedestal.zeff.value
+    if what ∈ (:all, :densities)
+        ion_fractions = zeros(Float64, length(cp1d.ion), length(cp1d.electrons.density))
+        for (ii, ion) in enumerate(cp1d.ion)
+            ion_fractions[ii, :] = ion.density_thermal ./ cp1d.electrons.density
+        end
+        cp1d.electrons.density_thermal = blend_core_edge_Hmode(cp1d.electrons.density, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
+        for (ii, ion) in enumerate(cp1d.ion)
+            ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
+        end
     end
 
-    cp1d.electrons.temperature = blend_core_edge_Hmode(cp1d.electrons.temperature, rho, @ddtime(dd_ped.t_e.value), w_ped, rho_nml, rho_ped)
-    cp1d.electrons.density_thermal = blend_core_edge_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value), w_ped, rho_nml, rho_ped)
-
-    ti_avg_new = blend_core_edge_Hmode(cp1d.ion[1].temperature, rho, @ddtime(dd_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
-    for (ii, ion) in enumerate(cp1d.ion)
-        ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
-        ion.temperature = ti_avg_new
+    if what ∈ (:all, :temperatures)
+        cp1d.electrons.temperature = blend_core_edge_Hmode(cp1d.electrons.temperature, rho, @ddtime(summary_ped.t_e.value), w_ped, rho_nml, rho_ped)
+        ti_avg_new = blend_core_edge_Hmode(cp1d.t_i_average, rho, @ddtime(summary_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
+        for ion in cp1d.ion
+            if !ismissing(ion, :temperature)
+                ion.temperature = ti_avg_new
+            end
+        end
     end
 end
 
@@ -171,7 +179,7 @@ function blend_core_edge_Lmode(cp1d::IMAS.core_profiles__profiles_1d, edge_bound
     cp1d.electrons.temperature = blend_core_edge_Lmode(cp1d.electrons.temperature, rho, edge_bound)
     cp1d.electrons.density_thermal = blend_core_edge_Lmode(cp1d.electrons.density, rho, edge_bound)
 
-    ti_avg_new = blend_core_edge_Lmode(cp1d.ion[1].temperature, rho, edge_bound)
+    ti_avg_new = blend_core_edge_Lmode(cp1d.t_i_average, rho, edge_bound)
     for (ii, ion) in enumerate(cp1d.ion)
         ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
         ion.temperature = ti_avg_new

@@ -25,7 +25,7 @@ function collisional_exchange_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     ne = cp1d.electrons.density
     Te = cp1d.electrons.temperature
-    Ti = cp1d.ion[1].temperature
+    Ti = cp1d.t_i_average
 
     nu_exch = collision_frequencies(dd).nu_exch
     delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)

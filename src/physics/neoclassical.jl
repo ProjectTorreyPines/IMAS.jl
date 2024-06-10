@@ -66,7 +66,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
 
     ne = cp1d.electrons.density
     Te = cp1d.electrons.temperature
-    Ti = cp1d.ion[1].temperature
+    Ti = cp1d.t_i_average
 
     pe = cp1d.electrons.pressure
     p = cp1d.pressure_thermal
@@ -340,7 +340,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     ne = cp1d.electrons.density
     nis = hcat((ion.density for ion in cp1d.ion)...)
     ni = sum(nis; dims=2)[:, 1]
-    Ti = cp1d.ion[1].temperature
+    Ti = cp1d.t_i_average
 
     # dominant ion (the one with the most particles)
     Zs = [ion.z_ion for ion in cp1d.ion]
