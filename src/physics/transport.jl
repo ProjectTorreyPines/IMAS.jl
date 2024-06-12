@@ -43,7 +43,6 @@ function total_fluxes(dd::IMAS.dd; time0::Float64=dd.global_time)
     return total_fluxes(dd.core_transport; time0)
 end
 
-
 """
     total_fluxes!(ct::IMAS.core_transport,rho_total_fluxes::AbstractVector{<:Real} = collect(0.0:0.05:1.0))
 

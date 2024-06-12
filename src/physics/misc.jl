@@ -110,3 +110,18 @@ end
 function scaling_L_to_H_power(dd::IMAS.dd)
     return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
+
+function L_H_threshold(dd::IMAS.dd)
+    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
+end
+
+"""
+    L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+
+Returns ratio of Psol to Plh
+"""
+function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    Psol = power_sol(cs, cp1d)
+    Plh = scaling_L_to_H_power(cp1d, eqt)
+    return Psol / Plh
+end
