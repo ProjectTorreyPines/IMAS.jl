@@ -322,11 +322,6 @@ function greenwald_fraction(dd::IMAS.dd)
     return greenwald_fraction(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
 end
 
-function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
-    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
-    return trapz(a_cp, ne_profile) / a_cp[end]
-end
-
 """
     geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -334,6 +329,30 @@ Calculates the line averaged density from a midplane horizantal line
 """
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     return geometric_midplane_line_averaged_density(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
+end
+
+function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
+    return trapz(a_cp, ne_profile) / a_cp[end]
+end
+
+function geometric_midplane_line_averaged_density(dd::IMAS.dd)
+    return geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
+end
+
+"""
+    n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+
+returns n_e_line from pulse_schedule looking first in `pulse_schedule.density_control.ne_line.reference` and then `pulse_schedule.density_control.greenwald_fraction.reference`
+"""
+function n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+    if !ismissing(ps.density_control.n_e_line, :reference)
+        return IMAS.get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
+    elseif !ismissing(ps.density_control.n_e_greenwald_fraction, :reference)
+        return IMAS.get_time_array(ps.density_control.n_e_greenwald_fraction, :reference, time0, :linear) * greenwald_density(ps; time0)
+    else
+        error("neither `pulse_schedule.density_control.ne_line.reference` or `pulse_schedule.density_control.greenwald_fraction.reference` have data")
+    end
 end
 
 """
