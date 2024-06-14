@@ -467,6 +467,22 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     return val
 end
 
+function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    return Lmode_profiles(edge, ped, ngrid, expin, expout, widthp)
+end
+
+function Lmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    xpsi = range(0.0, 1.0, ngrid)
+
+    w_E1 = 0.5 * widthp  # width as defined in eped
+    xphalf = 1.0 - w_E1
+    xped = xphalf - w_E1
+
+    f(x) = (1.0 .- x.^expin).^(expout - 1.0)
+
+    return f.(xpsi) ./ f(xped) .* (ped - edge) .+ edge
+end
+
 
 """
     ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
@@ -496,15 +512,12 @@ Note that core, ped, and ITBh are all in absolute units, so if core < ped + ITBh
 :param ITBh: height of ITB
 """
 function ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
-
     xpsi = range(0.0, 1.0, ngrid)
 
     # H mode part
-
     val = Hmode_profiles(edge, ped, core - ITBh, ngrid, expin, expout, widthp)
 
     # ITB part
-
     itb = @. 0.5 * ITBh * (1.0 - tanh((xpsi - ITBr) / ITBw))
 
     return val + itb
