@@ -125,3 +125,20 @@ function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles
     Plh = scaling_L_to_H_power(cp1d, eqt)
     return Psol / Plh
 end
+
+"""
+    satisfies_h_mode_conditions(dd::IMAS.dd)
+
+Returns true if the plasma is diverted, has positive triangularity and Psol>Plh
+"""
+function satisfies_h_mode_conditions(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    diverted = length(eqt.boundary.x_point) > 0
+    Psol_gt_Plh = IMAS.L_H_threshold(dd) > getproperty(dd.requirements, :lh_power_threshold_fraction, 1.0)
+    positive_triangularity = eqt.boundary.triangularity > 0.0
+    if Psol_gt_Plh && diverted && positive_triangularity
+        return true
+    else
+        return false
+    end
+end
