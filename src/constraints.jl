@@ -43,6 +43,9 @@ function update_ConstraintFunctionsLibrary!()
     ConstraintFunction(:max_oh_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.oh) / dd.solid_mechanics.center_stack.properties.yield_strength.oh + dd.requirements.coil_stress_margin, <, 1.0)
     ConstraintFunction(:max_hds03, "%", dd -> (@ddtime(dd.summary.global_quantities.tau_energy.value)/tau_e_ds03(dd) - dd.requirements.hds03)/dd.requirements.hds03, <, 0.0)
     ConstraintFunction(:min_q95, "%", dd -> (dd.equilibrium.time_slice[].global_quantities.q_95 - dd.requirements.q95) / dd.requirements.q95, >, 0.0)
+    ConstraintFunction(:max_βn, "", dd -> (dd.equilibrium.time_slice[].global_quantities.beta_normal - dd.requirements.beta_normal) / dd.requirements.beta_normal, <, 0.0)
+    ConstraintFunction(:max_Psol_R, "%", dd -> (((IMAS.power_sol(dd)/ 1E6) / dd.equilibrium.time_slice[].boundary.geometric_axis.r) - dd.requirements.Psol_R) / dd.requirements.Psol_R, <, 0.0)
+
     #! format: on
     return ConstraintFunctionsLibrary
 end
