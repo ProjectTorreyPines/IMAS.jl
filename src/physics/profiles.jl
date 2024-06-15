@@ -487,21 +487,19 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
 end
 
 function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
-    return Lmode_profiles(edge, ped, ngrid, expin, expout, widthp)
+    rho = range(0.0, 1.0, ngrid)
+    rho_ped = 1.0 - widthp
+    rho_ped_idx = argmin(abs.(rho .- rho_ped))
+
+    f(x) = abs.(1.0 - x .^ expin) .^ expout
+    profile = f.(rho ./ rho_ped) .* (core - ped) .+ ped
+    profile[rho_ped_idx:end] .= range(ped, edge, ngrid - rho_ped_idx + 1)
+
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, ped, rho_ped), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    cost_WPED_α!(rho, profile, res.minimizer, ped, rho_ped)
+
+    return profile
 end
-
-function Lmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
-    xpsi = range(0.0, 1.0, ngrid)
-
-    w_E1 = 0.5 * widthp  # width as defined in eped
-    xphalf = 1.0 - w_E1
-    xped = xphalf - w_E1
-
-    f(x) = (1.0 .- x.^expin).^(expout - 1.0)
-
-    return f.(xpsi) ./ f(xped) .* (ped - edge) .+ edge
-end
-
 
 """
     ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
@@ -884,22 +882,25 @@ function t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
 end
 
 """
-    T_edge(x::AbstractArray,x0::Real,T0::Real,T1::Real, alpha::Real)
+    edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
 
 Function for edge blending
 """
-function Edge_profile(x::AbstractArray, x0::Real, T0::Real, T1::Real, alpha::Real)
+function edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
+    @assert x[1] == 0.0
+    @assert x[end] == 1.0
+    @assert 0.0 < x0 < 1.0
     if alpha == 0.0
         sigma = 1E10
     else
         sigma = 1 / alpha
     end
-    y = Edge_profile0(x, x0, sigma)
-    y0 = Edge_profile0(x0, x0, sigma)
-    y1 = Edge_profile0(1.0, x0, sigma)
+    y = edge_profile0(x, x0, sigma)
+    y0 = edge_profile0(x0, x0, sigma)
+    y1 = edge_profile0(1.0, x0, sigma)
     return @. (y - y1) / (y0 - y1) * (T0 - T1) + T1
 end
 
-function Edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
+function edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
     return exp.(.-(x .- x0) / sigma)
 end

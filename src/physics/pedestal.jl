@@ -148,8 +148,8 @@ function blend_core_edge_Lmode(
     value::Real,
     rho_bound::Real
 )
-    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound, rho), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
-    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound, rho)
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
     return profile
 end
 
@@ -177,24 +177,20 @@ function blend_core_edge_Lmode(
     return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
-function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value::Real, rho_ped::Real, rho_edge::AbstractVector{<:Real})
-    rho_bound_idx = argmin(abs.(rho .- rho_ped))
+function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value::Real, rho_ped::Real)
+    rho_ped_idx = argmin(abs.(rho .- rho_ped))
+    
+    profile_ped = IMAS.edge_profile(rho, rho_ped, value, profile[end], α)
+    z_profile_ped = IMAS.calc_z(rho, profile_ped, :backward)
 
-    z_whole_profile = IMAS.calc_z(rho, profile, :backward)
+    profile .+= (-profile[rho_ped_idx] + value)    
+    z_profile = IMAS.calc_z(rho, profile, :backward)
 
-    profile[1:rho_bound_idx] = profile[1:rho_bound_idx] .+ (-profile[rho_bound_idx] + value)
+    profile[rho_ped_idx+1:end] .= IMAS.interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
 
-    profile_ped = IMAS.Edge_profile(rho_edge, rho_ped, value, profile[end], α)
-    profile[rho_bound_idx:end] .= IMAS.interp1d(rho_edge, profile_ped).(rho[rho_bound_idx:end])
-
-    z_target_Te = z_whole_profile[rho_bound_idx]
-    z_profile = IMAS.calc_z(rho_edge, profile_ped, :backward)
-
-    cost = ((z_profile[1] - z_target_Te) / z_target_Te)^2
-
+    cost = abs.((z_profile[rho_ped_idx] - z_profile_ped[rho_ped_idx]) / z_profile[rho_ped_idx])
     return cost
 end
-
 
 """
     pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
