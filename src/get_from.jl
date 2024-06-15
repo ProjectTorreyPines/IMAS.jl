@@ -51,14 +51,25 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:βn}}, from_where::Symbol; tim
     error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
 
+# ne_ped w/ pedestal fit [m^-3]
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
+    if from_where == :core_profiles
+        cp1d = dd.core_profiles.profiles_1d[time0]
+        _, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
+        rho_ped = 1.0 - w_ped
+    else
+        rho_ped = NaN
+    end
+    return get_from(dd, what, from_where, rho_ped; time0)
+end
+
 # ne_ped [m^-3]
-function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, rho_ped::Float64; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :summary
         return IMAS.get_time_array(dd.summary.local.pedestal.n_e, :value, time0, :linear)
     elseif from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        pe_ped, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
-        return IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(1 - w_ped)
+        return IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(rho_ped)
     elseif from_where == :pulse_schedule
         if !ismissing(dd.pulse_schedule.density_control.n_e_pedestal, :reference)
             return IMAS.get_time_array(dd.pulse_schedule.density_control.n_e_pedestal, :reference, time0, :linear)
@@ -72,14 +83,25 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol; 
     error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
 
+# zeff_ped w/ pedestal fit [-]
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
+    if from_where == :core_profiles
+        cp1d = dd.core_profiles.profiles_1d[time0]
+        _, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
+        rho_ped = 1.0 - w_ped
+    else
+        rho_ped = NaN
+    end
+    return get_from(dd, what, from_where, rho_ped; time0)
+end
+
 # zeff_ped [-]
-function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol, rho_ped::Float64; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :summary
         return IMAS.get_time_array(dd.summary.local.pedestal.zeff, :value, time0, :linear)
     elseif from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        pe_ped, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
-        return IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(1 - w_ped)
+        return IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(rho_ped)
     elseif from_where == :pulse_schedule
         if !ismissing(dd.pulse_schedule.density_control.zeff_pedestal, :reference)
             return IMAS.get_time_array(dd.pulse_schedule.density_control.zeff_pedestal, :reference, time0, :linear)
