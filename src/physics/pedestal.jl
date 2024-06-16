@@ -109,15 +109,15 @@ end
 Blends Te, Ti, ne, and nis in core_profiles with :H_mode or :L_mode like pedestal defined in summary IDS
 """
 function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
-    if mode==:L_mode
+    if mode == :L_mode
         blend_function = blend_core_edge_Lmode
-    elseif mode ==:H_mode
+    elseif mode == :H_mode
         blend_function = blend_core_edge_Hmode
     else
-        error("mode can be either :L_mode or :H_mode")
+        @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
     end
     rho = cp1d.grid.rho_tor_norm
-    w_ped = 1 - @ddtime(summary_ped.position.rho_tor_norm)
+    w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
 
     # NOTE! this does not take into account summary.local.pedestal.zeff.value
     if what ∈ (:all, :densities)
@@ -179,11 +179,11 @@ end
 
 function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value::Real, rho_ped::Real)
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
-    
+
     profile_ped = IMAS.edge_profile(rho, rho_ped, value, profile[end], α)
     z_profile_ped = IMAS.calc_z(rho, profile_ped, :backward)
 
-    profile .+= (-profile[rho_ped_idx] + value)    
+    profile .+= (-profile[rho_ped_idx] + value)
     z_profile = IMAS.calc_z(rho, profile, :backward)
 
     profile[rho_ped_idx+1:end] .= IMAS.interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
