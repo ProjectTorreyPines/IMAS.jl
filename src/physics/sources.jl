@@ -99,7 +99,10 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
 
     source = resize!(dd.core_sources.source, :time_derivative; wipe=false)
     new_source(source, source.identifier.index, "∂/∂t term", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
-        electrons_energy=ddt_sources.Qe, total_ion_energy=ddt_sources.Qi, electrons_particles=ddt_sources.Sne, momentum_tor=ddt_sources.PI)
+        electrons_energy=ddt_sources.Qe,
+        total_ion_energy=ddt_sources.Qi,
+        electrons_particles=ddt_sources.Sne,
+        momentum_tor=ddt_sources.PI)
 
     return source
 end
@@ -109,15 +112,15 @@ end
 
 These are the ∂/∂t term in the transport equations
 """
-function time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R2_flux_avg::Vector)
+function time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
     Sne = -(cp1d_new.electrons.density .- cp1d_old.electrons.density) / Δt
 
     Qe = -1.5 * (cp1d_new.electrons.pressure .- cp1d_old.electrons.pressure) / Δt
 
     Qi = -1.5 * (cp1d_new.pressure_ion_total .- cp1d_old.pressure_ion_total) / Δt
 
-    d1 = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R2_flux_avg / Δt
-    d2 = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R2_flux_avg / Δt
+    d1 = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R_flux_avg / Δt
+    d2 = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
     PI = d2 - d1
 
     return (Sne=Sne, Qi=Qi, Qe=Qe, PI=PI)
@@ -375,38 +378,58 @@ function new_source(
     cs1d.grid.area = area
 
     if electrons_energy !== missing
-        cs1d.electrons.energy = interp1d(range(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
-    end
-    if electrons_power_inside !== missing
-        cs1d.electrons.power_inside = interp1d(range(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.energy = value = interp1d(range(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.power_inside = cumtrapz(volume, value)
+    elseif electrons_power_inside !== missing
+        cs1d.electrons.power_inside = value = interp1d(range(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.energy = gradient(volume, value)
+    else
+        cs1d.electrons.energy = zero(volume)
+        cs1d.electrons.power_inside = zero(volume)
     end
 
     if total_ion_energy !== missing
-        cs1d.total_ion_energy = interp1d(range(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
-    end
-    if total_ion_power_inside !== missing
-        cs1d.total_ion_power_inside = interp1d(range(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_energy = value = interp1d(range(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_power_inside = cumtrapz(volume, value)
+    elseif total_ion_power_inside !== missing
+        cs1d.total_ion_power_inside = value = interp1d(range(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_energy = gradient(volume, value)
+    else
+        cs1d.total_ion_energy = zero(volume)
+        cs1d.total_ion_power_inside = zero(volume)
     end
 
     if electrons_particles !== missing
-        cs1d.electrons.particles = interp1d(range(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
-    end
-    if electrons_particles_inside !== missing
-        cs1d.electrons.particles_inside = interp1d(range(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles = value = interp1d(range(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles_inside = cumtrapz(volume, value)
+    elseif electrons_particles_inside !== missing
+        cs1d.electrons.particles_inside = value = interp1d(range(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles = gradient(volume, value)
+    else
+        cs1d.electrons.particles = zero(volume)
+        cs1d.electrons.particles_inside = zero(volume)
     end
 
     if j_parallel !== missing
-        cs1d.j_parallel = interp1d(range(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
-    end
-    if current_parallel_inside !== missing
-        cs1d.current_parallel_inside = interp1d(range(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.j_parallel = value = interp1d(range(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
+        cs1d.current_parallel_inside = cumtrapz(volume, value)
+    elseif current_parallel_inside !== missing
+        cs1d.current_parallel_inside = value = interp1d(range(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.j_parallel = gradient(volume, value)
+    else
+        cs1d.j_parallel = zero(volume)
+        cs1d.current_parallel_inside = zero(volume)
     end
 
     if momentum_tor !== missing
-        cs1d.momentum_tor = interp1d(range(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
-    end
-    if torque_tor_inside !== missing
-        cs1d.torque_tor_inside = interp1d(range(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.momentum_tor = value = interp1d(range(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
+        cs1d.torque_tor_inside = cumtrapz(volume, value)
+    elseif torque_tor_inside !== missing
+        cs1d.torque_tor_inside = value = interp1d(range(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.momentum_tor = gradient(volume, value)
+    else
+        cs1d.momentum_tor = zero(volume)
+        cs1d.torque_tor_inside = zero(volume)
     end
 
     return source
