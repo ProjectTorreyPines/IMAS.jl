@@ -9,7 +9,11 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ip}}, from_where::Symbol; time
     if from_where == :equilibrium
         return dd.equilibrium.time_slice[time0].global_quantities.ip
     elseif from_where == :core_profiles
-        return IMAS.get_time_array(dd.core_profiles.global_quantities, :ip, time0, :linear)
+        if time0 >= dd.core_profiles.time[end]
+            return trapz(dd.core_profiles.profiles_1d[end].grid.area, dd.core_profiles.profiles_1d[end].j_tor)
+        else
+            return IMAS.get_time_array(dd.core_profiles.global_quantities, :ip, time0, :linear)
+        end
     elseif from_where == :pulse_schedule
         return IMAS.get_time_array(dd.pulse_schedule.flux_control.i_plasma, :reference, time0, :linear)
     end
