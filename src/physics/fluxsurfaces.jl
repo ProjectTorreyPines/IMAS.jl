@@ -368,13 +368,13 @@ function find_psi_last_diverted(
         null_within_wall = true
     end
 
-    if isempty(eqt.boundary_separatrix.strike_point)
+    if isempty(eqt.boundary.strike_point)
         find_strike_points!(eqt)
     end
 
     # First we treat the double null case:
     # if we have 4 strike points, it is a double null
-    if length(eqt.boundary_separatrix.strike_point) == 4
+    if length(eqt.boundary.strike_point) == 4
         # LDFS is the separatrix
         # psi_first_lfs_far is determined using the precision condition
         psi_first_lfs_far = psi_separatrix + psi_sign * precision * abs(psi_separatrix)
@@ -409,7 +409,7 @@ function find_psi_last_diverted(
             z_intersect = (cr[2] for cr in crossings) # Z coordiante of intersections with wall
 
             closest_to_strike_points = Int64[]
-            for point in eqt.boundary_separatrix.strike_point
+            for point in eqt.boundary.strike_point
                 dist = (r_intersect .- point.r) .^ 2 .+ (z_intersect .- point.z) .^ 2
                 push!(closest_to_strike_points, argmin(dist))
             end
