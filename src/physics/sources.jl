@@ -2,10 +2,15 @@
     fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
 
 Calculates fusion source from D-T and D-D reactions and adds them to `dd.core_sources`
+
+If D+T plasma, then D+D is neglected
 """
-function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; only_DT::Bool=false)
-    D_T_to_He4_source!(cs, cp)
-    if !only_DT
+function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+    cp1d = cp.profiles_1d[]
+    ion_list = (ion.label for ion in cp1d.ion)
+    if "T" in ion_list || "DT" in ion_list
+        D_T_to_He4_source!(cs, cp)
+    else
         D_D_to_He3_source!(cs, cp)
         D_D_to_T_source!(cs, cp)
     end
