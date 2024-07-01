@@ -70,13 +70,17 @@ function bootstrap_source!(dd::IMAS.dd)
 end
 
 """
-    sources!(dd::IMAS.dd)
+    sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
 
 Calculates intrisic sources and sinks and adds them to `dd.core_sources`
 """
-function sources!(dd::IMAS.dd)
-    IMAS.bootstrap_source!(dd)
-    IMAS.ohmic_source!(dd)
+function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
+    if bootstrap
+        IMAS.bootstrap_source!(dd)
+    end
+    if ohmic
+        IMAS.ohmic_source!(dd)
+    end
     IMAS.collisional_exchange_source!(dd)
     IMAS.bremsstrahlung_source!(dd)
     IMAS.line_radiation_source!(dd)
