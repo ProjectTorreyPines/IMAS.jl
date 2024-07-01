@@ -325,10 +325,8 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     empty!(cp1d, :pressure_parallel)
     empty!(cp1d, :pressure_perpendicular)
     empty!(cp1d, :pressure_ion_total)
-    empty!(cp1d, :pressure_thermal)
     # empty all cp1d fast-ion related quantities (expressions)
     for ion in cp1d.ion
-        empty!(ion, :pressure_thermal)
         empty!(ion, :pressure)
         empty!(ion, :density)
     end
@@ -337,6 +335,10 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
         ion.pressure_fast_parallel = zeros(Npsi)
         ion.pressure_fast_perpendicular = zeros(Npsi)
         ion.density_fast = zeros(Npsi)
+    end
+    # zero out cp1d.electrons.density_fast to "close" the expression
+    if ismissing(cp1d.electrons, :density_fast)
+        cp1d.electrons.density_fast = zeros(Npsi)
     end
 
     # go through sources and look for ones that have ion particles source at given energy
@@ -395,7 +397,7 @@ Compute a low-accuracy but fast approximation to the ion heating fraction (for a
 """
 function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
     Te = cp1d.electrons.temperature
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     rho = cp1d.grid.rho_tor_norm
 
     tp = typeof(promote(Te[1], ne[1], rho[1])[1])
