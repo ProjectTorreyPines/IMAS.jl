@@ -1980,11 +1980,20 @@ end
     end
     @series begin
         seriestype := :scatter
+        marker --> :xcross
+        markerstrokewidth --> 2
+        markersize --> 5
+        primary := false
+        Xs = x_points(pc.x_point; time0)
+        [x[1] for x in Xs if x[1] != 0.0], [x[2] for x in Xs if x[1] != 0.0]
+    end
+    @series begin
+        seriestype := :scatter
         marker --> :circle
         markerstrokewidth --> 0
         primary := false
-        Xs = x_points(pc.x_point; time0)
-        [x[1] for x in Xs], [x[2] for x in Xs]
+        Ss = strike_points(pc.strike_point; time0)
+        [x[1] for x in Ss if x[1] != 0.0], [x[2] for x in Ss if x[1] != 0.0]
     end
 end
 
@@ -2181,7 +2190,7 @@ function nice_field(field::AbstractString)
             r"\bnb\b" => "NB",
             r"\bnbi\b" => "NBI",
             "_" => " ")
-        if length(split(field," ")[1]) > 2
+        if length(split(field, " ")[1]) > 2
             field = uppercasefirst(field)
         end
     end
