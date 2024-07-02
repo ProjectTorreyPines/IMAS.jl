@@ -902,11 +902,11 @@ function find_strike_points(wall_outline_r::T, wall_outline_z::T, pr::T, pz::T) 
 end
 
 """
-    find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+    find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T; private_flux_regions::Bool=false) where {T<:AbstractVector{<:Real}}
 
 Finds equilibrium strike points and angle of incidence between wall and strike leg
 """
-function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T; private_flux_regions::Bool=false) where {T<:AbstractVector{<:Real}}
     Rxx = Float64[]
     Zxx = Float64[]
     θxx = Float64[]
@@ -914,9 +914,23 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
     if !isempty(wall_outline_r)
         # find separatrix as first surface in SOL, not in private region
         psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
-        sep, _ = flux_surface(eqt, psi_separatrix, :open)
+        if private_flux_regions
+            sep, _ = flux_surface(eqt, psi_separatrix, :any)
+        else
+            sep, _ = flux_surface(eqt, psi_separatrix, :open)
+        end
         for (pr, pz) in sep
-            if isempty(pr) || all(pz .> 0) || all(pz .< 0)
+            if isempty(pr)
+                continue
+            end
+            if private_flux_regions && all(pz .< eqt.boundary.geometric_axis.z) && all((all(pz .< x_point.z) for x_point in eqt.boundary.x_point))
+                #pass, lower private flux region
+            elseif private_flux_regions && all(pz .> eqt.boundary.geometric_axis.z) && all((all(pz .> x_point.z) for x_point in eqt.boundary.x_point))
+                #pass, upper private flux region
+            elseif any(pz .> eqt.boundary.geometric_axis.z) && any(pz .< eqt.boundary.geometric_axis.z) &&
+                   sign(pz[1] - eqt.boundary.geometric_axis.z) == sign(pz[end] - eqt.boundary.geometric_axis.z)
+                #pass, going around the confined plasma
+            else
                 continue
             end
             Rxx_, Zx_, θx_ = find_strike_points(wall_outline_r, wall_outline_z, pr, pz)
@@ -934,7 +948,7 @@ end
 
 Adds strike points location to equilibrium IDS and the tilt_angle_pol in the divertors IDS
 """
-function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors)
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors; private_flux_regions::Bool=false, in_place::Bool=true)
     Rxx = Float64[]
     Zxx = Float64[]
     θxx = Float64[]
@@ -943,7 +957,7 @@ function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.diverto
 
     for divertor in dv.divertor
         for target in divertor.target
-            Rxx0, Zxx0, θxx0 = find_strike_points(eqt, target.tile[1].surface_outline.r, target.tile[1].surface_outline.z)
+            Rxx0, Zxx0, θxx0 = find_strike_points(eqt, target.tile[1].surface_outline.r, target.tile[1].surface_outline.z; private_flux_regions)
             # allow for strike points to miss the divertors
             if isempty(Rxx0)
                 continue
@@ -951,18 +965,32 @@ function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.diverto
             push!(Rxx, Rxx0[1])
             push!(Zxx, Zxx0[1])
             push!(θxx, θxx0[1])
-            set_time_array(target.tilt_angle_pol, :data, time, θxx0[1])
+            if in_place
+                set_time_array(target.tilt_angle_pol, :data, time, θxx0[1])
+            end
         end
     end
 
-    resize!(eqt.boundary.strike_point, length(Rxx))
-    for (k, strike_point) in enumerate(eqt.boundary.strike_point)
-        strike_point.r = Rxx[k]
-        strike_point.z = Zxx[k]
+    if in_place
+        resize!(eqt.boundary.strike_point, length(Rxx))
+        for (k, strike_point) in enumerate(eqt.boundary.strike_point)
+            strike_point.r = Rxx[k]
+            strike_point.z = Zxx[k]
+        end
     end
 
     return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
 end
+
+"""
+    find_strike_points(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors)
+
+Return strike points location in the divertors
+"""
+function find_strike_points(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors; private_flux_regions::Bool=false)
+    return find_strike_points!(eqt, dv; private_flux_regions, in_place=false)
+end
+
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
     Rxx, Zxx, θxx = find_strike_points(eqt, wall_outline_r, wall_outline_z)
