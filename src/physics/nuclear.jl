@@ -430,7 +430,7 @@ function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
         polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
         tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 5.0
     else
-        tot_pow += D_D_to_He3_plasma_power(cp1d) * 4.0
+        tot_pow = D_D_to_He3_plasma_power(cp1d) * 4.0
         tot_pow += D_D_to_T_plasma_power(cp1d)
     end
     return tot_pow
@@ -454,7 +454,7 @@ function fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
         polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
         tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 4.0
     else
-        tot_pow += D_D_to_He3_plasma_power(cp1d) * 3.0
+        tot_pow = D_D_to_He3_plasma_power(cp1d) * 3.0
     end
     return tot_pow
 end
