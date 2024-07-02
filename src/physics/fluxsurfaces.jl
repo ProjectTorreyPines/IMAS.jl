@@ -405,8 +405,9 @@ function find_psi_last_diverted(
                 continue
             end
 
-            r_intersect = (cr[1] for cr in crossings) # R coordiante of intersections with wall
-            z_intersect = (cr[2] for cr in crossings) # Z coordiante of intersections with wall
+            # r and z coordiante of intersections with wall
+            r_intersect = (cr[1] for cr in crossings)
+            z_intersect = (cr[2] for cr in crossings)
 
             closest_to_strike_points = Int64[]
             for point in eqt.boundary.strike_point
@@ -415,16 +416,18 @@ function find_psi_last_diverted(
             end
             sort!(closest_to_strike_points)
 
-            # discard crossings occuring after second strike point
-            if closest_to_strike_points[end] < length(crossings)
-                for k in reverse(closest_to_strike_points[end]+1:length(crossings))
-                    deleteat!(crossings, k)
+            if !isempty(closest_to_strike_points)
+                # discard crossings occuring after second strike point
+                if closest_to_strike_points[end] < length(crossings)
+                    for k in reverse(closest_to_strike_points[end]+1:length(crossings))
+                        deleteat!(crossings, k)
+                    end
                 end
-            end
-            # discard crossings occuring before first strike point
-            if closest_to_strike_points[1] > 1
-                for k in reverse(1:closest_to_strike_points[1]-1)
-                    deleteat!(crossings, k)
+                # discard crossings occuring before first strike point
+                if closest_to_strike_points[1] > 1
+                    for k in reverse(1:closest_to_strike_points[1]-1)
+                        deleteat!(crossings, k)
+                    end
                 end
             end
 

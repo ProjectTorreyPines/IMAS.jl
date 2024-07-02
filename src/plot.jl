@@ -1980,7 +1980,7 @@ end
     end
     @series begin
         seriestype := :scatter
-        marker --> :xcross
+        marker --> :star
         markerstrokewidth --> 2
         markersize --> 5
         primary := false
