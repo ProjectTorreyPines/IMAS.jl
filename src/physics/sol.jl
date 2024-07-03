@@ -914,29 +914,31 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
     if !isempty(wall_outline_r)
         # find separatrix as first surface in SOL, not in private region
         psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
-        if private_flux_regions
-            sep, _ = flux_surface(eqt, psi_separatrix, :any)
-        else
-            sep, _ = flux_surface(eqt, psi_separatrix, :open)
-        end
-        for (pr, pz) in sep
-            if isempty(pr)
-                continue
-            end
-            if private_flux_regions && all(pz .< eqt.boundary.geometric_axis.z) && all((all(pz .< x_point.z) for x_point in eqt.boundary.x_point))
-                #pass, lower private flux region
-            elseif private_flux_regions && all(pz .> eqt.boundary.geometric_axis.z) && all((all(pz .> x_point.z) for x_point in eqt.boundary.x_point))
-                #pass, upper private flux region
-            elseif any(pz .> eqt.boundary.geometric_axis.z) && any(pz .< eqt.boundary.geometric_axis.z) &&
-                   sign(pz[1] - eqt.boundary.geometric_axis.z) == sign(pz[end] - eqt.boundary.geometric_axis.z)
-                #pass, going around the confined plasma
+        if psi_separatrix !== nothing
+            if private_flux_regions
+                sep, _ = flux_surface(eqt, psi_separatrix, :any)
             else
-                continue
+                sep, _ = flux_surface(eqt, psi_separatrix, :open)
             end
-            Rxx_, Zx_, θx_ = find_strike_points(wall_outline_r, wall_outline_z, pr, pz)
-            append!(Rxx, Rxx_)
-            append!(Zxx, Zx_)
-            append!(θxx, θx_)
+            for (pr, pz) in sep
+                if isempty(pr)
+                    continue
+                end
+                if private_flux_regions && all(pz .< eqt.boundary.geometric_axis.z) && all((all(pz .< x_point.z) for x_point in eqt.boundary.x_point))
+                    #pass, lower private flux region
+                elseif private_flux_regions && all(pz .> eqt.boundary.geometric_axis.z) && all((all(pz .> x_point.z) for x_point in eqt.boundary.x_point))
+                    #pass, upper private flux region
+                elseif any(pz .> eqt.boundary.geometric_axis.z) && any(pz .< eqt.boundary.geometric_axis.z) &&
+                    sign(pz[1] - eqt.boundary.geometric_axis.z) == sign(pz[end] - eqt.boundary.geometric_axis.z)
+                    #pass, going around the confined plasma
+                else
+                    continue
+                end
+                Rxx_, Zx_, θx_ = find_strike_points(wall_outline_r, wall_outline_z, pr, pz)
+                append!(Rxx, Rxx_)
+                append!(Zxx, Zx_)
+                append!(θxx, θx_)
+            end
         end
     end
 

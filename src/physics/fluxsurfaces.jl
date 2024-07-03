@@ -93,6 +93,7 @@ Results are returned as a named tuple `(last_closed=..., first_open=...)`
 function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     fw = IMAS.first_wall(IMAS.top_dd(eqt).wall)
+    original_psi_boundary = eqt.profiles_1d.psi[end]
     if eqt2d !== nothing
         dimR = IMAS.to_range(eqt2d.grid.dim1)
         dimZ = IMAS.to_range(eqt2d.grid.dim2)
@@ -100,10 +101,10 @@ function find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64
         psi_axis = eqt.profiles_1d.psi[1]
         RA = eqt.global_quantities.magnetic_axis.r
         ZA = eqt.global_quantities.magnetic_axis.z
-        return find_psi_boundary(dimR, dimZ, PSI, psi_axis, RA, ZA, fw.r, fw.z; precision, raise_error_on_not_open, raise_error_on_not_closed)
+        return find_psi_boundary(dimR, dimZ, PSI, psi_axis, original_psi_boundary, RA, ZA, fw.r, fw.z; precision, raise_error_on_not_open, raise_error_on_not_closed)
     else
         # closed boundary equilibrium should end up here
-        return (last_closed=eqt.profiles_1d.psi[end], first_open=nothing)
+        return (last_closed=original_psi_boundary, first_open=nothing)
     end
 end
 
@@ -112,6 +113,7 @@ function find_psi_boundary(
     dimZ::Union{AbstractVector{T},AbstractRange{T}},
     PSI::Matrix{T},
     psi_axis::T,
+    original_psi_boundary::T,
     RA::T,
     ZA::T,
     fw_r::AbstractVector{T},
@@ -124,6 +126,22 @@ function find_psi_boundary(
 
     # define search range for last closed flux surface
     PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
+
+    # determine if this is a closed boundary equilibrium solution mapped to RZ grid like CHEASE would do.
+    # When this happens the last closed surface touches the computation domain.
+    # In this case we don't want to alter the original value of psi_boundary.
+    psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
+    if psi_axis < PSI_interpolant.(RA * 0.99 .+ maximum(dimR) * 0.01, ZA)
+        psi_edge0 = minimum(psi_edge)
+    else
+        psi_edge0 = maximum(psi_edge)
+    end
+    surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, Float64[], Float64[], psi_edge0, :closed)
+    if !isempty(surface) && ((abs((minimum(surface[1].z) - minimum(dimZ))) < 1E-3) || (abs((maximum(surface[1].z) - maximum(dimZ))) < 1E-3))
+        return (last_closed=original_psi_boundary, first_open=nothing)
+    end
+    
+    # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
@@ -792,7 +810,6 @@ Update flux surface averaged and geometric quantities for a given equilibrum IDS
 The original psi grid can be upsampled by a `upsample_factor` to get higher resolution flux surfaces
 """
 function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) where {T<:Real}
-
     fw = IMAS.first_wall(IMAS.top_dd(eqt).wall)
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
@@ -818,7 +835,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
     psi_axis = PSI_interpolant(RA, ZA)
-    psi_boundary = find_psi_boundary(r, z, PSI, psi_axis, RA, ZA, fw.r, fw.z; raise_error_on_not_open=false, raise_error_on_not_closed=false).last_closed
+    original_psi_boundary = eqt.profiles_1d.psi[end]
+    psi_boundary = find_psi_boundary(r, z, PSI, psi_axis, original_psi_boundary, RA, ZA, fw.r, fw.z; raise_error_on_not_open=false, raise_error_on_not_closed=false).last_closed
     eqt.profiles_1d.psi = (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundary - psi_axis) .+ psi_axis
 
     for item in (
