@@ -296,6 +296,9 @@ function total_sources(
 
         # add to the tallies for this source
         x = source1d.grid.rho_tor_norm
+        if rho == x
+            rho = x
+        end
         for (ids1, ids2) in [[(total_source1d, source1d), (total_source1d.electrons, source1d.electrons)]; ion_ids1_ids2]
             for field in keys(ids1)
                 if (isempty(fields) || field ∈ fields || (field ∈ keys(matching) && matching[field] ∈ fields)) && field ∈ keys(matching)
@@ -304,7 +307,12 @@ function total_sources(
                         if only_positive_negative != 0 && any((sign(yy) ∉ (0, sign(only_positive_negative)) for yy in y))
                             continue
                         end
-                        setproperty!(ids1, field, getproperty(ids1, field) .+ interp1d(x, y).(rho))
+                        if rho === x
+                            rho_data = y
+                        else
+                            rho_data = DataInterpolations.LinearInterpolation(y, x).(rho)
+                        end
+                        setproperty!(ids1, field, getproperty(ids1, field) .+ rho_data)
                     end
                 end
             end
