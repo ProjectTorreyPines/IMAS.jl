@@ -39,16 +39,16 @@ function profile_from_z_transport(
     return profile_new
 end
 
-function total_fluxes(dd::IMAS.dd; time0::Float64=dd.global_time)
-    return total_fluxes(dd.core_transport; time0)
+function total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=dd.global_time)
+    return total_fluxes(dd.core_transport, rho_total_fluxes; time0)
 end
 
 """
-    total_fluxes!(ct::IMAS.core_transport,rho_total_fluxes::AbstractVector{<:Real} = collect(0.0:0.05:1.0))
+    total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(ct)) where {T<:Real}
 
 Sums up all the fluxes and returns it as a core_transport.model IDS
 """
-function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}=0.0:0.05:1.0; time0::Float64=global_time(ct)) where {T<:Real}
+function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(ct)) where {T<:Real}
     total_fluxes = IMAS.core_transport__model___profiles_1d{T}()
     total_fluxes.grid_flux.rho_tor_norm = rho_total_fluxes
     skip_flux_list = [:unknown, :unspecified, :combined]
@@ -96,5 +96,6 @@ function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVect
             end
         end
     end
+
     return total_fluxes
 end
