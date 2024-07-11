@@ -273,15 +273,18 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
 end
 
 """
-    bunit(eqt::IMAS.equilibrium__time_slice)
+    bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
 
 Calculate bunit from equilibrium
 """
-function bunit(eqt::IMAS.equilibrium__time_slice)
-    eq1d = eqt.profiles_1d
-    rmin = 0.5 .* (eq1d.r_outboard .- eq1d.r_inboard)
-    phi = eq1d.phi
+function bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
+    rmin = 0.5 .* (eqt1d.r_outboard .- eqt1d.r_inboard)
+    phi = eqt1d.phi
     return gradient(2π * rmin, phi) ./ rmin
+end
+
+function bunit(eqt::IMAS.equilibrium__time_slice)
+    return bunit(eqt.profiles_1d)
 end
 
 """
