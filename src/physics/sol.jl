@@ -151,7 +151,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
         crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         # psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
-        psi_wall_midplane = find_psi_wall_omp(eqt,wall_r,wall_z)
+        psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
         psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
         # limited plasma
@@ -266,11 +266,19 @@ Function for the discretization of the poloidal flux ψ on the SOL, based on an 
 returns vector with level of ψ, vector with matching r_midplane and q.
 Discretization with even steps of P = integral_sep^wal 2πrq(r)dr (same power in each flux tube)
 """
-function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:Real}, wall_z::Vector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
+function find_levels_from_P(
+    eqt::IMAS.equilibrium__time_slice,
+    wall_r::Vector{<:Real},
+    wall_z::Vector{<:Real},
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    r::Vector{<:Real},
+    q::Vector{<:Real},
+    levels::Int
+)
     ################### Housekeeping on function q(r) ###################
     @assert length(r) == length(q)
-    @assert all(q .>=0) # q is all positive
-    @assert all(r .>=0) # r is all positive
+    @assert all(q .>= 0) # q is all positive
+    @assert all(r .>= 0) # r is all positive
     @assert r[1] == 0
 
     RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
@@ -280,13 +288,13 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     rmax = eqt2d.grid.dim1[end]
     r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(rmax), 1000)
     r_mid = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
-    psi_mid = PSI_interpolant.(r_mid_of_interest,r_mid_of_interest.*0.0 .+ ZA)
-    psi_sign = sign(psi_mid[end]-psi_mid[1])
+    psi_mid = PSI_interpolant.(r_mid_of_interest, r_mid_of_interest .* 0.0 .+ ZA)
+    psi_sign = sign(psi_mid[end] - psi_mid[1])
     if psi_sign < 0
         r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolate=true)
     end
 
-    psi__boundary_level   = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
+    psi__boundary_level = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi of the second magnetic separatrix
     if psi_sign > 0
         r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix
@@ -298,17 +306,17 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
 
     if isempty(wall_r) .|| isempty(wall_z)
         # no wall
-        psi_wall_midplane = psi_sign*maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
+        psi_wall_midplane = psi_sign * maximum(psi_sign .* eqt2d.psi) - psi_sign # if no wall, upper bound of psi is maximum value in eqt -1 (safe)
         r_wall_midplane = rmax
         null_within_wall = true
-        r_last_diverted = [1, 1]*r_2ndseparatrix_midplane
+        r_last_diverted = [1, 1] * r_2ndseparatrix_midplane
     else
         # there is a wall
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1] # make it float
-        psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA)[1]
-        psi_last_lfs, psi_first_lfs_far, null_within_wall  = find_psi_last_diverted(eqt,wall_r,wall_z,PSI_interpolant) # psi of grazing surface
+        psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)[1]
+        psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         if psi_sign > 0
             r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
         else
@@ -324,20 +332,20 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     if r[1] >= r_wall_midplane
         # all the vector r is inside the wall
         r = [r_separatrix_midplane, r_wall_midplane] # constant value of q as closest point to SOL
-        q = [1,0.999]*q[1]  # keep preference for monotonic decrease
+        q = [1, 0.999] * q[1]  # keep preference for monotonic decrease
 
     end
     if r[end] <= r_separatrix_midplane
         # all of r is inside the separatrix
         r = [r_separatrix_midplane, r_wall_midplane] # constant value of q as closest point to SOL
-        q = [1.001,1]*q[end] # keep preference for monotonic decrease
+        q = [1.001, 1] * q[end] # keep preference for monotonic decrease
     end
 
     # r[1] can be either >, = or < than r_separatrix_midplane; add r_separatrix_midplane
     if r[1] > r_separatrix_midplane
         # r starts from inside the sol
         r = append!([r_separatrix_midplane], r) # add a point at R_OMP
-        q = append!([q[1]*1.001], q)            # Repeat first value of q with slight increment, favoring monotonic decrease
+        q = append!([q[1] * 1.001], q)            # Repeat first value of q with slight increment, favoring monotonic decrease
     end
     # if r[1] == r_separatrix_midplane do nothing
     if r[1] < r_separatrix_midplane
@@ -347,15 +355,15 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
         if r[index] > r_separatrix_midplane
             index2 = index - 1
             #interp linearly value at r_separatrix_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index])
+            qq = q[index] + (q[index2] - q[index]) / (r[index2] - r[index]) * (r_separatrix_midplane - r[index])
             r = append!([r_separatrix_midplane], r[index:end]) # cut r and q
-            q = append!([qq]                   , q[index:end])
+            q = append!([qq], q[index:end])
         else
             index2 = index + 1
             #interp linearly value at r_separatrix_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_separatrix_midplane - r[index])
+            qq = q[index] + (q[index2] - q[index]) / (r[index2] - r[index]) * (r_separatrix_midplane - r[index])
             r = append!([r_separatrix_midplane], r[index2:end]) # cut r and q
-            q = append!([qq]                   , q[index2:end])
+            q = append!([qq], q[index2:end])
         end
     end
 
@@ -363,24 +371,24 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     if r[end] < r_wall_midplane
         # r ends inside sol
         r = push!(r, r_wall_midplane) # add a point at r_wall_midplane
-        q = push!(q, q[end]*0.999)    # Repeat last value of q with slight reduction, favoring monotonic decrease
+        q = push!(q, q[end] * 0.999)    # Repeat last value of q with slight reduction, favoring monotonic decrease
     end
     # if r[end]==r_wall_midplane do nothing
     if r[end] > r_wall_midplane
         # r ends inside the wall, q(r) must be cut
         index = argmin(abs.(r .- r_wall_midplane)) # closest point
         if r[index] > r_wall_midplane
-            index2 = index-1
+            index2 = index - 1
             #interp linearly value at r_wall_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index])
-            r = push!(r[1:index-1],r_wall_midplane) # cut + add point between index and index2
-            q = push!(q[1:index-1],qq)
+            qq = q[index] + (q[index2] - q[index]) / (r[index2] - r[index]) * (r_wall_midplane - r[index])
+            r = push!(r[1:index-1], r_wall_midplane) # cut + add point between index and index2
+            q = push!(q[1:index-1], qq)
         else
-            index2 = index+1
+            index2 = index + 1
             #interp linearly value at r_wall_midplane between r[index2] and r[index]
-            qq = q[index]+ (q[index2]-q[index])/(r[index2]-r[index])*(r_wall_midplane - r[index])
-            r = push!(r[1:index],r_wall_midplane) # cut + add a point between index and index
-            q = push!(q[1:index],qq)
+            qq = q[index] + (q[index2] - q[index]) / (r[index2] - r[index]) * (r_wall_midplane - r[index])
+            r = push!(r[1:index], r_wall_midplane) # cut + add a point between index and index
+            q = push!(q[1:index], qq)
         end
     end
 
@@ -388,27 +396,27 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     #################################################################
 
     # build P(r) = integral_sep^r q(ρ)2πρdρ
-    P = q*0;
+    P = q * 0
     for index in 2:length(q)
-        P[index] = P[index-1] + trapz(r[index-1:index], 2*π.*r[index-1:index].*q[index-1:index])
+        P[index] = P[index-1] + trapz(r[index-1:index], 2 * π .* r[index-1:index] .* q[index-1:index])
     end
     # being 2πr q(r) positive-definite, P(r) is strictly monotonic, therefore also injective (one-to-one)
     # P(r) is always invertible for every q(r)>0
     r = Interpolations.deduplicate_knots!(r)
     interp_P = interp1d(r, P, :cubic) # interpolant of P(r)
 
-    p_levels = collect(LinRange(0,maximum(P),levels))   # levels to interpolate P
+    p_levels = collect(LinRange(0, maximum(P), levels))   # levels to interpolate P
     # add flux surfaces of interest: last diverted surface and 2nd magnetic separatrix
     # NOTE: number of level increases
     P_low = interp_P(r_last_diverted[1]) # last diverted surface (up to precision); inside OFL[:lfs]
-    P_up  = interp_P(r_last_diverted[2]) # first surface crossing the top first wall; inside OFL[:lfs_far]
+    P_up = interp_P(r_last_diverted[2]) # first surface crossing the top first wall; inside OFL[:lfs_far]
     if null_within_wall
         # last diverted surface is the 2nd separatrix; add only 2nd separatrix_up and 2nd separatix_low
         if !(P_low in p_levels)
-            p_levels = push!(p_levels,P_low)
+            p_levels = push!(p_levels, P_low)
         end
         if !(P_up in p_levels)
-            p_levels = push!(p_levels,P_up)
+            p_levels = push!(p_levels, P_up)
         end
         # TO BE CHECKED: in case of double null, power balance must work
     else
@@ -416,13 +424,13 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
         P_2ndseparatrix = interp_P(r_2ndseparatrix_midplane) # interp value at 2nd separatrix
         # add all surfaces, but avoid repetition
         if !(P_2ndseparatrix in p_levels)
-            p_levels = push!(p_levels,P_2ndseparatrix)
+            p_levels = push!(p_levels, P_2ndseparatrix)
         end
         if !(P_low in p_levels)
-            p_levels = push!(p_levels,P_low)
+            p_levels = push!(p_levels, P_low)
         end
         if !(P_up in p_levels)
-            p_levels = push!(p_levels,P_up)
+            p_levels = push!(p_levels, P_up)
         end
     end
 
@@ -432,7 +440,7 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     R = interp_inverseP.(p_levels)
 
     # using ψ(R), go from discretization in R to discretization in ψ
-    psi_levels = PSI_interpolant.(R, R.*0.0 .+ZA) # ψ(R)
+    psi_levels = PSI_interpolant.(R, R .* 0.0 .+ ZA) # ψ(R)
 
     #force psi_sep and psi_wall_midplane
     psi_levels[1] = psi__boundary_level
@@ -446,8 +454,15 @@ function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{<:
     return psi_levels, R, p_levels
 end
 
-function find_levels_from_P(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
-    return find_levels_from_P(eqt, first_wall(wall).r,first_wall(wall).z, PSI_interpolant, q, r, levels)
+function find_levels_from_P(
+    eqt::IMAS.equilibrium__time_slice,
+    wall::IMAS.wall,
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    r::Vector{<:Real},
+    q::Vector{<:Real},
+    levels::Int
+)
+    return find_levels_from_P(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant, q, r, levels)
 end
 
 function find_levels_from_P(dd::IMAS.dd, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
@@ -474,22 +489,22 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1] # make it float
     end
-    psi_wall_midplane = PSI_interpolant(r_wall_midplane,ZA);
+    psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)
 
-    levels =  PSI_interpolant.(wall_r,wall_z)
-    psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt,wall_r,wall_z,PSI_interpolant)
+    levels = PSI_interpolant.(wall_r, wall_z)
+    psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant)
     push!(levels, psi_tangent)
-    levels = levels[levels .>= psi_separatrix .&& levels.<= psi_wall_midplane]
+    levels = levels[levels.>=psi_separatrix.&&levels.<=psi_wall_midplane]
     return sort!(levels)
 end
 
-function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall,PSI_interpolant::Interpolations.AbstractInterpolation)
-    return find_levels_from_wall(eqt,first_wall(wall).r,first_wall(wall).z, PSI_interpolant)
+function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation)
+    return find_levels_from_wall(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant)
 end
 
 function find_levels_from_wall(dd::IMAS.dd)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
-return find_levels_from_wall(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant)
+    return find_levels_from_wall(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant)
 end
 
 """
@@ -510,7 +525,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
     r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP
     r_wall_imp = r_wall_imp[1] # make it float
 
-    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
+    crossings2 = intersection([RA, 2 * maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     r_wall_omp = r_wall_omp[1] # make it float
 
@@ -552,16 +567,16 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
             # (r,z) is ordered such that the OMP comes after the outer "strike point"
             i2 = i1 + 1 #  inner "strike point" is the second point in r_z_index
         end
-        if abs(j0-j1) == 1
+        if abs(j0 - j1) == 1
             # intersection with wall has same index than closest point to the OMP
             # the intersection occurs at the wall OMP, within 1 index
-            if r[j1 + 1] > r_wall_omp
+            if r[j1+1] > r_wall_omp
                 # the next point is outside the wall at omp
                 # take PREVIOUS intersection
                 i2 = i1 - 1
             end
 
-            if r[j1 - 1] > r_wall_omp
+            if r[j1-1] > r_wall_omp
                 #the previous point is outside the wall at omp
                 # take NEXT intersection
                 i2 = i1 + 1
@@ -571,7 +586,7 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
 
         end
         if i1 == length(r_z_index)
-            i2 = i1 -1
+            i2 = i1 - 1
         end
 
         i = sort([i1, i2])
@@ -593,15 +608,15 @@ function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) 
         r_imp = RA # the surface crosses only at the OMP
     end
 
-    crossings2 = intersection([RA, 2*maximum(wall_r)], [ZA, ZA], rr, zz).crossings # (r,z) point of intersection btw outer midplane (OMP) with magnetic surface in the SOL
+    crossings2 = intersection([RA, 2 * maximum(wall_r)], [ZA, ZA], rr, zz).crossings # (r,z) point of intersection btw outer midplane (OMP) with magnetic surface in the SOL
     r_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
     if !isempty(r_omp)
         r_omp = r_omp[1] # make it float
     else
-        r_omp = RA; # the surface crosses only at the IMP
+        r_omp = RA # the surface crosses only at the IMP
     end
 
-    if r_imp .< r_wall_imp  || r_omp .> r_wall_omp
+    if r_imp .< r_wall_imp || r_omp .> r_wall_omp
         return Float64[], Float64[], Float64[], Int64[]
     end
     # sort clockwise (COCOS 11)
@@ -880,34 +895,54 @@ Finds strike points and angles of incidence between two paths
 """
 function find_strike_points(wall_outline_r::T, wall_outline_z::T, pr::T, pz::T) where {T<:AbstractVector{<:Real}}
     indexes, crossings = intersection(wall_outline_r, wall_outline_z, pr, pz)
-    pvx = [cr[1] for cr in crossings]
-    pvy = [cr[2] for cr in crossings]
-    angles = intersection_angles(wall_outline_r, wall_outline_z, pr, pz, indexes)
-    return pvx, pvy, angles
+    Rxx = [cr[1] for cr in crossings]
+    Zxx = [cr[2] for cr in crossings]
+    θxx = intersection_angles(wall_outline_r, wall_outline_z, pr, pz, indexes)
+    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
 end
 
 """
-    find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+    find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T; private_flux_regions::Bool=false) where {T<:AbstractVector{<:Real}}
 
 Finds equilibrium strike points and angle of incidence between wall and strike leg
 """
-function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
-    Rx = Float64[]
-    Zx = Float64[]
-    θx = Float64[]
-    # find separatrix as first surface in SOL, not in private region
-    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
-    sep, _ = flux_surface(eqt, psi_separatrix, :open)
-    for (pr, pz) in sep
-        if isempty(pr) || all(pz .> 0) || all(pz .< 0)
-            continue
+function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T; private_flux_regions::Bool=false) where {T<:AbstractVector{<:Real}}
+    Rxx = Float64[]
+    Zxx = Float64[]
+    θxx = Float64[]
+
+    if !isempty(wall_outline_r)
+        # find separatrix as first surface in SOL, not in private region
+        psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
+        if psi_separatrix !== nothing
+            if private_flux_regions
+                sep, _ = flux_surface(eqt, psi_separatrix, :any)
+            else
+                sep, _ = flux_surface(eqt, psi_separatrix, :open)
+            end
+            for (pr, pz) in sep
+                if isempty(pr)
+                    continue
+                end
+                if private_flux_regions && all(pz .< eqt.boundary.geometric_axis.z)
+                    #pass, lower private flux region
+                elseif private_flux_regions && all(pz .> eqt.boundary.geometric_axis.z)
+                    #pass, upper private flux region
+                elseif any(pz .> eqt.boundary.geometric_axis.z) && any(pz .< eqt.boundary.geometric_axis.z) &&
+                    sign(pz[1] - eqt.boundary.geometric_axis.z) == sign(pz[end] - eqt.boundary.geometric_axis.z)
+                    #pass, going around the confined plasma
+                else
+                    continue
+                end
+                Rxx_, Zx_, θx_ = find_strike_points(wall_outline_r, wall_outline_z, pr, pz)
+                append!(Rxx, Rxx_)
+                append!(Zxx, Zx_)
+                append!(θxx, θx_)
+            end
         end
-        pvx, pvy, angles = find_strike_points(wall_outline_r, wall_outline_z, pr, pz)
-        append!(Rx, pvx)
-        append!(Zx, pvy)
-        append!(θx, angles)
     end
-    return Rx, Zx, θx
+
+    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
 end
 
 """
@@ -915,46 +950,59 @@ end
 
 Adds strike points location to equilibrium IDS and the tilt_angle_pol in the divertors IDS
 """
-function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors)
-    Rx = Float64[]
-    Zx = Float64[]
-    θx = Float64[]
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors; private_flux_regions::Bool=false, in_place::Bool=true)
+    Rxx = Float64[]
+    Zxx = Float64[]
+    θxx = Float64[]
 
     time = eqt.time
 
     for divertor in dv.divertor
         for target in divertor.target
-            Rx0, Zx0, θx0 = find_strike_points(eqt, target.tile[1].surface_outline.r, target.tile[1].surface_outline.z)
+            Rxx0, Zxx0, θxx0 = find_strike_points(eqt, target.tile[1].surface_outline.r, target.tile[1].surface_outline.z; private_flux_regions)
             # allow for strike points to miss the divertors
-            if isempty(Rx0)
+            if isempty(Rxx0)
                 continue
             end
-            push!(Rx, Rx0[1])
-            push!(Zx, Zx0[1])
-            push!(θx, θx0[1])
-            set_time_array(target.tilt_angle_pol, :data, time, θx0[1])
+            push!(Rxx, Rxx0[1])
+            push!(Zxx, Zxx0[1])
+            push!(θxx, θxx0[1])
+            if in_place
+                set_time_array(target.tilt_angle_pol, :data, time, θxx0[1])
+            end
         end
     end
 
-    resize!(eqt.boundary_separatrix.strike_point, length(Rx))
-    for (k, strike_point) in enumerate(eqt.boundary_separatrix.strike_point)
-        strike_point.r = Rx[k]
-        strike_point.z = Zx[k]
+    if in_place
+        resize!(eqt.boundary.strike_point, length(Rxx))
+        for (k, strike_point) in enumerate(eqt.boundary.strike_point)
+            strike_point.r = Rxx[k]
+            strike_point.z = Zxx[k]
+        end
     end
 
-    return Rx, Zx, θx
+    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
 end
 
-function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
-    Rx, Zx, θx = find_strike_points(eqt, wall_outline_r, wall_outline_z)
+"""
+    find_strike_points(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors)
 
-    resize!(eqt.boundary_separatrix.strike_point, length(Rx))
-    for (k, strike_point) in enumerate(eqt.boundary_separatrix.strike_point)
-        strike_point.r = Rx[k]
-        strike_point.z = Zx[k]
+Return strike points location in the divertors
+"""
+function find_strike_points(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors; private_flux_regions::Bool=false)
+    return find_strike_points!(eqt, dv; private_flux_regions, in_place=false)
+end
+
+
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
+    Rxx, Zxx, θxx = find_strike_points(eqt, wall_outline_r, wall_outline_z)
+    resize!(eqt.boundary.strike_point, length(Rxx))
+    for (k, strike_point) in enumerate(eqt.boundary.strike_point)
+        strike_point.r = Rxx[k]
+        strike_point.z = Zxx[k]
     end
 
-    return Rx, Zx, θx
+    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
 end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, bd::IMAS.build)
@@ -964,9 +1012,7 @@ end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall)
     wall_outline = first_wall(wall)
-    if !isempty(wall_outline.r)
-        return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
-    end
+    return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
 end
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice)
@@ -975,6 +1021,22 @@ function find_strike_points!(eqt::IMAS.equilibrium__time_slice)
     if !isempty(wall_outline.r)
         return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
     elseif !isempty(dd.build.layer)
-        return find_strike_points!(eqt, dd.build)
+        wall_outline = get_build_layer(bd.layer; type=_plasma_).outline
+        return find_strike_points!(eqt, wall_outline.r, wall_outline.z)
+    else
+        return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[])
+    end
+end
+
+function find_strike_points(eqt::IMAS.equilibrium__time_slice)
+    dd = top_dd(eqt)
+    wall_outline = first_wall(dd.wall)
+    if !isempty(wall_outline.r)
+        return find_strike_points(eqt, wall_outline.r, wall_outline.z)
+    elseif !isempty(dd.build.layer)
+        wall_outline = get_build_layer(bd.layer; type=_plasma_).outline
+        return find_strike_points(eqt, wall_outline.r, wall_outline.z)
+    else
+        return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[])
     end
 end

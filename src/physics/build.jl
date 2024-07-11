@@ -139,11 +139,11 @@ function get_build_index(
 end
 
 """
-    structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1, one_is_for_vacuum::Bool = false)
+    structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1)
 
 return rmask, zmask, mask of structures that are not vacuum
 """
-function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0.1, one_is_for_vacuum::Bool=false)
+function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0.1, layer_check::Function=layer -> layer.material == "vacuum")
     border = maximum(bd.layer[end].outline.r) * border_fraction
     xlim = [0.0, maximum(bd.layer[end].outline.r) + border]
     ylim = [minimum(bd.layer[end].outline.z) - border, maximum(bd.layer[end].outline.z) + border]
@@ -154,7 +154,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     # start from the first vacuum that goes to zero outside of the TF
     start_from = -1
     for k in get_build_indexes(bd.layer; fs=_out_)
-        if bd.layer[k].material == "vacuum" && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
+        if layer_check(bd.layer[k]) && minimum(bd.layer[k].outline.r) < bd.layer[1].end_radius
             start_from = k
             break
         end
@@ -168,7 +168,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
         end
         if valid && !ismissing(layer.outline, :r)
             outline = collect(zip(layer.outline.r, layer.outline.z))
-            if (layer.material == "vacuum") && (layer.side != Int(_in_))
+            if layer_check(layer) && (layer.side != Int(_in_))
                 for (kr, rr) in enumerate(rmask)
                     for (kz, zz) in enumerate(zmask)
                         if PolygonOps.inpolygon((rr, zz), outline) != 0
@@ -195,11 +195,7 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
             end
         end
     end
-    if one_is_for_vacuum
-        return rmask, zmask, 1.0 .- mask
-    else
-        return rmask, zmask, mask
-    end
+    return rmask, zmask, mask
 end
 
 function func_nested_layers(layer::IMAS.build__layer{D}, func::Function)::D where {D<:Real}

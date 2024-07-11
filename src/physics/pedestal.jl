@@ -1,5 +1,5 @@
 """
-    blend_core_edge_Hmode(
+    blend_core_edge_EPED(
         profile::AbstractVector{<:Real},
         rho::AbstractVector{<:Real},
         ped_height::Real,
@@ -11,7 +11,7 @@
 
 Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound as blending boundary
 """
-function blend_core_edge_Hmode(
+function blend_core_edge_EPED(
     profile::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     ped_height::Real,
@@ -47,7 +47,7 @@ function blend_core_edge_Hmode(
     return profile_new
 end
 
-function cost_find_exps(
+function cost_find_EPED_exps(
     x::AbstractVector{<:Real},
     ped_height::Real,
     ped_width::Real,
@@ -72,9 +72,7 @@ end
         tr_bound0::Real,
         tr_bound1::Real)
 
-Blends the core profiles to the pedestal for H-mode profiles,
-this version makes sure the Z's of tr_bound0 and tr_bound1 match
-exactly with the Z's from the original profile
+Blends the core profiles to the pedestal for H-mode profiles, making sure the Z's at tr_bound0 and tr_bound1 match the Z's from the original profile
 """
 function blend_core_edge_Hmode(
     profile::AbstractVector{<:Real},
@@ -82,20 +80,19 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real)
-
+    tr_bound1::Real
+)
     z_profile = -calc_z(rho, profile, :backward)
     z_targets = interp1d(rho, z_profile).([tr_bound0, tr_bound1])
 
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
     x_guess = [1.0, 1.0]
-    res = Optim.optimize(x -> cost_find_exps(x, ped_height, ped_width, rho, profile, z_targets,
+    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, z_targets,
             [tr_bound0, tr_bound1]), x_guess, Optim.NelderMead(), Optim.Options(; g_tol=1E-3))
-
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
-    return blend_core_edge_Hmode(
+    return blend_core_edge_EPED(
         profile,
         rho,
         ped_height,
@@ -107,75 +104,92 @@ function blend_core_edge_Hmode(
 end
 
 """
-    blend_core_edge_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped::IMAS.summary__local__pedestal, edge_bound::Real)
+    blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
 
-Blends Te, Ti, ne, and nis in core_profiles with H-mode like pedestal defined in summary
+Blends Te, Ti, ne, and nis in core_profiles with :H_mode or :L_mode like pedestal defined in summary IDS
 """
-function blend_core_edge_Hmode(cp1d::IMAS.core_profiles__profiles_1d, dd_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real)
+function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
+    if mode == :L_mode
+        blend_function = blend_core_edge_Lmode
+    elseif mode == :H_mode
+        blend_function = blend_core_edge_Hmode
+    else
+        @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
+    end
     rho = cp1d.grid.rho_tor_norm
-    w_ped = 1 - @ddtime(dd_ped.position.rho_tor_norm)
+    w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
 
-    ion_fractions = zeros(Float64, length(cp1d.ion), length(cp1d.electrons.density))
-    for (ii, ion) in enumerate(cp1d.ion)
-        ion_fractions[ii, :] = ion.density_thermal ./ cp1d.electrons.density
+    # NOTE! this does not take into account summary.local.pedestal.zeff.value
+    if what ∈ (:all, :densities)
+        ion_fractions = zeros(Float64, length(cp1d.ion), length(cp1d.electrons.density))
+        for (ii, ion) in enumerate(cp1d.ion)
+            ion_fractions[ii, :] = ion.density_thermal ./ cp1d.electrons.density
+        end
+        cp1d.electrons.density_thermal = blend_function(cp1d.electrons.density, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
+        for (ii, ion) in enumerate(cp1d.ion)
+            ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
+        end
     end
 
-    cp1d.electrons.temperature = blend_core_edge_Hmode(cp1d.electrons.temperature, rho, @ddtime(dd_ped.t_e.value), w_ped, rho_nml, rho_ped)
-    cp1d.electrons.density_thermal = blend_core_edge_Hmode(cp1d.electrons.density, rho, @ddtime(dd_ped.n_e.value), w_ped, rho_nml, rho_ped)
-
-    ti_avg_new = blend_core_edge_Hmode(cp1d.ion[1].temperature, rho, @ddtime(dd_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
-    for (ii, ion) in enumerate(cp1d.ion)
-        ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
-        ion.temperature = ti_avg_new
+    if what ∈ (:all, :temperatures)
+        cp1d.electrons.temperature = blend_function(cp1d.electrons.temperature, rho, @ddtime(summary_ped.t_e.value), w_ped, rho_nml, rho_ped)
+        ti_avg_new = blend_function(cp1d.t_i_average, rho, @ddtime(summary_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
+        for ion in cp1d.ion
+            if !ismissing(ion, :temperature)
+                ion.temperature = ti_avg_new
+            end
+        end
     end
+end
+
+function blend_core_edge_Lmode(
+    profile::AbstractVector{<:Real},
+    rho::AbstractVector{<:Real},
+    value::Real,
+    rho_bound::Real
+)
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
+    return profile
 end
 
 """
     blend_core_edge_Lmode(
         profile::AbstractVector{<:Real},
         rho::AbstractVector{<:Real},
-        edge_bound::Real)
+        ped_height::Real,
+        ped_width::Real,
+        tr_bound0::Real,
+        tr_bound1::Real)
 
-Generates L-mode like profile by enforcing constant gradient between edge_bound and edge
+Blends the core profiles to the pedestal for L-mode profiles, making sure the Z's at tr_bound1 matches the Z's from the original profile
+
+NOTE: ped_width, tr_bound0, tr_bound1 are not utilized
 """
 function blend_core_edge_Lmode(
     profile::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
-    edge_bound::Real)
-
-    inml = argmin(abs.(rho .- edge_bound))
-
-    grad_profile = -gradient(rho, profile; method=:backward)
-    grad_edge = grad_profile[inml]
-    edge = profile[end] .+ (1.0 .- rho) .* grad_edge
-
-    profile = profile .- profile[inml] .+ edge[inml]
-
-    profile[inml:end] = edge[inml:end]
-    return profile
+    ped_height::Real,
+    ped_width::Real,
+    tr_bound0::Real,
+    tr_bound1::Real
+)
+    return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
-"""
-    blend_core_edge_Lmode(cp1d::IMAS.core_profiles__profiles_1d)
+function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value::Real, rho_ped::Real)
+    rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
-Blends Te, Ti, ne, and nis in core_profiles with L-mode like pedestal
-"""
-function blend_core_edge_Lmode(cp1d::IMAS.core_profiles__profiles_1d, edge_bound::Real)
-    rho = cp1d.grid.rho_tor_norm
+    profile_ped = IMAS.edge_profile(rho, rho_ped, value, profile[end], α)
+    z_profile_ped = IMAS.calc_z(rho, profile_ped, :backward)
 
-    ion_fractions = zeros(Float64, length(cp1d.ion), length(cp1d.electrons.density))
-    for (ii, ion) in enumerate(cp1d.ion)
-        ion_fractions[ii, :] = ion.density_thermal ./ cp1d.electrons.density
-    end
+    profile .+= (-profile[rho_ped_idx] + value)
+    z_profile = IMAS.calc_z(rho, profile, :backward)
 
-    cp1d.electrons.temperature = blend_core_edge_Lmode(cp1d.electrons.temperature, rho, edge_bound)
-    cp1d.electrons.density_thermal = blend_core_edge_Lmode(cp1d.electrons.density, rho, edge_bound)
+    profile[rho_ped_idx+1:end] .= IMAS.interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
 
-    ti_avg_new = blend_core_edge_Lmode(cp1d.ion[1].temperature, rho, edge_bound)
-    for (ii, ion) in enumerate(cp1d.ion)
-        ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
-        ion.temperature = ti_avg_new
-    end
+    cost = abs.((z_profile[rho_ped_idx] - z_profile_ped[rho_ped_idx]) / z_profile[rho_ped_idx])
+    return cost
 end
 
 """

@@ -292,3 +292,18 @@ function x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_contr
     end
     return x_points0
 end
+
+"""
+    strike_points(strike_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__strike_point{T}}; time0::Float64=global_time(strike_points)) where {T<:Real}
+
+Beturns vector with tuples of R,Z coordinates of x-points in pulse_schedule at time0
+"""
+function strike_points(strike_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__strike_point{T}}; time0::Float64=global_time(strike_points)) where {T<:Real}
+    strike_points0 = Tuple{T,T}[]
+    for x_point in strike_points
+        Rxx = get_time_array(x_point.r, :reference, time0)
+        Zxx = get_time_array(x_point.z, :reference, time0)
+        push!(strike_points0, (Rxx, Zxx))
+    end
+    return strike_points0
+end

@@ -40,7 +40,8 @@ function c_s(cp1d::IMAS.core_profiles__profiles_1d)
 end
 
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    bunit = interp1d(eqt.profiles_1d.rho_tor_norm, abs.(IMAS.bunit(eqt)) .* gacode_units.T_to_Gauss).(cp1d.grid.rho_tor_norm)
+    eqt1d = eqt.profiles_1d
+    bunit = interp1d(eqt1d.rho_tor_norm, abs.(IMAS.bunit(eqt1d)) .* gacode_units.T_to_Gauss).(cp1d.grid.rho_tor_norm)
     return c_s(cp1d) ./ (gacode_units.e .* bunit) .* (cp1d.ion[1].element[1].a .* gacode_units.mp .* gacode_units.c)
 end
 

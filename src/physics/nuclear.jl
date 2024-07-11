@@ -393,16 +393,22 @@ function fusion_plasma_power(dd::IMAS.dd)
 end
 
 """
-    fusion_plasma_power(cp1d::IMAS.core_profiles)
+    fusion_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the total fusion power in the plasma in [W]
+
+If D+T plasma, then D+D is neglected
 """
 function fusion_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
     cp = parent(parent(cp1d))
-    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
-    tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction)
-    tot_pow += D_D_to_He3_plasma_power(cp1d)
-    tot_pow += D_D_to_T_plasma_power(cp1d)
+    ion_list = (ion.label for ion in cp1d.ion)
+    if "T" in ion_list || "DT" in ion_list
+        polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+        tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction)
+    else
+        tot_pow = D_D_to_He3_plasma_power(cp1d)
+        tot_pow += D_D_to_T_plasma_power(cp1d)
+    end
     return tot_pow
 end
 
@@ -414,13 +420,19 @@ end
     fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the total fusion power in [W]
+
+If D+T plasma, then D+D is neglected
 """
 function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
     cp = parent(parent(cp1d))
-    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
-    tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 5.0
-    tot_pow += D_D_to_He3_plasma_power(cp1d) * 4.0
-    tot_pow += D_D_to_T_plasma_power(cp1d)
+    ion_list = (ion.label for ion in cp1d.ion)
+    if "T" in ion_list || "DT" in ion_list
+        polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+        tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 5.0
+    else
+        tot_pow = D_D_to_He3_plasma_power(cp1d) * 4.0
+        tot_pow += D_D_to_T_plasma_power(cp1d)
+    end
     return tot_pow
 end
 
@@ -432,11 +444,17 @@ end
     fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the total fusion power in the neutrons [W]
+
+If D+T plasma, then D+D is neglected
 """
 function fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
     cp = parent(parent(cp1d))
-    polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
-    tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 4.0
-    tot_pow += D_D_to_He3_plasma_power(cp1d) * 3.0
+    ion_list = (ion.label for ion in cp1d.ion)
+    if "T" in ion_list || "DT" in ion_list
+        polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
+        tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 4.0
+    else
+        tot_pow = D_D_to_He3_plasma_power(cp1d) * 3.0
+    end
     return tot_pow
 end

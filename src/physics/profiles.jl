@@ -273,15 +273,18 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
 end
 
 """
-    bunit(eqt::IMAS.equilibrium__time_slice)
+    bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
 
 Calculate bunit from equilibrium
 """
-function bunit(eqt::IMAS.equilibrium__time_slice)
-    eq1d = eqt.profiles_1d
-    rmin = 0.5 .* (eq1d.r_outboard .- eq1d.r_inboard)
-    phi = eq1d.phi
+function bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
+    rmin = 0.5 .* (eqt1d.r_outboard .- eqt1d.r_inboard)
+    phi = eqt1d.phi
     return gradient(2π * rmin, phi) ./ rmin
+end
+
+function bunit(eqt::IMAS.equilibrium__time_slice)
+    return bunit(eqt.profiles_1d)
 end
 
 """
@@ -322,11 +325,6 @@ function greenwald_fraction(dd::IMAS.dd)
     return greenwald_fraction(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
 end
 
-function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
-    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
-    return trapz(a_cp, ne_profile) / a_cp[end]
-end
-
 """
     geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -334,6 +332,30 @@ Calculates the line averaged density from a midplane horizantal line
 """
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     return geometric_midplane_line_averaged_density(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
+end
+
+function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
+    return trapz(a_cp, ne_profile) / a_cp[end]
+end
+
+function geometric_midplane_line_averaged_density(dd::IMAS.dd)
+    return geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
+end
+
+"""
+    n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+
+returns n_e_line from pulse_schedule looking first in `pulse_schedule.density_control.ne_line.reference` and then `pulse_schedule.density_control.greenwald_fraction.reference`
+"""
+function n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+    if !ismissing(ps.density_control.n_e_line, :reference)
+        return IMAS.get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
+    elseif !ismissing(ps.density_control.n_e_greenwald_fraction, :reference)
+        return IMAS.get_time_array(ps.density_control.n_e_greenwald_fraction, :reference, time0, :linear) * greenwald_density(ps; time0)
+    else
+        error("neither `pulse_schedule.density_control.ne_line.reference` or `pulse_schedule.density_control.greenwald_fraction.reference` have data")
+    end
 end
 
 """
@@ -467,6 +489,20 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     return val
 end
 
+function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    rho = range(0.0, 1.0, ngrid)
+    rho_ped = 1.0 - widthp
+    rho_ped_idx = argmin(abs.(rho .- rho_ped))
+
+    f(x) = abs.(1.0 - x .^ expin) .^ expout
+    profile = f.(rho ./ rho_ped) .* (core - ped) .+ ped
+    profile[rho_ped_idx:end] .= range(ped, edge, ngrid - rho_ped_idx + 1)
+
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, ped, rho_ped), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    cost_WPED_α!(rho, profile, res.minimizer, ped, rho_ped)
+
+    return profile
+end
 
 """
     ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
@@ -496,15 +532,12 @@ Note that core, ped, and ITBh are all in absolute units, so if core < ped + ITBh
 :param ITBh: height of ITB
 """
 function ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
-
     xpsi = range(0.0, 1.0, ngrid)
 
     # H mode part
-
     val = Hmode_profiles(edge, ped, core - ITBh, ngrid, expin, expout, widthp)
 
     # ITB part
-
     itb = @. 0.5 * ITBh * (1.0 - tanh((xpsi - ITBr) / ITBw))
 
     return val + itb
@@ -852,22 +885,25 @@ function t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
 end
 
 """
-    T_edge(x::AbstractArray,x0::Real,T0::Real,T1::Real, alpha::Real)
+    edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
 
 Function for edge blending
 """
-function Edge_profile(x::AbstractArray, x0::Real, T0::Real, T1::Real, alpha::Real)
+function edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
+    @assert x[1] == 0.0
+    @assert x[end] == 1.0
+    @assert 0.0 < x0 < 1.0
     if alpha == 0.0
         sigma = 1E10
     else
         sigma = 1 / alpha
     end
-    y = Edge_profile0(x, x0, sigma)
-    y0 = Edge_profile0(x0, x0, sigma)
-    y1 = Edge_profile0(1.0, x0, sigma)
+    y = edge_profile0(x, x0, sigma)
+    y0 = edge_profile0(x0, x0, sigma)
+    y1 = edge_profile0(1.0, x0, sigma)
     return @. (y - y1) / (y0 - y1) * (T0 - T1) + T1
 end
 
-function Edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
+function edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
     return exp.(.-(x .- x0) / sigma)
 end
