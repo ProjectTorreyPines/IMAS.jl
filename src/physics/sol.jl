@@ -924,9 +924,9 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
                 if isempty(pr)
                     continue
                 end
-                if private_flux_regions && all(pz .< eqt.boundary.geometric_axis.z) && all((all(pz .< x_point.z) for x_point in eqt.boundary.x_point))
+                if private_flux_regions && all(pz .< eqt.boundary.geometric_axis.z)
                     #pass, lower private flux region
-                elseif private_flux_regions && all(pz .> eqt.boundary.geometric_axis.z) && all((all(pz .> x_point.z) for x_point in eqt.boundary.x_point))
+                elseif private_flux_regions && all(pz .> eqt.boundary.geometric_axis.z)
                     #pass, upper private flux region
                 elseif any(pz .> eqt.boundary.geometric_axis.z) && any(pz .< eqt.boundary.geometric_axis.z) &&
                     sign(pz[1] - eqt.boundary.geometric_axis.z) == sign(pz[end] - eqt.boundary.geometric_axis.z)
