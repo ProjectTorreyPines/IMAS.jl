@@ -19,9 +19,24 @@ jobs:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@latest
       - uses: julia-actions/cache@v1
+      - name: Add FuseRegistry
+        run: |
+          julia --project=docs/ -e 'using Pkg; Pkg.Registry.add(RegistrySpec(url="https://github.com/ProjectTorreyPines/FuseRegistry.jl.git")); Pkg.Registry.add("General")'
       - name: Install dependencies
         run: |
-          julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
+          julia -e '
+            using Pkg
+            Pkg.activate("docs")
+            
+            dependencies = PackageSpec[]
+            for package in ("MillerExtendedHarmonic", "FXP", "FuseUtils")
+              push!(dependencies, PackageSpec(url="https://project-torrey-pines:${{secrets.PTP_READ_TOKEN}}@github.com/ProjectTorreyPines/$package.jl.git"))
+            end
+            Pkg.add(dependencies)
+            
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()
+            '
       - name: Build and deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
