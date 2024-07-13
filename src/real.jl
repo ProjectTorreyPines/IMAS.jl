@@ -28,9 +28,21 @@ function force_float(x::Real)
     return x
 end
 
+"""
+    force_float(x::Measurement)
+
+Returns Float64
+"""
 function force_float(x::Measurement)
     ## we purposly do not do it recursively since generally
     ## Measurement of Measurement is an indication of someghing going wrong
     # return force_float(x.val)
     return x.val
 end
+
+"""
+    value ± uncertainty
+
+Equivalent to Measurement.measurement(value, uncertainty)
+"""
+±

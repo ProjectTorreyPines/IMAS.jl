@@ -8,7 +8,7 @@ using Printf
 import IMASDD
 # import all IMASDD.jl as if it was defined in IMAS.jl
 for n in names(IMASDD; all=true)
-    if Base.isidentifier(n) && n ∉ (Symbol(IMASDD), :eval, :include)
+    if Base.isidentifier(n) && n ∉ (Symbol(IMASDD), :eval, :include, :document)
         @eval import IMASDD: $n
     end
 end
@@ -46,5 +46,8 @@ include("plot.jl")
 #= EXPORT =#
 #= ====== =#
 export @ddtime, constants, ±, force_float, extract
+
+const document = Dict()
+document[Symbol(@__MODULE__)] = [name for name in Base.names(@__MODULE__, all=false, imported=false) if name != Symbol(@__MODULE__)]
 
 end # module
