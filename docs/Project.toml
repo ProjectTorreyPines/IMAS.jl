@@ -1,5 +1,2 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-FuseUtils = "c8e4ee58-0bec-4a6a-b552-9dd24d6374ac"
-IMAS = "13ead8c1-b7d1-41bb-a6d0-5b8b65ed587a"
-IMASDD = "06b86afa-9f21-11ec-2ef8-e51b8960cfc5"
