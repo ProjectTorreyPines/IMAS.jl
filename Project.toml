@@ -33,4 +33,5 @@ Roots = "f2b01f46-fcfa-551c-844a-d8ac1e96c665"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
+DataInterpolations = "5"
 Interpolations = ">= 0.14.7"
