@@ -22,4 +22,4 @@ Copyright (c) 2024 General Atomics
 
 ## Version
 
-**Version: v2.0**
+**Version: v1.0**
