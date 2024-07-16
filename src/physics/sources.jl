@@ -193,7 +193,6 @@ function total_sources(
     fields::Vector{Symbol}=Symbol[],
     only_positive_negative::Int=0
 ) where {T<:Real}
-
     total_source1d = IMAS.core_sources__source___profiles_1d{T}()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = cp1d.time
