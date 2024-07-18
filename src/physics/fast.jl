@@ -346,7 +346,8 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     taut = zeros(Npsi)
     i4 = zeros(Npsi)
     for source in cs.source
-        for sion in source.profiles_1d[].ion
+        source1d = source.profiles_1d[]
+        for sion in source1d.ion
             if !ismissing(sion, :particles) && !ismissing(sion, :fast_particles_energy)
 
                 particle_mass = sion.element[1].a
@@ -380,10 +381,11 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                         i4[i] = i4tmp
                     end
 
-                    pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion.particles .* particle_energy .* constants.e)
+                    sion_particles = IMAS.interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
+                    pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* constants.e)
                     cion.pressure_fast_parallel += pressa ./ 3.0
                     cion.pressure_fast_perpendicular += pressa ./ 3.0
-                    cion.density_fast += sion.particles .* taut
+                    cion.density_fast += sion_particles .* taut
                 end
             end
         end
