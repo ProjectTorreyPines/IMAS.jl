@@ -1180,6 +1180,7 @@ end
             name := "total"
             linewidth := 2
             color := :black
+            min_power := 0.0
             total_sources(dd; time0)
         end
     end
