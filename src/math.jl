@@ -538,29 +538,21 @@ function mean_distance_error_two_shapes(
 end
 
 """
-    min_distance_error_two_shapes(
+    min_mean_distance_two_shapes(
         R_obj1::AbstractVector{<:T},
         Z_obj1::AbstractVector{<:T},
         R_obj2::AbstractVector{<:T},
-        Z_obj2::AbstractVector{<:T},
-        target_distance::T) where {T<:Real}
+        Z_obj2::AbstractVector{<:T}) where {T<:Real}
 
-Calculate the minimum distance and the normalized root mean square error (NRMSE) of the
-distances between two sets of shape coordinates in a 2D space, relative to a target distance.
-
-# Returns
-
-  - `min_distance::Float64`: The minimum distance between any two points from the two shapes.
-  - `mean_distance_error::Float64`: The normalized root mean square error of the distances between point pairs from the two shapes compared to the target distance.
+Calculate the minimum and mean distances distances between two sets of shape coordinates in a 2D space, relative to a target distance.
 """
-function min_distance_error_two_shapes(
+function min_mean_distance_two_shapes(
     R_obj1::AbstractVector{<:T},
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
-    Z_obj2::AbstractVector{<:T},
-    target_distance::T) where {T<:Real}
+    Z_obj2::AbstractVector{<:T}) where {T<:Real}
     
-    mean_distance_error = 0.0
+    mean_distance = 0.0
     min_distance = Inf
     for k1 in eachindex(R_obj1)
         min_squared_distance = Inf
@@ -577,14 +569,14 @@ function min_distance_error_two_shapes(
         if min_distance > actual_distance
             min_distance = actual_distance
         end
-        # Accumulate the relative squared difference from the target distance
-        mean_distance_error += abs(actual_distance - target_distance)
+        # Accumulate the difference from the target distance
+        mean_distance += actual_distance
     end
 
-    # Normalize the mean relative distance error
-    mean_distance_error = (mean_distance_error) / length(R_obj1) / target_distance
+    # Get the mean distance error
+    mean_distance = mean_distance / length(R_obj1)
 
-    return min_distance, mean_distance_error
+    return (min_distance=min_distance, mean_distance=mean_distance)
 end
 
 """
