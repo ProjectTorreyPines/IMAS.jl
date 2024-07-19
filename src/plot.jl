@@ -1033,6 +1033,7 @@ end
     rhos = unique(rhos)
 
     dd = top_dd(ct)
+    cp1d = dd.core_profiles.profiles_1d[]
 
     if dd !== nothing
         @series begin
@@ -1048,7 +1049,7 @@ end
         linewidth := 2
         color := :red
         label := "Total transport"
-        total_fluxes(ct, rhos; time0)
+        total_fluxes(ct, cp1d, rhos; time0)
     end
 
     for model in ct.model

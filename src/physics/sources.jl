@@ -226,7 +226,7 @@ function total_sources(
         end
     end
 
-    # initialize total_sources.profiles_1d[].ion
+    # initialize ions
     total_source1d_ions = IMAS.core_sources__source___profiles_1d___ion[]
     for source in core_sources.source
         source1d = source.profiles_1d[Float64(cp1d.time)]

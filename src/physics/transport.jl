@@ -39,63 +39,77 @@ function profile_from_z_transport(
     return profile_new
 end
 
-function total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=dd.global_time)
-    return total_fluxes(dd.core_transport, rho_total_fluxes; time0)
+function total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
+    return total_fluxes(dd.core_transport, dd.core_profiles.profiles_1d[], rho_total_fluxes; time0)
 end
 
 """
-    total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(ct)) where {T<:Real}
+    total_fluxes(core_transport::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(core_transport)) where {T<:Real}
 
 Sums up all the fluxes and returns it as a core_transport.model IDS
 """
-function total_fluxes(ct::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(ct)) where {T<:Real}
-    total_fluxes = IMAS.core_transport__model___profiles_1d{T}()
-    total_fluxes.grid_flux.rho_tor_norm = rho_total_fluxes
+function total_fluxes(core_transport::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(core_transport)) where {T<:Real}
+    total_flux1d = IMAS.core_transport__model___profiles_1d{T}()
+    total_flux1d.grid_flux.rho_tor_norm = rho_total_fluxes
+
     skip_flux_list = [:unknown, :unspecified, :combined]
-    index_to_name = IMAS.index_2_name(ct.model)
-    for model in ct.model
+    index_to_name = IMAS.index_2_name(core_transport.model)
 
-        if index_to_name[model.identifier.index] ∈ skip_flux_list
-            if index_to_name[model.identifier.index] ∈ (:unknown, :unspecified)
-                @warn "skipped model.identifier.index = $(model.identifier.index), do not use this index"
-            end
-            continue
-        end
-
-        push!(skip_flux_list, index_to_name[model.identifier.index]) # Make sure we don't double count a specific flux type
-        m1d = model.profiles_1d[time0]
-        for sub in (:electrons, :momentum_tor, :total_ion_energy)
-            ids1 = m1d
-            ids2 = total_fluxes
-            if sub == :electrons
-                ids1 = getproperty(ids1, sub)
-                ids2 = getproperty(ids2, sub)
-                iterator = collect(keys(ids1))[findall(x -> x ∉ (:electrons, :grid_flux, :time), collect(keys(ids1)))]
-            else
-                iterator = (sub,)
-            end
-            for field in iterator
-                y = getproperty(getproperty(ids1, field, missing), :flux, missing)
-                if typeof(y) <: AbstractVector{<:Real}
-                    old_value = getproperty(getproperty(ids2, field), :flux, zeros(length(rho_total_fluxes)))
-                    x = m1d.grid_flux.rho_tor_norm
-                    x_1 = argmin(abs.(rho_total_fluxes .- x[1]))
-                    x_2 = argmin(abs.(rho_total_fluxes .- x[end]))
-                    if !ismissing(getproperty(ids2, field, missing))
-                        if length(x) == 1
-                            old_value[x_1] += y[1]
-                            setproperty!(getproperty(ids2, field), :flux, old_value)
-                        else
-                            setproperty!(getproperty(ids2, field), :flux,
-                                vcat(old_value[1:x_1-1],
-                                    old_value[x_1:x_2] .+ interp1d(x, y, :linear).(rho_total_fluxes)[x_1:x_2],
-                                    old_value[x_2+1:end]))
-                        end
-                    end
-                end
+    # initialize ions
+    total_flux1d_ions = IMAS.core_transport__model___profiles_1d___ion[]
+    for model in core_transport.model
+        model1d = model.profiles_1d[Float64(cp1d.time)]
+        for ion in model1d.ion
+            l = length(total_flux1d.ion)
+            tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+            if l != length(total_flux1d.ion)
+                push!(total_flux1d_ions, tmp)
             end
         end
     end
 
-    return total_fluxes
+    # defines paths to fill
+    paths = []
+    push!(paths, (:electrons, :energy))
+    push!(paths, (:electrons, :particles))
+    for k in eachindex(total_flux1d_ions)
+        push!(paths, (:ion, k, :energy))
+        push!(paths, (:ion, k, :particles))
+    end
+    push!(paths, (:momentum_tor,))
+    push!(paths, (:total_ion_energy,))
+
+    for model in core_transport.model
+        # Make sure we don't double count a specific flux type
+        if index_to_name[model.identifier.index] ∈ skip_flux_list
+            @warn "skipped model.identifier.index = $(model.identifier.index) [$(index_to_name[model.identifier.index])]"
+            continue
+        end
+        push!(skip_flux_list, index_to_name[model.identifier.index])
+
+        m1d = model.profiles_1d[time0]
+        x = m1d.grid_flux.rho_tor_norm
+        x_1 = argmin(abs.(rho_total_fluxes .- x[1]))
+        x_2 = argmin(abs.(rho_total_fluxes .- x[end]))
+
+        for path in paths
+            ids1 = try
+                IMAS.goto(m1d, path)
+            catch
+                continue
+            end
+            if ismissing(ids1, :flux)
+                continue
+            end
+            ids2 = IMAS.goto(total_flux1d, path)
+            if ismissing(ids2, :flux)
+                setproperty!(ids2, :flux, zeros(length(rho_total_fluxes)))
+            end
+            y = getproperty(ids1, :flux)
+            old_value = getproperty(ids2, :flux)
+            old_value[x_1:x_2] .+= interp1d(x, y, :linear).(rho_total_fluxes[x_1:x_2])
+        end
+    end
+
+    return total_flux1d
 end
