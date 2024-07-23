@@ -1,6 +1,7 @@
 import LinearAlgebra
 import StaticArrays
 import DataInterpolations
+import MillerExtendedHarmonic: MXH
 
 """
     norm01(x::T)::T where {T<:AbstractVector{<:Real}}
