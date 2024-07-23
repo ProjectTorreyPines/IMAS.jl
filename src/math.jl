@@ -452,7 +452,15 @@ end
 Returns true if boundary is updown symmetric
 """
 function is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
-    mxh = MXH(pr, pz, order)
+    return is_updown_symmetric(MXH(pr, pz, order); precision)
+end
+
+"""
+    is_updown_symmetric(mxh::MXH; precision::Float64=1E-3)
+
+Returns true if mxh boundary is updown symmetric
+"""
+function is_updown_symmetric(mxh::MXH; precision::Float64=1E-3)
     return sum(abs.(mxh.c)) / length(mxh.c) < precision
 end
 
