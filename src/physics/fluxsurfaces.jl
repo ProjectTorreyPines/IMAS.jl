@@ -124,14 +124,11 @@ function find_psi_boundary(
 
     verbose = false
 
-    # define search range for last closed flux surface
-    PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
-
     # determine if this is a closed boundary equilibrium solution mapped to RZ grid like CHEASE would do.
     # When this happens the last closed surface touches the computation domain.
     # In this case we don't want to alter the original value of psi_boundary.
     psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
-    if psi_axis < PSI_interpolant.(RA * 0.99 .+ maximum(dimR) * 0.01, ZA)
+    if psi_axis < original_psi_boundary
         psi_edge0 = minimum(psi_edge)
     else
         psi_edge0 = maximum(psi_edge)
@@ -143,11 +140,12 @@ function find_psi_boundary(
     
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
+        PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
         psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
     end
-    if psi_axis < PSI_interpolant.(RA * 0.99 .+ maximum(dimR) * 0.01, ZA)
+    if psi_axis < original_psi_boundary
         psi_edge0 = maximum(psi_edge)
     else
         psi_edge0 = minimum(psi_edge)
@@ -155,6 +153,7 @@ function find_psi_boundary(
     psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
     if verbose
+        @show psirange_init
         plot(; aspect_ratio=:equal)
         contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
         if !isempty(fw_r)
