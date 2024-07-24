@@ -207,6 +207,7 @@ Plots cross-section of individual loops
         @series begin
             primary := k == 1
             seriestype --> :shape
+            aspect_ratio := :equal
             linewidth --> 0.25
             colorbar --> :right
             label --> ""
