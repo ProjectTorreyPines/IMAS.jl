@@ -832,7 +832,7 @@ function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Flo
 end
 
 """
-    split_long_segments(R::AbstractVector{T},Z::AbstractVector{T},max_length::Float64) where {T<:Real}
+    split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::Float64) where {T<:Real}
 
 Split long segments of a polygon so that each resulting segment is always <= max_length
 """
@@ -848,11 +848,10 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
         z2 = IMAS.getindex_circular(opoly.Z, k + 1)
         d = sqrt((r2 - r1)^2 + (z2 - z1)^2)
         if d > max_length
+            # linear interpolation
             n = Int(ceil(d / max_length)) + 1
-            rr = range(r1, r2, n)
-            zz = range(z1, z2, n)
-            append!(Rout, collect(rr)[2:end])
-            append!(Zout, collect(zz)[2:end])
+            append!(Rout, collect(range(r1 + (r2-r1)/(n-1), r2, n-1)))
+            append!(Zout, collect(range(z1 + (z2-z1)/(n-1), z2, n-1)))
         else
             push!(Rout, r2)
             push!(Zout, z2)
