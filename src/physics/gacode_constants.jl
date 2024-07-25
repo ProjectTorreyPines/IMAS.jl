@@ -112,4 +112,26 @@ function flux_gacode_to_fuse(
         m1d.momentum_tor.flux = gyrobohm_momentum_flux(cp1d, eqt)[rho_cp_idxs] .* [f.STRESS_TOR_i for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
     end
 
+    if :ion_particle_flux in flux_types
+        for (kk,ion) in enumerate(cp1d.ion)
+            ion = resize!(m1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+            ion.particles.flux = gyrobohm_particle_flux(cp1d, eqt)[rho_cp_idxs] .* [pick_ion_flux(f.PARTICLE_FLUX_i,kk) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
+        end
+    end
+
+end
+
+"""
+    pick_ion_flux(ion_fluxes::Vector, kk::Int)
+
+Select which ion flux to take 
+"""
+function pick_ion_flux(ion_fluxes::Vector{T}, kk::Int) where {T<:Real}
+    if isempty(ion_fluxes)
+        return 0.0
+    elseif kk <= length(ion_fluxes)
+        return ion_fluxes[kk]
+    else
+        return ion_fluxes[end]
+    end
 end
