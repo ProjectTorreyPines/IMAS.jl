@@ -97,17 +97,19 @@ function flux_gacode_to_fuse(
     rho_eq_idxs = [argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
     rho_cp_idxs = [argmin(abs.(cp1d.grid.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
 
-    ga_tr = Dict(
-        :ion_energy_flux => [m1d.total_ion_energy, gyrobohm_energy_flux, :ENERGY_FLUX_i],
-        :electron_energy_flux => [m1d.electrons.energy, gyrobohm_energy_flux, :ENERGY_FLUX_e],
-        :electron_particle_flux => [m1d.electrons.particles, gyrobohm_particle_flux, :PARTICLE_FLUX_e],
-        :momentum_flux => [m1d.momentum_tor, gyrobohm_momentum_flux, :STRESS_TOR_i])
-
     vprime_miller = volume_prime_miller_correction(eqt)
 
-    for flux_type in flux_types
-        result = ga_tr[flux_type][2](cp1d, eqt)[rho_cp_idxs] .* [getproperty(f, ga_tr[flux_type][3]) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
-
-        setproperty!(ga_tr[flux_type][1], :flux, result)
+    if :ion_energy_flux in flux_types
+        m1d.total_ion_energy.flux = gyrobohm_energy_flux(cp1d, eqt)[rho_cp_idxs] .* [f.ENERGY_FLUX_i for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
     end
+    if :electron_energy_flux in flux_types
+        m1d.electrons.energy.flux = gyrobohm_energy_flux(cp1d, eqt)[rho_cp_idxs] .* [f.ENERGY_FLUX_e for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
+    end
+    if :electron_particle_flux in flux_types
+        m1d.electrons.particles.flux = gyrobohm_particle_flux(cp1d, eqt)[rho_cp_idxs] .* [f.PARTICLE_FLUX_e for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
+    end
+    if :momentum_flux in flux_types
+        m1d.momentum_tor.flux = gyrobohm_momentum_flux(cp1d, eqt)[rho_cp_idxs] .* [f.STRESS_TOR_i for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
+    end
+
 end
