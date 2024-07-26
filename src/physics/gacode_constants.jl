@@ -18,10 +18,36 @@ struct flux_solution{T<:Real}
     STRESS_TOR_i::T
 end
 
+"""
+    flux_solution(PARTICLE_FLUX_e::T, STRESS_TOR_i::T, ENERGY_FLUX_e::T, ENERGY_FLUX_i::T)
+
+Constructor used for backward compatibility when we used not to track PARTICLE_FLUX_i for individual ion species.
+
+NOTE: also order of field has changed! Converts to this call:
+
+    flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[], STRESS_TOR_i)
+"""
 function flux_solution(PARTICLE_FLUX_e::T, STRESS_TOR_i::T, ENERGY_FLUX_e::T, ENERGY_FLUX_i::T) where {T<:Real}
-    # function used for backward compatibility when we used not to track PARTICLE_FLUX_i for individual ion species
-    # NOTE: also order of field has changed!
     return flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[], STRESS_TOR_i)
+end
+
+"""
+    flux_solution(ENERGY_FLUX_e::T, ENERGY_FLUX_i::T, PARTICLE_FLUX_e::T, x1::T, xx::Vararg{T}) where {T<:Real}
+
+Constructor used to handle PARTICLE_FLUX_i entered as a set of scalars instead of an array
+
+    flux_solution(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
+
+results in
+
+    Qe = 1.0
+    Qi = 2.0
+    Γe = 3.0
+    Γi = [4.0, 5.0]
+    Πi = 6.0
+"""
+function flux_solution(ENERGY_FLUX_e::T, ENERGY_FLUX_i::T, PARTICLE_FLUX_e::T, x1::T, xx::Vararg{T}) where {T<:Real}
+    return flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[x1; collect(xx)[1:end-1]], xx[end])
 end
 
 function Base.show(io::IO, sol::flux_solution)
@@ -113,9 +139,9 @@ function flux_gacode_to_fuse(
     end
 
     if :ion_particle_flux in flux_types
-        for (kk,ion) in enumerate(cp1d.ion)
+        for (kk, ion) in enumerate(cp1d.ion)
             ion = resize!(m1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
-            ion.particles.flux = gyrobohm_particle_flux(cp1d, eqt)[rho_cp_idxs] .* [pick_ion_flux(f.PARTICLE_FLUX_i,kk) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
+            ion.particles.flux = gyrobohm_particle_flux(cp1d, eqt)[rho_cp_idxs] .* [pick_ion_flux(f.PARTICLE_FLUX_i, kk) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
         end
     end
 
@@ -124,7 +150,7 @@ end
 """
     pick_ion_flux(ion_fluxes::Vector, kk::Int)
 
-Select which ion flux to take 
+Select which ion flux to take
 """
 function pick_ion_flux(ion_fluxes::Vector{T}, kk::Int) where {T<:Real}
     if isempty(ion_fluxes)
