@@ -36,7 +36,9 @@ end
     rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient=0.8) where {T<:Real}
 
 Synchrotron radiation from Trubnikov, JETP Lett. 16 (1972) 25.0
+
 Transpiled from gacode/tgyro/src/tgyro_rad.f90
+
 See also: Study of heat and synchrotron radiation transport in fusion tokamak plasmas (C. Villar 1997)
 """
 function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient=0.8) where {T<:Real}
@@ -62,7 +64,7 @@ end
 """
     synchrotron_source!(dd::IMAS.dd)
 
-Calculates Synchrotron radiation source and modifies dd.core_sources
+Calculates synchrotron radiation source and modifies dd.core_sources
 """
 function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -87,24 +89,26 @@ end
 """
     line_radiation_source!(dd::IMAS.dd)
 
-Calculates line radiation source and modifies dd.core_sources
+Calculates line radiation sources and modifies dd.core_sources
 """
 function line_radiation_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     ne = cp1d.electrons.density
     Te = cp1d.electrons.temperature
 
-    linerad = zero(Te)
-    for ion in cp1d.ion
+    sources = [for ion in cp1d.ion
         ni = ion.density
         zi = ion.z_ion
         namei = string(elements[Int(floor(ion.z_ion))].symbol)
-        linerad .+= rad_ion_adas(Te, ne, ni, zi, namei)
-    end
+        linerad = rad_ion_adas(Te, ne, ni, zi, namei)
 
-    source = resize!(dd.core_sources.source, :line_radiation; wipe=false)
-    new_source(source, source.identifier.index, "line", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=linerad)
-    return source
+        name = "line $namei"
+        source = resize!(dd.core_sources.source, :line_radiation, "identifier.name" => name; wipe=false)
+        new_source(source, source.identifier.index, name, cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=linerad)
+        source
+    end]
+
+    return sources
 end
 
 function rad_ion_adas(Te, ne, ni, zi, namei)
@@ -128,7 +132,6 @@ function rad_ion_adas(Te, ne, ni, zi, namei)
 
     return qline
 end
-
 
 """
     adas21(Te, name)
