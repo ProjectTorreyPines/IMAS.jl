@@ -42,9 +42,16 @@ end
 Calculate centroid of polygon
 """
 function centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
-    A = sum((y[i+1] - y[i]) * 0.5 * (x[i+1] + x[i]) for i in 1:length(x)-1)
-    x_c = -sum((x[i+1] - x[i]) * 0.5 * (y[i+1] + y[i]) * 0.5 * (x[i+1] + x[i]) for i in 1:length(x)-1) / A
-    y_c = sum((y[i+1] - y[i]) * 0.5 * (x[i+1] + x[i]) * 0.5 * (y[i+1] + y[i]) for i in 1:length(x)-1) / A
+    add_endpoint = !((x[1] ≈ x[end]) && (y[1] ≈ y[end]))
+    A = 0.5 * sum(x[i] * y[i+1] - x[i+1] * y[i] for i in 1:length(x)-1)
+    add_endpoint && (A += 0.5 * (x[end] * y[1] - x[1] * y[end]))
+
+    x_c = -sum(0.25 * (x[i+1] - x[i]) * (y[i+1] + y[i]) * (x[i+1] + x[i]) for i in 1:length(x)-1) / A
+    add_endpoint && (x_c -= 0.25 * (x[1] - x[end]) * (y[1] + y[end]) * (x[1] + x[end]) / A )
+
+    y_c = sum(0.25 * (y[i+1] - y[i]) * (x[i+1] + x[i]) * (y[i+1] + y[i]) for i in 1:length(x)-1) / A
+    add_endpoint && (y_c += 0.25 * (y[1] - y[end]) * (x[1] + x[end]) * (y[1] + y[end]) / A)
+
     return x_c, y_c
 end
 
@@ -560,7 +567,7 @@ function min_mean_distance_two_shapes(
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
     Z_obj2::AbstractVector{<:T}) where {T<:Real}
-    
+
     mean_distance = 0.0
     min_distance = Inf
     for k1 in eachindex(R_obj1)
