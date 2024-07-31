@@ -35,7 +35,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 [compat]
 Contour = "0.6"
 CoordinateConventions = "1"
-DataInterpolations = "5 - 5.2"
+DataInterpolations = "5, 6"
 ExpiringCaches = "1"
 FXP = "1"
 FuseUtils = "1"
