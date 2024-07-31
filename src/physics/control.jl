@@ -1,5 +1,6 @@
 import Dates
 import ExpiringCaches
+import FuseExchangeProtocol as FXP
 
 """
     controller(ct::IMAS.controllers, name::String)

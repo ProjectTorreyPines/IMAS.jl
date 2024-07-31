@@ -1,5 +1,5 @@
 import Jedis
-import FXP
+import FuseExchangeProtocol as FXP
 
 mutable struct FxpDD
     enabled::Bool
