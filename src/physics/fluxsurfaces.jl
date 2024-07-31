@@ -84,6 +84,60 @@ function Bp(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
 end
 
 """
+    function find_midplane_outboard_inboard(eqt::IMAS.equilibrium__time_slice)
+
+Calculates values for the r_outboard and r_inboard arrays which are used for some expressions
+"""
+function find_midplane_outboard_inboard(eqt::IMAS.equilibrium__time_slice)
+    # Unpack some ingredients
+    p2 = eqt.profiles_2d[1]
+    p1 = eqt.profiles_1d
+    gq = eqt.global_quantities
+    r = p2.grid.dim1
+    z = p2.grid.dim2
+    rmaxis = gq.magnetic_axis.r
+    zmaxis = gq.magnetic_axis.z
+    psirz = p2.psi
+
+    # Find closest row to zmaxis
+    dz = abs.(z .- zmaxis)
+    i1 = argmin(dz)
+    dz2 = dz[dz.!=dz[i1]]
+    i2 = argmin(abs.(dz .- dz2[argmin(dz2)]))
+    wi2 = (z[i1] - zmaxis) / (z[i1] - z[i2])
+    wi1 = (zmaxis - z[i2]) / (z[i1] - z[i2])
+    psi_midplane = psirz[:, i1] .* wi1 .+ psirz[:, i2] .* wi2
+    # Interpolate R against psi to find where each flux surface intersects midplane.
+    outer = r .>= rmaxis
+    inner = r .<= rmaxis
+    psi_omp = [gq.psi_axis; psi_midplane[outer]]
+    r_omp = [rmaxis; r[outer]]
+    i_omp = sortperm(psi_omp)
+    psi_omp = psi_omp[i_omp]
+    r_omp = r_omp[i_omp]
+    psi_imp = [psi_midplane[inner]; gq.psi_axis]
+    r_imp = [r[inner]; rmaxis]
+    i_imp = sortperm(psi_imp)
+    psi_imp = psi_imp[i_imp]
+    r_imp = r_imp[i_imp]
+    r_outboard = Interpolations.linear_interpolation(psi_omp, r_omp)(p1.psi)
+    r_inboard = Interpolations.linear_interpolation(psi_imp, r_imp)(p1.psi)
+    return r_outboard, r_inboard
+end
+
+"""
+    function find_midplane_outboard_inboard!(eqt::IMAS.equilibrium__time_slice)
+
+Loads r_outboard and r_inboard arrays into IDS
+"""
+function find_midplane_outboard_inboard!(eqt::IMAS.equilibrium__time_slice)
+    r_outboard, r_inboard = find_midplane_outboard_inboard(eqt)
+    p1 = eqt.profiles_1d
+    p1.r_outboard = r_outboard
+    p1.r_inboard = r_inboard
+end
+
+"""
     find_psi_boundary(eqt::IMAS.equilibrium__time_slice; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
 
 Find psi value of the last-closed and first-open flux surface
