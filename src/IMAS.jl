@@ -3,16 +3,16 @@ module IMAS
 using Printf
 
 #= ====== =#
-#= IMASDD =#
+#= IMASdd =#
 #= ====== =#
-import IMASDD
-# import all IMASDD.jl as if it was defined in IMAS.jl
-for n in names(IMASDD; all=true)
-    if Base.isidentifier(n) && n ∉ (Symbol(IMASDD), :eval, :include, :document)
-        @eval import IMASDD: $n
+import IMASdd
+# import all IMASdd.jl as if it was defined in IMAS.jl
+for n in names(IMASdd; all=true)
+    if Base.isidentifier(n) && n ∉ (Symbol(IMASdd), :eval, :include, :document)
+        @eval import IMASdd: $n
     end
 end
-import IMASDD: @ddtime
+import IMASdd: @ddtime
 
 #= ===== =#
 #= UTILS =#

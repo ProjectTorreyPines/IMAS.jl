@@ -1,4 +1,4 @@
-function IMASDD.get_expressions(::Type{Val{:onetime}})
+function IMASdd.get_expressions(::Type{Val{:onetime}})
     return onetime_expressions
 end
 
