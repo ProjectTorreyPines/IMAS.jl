@@ -47,7 +47,7 @@ function centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real
     add_endpoint && (A += 0.5 * (x[end] * y[1] - x[1] * y[end]))
 
     x_c = -sum(0.25 * (x[i+1] - x[i]) * (y[i+1] + y[i]) * (x[i+1] + x[i]) for i in 1:length(x)-1) / A
-    add_endpoint && (x_c -= 0.25 * (x[1] - x[end]) * (y[1] + y[end]) * (x[1] + x[end]) / A )
+    add_endpoint && (x_c -= 0.25 * (x[1] - x[end]) * (y[1] + y[end]) * (x[1] + x[end]) / A)
 
     y_c = sum(0.25 * (y[i+1] - y[i]) * (x[i+1] + x[i]) * (y[i+1] + y[i]) for i in 1:length(x)-1) / A
     add_endpoint && (y_c += 0.25 * (y[1] - y[end]) * (x[1] + x[end]) * (y[1] + y[end]) / A)
@@ -200,18 +200,22 @@ function point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where 
 end
 
 """
-    point_to_path_distance(x0::T, y0::T, x::Vector{T}, y::Vector{T}) where {T<:Real}
+    point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
 
 Distance of point (x0,y0) from path defined by vectors x and y
 """
-function point_to_path_distance(x0::T, y0::T, x::Vector{T}, y::Vector{T}) where {T<:Real}
+function point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
+    @assert length(x) == length(y)
     d = Inf
-    for i in 1:length(x)-1
+    @inbounds for i in 1:length(x)-1
         x1 = x[i]
         y1 = y[i]
         x2 = x[i+1]
         y2 = y[i+1]
-        dd = point_to_line_distance(x0, y0, x1, y1, x2, y2)
+        dp = point_to_line_distance(x0, y0, x1, y1, x2, y2)
+        d1 = sqrt((x1 - x0)^2 + (y1 - y0)^2)
+        d2 = sqrt((x2 - x0)^2 + (y2 - y0)^2)
+        dd = max(dp, min(d1, d2))
         if dd < d
             d = dd
         end
@@ -473,16 +477,16 @@ function is_updown_symmetric(mxh::MXH; precision::Float64=1E-3)
 end
 
 """
-    minimum_distance_two_shapes(
+    minimum_distance_polygons_vertices(
         R_obj1::AbstractVector{<:T},
         Z_obj1::AbstractVector{<:T},
         R_obj2::AbstractVector{<:T},
         Z_obj2::AbstractVector{<:T};
         return_index::Bool=false) where {T<:Real}
 
-Returns minimum distance between two shapes
+Returns minimum distance between two polygons vertices
 """
-function minimum_distance_two_shapes(
+function minimum_distance_polygons_vertices(
     R_obj1::AbstractVector{<:T},
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
@@ -510,59 +514,45 @@ function minimum_distance_two_shapes(
 end
 
 """
-    mean_distance_error_two_shapes(
-        R_obj1::AbstractVector{<:T},
-        Z_obj1::AbstractVector{<:T},
-        R_obj2::AbstractVector{<:T},
-        Z_obj2::AbstractVector{<:T},
-        target_distance::T,
-        above_target::Bool=true)
-
-Returns mean error distance between two shapes and a target distance
-"""
-function mean_distance_error_two_shapes(
-    R_obj1::AbstractVector{<:T},
-    Z_obj1::AbstractVector{<:T},
-    R_obj2::AbstractVector{<:T},
-    Z_obj2::AbstractVector{<:T},
-    target_distance::T;
-    above_target::Bool=false,
-    below_target::Bool=false) where {T<:Real}
-
-    mean_distance_error = 0.0
-    n = 0
-    for k1 in eachindex(R_obj1)
-        distance = Inf
-        for k2 in eachindex(R_obj2)
-            @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
-            if d < distance
-                distance = d
-            end
-        end
-        if above_target && distance > target_distance
-            mean_distance_error += (distance - target_distance)^2
-            n += 1
-        elseif below_target && distance < target_distance
-            mean_distance_error += (distance - target_distance)^2
-            n += 1
-        else
-            mean_distance_error += (distance - target_distance)^2
-            n += 1
-        end
-    end
-    return sqrt(mean_distance_error) / n
-end
-
-"""
-    min_mean_distance_two_shapes(
+    minimum_distance_polygons(
         R_obj1::AbstractVector{<:T},
         Z_obj1::AbstractVector{<:T},
         R_obj2::AbstractVector{<:T},
         Z_obj2::AbstractVector{<:T}) where {T<:Real}
 
-Calculate the minimum and mean distances distances between two sets of shape coordinates in a 2D space, relative to a target distance.
+Returns minimum distance between two polygons
+
+NOTE: this is the actual distance, not the distance between the vertices
 """
-function min_mean_distance_two_shapes(
+function minimum_distance_polygons(
+    R_obj1::AbstractVector{T},
+    Z_obj1::AbstractVector{T},
+    R_obj2::AbstractVector{T},
+    Z_obj2::AbstractVector{T}) where {T<:Real}
+
+    distance = Inf
+    for k1 in eachindex(R_obj1)
+        d = point_to_path_distance(R_obj1[k1], Z_obj1[k1], R_obj2, Z_obj2)
+        if distance > d
+            distance = d
+        end
+    end
+
+    return distance
+end
+
+"""
+    min_mean_distance_polygons(
+        R_obj1::AbstractVector{<:T},
+        Z_obj1::AbstractVector{<:T},
+        R_obj2::AbstractVector{<:T},
+        Z_obj2::AbstractVector{<:T}) where {T<:Real}
+
+Calculate the minimum and mean distances between two polygons in 2D space.
+
+NOTE: this is the actual distance, not the distance between the vertices
+"""
+function min_mean_distance_polygons(
     R_obj1::AbstractVector{<:T},
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
@@ -571,16 +561,7 @@ function min_mean_distance_two_shapes(
     mean_distance = 0.0
     min_distance = Inf
     for k1 in eachindex(R_obj1)
-        min_squared_distance = Inf
-        for k2 in eachindex(R_obj2)
-            @inbounds squared_dist = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
-            # Update minimum squared distance for the current point in R_obj1
-            if min_squared_distance > squared_dist
-                min_squared_distance = squared_dist
-            end
-        end
-        # Convert the squared distance to actual distance
-        actual_distance = sqrt(min_squared_distance)
+        actual_distance = point_to_path_distance(R_obj1[k1], Z_obj1[k1], R_obj2, Z_obj2)
         # Update global minimum distance
         if min_distance > actual_distance
             min_distance = actual_distance
@@ -857,8 +838,8 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
         if d > max_length
             # linear interpolation
             n = Int(ceil(d / max_length)) + 1
-            append!(Rout, collect(range(r1 + (r2-r1)/(n-1), r2, n-1)))
-            append!(Zout, collect(range(z1 + (z2-z1)/(n-1), z2, n-1)))
+            append!(Rout, collect(range(r1 + (r2 - r1) / (n - 1), r2, n - 1)))
+            append!(Zout, collect(range(z1 + (z2 - z1) / (n - 1), z2, n - 1)))
         else
             push!(Rout, r2)
             push!(Zout, z2)

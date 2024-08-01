@@ -661,7 +661,7 @@ end
 # build #
 # ===== #
 function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::AbstractVector{T}, z2::AbstractVector{T}) where {T<:Real}
-    i1, i2 = minimum_distance_two_shapes(r1, z1, r2, z2; return_index=true)
+    i1, i2 = minimum_distance_polygons_vertices(r1, z1, r2, z2; return_index=true)
     r = vcat(reverse(r1[i1:end]), r2[i2:end], r2[1:i2], reverse(r1[1:i1]))
     z = vcat(reverse(z1[i1:end]), z2[i2:end], z2[1:i2], reverse(z1[1:i1]))
     return r, z
