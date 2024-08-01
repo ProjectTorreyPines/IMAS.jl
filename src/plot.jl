@@ -972,6 +972,14 @@ end
     end
 end
 
+@recipe function plot_build_structure_outline(structure::IMAS.build__structure)
+    @series begin
+        aspect_ratio := :equal
+        label --> structure.name
+        structure.outline.r, structure.outline.z
+    end
+end
+
 # ======== #
 # build tf #
 # ======== #
