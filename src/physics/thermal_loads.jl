@@ -231,8 +231,7 @@ function particle_HF(
         #! format: on
 
         crossings = intersection([(minimum(wall_r) + maximum(wall_r)) / 2, maximum(wall_r) * 1.05], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1]
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)
         _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(wall_r, wall_z)
@@ -620,8 +619,7 @@ function mesher_HF(dd::IMAS.dd;
         #! format: on
 
         crossings = intersection([(minimum(rwall) + maximum(rwall)) / 2, maximum(rwall) * 1.05], [Z0, Z0], rwall, zwall)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1]
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant(r_wall_midplane, Z0)
         _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, rwall, zwall, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(rwall, zwall)

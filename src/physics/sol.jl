@@ -148,9 +148,6 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
-        crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        # psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
         psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
         psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
@@ -313,8 +310,7 @@ function find_levels_from_P(
     else
         # there is a wall
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1] # make it float
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
         psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
         psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         if psi_sign > 0
@@ -486,8 +482,7 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
     else
         # there is a wall
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1] # make it float
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
     end
     psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
 
@@ -992,7 +987,6 @@ Return strike points location in the divertors
 function find_strike_points(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors; private_flux_regions::Bool=false)
     return find_strike_points!(eqt, dv; private_flux_regions, in_place=false)
 end
-
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
     Rxx, Zxx, θxx = find_strike_points(eqt, wall_outline_r, wall_outline_z)
