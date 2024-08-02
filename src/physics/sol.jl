@@ -315,7 +315,7 @@ function find_levels_from_P(
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1] # make it float
-        psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)[1]
+        psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
         psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         if psi_sign > 0
             r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
@@ -489,7 +489,7 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
         r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_midplane = r_wall_midplane[1] # make it float
     end
-    psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)
+    psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
 
     levels = PSI_interpolant.(wall_r, wall_z)
     psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant)
