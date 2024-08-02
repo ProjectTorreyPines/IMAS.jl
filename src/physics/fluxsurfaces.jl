@@ -1228,7 +1228,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surfaces that do not close
-            if (pr[1] != pr[end]) || (pz[1] != pz[end])
+            if (pr[1] != pr[end]) || (pz[1] != pz[end]) || IMAS.intersects(pr, pz, fw_r, fw_z)
                 reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
                 push!(prpz, (r=pr, z=pz))
             end
@@ -1239,7 +1239,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surfaces that do not close
-            if (pr[1] != pr[end]) || (pz[1] != pz[end])
+            if (pr[1] != pr[end]) || (pz[1] != pz[end]) || IMAS.intersects(pr, pz, fw_r, fw_z)
                 tmp = collect(zip(pr, pz))
                 push!(tmp, tmp[1]) # close it
                 if PolygonOps.inpolygon((RA, ZA), tmp) == 1
