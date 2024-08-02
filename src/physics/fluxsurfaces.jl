@@ -1063,9 +1063,11 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
 
     # area
     eqt.profiles_1d.area = cumtrapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.gm9) ./ 2π
+    eqt.global_quantities.area = eqt.profiles_1d.area[end]
 
     # volume
     eqt.profiles_1d.volume = cumtrapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi)
+    eqt.global_quantities.volume = eqt.profiles_1d.volume[end]
 
     # phi
     eqt.profiles_1d.phi = cumtrapz(eqt.profiles_1d.volume, eqt.profiles_1d.f .* eqt.profiles_1d.gm1) / (2π)
