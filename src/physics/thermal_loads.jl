@@ -494,9 +494,9 @@ function mesher_HF(dd::IMAS.dd;
         _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
         psi_levels, _, _ = find_levels_from_P(eqt, rwall, zwall, PSI_interpolant, r, q, levels)
         add_psi = find_levels_from_wall(eqt, rwall, zwall, PSI_interpolant)
-
-        psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
         psi_sign = sign(psi_levels[end] - psi_levels[1])
+        psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
+
 
         if psi_sign == -1
             psi_levels = reverse!(psi_levels) # if psi is decreasing, sort in descending order
