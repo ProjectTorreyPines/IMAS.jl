@@ -148,7 +148,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
-        psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
+        psi_wall_midplane = find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z) # psi at the intersection between wall and omp
         psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
         # limited plasma

@@ -699,62 +699,34 @@ end
     find_psi_wall_omp(
         eqt::IMAS.equilibrium__time_slice,
         wall_r::Vector{<:Real},
-        wall_z::Vector{<:Real};
-        precision::Float64=1e-16)
+        wall_z::Vector{<:Real})
 
 Returns the psi of the magnetic surface in the SOL which intersects the wall at the outer midplane
 """
 function find_psi_wall_omp(
     eqt::IMAS.equilibrium__time_slice,
     wall_r::Vector{<:Real},
-    wall_z::Vector{<:Real};
-    precision::Float64=1e-16)
+    wall_z::Vector{<:Real})
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+
+    find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z)    
+end
+
+function find_psi_wall_omp(
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    RA::T1,
+    ZA::T1,
+    wall_r::Vector{T2},
+    wall_z::Vector{T2}) where {T1<:Real,T2<:Real}
+
     crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-    r_wall_midplane = r_wall_midplane[1]
-
-    psi_omp_u = find_psi_max(eqt) # upper bound is psi_max
-    psi_omp_l = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # lower bound : psi LCFS, open
-
-    counter_max = 100
-    err = Inf
-    psi_omp = 0.0
-    for counter in 1:counter_max
-        psi_omp = (psi_omp_u + psi_omp_l) / 2 # next value is the mean of the upper/lower bound
-        surface, _ = flux_surface(eqt, psi_omp, :open)
-        for (rs, zs) in surface
-            # exclude flux surfaces on HFS
-            if maximum(rs) < RA
-                continue
-            end
-            crossings = intersection([RA, RA * 10], [1.0, 1.0] * ZA, rs, zs).crossings
-
-            # exclude flux surfaces that do not intersect the midplane on the LFS
-            if !isempty(crossings)
-                r = [cr[1] for cr in crossings]
-                r = r[1]
-                # check if intersection is before or after the point on the wall at the OMP
-                if r <= r_wall_midplane
-                    psi_omp_l = psi_omp
-                else
-                    psi_omp_u = psi_omp
-                end
-                #update error [%]
-                err = abs(r - r_wall_midplane) / r_wall_midplane
-            end
-        end
-
-        if err < precision
-            # convergence is reached
-            break
-        end
-    end
-
-    return psi_omp
+    return PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
 end
 
 """
