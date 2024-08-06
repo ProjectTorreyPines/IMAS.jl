@@ -156,8 +156,10 @@ end
 @recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
     if !ismissing(rail.outline, :r)
         @series begin
+            seriestype --> :scatter
             color --> :gray
-            linestyle --> :dash
+            marker --> :circle
+            markerstrokewidth --> 0
             rail.outline.r, rail.outline.z
         end
     end
