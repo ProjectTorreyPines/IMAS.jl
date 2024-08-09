@@ -781,7 +781,8 @@ function flux_surfaces(eq::equilibrium; upsample_factor::Int=1)
     return eq
 end
 
-function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, psi_sign::Real)
+function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, psi_sign::Real;
+                            rguess::Real=r[Int(round(length(r) / 2))], zguess::Real=z[Int(round(length(z) / 2))])
     res = Optim.optimize(
         x -> begin
             try
@@ -794,7 +795,7 @@ function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}
                 end
             end
         end,
-        [r[Int(round(length(r) / 2))], z[Int(round(length(z) / 2))]],
+        [rguess, zguess],
         Optim.Newton(),
         Optim.Options(; g_tol=1E-8);
         autodiff=:forward
