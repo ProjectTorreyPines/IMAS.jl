@@ -218,6 +218,100 @@ function find_psi_boundary(
     return error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
 end
 
+function find_psi_boundary(
+    dimR::Union{AbstractVector{T},AbstractRange{T}},
+    dimZ::Union{AbstractVector{T},AbstractRange{T}},
+    PSI::Matrix{T},
+    psi_axis::T,
+    axis2bnd::Symbol,
+    RA::T,
+    ZA::T,
+    fw_r::AbstractVector{T}=T[],
+    fw_z::AbstractVector{T}=T[];
+    PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
+    precision::Float64=1e-6,
+    raise_error_on_not_open::Bool,
+    raise_error_on_not_closed::Bool) where {T<:Real}
+
+    @assert axis2bnd in (:increasing, :decreasing)
+    verbose = false
+
+    # here we figure out the range of psi to use to find the psi boundary
+    f_ext = (axis2bnd === :increasing) ? maximum : minimum
+
+    if !isempty(fw_r)
+        psi_edge0 = f_ext(PSI_interpolant.(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
+    else
+        @views psi_edge0 = f_ext((f_ext(PSI[1, :]), f_ext(PSI[end, :]), f_ext(PSI[:, 1]), f_ext(PSI[:, end])))
+    end
+    psirange_init = StaticArrays.@MVector[psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
+
+    if verbose
+        @show psirange_init
+        plot(; aspect_ratio=:equal)
+        contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
+        if !isempty(fw_r)
+            plot!(fw_r, fw_z; color=:black, lw=2, label="")
+        end
+        display(plot!())
+    end
+
+    # innermost tentative flux surface (which should be closed!)
+    surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
+    if isempty(surface)
+        if raise_error_on_not_closed
+            error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
+        else
+            return (last_closed=nothing, first_open=nothing)
+        end
+    end
+    if verbose
+        for surf in surface
+            plot!(surf.r, surf.z; color=:blue, label="")
+        end
+        display(plot!())
+    end
+
+    # outermost tentative flux surface (which should be open!)
+    surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
+    if !isempty(surface)
+        if raise_error_on_not_open
+            error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
+        else
+            return (last_closed=nothing, first_open=nothing)
+        end
+    end
+    if verbose
+        surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
+        for surf in surface
+            plot!(surf.r, surf.z; color=:red, label="")
+        end
+        display(plot!())
+    end
+
+    psirange = deepcopy(psirange_init)
+    for k in 1:100
+        psimid = (psirange[1] + psirange[end]) / 2.0
+        surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
+        # closed flux surface
+        if !isempty(surface)
+            ((pr, pz),) = surface
+            if verbose
+                display(plot!(pr, pz; label="", color=:green))
+            end
+            psirange[1] = psimid
+            if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
+                return (last_closed=psimid, first_open=psirange[end])
+            end
+            # open flux surface
+        else
+            psirange[end] = psimid
+        end
+    end
+
+    return error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
+end
+
 function find_psi_boundary(dd::IMAS.dd; precision::Float64=1e-6, raise_error_on_not_open::Bool=true, raise_error_on_not_closed::Bool=true)
     return find_psi_boundary(dd.equilibrium.time_slice[]; precision, raise_error_on_not_open, raise_error_on_not_closed)
 end
