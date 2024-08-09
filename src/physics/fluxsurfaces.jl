@@ -118,6 +118,7 @@ function find_psi_boundary(
     ZA::T,
     fw_r::AbstractVector{T},
     fw_z::AbstractVector{T};
+    PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
     raise_error_on_not_closed::Bool) where {T<:Real}
@@ -140,7 +141,6 @@ function find_psi_boundary(
     
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
-        PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
         psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
@@ -835,7 +835,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
     psi_axis = PSI_interpolant(RA, ZA)
     original_psi_boundary = eqt.profiles_1d.psi[end]
-    psi_boundary = find_psi_boundary(r, z, PSI, psi_axis, original_psi_boundary, RA, ZA, fw.r, fw.z; raise_error_on_not_open=false, raise_error_on_not_closed=false).last_closed
+    psi_boundary = find_psi_boundary(r, z, PSI, psi_axis, original_psi_boundary, RA, ZA, fw.r, fw.z; PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false).last_closed
     eqt.profiles_1d.psi = (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundary - psi_axis) .+ psi_axis
 
     for item in (
