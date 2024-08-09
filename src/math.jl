@@ -150,16 +150,15 @@ function intersects(
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T})::Bool where {T<:Real}
 
-    for k1 in 1:(length(l1_x)-1)
-        s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
-        s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
-        for k2 in 1:(length(l2_x)-1)
-            s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
-            s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
-            crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
-            if crossing !== nothing
-                return true
-            end
+    @assert length(l1_x) == length(l1_y)
+    @assert length(l2_x) == length(l2_y)
+    for k1 in eachindex(l1_x)[1:end-1]
+        @inbounds s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
+        @inbounds s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
+        for k2 in eachindex(l2_x)[1:end-1]
+            @inbounds s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
+            @inbounds s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
+            _intersect(s1_s, s1_e, s2_s, s2_e) && return true
         end
     end
     return false

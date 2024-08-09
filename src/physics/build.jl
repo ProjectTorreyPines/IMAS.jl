@@ -4,13 +4,14 @@
 Return list of radii in the build
 """
 function build_radii(bd::IMAS.build)
-    layers_radii = typeof(bd.layer[1].thickness)[]
-    layer_start = 0.0
-    for l in bd.layer
-        push!(layers_radii, layer_start)
-        layer_start = layer_start + l.thickness
+    return _build_radii(bd.layer)
+end
+
+function _build_radii(layer)
+    layers_radii = zeros(typeof(layer[1].thickness), length(layer) + 1)
+    for (k, l) in enumerate(layer)
+        @inbounds layers_radii[k+1] = layers_radii[k] + l.thickness
     end
-    push!(layers_radii, layer_start)
     return layers_radii
 end
 
