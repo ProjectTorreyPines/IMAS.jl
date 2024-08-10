@@ -1,4 +1,6 @@
 using LinearAlgebra
+import LibGEOS
+using Plots
 
 """
     ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
@@ -290,8 +292,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol
 
     if type == :not_diverted
         return psi_up
-    end
-    if type == :diverted
+    elseif type == :diverted
         return psi_low
     end
 end
@@ -371,7 +372,8 @@ function find_psi_last_diverted(
     r_intersect = r_intersect[sortperm(angle)]
     z_intersect = z_intersect[sortperm(angle)]
 
-    @assert length(r_intersect) == 2 # for safety, and to simplify eventual debugging
+    # for safety, and to simplify eventual debugging
+    @assert length(r_intersect) == 2
 
     # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
     # This is an approximation (should work except for exotic walls)
@@ -1195,7 +1197,7 @@ function flux_surface(
             end
         end
 
-    elseif type == :open
+    elseif type == :open && isempty(fw_r)
         # look for open flux-surfaces
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
@@ -1204,6 +1206,75 @@ function flux_surface(
                 reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
                 push!(prpz, (r=pr, z=pz))
             end
+        end
+
+    elseif type == :open && !isempty(fw_r)
+        # look for open flux-surfaces with wall
+        polygon = LibGEOS.Polygon([[[r,z] for (r,z) in zip(fw_r,fw_z)]])
+        for line in Contour.lines(cl)
+            pr, pz = Contour.coordinates(line)
+            reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
+
+            path =  LibGEOS.LineString([[r,z] for (r,z) in zip(pr,pz)])
+
+            overlapping_paths = LibGEOS.intersection(polygon, path)
+            if typeof(overlapping_paths) <: LibGEOS.LineString
+                if LibGEOS.numCoordinates(overlapping_paths) == 0
+                    continue
+                else
+                    overlapping_paths = [overlapping_paths]
+                    n = 1
+                end
+                continue # remove before flight
+            elseif typeof(overlapping_paths) <: LibGEOS.MultiLineString
+                n = LibGEOS.numGeometries(overlapping_paths)
+                overlapping_paths = [LibGEOS.getGeometry(overlapping_paths, k) for k in 1:n]
+            else
+                error("LibGEOS should not be here")
+            end
+
+            for path in overlapping_paths
+                coords = LibGEOS.GeoInterface.coordinates(path)
+                if isempty(coords)
+                    continue
+                end
+                pr = Float64[r for (r,z) in coords]
+                pz = Float64[z for (r,z) in coords]
+                push!(prpz, (r=pr, z=pz))
+            end
+
+            # detect continuing lines
+            del = []
+            for (k1,(pr1,pz1)) in enumerate(prpz)
+                for (k2, (pr2,pz2)) in enumerate(prpz)
+                    if pr1[end] == pr2[1] && pz1[end] == pz2[1]
+                        push!(prpz, (r=[pr1;pr2], z=[pz1;pz2]))
+                        push!(del, k1, k2)
+                    end
+                end
+            end
+
+            # retain flux surfaces that do not close
+            for (pr,pz) in prpz
+                if pr[1] == pr[end] && pz[1] == pz[end]
+                    push!(del, k)
+                end
+            end
+
+            # delete unwanted surfaces
+            reverse!(sort!(unique(del)))
+            for k in del
+                deleteat!(prpz, k)
+            end
+
+            # @show length(prpz)
+            # plot()
+            # for (pr,pz) in prpz
+            #     plot!(pr,pz)
+            #     plot!(fw_r,fw_z)
+            # end
+            # display(plot!())
+
         end
 
     elseif type == :encircling
