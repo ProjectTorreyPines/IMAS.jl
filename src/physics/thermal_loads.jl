@@ -73,7 +73,7 @@ function particle_HF(
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
-    surface, _ = flux_surface(eqt, psi_separatrix, :open)
+    surface = flux_surface(eqt, psi_separatrix, :open)
     r_separatrix = Float64[]
     for (rr, zz) in surface
         if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
@@ -468,7 +468,7 @@ function mesher_HF(dd::IMAS.dd;
         r_wall_omp = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_omp = r_wall_omp[1] # make it float
 
-        surface, _ = flux_surface(eqt, psi_separatrix, :encircling)
+        surface = flux_surface(eqt, psi_separatrix, :encircling)
         (rr, zz) = surface[1]
         crossings = intersection([R0, 2 * maximum(fw.r)], [Z0, Z0], rr, zz).crossings
         r_sep = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)

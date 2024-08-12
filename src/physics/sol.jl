@@ -205,7 +205,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     # TO DO for the future: insert private flux regions (upper and lower)
 
     for level in levels
-        lines, _ = flux_surface(eqt, level, :open)
+        lines = flux_surface(eqt, level, :open)
 
         for (r, z) in lines
             ofl = OpenFieldLine(PSI_interpolant, r, z, wall_r, wall_z, B0, R0, RA, ZA)
@@ -909,9 +909,9 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
         psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
         if psi_separatrix !== nothing
             if private_flux_regions
-                sep, _ = flux_surface(eqt, psi_separatrix, :any)
+                sep = flux_surface(eqt, psi_separatrix, :any)
             else
-                sep, _ = flux_surface(eqt, psi_separatrix, :open)
+                sep = flux_surface(eqt, psi_separatrix, :open)
             end
             for (pr, pz) in sep
                 if isempty(pr)

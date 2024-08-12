@@ -512,7 +512,7 @@ end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
     for psi_level in psi_levels
-        for (pr, pz) in flux_surface(eqt, psi_level, :any)[1]
+        for (pr, pz) in flux_surface(eqt, psi_level, :any)
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
