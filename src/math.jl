@@ -144,6 +144,55 @@ function intersection(
     return (indexes=indexes, crossings=crossings)
 end
 
+"""
+    intersection(
+        l1_x::AbstractVector{T},
+        l1_y::AbstractVector{T},
+        l2_x::AbstractVector{T},
+        l2_y::AbstractVector{T},
+        tolerance::Float64) where {T<:Real} 
+
+Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
+
+Endpoints crossings are checked with some tolerance
+"""
+function intersection(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T},
+    tolerance::Float64) where {T<:Real}
+
+    indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
+
+    if all(k1 != 1 for (k1, k2) in indexes)
+        for k2 in 1:(length(l2_x)-1)
+            if point_to_segment_distance(l1_x[1], l1_y[1], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
+                pushfirst!(indexes, (1, k2))
+                pushfirst!(crossings, (l1_x[1], l1_y[1]))
+                break
+            end
+        end
+    end
+
+    if all(k1 != length(l1_x) - 1 for (k1, k2) in indexes)
+        for k2 in 1:(length(l2_x)-1)
+            if point_to_segment_distance(l1_x[end], l1_y[end], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
+                push!(indexes, (length(l1_x) - 1, k2))
+                push!(crossings, (l1_x[end], l1_y[end]))
+                break
+            end
+        end
+    end
+
+    # plot(l1_x,l1_y)
+    # plot!(l2_x,l2_y)
+    # scatter!([cr[1] for cr in crossings],[cr[2] for cr in crossings])
+    # display(plot!())
+
+    return (indexes=indexes, crossings=crossings)
+end
+
 function intersects(
     l1_x::AbstractVector{T},
     l1_y::AbstractVector{T},

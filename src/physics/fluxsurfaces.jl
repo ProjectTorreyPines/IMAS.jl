@@ -139,7 +139,7 @@ function find_psi_boundary(
     if !isempty(surface) && ((abs((minimum(surface[1].z) - minimum(dimZ))) < 1E-3) || (abs((maximum(surface[1].z) - maximum(dimZ))) < 1E-3))
         return (last_closed=original_psi_boundary, first_open=nothing)
     end
-    
+
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
         PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
@@ -340,21 +340,21 @@ function find_psi_last_diverted(
     # intersect 2nd separatrix with wall, and look
     surface, _ = flux_surface(eqt, psi_2ndseparatrix, :open)
     r_intersect = Float64[]
-    z_intersect = Float64[]
     r_max = 0.0
     for (r, z) in surface
-        crossings = intersection(r, z, wall_r, wall_z).crossings # find where flux surface crosses wall ("strike points" of surface)
+        crossings = intersection(r, z, wall_r, wall_z, 1E-6).crossings # find where flux surface crosses wall ("strike points" of surface)
         if isempty(crossings)
             continue
         end
-        rr = (cr[1] for cr in crossings) # R coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
-        zz = (cr[2] for cr in crossings) # Z coordiante of intersections btw 2nd separatrix and wall (could be more than 2)
 
         # save all intersections with wall
-        append!(r_intersect, rr)
-        append!(z_intersect, zz)
+        append!(rz_intersects, crossings)
+
         r_max = max(r_max, maximum(r))
     end
+
+    r_intersect = Float64[rr for (rr, zz) in rz_intersects]
+    z_intersect = Float64[zz for (rr, zz) in rz_intersects]
 
     # r_mid(ψ) interpolator for region of interest
     r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
@@ -373,7 +373,16 @@ function find_psi_last_diverted(
     z_intersect = z_intersect[sortperm(angle)]
 
     # for safety, and to simplify eventual debugging
-    @assert length(r_intersect) == 2
+    if length(r_intersect) != 2
+        plot(wall_r, wall_z)
+        for (r, z) in surface
+            @show point_to_path_distance(r[end], z[end], wall_r, wall_z)
+            plot!(r, z)
+        end
+        scatter!(r_intersect, z_intersect)
+        display(plot!())
+        @assert length(r_intersect) == 2
+    end
 
     # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
     # This is an approximation (should work except for exotic walls)
@@ -716,7 +725,7 @@ function find_psi_wall_omp(
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
 
-    find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z)    
+    return find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z)
 end
 
 function find_psi_wall_omp(
