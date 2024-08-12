@@ -126,20 +126,6 @@ function find_psi_boundary(
 
     verbose = false
 
-    # determine if this is a closed boundary equilibrium solution mapped to RZ grid like CHEASE would do.
-    # When this happens the last closed surface touches the computation domain.
-    # In this case we don't want to alter the original value of psi_boundary.
-    psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
-    if psi_axis < original_psi_boundary
-        psi_edge0 = minimum(psi_edge)
-    else
-        psi_edge0 = maximum(psi_edge)
-    end
-    surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, Float64[], Float64[], psi_edge0, :closed)
-    if !isempty(surface) && ((abs((minimum(surface[1].z) - minimum(dimZ))) < 1E-3) || (abs((maximum(surface[1].z) - maximum(dimZ))) < 1E-3))
-        return (last_closed=original_psi_boundary, first_open=nothing)
-    end
-
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
         PSI_interpolant = IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant
