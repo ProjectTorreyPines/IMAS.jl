@@ -200,6 +200,47 @@ function point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where 
 end
 
 """
+    closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+
+Closest point on segment defined by points (x1,y1) and (x2,y2) to point (x0,y0)
+"""
+function closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    # Calculate the squared length of the segment
+    segment_length_squared = (x2 - x1)^2 + (y2 - y1)^2
+
+    if segment_length_squared == 0.0
+        # The segment is just a point, return the distance from the point to the segment start (or end)
+        return hypot(x0 - x1, y0 - y1)
+    end
+
+    # Compute the projection of the point onto the line defined by the segment
+    t = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / segment_length_squared
+
+    # Clamp t to the range [0, 1] to stay within the segment
+    t = clamp(t, 0.0, 1.0)
+
+    # Find the closest point on the segment to the original point
+    closest_x = x1 + t * (x2 - x1)
+    closest_y = y1 + t * (y2 - y1)
+
+    return (closest_x=closest_x, closest_y=closest_y)
+end
+
+"""
+    point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+
+Distance of point (x0,y0) from segment defined by points (x1,y1) and (x2,y2)
+"""
+function point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    closest_x, closest_y = closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T)
+
+    # Compute the distance from the point to the closest point on the segment
+    distance = hypot(x0 - closest_x, y0 - closest_y)
+
+    return distance
+end
+
+"""
     point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
 
 Distance of point (x0,y0) from path defined by vectors x and y
@@ -212,10 +253,7 @@ function point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractV
         y1 = y[i]
         x2 = x[i+1]
         y2 = y[i+1]
-        dp = point_to_line_distance(x0, y0, x1, y1, x2, y2)
-        d1 = sqrt((x1 - x0)^2 + (y1 - y0)^2)
-        d2 = sqrt((x2 - x0)^2 + (y2 - y0)^2)
-        dd = max(dp, min(d1, d2))
+        dd = point_to_segment_distance(x0, y0, x1, y1, x2, y2)
         if dd < d
             d = dd
         end
@@ -248,7 +286,7 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
         dmax = 0
         index = 0
         for i in 2:n-1
-            d = point_to_line_distance(x[i], y[i], x[1], y[1], x[end], y[end])
+            d = point_to_segment_distance(x[i], y[i], x[1], y[1], x[end], y[end])
             if d > dmax
                 index = i
                 dmax = d
