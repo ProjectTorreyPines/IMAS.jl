@@ -339,7 +339,7 @@ function find_psi_last_diverted(
 
     # intersect 2nd separatrix with wall, and look
     surface, _ = flux_surface(eqt, psi_2ndseparatrix, :open)
-    r_intersect = Float64[]
+    rz_intersects = Tuple{Float64,Float64}[]
     r_max = 0.0
     for (r, z) in surface
         crossings = intersection(r, z, wall_r, wall_z, 1E-6).crossings # find where flux surface crosses wall ("strike points" of surface)
@@ -1195,11 +1195,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surface that closes, contains magnetic axis, and does not intersect any wall element
-            if (
-                (pr[1] == pr[end]) &&
-                (pz[1] == pz[end]) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) &&
-                !IMAS.intersects(pr, pz, fw_r, fw_z)
-            )
+            if (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw_r, fw_z))
                 reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
                 push!(prpz, (r=pr, z=pz))
                 break
@@ -1211,7 +1207,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surfaces that do not close
-            if (pr[1] != pr[end]) || (pz[1] != pz[end]) || IMAS.intersects(pr, pz, fw_r, fw_z)
+            if is_open_polygon(pr, pz)
                 reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
                 push!(prpz, (r=pr, z=pz))
             end
@@ -1219,71 +1215,20 @@ function flux_surface(
 
     elseif type == :open && !isempty(fw_r)
         # look for open flux-surfaces with wall
-        polygon = LibGEOS.Polygon([[[r,z] for (r,z) in zip(fw_r,fw_z)]])
+        fw = collect(zip(fw_r, fw_z))
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
-            reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
-
-            path =  LibGEOS.LineString([[r,z] for (r,z) in zip(pr,pz)])
-
-            overlapping_paths = LibGEOS.intersection(polygon, path)
-            if typeof(overlapping_paths) <: LibGEOS.LineString
-                if LibGEOS.numCoordinates(overlapping_paths) == 0
-                    continue
-                else
-                    overlapping_paths = [overlapping_paths]
-                    n = 1
-                end
-                continue # remove before flight
-            elseif typeof(overlapping_paths) <: LibGEOS.MultiLineString
-                n = LibGEOS.numGeometries(overlapping_paths)
-                overlapping_paths = [LibGEOS.getGeometry(overlapping_paths, k) for k in 1:n]
-            else
-                error("LibGEOS should not be here")
-            end
-
-            for path in overlapping_paths
-                coords = LibGEOS.GeoInterface.coordinates(path)
-                if isempty(coords)
-                    continue
-                end
-                pr = Float64[r for (r,z) in coords]
-                pz = Float64[z for (r,z) in coords]
-                push!(prpz, (r=pr, z=pz))
-            end
-
-            # detect continuing lines
-            del = []
-            for (k1,(pr1,pz1)) in enumerate(prpz)
-                for (k2, (pr2,pz2)) in enumerate(prpz)
-                    if pr1[end] == pr2[1] && pz1[end] == pz2[1]
-                        push!(prpz, (r=[pr1;pr2], z=[pz1;pz2]))
-                        push!(del, k1, k2)
+            # only lines that intersect with the wall are open
+            if IMAS.intersects(pr, pz, fw_r, fw_z)
+                reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
+                segments = intersection_split(pr, pz, fw_r, fw_z)
+                for segment in segments
+                    # we retain only segments that are within the wall (disregard the extrema)
+                    if length(segment.r) > 2 && PolygonOps.inpolygon((segment.r[2], segment.z[2]), fw) == 1
+                        push!(prpz, segment)
                     end
                 end
             end
-
-            # retain flux surfaces that do not close
-            for (pr,pz) in prpz
-                if pr[1] == pr[end] && pz[1] == pz[end]
-                    push!(del, k)
-                end
-            end
-
-            # delete unwanted surfaces
-            reverse!(sort!(unique(del)))
-            for k in del
-                deleteat!(prpz, k)
-            end
-
-            # @show length(prpz)
-            # plot()
-            # for (pr,pz) in prpz
-            #     plot!(pr,pz)
-            #     plot!(fw_r,fw_z)
-            # end
-            # display(plot!())
-
         end
 
     elseif type == :encircling

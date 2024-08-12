@@ -240,6 +240,47 @@ function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:R
 end
 
 """
+    intersection_split(
+        l1_x::AbstractVector{T},
+        l1_y::AbstractVector{T},
+        l2_x::AbstractVector{T},
+        l2_y::AbstractVector{T}) where {T<:Real}
+
+Returns vector of segments of l1_x,l1_y split at the intersections with l2_x,l2_y
+"""
+function intersection_split(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T}) where {T<:Real}
+
+    segments = []
+    indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
+    if isempty(indexes)
+        push!(segments, (r=l1_x, z=l1_y))
+    else
+        indexes1 = [indexes[k][1] for k in eachindex(indexes)]
+        indexes1 = [indexes1; indexes1[1] + length(l1_x)]
+
+        for k in 1:length(indexes)
+            l1_x_tmp = getindex_circular.(Ref(l1_x), indexes1[k]+1:indexes1[k+1])
+            l1_y_tmp = getindex_circular.(Ref(l1_y), indexes1[k]+1:indexes1[k+1])
+
+            kk = k + 1
+            if kk > length(crossings)
+                kk = kk - length(crossings)
+            end
+
+            r = [crossings[k][1]; l1_x_tmp; crossings[kk][1]]
+            z = [crossings[k][2]; l1_y_tmp; crossings[kk][2]]
+            push!(segments, (r=r, z=z))
+        end
+    end
+
+    return segments
+end
+
+"""
     point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
 
 Distance of point (x0,y0) from line defined by points (x1,y1) and (x2,y2)
