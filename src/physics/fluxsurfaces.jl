@@ -1,5 +1,4 @@
 using LinearAlgebra
-import LibGEOS
 using Plots
 
 """
