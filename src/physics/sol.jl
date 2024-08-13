@@ -148,10 +148,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
-        crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        # psi_wall_midplane = PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
-        psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
+        psi_wall_midplane = find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z) # psi at the intersection between wall and omp
         psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
         # limited plasma
@@ -208,7 +205,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::Vector{T}, wall_z::Vecto
     # TO DO for the future: insert private flux regions (upper and lower)
 
     for level in levels
-        lines, _ = flux_surface(eqt, level, :open)
+        lines = flux_surface(eqt, level, :open)
 
         for (r, z) in lines
             ofl = OpenFieldLine(PSI_interpolant, r, z, wall_r, wall_z, B0, R0, RA, ZA)
@@ -313,9 +310,8 @@ function find_levels_from_P(
     else
         # there is a wall
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1] # make it float
-        psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)[1]
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
+        psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
         psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         if psi_sign > 0
             r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
@@ -486,10 +482,9 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall_r::Vector
     else
         # there is a wall
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1] # make it float
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
     end
-    psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)
+    psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
 
     levels = PSI_interpolant.(wall_r, wall_z)
     psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant)
@@ -515,19 +510,17 @@ Returns r, z coordinates of open field line contained within wall, as well as an
 RA and ZA are the coordinate of the magnetic axis
 """
 function line_wall_2_wall(r::T, z::T, wall_r::T, wall_z::T, RA::Real, ZA::Real) where {T<:AbstractVector{<:Real}}
-    indexes, crossings = intersection(r, z, wall_r, wall_z) # find where flux surface crosses wall ("strike points" of surface)
+    indexes, crossings = intersection(r, z, wall_r, wall_z, 1E-6) # find where flux surface crosses wall ("strike points" of surface)
     # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"
     # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
     r_z_index = [k[1] for k in indexes] #index of vectors (r,z) of all crossing point
     wall_index = [k[2] for k in indexes] #index of vectors (wall_r, wall_z) of all crossing point
 
     crossings2 = intersection([0, RA], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw inner midplane (IMP) with wall
-    r_wall_imp = [cr[1] for cr in crossings2] # R coordinate of the wall at IMP
-    r_wall_imp = r_wall_imp[1] # make it float
+    r_wall_imp = crossings2[1][1] # R coordinate of the wall at IMP
 
     crossings2 = intersection([RA, 2 * maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-    r_wall_omp = [cr[1] for cr in crossings2] # R coordinate of the wall at OMP
-    r_wall_omp = r_wall_omp[1] # make it float
+    r_wall_omp = crossings2[1][1] # R coordinate of the wall at OMP
 
     if isempty(r_z_index) # if the flux surface does not cross the wall return empty vector (it is not a surf in SOL)
         return Float64[], Float64[], Float64[], Int64[]
@@ -916,9 +909,9 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T
         psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
         if psi_separatrix !== nothing
             if private_flux_regions
-                sep, _ = flux_surface(eqt, psi_separatrix, :any)
+                sep = flux_surface(eqt, psi_separatrix, :any)
             else
-                sep, _ = flux_surface(eqt, psi_separatrix, :open)
+                sep = flux_surface(eqt, psi_separatrix, :open)
             end
             for (pr, pz) in sep
                 if isempty(pr)
@@ -992,7 +985,6 @@ Return strike points location in the divertors
 function find_strike_points(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertors; private_flux_regions::Bool=false)
     return find_strike_points!(eqt, dv; private_flux_regions, in_place=false)
 end
-
 
 function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
     Rxx, Zxx, θxx = find_strike_points(eqt, wall_outline_r, wall_outline_z)

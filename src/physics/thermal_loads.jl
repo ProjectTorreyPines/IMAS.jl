@@ -73,7 +73,7 @@ function particle_HF(
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
-    surface, _ = flux_surface(eqt, psi_separatrix, :open)
+    surface = flux_surface(eqt, psi_separatrix, :open)
     r_separatrix = Float64[]
     for (rr, zz) in surface
         if isempty(rr) || all(zz .> ZA) || all(zz .< ZA)
@@ -231,8 +231,7 @@ function particle_HF(
         #! format: on
 
         crossings = intersection([(minimum(wall_r) + maximum(wall_r)) / 2, maximum(wall_r) * 1.05], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1]
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant(r_wall_midplane, ZA)
         _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(wall_r, wall_z)
@@ -469,7 +468,7 @@ function mesher_HF(dd::IMAS.dd;
         r_wall_omp = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
         r_wall_omp = r_wall_omp[1] # make it float
 
-        surface, _ = flux_surface(eqt, psi_separatrix, :encircling)
+        surface = flux_surface(eqt, psi_separatrix, :encircling)
         (rr, zz) = surface[1]
         crossings = intersection([R0, 2 * maximum(fw.r)], [Z0, Z0], rr, zz).crossings
         r_sep = [cr[1] for cr in crossings] # R coordinate of points in SOL surface at MP (inner and outer)
@@ -494,9 +493,9 @@ function mesher_HF(dd::IMAS.dd;
         _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
         psi_levels, _, _ = find_levels_from_P(eqt, rwall, zwall, PSI_interpolant, r, q, levels)
         add_psi = find_levels_from_wall(eqt, rwall, zwall, PSI_interpolant)
-
-        psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
         psi_sign = sign(psi_levels[end] - psi_levels[1])
+        psi_levels = unique!(sort!(vcat(psi_levels, add_psi)))
+
 
         if psi_sign == -1
             psi_levels = reverse!(psi_levels) # if psi is decreasing, sort in descending order
@@ -620,8 +619,7 @@ function mesher_HF(dd::IMAS.dd;
         #! format: on
 
         crossings = intersection([(minimum(rwall) + maximum(rwall)) / 2, maximum(rwall) * 1.05], [Z0, Z0], rwall, zwall)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-        r_wall_midplane = r_wall_midplane[1]
+        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant(r_wall_midplane, Z0)
         _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, rwall, zwall, PSI_interpolant) # psi of grazing surface
         psi_wall = PSI_interpolant.(rwall, zwall)

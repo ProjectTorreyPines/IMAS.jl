@@ -144,6 +144,55 @@ function intersection(
     return (indexes=indexes, crossings=crossings)
 end
 
+"""
+    intersection(
+        l1_x::AbstractVector{T},
+        l1_y::AbstractVector{T},
+        l2_x::AbstractVector{T},
+        l2_y::AbstractVector{T},
+        tolerance::Float64) where {T<:Real} 
+
+Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
+
+Endpoints crossings are checked with some tolerance
+"""
+function intersection(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T},
+    tolerance::Float64) where {T<:Real}
+
+    indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
+
+    if all(k1 != 1 for (k1, k2) in indexes)
+        for k2 in 1:(length(l2_x)-1)
+            if point_to_segment_distance(l1_x[1], l1_y[1], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
+                pushfirst!(indexes, (1, k2))
+                pushfirst!(crossings, (l1_x[1], l1_y[1]))
+                break
+            end
+        end
+    end
+
+    if all(k1 != length(l1_x) - 1 for (k1, k2) in indexes)
+        for k2 in 1:(length(l2_x)-1)
+            if point_to_segment_distance(l1_x[end], l1_y[end], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
+                push!(indexes, (length(l1_x) - 1, k2))
+                push!(crossings, (l1_x[end], l1_y[end]))
+                break
+            end
+        end
+    end
+
+    # plot(l1_x,l1_y)
+    # plot!(l2_x,l2_y)
+    # scatter!([cr[1] for cr in crossings],[cr[2] for cr in crossings])
+    # display(plot!())
+
+    return (indexes=indexes, crossings=crossings)
+end
+
 function intersects(
     l1_x::AbstractVector{T},
     l1_y::AbstractVector{T},
@@ -190,12 +239,94 @@ function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:R
 end
 
 """
+    intersection_split(
+        l1_x::AbstractVector{T},
+        l1_y::AbstractVector{T},
+        l2_x::AbstractVector{T},
+        l2_y::AbstractVector{T}) where {T<:Real}
+
+Returns vector of segments of l1_x,l1_y split at the intersections with l2_x,l2_y
+"""
+function intersection_split(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T}) where {T<:Real}
+
+    segments = []
+    indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
+    if isempty(indexes)
+        push!(segments, (r=l1_x, z=l1_y))
+    else
+        indexes1 = [indexes[k][1] for k in eachindex(indexes)]
+        indexes1 = [indexes1; indexes1[1] + length(l1_x)]
+
+        for k in 1:length(indexes)
+            l1_x_tmp = getindex_circular.(Ref(l1_x), indexes1[k]+1:indexes1[k+1])
+            l1_y_tmp = getindex_circular.(Ref(l1_y), indexes1[k]+1:indexes1[k+1])
+
+            kk = k + 1
+            if kk > length(crossings)
+                kk = kk - length(crossings)
+            end
+
+            r = [crossings[k][1]; l1_x_tmp; crossings[kk][1]]
+            z = [crossings[k][2]; l1_y_tmp; crossings[kk][2]]
+            push!(segments, (r=r, z=z))
+        end
+    end
+
+    return segments
+end
+
+"""
     point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
 
 Distance of point (x0,y0) from line defined by points (x1,y1) and (x2,y2)
 """
 function point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
     return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / sqrt((y2 - y1)^2 + (x2 - x1)^2)
+end
+
+"""
+    closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+
+Closest point on segment defined by points (x1,y1) and (x2,y2) to point (x0,y0)
+"""
+function closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    # Calculate the squared length of the segment
+    segment_length_squared = (x2 - x1)^2 + (y2 - y1)^2
+
+    if segment_length_squared == 0.0
+        # The segment is just a point, return the distance from the point to the segment start (or end)
+        return hypot(x0 - x1, y0 - y1)
+    end
+
+    # Compute the projection of the point onto the line defined by the segment
+    t = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / segment_length_squared
+
+    # Clamp t to the range [0, 1] to stay within the segment
+    t = clamp(t, 0.0, 1.0)
+
+    # Find the closest point on the segment to the original point
+    closest_x = x1 + t * (x2 - x1)
+    closest_y = y1 + t * (y2 - y1)
+
+    return (closest_x=closest_x, closest_y=closest_y)
+end
+
+"""
+    point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+
+Distance of point (x0,y0) from segment defined by points (x1,y1) and (x2,y2)
+"""
+function point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    closest_x, closest_y = closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T)
+
+    # Compute the distance from the point to the closest point on the segment
+    distance = hypot(x0 - closest_x, y0 - closest_y)
+
+    return distance
 end
 
 """
@@ -211,10 +342,7 @@ function point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractV
         y1 = y[i]
         x2 = x[i+1]
         y2 = y[i+1]
-        dp = point_to_line_distance(x0, y0, x1, y1, x2, y2)
-        d1 = sqrt((x1 - x0)^2 + (y1 - y0)^2)
-        d2 = sqrt((x2 - x0)^2 + (y2 - y0)^2)
-        dd = max(dp, min(d1, d2))
+        dd = point_to_segment_distance(x0, y0, x1, y1, x2, y2)
         if dd < d
             d = dd
         end
@@ -247,7 +375,7 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
         dmax = 0
         index = 0
         for i in 2:n-1
-            d = point_to_line_distance(x[i], y[i], x[1], y[1], x[end], y[end])
+            d = point_to_segment_distance(x[i], y[i], x[1], y[1], x[end], y[end])
             if d > dmax
                 index = i
                 dmax = d
