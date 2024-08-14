@@ -244,7 +244,7 @@ function find_psi_boundary(
     end
 
     # innermost tentative flux surface (which should be closed!)
-    surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
+    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
     if isempty(surface)
         if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
@@ -260,7 +260,7 @@ function find_psi_boundary(
     end
 
     # outermost tentative flux surface (which should be open!)
-    surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
+    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
     if !isempty(surface)
         if raise_error_on_not_open
             error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
@@ -269,7 +269,7 @@ function find_psi_boundary(
         end
     end
     if verbose
-        surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
+        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
         for surf in surface
             plot!(surf.r, surf.z; color=:red, label="")
         end
@@ -279,7 +279,7 @@ function find_psi_boundary(
     psirange = deepcopy(psirange_init)
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
-        surface, _ = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
+        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
         # closed flux surface
         if !isempty(surface)
             ((pr, pz),) = surface
