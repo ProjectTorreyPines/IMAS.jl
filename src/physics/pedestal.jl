@@ -25,7 +25,7 @@ function blend_core_edge_EPED(
     iped = argmin(abs.(rho .- ped_bound))
     inml = argmin(abs.(rho .- nml_bound))
 
-    z_profile = -calc_z(rho, profile, :backward)
+    z_profile = -calc_z(rho, profile, :third_order)
     z_nml = z_profile[inml]
 
     # H-mode profile used for pedestal
@@ -35,14 +35,18 @@ function blend_core_edge_EPED(
 
     # linear z between nml and pedestal
     if nml_bound < ped_bound
-        z_profile_ped = -calc_z(rho, profile_ped, :backward)
+        z_profile_ped = -calc_z(rho, profile_ped, :third_order)
         z_ped = z_profile_ped[iped]
         z_profile[inml:iped] = (z_nml - z_ped) ./ (rho[inml] - rho[iped]) .* (rho[inml:iped] .- rho[inml]) .+ z_nml
     end
 
     # integrate from pedestal inward
     profile_new = deepcopy(profile_ped)
-    profile_new[1:iped] = integ_z(rho[1:iped], z_profile[1:iped], profile_ped[iped])
+    profile_new[inml:iped] = integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+
+    # we avoid integ_z in the core region to avoid drift of profiles
+    # when calling blend_core_edge_EPED multiple times
+    profile_new[1:inml] = profile[1:inml] .- profile[inml+1] .+ profile_new[inml+1]
 
     return profile_new
 end
@@ -58,9 +62,10 @@ function cost_find_EPED_exps(
 )
     x = abs.(x)
     profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
-    z_ped = -calc_z(rho, profile_ped, :backward)
+    z_ped = -calc_z(rho, profile_ped, :third_order)
     z_ped_values = interp1d(rho, z_ped).(rho_targets)
-    return sum(abs.(z_targets .- z_ped_values))
+
+    return norm(z_targets .- z_ped_values)
 end
 
 """
@@ -82,13 +87,13 @@ function blend_core_edge_Hmode(
     tr_bound0::Real,
     tr_bound1::Real
 )
-    z_profile = -calc_z(rho, profile, :backward)
-    z_targets = interp1d(rho, z_profile).([tr_bound0, tr_bound1])
-
+    z_profile = -calc_z(rho, profile, :third_order)
+    rho_targets = [tr_bound0, tr_bound1]
+    z_targets = interp1d(rho, z_profile).(rho_targets)
+    
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
     x_guess = [1.0, 1.0]
-    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, z_targets,
-            [tr_bound0, tr_bound1]), x_guess, Optim.NelderMead(), Optim.Options(; g_tol=1E-3))
+    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, z_targets, rho_targets), x_guess, Optim.NelderMead())
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
@@ -181,10 +186,10 @@ function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Re
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
     profile_ped = IMAS.edge_profile(rho, rho_ped, value, profile[end], α)
-    z_profile_ped = IMAS.calc_z(rho, profile_ped, :backward)
+    z_profile_ped = IMAS.calc_z(rho, profile_ped, :third_order)
 
     profile .+= (-profile[rho_ped_idx] + value)
-    z_profile = IMAS.calc_z(rho, profile, :backward)
+    z_profile = IMAS.calc_z(rho, profile, :third_order)
 
     profile[rho_ped_idx+1:end] .= IMAS.interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
 
