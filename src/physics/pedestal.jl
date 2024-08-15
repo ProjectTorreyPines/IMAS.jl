@@ -25,7 +25,7 @@ function blend_core_edge_EPED(
     iped = argmin(abs.(rho .- ped_bound))
     inml = argmin(abs.(rho .- nml_bound))
 
-    z_profile = -calc_z(rho, profile, :third_order)
+    z_profile = -calc_z(rho, profile, :backward)
     z_nml = z_profile[inml]
 
     # H-mode profile used for pedestal
@@ -35,7 +35,7 @@ function blend_core_edge_EPED(
 
     # linear z between nml and pedestal
     if nml_bound < ped_bound
-        z_profile_ped = -calc_z(rho, profile_ped, :third_order)
+        z_profile_ped = -calc_z(rho, profile_ped, :backward)
         z_ped = z_profile_ped[iped]
         z_profile[inml:iped] = (z_nml - z_ped) ./ (rho[inml] - rho[iped]) .* (rho[inml:iped] .- rho[inml]) .+ z_nml
     end
@@ -62,7 +62,7 @@ function cost_find_EPED_exps(
 )
     x = abs.(x)
     profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
-    z_ped = -calc_z(rho, profile_ped, :third_order)
+    z_ped = -calc_z(rho, profile_ped, :backward)
     z_ped_values = interp1d(rho, z_ped).(rho_targets)
 
     return norm(z_targets .- z_ped_values)
@@ -87,7 +87,7 @@ function blend_core_edge_Hmode(
     tr_bound0::Real,
     tr_bound1::Real
 )
-    z_profile = -calc_z(rho, profile, :third_order)
+    z_profile = -calc_z(rho, profile, :backward)
     rho_targets = [tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
     
@@ -186,10 +186,10 @@ function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Re
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
     profile_ped = IMAS.edge_profile(rho, rho_ped, value, profile[end], α)
-    z_profile_ped = IMAS.calc_z(rho, profile_ped, :third_order)
+    z_profile_ped = IMAS.calc_z(rho, profile_ped, :backward)
 
     profile .+= (-profile[rho_ped_idx] + value)
-    z_profile = IMAS.calc_z(rho, profile, :third_order)
+    z_profile = IMAS.calc_z(rho, profile, :backward)
 
     profile[rho_ped_idx+1:end] .= IMAS.interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
 

@@ -22,7 +22,7 @@ function profile_from_z_transport(
     index_ped = argmin(abs.(rho .- rho_ped))
     index_last = transport_indices[end]
     if index_ped > index_last
-        z_old = calc_z(rho, profile_old, :third_order)
+        z_old = calc_z(rho, profile_old, :backward)
         transport_indices = vcat(1, transport_indices, index_ped)
         z_transport_grid = vcat(0.0, z_transport_grid, z_old[index_ped])
     else
