@@ -1890,7 +1890,7 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
+@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps), simulation_start=nothing)
     @assert typeof(time0) <: Float64
     plots = []
     for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
@@ -1914,14 +1914,21 @@ end
         plt[:x] = time_value
         plt[:y] = data_value
         remove = ("antenna", "flux_control", "beam", "unit", "density_control", "position_control")
-        substitute = ("deposition_" => "", "_launched" => "")
+        substitute =
+            ("deposition_" => "",
+                "_launched" => "",
+                "rho_tor_norm_width" => "width",
+                "rho_tor_norm" => "ρ",
+                "pellet.launcher" => "pellet",
+                "." => " ",
+                "[" => " ",
+                "]" => " ")
         plt[:label] = replace(p2i(filter(x -> x ∉ remove, path[2:end])), substitute...)
         push!(plots, plt)
     end
 
     layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1000, 1000)
-    margin --> 5 * Measures.mm
 
     @series begin
         subplot := 1
@@ -1962,8 +1969,19 @@ end
         end
     end
 
+    # plotting at infinity does not work
+    tmax = -Inf
+    tmin = Inf
+    for plt in plots
+        xx = filter(x -> !isinf(x), plt[:x])
+        tmax = max(tmax, maximum(xx))
+        tmin = min(tmax, minimum(xx))
+    end
+
     for (k, plt) in enumerate(plots)
         x = plt[:x]
+        x[x.==Inf] .= tmax
+        x[x.==-Inf] .= tmin
         y = plt[:y]
         n = min(length(x), length(y))
         @series begin
@@ -1971,13 +1989,24 @@ end
             label := ""
             x[1:n], y[1:n]
         end
+        if simulation_start !== nothing
+            @series begin
+                subplot := k + 1
+                primary := false
+                seriestype := :vline
+                linestyle := :dash
+                [simulation_start]
+            end
+        end
         @series begin
             subplot := k + 1
             seriestype := :scatter
             primary := false
             marker := :circle
             markerstrokewidth := 0.0
+            titlefontsize := 10
             title := nice_field(plt[:label])
+            xlim = (tmin, tmax)
             [time0], interp1d(x[1:n], y[1:n]).([time0])
         end
     end
