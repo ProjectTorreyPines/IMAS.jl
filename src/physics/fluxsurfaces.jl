@@ -867,71 +867,8 @@ function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}
 end
 
 
-function trace_surface(k::Int,
-                       eqt::equilibrium__time_slice{T},
-                       PSI_interpolant::Interpolations.AbstractInterpolation,
-                       r::AbstractVector{T},
-                       z::AbstractVector{T},
-                       PSI::AbstractArray{T},
-                       RA::T,
-                       ZA::T,
-                       fw_r::AbstractVector{T},
                        fw_z::AbstractVector{T}) where{T<:Real}
     psi_level = eqt.profiles_1d.psi[k]
-    if k == 1 # on axis flux surface is a synthetic one
-        eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2] - (eqt.profiles_1d.elongation[3] - eqt.profiles_1d.elongation[2])
-        eqt.profiles_1d.triangularity_upper[1] = 0.0
-        eqt.profiles_1d.triangularity_lower[1] = 0.0
-
-        a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
-        b = eqt.profiles_1d.elongation[1] * a
-
-        t = range(0, 2π, 17)
-        pr = cos.(t) .* a .+ RA
-        pz = sin.(t) .* b .+ ZA
-    else # other flux surfaces
-        # trace flux surface
-        tmp = flux_surface(r, z, PSI, RA, ZA, fw_r, fw_z, psi_level, :closed)
-        if isempty(tmp)
-            error("IMAS: Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
-        end
-        (pr, pz) = tmp[1]
-    end
-
-    # Extrema on array indices
-    _, _, _, _, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r = fluxsurface_extrema(pr, pz)
-
-    if k != 1
-        # accurate geometric quantities by finding geometric extrema as optimization problem
-        w = 1E-4 # push away from magnetic axis
-        function fx(x::AbstractVector{<:Real}, psi_level::Float64, w::Float64)
-            try
-                (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - RA)^2 * w
-            catch
-                return 100
-            end
-        end
-        function fz(x::AbstractVector{<:Real}, psi_level::Float64, w::Float64)
-            try
-                (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - ZA)^2 * w
-            catch
-                return 100
-            end
-        end
-        res = Optim.optimize(x -> fx(x, psi_level, w), StaticArrays.@MVector[max_r, z_at_max_r], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
-        (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-        res = Optim.optimize(x -> fx(x, psi_level, w), StaticArrays.@MVector[min_r, z_at_min_r], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
-        (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-        if psi_level != eqt.profiles_1d.psi[end]
-            res = Optim.optimize(x -> fz(x, psi_level, w), StaticArrays.@MVector[r_at_max_z, max_z], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
-            (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(x -> fz(x, psi_level, w), StaticArrays.@MVector[r_at_min_z, min_z], Optim.Newton(), Optim.Options(; g_tol=1E-8); autodiff=:forward)
-            (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
-        end
-    end
-    return (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r, pr, pz)
-end
-
 # accurate geometric quantities by finding geometric extrema as optimization problem
 function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, RA::T, w = 1E-4) where {T <: Real}
     try
@@ -967,7 +904,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
         PSI = PSI_interpolant(r, z)
     end
 
-    psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])::T
+    psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
     R0 = eqt.global_quantities.vacuum_toroidal_field.r0
     B0 = eqt.global_quantities.vacuum_toroidal_field.b0
 
@@ -1025,8 +962,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     INT_FLUXEXPANSION_DL = zeros(T, length(eqt.profiles_1d.psi))
     BPL = zeros(T, length(eqt.profiles_1d.psi))
 
-
-
     for k in length(eqt.profiles_1d.psi):-1:1
         psi_level = eqt.profiles_1d.psi[k]
 
@@ -1064,7 +999,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
             frl = x -> _opt_rext(x, psi_level, PSI_interpolant, RA, w)
             fzl = x -> _opt_zext(x, psi_level, PSI_interpolant, ZA, w)
 
-            algorithm = Optim.ConjugateGradient()
+            algorithm = Optim.Newton()
             options = Optim.Options(; g_tol=1E-8)
             res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
