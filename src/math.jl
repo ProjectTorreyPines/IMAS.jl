@@ -784,7 +784,7 @@ end
 
 Returns the gradient scale lengths of vector f on x
 
-The finite difference `method` of the gradient can be one of [:third_order, :second_order, :central, :backward, :forward]
+The finite difference `method` of the gradient can be one of [:backward, :central, :forward, :second_order, :third_order]
 
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
