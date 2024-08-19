@@ -899,30 +899,30 @@ end
 
 Finds equilibrium strike points and angle of incidence between wall and strike leg
 """
-function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T; private_flux_regions::Bool=false) where {T<:AbstractVector{<:Real}}
+function find_strike_points(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T,
+                            psi_separatrix=find_psi_boundary(eqt; raise_error_on_not_open=true).first_open;
+                            private_flux_regions::Bool=false) where {T<:AbstractVector{<:Real}}
     Rxx = Float64[]
     Zxx = Float64[]
     θxx = Float64[]
 
     if !isempty(wall_outline_r)
         # find separatrix as first surface in SOL, not in private region
-        psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # find psi of "first" open
         if psi_separatrix !== nothing
             if private_flux_regions
                 sep = flux_surface(eqt, psi_separatrix, :any)
             else
                 sep = flux_surface(eqt, psi_separatrix, :open)
             end
+            zaxis = eqt.boundary.geometric_axis.z
             for (pr, pz) in sep
                 if isempty(pr)
                     continue
                 end
-                if private_flux_regions && all(pz .< eqt.boundary.geometric_axis.z)
-                    #pass, lower private flux region
-                elseif private_flux_regions && all(pz .> eqt.boundary.geometric_axis.z)
-                    #pass, upper private flux region
-                elseif any(pz .> eqt.boundary.geometric_axis.z) && any(pz .< eqt.boundary.geometric_axis.z) &&
-                    sign(pz[1] - eqt.boundary.geometric_axis.z) == sign(pz[end] - eqt.boundary.geometric_axis.z)
+                if private_flux_regions && (all(z < zaxis for z in pz) ||  all(z > zaxis for z in pz))
+                    #pass, private flux region
+                elseif any(z > zaxis for z in pz) && any(z < zaxis for z in pz) &&
+                    sign(pz[1] - zaxis) == sign(pz[end] - zaxis)
                     #pass, going around the confined plasma
                 else
                     continue
@@ -986,8 +986,9 @@ function find_strike_points(eqt::IMAS.equilibrium__time_slice, dv::IMAS.divertor
     return find_strike_points!(eqt, dv; private_flux_regions, in_place=false)
 end
 
-function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T) where {T<:AbstractVector{<:Real}}
-    Rxx, Zxx, θxx = find_strike_points(eqt, wall_outline_r, wall_outline_z)
+function find_strike_points!(eqt::IMAS.equilibrium__time_slice, wall_outline_r::T, wall_outline_z::T,
+                             psi_separatrix=find_psi_boundary(eqt; raise_error_on_not_open=true).first_open) where {T<:AbstractVector{<:Real}}
+    Rxx, Zxx, θxx = find_strike_points(eqt, wall_outline_r, wall_outline_z, psi_separatrix)
     resize!(eqt.boundary.strike_point, length(Rxx))
     for (k, strike_point) in enumerate(eqt.boundary.strike_point)
         strike_point.r = Rxx[k]
