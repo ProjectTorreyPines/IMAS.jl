@@ -419,7 +419,7 @@ function find_psi_last_diverted(
 
     # intersect 2nd separatrix with wall, and look
     surface = flux_surface(eqt, psi_2ndseparatrix, :open)
-    rz_intersects = Tuple{Float64,Float64}[]
+    rz_intersects = StaticArrays.SVector{2, Float64}[]
     r_max = 0.0
     for (r, z) in surface
         crossings = intersection(r, z, wall_r, wall_z, 1E-6).crossings # find where flux surface crosses wall ("strike points" of surface)
@@ -1223,7 +1223,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     # phi 2D
     tmp .= eqt.profiles_1d.psi .* psi_sign
     phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :cubic)
-    eqt2d.phi .= phi_itp.(psi_sign .* eqt2d.psi)
+    eqt2d.phi = phi_itp.(psi_sign .* eqt2d.psi)
 
     # rho 2D in meters
     RHO = sqrt.(abs.(eqt2d.phi ./ (π * B0)))
