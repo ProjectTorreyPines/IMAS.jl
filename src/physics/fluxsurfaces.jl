@@ -866,8 +866,6 @@ function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}
     return res.minimizer[1], res.minimizer[2]
 end
 
-
-                       fw_z::AbstractVector{T}) where{T<:Real}
     psi_level = eqt.profiles_1d.psi[k]
 # accurate geometric quantities by finding geometric extrema as optimization problem
 function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, RA::T, w = 1E-4) where {T <: Real}
