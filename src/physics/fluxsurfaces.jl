@@ -1066,14 +1066,14 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
 
             algorithm = Optim.ConjugateGradient()
             options = Optim.Options(; g_tol=1E-8)
-            res = Optim.optimize(frl, StaticArrays.MVector{2,T}(max_r, z_at_max_r), algorithm, options; autodiff=:forward)
+            res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(frl, StaticArrays.MVector{2,T}(min_r, z_at_min_r), algorithm, options; autodiff=:forward)
+            res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm, options; autodiff=:forward)
             (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
             if psi_level != eqt.profiles_1d.psi[end]
-                res = Optim.optimize(fzl, StaticArrays.MVector{2,T}(r_at_max_z, max_z), algorithm, options; autodiff=:forward)
+                res = Optim.optimize(fzl, [r_at_max_z, max_z], algorithm, options; autodiff=:forward)
                 (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(fzl, StaticArrays.MVector{2,T}(r_at_min_z, min_z), algorithm, options; autodiff=:forward)
+                res = Optim.optimize(fzl, [r_at_min_z, min_z], algorithm, options; autodiff=:forward)
                 (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
             end
             # p = plot(pr, pz, label = "")
