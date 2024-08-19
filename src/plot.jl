@@ -314,9 +314,9 @@ end
 # =========== #
 # equilibrium #
 # =========== #
-@recipe function plot_eq(eq::IMAS.equilibrium)
+@recipe function plot_eq(eq::IMAS.equilibrium; time0=global_time(eq))
     @series begin
-        return eq.time_slice[]
+        return eq.time_slice[time0]
     end
 end
 
@@ -1426,9 +1426,9 @@ end
 # ============= #
 # core_profiles #
 # ============= #
-@recipe function plot_core_profiles(cp::IMAS.core_profiles)
+@recipe function plot_core_profiles(cp::IMAS.core_profiles; time0=global_time(cp))
     @series begin
-        return cp.profiles_1d[]
+        return cp.profiles_1d[time0]
     end
 end
 
