@@ -937,20 +937,13 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
     FLUXEXPANSION = Vector{T}[]
     INT_FLUXEXPANSION_DL = zeros(T, length(eqt.profiles_1d.psi))
     BPL = zeros(T, length(eqt.profiles_1d.psi))
+    mxh = MXH(0.0, 0.0, 0.0, 0.0, 0.0, zeros(2), zeros(2))
     for k in length(eqt.profiles_1d.psi):-1:1
         psi_level = eqt.profiles_1d.psi[k]
 
         if k == 1 # on axis flux surface is a synthetic one
-            eqt.profiles_1d.elongation[1] = eqt.profiles_1d.elongation[2] - (eqt.profiles_1d.elongation[3] - eqt.profiles_1d.elongation[2])
-            eqt.profiles_1d.triangularity_upper[1] = 0.0
-            eqt.profiles_1d.triangularity_lower[1] = 0.0
-
-            a = (eqt.profiles_1d.r_outboard[2] - eqt.profiles_1d.r_inboard[2]) / 100.0
-            b = eqt.profiles_1d.elongation[1] * a
-
-            t = range(0, 2π, 17)
-            pr = cos.(t) .* a .+ RA
-            pz = sin.(t) .* b .+ ZA
+            mxh.ϵ *= 0.1
+            pr, pz = mxh()
 
             # Extrema on array indices
             (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
@@ -959,10 +952,10 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
             # trace flux surface
             tmp = flux_surface( r, z, PSI, RA, ZA, fw.r, fw.z, psi_level, :closed)
             if isempty(tmp)
-                # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
-                # contour!(r, z, PSI'; color=:white, levels=100)
-                # contour!(r, z, PSI'; levels=[eqt.profiles_1d.psi[end]], color=:white, lw=2)
-                # display(p)
+                p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
+                contour!(r, z, PSI'; color=:white, levels=100)
+                contour!(r, z, PSI'; levels=[eqt.profiles_1d.psi[end]], color=:white, lw=2)
+                display(p)
                 error("IMAS: Could not trace closed flux surface $k out of $(length(eqt.profiles_1d.psi)) at ψ = $(psi_level)")
             end
             (pr, pz) = tmp[1]
@@ -1013,15 +1006,19 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; upsample_factor::Int=1) 
         eqt.profiles_1d.r_outboard[k] = max_r
         eqt.profiles_1d.r_inboard[k] = min_r
 
-        # miller geometric coefficients
-        _, _, κ, δu, δl, ζou, ζol, ζil, ζiu = miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+        # miller geometric coefficients (from MXH, for accuracy)
+        _, _, κ, δu, δl = miller_R_a_κ_δ(r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+        MXH!(mxh, pr, pz; rmin = min_r, rmax = max_r, zmin = min_z, zmax = max_z)
+        κ = mxh.κ
+        δ = sin(mxh.s[1])
+        ζ = -mxh.s[2]
         eqt.profiles_1d.elongation[k] = κ
         eqt.profiles_1d.triangularity_upper[k] = δu
         eqt.profiles_1d.triangularity_lower[k] = δl
-        eqt.profiles_1d.squareness_lower_outer[k] = ζol
-        eqt.profiles_1d.squareness_upper_outer[k] = ζou
-        eqt.profiles_1d.squareness_lower_inner[k] = ζil
-        eqt.profiles_1d.squareness_upper_inner[k] = ζiu
+        eqt.profiles_1d.squareness_lower_outer[k] = ζ
+        eqt.profiles_1d.squareness_upper_outer[k] = ζ
+        eqt.profiles_1d.squareness_lower_inner[k] = ζ
+        eqt.profiles_1d.squareness_upper_inner[k] = ζ
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
@@ -1497,17 +1494,27 @@ function x_points_inside_wall(x_points::IDSvector{T}, wall::IMAS.wall) where {T<
 end
 
 """
-    miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+    miller_R_a_κ_δ(r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
 
-Returns R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu of a contour
+Returns R0, a, κ, δu, δl given extrema
 """
-function miller_R_a_κ_δ_ζ(pr::Vector{T}, pz::Vector{T}, r_at_max_z::T, max_z::T, r_at_min_z::T, min_z::T, z_at_max_r::T, max_r::T, z_at_min_r::T, min_r::T) where {T<:Real}
+function miller_R_a_κ_δ(r_at_max_z::T, max_z::T, r_at_min_z::T, min_z::T, z_at_max_r::T, max_r::T, z_at_min_r::T, min_r::T) where {T<:Real}
     R0 = 0.5 * (max_r + min_r)
     a = 0.5 * (max_r - min_r)
     b = 0.5 * (max_z - min_z)
     κ = b / a
     δu = (R0 - r_at_max_z) / a
     δl = (R0 - r_at_min_z) / a
+    return R0, a, κ, δu, δl
+end
+
+"""
+    miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+
+Returns R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu of a contour
+"""
+function miller_R_a_κ_δ_ζ(pr::Vector{T}, pz::Vector{T}, r_at_max_z::T, max_z::T, r_at_min_z::T, min_z::T, z_at_max_r::T, max_r::T, z_at_min_r::T, min_r::T) where {T<:Real}
+    R0, a, κ, δu, δl = miller_R_a_κ_δ(r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
     ζou, ζol, ζil, ζiu = luce_squareness(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
     return R0, a, κ, δu, δl, ζou, ζol, ζil, ζiu
 end
