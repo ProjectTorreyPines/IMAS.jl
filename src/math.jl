@@ -87,7 +87,7 @@ function intersection_angles(
     path1_z::AbstractVector{T},
     path2_r::AbstractVector{T},
     path2_z::AbstractVector{T},
-    intersection_indexes::Vector{Tuple{Int,Int}};
+    intersection_indexes::Vector{StaticArrays.SVector{2, Int}};
     mod_pi::Bool=true
 ) where {T<:Real}
     n = length(intersection_indexes)
@@ -124,8 +124,8 @@ function intersection(
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T}) where {T<:Real}
 
-    indexes = NTuple{2,Int}[]
-    crossings = NTuple{2,T}[]
+    indexes = StaticArrays.SVector{2,Int}[]
+    crossings = StaticArrays.SVector{2,T}[]
 
     for k1 in 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
@@ -133,8 +133,9 @@ function intersection(
         for k2 in 1:(length(l2_x)-1)
             s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
-            crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
-            if crossing !== nothing
+            #crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
+            if _intersect(s1_s, s1_e, s2_s, s2_e)
+                crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e; does_intersect=true)
                 push!(indexes, (k1, k2))
                 push!(crossings, (crossing[1], crossing[2]))
             end
@@ -150,7 +151,7 @@ end
         l1_y::AbstractVector{T},
         l2_x::AbstractVector{T},
         l2_y::AbstractVector{T},
-        tolerance::Float64) where {T<:Real} 
+        tolerance::Float64) where {T<:Real}
 
 Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
 
@@ -168,8 +169,8 @@ function intersection(
     if all(k1 != 1 for (k1, k2) in indexes)
         for k2 in 1:(length(l2_x)-1)
             if point_to_segment_distance(l1_x[1], l1_y[1], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
-                pushfirst!(indexes, (1, k2))
-                pushfirst!(crossings, (l1_x[1], l1_y[1]))
+                pushfirst!(indexes, StaticArrays.SVector(1, k2))
+                pushfirst!(crossings, StaticArrays.SVector(l1_x[1], l1_y[1]))
                 break
             end
         end
@@ -178,8 +179,8 @@ function intersection(
     if all(k1 != length(l1_x) - 1 for (k1, k2) in indexes)
         for k2 in 1:(length(l2_x)-1)
             if point_to_segment_distance(l1_x[end], l1_y[end], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
-                push!(indexes, (length(l1_x) - 1, k2))
-                push!(crossings, (l1_x[end], l1_y[end]))
+                push!(indexes, StaticArrays.SVector(length(l1_x) - 1, k2))
+                push!(crossings, StaticArrays.SVector(l1_x[end], l1_y[end]))
                 break
             end
         end
@@ -213,20 +214,43 @@ function intersects(
     return false
 end
 
-function _ccw(A, B, C)
+@inline function _ccw(A, B, C)
     return (C[2] - A[2]) * (B[1] - A[1]) >= (B[2] - A[2]) * (C[1] - A[1])
 end
 
-function _intersect(A, B, C, D)
+@inline function _ccw(C_A, B_A)
+    return (C_A[2] * B_A[1]) >= (B_A[2] * C_A[1])
+end
+
+@inline function _out_of_bounds(A, B, C, D)
+    abxl, abxu = A[1] < B[1] ? (A[1], B[1]) : (B[1], A[1])
+    cdxl, cdxu = C[1] < D[1] ? (C[1], D[1]) : (D[1], C[1])
+    abyl, abyu = A[1] < B[1] ? (A[1], B[1]) : (B[1], A[1])
+    cdyl, cdyu = C[1] < D[1] ? (C[1], D[1]) : (D[1], C[1])
+    return (abxu < cdxl || abxl > cdxu || abyu < cdyl || abyl > cdyu)
+end
+
+@inline function _intersect(A, B, C, D)
+    _out_of_bounds(A, B, C, D) && return false
     return (_ccw(A, C, D) != _ccw(B, C, D)) && (_ccw(A, B, C) != _ccw(A, B, D))
 end
 
-function _perp(a)
-    return [-a[2], a[1]]
+@inline function _intersect(A::T, B::T, C::T, D::T) where {T<:StaticArrays.StaticVector{2, <:Real}}
+    _out_of_bounds(A, B, C, D) && return false
+    B_A = B - A
+    C_A = C - A
+    D_A = D - A
+    C_B = C - B
+    D_B = D - B
+    return (_ccw(D_A, C_A) != _ccw(D_B, C_B)) && (_ccw(C_A, B_A) != _ccw(D_A, B_A))
 end
 
-function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:Real}}
-    if !_intersect(a1, a2, b1, b2)
+@inline function _perp(a)
+    return StaticArrays.@SVector[-a[2], a[1]]
+end
+
+function _seg_intersect(a1::T, a2::T, b1::T, b2::T; does_intersect::Bool=_intersect(a1, a2, b1, b2)) where {T<:AbstractVector{<:Real}}
+    if !does_intersect
         return nothing
     end
     da = a2 - a1
@@ -253,26 +277,33 @@ function intersection_split(
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T}) where {T<:Real}
 
-    segments = []
     indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
+    segments = Vector{@NamedTuple{r::Vector{T}, z::Vector{T}}}(undef, max(length(indexes),1))
     if isempty(indexes)
-        push!(segments, (r=l1_x, z=l1_y))
+        segments[1] = (r=l1_x, z=l1_y)
     else
-        indexes1 = [indexes[k][1] for k in eachindex(indexes)]
-        indexes1 = [indexes1; indexes1[1] + length(l1_x)]
+        Nind = length(indexes)
+        indexes1 = [(k <= Nind ? indexes[k][1] : indexes[1][1] + length(l1_x)) for k in 1:Nind+1]
 
         for k in 1:length(indexes)
-            l1_x_tmp = getindex_circular.(Ref(l1_x), indexes1[k]+1:indexes1[k+1])
-            l1_y_tmp = getindex_circular.(Ref(l1_y), indexes1[k]+1:indexes1[k+1])
-
+            krange = indexes1[k]+1:indexes1[k+1]
+            Nk = length(krange)
             kk = k + 1
             if kk > length(crossings)
                 kk = kk - length(crossings)
             end
 
-            r = [crossings[k][1]; l1_x_tmp; crossings[kk][1]]
-            z = [crossings[k][2]; l1_y_tmp; crossings[kk][2]]
-            push!(segments, (r=r, z=z))
+            r = Vector{T}(undef, Nk + 2)
+            z = similar(r)
+
+            r[1], z[1] = crossings[k]
+            for (j, ind) in enumerate(krange)
+                r[j+1] = getindex_circular(l1_x, ind)
+                z[j+1] = getindex_circular(l1_y, ind)
+            end
+            r[end], z[end] = crossings[kk]
+
+            segments[k] = (r=r, z=z)
         end
     end
 
@@ -753,7 +784,7 @@ end
 
 Returns the gradient scale lengths of vector f on x
 
-The finite difference `method` of the gradient can be one of [:third_order, :second_order, :central, :backward, :forward]
+The finite difference `method` of the gradient can be one of [:backward, :central, :forward, :second_order, :third_order]
 
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
