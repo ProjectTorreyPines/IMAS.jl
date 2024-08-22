@@ -31,6 +31,35 @@ function ψ_interpolant(dd::IMAS.dd)
 end
 
 """
+    ρ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d{T}, phi_norm::T) where {T<:Real}
+
+Returns r, z, and ρ interpolant named tuple
+"""
+function ρ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d{T}, phi_norm::T) where {T<:Real}
+    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length(eqt2d.grid.dim1))
+    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length(eqt2d.grid.dim2))
+    return ρ_interpolant(r, z, sqrt.(eqt2d.phi./phi_norm))
+end
+
+function ρ_interpolant(r::AbstractRange{T}, z::AbstractRange{T}, rho::Matrix{T}) where {T<:Real}
+    RHO_interpolant = Interpolations.cubic_spline_interpolation((r, z), rho; extrapolation_bc=Interpolations.Line())
+    return (r=r, z=z, RHO_interpolant=RHO_interpolant)
+end
+
+function ρ_interpolant(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d{T}}, phi_norm::T) where {T<:Real}
+    eqt2d = findfirst(:rectangular, eqt2dv)
+    return ρ_interpolant(eqt2d, phi_norm)
+end
+
+function ρ_interpolant(eqt::IMAS.equilibrium__time_slice)
+    return ρ_interpolant(eqt.profiles_2d, eqt.profiles_1d.phi[end])
+end
+
+function ρ_interpolant(dd::IMAS.dd)
+    return ρ_interpolant(dd.equilibrium.time_slice[])
+end
+
+"""
     Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
 Returns Br and Bz named tuple evaluated at r and z starting from ψ interpolant
