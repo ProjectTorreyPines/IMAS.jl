@@ -68,51 +68,65 @@ function ion_element!(
     ion_symbol::Symbol;
     fast::Bool=false)
 
+    z_n, a, label = ion_properties(ion_symbol; fast)
+
     element = resize!(ion.element, 1)[1]
 
+    element.z_n = z_n
+    element.a = a
+    ion.label = label
+
+    return ion.element
+end
+
+
+"""
+    ion_properties( ion_symbol::Symbol; fast::Bool=false)
+
+Returns named tuple with z_n, a, and label information of a given ion
+"""
+function ion_properties( ion_symbol::Symbol; fast::Bool=false)
     # H isotopes
     if ion_symbol ∈ (:H, :H1)
-        element.z_n = 1.0
-        element.a = 1.00797
+        z_n = 1.0
+        a = 1.00797
         label = "H"
 
     elseif ion_symbol ∈ (:D, :H2)
-        element.z_n = 1.0
-        element.a = 2.014
+        z_n = 1.0
+        a = 2.014
         label = "D"
 
     elseif ion_symbol ∈ (:T, :H3)
-        element.z_n = 1.0
-        element.a = 3.016
+        z_n = 1.0
+        a = 3.016
         label = "T"
 
     elseif ion_symbol == :DT
-        element.z_n = 1.0
-        element.a = (2.014 + 3.016) / 2.0
+        z_n = 1.0
+        a = (2.014 + 3.016) / 2.0
         label = "DT"
 
     else
         # all other ions
         ion_name, ion_a = match(r"(.*?)(\d*)$", string(ion_symbol))
         element_ion = elements[Symbol(ion_name)]
-        element.z_n = float(element_ion.number)
+        z_n = float(element_ion.number)
         if isempty(ion_a)
-            element.a = element_ion.atomic_mass.val
+            a = element_ion.atomic_mass.val
         else
             z = element_ion.number
             n = parse(Int, ion_a) - z
-            element.a = atomic_mass(z, n)
+            a = atomic_mass(z, n)
         end
-        label = "$(ion_name)$(Int(floor(element.a)))"
+        label = "$(ion_name)$(Int(floor(a)))"
     end
 
     if fast
-        ion.label = "$(label)_fast"
-    else
-        ion.label = label
+        label = "$(label)_fast"
     end
 
-    return ion.element
+    return (z_n=z_n, a=a, label=label)
 end
 
 """
