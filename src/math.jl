@@ -87,7 +87,7 @@ function intersection_angles(
     path1_z::AbstractVector{T},
     path2_r::AbstractVector{T},
     path2_z::AbstractVector{T},
-    intersection_indexes::Vector{StaticArrays.SVector{2, Int}};
+    intersection_indexes::Vector{StaticArrays.SVector{2,Int}};
     mod_pi::Bool=true
 ) where {T<:Real}
     n = length(intersection_indexes)
@@ -235,7 +235,7 @@ end
     return (_ccw(A, C, D) != _ccw(B, C, D)) && (_ccw(A, B, C) != _ccw(A, B, D))
 end
 
-@inline function _intersect(A::T, B::T, C::T, D::T) where {T<:StaticArrays.StaticVector{2, <:Real}}
+@inline function _intersect(A::T, B::T, C::T, D::T) where {T<:StaticArrays.StaticVector{2,<:Real}}
     _out_of_bounds(A, B, C, D) && return false
     B_A = B - A
     C_A = C - A
@@ -278,7 +278,7 @@ function intersection_split(
     l2_y::AbstractVector{T}) where {T<:Real}
 
     indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
-    segments = Vector{@NamedTuple{r::Vector{T}, z::Vector{T}}}(undef, max(length(indexes),1))
+    segments = Vector{@NamedTuple{r::Vector{T}, z::Vector{T}}}(undef, max(length(indexes), 1))
     if isempty(indexes)
         segments[1] = (r=l1_x, z=l1_y)
     else
