@@ -229,7 +229,7 @@ end
     num_coils = sum(membership .== 3)
 
     # Pastel versions of red, green, and blue
-    markercolor = [Plots.Colors.colorant"#FFAAAA", Plots.Colors.colorant"#AAFFAA", Plots.Colors.colorant"#AAAAFF"]
+    markercolor = [PlotUtils.Colors.colorant"#FFAAAA", PlotUtils.Colors.colorant"#AAFFAA", PlotUtils.Colors.colorant"#AAAAFF"]
     markercolor = markercolor[membership]
     node_weights = [1.0, 0.25, 1.0]
     node_weights = node_weights[membership]

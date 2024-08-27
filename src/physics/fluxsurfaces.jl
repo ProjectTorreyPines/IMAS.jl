@@ -1,5 +1,4 @@
 using LinearAlgebra
-using Plots
 
 """
     ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
@@ -169,15 +168,15 @@ function find_psi_boundary(
     end
     psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
-    if verbose
-        @show psirange_init
-        plot(; aspect_ratio=:equal)
-        contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
-        if !isempty(fw_r)
-            plot!(fw_r, fw_z; color=:black, lw=2, label="")
-        end
-        display(plot!())
-    end
+    # if verbose
+    #     @show psirange_init
+    #     plot(; aspect_ratio=:equal)
+    #     contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
+    #     if !isempty(fw_r)
+    #         plot!(fw_r, fw_z; color=:black, lw=2, label="")
+    #     end
+    #     display(plot!())
+    # end
 
     # innermost tentative flux surface (which should be closed!)
     surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
@@ -188,12 +187,12 @@ function find_psi_boundary(
             return (last_closed=nothing, first_open=nothing)
         end
     end
-    if verbose
-        for surf in surface
-            plot!(surf.r, surf.z; color=:blue, label="")
-        end
-        display(plot!())
-    end
+    # if verbose
+    #     for surf in surface
+    #         plot!(surf.r, surf.z; color=:blue, label="")
+    #     end
+    #     display(plot!())
+    # end
 
     # outermost tentative flux surface (which should be open!)
     surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
@@ -263,15 +262,15 @@ function find_psi_boundary(
     end
     psirange_init = StaticArrays.@MVector[psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
-    if verbose
-        @show psirange_init
-        plot(; aspect_ratio=:equal)
-        contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
-        if !isempty(fw_r)
-            plot!(fw_r, fw_z; color=:black, lw=2, label="")
-        end
-        display(plot!())
-    end
+    # if verbose
+    #     @show psirange_init
+    #     plot(; aspect_ratio=:equal)
+    #     contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
+    #     if !isempty(fw_r)
+    #         plot!(fw_r, fw_z; color=:black, lw=2, label="")
+    #     end
+    #     display(plot!())
+    # end
 
     # innermost tentative flux surface (which should be closed!)
     surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
@@ -282,12 +281,12 @@ function find_psi_boundary(
             return (last_closed=nothing, first_open=nothing)
         end
     end
-    if verbose
-        for surf in surface
-            plot!(surf.r, surf.z; color=:blue, label="")
-        end
-        display(plot!())
-    end
+    # if verbose
+    #     for surf in surface
+    #         plot!(surf.r, surf.z; color=:blue, label="")
+    #     end
+    #     display(plot!())
+    # end
 
     # outermost tentative flux surface (which should be open!)
     surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
@@ -482,16 +481,16 @@ function find_psi_last_diverted(
     z_intersect = z_intersect[sortperm(angle)]
 
     # for safety, and to simplify eventual debugging
-    if length(r_intersect) != 2
-        plot(wall_r, wall_z)
-        for (r, z) in surface
-            @show point_to_path_distance(r[end], z[end], wall_r, wall_z)
-            plot!(r, z)
-        end
-        scatter!(r_intersect, z_intersect)
-        display(plot!())
-        @assert length(r_intersect) == 2
-    end
+    # if length(r_intersect) != 2
+    #     plot(wall_r, wall_z)
+    #     for (r, z) in surface
+    #         @show point_to_path_distance(r[end], z[end], wall_r, wall_z)
+    #         plot!(r, z)
+    #     end
+    #     scatter!(r_intersect, z_intersect)
+    #     display(plot!())
+    # end
+    @assert length(r_intersect) == 2
 
     # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
     # This is an approximation (should work except for exotic walls)
