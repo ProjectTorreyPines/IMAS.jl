@@ -770,9 +770,11 @@ end
 
 Plot build cross-section
 """
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
+@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, only=Symbol[], exclude_layers=Symbol[])
 
     @assert typeof(cx) <: Bool
+    @assert typeof(equilibrium) <: Bool
+    @assert typeof(pf_active) <: Bool
     @assert typeof(wireframe) <: Bool
     @assert typeof(only) <: AbstractVector{Symbol}
     @assert typeof(exclude_layers) <: AbstractVector{Symbol}
@@ -783,6 +785,14 @@ Plot build cross-section
 
     # cx
     if cx
+
+        if equilibrium
+            @series begin
+                cx := true
+                top_dd(bd).equilibrium
+            end
+        end
+
         rmax = maximum(bd.layer[end].outline.r)
 
         # everything after first vacuum in _out_
@@ -1001,6 +1011,13 @@ Plot build cross-section
             end
         end
 
+        if pf_active
+            @series begin
+                colorbar --> :false
+                xlim --> [0, rmax]
+                top_dd(bd).pf_active
+            end
+        end
 
     else  # not-cx
 
