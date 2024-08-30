@@ -1163,7 +1163,7 @@ end
         @series begin
             linewidth := 2
             color := :blue
-            label := "Total source"
+            name := "Total source"
             flux := true
             total_sources(dd; time0)
         end
@@ -1213,7 +1213,7 @@ end
                 color := color
                 markershape := markershape
                 title := "Electron energy flux"
-                label := :none
+                label := label
 
                 ct1d.electrons.energy, :flux
             end
@@ -1229,7 +1229,11 @@ end
                 color := color
                 markershape := markershape
                 title := "Ion energy flux"
-                label := label
+                if only !== nothing
+                    label := label
+                else
+                    label := :none
+                end
 
                 ct1d.total_ion_energy, :flux
             end
@@ -1245,7 +1249,11 @@ end
                 color := color
                 markershape := markershape
                 title := "Electron particle flux"
-                label := :none
+                if only !== nothing
+                    label := label
+                else
+                    label := :none
+                end
 
                 ct1d.electrons.particles, :flux
             end
@@ -1261,7 +1269,11 @@ end
                 color := color
                 markershape := markershape
                 title := "Toroidal momentum flux"
-                label := :none
+                if only !== nothing
+                    label := label
+                else
+                    label := :none
+                end
 
                 ct1d.momentum_tor, :flux
             end
@@ -1375,7 +1387,7 @@ end
     # electron energy
     if only === nothing || only == 1
         tot = 0.0
-        if !ismissing(cs1d.electrons, :energy) && !flux
+        if !ismissing(cs1d.electrons, :energy)
             tot = trapz(cs1d.grid.volume, cs1d.electrons.energy)
         end
         show_condition =
@@ -1393,7 +1405,6 @@ end
             if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d.electrons, :power_inside) && flux
-                    label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :energy)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
@@ -1467,7 +1478,6 @@ end
             if show_condition
                 label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
-                    label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :particles)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
@@ -1496,7 +1506,6 @@ end
             color := idx
             title --> "Momentum Tor"
             if !ismissing(cs1d, :torque_tor_inside)
-                label := :none
                 cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
             else
                 label := ""
