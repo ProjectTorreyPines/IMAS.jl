@@ -327,24 +327,17 @@ function Base.findfirst(identifier_name::Symbol, @nospecialize(ids::IDSvector))
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
-    elseif :grid_type in fieldnames(eltype(ids))
-        index = findfirst(idx -> idx.grid_type.index == i, ids)
-    elseif :type in fieldnames(eltype(ids))
-        index = findfirst(idx -> idx.type.index == i, ids)
-    elseif :function in fieldnames(eltype(ids))
-        index = findfirst(idx -> any(func.index == i for func in idx.function), ids)
-    elseif :geometry_type in fieldnames(eltype(ids))
-        index = findfirst(idx -> idx.geometry_type == i, ids)
-    elseif :identifier in fieldnames(eltype(ids))
-        index = findfirst(idx -> idx.identifier.index == i, ids)
-    else
-        index = findfirst(idx -> idx.index == i, ids)
     end
+    index = findfirst(i, ids)
     if index === nothing
         return nothing
     else
         return ids[index]
     end
+end
+
+function Base.findfirst(i::Int, @nospecialize(ids::IDSvector))
+    return findfirst(idx -> identifier_index(idx) == i, ids)
 end
 
 """
@@ -356,20 +349,17 @@ function Base.findall(identifier_name::Symbol, @nospecialize(ids::IDSvector))
     i = get(name_2_index(ids), identifier_name, nothing)
     if i === nothing
         error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
-    elseif :grid_type in fieldnames(eltype(ids))
-        indexes = findall(idx -> idx.grid_type.index == i, ids)
-    elseif :type in fieldnames(eltype(ids))
-        indexes = findall(idx -> idx.type.index == i, ids)
-    elseif :function in fieldnames(eltype(ids))
-        indexes = findall(idx -> any(func.index == i for func in idx.function), ids)
-    elseif :geometry_type in fieldnames(eltype(ids))
-        indexes = findall(idx -> idx.geometry_type == i, ids)
-    elseif :identifier in fieldnames(eltype(ids))
-        indexes = findall(idx -> idx.identifier.index == i, ids)
-    else
-        indexes = findall(idx -> idx.index == i, ids)
     end
-    return (ids[index] for index in indexes)
+    indexes = findall(i, ids)
+    if indexes === nothing
+        return nothing
+    else
+        return (ids[index] for index in indexes)
+    end
+end
+
+function Base.findall(i::Int, @nospecialize(ids::IDSvector))
+    return findall(idx -> identifier_index(idx) == i, ids)
 end
 
 """
