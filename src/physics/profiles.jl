@@ -79,13 +79,12 @@ function ion_element!(
     return ion.element
 end
 
-
 """
     ion_properties( ion_symbol::Symbol; fast::Bool=false)
 
 Returns named tuple with z_n, a, and label information of a given ion
 """
-function ion_properties( ion_symbol::Symbol; fast::Bool=false)
+function ion_properties(ion_symbol::Symbol; fast::Bool=false)
     # H isotopes
     if ion_symbol ∈ (:H, :H1)
         z_n = 1.0
@@ -101,6 +100,11 @@ function ion_properties( ion_symbol::Symbol; fast::Bool=false)
         z_n = 1.0
         a = 3.016
         label = "T"
+
+    elseif ion_symbol == :α
+        z_n = 2.0
+        a = 4.007
+        label = "α"
 
     elseif ion_symbol == :DT
         z_n = 1.0

@@ -14,6 +14,8 @@ Named tuple with physics constants:
     atm = 101325.0
     m_u = 1.6605390666e-27
     avog = 6.02214076e23
+    E_α = 3.518e6 [eV]
+    E_n = 14.072e6 [eV]
 """
 const constants = (
     μ_0=float(Float64, PCs.μ_0).val,
@@ -26,7 +28,9 @@ const constants = (
     m_n=float(Float64, PCs.m_n).val,
     atm=float(Float64, PCs.atm).val,
     m_u=float(Float64, PCs.m_u).val,
-    avog=float(Float64, PCs.AvogadroConstant).val
+    avog=float(Float64, PCs.AvogadroConstant).val,
+    E_α=3.518e6,
+    E_n=14.072e6
 )
 
 const index_2_name__core_transport__model = Dict(
