@@ -468,11 +468,13 @@ NOTE: The core value is allowed to float
 :param width: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
-
     @assert expin >= 0.0
     @assert expout >= 0.0
 
+    NN = 10 # supersampling to improve accuracy of polynomial integration
+    ngrid0 = ngrid * NN
     xpsi = range(0.0, 1.0, ngrid)
+    xpsi0 = range(0.0, 1.0, ngrid0)
 
     w_E1 = 0.5 * widthp  # width as defined in eped
     xphalf = 1.0 - w_E1
@@ -480,14 +482,14 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
 
     # edge tanh part
-    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi0 - xphalf) / w_E1) - pconst) + edge
 
     # core tanh+polynomial part
     xped = xphalf - w_E1
-    xtoped = xpsi ./ xped
+    xtoped = xpsi0 ./ xped
     integral = 0.0
     factor = Inf
-    for i in ngrid:-1:1
+    for i in ngrid0:-1:1
         if xtoped[i] < 1.0
             @inbounds val[i] += integral
             if i > 1
@@ -504,7 +506,7 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
         end
     end
 
-    return val
+    return interp1d(xpsi0, val, :linear).(xpsi)
 end
 
 function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
@@ -852,7 +854,7 @@ end
 Returns average ionization state of an ion at a given temperature
 """
 function avgZ(Z::Float64, Ti::T)::T where {T}
-    func = avgZinterpolator(joinpath(@__DIR__, ".." , "..", "data", "Zavg_z_t.dat"))
+    func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
 end
 
