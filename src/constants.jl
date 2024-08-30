@@ -425,3 +425,18 @@ function Base.deleteat!(@nospecialize(ids::T), identifier_name::Symbol, conditio
         return deleteat!(ids, "index" => i, conditions...)
     end
 end
+
+function Base.getindex(ids::IDSvector, identifier_name::Symbol)
+    i = get(name_2_index(ids), identifier_name, nothing)
+    if i === nothing
+        error("`$(repr(identifier_name))` is not a known identifier for dd.$(fs2u(eltype(ids))). Possible options are $(collect(values(index_2_name(ids))))")
+    end
+    indexes = findall(i, ids)
+    if indexes === nothing
+        return nothing
+    elseif length(indexes) > 1
+        error("`$(repr(identifier_name))` returned more than one element from the the `dd.$(location(ids))` vector: $indexes")
+    else
+        return ids[indexes[1]]
+    end
+end
