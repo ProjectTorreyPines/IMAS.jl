@@ -188,7 +188,7 @@ end
     end
 end
 
-@recipe function plot_circuit(circuit::IMAS.pf_active__circuit, supplies_labels::Vector{String}, coils_labels::Vector{String}, )
+@recipe function plot_circuit(circuit::IMAS.pf_active__circuit, supplies_labels::Vector{String}, coils_labels::Vector{String})
     title_str = circuit.name
     conn_matrix = circuit.connections
     num_supplies = length(supplies_labels)
@@ -1214,6 +1214,8 @@ end
                 markershape := markershape
                 title := "Electron energy flux"
                 label := label
+                normalization := 1E-6
+                ylabel := "[MW/m²]"
 
                 ct1d.electrons.energy, :flux
             end
@@ -1234,6 +1236,8 @@ end
                 else
                     label := :none
                 end
+                normalization := 1E-6
+                ylabel := "[MW/m²]"
 
                 ct1d.total_ion_energy, :flux
             end
@@ -1405,7 +1409,7 @@ end
             if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d.electrons, :power_inside) && flux
-                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
+                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end] / 1E6
                 elseif !integrated && !ismissing(cs1d.electrons, :energy)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
@@ -1443,7 +1447,7 @@ end
             if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
-                    cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
+                    cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end] / 1E6
                 elseif !integrated && !ismissing(cs1d, :total_ion_energy)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
