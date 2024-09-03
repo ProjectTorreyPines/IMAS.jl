@@ -22,24 +22,28 @@ end
 Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
 """
 function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
-    eqt = eq.time_slice[cp1d.time]
-    eq1d = eqt.profiles_1d
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, cp1d.time, :constant)
+    Ip = trapz(cp1d.grid.area, cp1d.j_tor)
+
     if thermal
         pressure = cp1d.pressure_thermal
     else
         pressure = cp1d.pressure
     end
-    rho = cp1d.grid.rho_tor_norm
-    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time, :constant)
-    Ip = eqt.global_quantities.ip
-    volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
-    pressure_avg = trapz(volume_cp, pressure) / volume_cp[end]
+
+    volume = cp1d.grid.volume
+    pressure_avg = trapz(volume, pressure) / volume[end]
+
     beta_tor = 2.0 * constants.μ_0 * pressure_avg / B0^2
+
     if norm
-        return beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
+        eqt = eq.time_slice[cp1d.time]
+        out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
     else
-        return beta_tor
+        out = beta_tor
     end
+
+    return out
 end
 
 function ion_element!(
