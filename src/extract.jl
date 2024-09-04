@@ -59,7 +59,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> greenwald_fraction(dd))
     ExtractLibFunction(:densities, :zeff_ped, "-", dd -> @ddtime(dd.summary.local.pedestal.zeff.value))
     ExtractLibFunction(:densities, Symbol("<zeff>"), "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
-
+    ExtractLibFunction(:densities, :impurities, "-", dd -> join([ion.label for ion in dd.core_profiles.profiles_1d[].ion], " "))
+    
     ExtractLibFunction(:pressures, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
     ExtractLibFunction(:pressures, Symbol("<P>"), "MPa", dd -> begin
         cp1d = dd.core_profiles.profiles_1d[]
@@ -143,6 +144,9 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:constraint, :max_pl_stress, "-", dd -> CFL[:max_pl_stress](dd))
     ExtractLibFunction(:constraint, :max_tf_stress, "-", dd -> CFL[:max_tf_stress](dd))
     ExtractLibFunction(:constraint, :max_oh_stress, "-", dd -> CFL[:max_oh_stress](dd))
+    ExtractLibFunction(:constraint, :max_βn, "-", dd -> CFL[:max_βn](dd))
+    ExtractLibFunction(:constraint, :max_Psol_R, "-", dd -> CFL[:max_Psol_R](dd))
+    ExtractLibFunction(:constraint, :min_lh_power_threshold, "-", dd -> CFL[:min_lh_power_threshold](dd))    
 
     ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
     ExtractLibFunction(:constraint, :required_power_electric_net, "-", dd -> CFL[:required_power_electric_net](dd))
