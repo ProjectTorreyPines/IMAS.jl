@@ -475,10 +475,7 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     @assert expin >= 0.0
     @assert expout >= 0.0
 
-    NN = 10 # supersampling to improve accuracy of polynomial integration
-    ngrid0 = ngrid * NN
     xpsi = range(0.0, 1.0, ngrid)
-    xpsi0 = range(0.0, 1.0, ngrid0)
 
     w_E1 = 0.5 * widthp  # width as defined in eped
     xphalf = 1.0 - w_E1
@@ -486,31 +483,16 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
 
     # edge tanh part
-    val = @. 0.5 * a_t * (1.0 - tanh((xpsi0 - xphalf) / w_E1) - pconst) + edge
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge
 
     # core tanh+polynomial part
     xped = xphalf - w_E1
-    xtoped = xpsi0 ./ xped
-    integral = 0.0
-    factor = Inf
-    for i in ngrid0:-1:1
-        if xtoped[i] < 1.0
-            @inbounds val[i] += integral
-            if i > 1
-                factor = min(factor, val[i])
-                xi = (xtoped[i] + xtoped[i-1]) / 2.0
-                dx = (xtoped[i] - xtoped[i-1])
-                if expin == 0.0
-                    v1 = 0.0
-                else
-                    v1 = expin * expout * xi^(expin - 1.0) * (1.0 - xi^expin)^(expout - 1.0)
-                end
-                integral += v1 * dx * factor
-            end
-        end
-    end
+    xtoped = xpsi ./ xped
+    factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / w_E1) - pconst) + edge
+    index = xtoped .< 1.0
+    val[index] += factor .* (1.0 .- xtoped[index] .^ expin) .^ expout
 
-    return interp1d(xpsi0, val, :linear).(xpsi)
+    return val
 end
 
 function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
