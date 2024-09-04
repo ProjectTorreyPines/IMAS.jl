@@ -46,7 +46,7 @@ function blend_core_edge_EPED(
 
     # we avoid integ_z in the core region to avoid drift of profiles
     # when calling blend_core_edge_EPED multiple times
-    profile_new[1:inml] = profile[1:inml] .- profile[inml+1] .+ profile_new[inml+1]
+    profile_new[1:inml-1] = profile[1:inml-1] .- profile[inml] .+ profile_new[inml]
 
     return profile_new
 end
@@ -90,7 +90,7 @@ function blend_core_edge_Hmode(
     z_profile = -calc_z(rho, profile, :backward)
     rho_targets = [tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
-    
+
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
     x_guess = [1.0, 1.0]
     res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, z_targets, rho_targets), x_guess, Optim.NelderMead())
