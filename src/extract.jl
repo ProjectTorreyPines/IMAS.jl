@@ -58,7 +58,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> greenwald_fraction(dd))
     ExtractLibFunction(:densities, :zeff_ped, "-", dd -> @ddtime(dd.summary.local.pedestal.zeff.value))
     ExtractLibFunction(:densities, Symbol("<zeff>"), "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
-    ExtractLibFunction(:densities, :impurities, "-", dd -> dd_impurities_to_string(dd))
+    ExtractLibFunction(:densities, :impurities, "-", dd -> join([ion.label for ion in dd.core_profiles.profiles_1d[].ion], " "))
     
     ExtractLibFunction(:pressures, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
     ExtractLibFunction(:pressures, Symbol("<P>"), "MPa", dd -> begin
