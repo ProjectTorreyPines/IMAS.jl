@@ -3,6 +3,11 @@ import ExpiringCaches
 import FuseExchangeProtocol as FXP
 
 """
+Manually set service information e.g. FXP_CONTROLLERS["ip"] = Dict("service_name"=>"ip_control","session_id"=>"matlab")
+"""
+FXP_CONTROLLERS = Dict()
+
+"""
     controller(ct::IMAS.controllers, name::String)
 
 Pick a controller based on its name
@@ -75,14 +80,22 @@ end
 
 function fxp_request_service(controller::controllers__linear_controller)::Bool
     controller.description = "fxp_serviced"
+    if controller.name in keys(FXP_CONTROLLERS)
+        return true
+    end
     return fxp_request_service(top_dd(controller), "$(controller.name)_control")
 end
 
 function fxp_controller(controller::controllers__linear_controller, timeout::Float64; kw...)
     dd = top_dd(controller)
     client = fxp_client(dd)
-    session_id = fxp_identifier(dd)
-    service_name = "$(controller.name)_control"
+    if controller.name in keys(FXP_CONTROLLERS)
+        service_name = FXP_CONTROLLERS[controller.name]["service_name"]
+        session_id = FXP_CONTROLLERS[controller.name]["session_id"]
+    else
+        service_name = "$(controller.name)_control"
+        session_id = fxp_identifier(dd)
+    end
     FXP.json_push(client, session_id, service_name, :requestor; kw...)
     return FXP.json_pop(client, session_id, service_name, :requestor; timeout)[:control]
 end
@@ -90,6 +103,9 @@ end
 ExpiringCaches.@cacheable Dates.Second(1) function fxp_has_controller(controller::controllers__linear_controller)::Bool
     if ismissing(controller, :description) || controller.description != "fxp_serviced"
         return false
+    end
+    if controller.name in keys(FXP_CONTROLLERS)
+        return true
     end
     dd = top_dd(controller)
     if dd === nothing
