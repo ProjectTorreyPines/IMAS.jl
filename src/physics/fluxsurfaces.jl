@@ -867,13 +867,13 @@ function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolatio
 end
 
 """
-    flux_surfaces(eq::equilibrium)
+    flux_surfaces(eq::equilibrium{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
 
 Update flux surface averaged and geometric quantities in the equilibrium IDS
 """
-function flux_surfaces(eq::equilibrium)
+function flux_surfaces(eq::equilibrium{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
     for time_index in eachindex(eq.time_slice)
-        flux_surfaces(eq.time_slice[time_index])
+        flux_surfaces(eq.time_slice[time_index], wall_r, wall_z)
     end
     return eq
 end
@@ -917,12 +917,11 @@ function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, ZA:
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice{T}; wall=top_dd(eqt).wall) where {T<:Real}
+    flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice.
 """
-function flux_surfaces(eqt::equilibrium__time_slice{T}; wall=top_dd(eqt).wall) where {T<:Real}
-    fw = IMAS.first_wall(wall)
+function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     PSI = eqt2d.psi
@@ -942,9 +941,9 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; wall=top_dd(eqt).wall) w
     psi_axis = PSI_interpolant(RA, ZA)
     original_psi_boundary = eqt.profiles_1d.psi[end]
     psi_boundaries =
-        find_psi_boundary(r, z, PSI, psi_axis, original_psi_boundary, RA, ZA, fw.r, fw.z; PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+        find_psi_boundary(r, z, PSI, psi_axis, original_psi_boundary, RA, ZA, wall_r, wall_z; PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
 
-    find_strike_points!(eqt, fw.r, fw.z, psi_boundaries.first_open)
+    find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.first_open)
     eqt.profiles_1d.psi =
         (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
 
@@ -1001,7 +1000,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; wall=top_dd(eqt).wall) w
 
         else  # other flux surfaces
             # trace flux surface
-            tmp = flux_surface(r, z, PSI, RA, ZA, fw.r, fw.z, psi_level, :closed)
+            tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi_level, :closed)
             if isempty(tmp)
                 # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
                 # contour!(r, z, PSI'; color=:white, levels=100)
@@ -1237,12 +1236,12 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}; wall=top_dd(eqt).wall) w
     eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
 
     # find quantities on separatrix
-    find_x_point!(eqt, fw.r, fw.z)
+    find_x_point!(eqt, wall_r, wall_z)
 
     # secondary separatrix
     if length(eqt.boundary.x_point) > 1
-        psi2nd = find_psi_2nd_separatrix(eqt, fw.r, fw.z)
-        tmp = flux_surface(r, z, PSI, RA, ZA, fw.r, fw.z, psi2nd, :encircling)
+        psi2nd = find_psi_2nd_separatrix(eqt, wall_r, wall_z)
+        tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
         if !isempty(tmp)
             (pr2nd, pz2nd) = tmp[1]
             eqt.boundary_secondary_separatrix.outline.r = pr2nd

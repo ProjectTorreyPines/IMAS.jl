@@ -12,7 +12,8 @@ end
 
     dd_orig = deepcopy(dd)
 
-    IMAS.flux_surfaces(dd.equilibrium)
+    fw = IMAS.first_wall(dd.wall)
+    IMAS.flux_surfaces(dd.equilibrium, fw.r, fw.z)
 
     ids_orig = dd_orig.equilibrium
     ids = dd.equilibrium
