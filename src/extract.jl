@@ -8,11 +8,12 @@ mutable struct ExtractFunction
     name::Symbol
     units::String
     func::Function
+    error::Union{Nothing,Exception}
     value::Any
 end
 
 function ExtractFunction(group::Symbol, name::Symbol, units::String, func::Function)
-    return ExtractFunction(group, name, units, func, NaN)
+    return ExtractFunction(group, name, units, func, nothing, NaN)
 end
 
 function ExtractLibFunction(group::Symbol, name::Symbol, units::String, func::Function)
@@ -166,8 +167,10 @@ NOTE: NaN is assigned on error
 """
 function (xfun::ExtractFunction)(dd::IMAS.dd)
     try
+        xfun.error = nothing
         return xfun.func(dd)
     catch e
+        xfun.error = e
         return NaN
     end
 end
@@ -219,20 +222,22 @@ function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,Extr
     return print_tiled(io, xtract; terminal_width)
 end
 
-function print_vertical(io, xtract::AbstractDict{Symbol,ExtractFunction})
+function print_vertical(xtract::AbstractDict{Symbol,ExtractFunction})
+    print_vertical(stdout, xtract)
+end
+
+function print_vertical(io::IO, xtract::AbstractDict{Symbol,ExtractFunction})
     last_group = ""
     for xfun in values(xtract)
-        if !isnan(xfun.value)
-            if last_group != xfun.group
-                if last_group != ""
-                    printstyled(io, "\n"; bold=true)
-                end
-                printstyled(io, "$(xfun.group)\n"; bold=true)
-                last_group = xfun.group
+        if last_group != xfun.group
+            if last_group != ""
+                printstyled(io, "\n"; bold=true)
             end
-            show(io, xfun; group=false, indent=4)
-            println(io, "")
+            printstyled(io, "$(xfun.group)\n"; bold=true)
+            last_group = xfun.group
         end
+        show(io, xfun; group=false, indent=4)
+        println(io, "")
     end
 end
 
@@ -243,13 +248,11 @@ end
 function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char::Char='─')
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
     for xfun in values(xtract)
-        #if !isnan(xfun.value)
         group = xfun.group
         if group ∉ keys(lists)
             lists[group] = ExtractFunction[]
         end
         push!(lists[group], xfun)
-        #end
     end
 
     if isempty(lists)
