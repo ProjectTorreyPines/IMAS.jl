@@ -104,8 +104,10 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
     end
 
     if oh_does_shaping === false
-        for coil in findall(:flux, coils)
-            deleteat!(coil.function, :shaping)
+        for coil in coils
+            if !isempty(findall(:flux, coil.function))
+                deleteat!(coil.function, :shaping)
+            end
         end
     end
 
