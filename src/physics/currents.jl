@@ -41,11 +41,7 @@ end
 Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
 """
 function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
-    cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d, Ip)
-    # empty j_total and j_tor to turn them into expressions and make sure things are self-consistent
-    empty!(cp1d, :j_total)
-    empty!(cp1d, :j_tor)
-    return nothing
+    return cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d, Ip)
 end
 
 """
