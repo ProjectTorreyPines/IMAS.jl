@@ -157,7 +157,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
         end
     else
         # SOL without wall
-        psi_wall_midplane = find_psi_max(eqt)
+        psi_wall_midplane = find_psi_max(eqt, wall_r, wall_z)
         psi_last_lfs = psi__boundary_level
         psi_first_lfs_far = psi__boundary_level .+ 1E-5
         threshold = psi__2nd_separatix

@@ -706,18 +706,18 @@ end
 
 """
     find_psi_max(
-        eqt::IMAS.equilibrium__time_slice{T};
-        precision::Float64=1e-2,
+        eqt::IMAS.equilibrium__time_slice{T},
         wall_r::AbstractVector{T},
-        wall_z::AbstractVector{T}) where {T<:Real}
+        wall_z::AbstractVector{T};
+        precision::Float64=1e-2) where {T<:Real}
 
 Returns the max psi useful for an ofl in the SOL with no wall.
 """
 function find_psi_max(
-    eqt::IMAS.equilibrium__time_slice{T};
-    precision::Float64=1e-2,
+    eqt::IMAS.equilibrium__time_slice{T},
     wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T}) where {T<:Real}
+    wall_z::AbstractVector{T};
+    precision::Float64=1e-2) where {T<:Real}
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     RA = eqt.global_quantities.magnetic_axis.r
