@@ -1054,36 +1054,28 @@ end
 """
     open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
 
-Convert a closed polygon into an open polygon by removing the last vertex if it is the same as the first.
+Returns a view of the vectors R and Z such that they are a open polygon
 
-Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
 """
 function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
-    if is_open_polygon(R, Z)
-        was_closed = false
-    else
-        was_closed = true
-        R = R[1:end-1]
-        Z = Z[1:end-1]
-    end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
+    was_open = is_open_polygon(R, Z)
+    R = OutlineOpenVector(R, was_open)
+    Z = OutlineOpenVector(Z, was_open)
+    return (was_closed=!was_open, was_open=was_open, R=R, Z=Z, r=R, z=Z)
 end
 
 """
     closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
 
-Convert an open polygon into a closed polygon by adding the first vertex to the end if it is not already closed.
+Returns a view of the vectors R and Z such that they are a closed polygon
 
-Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
 """
 function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
-    if is_open_polygon(R, Z)
-        was_closed = false
-        R = [R; R[1]]
-        Z = [Z; Z[1]]
-    else
-        was_closed = true
-    end
+    was_closed = is_closed_polygon(R, Z)
+    R = OutlineClosedVector(R, was_closed)
+    Z = OutlineClosedVector(Z, was_closed)
     return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
 
@@ -1094,9 +1086,9 @@ Returns a closed polygon depending on `closed`
 """
 function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
     if is_open_polygon(R, Z) && closed
-        was_closed = false
-        R = [R; R[1]]
-        Z = [Z; Z[1]]
+        was_closed = is_closed_polygon(R, Z)
+        R = OutlineClosedVector(R, was_closed)
+        Z = OutlineClosedVector(Z, was_closed)
     else
         was_closed = true
     end

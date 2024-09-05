@@ -35,8 +35,8 @@ end
     particle_HF(
         eqt::IMAS.equilibrium__time_slice, 
         SOL::OrderedCollections.OrderedDict{Symbol, Vector{OpenFieldLine}}, 
-        wall_r::Vector{<:Real}, 
-        wall_z::Vector{<:Real}, 
+        wall_r::AbstractVector{<:Real}, 
+        wall_z::AbstractVector{<:Real}, 
         r::Vector{<:Real}, 
         q::Vector{<:Real}; 
         merge_wall::Bool = true)
@@ -47,8 +47,8 @@ the Scrape Off-Layer, the wall, and an hypothesis of the decay of the parallel h
 function particle_HF(
     eqt::IMAS.equilibrium__time_slice,
     SOL::OrderedCollections.OrderedDict{Symbol,Vector{OpenFieldLine}},
-    wall_r::Vector{<:Real},
-    wall_z::Vector{<:Real},
+    wall_r::AbstractVector{<:Real},
+    wall_z::AbstractVector{<:Real},
     r::Vector{<:Real},
     q::Vector{<:Real};
     merge_wall::Bool=true)
@@ -358,8 +358,8 @@ end
         psi::Vector{<:Real}, 
         source_1d::Vector{<:Real}, 
         N::Int,
-        wall_r::Vector{<:Real}, 
-        wall_z::Vector{<:Real},
+        wall_r::AbstractVector{<:Real}, 
+        wall_z::AbstractVector{<:Real},
         Prad_core::Float64)
 """
 function core_radiation_HF(
@@ -367,8 +367,8 @@ function core_radiation_HF(
     psi::Vector{<:Real},
     source_1d::Vector{<:Real},
     N::Int,
-    wall_r::Vector{<:Real},
-    wall_z::Vector{<:Real},
+    wall_r::AbstractVector{<:Real},
+    wall_z::AbstractVector{<:Real},
     Prad_core::Float64)
 
     photons, W_per_trace, dr, dz = define_particles(eqt, psi, source_1d, N)
