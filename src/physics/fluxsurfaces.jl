@@ -117,8 +117,8 @@ end
 """
     find_psi_boundary(
         eqt::IMAS.equilibrium__time_slice{T},
-        wall_r::Vector{T},
-        wall_z::Vector{T};
+        wall_r::AbstractVector{T},
+        wall_z::AbstractVector{T};
         precision::Float64=1e-6,
         raise_error_on_not_open::Bool=true,
         raise_error_on_not_closed::Bool=true
@@ -130,8 +130,8 @@ Results are returned as a named tuple `(last_closed=..., first_open=...)`
 """
 function find_psi_boundary(
     eqt::IMAS.equilibrium__time_slice{T},
-    wall_r::Vector{T},
-    wall_z::Vector{T};
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T};
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool=true,
     raise_error_on_not_closed::Bool=true
@@ -348,7 +348,13 @@ end
 
 Returns psi of the second magentic separatrix. This relies only on eqt and finds the 2nd sep geometrically.
 """
-function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}, wall_r::Vector{T}, wall_z::Vector{T}; type::Symbol=:not_diverted, precision::Float64=1E-7) where {T<:Real}
+function find_psi_2nd_separatrix(
+    eqt::IMAS.equilibrium__time_slice{T},
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T};
+    type::Symbol=:not_diverted,
+    precision::Float64=1E-7
+) where {T<:Real}
     psi_separatrix = eqt.profiles_1d.psi[end]
     surface = flux_surface(eqt, psi_separatrix, :open, wall_r, wall_z)
 
@@ -419,8 +425,8 @@ end
 """
     find_psi_last_diverted(
         eqt::IMAS.equilibrium__time_slice,
-        wall_r::Vector{<:Real},
-        wall_z::Vector{<:Real},
+        wall_r::AbstractVector{<:Real},
+        wall_z::AbstractVector{<:Real},
         PSI_interpolant::Interpolations.AbstractInterpolation;
         precision::Float64=1e-7)
 
@@ -432,8 +438,8 @@ Precision between the two is defined on the poloidal crossection area at the OMP
 """
 function find_psi_last_diverted(
     eqt::IMAS.equilibrium__time_slice,
-    wall_r::Vector{<:Real},
-    wall_z::Vector{<:Real},
+    wall_r::AbstractVector{<:Real},
+    wall_z::AbstractVector{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation;
     precision::Float64=1e-7)
 
@@ -614,8 +620,8 @@ end
 """
     find_psi_tangent_omp(
         eqt::IMAS.equilibrium__time_slice,
-        wall_r::Vector{<:Real},
-        wall_z::Vector{<:Real},
+        wall_r::AbstractVector{<:Real},
+        wall_z::AbstractVector{<:Real},
         PSI_interpolant::Interpolations.AbstractInterpolation;
         precision::Float64=1e-7)
 
@@ -623,8 +629,8 @@ Returns the psi of the magnetic surface in the SOL which is tangent to the wall 
 """
 function find_psi_tangent_omp(
     eqt::IMAS.equilibrium__time_slice,
-    wall_r::Vector{<:Real},
-    wall_z::Vector{<:Real},
+    wall_r::AbstractVector{<:Real},
+    wall_z::AbstractVector{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation;
     precision::Float64=1e-7)
 
@@ -700,18 +706,18 @@ end
 
 """
     find_psi_max(
-        eqt::IMAS.equilibrium__time_slice{T};
-        precision::Float64=1e-2,
-        wall_r::Vector{T},
-        wall_z::Vector{T}) where {T<:Real}
+        eqt::IMAS.equilibrium__time_slice{T},
+        wall_r::AbstractVector{T},
+        wall_z::AbstractVector{T};
+        precision::Float64=1e-2) where {T<:Real}
 
 Returns the max psi useful for an ofl in the SOL with no wall.
 """
 function find_psi_max(
-    eqt::IMAS.equilibrium__time_slice{T};
-    precision::Float64=1e-2,
-    wall_r::Vector{T},
-    wall_z::Vector{T}) where {T<:Real}
+    eqt::IMAS.equilibrium__time_slice{T},
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T};
+    precision::Float64=1e-2) where {T<:Real}
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     RA = eqt.global_quantities.magnetic_axis.r
@@ -824,15 +830,15 @@ end
 """
     find_psi_wall_omp(
         eqt::IMAS.equilibrium__time_slice,
-        wall_r::Vector{<:Real},
-        wall_z::Vector{<:Real})
+        wall_r::AbstractVector{<:Real},
+        wall_z::AbstractVector{<:Real})
 
 Returns the psi of the magnetic surface in the SOL which intersects the wall at the outer midplane
 """
 function find_psi_wall_omp(
     eqt::IMAS.equilibrium__time_slice,
-    wall_r::Vector{<:Real},
-    wall_z::Vector{<:Real})
+    wall_r::AbstractVector{<:Real},
+    wall_z::AbstractVector{<:Real})
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
@@ -847,8 +853,8 @@ function find_psi_wall_omp(
     PSI_interpolant::Interpolations.AbstractInterpolation,
     RA::T1,
     ZA::T1,
-    wall_r::Vector{T2},
-    wall_z::Vector{T2}) where {T1<:Real,T2<:Real}
+    wall_r::AbstractVector{T2},
+    wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
 
     crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
@@ -867,11 +873,11 @@ function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolatio
 end
 
 """
-    flux_surfaces(eq::equilibrium{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+    flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
 Update flux surface averaged and geometric quantities in the equilibrium IDS
 """
-function flux_surfaces(eq::equilibrium{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+function flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     for time_index in eachindex(eq.time_slice)
         flux_surfaces(eq.time_slice[time_index], wall_r, wall_z)
     end
@@ -917,11 +923,11 @@ function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, ZA:
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+    flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice.
 """
-function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     PSI = eqt2d.psi
@@ -1253,7 +1259,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::Vector{T}, wall_
 end
 
 """
-    flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+    flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
 Returns a vector with the (r,z) coordiates of flux surface at given psi_level
 
@@ -1265,7 +1271,7 @@ The `type` parameter:
   - :open_no_wall, all open flux-surfaces independently of wall
   - :encircling, open flux-surfaces encircling the magnetic axis
 """
-function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     dim1 = IMAS.to_range(eqt2d.grid.dim1)
     dim2 = IMAS.to_range(eqt2d.grid.dim2)
@@ -1423,11 +1429,11 @@ function cumlul_surface_integrate(eqt::IMAS.equilibrium__time_slice, what::Abstr
 end
 
 """
-    find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+    find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
 Find the `n` X-points that are closest to the separatrix
 """
-function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::Vector{T}, wall_z::Vector{T}) where {T<:Real}
+function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     ((rlcfs, zlcfs),) = flux_surface(eqt, eqt.profiles_1d.psi[end], :closed, wall_r, wall_z)
     private = flux_surface(eqt, eqt.profiles_1d.psi[end], :open, wall_r, wall_z)
     Z0 = sum(zlcfs) / length(zlcfs)

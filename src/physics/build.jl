@@ -271,13 +271,13 @@ end
 """
     first_wall(wall::IMAS.wall)
 
-returns named tuple with (closed) outline of first wall, or an empty outline if not present
+returns named tuple with outline of first wall, or an empty outline if not present
 """
 function first_wall(wall::IMAS.wall{T}) where {T<:Real}
     if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
         outline = wall.description_2d[1].limiter.unit[1].outline
         tmp = closed_polygon(outline.r, outline.z)
-        return (r=tmp.R, z=tmp.Z)
+        return (r=tmp.r, z=tmp.z)
     else
         return (r=Float64[], z=Float64[])
     end
