@@ -590,6 +590,18 @@ dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
 dyexp["pulse_schedule.tf.time"] =
     (time; dd, _...) ->  dd.equilibrium.time
 
+#= ==== =#
+#  risk  #
+#= ==== =#
+dyexp["risk.engineering.loss[:].risk"] = 
+    (; loss, _...) -> loss.probability * loss.severity 
+
+dyexp["risk.plasma.risk"] = 
+    (; dd, _...) -> isempty(dd.risk.plasma) ? 0.0 : sum(loss.risk for loss in dd.risk.plasma.loss)    
+
+dyexp["risk.engineering.risk"] = 
+    (; dd, _...) -> isempty(dd.risk.engineering) ? 0.0 : sum(loss.risk for loss in dd.risk.engineering.loss)
+
 #= ========= =#
 #  stability  #
 #= ========= =#

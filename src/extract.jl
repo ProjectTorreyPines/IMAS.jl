@@ -127,10 +127,10 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:build, :OH_stress_margin, "-", dd -> dd.solid_mechanics.center_stack.properties.yield_strength.oh/maximum(dd.solid_mechanics.center_stack.stress.vonmises.oh))
 
     ExtractLibFunction(:costing, :levelized_CoE, "\$/kWh", dd -> dd.costing.levelized_CoE)
-    ExtractLibFunction(:costing, :TF_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"TF") / dd.costing.cost_direct_capital.cost)
-    ExtractLibFunction(:costing, :BOP_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"balance of plant equipment") / dd.costing.cost_direct_capital.cost)
-    ExtractLibFunction(:costing, :blanket_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"blanket") / dd.costing.cost_direct_capital.cost)
-    ExtractLibFunction(:costing, :cryostat_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"cryostat") / dd.costing.cost_direct_capital.cost)
+    ExtractLibFunction(:costing, :TF_of_total, "%", dd -> 100 * select_direct_capital_cost(dd,"TF") / dd.costing.cost_direct_capital.cost)
+    ExtractLibFunction(:costing, :BOP_of_total, "%", dd -> 100 * select_direct_capital_cost(dd,"balance of plant equipment") / dd.costing.cost_direct_capital.cost)
+    ExtractLibFunction(:costing, :blanket_of_total, "%", dd -> 100 * select_direct_capital_cost(dd,"blanket") / dd.costing.cost_direct_capital.cost)
+    ExtractLibFunction(:costing, :cryostat_of_total, "%", dd -> 100 * select_direct_capital_cost(dd,"cryostat") / dd.costing.cost_direct_capital.cost)
 
     ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
     ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
@@ -308,7 +308,7 @@ function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; termi
     end
 end
 
-function select_direct_captial_cost(dd::IMAS.dd, what::String)
+function select_direct_capital_cost(dd::IMAS.dd, what::String)
     for sys in dd.costing.cost_direct_capital.system
         idx = findfirst(x-> x.name ==what, sys.subsystem)
         if !isnothing(idx)
