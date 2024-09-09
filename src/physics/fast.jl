@@ -113,6 +113,16 @@ function slowing_down_time(ne::Real, Te::Real, mf::Real, Zf::Int)
 end
 
 """
+    α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d)
+
+Returns the slowing down time of α particles evaluated on axis
+"""
+function α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d)
+    α = ion_properties(:α)
+    return slowing_down_time(cp1d.electrons.density_thermal[1], cp1d.electrons.temperature[1], α.a, Int(α.z_n))
+end
+
+"""
     _drag_coefficient(n::Real, Z::Int, mf::Real, Zf::Int, lnΛ::Real)
 
 Drag coefficient (Γ) for a fast-ions interacting with a thermal species as defined Eq. 8 in [Gaffey, J. D. (1976). Energetic ion distribution resulting from neutral beam injection in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
@@ -292,6 +302,25 @@ function thermalization_time(
     v_c = sqrt(2 * constants.e * Ec / m_f)
 
     return thermalization_time(v_f, v_c, tau_s)
+end
+
+"""
+    α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
+
+Returns the thermalization time of α particles evaluated on axis
+"""
+function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
+    α = ion_properties(:α)
+    return thermalization_time(
+        cp1d.electrons.density_thermal[1],
+        cp1d.electrons.temperature[1],
+        [ion.density_thermal[1] for ion in cp1d.ion],
+        [ion.temperature[1] for ion in cp1d.ion],
+        [ion.element[1].a for ion in cp1d.ion],
+        [Int(ion.element[1].z_n) for ion in cp1d.ion],
+        constants.E_α,
+        α.a,
+        Int(α.z_n))
 end
 
 """

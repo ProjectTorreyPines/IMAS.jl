@@ -87,7 +87,7 @@ function intersection_angles(
     path1_z::AbstractVector{T},
     path2_r::AbstractVector{T},
     path2_z::AbstractVector{T},
-    intersection_indexes::Vector{Tuple{Int,Int}};
+    intersection_indexes::Vector{StaticArrays.SVector{2,Int}};
     mod_pi::Bool=true
 ) where {T<:Real}
     n = length(intersection_indexes)
@@ -124,8 +124,8 @@ function intersection(
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T}) where {T<:Real}
 
-    indexes = NTuple{2,Int}[]
-    crossings = NTuple{2,T}[]
+    indexes = StaticArrays.SVector{2,Int}[]
+    crossings = StaticArrays.SVector{2,T}[]
 
     for k1 in 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
@@ -133,13 +133,63 @@ function intersection(
         for k2 in 1:(length(l2_x)-1)
             s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
-            crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
-            if crossing !== nothing
+            #crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
+            if _intersect(s1_s, s1_e, s2_s, s2_e)
+                crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e; does_intersect=true)
                 push!(indexes, (k1, k2))
                 push!(crossings, (crossing[1], crossing[2]))
             end
         end
     end
+
+    return (indexes=indexes, crossings=crossings)
+end
+
+"""
+    intersection(
+        l1_x::AbstractVector{T},
+        l1_y::AbstractVector{T},
+        l2_x::AbstractVector{T},
+        l2_y::AbstractVector{T},
+        tolerance::Float64) where {T<:Real}
+
+Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
+
+Endpoints crossings are checked with some tolerance
+"""
+function intersection(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T},
+    tolerance::Float64) where {T<:Real}
+
+    indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
+
+    if all(k1 != 1 for (k1, k2) in indexes)
+        for k2 in 1:(length(l2_x)-1)
+            if point_to_segment_distance(l1_x[1], l1_y[1], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
+                pushfirst!(indexes, StaticArrays.SVector(1, k2))
+                pushfirst!(crossings, StaticArrays.SVector(l1_x[1], l1_y[1]))
+                break
+            end
+        end
+    end
+
+    if all(k1 != length(l1_x) - 1 for (k1, k2) in indexes)
+        for k2 in 1:(length(l2_x)-1)
+            if point_to_segment_distance(l1_x[end], l1_y[end], l2_x[k2], l2_y[k2], l2_x[k2+1], l2_y[k2+1]) < tolerance
+                push!(indexes, StaticArrays.SVector(length(l1_x) - 1, k2))
+                push!(crossings, StaticArrays.SVector(l1_x[end], l1_y[end]))
+                break
+            end
+        end
+    end
+
+    # plot(l1_x,l1_y)
+    # plot!(l2_x,l2_y)
+    # scatter!([cr[1] for cr in crossings],[cr[2] for cr in crossings])
+    # display(plot!())
 
     return (indexes=indexes, crossings=crossings)
 end
@@ -150,35 +200,57 @@ function intersects(
     l2_x::AbstractVector{T},
     l2_y::AbstractVector{T})::Bool where {T<:Real}
 
-    for k1 in 1:(length(l1_x)-1)
-        s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
-        s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
-        for k2 in 1:(length(l2_x)-1)
-            s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
-            s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
-            crossing = _seg_intersect(s1_s, s1_e, s2_s, s2_e)
-            if crossing !== nothing
-                return true
-            end
+    @assert length(l1_x) == length(l1_y)
+    @assert length(l2_x) == length(l2_y)
+    for k1 in eachindex(l1_x)[1:end-1]
+        @inbounds s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
+        @inbounds s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
+        for k2 in eachindex(l2_x)[1:end-1]
+            @inbounds s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
+            @inbounds s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
+            _intersect(s1_s, s1_e, s2_s, s2_e) && return true
         end
     end
     return false
 end
 
-function _ccw(A, B, C)
+@inline function _ccw(A, B, C)
     return (C[2] - A[2]) * (B[1] - A[1]) >= (B[2] - A[2]) * (C[1] - A[1])
 end
 
-function _intersect(A, B, C, D)
+@inline function _ccw(C_A, B_A)
+    return (C_A[2] * B_A[1]) >= (B_A[2] * C_A[1])
+end
+
+@inline function _out_of_bounds(A, B, C, D)
+    abxl, abxu = A[1] < B[1] ? (A[1], B[1]) : (B[1], A[1])
+    cdxl, cdxu = C[1] < D[1] ? (C[1], D[1]) : (D[1], C[1])
+    abyl, abyu = A[1] < B[1] ? (A[1], B[1]) : (B[1], A[1])
+    cdyl, cdyu = C[1] < D[1] ? (C[1], D[1]) : (D[1], C[1])
+    return (abxu < cdxl || abxl > cdxu || abyu < cdyl || abyl > cdyu)
+end
+
+@inline function _intersect(A, B, C, D)
+    _out_of_bounds(A, B, C, D) && return false
     return (_ccw(A, C, D) != _ccw(B, C, D)) && (_ccw(A, B, C) != _ccw(A, B, D))
 end
 
-function _perp(a)
-    return [-a[2], a[1]]
+@inline function _intersect(A::T, B::T, C::T, D::T) where {T<:StaticArrays.StaticVector{2,<:Real}}
+    _out_of_bounds(A, B, C, D) && return false
+    B_A = B - A
+    C_A = C - A
+    D_A = D - A
+    C_B = C - B
+    D_B = D - B
+    return (_ccw(D_A, C_A) != _ccw(D_B, C_B)) && (_ccw(C_A, B_A) != _ccw(D_A, B_A))
 end
 
-function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:Real}}
-    if !_intersect(a1, a2, b1, b2)
+@inline function _perp(a)
+    return StaticArrays.@SVector[-a[2], a[1]]
+end
+
+function _seg_intersect(a1::T, a2::T, b1::T, b2::T; does_intersect::Bool=_intersect(a1, a2, b1, b2)) where {T<:AbstractVector{<:Real}}
+    if !does_intersect
         return nothing
     end
     da = a2 - a1
@@ -191,12 +263,101 @@ function _seg_intersect(a1::T, a2::T, b1::T, b2::T) where {T<:AbstractVector{<:R
 end
 
 """
+    intersection_split(
+        l1_x::AbstractVector{T},
+        l1_y::AbstractVector{T},
+        l2_x::AbstractVector{T},
+        l2_y::AbstractVector{T}) where {T<:Real}
+
+Returns vector of segments of l1_x,l1_y split at the intersections with l2_x,l2_y
+"""
+function intersection_split(
+    l1_x::AbstractVector{T},
+    l1_y::AbstractVector{T},
+    l2_x::AbstractVector{T},
+    l2_y::AbstractVector{T}) where {T<:Real}
+
+    indexes, crossings = intersection(l1_x, l1_y, l2_x, l2_y)
+    segments = Vector{@NamedTuple{r::Vector{T}, z::Vector{T}}}(undef, max(length(indexes), 1))
+    if isempty(indexes)
+        segments[1] = (r=l1_x, z=l1_y)
+    else
+        Nind = length(indexes)
+        indexes1 = [(k <= Nind ? indexes[k][1] : indexes[1][1] + length(l1_x)) for k in 1:Nind+1]
+
+        for k in 1:length(indexes)
+            krange = indexes1[k]+1:indexes1[k+1]
+            Nk = length(krange)
+            kk = k + 1
+            if kk > length(crossings)
+                kk = kk - length(crossings)
+            end
+
+            r = Vector{T}(undef, Nk + 2)
+            z = similar(r)
+
+            r[1], z[1] = crossings[k]
+            for (j, ind) in enumerate(krange)
+                r[j+1] = getindex_circular(l1_x, ind)
+                z[j+1] = getindex_circular(l1_y, ind)
+            end
+            r[end], z[end] = crossings[kk]
+
+            segments[k] = (r=r, z=z)
+        end
+    end
+
+    return segments
+end
+
+"""
     point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
 
 Distance of point (x0,y0) from line defined by points (x1,y1) and (x2,y2)
 """
 function point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
     return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / sqrt((y2 - y1)^2 + (x2 - x1)^2)
+end
+
+"""
+    closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+
+Closest point on segment defined by points (x1,y1) and (x2,y2) to point (x0,y0)
+"""
+function closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    # Calculate the squared length of the segment
+    segment_length_squared = (x2 - x1)^2 + (y2 - y1)^2
+
+    if segment_length_squared == 0.0
+        # The segment is just a point, return the distance from the point to the segment start (or end)
+        return hypot(x0 - x1, y0 - y1)
+    end
+
+    # Compute the projection of the point onto the line defined by the segment
+    t = ((x0 - x1) * (x2 - x1) + (y0 - y1) * (y2 - y1)) / segment_length_squared
+
+    # Clamp t to the range [0, 1] to stay within the segment
+    t = clamp(t, 0.0, 1.0)
+
+    # Find the closest point on the segment to the original point
+    closest_x = x1 + t * (x2 - x1)
+    closest_y = y1 + t * (y2 - y1)
+
+    return (closest_x=closest_x, closest_y=closest_y)
+end
+
+"""
+    point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+
+Distance of point (x0,y0) from segment defined by points (x1,y1) and (x2,y2)
+"""
+function point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    closest_x, closest_y = closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T)
+
+    # Compute the distance from the point to the closest point on the segment
+    distance = hypot(x0 - closest_x, y0 - closest_y)
+
+    return distance
 end
 
 """
@@ -212,10 +373,7 @@ function point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractV
         y1 = y[i]
         x2 = x[i+1]
         y2 = y[i+1]
-        dp = point_to_line_distance(x0, y0, x1, y1, x2, y2)
-        d1 = sqrt((x1 - x0)^2 + (y1 - y0)^2)
-        d2 = sqrt((x2 - x0)^2 + (y2 - y0)^2)
-        dd = max(dp, min(d1, d2))
+        dd = point_to_segment_distance(x0, y0, x1, y1, x2, y2)
         if dd < d
             d = dd
         end
@@ -248,7 +406,7 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
         dmax = 0
         index = 0
         for i in 2:n-1
-            d = point_to_line_distance(x[i], y[i], x[1], y[1], x[end], y[end])
+            d = point_to_segment_distance(x[i], y[i], x[1], y[1], x[end], y[end])
             if d > dmax
                 index = i
                 dmax = d
@@ -626,7 +784,7 @@ end
 
 Returns the gradient scale lengths of vector f on x
 
-The finite difference `method` of the gradient can be one of [:third_order, :second_order, :central, :backward, :forward]
+The finite difference `method` of the gradient can be one of [:backward, :central, :forward, :second_order, :third_order]
 
 NOTE: the inverse scale length is NEGATIVE for typical density/temperature profiles
 """
@@ -896,36 +1054,28 @@ end
 """
     open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
 
-Convert a closed polygon into an open polygon by removing the last vertex if it is the same as the first.
+Returns a view of the vectors R and Z such that they are a open polygon
 
-Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
 """
 function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
-    if is_open_polygon(R, Z)
-        was_closed = false
-    else
-        was_closed = true
-        R = R[1:end-1]
-        Z = Z[1:end-1]
-    end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
+    was_open = is_open_polygon(R, Z)
+    R = OutlineOpenVector(R, was_open)
+    Z = OutlineOpenVector(Z, was_open)
+    return (was_closed=!was_open, was_open=was_open, R=R, Z=Z, r=R, z=Z)
 end
 
 """
     closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
 
-Convert an open polygon into a closed polygon by adding the first vertex to the end if it is not already closed.
+Returns a view of the vectors R and Z such that they are a closed polygon
 
-Returns a named tuple containing the status of the polygon (was_closed, was_open) and the modified R and Z vectors.
+Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
 """
 function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
-    if is_open_polygon(R, Z)
-        was_closed = false
-        R = [R; R[1]]
-        Z = [Z; Z[1]]
-    else
-        was_closed = true
-    end
+    was_closed = is_closed_polygon(R, Z)
+    R = OutlineClosedVector(R, was_closed)
+    Z = OutlineClosedVector(Z, was_closed)
     return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
 end
 
@@ -936,9 +1086,9 @@ Returns a closed polygon depending on `closed`
 """
 function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
     if is_open_polygon(R, Z) && closed
-        was_closed = false
-        R = [R; R[1]]
-        Z = [Z; Z[1]]
+        was_closed = is_closed_polygon(R, Z)
+        R = OutlineClosedVector(R, was_closed)
+        Z = OutlineClosedVector(Z, was_closed)
     else
         was_closed = true
     end

@@ -2,6 +2,8 @@ import PlotUtils
 using RecipesBase
 using LaTeXStrings
 import Measures
+import Graphs
+using GraphRecipes
 
 # ========= #
 # pf_active #
@@ -156,8 +158,10 @@ end
 @recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
     if !ismissing(rail.outline, :r)
         @series begin
+            seriestype --> :scatter
             color --> :gray
-            linestyle --> :dash
+            marker --> :circle
+            markerstrokewidth --> 0
             rail.outline.r, rail.outline.z
         end
     end
@@ -171,6 +175,100 @@ end
                 primary --> krail == 1 ? true : false
                 rail
             end
+        end
+    end
+end
+
+@recipe function plot_circuit(circuit::IMAS.pf_active__circuit)
+    pf_active = top_ids(circuit)
+    supplies_labels = [supply.identifier for supply in pf_active.supply]
+    coils_labels = [coil.identifier for coil in pf_active.coil]
+    @series begin
+        (circuit, supplies_labels, coils_labels)
+    end
+end
+
+@recipe function plot_circuit(circuit::IMAS.pf_active__circuit, supplies_labels::Vector{String}, coils_labels::Vector{String})
+    title_str = circuit.name
+    conn_matrix = circuit.connections
+    num_supplies = length(supplies_labels)
+    num_coils = length(coils_labels)
+
+    conn_matrix = conn_matrix[:, 1:2:end] .+ conn_matrix[:, 2:2:end]
+    num_nodes, num_elements = size(conn_matrix)
+    @assert num_elements == num_supplies + num_coils "num_elements=$(num_elements) while (num_supplies + num_coils) * 2 = $((num_supplies + num_coils) * 2)"
+
+    membership = [fill(2, num_nodes); fill(1, num_supplies); fill(3, num_coils)]
+
+    names = []
+    for k in 1:num_nodes
+        push!(names, " $k ")
+    end
+    if isempty(supplies_labels)
+        for k in 1:num_supplies
+            push!(names, "S$k")
+        end
+    else
+        append!(names, supplies_labels)
+    end
+    if isempty(coils_labels)
+        for k in 1:num_coils
+            push!(names, "C$k")
+        end
+    else
+        append!(names, coils_labels)
+    end
+    names = collect(map(x -> replace(x, " " => "\n"), names))
+
+    # hide unused supplies and coils
+    index = (1:size(conn_matrix)[2])[dropdims(sum(conn_matrix; dims=1); dims=1).>0]
+    conn_matrix = conn_matrix[:, index]
+    membership = [membership[1:num_nodes]; membership[num_nodes.+index]]
+    names = [names[1:num_nodes]; names[num_nodes.+index]]
+    num_supplies = sum(membership .== 1)
+    num_coils = sum(membership .== 3)
+
+    # Pastel versions of red, green, and blue
+    markercolor = [PlotUtils.Colors.colorant"#FFAAAA", PlotUtils.Colors.colorant"#AAFFAA", PlotUtils.Colors.colorant"#AAAAFF"]
+    markercolor = markercolor[membership]
+    node_weights = [1.0, 0.25, 1.0]
+    node_weights = node_weights[membership]
+    nodeshape = [:rect, :circle, :rect]
+    nodeshape = nodeshape[membership]
+
+    # Create an empty graph with nodes
+    g = Graphs.SimpleDiGraph(num_nodes + num_supplies + num_coils)
+
+    # Iterate through the matrix to add edges
+    for i in 1:num_nodes
+        connected_elements = findall(x -> x == 1, conn_matrix[i, :])
+        for j in connected_elements
+            Graphs.add_edge!(g, i, j + num_nodes)
+        end
+    end
+
+    @series begin
+        method --> :sfdp
+        markercolor --> markercolor
+        curves --> false
+        arrows --> false
+        names --> names
+        nodeshape --> nodeshape
+        node_weights --> node_weights
+        titlefont --> font(12, "Arial", "bold")
+        title --> title_str
+        input_type := :sourcedestiny
+        markerstrokewidth --> 0.0
+        GraphRecipes.GraphPlot((g,))
+    end
+end
+
+@recipe function plot_circuits(circuits::IMAS.IDSvector{<:IMAS.pf_active__circuit})
+    layout := RecipesBase.@layout length(circuits)
+    for (kkk, circuit) in enumerate(circuits)
+        @series begin
+            subplot := kkk
+            circuit
         end
     end
 end
@@ -312,9 +410,9 @@ end
 # =========== #
 # equilibrium #
 # =========== #
-@recipe function plot_eq(eq::IMAS.equilibrium)
+@recipe function plot_eq(eq::IMAS.equilibrium; time0=global_time(eq))
     @series begin
-        return eq.time_slice[]
+        return eq.time_slice[time0]
     end
 end
 
@@ -509,8 +607,10 @@ end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
+    fw = first_wall(top_dd(eqt).wall)
+
     for psi_level in psi_levels
-        for (pr, pz) in flux_surface(eqt, psi_level, :any)[1]
+        for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
@@ -672,9 +772,11 @@ end
 
 Plot build cross-section
 """
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
+@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, only=Symbol[], exclude_layers=Symbol[])
 
     @assert typeof(cx) <: Bool
+    @assert typeof(equilibrium) <: Bool
+    @assert typeof(pf_active) <: Bool
     @assert typeof(wireframe) <: Bool
     @assert typeof(only) <: AbstractVector{Symbol}
     @assert typeof(exclude_layers) <: AbstractVector{Symbol}
@@ -685,6 +787,14 @@ Plot build cross-section
 
     # cx
     if cx
+
+        if equilibrium
+            @series begin
+                cx := true
+                top_dd(bd).equilibrium
+            end
+        end
+
         rmax = maximum(bd.layer[end].outline.r)
 
         # everything after first vacuum in _out_
@@ -903,6 +1013,13 @@ Plot build cross-section
             end
         end
 
+        if pf_active
+            @series begin
+                colorbar --> :false
+                xlim --> [0, rmax]
+                top_dd(bd).pf_active
+            end
+        end
 
     else  # not-cx
 
@@ -1048,7 +1165,7 @@ end
         @series begin
             linewidth := 2
             color := :blue
-            label := "Total source"
+            name := "Total source"
             flux := true
             total_sources(dd; time0)
         end
@@ -1098,7 +1215,9 @@ end
                 color := color
                 markershape := markershape
                 title := "Electron energy flux"
-                label := :none
+                label := label
+                normalization := 1E-6
+                ylabel := "[MW/m²]"
 
                 ct1d.electrons.energy, :flux
             end
@@ -1114,7 +1233,13 @@ end
                 color := color
                 markershape := markershape
                 title := "Ion energy flux"
-                label := label
+                if only !== nothing
+                    label := label
+                else
+                    label := :none
+                end
+                normalization := 1E-6
+                ylabel := "[MW/m²]"
 
                 ct1d.total_ion_energy, :flux
             end
@@ -1130,7 +1255,11 @@ end
                 color := color
                 markershape := markershape
                 title := "Electron particle flux"
-                label := :none
+                if only !== nothing
+                    label := label
+                else
+                    label := :none
+                end
 
                 ct1d.electrons.particles, :flux
             end
@@ -1146,7 +1275,11 @@ end
                 color := color
                 markershape := markershape
                 title := "Toroidal momentum flux"
-                label := :none
+                if only !== nothing
+                    label := label
+                else
+                    label := :none
+                end
 
                 ct1d.momentum_tor, :flux
             end
@@ -1260,7 +1393,7 @@ end
     # electron energy
     if only === nothing || only == 1
         tot = 0.0
-        if !ismissing(cs1d.electrons, :energy) && !flux
+        if !ismissing(cs1d.electrons, :energy)
             tot = trapz(cs1d.grid.volume, cs1d.electrons.energy)
         end
         show_condition =
@@ -1278,8 +1411,7 @@ end
             if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d.electrons, :power_inside) && flux
-                    label := :none
-                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end]
+                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end] / 1E6
                 elseif !integrated && !ismissing(cs1d.electrons, :energy)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
@@ -1317,7 +1449,7 @@ end
             if show_condition
                 label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
                 if !ismissing(cs1d, :total_ion_power_inside) && flux
-                    cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end]
+                    cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end] / 1E6
                 elseif !integrated && !ismissing(cs1d, :total_ion_energy)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
                         fill0 --> true
@@ -1352,7 +1484,6 @@ end
             if show_condition
                 label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
                 if !ismissing(cs1d.electrons, :particles_inside) && flux
-                    label := :none
                     cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
                 elseif !integrated && !ismissing(cs1d.electrons, :particles)
                     if source_name in [:ec, :ic, :lh, :nbi, :pellet]
@@ -1381,7 +1512,6 @@ end
             color := idx
             title --> "Momentum Tor"
             if !ismissing(cs1d, :torque_tor_inside)
-                label := :none
                 cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
             else
                 label := ""
@@ -1424,9 +1554,9 @@ end
 # ============= #
 # core_profiles #
 # ============= #
-@recipe function plot_core_profiles(cp::IMAS.core_profiles)
+@recipe function plot_core_profiles(cp::IMAS.core_profiles; time0=global_time(cp))
     @series begin
-        return cp.profiles_1d[]
+        return cp.profiles_1d[time0]
     end
 end
 
@@ -1888,7 +2018,7 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps))
+@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps), simulation_start=nothing)
     @assert typeof(time0) <: Float64
     plots = []
     for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
@@ -1912,14 +2042,21 @@ end
         plt[:x] = time_value
         plt[:y] = data_value
         remove = ("antenna", "flux_control", "beam", "unit", "density_control", "position_control")
-        substitute = ("deposition_" => "", "_launched" => "")
+        substitute =
+            ("deposition_" => "",
+                "_launched" => "",
+                "rho_tor_norm_width" => "width",
+                "rho_tor_norm" => "ρ",
+                "pellet.launcher" => "pellet",
+                "." => " ",
+                "[" => " ",
+                "]" => " ")
         plt[:label] = replace(p2i(filter(x -> x ∉ remove, path[2:end])), substitute...)
         push!(plots, plt)
     end
 
     layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1000, 1000)
-    margin --> 5 * Measures.mm
 
     @series begin
         subplot := 1
@@ -1960,8 +2097,19 @@ end
         end
     end
 
+    # plotting at infinity does not work
+    tmax = -Inf
+    tmin = Inf
+    for plt in plots
+        xx = filter(x -> !isinf(x), plt[:x])
+        tmax = max(tmax, maximum(xx))
+        tmin = min(tmax, minimum(xx))
+    end
+
     for (k, plt) in enumerate(plots)
         x = plt[:x]
+        x[x.==Inf] .= tmax
+        x[x.==-Inf] .= tmin
         y = plt[:y]
         n = min(length(x), length(y))
         @series begin
@@ -1969,13 +2117,24 @@ end
             label := ""
             x[1:n], y[1:n]
         end
+        if simulation_start !== nothing
+            @series begin
+                subplot := k + 1
+                primary := false
+                seriestype := :vline
+                linestyle := :dash
+                [simulation_start]
+            end
+        end
         @series begin
             subplot := k + 1
             seriestype := :scatter
             primary := false
             marker := :circle
             markerstrokewidth := 0.0
+            titlefontsize := 10
             title := nice_field(plt[:label])
+            xlim = (tmin, tmax)
             [time0], interp1d(x[1:n], y[1:n]).([time0])
         end
     end

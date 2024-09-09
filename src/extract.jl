@@ -8,11 +8,12 @@ mutable struct ExtractFunction
     name::Symbol
     units::String
     func::Function
+    error::Union{Nothing,Exception}
     value::Any
 end
 
 function ExtractFunction(group::Symbol, name::Symbol, units::String, func::Function)
-    return ExtractFunction(group, name, units, func, NaN)
+    return ExtractFunction(group, name, units, func, nothing, NaN)
 end
 
 function ExtractLibFunction(group::Symbol, name::Symbol, units::String, func::Function)
@@ -58,7 +59,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> greenwald_fraction(dd))
     ExtractLibFunction(:densities, :zeff_ped, "-", dd -> @ddtime(dd.summary.local.pedestal.zeff.value))
     ExtractLibFunction(:densities, Symbol("<zeff>"), "-", dd -> @ddtime(dd.summary.volume_average.zeff.value))
-
+    ExtractLibFunction(:densities, :impurities, "-", dd -> join([ion.label for ion in dd.core_profiles.profiles_1d[].ion], " "))
+    
     ExtractLibFunction(:pressures, :P0, "MPa", dd -> dd.core_profiles.profiles_1d[].pressure[1] / 1E6)
     ExtractLibFunction(:pressures, Symbol("<P>"), "MPa", dd -> begin
         cp1d = dd.core_profiles.profiles_1d[]
@@ -71,6 +73,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:transport, :τe, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy.value))
     ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / tau_e_h98(dd))
     ExtractLibFunction(:transport, :Hds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
+    ExtractLibFunction(:transport, :τα_thermalization, "s", dd -> α_thermalization_time(dd.core_profiles.profiles_1d[]))
+    ExtractLibFunction(:transport, :τα_slowing_down, "s", dd -> α_slowing_down_time(dd.core_profiles.profiles_1d[]))
 
     ExtractLibFunction(:sources, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
     ExtractLibFunction(:sources, :rho0_ec, "MW", dd -> findfirst(:ec, dd.core_sources.source).profiles_1d[].grid.rho_tor_norm[argmax(findfirst(:ec, dd.core_sources.source).profiles_1d[].electrons.energy)])
@@ -85,8 +89,6 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:sources, :Pheat, "MW", dd ->  EFL[:Paux_tot](dd) + EFL[:Pα](dd) + EFL[:Pohm](dd))
     ExtractLibFunction(:sources, :Prad_tot, "MW", dd -> radiation_losses(dd.core_sources) / 1E6)
 
-    ExtractLibFunction(:neutronics, :Nw_peak, "MW/m²", dd -> maximum(@. sqrt(dd.neutronics.time_slice[].wall_loading.flux_r^2+dd.neutronics.time_slice[].wall_loading.flux_z^2)) / 1E6)
-
     ExtractLibFunction(:exhaust, :Psol, "MW", dd -> power_sol(dd) / 1E6)
     ExtractLibFunction(:exhaust, :PLH, "MW", dd -> scaling_L_to_H_power(dd) / 1E6)
     ExtractLibFunction(:exhaust, :Bpol_omp, "T", dd -> Bpol_omp(dd.equilibrium.time_slice[]))
@@ -97,6 +99,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:exhaust, Symbol("PB/R0"), "MW T/m", dd -> EFL[:Psol](dd) * EFL[:B0](dd) / EFL[:R0](dd))
     ExtractLibFunction(:exhaust, Symbol("PBp/R0"), "MW T/m", dd -> EFL[:Psol](dd) * EFL[Symbol("<Bpol>")](dd) / EFL[:R0](dd))
     ExtractLibFunction(:exhaust, Symbol("PBϵ/R0q95"), "MW T/m", dd -> zohm_divertor_figure_of_merit(dd)/1E6)
+    ExtractLibFunction(:exhaust, :neutrons_peak, "MW/m²", dd -> maximum(@. sqrt(dd.neutronics.time_slice[].wall_loading.flux_r^2+dd.neutronics.time_slice[].wall_loading.flux_z^2)) / 1E6)
 
     ExtractLibFunction(:currents, :ip_bs_aux_ohm, "MA", dd -> (EFL[:ip_bs](dd) + EFL[:ip_aux](dd) + EFL[:ip_ohm](dd)))
     ExtractLibFunction(:currents, :ip_ni, "MA", dd -> @ddtime(dd.summary.global_quantities.current_non_inductive.value) / 1E6)
@@ -141,6 +144,9 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:constraint, :max_pl_stress, "-", dd -> CFL[:max_pl_stress](dd))
     ExtractLibFunction(:constraint, :max_tf_stress, "-", dd -> CFL[:max_tf_stress](dd))
     ExtractLibFunction(:constraint, :max_oh_stress, "-", dd -> CFL[:max_oh_stress](dd))
+    ExtractLibFunction(:constraint, :max_βn, "-", dd -> CFL[:max_βn](dd))
+    ExtractLibFunction(:constraint, :max_Psol_R, "-", dd -> CFL[:max_Psol_R](dd))
+    ExtractLibFunction(:constraint, :min_lh_power_threshold, "-", dd -> CFL[:min_lh_power_threshold](dd))    
 
     ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
     ExtractLibFunction(:constraint, :required_power_electric_net, "-", dd -> CFL[:required_power_electric_net](dd))
@@ -165,8 +171,10 @@ NOTE: NaN is assigned on error
 """
 function (xfun::ExtractFunction)(dd::IMAS.dd)
     try
+        xfun.error = nothing
         return xfun.func(dd)
     catch e
+        xfun.error = e
         return NaN
     end
 end
@@ -218,20 +226,22 @@ function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,Extr
     return print_tiled(io, xtract; terminal_width)
 end
 
-function print_vertical(io, xtract::AbstractDict{Symbol,ExtractFunction})
+function print_vertical(xtract::AbstractDict{Symbol,ExtractFunction})
+    print_vertical(stdout, xtract)
+end
+
+function print_vertical(io::IO, xtract::AbstractDict{Symbol,ExtractFunction})
     last_group = ""
     for xfun in values(xtract)
-        if !isnan(xfun.value)
-            if last_group != xfun.group
-                if last_group != ""
-                    printstyled(io, "\n"; bold=true)
-                end
-                printstyled(io, "$(xfun.group)\n"; bold=true)
-                last_group = xfun.group
+        if last_group != xfun.group
+            if last_group != ""
+                printstyled(io, "\n"; bold=true)
             end
-            show(io, xfun; group=false, indent=4)
-            println(io, "")
+            printstyled(io, "$(xfun.group)\n"; bold=true)
+            last_group = xfun.group
         end
+        show(io, xfun; group=false, indent=4)
+        println(io, "")
     end
 end
 
@@ -242,13 +252,11 @@ end
 function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int, line_char::Char='─')
     lists = OrderedCollections.OrderedDict{Symbol,Vector}()
     for xfun in values(xtract)
-        #if !isnan(xfun.value)
         group = xfun.group
         if group ∉ keys(lists)
             lists[group] = ExtractFunction[]
         end
         push!(lists[group], xfun)
-        #end
     end
 
     if isempty(lists)

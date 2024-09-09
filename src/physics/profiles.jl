@@ -22,24 +22,28 @@ end
 Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
 """
 function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
-    eqt = eq.time_slice[cp1d.time]
-    eq1d = eqt.profiles_1d
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, cp1d.time, :constant)
+    Ip = trapz(cp1d.grid.area, cp1d.j_tor)
+
     if thermal
         pressure = cp1d.pressure_thermal
     else
         pressure = cp1d.pressure
     end
-    rho = cp1d.grid.rho_tor_norm
-    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time, :constant)
-    Ip = eqt.global_quantities.ip
-    volume_cp = interp1d(eq1d.rho_tor_norm, eq1d.volume).(rho)
-    pressure_avg = trapz(volume_cp, pressure) / volume_cp[end]
+
+    volume = cp1d.grid.volume
+    pressure_avg = trapz(volume, pressure) / volume[end]
+
     beta_tor = 2.0 * constants.μ_0 * pressure_avg / B0^2
+
     if norm
-        return beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
+        eqt = eq.time_slice[cp1d.time]
+        out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
     else
-        return beta_tor
+        out = beta_tor
     end
+
+    return out
 end
 
 function ion_element!(
@@ -68,51 +72,69 @@ function ion_element!(
     ion_symbol::Symbol;
     fast::Bool=false)
 
+    z_n, a, label = ion_properties(ion_symbol; fast)
+
     element = resize!(ion.element, 1)[1]
 
+    element.z_n = z_n
+    element.a = a
+    ion.label = label
+
+    return ion.element
+end
+
+"""
+    ion_properties( ion_symbol::Symbol; fast::Bool=false)
+
+Returns named tuple with z_n, a, and label information of a given ion
+"""
+function ion_properties(ion_symbol::Symbol; fast::Bool=false)
     # H isotopes
     if ion_symbol ∈ (:H, :H1)
-        element.z_n = 1.0
-        element.a = 1.00797
+        z_n = 1.0
+        a = 1.00797
         label = "H"
 
     elseif ion_symbol ∈ (:D, :H2)
-        element.z_n = 1.0
-        element.a = 2.014
+        z_n = 1.0
+        a = 2.014
         label = "D"
 
     elseif ion_symbol ∈ (:T, :H3)
-        element.z_n = 1.0
-        element.a = 3.016
+        z_n = 1.0
+        a = 3.016
         label = "T"
 
+    elseif ion_symbol == :α
+        z_n = 2.0
+        a = 4.007
+        label = "α"
+
     elseif ion_symbol == :DT
-        element.z_n = 1.0
-        element.a = (2.014 + 3.016) / 2.0
+        z_n = 1.0
+        a = (2.014 + 3.016) / 2.0
         label = "DT"
 
     else
         # all other ions
         ion_name, ion_a = match(r"(.*?)(\d*)$", string(ion_symbol))
         element_ion = elements[Symbol(ion_name)]
-        element.z_n = float(element_ion.number)
+        z_n = float(element_ion.number)
         if isempty(ion_a)
-            element.a = element_ion.atomic_mass.val
+            a = element_ion.atomic_mass.val
         else
             z = element_ion.number
             n = parse(Int, ion_a) - z
-            element.a = atomic_mass(z, n)
+            a = atomic_mass(z, n)
         end
-        label = "$(ion_name)$(Int(floor(element.a)))"
+        label = "$(ion_name)$(Int(floor(a)))"
     end
 
     if fast
-        ion.label = "$(label)_fast"
-    else
-        ion.label = label
+        label = "$(label)_fast"
     end
 
-    return ion.element
+    return (z_n=z_n, a=a, label=label)
 end
 
 """
@@ -450,7 +472,6 @@ NOTE: The core value is allowed to float
 :param width: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
-
     @assert expin >= 0.0
     @assert expout >= 0.0
 
@@ -467,24 +488,9 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     # core tanh+polynomial part
     xped = xphalf - w_E1
     xtoped = xpsi ./ xped
-    integral = 0.0
-    factor = Inf
-    for i in ngrid:-1:1
-        if xtoped[i] < 1.0
-            @inbounds val[i] += integral
-            if i > 1
-                factor = min(factor, val[i])
-                xi = (xtoped[i] + xtoped[i-1]) / 2.0
-                dx = (xtoped[i] - xtoped[i-1])
-                if expin == 0.0
-                    v1 = 0.0
-                else
-                    v1 = expin * expout * xi^(expin - 1.0) * (1.0 - xi^expin)^(expout - 1.0)
-                end
-                integral += v1 * dx * factor
-            end
-        end
-    end
+    factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / w_E1) - pconst) + edge
+    index = xtoped .< 1.0
+    val[index] += factor .* (1.0 .- xtoped[index] .^ expin) .^ expout
 
     return val
 end
@@ -834,7 +840,7 @@ end
 Returns average ionization state of an ion at a given temperature
 """
 function avgZ(Z::Float64, Ti::T)::T where {T}
-    func = avgZinterpolator(joinpath(@__DIR__, ".." , "..", "data", "Zavg_z_t.dat"))
+    func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
 end
 

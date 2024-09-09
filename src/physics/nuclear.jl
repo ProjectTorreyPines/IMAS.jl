@@ -227,8 +227,8 @@ function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
 
     name = "D+T→He4"
-    eV1 = 3.518e6
-    eV2 = 14.072e6
+    eV1 = constants.E_α # 3.518e6
+    eV2 = constants.E_n # 14.072e6
     reactivity = D_T_to_He4_reactions(cp1d; polarized_fuel_fraction)
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 4.0)
     energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3

@@ -4,13 +4,14 @@
 Return list of radii in the build
 """
 function build_radii(bd::IMAS.build)
-    layers_radii = typeof(bd.layer[1].thickness)[]
-    layer_start = 0.0
-    for l in bd.layer
-        push!(layers_radii, layer_start)
-        layer_start = layer_start + l.thickness
+    return _build_radii(bd.layer)
+end
+
+function _build_radii(layer)
+    layers_radii = zeros(typeof(layer[1].thickness), length(layer) + 1)
+    for (k, l) in enumerate(layer)
+        @inbounds layers_radii[k+1] = layers_radii[k] + l.thickness
     end
-    push!(layers_radii, layer_start)
     return layers_radii
 end
 
@@ -270,13 +271,13 @@ end
 """
     first_wall(wall::IMAS.wall)
 
-returns named tuple with (closed) outline of first wall, or an empty outline if not present
+returns named tuple with outline of first wall, or an empty outline if not present
 """
 function first_wall(wall::IMAS.wall{T}) where {T<:Real}
     if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
         outline = wall.description_2d[1].limiter.unit[1].outline
         tmp = closed_polygon(outline.r, outline.z)
-        return (r=tmp.R, z=tmp.Z)
+        return (r=tmp.r, z=tmp.z)
     else
         return (r=Float64[], z=Float64[])
     end
