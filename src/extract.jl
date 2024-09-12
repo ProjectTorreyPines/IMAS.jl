@@ -135,6 +135,9 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:costing, :blanket_of_total, "%", dd -> 100 * select_direct_capital_cost(dd,"blanket") / dd.costing.cost_direct_capital.cost)
     ExtractLibFunction(:costing, :cryostat_of_total, "%", dd -> 100 * select_direct_capital_cost(dd,"cryostat") / dd.costing.cost_direct_capital.cost)
 
+    ExtractLibFunction(:risk, :total_engineering_risk, "\$M", dd -> dd.risk.engineering.risk)
+    ExtractLibFunction(:risk, :total_plasma_risk, "\$/kWh", dd -> dd.risk.plasma.risk)
+
     ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
     ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
     ExtractLibFunction(:constraint, :required_power_electric_net, "-", dd -> CFL[:required_power_electric_net](dd))
