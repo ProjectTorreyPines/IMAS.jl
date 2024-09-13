@@ -1258,6 +1258,11 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     return eqt
 end
 
+function flux_surfaces(eqt::equilibrium__time_slice{T}, wall::IMAS.wall) where {T<:Real}
+    fw = IMAS.first_wall(wall)
+    return flux_surfaces(eqt, fw.r, fw.z)
+end
+
 """
     flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
