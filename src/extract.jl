@@ -26,7 +26,7 @@ const ExtractFunctionsLibrary = EFL = OrderedCollections.OrderedDict{Symbol,Extr
 
 function update_ExtractFunctionsLibrary!()
     empty!(EFL)
-    CFL = ConstraintFunctionsLibrary
+
     #! format: off
     ExtractLibFunction(:geometry, :R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r)
     ExtractLibFunction(:geometry, :a, "m", dd -> dd.equilibrium.time_slice[].boundary.minor_radius)
@@ -129,33 +129,13 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:build, :TF_stress_margin, "-", dd -> dd.solid_mechanics.center_stack.properties.yield_strength.tf/maximum(dd.solid_mechanics.center_stack.stress.vonmises.tf))
     ExtractLibFunction(:build, :OH_stress_margin, "-", dd -> dd.solid_mechanics.center_stack.properties.yield_strength.oh/maximum(dd.solid_mechanics.center_stack.stress.vonmises.oh))
 
+    ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3) 
     ExtractLibFunction(:costing, :levelized_CoE, "\$/kWh", dd -> dd.costing.levelized_CoE)
     ExtractLibFunction(:costing, :TF_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"TF") / dd.costing.cost_direct_capital.cost)
     ExtractLibFunction(:costing, :BOP_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"balance of plant equipment") / dd.costing.cost_direct_capital.cost)
     ExtractLibFunction(:costing, :blanket_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"blanket") / dd.costing.cost_direct_capital.cost)
     ExtractLibFunction(:costing, :cryostat_of_total, "%", dd -> 100 * select_direct_captial_cost(dd,"cryostat") / dd.costing.cost_direct_capital.cost)
 
-    ExtractLibFunction(:costing, :capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3)
-    ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
-    ExtractLibFunction(:constraint, :required_power_electric_net, "-", dd -> CFL[:required_power_electric_net](dd))
-    ExtractLibFunction(:constraint, :min_q95, "-", dd -> CFL[:min_q95](dd))
-    ExtractLibFunction(:constraint, :max_tf_j, "-", dd -> CFL[:max_tf_j](dd))
-    ExtractLibFunction(:constraint, :max_oh_j, "-", dd -> CFL[:max_oh_j](dd))
-    ExtractLibFunction(:constraint, :max_pl_stress, "-", dd -> CFL[:max_pl_stress](dd))
-    ExtractLibFunction(:constraint, :max_tf_stress, "-", dd -> CFL[:max_tf_stress](dd))
-    ExtractLibFunction(:constraint, :max_oh_stress, "-", dd -> CFL[:max_oh_stress](dd))
-    ExtractLibFunction(:constraint, :max_βn, "-", dd -> CFL[:max_βn](dd))
-    ExtractLibFunction(:constraint, :max_Psol_R, "-", dd -> CFL[:max_Psol_R](dd))
-    ExtractLibFunction(:constraint, :min_lh_power_threshold, "-", dd -> CFL[:min_lh_power_threshold](dd))    
-
-    ExtractLibFunction(:constraint, :min_required_power_electric_net, "-", dd -> CFL[:min_required_power_electric_net](dd))
-    ExtractLibFunction(:constraint, :required_power_electric_net, "-", dd -> CFL[:required_power_electric_net](dd))
-    ExtractLibFunction(:constraint, :min_q95, "-", dd -> CFL[:min_q95](dd))
-    ExtractLibFunction(:constraint, :max_tf_j, "-", dd -> CFL[:max_tf_j](dd))
-    ExtractLibFunction(:constraint, :max_oh_j, "-", dd -> CFL[:max_oh_j](dd))
-    ExtractLibFunction(:constraint, :max_pl_stress, "-", dd -> CFL[:max_pl_stress](dd))
-    ExtractLibFunction(:constraint, :max_tf_stress, "-", dd -> CFL[:max_tf_stress](dd))
-    ExtractLibFunction(:constraint, :max_oh_stress, "-", dd -> CFL[:max_oh_stress](dd))
     #! format: on
 
     return EFL
@@ -180,7 +160,38 @@ function (xfun::ExtractFunction)(dd::IMAS.dd)
 end
 
 """
-    extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)
+    extract(dd::IMAS.dd, library::Symbol=:extract)
+
+Libraries:
+
+  - `:extract => ExtractFunctionsLibrary`
+  - `:moopt => ConstraintFunctionsLibrary + ObjectiveFunctionsLibrary`
+  - `:all => ExtractFunctionsLibrary + ConstraintFunctionsLibrary + ObjectiveFunctionsLibrary`
+"""
+function extract(dd::IMAS.dd, library::Symbol=:extract)
+    if library == :extract
+        return extract(dd, ExtractFunctionsLibrary)
+    elseif library in (:moopt, :all)
+        xtract_out = OrderedCollections.OrderedDict{Symbol,ExtractFunction}()
+        if library == :all
+            for fun in values(ExtractFunctionsLibrary)
+                xtract_out[fun.name] = fun
+            end
+        end
+        for fun in values(ConstraintFunctionsLibrary)
+            xtract_out[fun.name] = ExtractFunction(:constraints, fun.name, "-", dd -> fun(dd))
+        end
+        for ofun in values(ObjectiveFunctionsLibrary)
+            xtract_out[ofun.name] = ExtractFunction(:objectives, ofun.name, "-", dd -> ofun(dd))
+        end
+        return extract(dd, xtract_out)
+    else
+        @assert library in (:extract, :moopt, :all)
+    end
+end
+
+"""
+    extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction})
 
 Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as input, like this:
 
@@ -188,10 +199,8 @@ Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as inpu
         :κ => ExtractFunction(:equilibrium, :κ, "-", dd -> dd.equilibrium.time_slice[].boundary.elongation)
         :Te0 => ExtractFunction(:profiles, :Te0, "keV", dd -> dd.core_profiles.profiles_1d[].electrons.temperature[1] / 1E3)
     ]
-
-By default, the `ExtractFunctionsLibrary` is used.
 """
-function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction}=ExtractFunctionsLibrary)
+function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction})
     xtract_out = OrderedCollections.OrderedDict{Symbol,ExtractFunction}()
     for xfun in values(xtract)
         xtract_out[xfun.name] = deepcopy(xfun)
@@ -222,12 +231,12 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
     end
 end
 
-function Base.show(io::IO, x::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=136)
+function Base.show(io::IO, mime::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=136)
     return print_tiled(io, xtract; terminal_width)
 end
 
 function print_vertical(xtract::AbstractDict{Symbol,ExtractFunction})
-    print_vertical(stdout, xtract)
+    return print_vertical(stdout, xtract)
 end
 
 function print_vertical(io::IO, xtract::AbstractDict{Symbol,ExtractFunction})
@@ -318,7 +327,7 @@ end
 
 function select_direct_captial_cost(dd::IMAS.dd, what::String)
     for sys in dd.costing.cost_direct_capital.system
-        idx = findfirst(x-> x.name ==what, sys.subsystem)
+        idx = findfirst(x -> x.name == what, sys.subsystem)
         if !isnothing(idx)
             return sys.subsystem[idx].cost
         end
