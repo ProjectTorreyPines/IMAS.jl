@@ -922,6 +922,84 @@ function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, ZA:
     end
 end
 
+function trace_surfaces(
+    psi::AbstractVector{T},
+    r::AbstractVector{T},
+    z::AbstractVector{T},
+    PSI::Matrix{T},
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    RA::T,
+    ZA::T,
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T}
+) where {T<:Real}
+
+    N = length(psi)
+    PR = Vector{T}[]
+    PZ = Vector{T}[]
+    EXTREMA = Array{T}(undef, (N, 8))
+    for k in N:-1:1
+        psi_level = psi[k]
+
+        if k == 1 # on axis flux surface is a artificial one, generated from the second surface
+            (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = EXTREMA[k+1, :]
+            pr = (PR[1] .- RA) ./ 100.0 .+ RA
+            pz = (PZ[1] .- ZA) ./ 100.0 .+ ZA
+            r_at_max_z = (r_at_max_z - RA) / 100.0 + RA
+            r_at_min_z = (r_at_min_z - RA) / 100.0 + RA
+            max_r = (max_r - RA) / 100.0 + RA
+            min_r = (min_r - RA) / 100.0 + RA
+            max_z = (max_z .- ZA) ./ 100.0 .+ ZA
+            min_z = (min_z .- ZA) ./ 100.0 .+ ZA
+            z_at_max_r = (z_at_max_r .- ZA) ./ 100.0 .+ ZA
+            z_at_min_r = (z_at_min_r .- ZA) ./ 100.0 .+ ZA
+
+        else  # other flux surfaces
+            # trace flux surface
+            tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi_level, :closed)
+            if isempty(tmp)
+                # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
+                # contour!(r, z, PSI'; color=:white, levels=100)
+                # contour!(r, z, PSI'; levels=[psi[end]], color=:white, lw=2)
+                # display(p)
+                error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
+            end
+            (pr, pz) = tmp[1]
+
+            # Extrema on array indices
+            (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
+
+            w = 1E-4
+            frl = x -> _opt_rext(x, psi_level, PSI_interpolant, RA, w)
+            fzl = x -> _opt_zext(x, psi_level, PSI_interpolant, ZA, w)
+
+            algorithm = Optim.Newton()
+            options = Optim.Options(; g_tol=1E-8)
+            res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
+            (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm, options; autodiff=:forward)
+            (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
+            if k != N
+                res = Optim.optimize(fzl, [r_at_max_z, max_z], algorithm, options; autodiff=:forward)
+                (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+                res = Optim.optimize(fzl, [r_at_min_z, min_z], algorithm, options; autodiff=:forward)
+                (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            end
+            # p = plot(pr, pz, label = "")
+            # plot!([max_r], [z_at_max_r], marker = :cicle)
+            # plot!([min_r], [z_at_min_r], marker = :cicle)
+            # plot!([r_at_max_z], [max_z], marker = :cicle)
+            # plot!([r_at_min_z], [min_z], marker = :cicle)
+            # display(p)
+
+        end
+        pushfirst!(PR, pr)
+        pushfirst!(PZ, pz)
+        EXTREMA[k, :] .= (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+    end
+    return PR, PZ, EXTREMA
+end
+
 """
     flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
@@ -983,72 +1061,11 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
     end
 
-    # trace surfaces
-    N = length(eqt.profiles_1d.psi)
-    PR = Vector{T}[]
-    PZ = Vector{T}[]
-    EXTREMA = Array{T}(undef, (N, 8))
-    for k in N:-1:1
-        psi_level = eqt.profiles_1d.psi[k]
-
-        if k == 1 # on axis flux surface is a artificial one, generated from the second surface
-            (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = EXTREMA[k+1, :]
-            pr = (PR[1] .- RA) ./ 100.0 .+ RA
-            pz = (PZ[1] .- ZA) ./ 100.0 .+ ZA
-            r_at_max_z = (r_at_max_z - RA) / 100.0 + RA
-            r_at_min_z = (r_at_min_z - RA) / 100.0 + RA
-            max_r = (max_r - RA) / 100.0 + RA
-            min_r = (min_r - RA) / 100.0 + RA
-            max_z = (max_z .- ZA) ./ 100.0 .+ ZA
-            min_z = (min_z .- ZA) ./ 100.0 .+ ZA
-            z_at_max_r = (z_at_max_r .- ZA) ./ 100.0 .+ ZA
-            z_at_min_r = (z_at_min_r .- ZA) ./ 100.0 .+ ZA
-
-        else  # other flux surfaces
-            # trace flux surface
-            tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi_level, :closed)
-            if isempty(tmp)
-                # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
-                # contour!(r, z, PSI'; color=:white, levels=100)
-                # contour!(r, z, PSI'; levels=[eqt.profiles_1d.psi[end]], color=:white, lw=2)
-                # display(p)
-                error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
-            end
-            (pr, pz) = tmp[1]
-
-            # Extrema on array indices
-            (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
-
-            w = 1E-4
-            frl = x -> _opt_rext(x, psi_level, PSI_interpolant, RA, w)
-            fzl = x -> _opt_zext(x, psi_level, PSI_interpolant, ZA, w)
-
-            algorithm = Optim.Newton()
-            options = Optim.Options(; g_tol=1E-8)
-            res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
-            (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm, options; autodiff=:forward)
-            (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-            if k != N
-                res = Optim.optimize(fzl, [r_at_max_z, max_z], algorithm, options; autodiff=:forward)
-                (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(fzl, [r_at_min_z, min_z], algorithm, options; autodiff=:forward)
-                (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
-            end
-            # p = plot(pr, pz, label = "")
-            # plot!([max_r], [z_at_max_r], marker = :cicle)
-            # plot!([min_r], [z_at_min_r], marker = :cicle)
-            # plot!([r_at_max_z], [max_z], marker = :cicle)
-            # plot!([r_at_min_z], [min_z], marker = :cicle)
-            # display(p)
-
-        end
-        pushfirst!(PR, pr)
-        pushfirst!(PZ, pz)
-        EXTREMA[k, :] .= (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
-    end
+    # trace flux surfaces
+    PR, PZ, EXTREMA = trace_surfaces(eqt.profiles_1d.psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z)
 
     # calculate flux surface averaged and geometric quantities
+    N = length(eqt.profiles_1d.psi)
     LL = Vector{T}[]
     FLUXEXPANSION = Vector{T}[]
     INT_FLUXEXPANSION_DL = zeros(T, N)
@@ -1382,8 +1399,13 @@ function flux_surface(
     return prpz
 end
 
-function flxAvg(input::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
-    f = (k, xx) -> input[k] * fluxexpansion[k]
+"""
+    flxAvg(quantity::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
+
+Flux surface averaging
+"""
+function flxAvg(quantity::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
+    f = (k, xx) -> quantity[k] * fluxexpansion[k]
     return trapz(ll, f) / int_fluxexpansion_dl
 end
 
