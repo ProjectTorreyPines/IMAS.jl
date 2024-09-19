@@ -209,19 +209,41 @@ function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
     return trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
 end
 
+function tau_e_experimental(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return tau_e_experimental(dd.core_profiles.profiles_1d[time0], dd.core_sources)
+end
+
+"""
+    tau_e_experimental(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+
+Evaluate thermal energy confinement time considering only injected power (no radiation losses),
+as done for tau_e_h98 scaling and more generally in experiments
+"""
+function tau_e_experimental(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
+    injected_power = (total_power_inside - radiation_losses(cs))
+    @assert injected_power > 0.0
+    return energy_thermal(cp1d) / injected_power
+end
+
+function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return tau_e_thermal(dd.core_profiles.profiles_1d[time0], dd.core_sources)
+end
+
 """
     tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
 
-Evaluate thermal energy confinement time
+Evaluate thermal energy confinement time, including radiation losses
 
-NOTE: power losses due to radiation are neglected, as done for tau_e_h98 scaling
+NOTE: take also a look at tau_e_experimental
 """
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    return energy_thermal(cp1d) / (total_power_inside - radiation_losses(cs))
+    # total_power_inside can go to zero because of radiation losses
+    return energy_thermal(cp1d) / max(0.0, total_power_inside)
 end
-
 
 function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time)
     eqt = dd.equilibrium.time_slice[time0]
