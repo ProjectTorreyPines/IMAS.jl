@@ -135,11 +135,25 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
 
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
     (time; core_profiles, _...) ->
-        [trapz(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_non_inductive) for time in core_profiles.time]
+        return [
+            begin
+                eqt = dd.equilibrium.time_slice[Float64(time0)]
+                cp1d = core_profiles.profiles_1d[Float64(time0)]
+                trapz(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, cp1d.j_non_inductive, true, eqt))
+            end
+            for time0 in time
+        ]
 
 dyexp["core_profiles.global_quantities.current_bootstrap"] =
     (time; core_profiles, _...) ->
-        [trapz(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_bootstrap) for time in core_profiles.time]
+        return [
+            begin
+                eqt = dd.equilibrium.time_slice[Float64(time0)]
+                cp1d = core_profiles.profiles_1d[Float64(time0)]
+                trapz(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, cp1d.j_bootstrap, true, eqt))
+            end
+            for time0 in time
+        ]
 
 dyexp["core_profiles.global_quantities.ip"] =
     (time; core_profiles, _...) -> [trapz(core_profiles.profiles_1d[Float64(time)].grid.area, core_profiles.profiles_1d[Float64(time)].j_tor) for time in core_profiles.time]
@@ -579,16 +593,16 @@ dyexp["pulse_schedule.time"] =
     end
 
 dyexp["pulse_schedule.tf.b_field_tor_vacuum_r.reference"] =
-    (time; tf, _...) ->  tf.r0 .* tf.b_field_tor_vacuum.reference
+    (time; tf, _...) -> tf.r0 .* tf.b_field_tor_vacuum.reference
 
 dyexp["pulse_schedule.tf.r0"] =
-    (; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.r0
+    (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
 
 dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
-    (time; dd, _...) ->  dd.equilibrium.vacuum_toroidal_field.b0
+    (time; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.b0
 
 dyexp["pulse_schedule.tf.time"] =
-    (time; dd, _...) ->  dd.equilibrium.time
+    (time; dd, _...) -> dd.equilibrium.time
 
 #= ========= =#
 #  stability  #
