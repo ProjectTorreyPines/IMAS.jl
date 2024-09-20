@@ -314,10 +314,10 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     ne = cp1d.electrons.density
     Zeff = cp1d.zeff
 
-    R = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
-    R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
-    a = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
-    a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
+    R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
+    R = interp1d(eqt.profiles_1d.rho_tor_norm, R_eq).(rho)
+    a_eq = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
+    a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
 
     eps = a ./ R
 
