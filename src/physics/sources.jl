@@ -48,12 +48,18 @@ Calculates the ohmic source from data in `dd.core_profiles` and adds it to `dd.c
 """
 function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    j_ohmic = getproperty(cp1d, :j_ohmic, missing)
-    if j_ohmic !== missing
-        powerDensityOhm = j_ohmic .^ 2 ./ cp1d.conductivity_parallel
+    if !ismissing(cp1d, :j_ohmic)
+        eqt = dd.equilibrium.time_slice[]
+        eqt1d = eqt.profiles_1d
+        rho_tor_norm = cp1d.grid.rho_tor_norm
+        rho_eq = eqt1d.rho_tor_norm
+        gm1 = interp1d(rho_eq, eqt1d.gm1, :cubic).(rho_tor_norm)
+        gm9 = interp1d(rho_eq, eqt1d.gm9, :cubic).(rho_tor_norm)
+        f = interp1d(rho_eq, eqt1d.f, :cubic).(rho_tor_norm)
+        powerDensityOhm = (cp1d.j_tor .* gm9) .* (cp1d.j_ohmic .* eqt.global_quantities.vacuum_toroidal_field.b0) ./ (f .* gm1 .* cp1d.conductivity_parallel)
         source = resize!(dd.core_sources.source, :ohmic; wipe=false)
         new_source(source, source.identifier.index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
-            electrons_energy=powerDensityOhm, j_parallel=j_ohmic)
+            electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
         return source
     end
 end
@@ -65,11 +71,10 @@ Calculates the bootsrap current source from data in `dd.core_profiles` and adds 
 """
 function bootstrap_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    j_bootstrap = getproperty(cp1d, :j_bootstrap, missing)
-    if j_bootstrap !== missing
+    if !ismissing(cp1d, :j_bootstrap)
         source = resize!(dd.core_sources.source, :bootstrap_current; wipe=false)
         new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
-            j_parallel=j_bootstrap)
+            j_parallel=cp1d.j_bootstrap)
         return source
     end
 end
@@ -101,9 +106,9 @@ Calculates the time dependent sources and sinks and adds them to `dd.core_source
 """
 function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
     cp1d = dd.core_profiles.profiles_1d[]
-    eqt = dd.equilibrium.time_slice[]
+    eqt1d = dd.equilibrium.time_slice[].profiles_1d
 
-    R_flux_avg = IMAS.interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.gm8).(cp1d.grid.rho_tor_norm)
+    R_flux_avg = IMAS.interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
     ddt_sources = time_derivative_source!(cp1d, cp1d_old, Δt, R_flux_avg)
 
     source = resize!(dd.core_sources.source, :time_derivative; wipe=false)
