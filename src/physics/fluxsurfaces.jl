@@ -907,14 +907,14 @@ function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}
 end
 
 # accurate geometric quantities by finding geometric extrema as optimization problem
-function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, RA::T, w=1E-4) where {T<:Real}
+function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, RA::T, w::Float64) where {T<:Real}
     try
         (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - RA)^2 * w
     catch
         return T(100)
     end
 end
-function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, ZA::T, w=1E-4) where {T<:Real}
+function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, ZA::T, w::Float64) where {T<:Real}
     try
         (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - ZA)^2 * w
     catch
@@ -975,11 +975,11 @@ function trace_surfaces(
 
             algorithm = Optim.Newton()
             options = Optim.Options(; g_tol=1E-8)
-            res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
-            (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-            res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm, options; autodiff=:forward)
-            (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
             if k != N
+                res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
+                (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
+                res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm, options; autodiff=:forward)
+                (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
                 res = Optim.optimize(fzl, [r_at_max_z, max_z], algorithm, options; autodiff=:forward)
                 (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
                 res = Optim.optimize(fzl, [r_at_min_z, min_z], algorithm, options; autodiff=:forward)
