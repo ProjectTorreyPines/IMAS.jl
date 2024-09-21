@@ -134,23 +134,23 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
 #  core_profiles.global_quantities  #
 
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
-    (time; core_profiles, _...) ->
+    (time; dd, core_profiles, _...) ->
         return [
             begin
                 eqt = dd.equilibrium.time_slice[Float64(time0)]
                 cp1d = core_profiles.profiles_1d[Float64(time0)]
-                trapz(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, cp1d.j_non_inductive, true, eqt))
+                trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt))
             end
             for time0 in time
         ]
 
 dyexp["core_profiles.global_quantities.current_bootstrap"] =
-    (time; core_profiles, _...) ->
+    (time; dd, core_profiles, _...) ->
         return [
             begin
                 eqt = dd.equilibrium.time_slice[Float64(time0)]
                 cp1d = core_profiles.profiles_1d[Float64(time0)]
-                trapz(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, cp1d.j_bootstrap, true, eqt))
+                trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_bootstrap, true, eqt))
             end
             for time0 in time
         ]
