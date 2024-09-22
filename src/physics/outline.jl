@@ -109,3 +109,45 @@ function Base.setproperty!(@nospecialize(ids::IMASdd.IDS), field::Symbol, o::IMA
         return setproperty!(ids, field, o.data[1:end-1])
     end
 end
+
+# ===================
+
+struct CircularVector{T,A<:AbstractVector{T}} <: AbstractVector{T}
+    data::A
+    offset::Int
+    """
+        CircularVector{T,A<:AbstractVector{T}} <: AbstractVector{T}
+
+    Vector with circular indexes
+    """
+    function CircularVector(data::A, offset::Int=0) where {T,A<:AbstractVector{T}}
+        return new{T,A}(data, offset)
+    end
+end
+
+function Base.checkbounds(o::CircularVector, I...)
+    nothing
+end
+
+# Define the length method, which subtracts 1 if the polygon is not open
+Base.size(o::CircularVector) = size(o.data)
+
+# Define indexing, where the last point is omitted if the polygon is not open
+function Base.getindex(o::CircularVector, i::Int)
+    i = i + o.offset
+    i = mod(i - 1, length(o)) + 1
+    return o.data[i]
+end
+
+function Base.setindex!(o::CircularVector, v::Any, i::Int)
+    i = i + o.offset
+    i = mod(i - 1, length(o)) + 1
+    o.data[i] = v
+    return v
+end
+
+# always save the CircularVector to the dd as a the vector of a open polygon
+function Base.setproperty!(@nospecialize(ids::IMASdd.IDS), field::Symbol, o::IMAS.CircularVector)
+    v = setproperty!(ids, field, o.data)
+    circshift!(v, o.offset)
+end
