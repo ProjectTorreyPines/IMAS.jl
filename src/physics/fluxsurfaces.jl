@@ -922,8 +922,65 @@ function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, ZA:
     end
 end
 
+struct FluxSurface2{T}
+    psi::T
+    r::Vector{T}
+    z::Vector{T}
+    r_at_max_z::T
+    max_z::T
+    r_at_min_z::T
+    min_z::T
+    z_at_max_r::T
+    max_r::T
+    z_at_min_r::T
+    min_r::T
+    Br::Vector{T}
+    Bz::Vector{T}
+    Bp::Vector{T}
+    Btot::Vector{T}
+    ll::Vector{T}
+    fluxexpansion::Vector{T}
+    int_fluxexpansion_dl::T
+end
+
+@recipe function plot_FluxSurface2(surface::FluxSurface2)
+    @series begin
+        aspect_ratio := :equal
+        surface.r, surface.z
+    end
+    @series begin
+        primary := false
+        aspect_ratio := :equal
+        seriestype := :scatter
+        markerstrokewidth := 0
+        markercolor --> :black
+        markersize := 1
+        [surface.r_at_max_z, surface.r_at_min_z, surface.max_r, surface.min_r], [surface.max_z, surface.min_z, surface.z_at_max_r, surface.z_at_min_r]
+    end
+end
+
+@recipe function plot_FluxSurface2s(surfaces::Vector{FluxSurface2})
+    for k in eachindex(surfaces)
+        @series begin
+            label --> ""
+            primary := k == 1
+            surfaces[k]
+        end
+    end
+end
+
+function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    PSI = eqt2d.psi
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z)
+end
+
 function trace_surfaces(
     psi::AbstractVector{T},
+    f::AbstractVector{T},
     r::AbstractVector{T},
     z::AbstractVector{T},
     PSI::Matrix{T},
@@ -934,25 +991,23 @@ function trace_surfaces(
     wall_z::AbstractVector{T}
 ) where {T<:Real}
 
+    surfaces = Vector{FluxSurface2}()
+
     N = length(psi)
-    PR = Vector{T}[]
-    PZ = Vector{T}[]
-    EXTREMA = Array{T}(undef, (N, 8))
     for k in N:-1:1
         psi_level = psi[k]
 
         if k == 1 # on axis flux surface is a artificial one, generated from the second surface
-            (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = EXTREMA[k+1, :]
-            pr = (PR[1] .- RA) ./ 100.0 .+ RA
-            pz = (PZ[1] .- ZA) ./ 100.0 .+ ZA
-            r_at_max_z = (r_at_max_z - RA) / 100.0 + RA
-            r_at_min_z = (r_at_min_z - RA) / 100.0 + RA
-            max_r = (max_r - RA) / 100.0 + RA
-            min_r = (min_r - RA) / 100.0 + RA
-            max_z = (max_z .- ZA) ./ 100.0 .+ ZA
-            min_z = (min_z .- ZA) ./ 100.0 .+ ZA
-            z_at_max_r = (z_at_max_r .- ZA) ./ 100.0 .+ ZA
-            z_at_min_r = (z_at_min_r .- ZA) ./ 100.0 .+ ZA
+            pr = (surfaces[1].r .- RA) ./ 100.0 .+ RA
+            pz = (surfaces[1].z .- ZA) ./ 100.0 .+ ZA
+            r_at_max_z = (surfaces[1].r_at_max_z - RA) / 100.0 + RA
+            r_at_min_z = (surfaces[1].r_at_min_z - RA) / 100.0 + RA
+            max_r = (surfaces[1].max_r - RA) / 100.0 + RA
+            min_r = (surfaces[1].min_r - RA) / 100.0 + RA
+            max_z = (surfaces[1].max_z .- ZA) ./ 100.0 .+ ZA
+            min_z = (surfaces[1].min_z .- ZA) ./ 100.0 .+ ZA
+            z_at_max_r = (surfaces[1].z_at_max_r .- ZA) ./ 100.0 .+ ZA
+            z_at_min_r = (surfaces[1].z_at_min_r .- ZA) ./ 100.0 .+ ZA
 
         else  # other flux surfaces
             # trace flux surface
@@ -991,13 +1046,46 @@ function trace_surfaces(
             # plot!([r_at_max_z], [max_z], marker = :cicle)
             # plot!([r_at_min_z], [min_z], marker = :cicle)
             # display(p)
-
         end
-        pushfirst!(PR, pr)
-        pushfirst!(PZ, pz)
-        EXTREMA[k, :] .= (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+
+        # surface length
+        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
+        ll = cumsum(dl)
+
+        # poloidal magnetic field (with sign)
+        Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
+        tmp = Br .^ 2.0 .+ Bz .^ 2.0 #Bp2
+        Bp_abs = sqrt.(tmp)
+        Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
+        Btot = sqrt.(tmp .+ (f[k] ./ pr) .^ 2)
+
+        # flux expansion
+        fluxexpansion = 1.0 ./ Bp_abs
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+
+        surface = FluxSurface2(
+            psi_level,
+            pr,
+            pz,
+            r_at_max_z,
+            max_z,
+            r_at_min_z,
+            min_z,
+            z_at_max_r,
+            max_r,
+            z_at_min_r,
+            min_r,
+            Br,
+            Bz,
+            Bp,
+            Btot,
+            ll,
+            fluxexpansion,
+            int_fluxexpansion_dl)
+
+        pushfirst!(surfaces, surface)
     end
-    return PR, PZ, EXTREMA
+    return surfaces
 end
 
 """
@@ -1062,26 +1150,31 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     end
 
     # trace flux surfaces
-    PR, PZ, EXTREMA = trace_surfaces(eqt.profiles_1d.psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z)
+    surfaces = trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z)
 
     # calculate flux surface averaged and geometric quantities
     N = length(eqt.profiles_1d.psi)
-    LL = Vector{T}[]
-    FLUXEXPANSION = Vector{T}[]
-    INT_FLUXEXPANSION_DL = zeros(T, N)
-    BPL = zeros(T, N)
+
+    Np = maximum(length(surface.r) for surface in surfaces)
+    shared_tmp = Vector{T}(undef, Np)
     for k in N:-1:1
-        pr = PR[k]
-        pz = PZ[k]
-        (r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = EXTREMA[k, :]
+        surface = surfaces[k]
+        pr = surface.r
+        pz = surface.z
+        ll = surface.ll
+        fluxexpansion = surface.fluxexpansion
+        int_fluxexpansion_dl = surface.int_fluxexpansion_dl
+        Btot = surface.Btot
+        Bp = surface.Bp
 
-        tmp = similar(pr)
+        tmp = @views shared_tmp[1:length(pr)]
 
-        eqt.profiles_1d.r_outboard[k] = max_r
-        eqt.profiles_1d.r_inboard[k] = min_r
+        eqt.profiles_1d.r_outboard[k] = surface.max_r
+        eqt.profiles_1d.r_inboard[k] = surface.min_r
 
         # miller geometric coefficients
-        _, _, κ, δu, δl, ζou, ζol, ζil, ζiu = miller_R_a_κ_δ_ζ(pr, pz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r)
+        _, _, κ, δu, δl, ζou, ζol, ζil, ζiu =
+            miller_R_a_κ_δ_ζ(pr, pz, surface.r_at_max_z, surface.max_z, surface.r_at_min_z, surface.min_z, surface.z_at_max_r, surface.max_r, surface.z_at_min_r, surface.min_r)
         eqt.profiles_1d.elongation[k] = κ
         eqt.profiles_1d.triangularity_upper[k] = δu
         eqt.profiles_1d.triangularity_lower[k] = δl
@@ -1089,26 +1182,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         eqt.profiles_1d.squareness_upper_outer[k] = ζou
         eqt.profiles_1d.squareness_lower_inner[k] = ζil
         eqt.profiles_1d.squareness_upper_inner[k] = ζiu
-
-        # poloidal magnetic field (with sign)
-        Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
-        tmp = Br .^ 2.0 .+ Bz .^ 2.0 #Bp2
-        Bp_abs = sqrt.(tmp)
-        Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
-        Btot = sqrt.(tmp .+ (eqt.profiles_1d.f[k] ./ pr) .^ 2)
-
-        # flux expansion
-        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
-        ll = cumsum(dl)
-        fluxexpansion = 1.0 ./ Bp_abs
-        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
-        Bpl = trapz(ll, Bp)
-
-        # save flux surface coordinates for later use
-        pushfirst!(LL, ll)
-        pushfirst!(FLUXEXPANSION, fluxexpansion)
-        INT_FLUXEXPANSION_DL[k] = int_fluxexpansion_dl
-        BPL[k] = Bpl
 
         # trapped fraction
         Bmin = minimum(Btot)
@@ -1170,8 +1243,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         eqt.profiles_1d.dvolume_dpsi[k] = sign(eqt.profiles_1d.fsa_bp[k]) * int_fluxexpansion_dl
 
         # surface area
-        tmp .= pr .* dl
-        eqt.profiles_1d.surface[k] = 2π * sum(tmp)
+        eqt.profiles_1d.surface[k] = 2π * trapz(ll, pr)
 
         # q
         eqt.profiles_1d.q[k] = eqt.profiles_1d.dvolume_dpsi[k] * eqt.profiles_1d.f[k] * eqt.profiles_1d.gm1[k] / (2π)
@@ -1218,13 +1290,12 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     # gm2: <∇ρ²/R²>
     dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
     dPHI2_interpolant = Interpolations.cubic_spline_interpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
-    Np = maximum(length(pr) for pr in PR)
     dPHI2_R2 = Vector{T}(undef, Np)
-    for k in eachindex(eqt.profiles_1d.psi)
-        pr, pz = PR[k], PZ[k]
-        n = length(pr)
-        dPHI2_R2[1:n] .= dPHI2_interpolant.(pr, pz) ./ pr .^ 2.0
-        @views eqt.profiles_1d.gm2[k] = flxAvg(dPHI2_R2[1:n], LL[k], FLUXEXPANSION[k], INT_FLUXEXPANSION_DL[k])
+    for k in eachindex(surfaces)
+        surface = surfaces[k]
+        n = length(surface.r)
+        dPHI2_R2[1:n] .= dPHI2_interpolant.(surface.r, surface.z) ./ surface.r .^ 2.0
+        @views eqt.profiles_1d.gm2[k] = flxAvg(dPHI2_R2[1:n], surface.ll, surface.fluxexpansion, surface.int_fluxexpansion_dl)
     end
     @views gm2_itp = interp1d(tmp[2:end], eqt.profiles_1d.gm2[2:end], :cubic)
     eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
@@ -1244,7 +1315,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = trapz(eqt.profiles_1d.psi, BPL)
+    Bp2v = trapz(eqt.profiles_1d.psi, T[trapz(surface.ll, surface.Bp) for surface in surfaces])
     eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
