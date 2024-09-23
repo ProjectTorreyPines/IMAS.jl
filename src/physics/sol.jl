@@ -149,7 +149,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     if !isempty(wall_r)
         psi_wall_midplane = find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z) # psi at the intersection between wall and omp
-        psi_last_lfs, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
+        psi_last_lfs, _, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
         # limited plasma
         if isnan(psi_last_lfs) && isnan(psi_first_lfs_far)
@@ -312,7 +312,8 @@ function find_levels_from_P(
         crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
         psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
-        psi_last_lfs, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
+        psi_last_lfs, _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
+        
         if psi_sign > 0
             r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
         else

@@ -445,7 +445,7 @@ function find_psi_last_diverted(
 
     # if no wall in dd, psi_last diverted not defined
     if isempty(wall_r) || isempty(wall_z) || isempty(eqt.boundary.x_point)
-        return (psi_last_lfs=NaN, psi_first_lfs_far=NaN, null_within_wall=true)
+        return (psi_last_lfs=NaN, psi_first_open=NaN,  psi_first_lfs_far=NaN, null_within_wall=true)
     end
 
     RA = eqt.global_quantities.magnetic_axis.r
