@@ -460,7 +460,7 @@ function find_psi_last_diverted(
     psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
 
     # intersect 2nd separatrix with wall, and look
-    surface = flux_surface(eqt, psi_2ndseparatrix, :open, wall_r, wall_z)
+    surface = flux_surface(eqt, psi_2ndseparatrix, :open, Float64[], Float64[])
     rz_intersects = StaticArrays.SVector{2,Float64}[]
     r_max = 0.0
     for (r, z) in surface
@@ -542,7 +542,7 @@ function find_psi_last_diverted(
     counter_max = 50
     err = Inf
     for counter in 1:counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
 
         for (r, z) in surface
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
@@ -678,7 +678,7 @@ function find_psi_tangent_omp(
     counter_max = 50
     err = Inf
     for counter in 1:counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
 
         for (r, z) in surface
             # exclude empty vectors, surfaces that do not cross the midplane ans surfaces that cross the midplane at the HFS
