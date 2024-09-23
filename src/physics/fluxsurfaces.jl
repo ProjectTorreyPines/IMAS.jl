@@ -344,19 +344,19 @@ function find_psi_boundary(
 end
 
 """
-    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol=:not_diverted, precision::Float64=1E-7)
+    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice;
+                            type::Symbol=:not_diverted, 
+                            precision::Float64=1E-7)
 
 Returns psi of the second magentic separatrix. This relies only on eqt and finds the 2nd sep geometrically.
 """
 function find_psi_2nd_separatrix(
-    eqt::IMAS.equilibrium__time_slice{T},
-    wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T};
+    eqt::IMAS.equilibrium__time_slice{T};
     type::Symbol=:not_diverted,
     precision::Float64=1E-7
 ) where {T<:Real}
     psi_separatrix = eqt.profiles_1d.psi[end]
-    surface = flux_surface(eqt, psi_separatrix, :open, wall_r, wall_z)
+    surface = flux_surface(eqt, psi_separatrix, :open, Float64[], Float64[])
 
     # First check if we are in a double null configuration
     ZA = eqt.global_quantities.magnetic_axis.z
@@ -387,7 +387,7 @@ function find_psi_2nd_separatrix(
     counter = 0
     counter_max = 50
     while abs(err) > precision && counter < counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
         for (r, z) in surface
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
                 continue
@@ -456,7 +456,7 @@ function find_psi_last_diverted(
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
     psi_separatrix = eqt.profiles_1d.psi[end] # psi value last closed
     psi_first_open = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, wall_r, wall_z) # psi second magnetic separatrix
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
     psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
 
     # intersect 2nd separatrix with wall, and look
@@ -534,7 +534,7 @@ function find_psi_last_diverted(
     # Single_null case
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, wall_r, wall_z; type=:diverted)
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:diverted)
     psi_first_lfs_far = psi_2ndseparatrix
     psi_last_lfs = psi_separatrix
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
@@ -714,16 +714,14 @@ end
 Returns the max psi useful for an ofl in the SOL with no wall.
 """
 function find_psi_max(
-    eqt::IMAS.equilibrium__time_slice{T},
-    wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T};
+    eqt::IMAS.equilibrium__time_slice{T};
     precision::Float64=1e-2) where {T<:Real}
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, wall_r, wall_z)
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt)
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
     psi_sign = sign(psi_2ndseparatrix - psi_axis) # +1 for increasing psi / -1 for decreasing psi
 
@@ -737,7 +735,7 @@ function find_psi_max(
     end
 
     # check first if psi_up is already the psi we want
-    surface = flux_surface(eqt, psi_up, :open, wall_r, wall_z)
+    surface = flux_surface(eqt, psi_up, :open, Float64[], Float64[])
     for (r, z) in surface
 
         if isempty(r) || all(z .> ZA) || all(z .< ZA)
@@ -774,7 +772,7 @@ function find_psi_max(
     counter_max = 50
     err = Inf
     for counter in 1:counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
         for (r, z) in surface
 
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
@@ -1346,7 +1344,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
 
     # secondary separatrix
     if length(eqt.boundary.x_point) > 1
-        psi2nd = find_psi_2nd_separatrix(eqt, wall_r, wall_z)
+        psi2nd = find_psi_2nd_separatrix(eqt)
         pts = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
         if !isempty(pts)
             (pr2nd, pz2nd) = pts[1]
