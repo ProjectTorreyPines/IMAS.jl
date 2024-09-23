@@ -907,22 +907,27 @@ function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}
 end
 
 # accurate geometric quantities by finding geometric extrema as optimization problem
-function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, RA::T, w::Float64) where {T<:Real}
+function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant) where {T<:Real}
+    grad = Interpolations.gradient(PSI_interpolant, x[1], x[2])
+    _Br = grad[2]
     try
-        (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[1] - RA)^2 * w
-    catch
-        return T(100)
-    end
-end
-function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, ZA::T, w::Float64) where {T<:Real}
-    try
-        (PSI_interpolant(x[1], x[2]) - psi_level)^2 - (x[2] - ZA)^2 * w
+        (PSI_interpolant(x[1], x[2]) - psi_level)^2 + (_Br)^2
     catch
         return T(100)
     end
 end
 
-struct FluxSurface2{T}
+function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant) where {T<:Real}
+    grad = Interpolations.gradient(PSI_interpolant, x[1], x[2])
+    _Bz = grad[1]
+    try
+        (PSI_interpolant(x[1], x[2]) - psi_level)^2 + (_Bz)^2
+    catch
+        return T(100)
+    end
+end
+
+struct FluxSurface{T}
     psi::T
     r::Vector{T}
     z::Vector{T}
@@ -943,14 +948,14 @@ struct FluxSurface2{T}
     int_fluxexpansion_dl::T
 end
 
-@recipe function plot_FluxSurface2(surface::FluxSurface2)
+@recipe function plot_FluxSurface(surface::FluxSurface)
     @series begin
         aspect_ratio := :equal
         surface.r, surface.z
     end
     @series begin
         primary := false
-        aspect_ratio := :equal
+        aspect_ratio --> :equal
         seriestype := :scatter
         markerstrokewidth := 0
         markercolor --> :black
@@ -959,7 +964,7 @@ end
     end
 end
 
-@recipe function plot_FluxSurface2s(surfaces::Vector{FluxSurface2})
+@recipe function plot_FluxSurfaces(surfaces::Vector{FluxSurface})
     for k in eachindex(surfaces)
         @series begin
             label --> ""
@@ -991,23 +996,24 @@ function trace_surfaces(
     wall_z::AbstractVector{T}
 ) where {T<:Real}
 
-    surfaces = Vector{FluxSurface2}()
+    surfaces = Dict{Int,FluxSurface}()
 
     N = length(psi)
-    for k in N:-1:1
+    N2 = Int(ceil(N/2))
+    for k in [N2:-1:1;N2+1:N]
         psi_level = psi[k]
 
         if k == 1 # on axis flux surface is a artificial one, generated from the second surface
-            pr = (surfaces[1].r .- RA) ./ 100.0 .+ RA
-            pz = (surfaces[1].z .- ZA) ./ 100.0 .+ ZA
-            r_at_max_z = (surfaces[1].r_at_max_z - RA) / 100.0 + RA
-            r_at_min_z = (surfaces[1].r_at_min_z - RA) / 100.0 + RA
-            max_r = (surfaces[1].max_r - RA) / 100.0 + RA
-            min_r = (surfaces[1].min_r - RA) / 100.0 + RA
-            max_z = (surfaces[1].max_z .- ZA) ./ 100.0 .+ ZA
-            min_z = (surfaces[1].min_z .- ZA) ./ 100.0 .+ ZA
-            z_at_max_r = (surfaces[1].z_at_max_r .- ZA) ./ 100.0 .+ ZA
-            z_at_min_r = (surfaces[1].z_at_min_r .- ZA) ./ 100.0 .+ ZA
+            pr = (surfaces[2].r .- RA) ./ 100.0 .+ RA
+            pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
+            r_at_max_z = (surfaces[2].r_at_max_z - RA) / 100.0 + RA
+            r_at_min_z = (surfaces[2].r_at_min_z - RA) / 100.0 + RA
+            max_r = (surfaces[2].max_r - RA) / 100.0 + RA
+            min_r = (surfaces[2].min_r - RA) / 100.0 + RA
+            max_z = (surfaces[2].max_z .- ZA) ./ 100.0 .+ ZA
+            min_z = (surfaces[2].min_z .- ZA) ./ 100.0 .+ ZA
+            z_at_max_r = (surfaces[2].z_at_max_r .- ZA) ./ 100.0 .+ ZA
+            z_at_min_r = (surfaces[2].z_at_min_r .- ZA) ./ 100.0 .+ ZA
 
         else  # other flux surfaces
             # trace flux surface
@@ -1021,25 +1027,33 @@ function trace_surfaces(
             end
             (pr, pz) = tmp[1]
 
-            # Extrema on array indices
-            (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
-
-            w = 1E-4
-            frl = x -> _opt_rext(x, psi_level, PSI_interpolant, RA, w)
-            fzl = x -> _opt_zext(x, psi_level, PSI_interpolant, ZA, w)
-
-            algorithm = Optim.Newton()
-            options = Optim.Options(; g_tol=1E-8)
-            if k != N
-                res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
-                (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm, options; autodiff=:forward)
-                (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(fzl, [r_at_max_z, max_z], algorithm, options; autodiff=:forward)
-                (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
-                res = Optim.optimize(fzl, [r_at_min_z, min_z], algorithm, options; autodiff=:forward)
-                (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+            if k <= N2
+                # Guess starting from extrema on array indices
+                (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
+            else
+                # Guess starting from nearby flux surface
+                r_at_max_z = surfaces[k-1].r_at_max_z
+                max_z = surfaces[k-1].max_z
+                r_at_min_z = surfaces[k-1].r_at_min_z
+                min_z = surfaces[k-1].min_z
+                z_at_max_r = surfaces[k-1].z_at_max_r
+                max_r = surfaces[k-1].max_r
+                z_at_min_r = surfaces[k-1].z_at_min_r
+                min_r = surfaces[k-1].min_r
             end
+
+            frl = x -> _opt_rext(x, psi_level, PSI_interpolant)
+            fzl = x -> _opt_zext(x, psi_level, PSI_interpolant)
+            algorithm = Optim.Newton()
+            res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm; autodiff=:forward)
+            (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm; autodiff=:forward)
+            (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(fzl, [r_at_max_z, max_z], algorithm; autodiff=:forward)
+            (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+            res = Optim.optimize(fzl, [r_at_min_z, min_z], algorithm; autodiff=:forward)
+            (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+
             # p = plot(pr, pz, label = "")
             # plot!([max_r], [z_at_max_r], marker = :cicle)
             # plot!([min_r], [z_at_min_r], marker = :cicle)
@@ -1063,7 +1077,7 @@ function trace_surfaces(
         fluxexpansion = 1.0 ./ Bp_abs
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
-        surface = FluxSurface2(
+        surface = FluxSurface(
             psi_level,
             pr,
             pz,
@@ -1083,9 +1097,9 @@ function trace_surfaces(
             fluxexpansion,
             int_fluxexpansion_dl)
 
-        pushfirst!(surfaces, surface)
+        surfaces[k] = surface
     end
-    return surfaces
+    return FluxSurface[surfaces[k] for k in 1:N]
 end
 
 """
