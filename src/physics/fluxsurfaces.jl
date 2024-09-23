@@ -1175,9 +1175,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         surface = surfaces[k]
         pr = surface.r
         pz = surface.z
-        ll = surface.ll
-        fluxexpansion = surface.fluxexpansion
-        int_fluxexpansion_dl = surface.int_fluxexpansion_dl
         Btot = surface.Btot
         Bp = surface.Bp
 
@@ -1200,12 +1197,12 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         # trapped fraction
         Bmin = minimum(Btot)
         Bmax = maximum(Btot)
-        avg_Btot = flxAvg(Btot, ll, fluxexpansion, int_fluxexpansion_dl)
+        avg_Btot = flux_surface_avg(Btot, surface)
         tmp .= Btot .^ 2
-        avg_Btot2 = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
-        tmp = Btot ./ Bmax
+        avg_Btot2 = flux_surface_avg(tmp, surface)
+        tmp .= Btot ./ Bmax
         tmp .= (1.0 .- sqrt.(1.0 .- tmp) .* (1.0 .+ tmp ./ 2.0)) ./ tmp .^ 2
-        hf = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
+        hf = flux_surface_avg(tmp, surface)
         h = avg_Btot / Bmax
         h2 = avg_Btot2 / Bmax^2
         ftu = 1.0 - h2 / (h^2) * (1.0 - sqrt(1.0 - h) * (1.0 + 0.5 * h))
@@ -1223,28 +1220,28 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
 
         # gm1 = <1/R^2>
         tmp .= 1.0 ./ pr .^ 2
-        eqt.profiles_1d.gm1[k] = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
+        eqt.profiles_1d.gm1[k] = flux_surface_avg(tmp, surface)
 
         # gm4 = <1/B^2>
         tmp .= 1.0 ./ Btot .^ 2
-        eqt.profiles_1d.gm4[k] = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
+        eqt.profiles_1d.gm4[k] = flux_surface_avg(tmp, surface)
 
         # gm5 = <B^2>
         eqt.profiles_1d.gm5[k] = avg_Btot2
 
         # gm8 = <R>
-        eqt.profiles_1d.gm8[k] = flxAvg(pr, ll, fluxexpansion, int_fluxexpansion_dl)
+        eqt.profiles_1d.gm8[k] = flux_surface_avg(pr, surface)
 
         # gm9 = <1/R>
         tmp .= 1.0 ./ pr
-        eqt.profiles_1d.gm9[k] = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
+        eqt.profiles_1d.gm9[k] = flux_surface_avg(tmp, surface)
 
         # gm10 = <R^2>
         tmp .= pr .^ 2
-        eqt.profiles_1d.gm10[k] = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
+        eqt.profiles_1d.gm10[k] = flux_surface_avg(tmp, surface)
 
         # fsa_bp = <Bp>
-        eqt.profiles_1d.fsa_bp[k] = flxAvg(Bp, ll, fluxexpansion, int_fluxexpansion_dl)
+        eqt.profiles_1d.fsa_bp[k] = flux_surface_avg(Bp, surface)
 
         # j_tor = <j_tor/R> / <1/R> [A/m²]
         eqt.profiles_1d.j_tor[k] =
@@ -1254,10 +1251,10 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
             ) / eqt.profiles_1d.gm9[k]
 
         # dvolume_dpsi
-        eqt.profiles_1d.dvolume_dpsi[k] = sign(eqt.profiles_1d.fsa_bp[k]) * int_fluxexpansion_dl
+        eqt.profiles_1d.dvolume_dpsi[k] = sign(eqt.profiles_1d.fsa_bp[k]) * surface.int_fluxexpansion_dl
 
         # surface area
-        eqt.profiles_1d.surface[k] = 2π * trapz(ll, pr)
+        eqt.profiles_1d.surface[k] = 2π * trapz(surface.ll, pr)
 
         # q
         eqt.profiles_1d.q[k] = eqt.profiles_1d.dvolume_dpsi[k] * eqt.profiles_1d.f[k] * eqt.profiles_1d.gm1[k] / (2π)
@@ -1265,7 +1262,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         # quantities calculated on the last closed flux surface
         if k == N
             # perimeter
-            eqt.global_quantities.length_pol = ll[end]
+            eqt.global_quantities.length_pol = surface.ll[end]
 
             # boundary
             eqt.boundary.outline.r = pr
@@ -1274,6 +1271,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     end
 
     tmp = similar(eqt.profiles_1d.psi)
+
     # area
     tmp .= eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.gm9 ./ 2π
     eqt.profiles_1d.area = cumtrapz(eqt.profiles_1d.psi, tmp)
@@ -1309,7 +1307,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         surface = surfaces[k]
         n = length(surface.r)
         dPHI2_R2[1:n] .= dPHI2_interpolant.(surface.r, surface.z) ./ surface.r .^ 2.0
-        @views eqt.profiles_1d.gm2[k] = flxAvg(dPHI2_R2[1:n], surface.ll, surface.fluxexpansion, surface.int_fluxexpansion_dl)
+        @views eqt.profiles_1d.gm2[k] = flux_surface_avg(dPHI2_R2[1:n], surface)
     end
     @views gm2_itp = interp1d(tmp[2:end], eqt.profiles_1d.gm2[2:end], :cubic)
     eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
@@ -1349,9 +1347,9 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     # secondary separatrix
     if length(eqt.boundary.x_point) > 1
         psi2nd = find_psi_2nd_separatrix(eqt, wall_r, wall_z)
-        tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
-        if !isempty(tmp)
-            (pr2nd, pz2nd) = tmp[1]
+        pts = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
+        if !isempty(pts)
+            (pr2nd, pz2nd) = pts[1]
             eqt.boundary_secondary_separatrix.outline.r = pr2nd
             eqt.boundary_secondary_separatrix.outline.z = pz2nd
         end
@@ -1485,13 +1483,13 @@ function flux_surface(
 end
 
 """
-    flxAvg(quantity::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
+    flux_surface_avg(quantity::AbstractVector{T}, surface::FluxSurface{T}) where {T<:Real}
 
-Flux surface averaging
+Flux surface averaging of a quantity
 """
-function flxAvg(quantity::AbstractVector{T}, ll::AbstractVector{T}, fluxexpansion::AbstractVector{T}, int_fluxexpansion_dl::T)::T where {T<:Real}
-    f = (k, xx) -> quantity[k] * fluxexpansion[k]
-    return trapz(ll, f) / int_fluxexpansion_dl
+function flux_surface_avg(quantity::AbstractVector{T}, surface::FluxSurface{T}) where {T<:Real}
+    f = (k, xx) -> quantity[k] * surface.fluxexpansion[k]
+    return trapz(surface.ll, f) / surface.int_fluxexpansion_dl
 end
 
 """
