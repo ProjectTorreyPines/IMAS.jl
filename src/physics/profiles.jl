@@ -57,6 +57,10 @@ function ion_element!(
     ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
     ion_string::AbstractString;
     fast::Bool=false)
+    if ion_string == "H2.5"
+        ion_string = "DT"
+    end
+    ion_string = replace(ion_string, "." => "")
     return ion_element!(ion, Symbol(ion_string); fast)
 end
 
