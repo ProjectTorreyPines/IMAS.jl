@@ -1140,23 +1140,127 @@ end
         aspect_ratio := :equal
         TF[2].end_radius .* cos.(ϕ), TF[2].end_radius .* sin.(ϕ)
     end
-
 end
 
 # ========= #
 # transport #
 # ========= #
-@recipe function plot_core_transport(ct::IMAS.core_transport{D}; time0=global_time(ct)) where {D<:Real}
-    model_type = name_2_index(ct.model)
+@recipe function plot_ct1d(ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy, ::Val{:flux})
+    @series begin
+        markershape --> :none
+        title := "Electron energy flux"
+        label --> ""
+        normalization := 1E-6
+        ylabel := "[MW/m²]"
+        ct1d__electrons__energy, :flux
+    end
+end
 
+@recipe function plot_ct1d(ct1d__total_ion_energy::IMAS.core_transport__model___profiles_1d___total_ion_energy, ::Val{:flux})
+    @series begin
+        markershape --> :none
+        title := "Total ion energy flux"
+        label --> ""
+        normalization := 1E-6
+        ylabel := "[MW/m²]"
+        ct1d__total_ion_energy, :flux
+    end
+end
+
+@recipe function plot_ct1d(ct1d__electrons__particles::IMAS.core_transport__model___profiles_1d___electrons__particles, ::Val{:flux})
+    @series begin
+        markershape --> :none
+        title := "Electron particle flux"
+        label --> ""
+        ylabel := "[s⁻¹/m²]"
+        ct1d__electrons__particles, :flux
+    end
+end
+
+@recipe function plot_ct1d(ct1d__ion___particles::IMAS.core_transport__model___profiles_1d___ion___particles, ::Val{:flux})
+    ion = parent(ct1d__ion___particles)
+    @series begin
+        markershape --> :none
+        title := "$(ion.label) particle flux"
+        label --> ""
+        ylabel := "[s⁻¹/m²]"
+        ct1d__ion___particles, :flux
+    end
+end
+
+@recipe function plot_ct1d(ct1d__momentum_tor::IMAS.core_transport__model___profiles_1d___momentum_tor, ::Val{:flux})
+    @series begin
+        markershape --> :none
+        title := "Momentum flux"
+        label --> ""
+        ylabel := "[Nm/m²]"
+        ct1d__momentum_tor, :flux
+    end
+end
+
+function transport_channel_paths(ions::AbstractVector{<:IDS}, ions_list::AbstractVector{Symbol})
+    paths = Any[
+        [:electrons, :energy],
+        [:total_ion_energy],
+        [:electrons, :particles],
+        [:momentum_tor]]
+    available_ions = [Symbol(ion.label) for ion in ions]
+    for (kion, ion) in enumerate(ions_list)
+        if ion in available_ions
+            push!(paths, [:ion, kion, :particles])
+        else
+            push!(paths, [nothing])
+        end
+    end
+    return paths
+end
+
+@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; only=nothing, ions=Symbol[])
+    @assert typeof(ions) <: AbstractVector{Symbol}
+    paths = transport_channel_paths(ct1d.ion, ions)
+
+    if only === nothing
+        layout := 4 + length(ions)
+        size --> (800, 600)
+        background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
+    end
+
+    for (k, path) in enumerate(paths)
+        if k == only || only === nothing
+            if path[end] !== nothing && !ismissing(ct1d, [path; :flux])
+                @series begin
+                    if only === nothing
+                        subplot := k
+                    end
+                    goto(ct1d, path), Val(:flux)
+                end
+            end
+        end
+    end
+end
+
+@recipe function plot_core_transport(ct::IMAS.core_transport{D}; ions=Symbol[:my_ions], time0=global_time(ct)) where {D<:Real}
+    @assert typeof(ions) <: AbstractVector{Symbol}
+    @assert typeof(time0) <: Float64
+
+    model_type = name_2_index(ct.model)
+    my_ions = Symbol[]
     rhos = D[]
     for model in ct.model
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
-        append!(rhos, model.profiles_1d[].grid_flux.rho_tor_norm)
+        ct1d = model.profiles_1d[]
+        for ion in ct1d.ion
+            push!(my_ions, Symbol(ion.label))
+        end
+        append!(rhos, ct1d.grid_flux.rho_tor_norm)
     end
     rhos = unique(rhos)
+    my_ions = unique(my_ions)
+    if ions == [:my_ions]
+        ions = my_ions
+    end
 
     dd = top_dd(ct)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -1167,6 +1271,7 @@ end
             color := :blue
             name := "Total source"
             flux := true
+            ions := ions
             total_sources(dd; time0)
         end
     end
@@ -1175,6 +1280,7 @@ end
         linewidth := 2
         color := :red
         label := "Total transport"
+        ions := ions
         total_fluxes(ct, cp1d, rhos; time0)
     end
 
@@ -1183,6 +1289,7 @@ end
             continue
         end
         @series begin
+            ions := ions
             label := model.identifier.name
             if model.identifier.index == model_type[:anomalous]
                 markershape := :diamond
@@ -1199,100 +1306,379 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; label="", markershape=:none, color=:green, only=nothing)
+# ============ #
+# core_sources #
+# ============ #
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:electrons__energy};
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    show_zeros=false,
+    min_power=1e3,
+    only_positive_negative=0,
+    show_source_number=false
+)
+    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    tot = 0.0
+    if !ismissing(cs1d.electrons, :energy)
+        tot = trapz(cs1d.grid.volume, cs1d.electrons.energy)
+    end
+    show_condition =
+        show_zeros || identifier in [:total, :collisional_equipartition, :time_derivative] ||
+        (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
+    @series begin
+        if identifier == :collisional_equipartition
+            linestyle --> :dash
+        end
+        color := idx
+        title --> "Electron Energy"
+        if show_condition
+            label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
+            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+                fill0 --> true
+            end
+            if !ismissing(cs1d.electrons, :power_inside) && flux
+                ylabel := "[MW/m²]"
+                normalization = 1E-6 ./ cs1d.grid.surface
+                normalization[1] = NaN
+                normalization := normalization
+                cs1d.electrons, :power_inside
+            elseif !integrated && !ismissing(cs1d.electrons, :energy)
+                cs1d.electrons, :energy
+            elseif integrated && !ismissing(cs1d.electrons, :power_inside)
+                cs1d.electrons, :power_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        else
+            label := ""
+            [NaN], [NaN]
+        end
+    end
+end
+
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:total_ion_energy};
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    show_zeros=false,
+    min_power=1e3,
+    only_positive_negative=0,
+    show_source_number=false
+)
+    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    tot = 0.0
+    if !ismissing(cs1d, :total_ion_energy)
+        tot = trapz(cs1d.grid.volume, cs1d.total_ion_energy)
+    end
+    show_condition =
+        show_zeros || identifier in [:total, :collisional_equipartition, :time_derivative] ||
+        (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
+    @series begin
+        if identifier == :collisional_equipartition
+            linestyle --> :dash
+        end
+        color := idx
+        title --> "Total Ion Energy"
+        if show_condition
+            label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
+            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+                fill0 --> true
+            end
+            if !ismissing(cs1d, :total_ion_power_inside) && flux
+                ylabel := "[MW/m²]"
+                normalization = 1E-6 ./ cs1d.grid.surface
+                normalization[1] = NaN
+                normalization := normalization
+                cs1d, :total_ion_power_inside
+            elseif !integrated && !ismissing(cs1d, :total_ion_energy)
+                cs1d, :total_ion_energy
+            elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
+                cs1d, :total_ion_power_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        else
+            label := ""
+            [NaN], [NaN]
+        end
+    end
+end
+
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:electrons__particles};
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    show_zeros=false,
+    show_source_number=false
+)
+    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    tot = 0.0
+    if !ismissing(cs1d.electrons, :particles)
+        tot = trapz(cs1d.grid.volume, cs1d.electrons.particles)
+    end
+    show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
+    @series begin
+        color := idx
+        title --> "Electron Particles"
+        if show_condition
+            label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
+            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+                fill0 --> true
+            end
+            if !ismissing(cs1d.electrons, :particles_inside) && flux
+                ylabel := "[s⁻¹/m²]"
+                normalization = 1.0 ./ cs1d.grid.surface
+                normalization[1] = NaN
+                normalization := normalization
+                cs1d.electrons, :particles_inside
+            elseif !integrated && !ismissing(cs1d.electrons, :particles)
+                cs1d.electrons, :particles
+            elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
+                cs1d.electrons, :particles_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        else
+            label := ""
+            [NaN], [NaN]
+        end
+    end
+end
+
+@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, ::Val{:particles};
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    show_zeros=false,
+    show_source_number=false
+)
+    cs1d = parent(parent(cs1di))
+    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    tot = 0.0
+    if !ismissing(cs1di, :particles)
+        tot = trapz(cs1d.grid.volume, cs1di.particles)
+    end
+    show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
+    @series begin
+        color := idx
+        title --> "$(cs1di.label) Particles"
+        if show_condition
+            label := "$name $(cs1di.label) " * @sprintf("[%.3g s⁻¹]", tot) * label
+            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+                fill0 --> true
+            end
+            if !ismissing(cs1di, :particles_inside) && flux
+                ylabel := "[s⁻¹/m²]"
+                normalization = 1.0 ./ cs1d.grid.surface
+                normalization[1] = NaN
+                normalization := normalization
+                cs1di, :particles_inside
+            elseif !integrated && !ismissing(cs1di, :particles)
+                cs1di, :particles
+            elseif integrated && !ismissing(cs1di, :particles_inside)
+                cs1di, :particles_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        else
+            label := ""
+            [NaN], [NaN]
+        end
+    end
+end
+
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:momentum_tor};
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    show_zeros=false,
+    show_source_number=false
+)
+    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    tot = 0.0
+    if !ismissing(cs1d, :momentum_tor)
+        tot = trapz(cs1d.grid.volume, cs1d.momentum_tor)
+    end
+    show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
+    @series begin
+        color := idx
+        title --> "Momentum"
+        if show_condition
+            label := "$name " * @sprintf("[%.3g N m]", tot / 1E6) * label
+            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+                fill0 --> true
+            end
+            if !ismissing(cs1d, :torque_tor_inside) && flux
+                ylabel := "[Nm/m²]"
+                normalization = 1.0 ./ cs1d.grid.surface
+                normalization[1] = NaN
+                normalization := normalization
+                cs1d, :torque_tor_inside
+            elseif !integrated && !ismissing(cs1d, :momentum_tor)
+                cs1d, :momentum_tor
+            elseif integrated && !ismissing(cs1d, :torque_tor_inside)
+                cs1d, :torque_tor_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        else
+            label := ""
+            [NaN], [NaN]
+        end
+    end
+end
+
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:j_parallel};
+    name="",
+    label="",
+    integrated=false,
+    show_zeros=false,
+    show_source_number=false
+)
+    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    tot = 0.0
+    if !ismissing(cs1d, :j_parallel)
+        tot = trapz(cs1d.grid.area, cs1d.j_parallel)
+    end
+    show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
+    @series begin
+        color := idx
+        title --> "Parallel Current"
+        if show_condition
+            label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
+            if !integrated && !ismissing(cs1d, :j_parallel)
+                if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+                    fill0 --> true
+                end
+                cs1d, :j_parallel
+            elseif integrated && !ismissing(cs1d, :current_parallel_inside)
+                cs1d, :current_parallel_inside
+            else
+                label := ""
+                [NaN], [NaN]
+            end
+        else
+            label := ""
+            [NaN], [NaN]
+        end
+    end
+end
+
+function source_name_identifier(source::Union{IMAS.core_sources__source,Nothing}, name::AbstractString, show_source_number::Bool)
+    if parent(source; error_parent_of_nothing=false) !== nothing
+        idx = index(source)
+        if show_source_number
+            name = "[$idx] $name"
+        end
+    else
+        source = nothing
+        idx = 1
+    end
+    if source !== nothing
+        identifier = identifier_name(source)
+    else
+        identifier = :undefined
+    end
+    return name, identifier, idx
+end
+
+@recipe function plot_source1d(
+    cs1d::IMAS.core_sources__source___profiles_1d;
+    name="",
+    label="",
+    integrated=false,
+    flux=false,
+    only=nothing,
+    show_zeros=false,
+    min_power=1e3,
+    only_positive_negative=0,
+    show_source_number=false,
+    ions=Symbol[]
+)
+    @assert typeof(name) <: AbstractString
+    @assert typeof(integrated) <: Bool
+    @assert typeof(flux) <: Bool
+    @assert typeof(label) <: Union{Nothing,AbstractString}
+    @assert typeof(show_zeros) <: Bool
+    @assert typeof(min_power) <: Float64
+    @assert typeof(only_positive_negative) <: Int
+    @assert typeof(show_source_number) <: Bool
+    @assert typeof(ions) <: AbstractVector{Symbol}
+
+    paths = transport_channel_paths(cs1d.ion, ions)
+    if !flux
+        push!(paths, [:j_parallel])
+    end
     if only === nothing
-        layout := (2, 2)
+        if flux
+            layout := 4 + length(ions)
+        else
+            layout := 5 + length(ions)
+        end
         size --> (800, 600)
-        margin --> 5 * Measures.mm
+        background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
 
-    if only === nothing || only == 1
-        if !ismissing(ct1d.electrons.energy, :flux)
+    for (k, path) in enumerate(paths)
+        if k == only || only === nothing
             @series begin
                 if only === nothing
-                    subplot := 1
+                    subplot := k
                 end
-                color := color
-                markershape := markershape
-                title := "Electron energy flux"
-                label := label
-                normalization := 1E-6
-                ylabel := "[MW/m²]"
-
-                ct1d.electrons.energy, :flux
-            end
-        end
-    end
-
-    if only === nothing || only == 2
-        if !ismissing(ct1d.total_ion_energy, :flux)
-            @series begin
-                if only === nothing
-                    subplot := 2
-                end
-                color := color
-                markershape := markershape
-                title := "Ion energy flux"
-                if only !== nothing
+                if path[end] !== nothing && !ismissing(cs1d, path)
+                    name := name
+                    show_source_number := show_source_number
                     label := label
+                    integrated := integrated
+                    flux := flux
+                    show_zeros := show_zeros
+                    min_power := min_power
+                    only_positive_negative := only_positive_negative
+                    if path[1] == :ion
+                        goto(cs1d, path[1:end-1]), Val(path[end])
+                    else
+                        cs1d, Val(Symbol(join(filter(x -> !(typeof(x) <: Int), path), "__")))
+                    end
                 else
-                    label := :none
+                    [NaN], [NaN]
                 end
-                normalization := 1E-6
-                ylabel := "[MW/m²]"
-
-                ct1d.total_ion_energy, :flux
-            end
-        end
-    end
-
-    if only === nothing || only == 3
-        if !ismissing(ct1d.electrons.particles, :flux)
-            @series begin
-                if only === nothing
-                    subplot := 3
-                end
-                color := color
-                markershape := markershape
-                title := "Electron particle flux"
-                if only !== nothing
-                    label := label
-                else
-                    label := :none
-                end
-
-                ct1d.electrons.particles, :flux
-            end
-        end
-    end
-
-    if only === nothing || only == 4
-        if !ismissing(ct1d.momentum_tor, :flux)
-            @series begin
-                if only === nothing
-                    subplot := 4
-                end
-                color := color
-                markershape := markershape
-                title := "Toroidal momentum flux"
-                if only !== nothing
-                    label := label
-                else
-                    label := :none
-                end
-
-                ct1d.momentum_tor, :flux
             end
         end
     end
 end
 
-# ============ #
-# core_sources #
-# ============ #
-@recipe function plot_core_sources(cs::IMAS.core_sources{T}; time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
+@recipe function plot_core_sources(cs::IMAS.core_sources{T}; ions=[:my_ions], time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
+    @assert typeof(ions) <: AbstractVector{Symbol}
     @assert typeof(time0) <: Float64
     @assert typeof(aggregate_radiation) <: Bool
+
+    my_ions = Symbol[]
+    for source in cs.source
+        for ion in source.profiles_1d[].ion
+            push!(my_ions, Symbol(ion.label))
+        end
+    end
+    my_ions = unique(my_ions)
+    if ions == [:my_ions]
+        ions = my_ions
+    end
 
     for source in cs.source
         @series begin
@@ -1301,6 +1687,7 @@ end
             end
             nozeros := true
             time0 := time0
+            ions := ions
             source
         end
     end
@@ -1315,6 +1702,7 @@ end
                 merge!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
                 rad_source.identifier.index = 200
                 rad_source.identifier.name = "radiation"
+                ions := ions
                 rad_source
             end
         end
@@ -1324,6 +1712,7 @@ end
             linewidth := 2
             color := :black
             min_power := 0.0
+            ions := ions
             total_sources(dd; time0)
         end
     end
@@ -1334,219 +1723,6 @@ end
         @series begin
             name := source.identifier.name
             source.profiles_1d[time0]
-        end
-    end
-end
-
-@recipe function plot_source1d(
-    cs1d::IMAS.core_sources__source___profiles_1d;
-    name="",
-    label="",
-    integrated=false,
-    flux=false,
-    only=nothing,
-    show_zeros=false,
-    min_power=1e3,
-    only_positive_negative=0,
-    show_source_number=false
-)
-    @assert typeof(name) <: AbstractString
-    @assert typeof(integrated) <: Bool
-    @assert typeof(flux) <: Bool
-    @assert typeof(label) <: Union{Nothing,AbstractString}
-    @assert typeof(show_zeros) <: Bool
-    @assert typeof(min_power) <: Float64
-    @assert typeof(only_positive_negative) <: Int
-    @assert typeof(show_source_number) <: Bool
-
-    if label === nothing
-        label = ""
-    end
-
-    if only === nothing
-        if flux
-            layout := (2, 2)
-            size --> (800, 600)
-        else
-            layout := (1, 4)
-            size --> (1100, 290)
-            margin --> 5 * Measures.mm
-        end
-    end
-
-    if parent(cs1d) !== nothing && parent(parent(cs1d)) !== nothing
-        source = parent(parent(cs1d))
-        idx = index(source)
-        if show_source_number
-            name = "[$idx] $name"
-        end
-    else
-        source = nothing
-        idx = 1
-    end
-    if source !== nothing
-        source_name = identifier_name(source)
-    else
-        source_name = :undefined
-    end
-
-    # electron energy
-    if only === nothing || only == 1
-        tot = 0.0
-        if !ismissing(cs1d.electrons, :energy)
-            tot = trapz(cs1d.grid.volume, cs1d.electrons.energy)
-        end
-        show_condition =
-            flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] ||
-            (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
-        @series begin
-            if only === nothing
-                subplot := 1
-            end
-            if source_name == :collisional_equipartition
-                linestyle --> :dash
-            end
-            color := idx
-            title --> "Electron Energy"
-            if show_condition
-                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-                if !ismissing(cs1d.electrons, :power_inside) && flux
-                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.power_inside./cs1d.grid.surface)[2:end] / 1E6
-                elseif !integrated && !ismissing(cs1d.electrons, :energy)
-                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
-                        fill0 --> true
-                    end
-                    cs1d.electrons, :energy
-                elseif integrated && !ismissing(cs1d.electrons, :power_inside)
-                    cs1d.electrons, :power_inside
-                else
-                    label := ""
-                    [NaN], [NaN]
-                end
-            else
-                label := ""
-                [NaN], [NaN]
-            end
-        end
-    end
-
-    # ion energy
-    if only === nothing || only == 2
-        tot = 0.0
-        if !ismissing(cs1d, :total_ion_energy)
-            tot = trapz(cs1d.grid.volume, cs1d.total_ion_energy)
-        end
-        show_condition = flux || show_zeros || source_name in [:collisional_equipartition, :time_derivative] || abs(tot) > min_power
-        @series begin
-            if only === nothing
-                subplot := 2
-            end
-            if source_name == :collisional_equipartition
-                linestyle --> :dash
-            end
-            color := idx
-            title --> "Ion Energy"
-            if show_condition
-                label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-                if !ismissing(cs1d, :total_ion_power_inside) && flux
-                    cs1d.grid.rho_tor_norm[2:end], (cs1d.total_ion_power_inside./cs1d.grid.surface)[2:end] / 1E6
-                elseif !integrated && !ismissing(cs1d, :total_ion_energy)
-                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
-                        fill0 --> true
-                    end
-                    cs1d, :total_ion_energy
-                elseif integrated && !ismissing(cs1d, :total_ion_power_inside)
-                    cs1d, :total_ion_power_inside
-                else
-                    label := ""
-                    [NaN], [NaN]
-                end
-            else
-                label := ""
-                [NaN], [NaN]
-            end
-        end
-    end
-
-    # particles
-    if only === nothing || only == 3
-        tot = 0.0
-        if !ismissing(cs1d.electrons, :particles)
-            tot = trapz(cs1d.grid.volume, cs1d.electrons.particles)
-        end
-        show_condition = flux || show_zeros || source_name == :time_derivative || abs(tot) > 0.0
-        @series begin
-            if only === nothing
-                subplot := 3
-            end
-            color := idx
-            title --> "Electron Particle"
-            if show_condition
-                label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
-                if !ismissing(cs1d.electrons, :particles_inside) && flux
-                    cs1d.grid.rho_tor_norm[2:end], (cs1d.electrons.particles_inside./cs1d.grid.surface)[2:end]
-                elseif !integrated && !ismissing(cs1d.electrons, :particles)
-                    if source_name in [:ec, :ic, :lh, :nbi, :pellet]
-                        fill0 --> true
-                    end
-                    cs1d.electrons, :particles
-                elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
-                    cs1d.electrons, :particles_inside
-                else
-                    label := ""
-                    [NaN], [NaN]
-                end
-            else
-                label := ""
-                [NaN], [NaN]
-            end
-        end
-    end
-
-    # current (or momentum, if plotting flux)
-    if only === nothing || only == 4
-        if flux
-            if only === nothing
-                subplot := 4
-            end
-            color := idx
-            title --> "Momentum Tor"
-            if !ismissing(cs1d, :torque_tor_inside)
-                cs1d.grid.rho_tor_norm[2:end], (cs1d.torque_tor_inside./cs1d.grid.surface)[2:end]
-            else
-                label := ""
-                [NaN], [NaN]
-            end
-        else
-            tot = 0.0
-            if !ismissing(cs1d, :j_parallel)
-                tot = trapz(cs1d.grid.area, cs1d.j_parallel)
-            end
-            show_condition = flux || show_zeros || abs(tot) > 0.0
-            @series begin
-                if only === nothing
-                    subplot := 4
-                end
-                color := idx
-                title --> "Parallel Current"
-                if show_condition
-                    label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
-                    if !integrated && !ismissing(cs1d, :j_parallel)
-                        if source_name in [:ec, :ic, :lh, :nbi, :pellet]
-                            fill0 --> true
-                        end
-                        cs1d, :j_parallel
-                    elseif integrated && !ismissing(cs1d, :current_parallel_inside)
-                        cs1d, :current_parallel_inside
-                    else
-                        label := ""
-                        [NaN], [NaN]
-                    end
-                else
-                    label := ""
-                    [NaN], [NaN]
-                end
-            end
         end
     end
 end
@@ -2238,7 +2414,7 @@ end
 #= ================ =#
 @recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing, weighted=:none, fill0=false)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
-    @assert typeof(normalization) <: Real
+    @assert typeof(normalization) <: Union{Real,AbstractVector{<:Real}}
     @assert typeof(coordinate) <: Union{Nothing,Symbol}
     @assert typeof(weighted) <: Symbol
     @assert typeof(fill0) <: Bool
