@@ -1118,7 +1118,6 @@ function extrema_cost(
     direction::Symbol
 ) where {T<:Real}
     d = point_to_path_distance(x[1], x[2], r_rail, z_rail)
-    w = 0.1
     if direction == :right
         cost = (x[1] - RA)^2 * (x[1] < RA)
     elseif direction == :left
@@ -1128,7 +1127,7 @@ function extrema_cost(
     elseif direction == :down
         cost = (x[2] - ZA)^2 * (x[2] > ZA)
     end
-    cost += (PSI_interpolant(x[1], x[2]) - psi_level)^2 + d^2
+    cost += (PSI_interpolant(x[1], x[2]) - psi_level)^2 + 0.1 * d^2
     return cost
 end
 
