@@ -1052,9 +1052,10 @@ function trace_surfaces(
         end
     end
     leftright_r, leftright_z = Contour.coordinates(lines[k])
-    for k in [N2:-1:2;N2+1:N]
-        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z)
+    for k in [N2:-1:2; N2+1:N]
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, RA, ZA, :right)
         surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, RA, ZA, :left)
         surfaces[k].min_r, surfaces[k].z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
         if 2 < k <= N2
             surfaces[k-1].z_at_max_r = surfaces[k].z_at_max_r
@@ -1078,9 +1079,10 @@ function trace_surfaces(
         end
     end
     updown_r, updown_z = Contour.coordinates(lines[k])
-    for k in [N2:-1:2;N2+1:N]
-        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z)
+    for k in [N2:-1:2; N2+1:N]
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, RA, ZA, :up)
         surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, RA, ZA, :down)
         surfaces[k].r_at_min_z, surfaces[k].min_z = Optim.optimize(cost, [surfaces[k].r_at_min_z, surfaces[k].min_z], algorithm; autodiff=:forward).minimizer
         if 2 < k <= N2
             surfaces[k-1].r_at_max_z = surfaces[k].r_at_max_z
@@ -1105,9 +1107,28 @@ function trace_surfaces(
 end
 
 # accurate geometric quantities by finding geometric extrema as optimization problem
-function extrema_cost(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, r_rail::AbstractVector{T}, z_rail::AbstractVector{T}) where {T<:Real}
+function extrema_cost(
+    x::AbstractVector{<:Real},
+    psi_level::T,
+    PSI_interpolant,
+    r_rail::AbstractVector{T},
+    z_rail::AbstractVector{T},
+    RA::T,
+    ZA::T,
+    direction::Symbol
+) where {T<:Real}
     d = point_to_path_distance(x[1], x[2], r_rail, z_rail)
-    cost = (PSI_interpolant(x[1], x[2]) - psi_level)^2 + 0.1 * d^2
+    w = 0.1
+    if direction == :right
+        cost = (x[1] - RA)^2 * (x[1] < RA)
+    elseif direction == :left
+        cost = (x[1] - RA)^2 * (x[1] > RA)
+    elseif direction == :up
+        cost = (x[2] - ZA)^2 * (x[2] < ZA)
+    elseif direction == :down
+        cost = (x[2] - ZA)^2 * (x[2] > ZA)
+    end
+    cost += (PSI_interpolant(x[1], x[2]) - psi_level)^2 + d^2
     return cost
 end
 
