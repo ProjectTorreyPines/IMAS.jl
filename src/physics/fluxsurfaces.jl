@@ -899,29 +899,28 @@ function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}
             end
         end,
         [rguess, zguess],
-        Optim.Newton(),
-        Optim.Options(; g_tol=1E-8);
+        Optim.Newton();
         autodiff=:forward
     )
     return res.minimizer[1], res.minimizer[2]
 end
 
 # accurate geometric quantities by finding geometric extrema as optimization problem
-function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant) where {T<:Real}
+function _opt_rext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, w::Float64) where {T<:Real}
     grad = Interpolations.gradient(PSI_interpolant, x[1], x[2])
     _Br = grad[2]
     try
-        (PSI_interpolant(x[1], x[2]) - psi_level)^2 + (_Br)^2
+        (PSI_interpolant(x[1], x[2]) - psi_level)^2 + w * (_Br)^2
     catch
         return T(100)
     end
 end
 
-function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant) where {T<:Real}
+function _opt_zext(x::AbstractVector{<:Real}, psi_level::T, PSI_interpolant, w::Float64) where {T<:Real}
     grad = Interpolations.gradient(PSI_interpolant, x[1], x[2])
     _Bz = grad[1]
     try
-        (PSI_interpolant(x[1], x[2]) - psi_level)^2 + (_Bz)^2
+        (PSI_interpolant(x[1], x[2]) - psi_level)^2 + w * (_Bz)^2
     catch
         return T(100)
     end
@@ -999,21 +998,14 @@ function trace_surfaces(
     surfaces = Dict{Int,FluxSurface}()
 
     N = length(psi)
-    N2 = Int(ceil(N/2))
-    for k in [N2:-1:1;N2+1:N]
+    N2 = Int(ceil(N / 2))
+    for k in [N2:-1:1; N2+1:N]
         psi_level = psi[k]
 
+        # trace surfaces
         if k == 1 # on axis flux surface is a artificial one, generated from the second surface
             pr = (surfaces[2].r .- RA) ./ 100.0 .+ RA
             pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
-            r_at_max_z = (surfaces[2].r_at_max_z - RA) / 100.0 + RA
-            r_at_min_z = (surfaces[2].r_at_min_z - RA) / 100.0 + RA
-            max_r = (surfaces[2].max_r - RA) / 100.0 + RA
-            min_r = (surfaces[2].min_r - RA) / 100.0 + RA
-            max_z = (surfaces[2].max_z .- ZA) ./ 100.0 .+ ZA
-            min_z = (surfaces[2].min_z .- ZA) ./ 100.0 .+ ZA
-            z_at_max_r = (surfaces[2].z_at_max_r .- ZA) ./ 100.0 .+ ZA
-            z_at_min_r = (surfaces[2].z_at_min_r .- ZA) ./ 100.0 .+ ZA
 
         else  # other flux surfaces
             # trace flux surface
@@ -1026,7 +1018,35 @@ function trace_surfaces(
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
             (pr, pz) = tmp[1]
+        end
 
+        # surface length
+        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
+        ll = cumsum(dl)
+
+        # poloidal magnetic field (with sign)
+        Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
+        tmp = Br .^ 2.0 .+ Bz .^ 2.0 #Bp2
+        Bp_abs = sqrt.(tmp)
+        Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
+        Btot = sqrt.(tmp .+ (f[k] ./ pr) .^ 2)
+
+        # flux expansion
+        fluxexpansion = 1.0 ./ Bp_abs
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+
+        # find extrema
+        if k == 1
+            r_at_max_z = (surfaces[2].r_at_max_z - RA) / 100.0 + RA
+            r_at_min_z = (surfaces[2].r_at_min_z - RA) / 100.0 + RA
+            max_r = (surfaces[2].max_r - RA) / 100.0 + RA
+            min_r = (surfaces[2].min_r - RA) / 100.0 + RA
+            max_z = (surfaces[2].max_z .- ZA) ./ 100.0 .+ ZA
+            min_z = (surfaces[2].min_z .- ZA) ./ 100.0 .+ ZA
+            z_at_max_r = (surfaces[2].z_at_max_r .- ZA) ./ 100.0 .+ ZA
+            z_at_min_r = (surfaces[2].z_at_min_r .- ZA) ./ 100.0 .+ ZA
+
+        else
             if k <= N2
                 # Guess starting from extrema on array indices
                 (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
@@ -1042,8 +1062,9 @@ function trace_surfaces(
                 min_r = surfaces[k-1].min_r
             end
 
-            frl = x -> _opt_rext(x, psi_level, PSI_interpolant)
-            fzl = x -> _opt_zext(x, psi_level, PSI_interpolant)
+            w = 0.1
+            frl = x -> _opt_rext(x, psi_level, PSI_interpolant, w)
+            fzl = x -> _opt_zext(x, psi_level, PSI_interpolant, w)
             algorithm = Optim.Newton()
             res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm; autodiff=:forward)
             (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
@@ -1061,21 +1082,6 @@ function trace_surfaces(
             # plot!([r_at_min_z], [min_z], marker = :cicle)
             # display(p)
         end
-
-        # surface length
-        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
-        ll = cumsum(dl)
-
-        # poloidal magnetic field (with sign)
-        Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
-        tmp = Br .^ 2.0 .+ Bz .^ 2.0 #Bp2
-        Bp_abs = sqrt.(tmp)
-        Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
-        Btot = sqrt.(tmp .+ (f[k] ./ pr) .^ 2)
-
-        # flux expansion
-        fluxexpansion = 1.0 ./ Bp_abs
-        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
         surface = FluxSurface(
             psi_level,
