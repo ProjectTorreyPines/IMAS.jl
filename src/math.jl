@@ -330,7 +330,7 @@ function closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) wher
 
     if segment_length_squared == 0.0
         # The segment is just a point, return (x1,y1) [= (x2,y2)]
-        return (x1,y1)
+        return (closest_x=x1, closest_y=y1)
     end
 
     # Compute the projection of the point onto the line defined by the segment
