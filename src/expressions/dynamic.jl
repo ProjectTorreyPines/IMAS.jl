@@ -167,21 +167,13 @@ dyexp["core_profiles.global_quantities.current_ohmic"] =
         ]
 
 dyexp["core_profiles.global_quantities.ip"] =
-    (time; core_profiles, _...) ->
-        return [
-            begin
-                eqt = dd.equilibrium.time_slice[Float64(time0)]
-                cp1d = core_profiles.profiles_1d[Float64(time0)]
-                Ip(cp1d, eqt)
-            end
-            for time0 in time
-        ]
+    (time; core_profiles, _...) -> [Ip(core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
 
 dyexp["core_profiles.global_quantities.beta_tor_norm"] =
-    (time; dd, _...) -> [beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time)]) for time in dd.core_profiles.time]
+    (time; dd, _...) -> [beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
 
 dyexp["core_profiles.global_quantities.v_loop"] =
-    (time; dd, _...) -> [v_loop(core_profiles.profiles_1d[Float64(time)]) for time in dd.core_profiles.time]
+    (time; dd, _...) -> [v_loop(core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
 
 dyexp["core_profiles.profiles_1d[:].time"] =
     (; core_profiles, profiles_1d_index, _...) -> begin
