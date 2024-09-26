@@ -1,11 +1,10 @@
 """
-    j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
+    j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T) where {T<:Real}
 
-Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
+Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target ip
 Requires constant loop voltage: Vl = 2π * η * <J_oh⋅B> / (F * <R⁻²>) = constant
 """
-function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
-
+function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T) where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
     F = IMAS.interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
@@ -14,8 +13,7 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
 
     j_non_inductive = cp1d.j_non_inductive
 
-    j_non_inductive_tor = Jpar_2_Jtor(rho_tor_norm, j_non_inductive, true, eqt)
-    I_ohmic_tor = Ip - trapz(cp1d.grid.area, j_non_inductive_tor)
+    I_ohmic_tor = ip - Ip_non_inductive(cp1d, eqt)
     I_tor_2_par = trapz(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, fill(I_ohmic_tor, size(rho_tor_norm)), false, eqt)) / (I_ohmic_tor * cp1d.grid.area[end])
     I_ohmic_par_guess = I_ohmic_tor .* I_tor_2_par
 
@@ -26,7 +24,7 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
         j_ohmic = x[1] .* j_oh_par_norm
         j_total = j_ohmic .+ j_non_inductive
         j_tor = Jpar_2_Jtor(rho_tor_norm, j_total, true, eqt)
-        return abs(Ip - trapz(cp1d.grid.area, j_tor)) .^ 2
+        return abs(ip - Ip(cp1d)) .^ 2
     end
 
     res = Optim.optimize(cost, [I_ohmic_par_guess], Optim.Newton(); autodiff=:forward)
@@ -36,12 +34,12 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
 end
 
 """
-    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; Ip::T) where {T<:Real}
+    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; ip::T) where {T<:Real}
 
-Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target Ip
+Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target ip
 """
-function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, Ip::T) where {T<:Real}
-    return cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d, Ip)
+function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T) where {T<:Real}
+    return cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d, ip)
 end
 
 """
@@ -170,4 +168,50 @@ end
 function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
     vl = vloop_time(ct)
     return IMAS.get_time_array(vl.time, vl.data, [time0], :linear)[1]
+end
+
+"""
+    Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+
+Integrated toroidal non-inductive current
+"""
+function Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+    return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt))
+end
+
+"""
+    Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+
+Integrated toroidal bootstrap current
+"""
+function Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+    return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_bootstrap, true, eqt))
+end
+
+"""
+    Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+
+Integrated toroidal ohmic current
+"""
+function Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+    return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_ohmic, true, eqt))
+end
+
+"""
+    Ip(cp1d::IMAS.core_profiles__profiles_1d{T})
+
+Integrated toroidal total current (based on core_profiles)
+"""
+function Ip(cp1d::IMAS.core_profiles__profiles_1d{T})
+    return trapz(cp1d.grid.area, cp1d.j_tor)
+end
+
+"""
+    Ip(eqt::IMAS.core_profiles__profiles_1d{T})
+
+Integrated toroidal total current (based on equilibrium)
+"""
+function Ip(eqt::IMAS.core_profiles__profiles_1d{T})
+    # equivalent to: trapz(eqt.profiles_1d.volume, eqt.profiles_1d.j_tor.*eqt.profiles_1d.gm9) / (2π)
+    return trapz(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
 end
