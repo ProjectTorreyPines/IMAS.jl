@@ -23,7 +23,7 @@ Toroidal beta, defined as the volume-averaged total perpendicular pressure divid
 """
 function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
     B0 = get_time_array(eq.vacuum_toroidal_field, :b0, cp1d.time, :constant)
-    Ip = trapz(cp1d.grid.area, cp1d.j_tor)
+    ip = Ip(cp1d)
 
     if thermal
         pressure = cp1d.pressure_thermal
@@ -38,12 +38,43 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
 
     if norm
         eqt = eq.time_slice[cp1d.time]
-        out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(Ip / 1e6) * 1.0e2
+        out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(ip / 1e6) * 1.0e2
     else
         out = beta_tor
     end
 
     return out
+end
+
+"""
+    list_ions(ct::IMAS.core_transport)
+
+List ions in core_transport IDS
+"""
+function list_ions(ct::IMAS.core_transport)
+    ions = Symbol[]
+    for model in ct.model
+        ct1d = model.profiles_1d[]
+        for ion in ct1d.ion
+            push!(ions, Symbol(ion.label))
+        end
+    end
+    return unique(ions)
+end
+
+"""
+    list_ions(cs::IMAS.core_sources)
+
+List ions in core_sources IDS
+"""
+function list_ions(cs::IMAS.core_sources)
+    ions = Symbol[]
+    for source in cs.source
+        for ion in source.profiles_1d[].ion
+            push!(ions, Symbol(ion.label))
+        end
+    end
+    return unique(ions)
 end
 
 function ion_element!(

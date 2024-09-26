@@ -1342,8 +1342,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
 
     # ip
-    eqt.global_quantities.ip = trapz(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
-    # eqt.global_quantities.ip = trapz(eqt.profiles_1d.volume, eqt.profiles_1d.j_tor.*eqt.profiles_1d.gm9) / (2π) # equivalent
+    eqt.global_quantities.ip = Ip(eqt)
 
     # Geometric major and minor radii
     Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0

@@ -10,7 +10,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ip}}, from_where::Symbol; time
         return dd.equilibrium.time_slice[time0].global_quantities.ip
     elseif from_where == :core_profiles
         if time0 >= dd.core_profiles.time[end]
-            return trapz(dd.core_profiles.profiles_1d[end].grid.area, dd.core_profiles.profiles_1d[end].j_tor)
+            return Ip(dd.core_profiles.profiles_1d[end])
         else
             return IMAS.get_time_array(dd.core_profiles.global_quantities, :ip, time0, :linear)
         end
