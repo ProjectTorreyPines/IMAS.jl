@@ -45,7 +45,7 @@ function update_ConstraintFunctionsLibrary!()
     ConstraintFunction(:min_q95, "%", dd -> (dd.equilibrium.time_slice[].global_quantities.q_95 - dd.requirements.q95) / dd.requirements.q95, >, 0.0)
     ConstraintFunction(:max_βn, "", dd -> (dd.equilibrium.time_slice[].global_quantities.beta_normal - dd.requirements.beta_normal) / dd.requirements.beta_normal, <, 0.0)
     ConstraintFunction(:max_Psol_R, "%", dd -> (((IMAS.power_sol(dd)/ 1E6) / dd.equilibrium.time_slice[].boundary.geometric_axis.r) - dd.requirements.Psol_R) / dd.requirements.Psol_R, <, 0.0)
-    ConstraintFunction(:max_transport_error, "", dd -> @ddtime(dd.transport_solver_numerics.convergence.time_step.data),<, 1e-2)
+    ConstraintFunction(:max_transport_error, "", dd -> @ddtime(dd.transport_solver_numerics.convergence.time_step.data),<, 1e-1)
 
     #! format: on
     return ConstraintFunctionsLibrary

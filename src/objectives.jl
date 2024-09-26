@@ -27,6 +27,7 @@ function update_ObjectiveFunctionsLibrary!()
     ObjectiveFunction(:max_log10_flattop, "log₁₀(hours)", dd -> log10(dd.build.oh.flattop_duration / 3600.0), Inf)
     ObjectiveFunction(:min_βn, "", dd -> dd.equilibrium.time_slice[].global_quantities.beta_normal, -Inf)
     ObjectiveFunction(:min_R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r, -Inf)
+    ObjectiveFunction(:max_zeff, "", dd -> @ddtime(dd.summary.volume_average.zeff.value), Inf)
     #! format: on
     return ObjectiveFunctionsLibrary
 end
