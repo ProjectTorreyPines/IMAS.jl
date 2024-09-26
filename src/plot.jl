@@ -1244,22 +1244,17 @@ end
     @assert typeof(time0) <: Float64
 
     model_type = name_2_index(ct.model)
-    my_ions = Symbol[]
     rhos = D[]
     for model in ct.model
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
         ct1d = model.profiles_1d[]
-        for ion in ct1d.ion
-            push!(my_ions, Symbol(ion.label))
-        end
         append!(rhos, ct1d.grid_flux.rho_tor_norm)
     end
     rhos = unique(rhos)
-    my_ions = unique(my_ions)
     if ions == [:my_ions]
-        ions = my_ions
+        ions = list_ions(ct)
     end
 
     dd = top_dd(ct)
@@ -1669,15 +1664,8 @@ end
     @assert typeof(time0) <: Float64
     @assert typeof(aggregate_radiation) <: Bool
 
-    my_ions = Symbol[]
-    for source in cs.source
-        for ion in source.profiles_1d[].ion
-            push!(my_ions, Symbol(ion.label))
-        end
-    end
-    my_ions = unique(my_ions)
     if ions == [:my_ions]
-        ions = my_ions
+        ions = list_ions(cs)
     end
 
     for source in cs.source

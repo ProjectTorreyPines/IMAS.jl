@@ -46,6 +46,37 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     return out
 end
 
+"""
+    list_ions(ct::IMAS.core_transport)
+
+List ions in core_transport IDS
+"""
+function list_ions(ct::IMAS.core_transport)
+    ions = Symbol[]
+    for model in ct.model
+        ct1d = model.profiles_1d[]
+        for ion in ct1d.ion
+            push!(ions, Symbol(ion.label))
+        end
+    end
+    return unique(ions)
+end
+
+"""
+    list_ions(cs::IMAS.core_sources)
+
+List ions in core_sources IDS
+"""
+function list_ions(cs::IMAS.core_sources)
+    ions = Symbol[]
+    for source in cs.source
+        for ion in source.profiles_1d[].ion
+            push!(ions, Symbol(ion.label))
+        end
+    end
+    return unique(ions)
+end
+
 function ion_element!(
     ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
     ion_z::Int;
