@@ -171,47 +171,47 @@ function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where
 end
 
 """
-    Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+    Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
 Integrated toroidal non-inductive current
 """
-function Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+function Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
     return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt))
 end
 
 """
-    Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+    Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
 Integrated toroidal bootstrap current
 """
-function Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+function Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
     return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_bootstrap, true, eqt))
 end
 
 """
-    Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+    Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
 Integrated toroidal ohmic current
 """
-function Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T})
+function Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
     return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_ohmic, true, eqt))
 end
 
 """
-    Ip(cp1d::IMAS.core_profiles__profiles_1d{T})
+    Ip(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
 Integrated toroidal total current (based on core_profiles)
 """
-function Ip(cp1d::IMAS.core_profiles__profiles_1d{T})
+function Ip(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     return trapz(cp1d.grid.area, cp1d.j_tor)
 end
 
 """
-    Ip(eqt::IMAS.core_profiles__profiles_1d{T})
+    Ip(eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
 Integrated toroidal total current (based on equilibrium)
 """
-function Ip(eqt::IMAS.core_profiles__profiles_1d{T})
+function Ip(eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
     # equivalent to: trapz(eqt.profiles_1d.volume, eqt.profiles_1d.j_tor.*eqt.profiles_1d.gm9) / (2π)
     return trapz(eqt.profiles_1d.area, eqt.profiles_1d.j_tor)
 end
