@@ -1014,7 +1014,7 @@ function trace_surfaces(
         # Extrema on array indices
         (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
 
-        # create 
+        # create
         surfaces[k] = FluxSurface(
             psi_level,
             pr,
@@ -1129,6 +1129,63 @@ function extrema_cost(
     end
     cost += (PSI_interpolant(x[1], x[2]) - psi_level)^2 + 0.1 * d^2
     return cost
+end
+
+function optimized_fluxsurface_extrema(pr, pz)
+    (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
+
+    w = 1E-4
+    frl = x -> _opt_rext(x, psi_level, PSI_interpolant, RA, w)
+    fzl = x -> _opt_zext(x, psi_level, PSI_interpolant, ZA, w)
+
+    algorithm = Optim.Newton()
+    options = Optim.Options(; g_tol=1E-8)
+    res = Optim.optimize(frl, [max_r, z_at_max_r], algorithm, options; autodiff=:forward)
+    (max_r, z_at_max_r) = (res.minimizer[1], res.minimizer[2])
+    res = Optim.optimize(frl, [min_r, z_at_min_r], algorithm, options; autodiff=:forward)
+    (min_r, z_at_min_r) = (res.minimizer[1], res.minimizer[2])
+    if psi_level != eqt.profiles_1d.psi[end]
+        res = Optim.optimize(fzl, [r_at_max_z, max_z], algorithm, options; autodiff=:forward)
+        (r_at_max_z, max_z) = (res.minimizer[1], res.minimizer[2])
+        res = Optim.optimize(fzl, [r_at_min_z, min_z], algorithm, options; autodiff=:forward)
+        (r_at_min_z, min_z) = (res.minimizer[1], res.minimizer[2])
+    end
+    return r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r
+end
+
+function reduced_flux_surfaces(psi::AbstractVector{T}, Npts, PR, PZ) where {T <: Real}
+    Npsi = length(psi)
+    TMP = Vector{T}(undef, Npts)
+    DL = similar(TMP)
+    LL = similar(TMP)
+    FLUXEXPANSION = similar(TMP)
+
+    for k in reverse(1:Npsi)
+        psi_level = psi[k]
+        pr, pz = PR[k], PZ[k]
+        tmp = view(TMP, eachindex(pr))
+        dl = view(DL, eachindex(pr))
+        ll = view(LL, eachindex(pr))
+        fluxexpansion = view(FLUXEXPANSIION, eachindex(pr))
+
+        r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r = optimized_fluxsurface_extrema(pr, pz)
+
+        for j in eachindex(pr)
+            r, z = pr[j], pz[j]
+            @inbounds dl[j] = (j==1) ? 0.0 : sqrt((r - pr[j-1]) ^ 2 + (z - pz[j-1]) ^ 2)
+            Br, Bz = Br_Bz(PSI_interpolant, r, z)
+            fluxexpansion[j] = 1.0 / sqrt(Br ^ 2 + Bz ^ 2)
+        end
+        cumsum!(ll, dl)
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+
+        tmp .= 1.0 ./ pr .^ 2
+        gm1[k] = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
+        tmp .= 1.0 ./ pr
+        gm9[k] = flxAvg(tmp, ll, fluxexpansion, int_fluxexpansion_dl)
+
+    end
+
 end
 
 """
@@ -1322,7 +1379,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
 
     # phi 2D
     tmp .= eqt.profiles_1d.psi .* psi_sign
-    phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :cubic)
+    phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :cubic) #Val(:cubic))
     eqt2d.phi = phi_itp.(psi_sign .* eqt2d.psi)
 
     # rho 2D in meters
@@ -1338,7 +1395,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
         dPHI2_R2[1:n] .= dPHI2_interpolant.(surface.r, surface.z) ./ surface.r .^ 2.0
         @views eqt.profiles_1d.gm2[k] = flux_surface_avg(dPHI2_R2[1:n], surface)
     end
-    @views gm2_itp = interp1d(tmp[2:end], eqt.profiles_1d.gm2[2:end], :cubic)
+    @views gm2_itp = interp1d(tmp[2:end], eqt.profiles_1d.gm2[2:end], :cubic) #Val(:cubic))
     eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
 
     # ip
@@ -1382,7 +1439,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
             eqt.boundary_secondary_separatrix.outline.z = pz2nd
         end
     end
-
     return eqt
 end
 
