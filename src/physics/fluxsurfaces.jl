@@ -1037,7 +1037,7 @@ function trace_surfaces(
     end
 
     N2 = Int(ceil(N / 2))
-    algorithm = Optim.NelderMead()
+    algorithm = Optim.Newton()
     psi_norm = norm01(psi)
     space_norm = surfaces[N].max_r - surfaces[N].min_r
 
