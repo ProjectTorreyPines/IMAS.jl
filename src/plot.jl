@@ -2328,6 +2328,15 @@ end
         Ss = strike_points(pc.strike_point; time0)
         [x[1] for x in Ss if x[1] != 0.0], [x[2] for x in Ss if x[1] != 0.0]
     end
+    @series begin
+        seriestype := :scatter
+        marker --> :cross
+        markerstrokewidth --> 0
+        primary := false
+        RA = interp1d(pc.time, pc.magnetic_axis.r.reference).(time0)
+        ZA = interp1d(pc.time, pc.magnetic_axis.z.reference).(time0)
+        [RA],[ZA]
+    end
 end
 
 #= =========== =#
