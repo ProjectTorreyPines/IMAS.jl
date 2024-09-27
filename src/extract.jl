@@ -54,6 +54,7 @@ function update_ExtractFunctionsLibrary!()
 
     ExtractLibFunction(:densities, :ne0, "m⁻³", dd -> @ddtime(dd.summary.local.magnetic_axis.n_e.value))
     ExtractLibFunction(:densities, :ne_ped, "m⁻³", dd -> @ddtime(dd.summary.local.pedestal.n_e.value))
+    ExtractLibFunction(:densities, Symbol("ne_line"), "m⁻³", dd -> IMAS.geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[]))
     ExtractLibFunction(:densities, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
     ExtractLibFunction(:densities, Symbol("ne0/<ne>"), "-", dd -> EFL[:ne0](dd) / EFL[Symbol("<ne>")](dd))
     ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> greenwald_fraction(dd))
