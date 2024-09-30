@@ -219,3 +219,19 @@ function Ip(eqt1d::IMAS.equilibrium__time_slice___profiles_1d{T}) where {T<:Real
     # equivalent to: trapz(eqt1d.volume, eqt1d.j_tor .* eqt1d.gm9) / (2π)
     return trapz(eqt1d.area, eqt1d.j_tor)
 end
+
+"""
+    plasma_lumped_resistance(dd::IMAS.dd)
+
+Returns equivalent plasma lumped resistance in ohms
+"""
+function plasma_lumped_resistance(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    eqt = dd.equilibrium.time_slice[]
+    Pohm = dd.core_sources.source[:ohmic].profiles_1d[].electrons.power_inside[end]
+    Ini = Ip_non_inductive(cp1d, eqt)
+    Ip = Ip(cp1d)
+    Iohm = Ip - Ini
+    Rp = Pohm / (Ip * Iohm)
+    return Rp
+end
