@@ -1037,7 +1037,7 @@ function trace_surfaces(
     end
 
     N2 = Int(ceil(N / 2))
-    algorithm = Optim.Newton()
+    algorithm = Optim.NelderMead()
     psi_norm = norm01(psi)
     space_norm = surfaces[N].max_r - surfaces[N].min_r
 
@@ -1131,7 +1131,7 @@ function extrema_cost(
     elseif direction == :down
         cost = ((x[2] - z_orig) / space_norm)^2
     end
-    cost += ((PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm)^2 + d^2
+    cost += 0.001 * ((PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm)^2 + d^2
     return cost
 end
 
