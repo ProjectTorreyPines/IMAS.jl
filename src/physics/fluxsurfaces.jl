@@ -712,6 +712,8 @@ function find_psi_tangent_omp(
     PSI_interpolant::Interpolations.AbstractInterpolation;
     precision::Float64=1e-7)
 
+    psi_max = find_psi_max(eqt)
+
     # if no wall in dd, psi_last diverted not defined
     if isempty(wall_r) || isempty(wall_z)
         return (psi_tangent_in=NaN, psi_tangent_out=NaN)
@@ -778,7 +780,19 @@ function find_psi_tangent_omp(
             break
         end
     end
-
+    # if tangent flux surface is outside the maximum useful value (psi_max), use psi_max and throw a warning
+    if psi_sign > 0
+        # psi is increasing
+        psi_tangent_in  = minimum([psi_max,psi_tangent_in]) 
+        psi_tangent_out = minimum([psi_max,psi_tangent_out]) 
+    else
+        # psi is decreasing
+        psi_tangent_in  = maximum([psi_max,psi_tangent_in]) 
+        psi_tangent_out = maximum([psi_max,psi_tangent_out]) 
+    end
+    if psi_tangent_in == psi_max || psi_tangent_out == psi_max
+        @warn  "The tangent flux surface to the omp is outside the last useful surface (psi_max) [point of contact: G.Dose]"
+    end
     return (psi_tangent_in=psi_tangent_in, psi_tangent_out=psi_tangent_out)
 end
 
@@ -921,8 +935,10 @@ function find_psi_wall_omp(
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    psi_max = find_psi_max(eqt)
+    psi_sign = sign(psi_max - eqt.profiles_1d.psi[1])
 
-    return find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z)
+    return find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z, psi_max, psi_sign)
 end
 
 function find_psi_wall_omp(
@@ -930,11 +946,23 @@ function find_psi_wall_omp(
     RA::T1,
     ZA::T1,
     wall_r::AbstractVector{T2},
-    wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
-
+    wall_z::AbstractVector{T2},
+    psi_max::T1,
+    psi_sign::T1) where {T1<:Real,T2<:Real}
     crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-    return PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
+    # if flux surface passing through the wall at the omp is outside the maximum useful value (psi_max), use psi_max and throw a warning
+    if psi_sign > 0
+        # psi is increasing
+        psi_wall_omp  = minimum([psi_max, PSI_interpolant.(r_wall_midplane, ZA)[1]]) 
+    else
+        # psi is decreasing
+        psi_wall_omp  = maximum([psi_max, PSI_interpolant.(r_wall_midplane, ZA)[1]]) 
+    end
+    if psi_wall_omp == psi_max
+        @warn  "The flux surface passing through the wall at the omp is outside the last useful surface (psi_max) [point of contact: G.Dose]"
+    end
+    return psi_wall_omp
 end
 
 """
