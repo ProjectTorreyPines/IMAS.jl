@@ -1600,7 +1600,10 @@ function flux_surface(
 
     elseif type == :encircling
         # look for open flux-surfaces that encircle the magnetic axis
-        for (pr, pz) in flux_surface(dim1, dim2, cl, RA, ZA, fw_r, fw_z, :open)
+        for (pr, pz) in flux_surface(dim1, dim2, cl, RA, ZA, fw_r, fw_z, :any)
+            if all(pz.> ZA) || all(pz.< ZA)
+                continue
+            end
             # close open flux surface
             tmp = collect(zip(pr, pz))
             push!(tmp, tmp[1])
