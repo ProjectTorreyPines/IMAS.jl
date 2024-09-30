@@ -147,8 +147,10 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
     # find psi at second magnetic separatrix
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
+    psi_max = find_psi_max(eqt)
+    
     if !isempty(wall_r)
-        psi_wall_midplane = find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z) # psi at the intersection between wall and omp
+        psi_wall_midplane = find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z,psi_max,psi_sign) # psi at the intersection between wall and omp
         psi_last_lfs, _, psi_first_lfs_far, _ = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # find psi at LDFS, NaN if not a diverted plasma
         threshold = (psi_last_lfs + psi_first_lfs_far) / 2.0
         # limited plasma
@@ -157,7 +159,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
         end
     else
         # SOL without wall
-        psi_wall_midplane = find_psi_max(eqt)
+        psi_wall_midplane = psi_max
         psi_last_lfs = psi__boundary_level
         psi_first_lfs_far = psi__boundary_level .+ 1E-5
         threshold = psi__2nd_separatix
@@ -178,6 +180,14 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
         levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
         # add 2nd sep, sort in increasing order and remove doubles (it could happen that psi__boundary_level = psi_last_lfs = psi_2ndseparatrix in DN)
         levels = unique!(sort(vcat(levels, psi__2nd_separatix)))
+
+        # Case of limited plasma - Also add first magnetic separatrix
+        psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
+        
+        if psi_sign * psi_sep_open > psi_sign * psi__boundary_level
+            # if psi_boundary is inside separatrix -> limited case
+            levels = unique!(sort(vcat(levels, psi_sep_closed,psi_sep_open))) 
+        end
 
         if psi_sign == -1
             # if psi is decreasing we must sort in decreasing order
@@ -218,11 +228,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
                 # Add SOL surface in OFL_hfs
                 ofl_type = :hfs
             else
-                if ofl.z[1] * ofl.z[end] < 0
-                    # if z[1] and z[end] have different sign, for sure it is :lfs_far
-                    # Add SOL surface in OFL_lfs
-                    ofl_type = :lfs_far
-                elseif psi_sign * level < psi_sign * threshold
+                if psi_sign * level < psi_sign * threshold
                     # if z[1] and z[end] have same sign, check psi
                     # Add SOL surface in OFL_lfs_far
                     ofl_type = :lfs
