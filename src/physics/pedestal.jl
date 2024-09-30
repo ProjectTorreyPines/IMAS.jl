@@ -58,8 +58,8 @@ function cost_find_EPED_exps(
     rho::AbstractVector{<:Real},
     profile::AbstractVector{<:Real},
     z_targets::AbstractVector{<:Real},
-    rho_targets::AbstractVector{<:Real}
-)
+    rho_targets::AbstractVector{<:Real})
+
     x = abs.(x)
     profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
     z_ped = -calc_z(rho, profile_ped, :backward)
@@ -85,8 +85,8 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real
-)
+    tr_bound1::Real)
+
     z_profile = -calc_z(rho, profile, :backward)
     rho_targets = [tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
@@ -151,10 +151,11 @@ function blend_core_edge_Lmode(
     profile::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     value::Real,
-    rho_bound::Real
-)
+    rho_bound::Real)
+
     res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
     cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
+
     return profile
 end
 
@@ -177,8 +178,7 @@ function blend_core_edge_Lmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real
-)
+    tr_bound1::Real)
     return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
