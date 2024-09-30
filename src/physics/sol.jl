@@ -934,11 +934,7 @@ function find_strike_points(
     if !isempty(wall_r)
         # find separatrix as first surface in SOL, not in private region
         if psi_first_open !== nothing
-            if private_flux_regions
-                sep = flux_surface(eqt, psi_first_open, :any, Float64[], Float64[])
-            else
-                sep = flux_surface(eqt, psi_first_open, :open, Float64[], Float64[])
-            end
+            sep = flux_surface(eqt, psi_first_open, :any, Float64[], Float64[])
             zaxis = eqt.boundary.geometric_axis.z
             for (pr, pz) in sep
                 if isempty(pr)
