@@ -229,8 +229,9 @@ function find_psi_boundary(
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
         surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
-        # closed flux surface
+        
         if !isempty(surface)
+            # psimid corresonds to a closed flux surface
             ((pr, pz),) = surface
             if verbose
                 display(plot!(pr, pz; label="", color=:green))
@@ -239,8 +240,9 @@ function find_psi_boundary(
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
                 return (last_closed=psimid, first_open=psirange[end])
             end
-            # open flux surface
+            
         else
+            # psimid corresonds to an open flux surface
             psirange[end] = psimid
         end
     end
