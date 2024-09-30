@@ -345,6 +345,49 @@ function find_psi_boundary(
 end
 
 """
+    find_psi_separatrix(eqt::IMAS.equilibrium__time_slice;
+                            precision::Float64=1E-7)
+
+Returns psi of the first magentic separatrix. This relies only on eqt and finds the 1st sep geometrically.
+Note: the first separatrix is the LCFS only in diverted plasmas
+"""
+function find_psi_separatrix(
+    eqt::IMAS.equilibrium__time_slice{T};
+    precision::Float64=1E-7
+) where {T<:Real}
+    psi_up  = find_psi_2nd_separatrix(eqt, type = :diverted)
+    psi_low = eqt.profiles_1d.psi[1]
+
+    psi = (psi_up + psi_low) / 2.0
+    err = Inf
+    counter_max = 50
+
+    for k in 1:counter_max
+        surface = flux_surface(eqt, psi, :encircling, Float64[],Float64[])
+        if length(surface) > 1
+            error("find_psi_separatrix: more than one :encircling flux surfaces")
+        end
+
+        if abs(surface[1].r[1] - surface[1].r[end]) == 0 && abs(surface[1].z[1] - surface[1].z[end]) == 0
+            # the surface is inside the separatrix (= "closed" with no wall)
+            psi_low = psi
+        else
+            # the surface is outside the first separatrix
+            psi_up = psi
+        end
+
+        err = abs(psi_up - psi_low) / abs(psi_low)
+        psi = (psi_up + psi_low) / 2.0
+        if abs(err) < precision
+            break
+        end
+
+    end
+
+    return (psi_sep_closed = psi_up, psi_sep_open = psi_low)
+end
+
+"""
     find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice;
                             type::Symbol=:not_diverted, 
                             precision::Float64=1E-7)
