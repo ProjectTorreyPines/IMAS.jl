@@ -244,57 +244,44 @@ function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
     return trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
 end
 
-function tau_e_experimental(dd::IMAS.dd; time0::Float64=dd.global_time)
-    return tau_e_experimental(dd.core_profiles.profiles_1d[time0], dd.core_sources)
+function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    return tau_e_thermal(dd.core_profiles.profiles_1d[time0], dd.core_sources; subtract_radiation_losses)
 end
 
 """
-    tau_e_experimental(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
+    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources; subtract_radiation_losses::Bool=true)
 
-Evaluate thermal energy confinement time considering only injected power (no radiation losses),
-as done for tau_e_h98 scaling and more generally in experiments
+Evaluate thermal energy confinement time
 """
-function tau_e_experimental(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    injected_power = (total_power_inside - radiation_losses(cs))
-    @assert injected_power > 0.0
-    return energy_thermal(cp1d) / injected_power
+    if subtract_radiation_losses
+        total_power_inside -= radiation_losses(cs)
+    end
+    total_power_inside = max(0.0, total_power_inside)
+    return energy_thermal(cp1d) / total_power_inside
 end
 
-function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time)
-    return tau_e_thermal(dd.core_profiles.profiles_1d[time0], dd.core_sources)
-end
-
-"""
-    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources)
-
-Evaluate thermal energy confinement time, including radiation losses
-
-NOTE: take also a look at tau_e_experimental
-"""
-function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
-    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    # total_power_inside can go to zero because of radiation losses
-    return energy_thermal(cp1d) / max(0.0, total_power_inside)
-end
-
-function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time)
+function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
     eqt = dd.equilibrium.time_slice[time0]
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
-    return tau_e_h98(eqt, cp1d, cs)
+    return tau_e_h98(eqt, cp1d, cs; subtract_radiation_losses)
 end
 
 """
-    tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.plot_core_sources)
+    tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.plot_core_sources; subtract_radiation_losses::Bool=true)
 
 H98y2 ITER elmy H-mode confinement time scaling
 """
-function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
+    if subtract_radiation_losses
+        total_power_inside -= radiation_losses(cs)
+    end
+    total_power_inside = max(0.0, total_power_inside)
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
@@ -315,21 +302,25 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
     return tau98
 end
 
-function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time)
+function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
     eqt = dd.equilibrium.time_slice[time0]
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
-    return tau_e_ds03(eqt, cp1d, cs)
+    return tau_e_ds03(eqt, cp1d, cs; subtract_radiation_losses)
 end
 
 """
-    tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+    tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
 
 Petty's 2003 confinement time scaling
 """
-function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources)
+function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end] - radiation_losses(cs)
+    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
+    if subtract_radiation_losses
+        total_power_inside -= radiation_losses(cs)
+    end
+    total_power_inside = max(0.0, total_power_inside)
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))

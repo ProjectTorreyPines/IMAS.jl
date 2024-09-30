@@ -71,9 +71,12 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:pressures, :βn, "-", dd -> @ddtime(dd.summary.global_quantities.beta_tor_norm.value))
     ExtractLibFunction(:pressures, :βn_th, "-", dd -> @ddtime(dd.summary.global_quantities.beta_tor_thermal_norm.value))
 
-    ExtractLibFunction(:transport, :τe, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy.value))
+    ExtractLibFunction(:transport, :τe, "s", dd -> IMAS.tau_e_thermal(dd))
+    ExtractLibFunction(:transport, :τe_exp, "s", dd -> IMAS.tau_e_thermal(dd; subtract_radiation_losses=false))
     ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / tau_e_h98(dd))
+    ExtractLibFunction(:transport, :H98y2_exp, "-", dd -> EFL[:τe_exp](dd) / tau_e_h98(dd; subtract_radiation_losses=false))
     ExtractLibFunction(:transport, :Hds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
+    ExtractLibFunction(:transport, :Hds03_exp, "-", dd -> EFL[:τe_exp](dd) / tau_e_ds03(dd; subtract_radiation_losses=false))
     ExtractLibFunction(:transport, :τα_thermalization, "s", dd -> α_thermalization_time(dd.core_profiles.profiles_1d[]))
     ExtractLibFunction(:transport, :τα_slowing_down, "s", dd -> α_slowing_down_time(dd.core_profiles.profiles_1d[]))
 
