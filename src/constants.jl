@@ -3,19 +3,19 @@ import PhysicalConstants.CODATA2018 as PCs
 """
 Named tuple with physics constants:
 
-    μ_0 = 1.25663706212e-6
-    c = 2.99792458e8
-    ϵ_0 = 8.8541878128e-12
-    k_B = 1.380649e-23
-    e = 1.602176634e-19
-    m_e = 9.1093837015e-31
-    m_p = 1.67262192369e-27
-    m_n = 1.67492749804e-27
-    atm = 101325.0
-    m_u = 1.6605390666e-27
-    avog = 6.02214076e23
-    E_α = 3.518e6 [eV]
-    E_n = 14.072e6 [eV]
+    μ_0 = 1.25663706212e-6 [N A^-2]  # Vacuum permeability
+    c = 2.99792458e8 [m s^-1]        # Speed of light in vacuum
+    ϵ_0 = 8.8541878128e-12 [F m^-1]  # Vacuum permittivity
+    k_B = 1.380649e-23 [J K^-1]      # Boltzmann constant
+    e = 1.602176634e-19 [C]          # Elementary charge
+    m_e = 9.1093837015e-31 [kg]      # Electron mass
+    m_p = 1.67262192369e-27 [kg]     # Proton mass
+    m_n = 1.67492749804e-27 [kg]     # Neutron mass
+    atm = 101325.0 [Pa]              # Standard atmosphere
+    m_u = 1.6605390666e-27 [kg]      # Atomic mass constant
+    avog = 6.02214076e23 [mol^-1]    # Avogadro constant
+    E_α = 3.518e6 [eV]               # Alpha particle energy
+    E_n = 14.072e6 [eV]              # Neutron energy
 """
 const constants = (
     μ_0=float(Float64, PCs.μ_0).val,

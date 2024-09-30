@@ -304,7 +304,7 @@ See: Wilson et al., Nucl. Fusion 32 257 (1992)
 function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     βp = eqt.global_quantities.beta_pol
     ϵ = eqt.boundary.minor_radius / eqt.boundary.geometric_axis.r
-    jbootfract = trapz(cp1d.grid.area, cp1d.j_bootstrap) / eqt.global_quantities.ip
+    jbootfract = Ip_bootstrap(cp1d, eqt) / eqt.global_quantities.ip
     return jbootfract / (sqrt(ϵ) * βp)
 end
 
@@ -315,9 +315,16 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     Zeff = cp1d.zeff
 
     R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
+    @assert all(R_eq .> 0.0) "R_eq=$R_eq"
+
     R = interp1d(eqt.profiles_1d.rho_tor_norm, R_eq).(rho)
+    @assert all(R .> 0.0) "R=$R"
+
     a_eq = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
+    @assert all(a_eq .> 0.0) "a_eq=$a_eq"
+
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
+    @assert all(a .> 0.0) "a=$a"
 
     eps = a ./ R
 

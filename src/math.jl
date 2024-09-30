@@ -311,26 +311,26 @@ function intersection_split(
 end
 
 """
-    point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    point_to_line_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
 
 Distance of point (x0,y0) from line defined by points (x1,y1) and (x2,y2)
 """
-function point_to_line_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+function point_to_line_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
     return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / sqrt((y2 - y1)^2 + (x2 - x1)^2)
 end
 
 """
-    closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    closest_point_to_segment(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
 
 Closest point on segment defined by points (x1,y1) and (x2,y2) to point (x0,y0)
 """
-function closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+function closest_point_to_segment(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
     # Calculate the squared length of the segment
     segment_length_squared = (x2 - x1)^2 + (y2 - y1)^2
 
     if segment_length_squared == 0.0
         # The segment is just a point, return (x1,y1) [= (x2,y2)]
-        return (x1,y1)
+        return (closest_x=x1, closest_y=y1)
     end
 
     # Compute the projection of the point onto the line defined by the segment
@@ -347,12 +347,12 @@ function closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) wher
 end
 
 """
-    point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
+    point_to_segment_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
 
 Distance of point (x0,y0) from segment defined by points (x1,y1) and (x2,y2)
 """
-function point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) where {T<:Real}
-    closest_x, closest_y = closest_point_to_segment(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T)
+function point_to_segment_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
+    closest_x, closest_y = closest_point_to_segment(x0, y0, x1, y1, x2, y2)
 
     # Compute the distance from the point to the closest point on the segment
     distance = hypot(x0 - closest_x, y0 - closest_y)
@@ -361,11 +361,11 @@ function point_to_segment_distance(x0::T, y0::T, x1::T, y1::T, x2::T, y2::T) whe
 end
 
 """
-    point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
+    point_to_path_distance(x0::Real, y0::Real, x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
 
 Distance of point (x0,y0) from path defined by vectors x and y
 """
-function point_to_path_distance(x0::T, y0::T, x::AbstractVector{T}, y::AbstractVector{T}) where {T<:Real}
+function point_to_path_distance(x0::Real, y0::Real, x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
     @assert length(x) == length(y)
     d = Inf
     @inbounds for i in 1:length(x)-1
