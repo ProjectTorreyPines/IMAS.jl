@@ -495,13 +495,29 @@ function find_psi_last_diverted(
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
-    Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
+   
 
-    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
-    psi_separatrix = eqt.profiles_1d.psi[end] # psi value last closed
+    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis\
     psi_first_open = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
-    psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
+    psi_sign = sign(psi_first_open - psi_axis) # +1 incresing psi / -1 decreasing psi
+
+    # Case for limited plasmas
+    psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
+    
+    limited = false
+    if psi_sign * psi_sep_open > psi_sign * psi_first_open
+        # if the LCFS is not the magnetic separatrix
+        # the plasma is limited and not diverted
+        limited = true
+        Xpoint2 = [eqt.boundary.x_point[1].r, eqt.boundary.x_point[1].z]
+        psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
+        # return (psi_last_lfs=psi_sep_closed, psi_first_open=psi_first_open,  psi_first_lfs_far=psi_sep_open, null_within_wall=true)
+    else
+        Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
+        psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
+    end
+    
+    
 
     # intersect 2nd separatrix with wall, and look
     surface = flux_surface(eqt, psi_2ndseparatrix, :open, Float64[], Float64[])
@@ -571,22 +587,27 @@ function find_psi_last_diverted(
     if length(eqt.boundary.strike_point) == 4
         # LDFS is the separatrix
         # psi_first_lfs_far is determined using the precision condition
-        psi_first_lfs_far = psi_separatrix + psi_sign * precision * abs(psi_separatrix)
-        return (psi_last_lfs=psi_separatrix, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
+        psi_first_lfs_far = psi_first_open + psi_sign * precision * abs(psi_first_open)
+        return (psi_last_lfs=psi_first_open, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
     end
 
     # Single_null case
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:diverted)
-    psi_first_lfs_far = psi_2ndseparatrix
-    psi_last_lfs = psi_separatrix
+    if limited
+        psi_first_lfs_far = psi_sep_closed
+    else
+        psi_first_lfs_far = psi_2ndseparatrix
+    end
+
+    psi_last_lfs = psi_first_open
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
 
-    counter_max = 50
+    counter_max = 100
     err = Inf
     for counter in 1:counter_max
-        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
+        surface = flux_surface(eqt, psi, :any, Float64[], Float64[])
 
         for (r, z) in surface
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
@@ -598,6 +619,7 @@ function find_psi_last_diverted(
             if isempty(crossings)
                 continue
             end
+            l = length(crossings)
 
             # r and z coordiante of intersections with wall
             r_intersect = (cr[1] for cr in crossings)
@@ -629,7 +651,13 @@ function find_psi_last_diverted(
                 # psi corresonds to a diverted surface
                 psi_last_lfs = psi
             else
-                psi_first_lfs_far = psi
+                if l == 2
+                    # if orginally psi had 2 intersections, move up psi_low instead than lowering psi_up
+                    # needed for limited case, probably cannot be done before filtering intersections (check)
+                    psi_last_lfs = psi
+                else
+                    psi_first_lfs_far = psi
+                end
             end
         end
 
@@ -656,6 +684,12 @@ function find_psi_last_diverted(
     if psi_first_lfs_far == psi_2ndseparatrix
         psi_last_lfs = psi_first_lfs_far
         psi_first_lfs_far = psi_2ndseparatrix_notdiverted
+    end
+
+    # if LDFS is the 1st separatrix, be consistent with the find_psi_separatrix function
+    if psi_first_lfs_far == psi_sep_closed
+        psi_last_lfs = psi_sep_closed
+        psi_first_lfs_far = psi_sep_open
     end
 
     return (psi_last_lfs=psi_last_lfs, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
