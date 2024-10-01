@@ -205,45 +205,36 @@ Finds the pedetal height and width using the EPED1 definition
 returns ped_height, ped_width
 """
 function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}
-    function cost_function(profile, params)
-        params = abs.(params)
-        height = params[1]
-        width = min(max(0.0, params[2]), 0.5)
-        expin = params[3]
-        expout = params[4]
-        psi_norm_fit = range(0, 1, length(profile))
+    psi_norm_fit = range(0, 1, length(profile))
+    mask = psi_norm .> 0.5
+    expin = 1.0
+    expout = 1.0
 
-        tmp = Hmode_profiles(profile[end], height, profile[1], length(profile), expin, expout, width)
+    function cost_function(profile, params)
+        width = abs(params[1]) + 0.01
+        core = abs(params[2])
+        height = interp1d(psi_norm, profile)(1.0 - width)
+
+        tmp = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
         profile_fit = interp1d(psi_norm_fit, tmp).(psi_norm)
 
-        p1 = abs.(profile .- profile_fit) ./ maximum(profile)
-        p2 = abs.(gradient(psi_norm, profile) .- gradient(psi_norm, profile_fit)) ./ maximum(abs.(gradient(psi_norm, profile)))
-
-        return sum(((p1 .+ p2) .* weight) .^ 2.0)
+        cost = sqrt(trapz(psi_norm, mask .* (profile .- profile_fit) .^ 2)) / trapz(psi_norm, mask .* abs.(profile))
+        return cost
     end
 
-    weight = gradient(psi_norm)
+    res = Optim.optimize(params -> cost_function(profile, params), [0.04, profile[1]], Optim.NelderMead())
 
-    width0 = 0.05
-    height0 = interp1d(psi_norm, profile)(1.0 - width0)
-    expin0 = 1.0
-    expout0 = 1.0
-    guess = [height0, width0, expin0, expout0]
-    res = Optim.optimize(params -> cost_function(profile, params), guess, Optim.NelderMead(), Optim.Options(; g_tol=1E-5))
+    width = abs(res.minimizer[1]) + 0.01
+    core = abs(res.minimizer[2])
+    height = interp1d(psi_norm, profile)(1.0 - width)
 
-    params = abs.(res.minimizer)
-    height = params[1]
-    width = min(max(0.0, params[2]), 0.5)
-    expin = params[3]
-    expout = params[4]
-
-    # psi_norm_fit = range(0, 1, length(profile_fit))
-    # profile_fit = Hmode_profiles(profile[end], height, profile[1], length(profile), expin, expout, width)
-    # p = plot(psi_norm, profile)
-    # plot!(p, psi_norm_fit, profile_fit)
-    # hline!([height])
-    # vline!([1.0 .- width])
-    # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)])
+    # profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
+    # p = plot(psi_norm, profile; label="profile", marker=:circle, markersize=1)
+    # plot!(p, psi_norm_fit, profile_fit; label="fit")
+    # hline!(p, [height]; ls=:dash, primary=false)
+    # vline!(p, [1.0 .- width]; ls=:dash, primary=false)
+    # vline!(p, [1.0 - 2.0 * width]; ls=:dash, primary=false)
+    # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)]; primary=false)
     # display(p)
 
     return height, width

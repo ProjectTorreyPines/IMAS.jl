@@ -63,12 +63,13 @@ end
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        _, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
+        _, w_ped = IMAS.pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
         rho_ped = 1.0 - w_ped
     else
         rho_ped = NaN
     end
-    return get_from(dd, what, from_where, rho_ped; time0)
+    ne_ped = get_from(dd, what, from_where, rho_ped; time0)
+    return ne_ped
 end
 
 # ne_ped [m^-3]
@@ -99,7 +100,7 @@ end
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        _, w_ped = IMAS.pedestal_finder(cp1d.electrons.pressure, cp1d.grid.psi_norm)
+        _, w_ped = IMAS.pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
         rho_ped = 1.0 - w_ped
     else
         rho_ped = NaN
