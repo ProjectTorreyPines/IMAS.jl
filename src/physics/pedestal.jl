@@ -51,23 +51,6 @@ function blend_core_edge_EPED(
     return profile_new
 end
 
-function cost_find_EPED_exps(
-    x::AbstractVector{<:Real},
-    ped_height::Real,
-    ped_width::Real,
-    rho::AbstractVector{<:Real},
-    profile::AbstractVector{<:Real},
-    z_targets::AbstractVector{<:Real},
-    rho_targets::AbstractVector{<:Real})
-
-    x = abs.(x)
-    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
-    z_ped = -calc_z(rho, profile_ped, :backward)
-    z_ped_values = interp1d(rho, z_ped).(rho_targets)
-
-    return norm(z_targets .- z_ped_values)
-end
-
 """
     blend_core_edge_Hmode(
         profile::AbstractVector{<:Real},
@@ -87,13 +70,35 @@ function blend_core_edge_Hmode(
     tr_bound0::Real,
     tr_bound1::Real)
 
+    function cost_find_EPED_exps(
+        x::AbstractVector{<:Real},
+        ped_height::Real,
+        ped_width::Real,
+        rho::AbstractVector{<:Real},
+        profile::AbstractVector{<:Real},
+        p_targets::AbstractVector{<:Real},
+        z_targets::AbstractVector{<:Real},
+        rho_targets::AbstractVector{<:Real})
+
+        x = abs.(x)
+        profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
+        z_ped = -calc_z(rho, profile_ped, :backward)
+        z_ped_values = interp1d(rho, z_ped).(rho_targets)
+        p_values = interp1d(rho, profile_ped).(rho_targets)
+
+        # Z's can be matched both by varying the value as well as the gradients
+        # Here we want to keep the values as fixed as possible, while varying the gradients
+        return norm(z_targets .- z_ped_values) / sum(abs.(z_targets)) .+ norm(p_targets .- p_values) / sum(abs.(p_targets))
+    end
+
     z_profile = -calc_z(rho, profile, :backward)
     rho_targets = [tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
+    p_targets = interp1d(rho, profile).(rho_targets)
 
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
     x_guess = [1.0, 1.0]
-    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, z_targets, rho_targets), x_guess, Optim.NelderMead())
+    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets), x_guess, Optim.NelderMead())
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
