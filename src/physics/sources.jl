@@ -185,6 +185,28 @@ function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
     return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
 end
 
+function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})
+    index = source.identifier.index
+    if index ∈ include_indexes
+        return true
+    elseif index == 0
+        @debug "total_sources() skipping unspecified source with index $index"
+        return false
+    elseif index == 1 && any(all_indexes .> 1)
+        @debug "total_sources() skipping total source with index $index"
+        return false
+    elseif 107 >= index >= 100 && any(all_indexes .< 5)
+        @debug "total_sources() skipping combination source with index $index"
+        return false
+    elseif index == 200 && any(300 .> all_indexes .> 200)
+        @debug "total_sources() skipping total radiation source with index $index"
+        return false
+    elseif index ∈ exclude_indexes
+        return false
+    end
+    return true
+end
+
 """
     total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
 
@@ -260,25 +282,7 @@ function total_sources(
     # start accumulating
     all_indexes = [source.identifier.index for source in core_sources.source]
     for source in core_sources.source
-        if isempty(include_indexes) || source.identifier.index ∈ include_indexes
-            # pass
-        else
-            continue
-        end
-
-        if source.identifier.index == 0
-            @debug "total_sources() skipping unspecified source with index $(source.identifier.index)"
-            continue
-        elseif 107 >= source.identifier.index >= 100
-            @debug "total_sources() skipping combination source with index $(source.identifier.index)"
-            continue
-        elseif (source.identifier.index) == 1 && any(all_indexes .> 1)
-            @debug "total_sources() skipping total source with index $(source.identifier.index)"
-            continue
-        elseif (source.identifier.index) == 200 && any(300 .> all_indexes .> 200)
-            @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
-            continue
-        elseif source.identifier.index ∈ exclude_indexes
+        if !retain_source(source, all_indexes, include_indexes, exclude_indexes)
             continue
         end
         if isempty(source.profiles_1d)

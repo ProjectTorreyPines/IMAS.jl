@@ -1668,7 +1668,11 @@ end
         ions = list_ions(cs)
     end
 
+    all_indexes = [source.identifier.index for source in cs.source]
     for source in cs.source
+        if !retain_source(source, all_indexes, Int[], Int[])
+            continue
+        end
         @series begin
             if aggregate_radiation
                 only_positive_negative := 1
