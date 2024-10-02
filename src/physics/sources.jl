@@ -1,24 +1,26 @@
 """
-    fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+    fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion::Bool=false)
 
 Calculates fusion source from D-T and D-D reactions and adds them to `dd.core_sources`
 
 If D+T plasma, then D+D is neglected
+
+If D+D plasma fusion is included depending on `DD_fusion` switch
 """
-function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion::Bool=false)
     cp1d = cp.profiles_1d[]
     ion_list = (ion.label for ion in cp1d.ion)
     if "T" in ion_list || "DT" in ion_list
         D_T_to_He4_source!(cs, cp)
-    else
+    elseif DD_fusion
         D_D_to_He3_source!(cs, cp)
         D_D_to_T_source!(cs, cp)
     end
     return fast_particles!(cs, cp.profiles_1d[])
 end
 
-function fusion_source!(dd::IMAS.dd)
-    return fusion_source!(dd.core_sources, dd.core_profiles)
+function fusion_source!(dd::IMAS.dd; DD_fusion::Bool=false)
+    return fusion_source!(dd.core_sources, dd.core_profiles; DD_fusion)
 end
 
 """
@@ -59,7 +61,8 @@ function ohmic_source!(dd::IMAS.dd)
         powerDensityOhm = (cp1d.j_tor .* gm9) .* (cp1d.j_ohmic .* eqt.global_quantities.vacuum_toroidal_field.b0) ./ (f .* gm1 .* cp1d.conductivity_parallel)
         source = resize!(dd.core_sources.source, :ohmic; wipe=false)
         new_source(source, source.identifier.index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
-            electrons_energy=powerDensityOhm, j_parallel=cp1d.j_ohmic)
+            electrons_energy=powerDensityOhm,
+            j_parallel=cp1d.j_ohmic)
         return source
     end
 end
@@ -80,11 +83,11 @@ function bootstrap_source!(dd::IMAS.dd)
 end
 
 """
-    sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
+    sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
 
 Calculates intrisic sources and sinks and adds them to `dd.core_sources`
 """
-function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
+function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
     if bootstrap
         IMAS.bootstrap_source!(dd)
     end
@@ -95,7 +98,7 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
     IMAS.bremsstrahlung_source!(dd)
     IMAS.line_radiation_source!(dd)
     IMAS.synchrotron_source!(dd)
-    IMAS.fusion_source!(dd)
+    IMAS.fusion_source!(dd; DD_fusion)
     return nothing
 end
 
@@ -196,8 +199,7 @@ function total_sources(
     include_indexes::Vector{Int}=Int[],
     exclude_indexes::Vector{Int}=Int[],
     fields::Vector{Symbol}=Symbol[],
-    only_positive_negative::Int=0
-) where {T<:Real}
+    only_positive_negative::Int=0) where {T<:Real}
 
     total_source1d = IMAS.core_sources__source___profiles_1d{T}()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
@@ -342,8 +344,7 @@ function total_radiation_sources(
     core_sources::IMAS.core_sources{T},
     cp1d::IMAS.core_profiles__profiles_1d{T};
     include_indexes::Vector{Int}=Int[],
-    exclude_indexes::Vector{Int}=Int[]
-) where {T<:Real}
+    exclude_indexes::Vector{Int}=Int[]) where {T<:Real}
 
     # we need to exclude the collisional_equipartition term
     index = IMAS.name_2_index(core_sources.source)[:collisional_equipartition]

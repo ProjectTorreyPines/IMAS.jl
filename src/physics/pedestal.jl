@@ -51,23 +51,6 @@ function blend_core_edge_EPED(
     return profile_new
 end
 
-function cost_find_EPED_exps(
-    x::AbstractVector{<:Real},
-    ped_height::Real,
-    ped_width::Real,
-    rho::AbstractVector{<:Real},
-    profile::AbstractVector{<:Real},
-    z_targets::AbstractVector{<:Real},
-    rho_targets::AbstractVector{<:Real}
-)
-    x = abs.(x)
-    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
-    z_ped = -calc_z(rho, profile_ped, :backward)
-    z_ped_values = interp1d(rho, z_ped).(rho_targets)
-
-    return norm(z_targets .- z_ped_values)
-end
-
 """
     blend_core_edge_Hmode(
         profile::AbstractVector{<:Real},
@@ -85,15 +68,37 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real
-)
+    tr_bound1::Real)
+
+    function cost_find_EPED_exps(
+        x::AbstractVector{<:Real},
+        ped_height::Real,
+        ped_width::Real,
+        rho::AbstractVector{<:Real},
+        profile::AbstractVector{<:Real},
+        p_targets::AbstractVector{<:Real},
+        z_targets::AbstractVector{<:Real},
+        rho_targets::AbstractVector{<:Real})
+
+        x = abs.(x)
+        profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
+        z_ped = -calc_z(rho, profile_ped, :backward)
+        z_ped_values = interp1d(rho, z_ped).(rho_targets)
+        p_values = interp1d(rho, profile_ped).(rho_targets)
+
+        # Z's can be matched both by varying the value as well as the gradients
+        # Here we want to keep the values as fixed as possible, while varying the gradients
+        return norm(z_targets .- z_ped_values) / sum(abs.(z_targets)) .+ norm(p_targets .- p_values) / sum(abs.(p_targets))
+    end
+
     z_profile = -calc_z(rho, profile, :backward)
     rho_targets = [tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
+    p_targets = interp1d(rho, profile).(rho_targets)
 
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
     x_guess = [1.0, 1.0]
-    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, z_targets, rho_targets), x_guess, Optim.NelderMead())
+    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets), x_guess, Optim.NelderMead())
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
@@ -151,10 +156,11 @@ function blend_core_edge_Lmode(
     profile::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     value::Real,
-    rho_bound::Real
-)
+    rho_bound::Real)
+
     res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
     cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
+
     return profile
 end
 
@@ -177,8 +183,7 @@ function blend_core_edge_Lmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real
-)
+    tr_bound1::Real)
     return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
@@ -205,45 +210,36 @@ Finds the pedetal height and width using the EPED1 definition
 returns ped_height, ped_width
 """
 function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}
-    function cost_function(profile, params)
-        params = abs.(params)
-        height = params[1]
-        width = min(max(0.0, params[2]), 0.5)
-        expin = params[3]
-        expout = params[4]
-        psi_norm_fit = range(0, 1, length(profile))
+    psi_norm_fit = range(0, 1, length(profile))
+    mask = psi_norm .> 0.5
+    expin = 1.0
+    expout = 1.0
 
-        tmp = Hmode_profiles(profile[end], height, profile[1], length(profile), expin, expout, width)
+    function cost_function(profile, params)
+        width = abs(params[1]) + 0.01
+        core = abs(params[2])
+        height = interp1d(psi_norm, profile)(1.0 - width)
+
+        tmp = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
         profile_fit = interp1d(psi_norm_fit, tmp).(psi_norm)
 
-        p1 = abs.(profile .- profile_fit) ./ maximum(profile)
-        p2 = abs.(gradient(psi_norm, profile) .- gradient(psi_norm, profile_fit)) ./ maximum(abs.(gradient(psi_norm, profile)))
-
-        return sum(((p1 .+ p2) .* weight) .^ 2.0)
+        cost = sqrt(trapz(psi_norm, mask .* (profile .- profile_fit) .^ 2)) / trapz(psi_norm, mask .* abs.(profile))
+        return cost
     end
 
-    weight = gradient(psi_norm)
+    res = Optim.optimize(params -> cost_function(profile, params), [0.04, profile[1]], Optim.NelderMead())
 
-    width0 = 0.05
-    height0 = interp1d(psi_norm, profile)(1.0 - width0)
-    expin0 = 1.0
-    expout0 = 1.0
-    guess = [height0, width0, expin0, expout0]
-    res = Optim.optimize(params -> cost_function(profile, params), guess, Optim.NelderMead(), Optim.Options(; g_tol=1E-5))
+    width = abs(res.minimizer[1]) + 0.01
+    core = abs(res.minimizer[2])
+    height = interp1d(psi_norm, profile)(1.0 - width)
 
-    params = abs.(res.minimizer)
-    height = params[1]
-    width = min(max(0.0, params[2]), 0.5)
-    expin = params[3]
-    expout = params[4]
-
-    # psi_norm_fit = range(0, 1, length(profile_fit))
-    # profile_fit = Hmode_profiles(profile[end], height, profile[1], length(profile), expin, expout, width)
-    # p = plot(psi_norm, profile)
-    # plot!(p, psi_norm_fit, profile_fit)
-    # hline!([height])
-    # vline!([1.0 .- width])
-    # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)])
+    # profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
+    # p = plot(psi_norm, profile; label="profile", marker=:circle, markersize=1)
+    # plot!(p, psi_norm_fit, profile_fit; label="fit")
+    # hline!(p, [height]; ls=:dash, primary=false)
+    # vline!(p, [1.0 .- width]; ls=:dash, primary=false)
+    # vline!(p, [1.0 - 2.0 * width]; ls=:dash, primary=false)
+    # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)]; primary=false)
     # display(p)
 
     return height, width

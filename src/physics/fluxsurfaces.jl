@@ -1038,6 +1038,8 @@ function trace_surfaces(
 
     N2 = Int(ceil(N / 2))
     algorithm = Optim.NelderMead()
+    psi_norm = norm01(psi)
+    space_norm = surfaces[N].max_r - surfaces[N].min_r
 
     # extrema in R
     lines = Contour.lines(Contour.contour(r, z, BR, 0.0))
@@ -1053,9 +1055,9 @@ function trace_surfaces(
     end
     leftright_r, leftright_z = Contour.coordinates(lines[k])
     for k in [N2:-1:2; N2+1:N]
-        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, RA, ZA, :right)
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, psi_norm[k], space_norm, :right)
         surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
-        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, RA, ZA, :left)
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, psi_norm[k], space_norm, :left)
         surfaces[k].min_r, surfaces[k].z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
         if 2 < k <= N2
             surfaces[k-1].z_at_max_r = surfaces[k].z_at_max_r
@@ -1080,9 +1082,9 @@ function trace_surfaces(
     end
     updown_r, updown_z = Contour.coordinates(lines[k])
     for k in [N2:-1:2; N2+1:N]
-        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, RA, ZA, :up)
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, psi_norm[k], space_norm, :up)
         surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
-        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, RA, ZA, :down)
+        cost = x -> extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, psi_norm[k], space_norm, :down)
         surfaces[k].r_at_min_z, surfaces[k].min_z = Optim.optimize(cost, [surfaces[k].r_at_min_z, surfaces[k].min_z], algorithm; autodiff=:forward).minimizer
         if 2 < k <= N2
             surfaces[k-1].r_at_max_z = surfaces[k].r_at_max_z
@@ -1113,21 +1115,23 @@ function extrema_cost(
     PSI_interpolant,
     r_rail::AbstractVector{T},
     z_rail::AbstractVector{T},
-    RA::T,
-    ZA::T,
+    r_orig::T,
+    z_orig::T,
+    psi_norm::T,
+    space_norm::T,
     direction::Symbol
 ) where {T<:Real}
-    d = point_to_path_distance(x[1], x[2], r_rail, z_rail)
+    d = point_to_path_distance(x[1], x[2], r_rail, z_rail) / space_norm
     if direction == :right
-        cost = (x[1] - RA)^2 * (x[1] < RA)
+        cost = ((x[1] - r_orig) / space_norm)^2
     elseif direction == :left
-        cost = (x[1] - RA)^2 * (x[1] > RA)
+        cost = ((x[1] - r_orig) / space_norm)^2
     elseif direction == :up
-        cost = (x[2] - ZA)^2 * (x[2] < ZA)
+        cost = ((x[2] - z_orig) / space_norm)^2
     elseif direction == :down
-        cost = (x[2] - ZA)^2 * (x[2] > ZA)
+        cost = ((x[2] - z_orig) / space_norm)^2
     end
-    cost += (PSI_interpolant(x[1], x[2]) - psi_level)^2 + 0.1 * d^2
+    cost += 0.001 * ((PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm)^2 + d^2
     return cost
 end
 
