@@ -29,6 +29,7 @@ function update_ObjectiveFunctionsLibrary!()
     ObjectiveFunction(:min_R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r, -Inf)
     ObjectiveFunction(:min_engineering_risk, "\$M", dd -> dd.risk.engineering.risk, -Inf)
     ObjectiveFunction(:min_plasma_risk, "\$/kWh", dd -> dd.risk.plasma.risk, -Inf)
+    ObjectiveFunction(:max_zeff, "", dd -> @ddtime(dd.summary.volume_average.zeff.value), Inf)
     #! format: on
     return ObjectiveFunctionsLibrary
 end

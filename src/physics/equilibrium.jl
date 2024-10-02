@@ -6,11 +6,13 @@
         one_R2::T,
         R0::Real,
         B0::Real;
-        press::Union{Missing, T}=missing,
-        pprime::Union{Missing, T}=missing,
-        jtor::Union{Missing, T}=missing,
-        jtor_over_R::Union{Missing, T}=missing,
-        fpol::Union{Missing, T}=missing) where {T<:AbstractVector{<:Real}}
+        pressure::Union{Missing,T}=missing,
+        dpressure_dpsi::Union{Missing,T}=missing,
+        j_tor::Union{Missing,T}=missing,
+        j_tor_over_R::Union{Missing,T}=missing,
+        f::Union{Missing,T}=missing,
+        f_df_dpsi::Union{Missing,T}=missing,
+        ) where {T<:AbstractVector{<:Real}}
 
 This method returns the P' and FF' given P or P' and J or J/R based on the current equilibrium fluxsurfaces geometry
 
@@ -22,11 +24,12 @@ psi::T,
   - one_R2: <1/R²>
   - R0: R at which B0 is defined
   - B0: vacuum magnetic field
-  - press: pressure
-  - pprime: pressure * pressure'
-  - jtor: toroidal current
-  - jtor_over_R: flux surface averaged toroidal current density over major radius
-  - fpol: F
+  - pressure: P
+  - dpressure_dpsi: P'
+  - j_tor: toroidal current
+  - j_tor_over_R: flux surface averaged toroidal current density over major radius
+  - f: F
+  - f_df_dpsi: FF'
 
 returns (P', FF', F)
 """
@@ -37,41 +40,45 @@ function calc_pprime_ffprim_f(
     one_R2::T,
     R0::Real,
     B0::Real;
-    press::Union{Missing,T}=missing,
-    pprime::Union{Missing,T}=missing,
-    jtor::Union{Missing,T}=missing,
-    jtor_over_R::Union{Missing,T}=missing,
-    fpol::Union{Missing,T}=missing) where {T<:AbstractVector{<:Real}}
+    pressure::Union{Missing,T}=missing,
+    dpressure_dpsi::Union{Missing,T}=missing,
+    j_tor::Union{Missing,T}=missing,
+    j_tor_over_R::Union{Missing,T}=missing,
+    f::Union{Missing,T}=missing,
+    f_df_dpsi::Union{Missing,T}=missing
+) where {T<:AbstractVector{<:Real}}
 
     COCOS = cocos(11)
 
-    if press !== missing
-        pprime = gradient(psi, press)
+    if pressure !== missing && dpressure_dpsi === missing
+        dpressure_dpsi = gradient(psi, pressure)
     end
 
-    if fpol !== missing
-        ffprim = gradient(psi, fpol) .* fpol
+    if f !== missing && f_df_dpsi === missing
+        f_df_dpsi = gradient(psi, f) .* f
     end
 
-    if jtor !== missing
-        ffprim = jtor .* COCOS.sigma_Bp ./ (2π)^COCOS.exp_Bp .+ pprime .* R
-        ffprim .*= -constants.μ_0 ./ one_R
-    elseif jtor_over_R !== missing
-        ffprim = jtor_over_R * COCOS.sigma_Bp / (2π)^COCOS.exp_Bp + pprime
-        ffprim .*= -constants.μ_0 ./ one_R2
+    if j_tor !== missing && f_df_dpsi === missing
+        f_df_dpsi = j_tor .* COCOS.sigma_Bp ./ (2π)^COCOS.exp_Bp .+ dpressure_dpsi .* R
+        f_df_dpsi .*= -constants.μ_0 ./ one_R
+    elseif j_tor_over_R !== missing && f_df_dpsi === missing
+        f_df_dpsi = j_tor_over_R * COCOS.sigma_Bp / (2π)^COCOS.exp_Bp + dpressure_dpsi
+        f_df_dpsi .*= -constants.μ_0 ./ one_R2
     end
 
-    # calculate F from FF' with boundary condition so that f[end]=R0*B0
-    f = 2 * cumtrapz(psi, ffprim)
-    if minimum(f) < f[1] && minimum(f) < f[end]
-        f .-= maximum(f)
-    else
-        f .-= minimum(f)
+    if f === missing
+        # calculate F from FF' with boundary condition so that f[end]=R0*B0
+        f = 2 * cumtrapz(psi, f_df_dpsi)
+        if minimum(f) < f[1] && minimum(f) < f[end]
+            f .-= maximum(f)
+        else
+            f .-= minimum(f)
+        end
+        C = (R0 * B0)^2 - f[end]
+        f = sqrt.(abs.(f .+ C))
     end
-    C = (R0 * B0)^2 - f[end]
-    f = sqrt.(abs.(f .+ C))
 
-    return pprime, ffprim, f
+    return dpressure_dpsi, f_df_dpsi, f
 end
 
 function p_jtor_2_pprime_ffprim_f(eqt1::IMAS.equilibrium__time_slice___profiles_1d, R0::Real, B0::Real)
@@ -80,18 +87,18 @@ function p_jtor_2_pprime_ffprim_f(eqt1::IMAS.equilibrium__time_slice___profiles_
     one_R = eqt1.gm9
     one_R2 = eqt1.gm1
 
-    press = getproperty(eqt1, :pressure, missing)
-    jtor = getproperty(eqt1, :j_tor, missing)
+    presssure = getproperty(eqt1, :pressure, missing)
+    j_tor = getproperty(eqt1, :j_tor, missing)
 
-    return calc_pprime_ffprim_f(psi, R, one_R, one_R2, R0, B0; press, jtor)
+    return calc_pprime_ffprim_f(psi, R, one_R, one_R2, R0, B0; presssure, j_tor)
 end
 
 function p_jtor_2_pprime_ffprim_f!(eqt1::IMAS.equilibrium__time_slice___profiles_1d, R0::Real, B0::Real)
-    pprime, ffprim, f = p_jtor_2_pprime_ffprim_f(eqt1, R0, B0)
-    eqt1.dpressure_dpsi = pprime
-    eqt1.f_df_dpsi = ffprim
+    dpressure_dpsi, f_df_dpsi, f = p_jtor_2_pprime_ffprim_f(eqt1, R0, B0)
+    eqt1.dpressure_dpsi = dpressure_dpsi
+    eqt1.f_df_dpsi = f_df_dpsi
     eqt1.f = f
-    return pprime, ffprim, f
+    return dpressure_dpsi, f_df_dpsi, f
 end
 
 """

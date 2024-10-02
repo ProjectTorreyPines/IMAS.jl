@@ -18,45 +18,13 @@ struct flux_solution{T<:Real}
     STRESS_TOR_i::T
 end
 
-"""
-    flux_solution(PARTICLE_FLUX_e::T, STRESS_TOR_i::T, ENERGY_FLUX_e::T, ENERGY_FLUX_i::T)
-
-Constructor used for backward compatibility when we used not to track PARTICLE_FLUX_i for individual ion species.
-
-NOTE: also order of field has changed! Converts to this call:
-
-    flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[], STRESS_TOR_i)
-"""
-function flux_solution(PARTICLE_FLUX_e::T, STRESS_TOR_i::T, ENERGY_FLUX_e::T, ENERGY_FLUX_i::T) where {T<:Real}
-    return flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[], STRESS_TOR_i)
-end
-
-"""
-    flux_solution(ENERGY_FLUX_e::T, ENERGY_FLUX_i::T, PARTICLE_FLUX_e::T, x1::T, xx::Vararg{T}) where {T<:Real}
-
-Constructor used to handle PARTICLE_FLUX_i entered as a set of scalars instead of an array
-
-    flux_solution(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
-
-results in
-
-    Qe = 1.0
-    Qi = 2.0
-    Γe = 3.0
-    Γi = [4.0, 5.0]
-    Πi = 6.0
-"""
-function flux_solution(ENERGY_FLUX_e::T, ENERGY_FLUX_i::T, PARTICLE_FLUX_e::T, x1::T, xx::Vararg{T}) where {T<:Real}
-    return flux_solution(ENERGY_FLUX_e, ENERGY_FLUX_i, PARTICLE_FLUX_e, T[x1; collect(xx)[1:end-1]], xx[end])
-end
-
-function Base.show(io::IO, sol::flux_solution)
+function Base.show(io::IO, ::MIME"text/plain", sol::flux_solution)
     txt = """
-    Qe = $(sol.ENERGY_FLUX_e)
-    Qi = $(sol.ENERGY_FLUX_i)
-    Γe = $(sol.PARTICLE_FLUX_e)
-    Γi = $(sol.PARTICLE_FLUX_i)
-    Πi = $(sol.STRESS_TOR_i)
+    Qe =  $(sol.ENERGY_FLUX_e)
+    Qi =  $(sol.ENERGY_FLUX_i)
+    Γe =  $(sol.PARTICLE_FLUX_e)
+    Γi = [$(join( map(string, sol.PARTICLE_FLUX_i),", "))]
+    Πi =  $(sol.STRESS_TOR_i)
     """
     return print(io, txt)
 end

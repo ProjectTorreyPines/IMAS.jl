@@ -95,7 +95,10 @@ function total_fluxes(core_transport::IMAS.core_transport{T}, cp1d::IMAS.core_pr
         for path in paths
             ids1 = try
                 IMAS.goto(m1d, path)
-            catch
+            catch e
+                if isa(e, InterruptException)
+                    retrhow(e)
+                end
                 continue
             end
             if ismissing(ids1, :flux)
