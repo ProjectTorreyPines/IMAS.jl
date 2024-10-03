@@ -2340,7 +2340,7 @@ end
             primary := false
             RA = interp1d(pc.time, pc.magnetic_axis.r.reference).(time0)
             ZA = interp1d(pc.time, pc.magnetic_axis.z.reference).(time0)
-            [RA],[ZA]
+            [RA], [ZA]
         end
     end
 end
@@ -2409,6 +2409,29 @@ end
     @series begin
         subplot := 2
         controller.outputs
+    end
+end
+
+#= ======= =#
+#  summary  #
+#= ======= =#
+@recipe function plot(summary::IMASdd.summary)
+    valid_leaves = [leaf for leaf in IMASdd.AbstractTrees.Leaves(summary) if typeof(leaf.value) <: Vector && leaf.field != :time]
+    layout := length(valid_leaves)
+    N = Int(ceil(sqrt(length(valid_leaves))))
+    size --> (200 * N, 200 * N)
+    for (k, leaf) in enumerate(valid_leaves)
+        loc = replace(location(leaf.ids, leaf.field), ".value" => "")
+        _,title, label = rsplit(loc, ".", limit=3)
+        @series begin
+            guidefontvalign := :top
+            titlefont --> font(8, "Arial", "bold")
+            subplot := k
+            title := replace("$title.$label", "global_quantities." => "")
+            label := ""
+            xlabel := ""
+            leaf.ids, leaf.field
+        end
     end
 end
 
