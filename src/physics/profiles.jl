@@ -86,12 +86,27 @@ end
 
 function ion_element!(
     ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_z::Int, ion_a::Float64; fast::Bool=false)
+    if ion_z == 1 && ion_a == 1.0
+        ion_symbol = :H
+    elseif ion_z == 1 && ion_a == 2.0
+        ion_symbol = :D
+    elseif ion_z == 1 && ion_a == 2.5
+        ion_symbol = :DT
+    elseif ion_z == 1 && ion_a == 3.0
+        ion_symbol = :T
+    elseif ion_z == 2 && ion_a == 4.0
+        ion_symbol = :α
+    else
+        ion_symbol = elements[Int(ion_z)].symbol
+    end
+    return ion_element!(ion, ion_symbol; fast)
+end
+
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
     ion_string::AbstractString;
     fast::Bool=false)
-    if ion_string == "H2.5"
-        ion_string = "DT"
-    end
-    ion_string = replace(ion_string, "." => "")
     return ion_element!(ion, Symbol(ion_string); fast)
 end
 
@@ -475,7 +490,12 @@ Generate H-mode density and temperature profiles evenly spaced in your favorite 
 :param width: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    @assert edge >= 0.0
+    @assert ped >= 0.0
     @assert core >= 0.0
+    @assert expin >= 0.0
+    @assert expout >= 0.0
+    @assert 0.0 < widthp < 1.0 "pedestal width cannot be $widthp"
 
     xpsi = range(0.0, 1.0, ngrid)
 
@@ -520,6 +540,8 @@ NOTE: The core value is allowed to float
 :param width: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    @assert edge >= 0.0
+    @assert ped >= 0.0
     @assert expin >= 0.0
     @assert expout >= 0.0
     @assert 0.0 < widthp < 1.0 "pedestal width cannot be $widthp"

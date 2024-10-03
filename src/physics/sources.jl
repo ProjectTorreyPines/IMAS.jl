@@ -1,24 +1,26 @@
 """
-    fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+    fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion::Bool=false)
 
 Calculates fusion source from D-T and D-D reactions and adds them to `dd.core_sources`
 
 If D+T plasma, then D+D is neglected
+
+If D+D plasma fusion is included depending on `DD_fusion` switch
 """
-function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion::Bool=false)
     cp1d = cp.profiles_1d[]
     ion_list = (ion.label for ion in cp1d.ion)
     if "T" in ion_list || "DT" in ion_list
         D_T_to_He4_source!(cs, cp)
-    else
+    elseif DD_fusion
         D_D_to_He3_source!(cs, cp)
         D_D_to_T_source!(cs, cp)
     end
     return fast_particles!(cs, cp.profiles_1d[])
 end
 
-function fusion_source!(dd::IMAS.dd)
-    return fusion_source!(dd.core_sources, dd.core_profiles)
+function fusion_source!(dd::IMAS.dd; DD_fusion::Bool=false)
+    return fusion_source!(dd.core_sources, dd.core_profiles; DD_fusion)
 end
 
 """
@@ -81,11 +83,11 @@ function bootstrap_source!(dd::IMAS.dd)
 end
 
 """
-    sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
+    sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
 
 Calculates intrisic sources and sinks and adds them to `dd.core_sources`
 """
-function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
+function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
     if bootstrap
         IMAS.bootstrap_source!(dd)
     end
@@ -96,7 +98,7 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true)
     IMAS.bremsstrahlung_source!(dd)
     IMAS.line_radiation_source!(dd)
     IMAS.synchrotron_source!(dd)
-    IMAS.fusion_source!(dd)
+    IMAS.fusion_source!(dd; DD_fusion)
     return nothing
 end
 
@@ -183,6 +185,28 @@ function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
     return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
 end
 
+function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})
+    index = source.identifier.index
+    if index ∈ include_indexes
+        return true
+    elseif index == 0
+        @debug "total_sources() skipping unspecified source with index $index"
+        return false
+    elseif index == 1 && any(all_indexes .> 1)
+        @debug "total_sources() skipping total source with index $index"
+        return false
+    elseif 107 >= index >= 100 && any(all_indexes .< 5)
+        @debug "total_sources() skipping combination source with index $index"
+        return false
+    elseif index == 200 && any(300 .> all_indexes .> 200)
+        @debug "total_sources() skipping total radiation source with index $index"
+        return false
+    elseif index ∈ exclude_indexes
+        return false
+    end
+    return true
+end
+
 """
     total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
 
@@ -258,25 +282,7 @@ function total_sources(
     # start accumulating
     all_indexes = [source.identifier.index for source in core_sources.source]
     for source in core_sources.source
-        if isempty(include_indexes) || source.identifier.index ∈ include_indexes
-            # pass
-        else
-            continue
-        end
-
-        if source.identifier.index == 0
-            @debug "total_sources() skipping unspecified source with index $(source.identifier.index)"
-            continue
-        elseif 107 >= source.identifier.index >= 100
-            @debug "total_sources() skipping combination source with index $(source.identifier.index)"
-            continue
-        elseif (source.identifier.index) == 1 && any(all_indexes .> 1)
-            @debug "total_sources() skipping total source with index $(source.identifier.index)"
-            continue
-        elseif (source.identifier.index) == 200 && any(300 .> all_indexes .> 200)
-            @debug "total_sources() skipping total radiation source with index $(source.identifier.index)"
-            continue
-        elseif source.identifier.index ∈ exclude_indexes
+        if !retain_source(source, all_indexes, include_indexes, exclude_indexes)
             continue
         end
         if isempty(source.profiles_1d)
