@@ -407,6 +407,67 @@ end
     end
 end
 
+# ==== #
+# risk #
+# ==== #
+
+@recipe function plot_risk(rsk::IMAS.risk)
+    eng_loss = rsk.engineering.loss
+    eng_names = ["$(sys_loss.description)" for sys_loss in reverse(eng_loss)]
+    eng_risks = [sys_loss.risk for sys_loss in reverse(eng_loss)]
+    eng_perc = ["$(round(sys_loss.risk/sum(eng_risks)*100))%" for sys_loss in reverse(eng_loss)]
+
+    plasma_loss = rsk.plasma.loss
+    plasma_names = ["$(sys_loss.description)" for sys_loss in reverse(plasma_loss)]
+    plasma_risks = [sys_loss.risk for sys_loss in reverse(plasma_loss)]
+    plasma_perc = ["$(round(sys_loss.risk/sum(plasma_risks)*100))%" for sys_loss in reverse(plasma_loss)]
+
+    size --> (800, 400)
+    layout := RecipesBase.@layout (1, 2)
+
+    @series begin 
+        subplot := 1
+        seriestype := :bar
+        orientation := :horizontal
+        title := "Engineering risk" * "   " * @sprintf("[Total = %.3g \$M]", sum(eng_risks))
+        titlefontsize := 10
+        ylim := (0, length(eng_risks))
+        label := ""
+        annotation := [(0.0, kk - 0.5, ("  $x  $(titlecase(n,strict=false))", :left, 8)) for (kk, (c, x, n)) in enumerate((collect(zip(eng_risks, eng_perc, eng_names))))]
+        annotationvalign := :center
+        label := ""
+        xticks := 0:round(maximum(eng_risks) / 4, digits = 1):round(maximum(eng_risks), digits = 1)
+        xlabel := "[\$M]"
+        showaxis := :x
+        yaxis := nothing
+        alpha := 0.5
+        linecolor := :match
+        color := PlotUtils.palette(:tab10)[1]
+        eng_names, eng_risks
+    end
+
+    @series begin 
+        subplot := 2
+        seriestype := :bar
+        orientation := :horizontal
+        title := "Plasma risk" * "    " * @sprintf("[Total = %.3g \$/kWh]", sum(plasma_risks))
+        titlefontsize := 10
+        ylim := (0, length(plasma_risks))
+        label := ""
+        annotation := [(0.0, kk - 0.5, ("  $x  $(titlecase(n,strict=false))", :left, 8)) for (kk, (c, x, n)) in enumerate((collect(zip(plasma_risks, plasma_perc, plasma_names))))]
+        annotationvalign := :center
+        label := ""
+        xticks := 0:round(maximum(plasma_risks) / 4, digits = 1):round(maximum(plasma_risks), digits = 1)
+        xlabel := "[\$/kWh]"
+        showaxis := :x
+        yaxis := nothing
+        alpha := 0.5
+        linecolor := :match
+        color := PlotUtils.palette(:tab10)[2]
+        plasma_names, plasma_risks
+    end
+end
+
 # =========== #
 # equilibrium #
 # =========== #
