@@ -1,7 +1,7 @@
 name = "IMAS"
 uuid = "13ead8c1-b7d1-41bb-a6d0-5b8b65ed587a"
 authors = ["Orso Meneghini <orso82@gmail.com>"]
-version = "1.8.7"
+version = "1.8.8"
 
 [deps]
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
@@ -44,7 +44,7 @@ ExpiringCaches = "1"
 FFMPEG = "0.4"
 FuseExchangeProtocol = "2"
 FuseUtils = "1"
-IMASdd = "2"
+IMASdd = "2.3"
 Interpolations = "0.14.7, 0.15"
 Jedis = "0.3"
 LaTeXStrings = "1"

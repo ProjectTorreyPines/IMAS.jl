@@ -53,7 +53,7 @@ function total_fluxes(core_transport::IMAS.core_transport{T}, cp1d::IMAS.core_pr
     total_flux1d.grid_flux.rho_tor_norm = rho_total_fluxes
 
     skip_flux_list = [:unknown, :unspecified, :combined]
-    index_to_name = IMAS.index_2_name(core_transport.model)
+    index_to_name = index_2_name(core_transport.model)
 
     # initialize ions
     total_flux1d_ions = IMAS.core_transport__model___profiles_1d___ion[]
@@ -82,7 +82,7 @@ function total_fluxes(core_transport::IMAS.core_transport{T}, cp1d::IMAS.core_pr
     for model in core_transport.model
         # Make sure we don't double count a specific flux type
         if index_to_name[model.identifier.index] ∈ skip_flux_list
-            @warn "skipped model.identifier.index = $(model.identifier.index) [$(index_to_name[model.identifier.index])]"
+            @debug "skipped model.identifier.index = $(model.identifier.index) [$(index_to_name[model.identifier.index])]"
             continue
         end
         push!(skip_flux_list, index_to_name[model.identifier.index])
