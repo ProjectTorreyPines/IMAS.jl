@@ -553,7 +553,8 @@ end
     psi_levels_out=nothing,
     lcfs=false,
     secondary_separatrix=false,
-    show_x_points=false,
+    show_x_points=true,
+    show_strike_points=true,
     magnetic_axis=true)
 
     @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
@@ -561,6 +562,7 @@ end
     @assert typeof(lcfs) <: Bool
     @assert typeof(secondary_separatrix) <: Bool
     @assert typeof(show_x_points) <: Bool
+    @assert typeof(show_strike_points) <: Bool
     @assert typeof(magnetic_axis) <: Bool
 
     label --> ""
@@ -608,17 +610,22 @@ end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
     fw = first_wall(top_dd(eqt).wall)
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
 
     for psi_level in psi_levels
         for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
-                    linewidth --> 2.0
-                elseif psi_level in psi_levels_in
-                    linewidth --> 1.0
+                    linewidth --> 1.5
                 else
                     linewidth --> 0.5
+                    if psi_level in psi_levels_in && (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
+                        linestyle --> :solid
+                    else
+                        linestyle --> :dash
+                    end
                 end
                 pr, pz
             end
@@ -647,6 +654,13 @@ end
         end
     end
 
+    if show_strike_points
+        @series begin
+            primary --> false
+            eqt.boundary.strike_point
+        end
+    end
+
 end
 
 @recipe function plot_eqtb(eqtb::IMAS.equilibrium__time_slice___boundary)
@@ -656,6 +670,10 @@ end
     @series begin
         primary --> false
         eqtb.x_point
+    end
+    @series begin
+        primary --> false
+        eqtb.strike_point
     end
 end
 
@@ -683,6 +701,25 @@ end
         label --> ""
         aspect_ratio := :equal
         [(x_point.r, x_point.z)]
+    end
+end
+
+@recipe function plot_strike_points(s_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__strike_point})
+    for s_point in s_points
+        @series begin
+            s_point
+        end
+    end
+end
+
+@recipe function plot_strike_point(s_point::IMAS.equilibrium__time_slice___boundary__strike_point)
+    @series begin
+        seriestype := :scatter
+        marker --> :cross
+        markerstrokewidth --> 0
+        label --> ""
+        aspect_ratio := :equal
+        [(s_point.r, s_point.z)]
     end
 end
 
@@ -833,6 +870,7 @@ Plot build cross-section
                 seriestype --> :shape
                 linewidth := 0.0
                 color --> :white
+                linecolor --> :white
                 label --> ""
                 xlim --> [0, rmax]
                 join_outlines(
