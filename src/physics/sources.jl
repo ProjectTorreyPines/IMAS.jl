@@ -245,9 +245,11 @@ function total_sources(
         value = getproperty(cp1d.grid, prop, missing)
         if value === missing
             for source in core_sources.source
-                value = getproperty(source.profiles_1d[Float64(cp1d.time)].grid, prop, missing)
-                if value !== missing
-                    break
+                if source.profiles_1d[1].time <= Float64(cp1d.time)
+                    value = getproperty(source.profiles_1d[Float64(cp1d.time)].grid, prop, missing)
+                    if value !== missing
+                        break
+                    end
                 end
             end
         else
