@@ -772,14 +772,9 @@ end
 
 Plot build cross-section
 """
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, only=Symbol[], exclude_layers=Symbol[])
-
-    @assert typeof(cx) <: Bool
-    @assert typeof(equilibrium) <: Bool
-    @assert typeof(pf_active) <: Bool
-    @assert typeof(wireframe) <: Bool
-    @assert typeof(only) <: AbstractVector{Symbol}
-    @assert typeof(exclude_layers) <: AbstractVector{Symbol}
+@recipe function plot_build_cx(bd::IMAS.build;
+                               cx::Bool=true, wireframe::Bool=false, equilibrium::Bool=true, pf_active::Bool=true,
+                               only::AbstractVector{Symbol}=Symbol[], exclude_layers::AbstractVector{Symbol}=Symbol[])
 
     legend_position --> :outerbottomright
     aspect_ratio := :equal
@@ -833,6 +828,7 @@ Plot build cross-section
                 seriestype --> :shape
                 linewidth := 0.0
                 color --> :white
+                linecolor --> :white
                 label --> ""
                 xlim --> [0, rmax]
                 join_outlines(
