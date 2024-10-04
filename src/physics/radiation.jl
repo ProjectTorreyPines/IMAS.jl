@@ -33,7 +33,7 @@ function bremsstrahlung_source!(dd::IMAS.dd)
 end
 
 """
-    rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient=0.8) where {T<:Real}
+    rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient) where {T<:Real}
 
 Synchrotron radiation from Trubnikov, JETP Lett. 16 (1972) 25.0
 
@@ -41,7 +41,7 @@ Transpiled from gacode/tgyro/src/tgyro_rad.f90
 
 See also: Study of heat and synchrotron radiation transport in fusion tokamak plasmas (C. Villar 1997)
 """
-function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient=0.8) where {T<:Real}
+function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient) where {T<:Real}
     #---------------------------------------------------
     # MKS to CGS
     aspect_ratio = 1 / ϵ
@@ -62,7 +62,7 @@ function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient=
 end
 
 """
-    synchrotron_source!(dd::IMAS.dd)
+    synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.0)
 
 Calculates synchrotron radiation source and modifies dd.core_sources
 """
