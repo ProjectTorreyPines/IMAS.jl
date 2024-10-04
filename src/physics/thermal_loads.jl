@@ -449,7 +449,7 @@ function mesher_HF(dd::IMAS.dd;
 
     R0 = eqt.global_quantities.magnetic_axis.r # R magentic axis 
     Z0 = eqt.global_quantities.magnetic_axis.z # Z magnetic axis
-    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
+    psi_separatrix = find_psi_boundary(eqt, fw.r,fw.z; raise_error_on_not_open=true).first_open # psi at LCFS
 
     if isempty(r) || isempty(q)
         ##########################################################################
