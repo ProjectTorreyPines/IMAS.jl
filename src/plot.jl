@@ -1221,7 +1221,8 @@ end
 
     if only === nothing
         layout := 4 + length(ions)
-        size --> (800, 600)
+        Nr = Int(ceil(sqrt(4 + length(ions))))
+        size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
 
@@ -2422,7 +2423,7 @@ end
     size --> (200 * N, 200 * N)
     for (k, leaf) in enumerate(valid_leaves)
         loc = replace(location(leaf.ids, leaf.field), ".value" => "")
-        _,title, label = rsplit(loc, ".", limit=3)
+        _, title, label = rsplit(loc, "."; limit=3)
         @series begin
             guidefontvalign := :top
             titlefont --> font(8, "Arial", "bold")
