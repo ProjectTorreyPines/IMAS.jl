@@ -128,6 +128,9 @@ Returns vectors of hfs and lfs OpenFieldLine
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true) where {T<:Real}
+
+    OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
+
     # force use_wall = false if wall_r is empty
     if use_wall == false
         wall_r = Float64[]
@@ -143,7 +146,12 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis
+
     psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open # find psi at LCFS
+    if psi__boundary_level === nothing
+        return OFL
+    end
+
     # find psi at second magnetic separatrix
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt) # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
@@ -211,9 +219,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
         end
     end
 
-    OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
     # TO DO for the future: insert private flux regions (upper and lower)
-
     for level in levels
         lines = flux_surface(eqt, level, :open, wall_r, wall_z)
 
