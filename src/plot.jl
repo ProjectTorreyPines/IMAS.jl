@@ -1620,15 +1620,17 @@ end
 
     paths = transport_channel_paths(cs1d.ion, ions)
     if !flux
-        push!(paths, [:j_parallel])
+        insert!(paths, 5, [:j_parallel])
     end
     if only === nothing
         if flux
-            layout := 4 + length(ions)
+            N = 4 + length(ions)
         else
-            layout := 5 + length(ions)
+            N = 5 + length(ions)
         end
-        size --> (800, 600)
+        layout := N
+        Nr = Int(ceil(sqrt(N)))
+        size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
 
