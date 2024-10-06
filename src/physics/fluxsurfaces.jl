@@ -1781,13 +1781,12 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         end
 
         # remove x-points that have fallen on the magnetic axis
-        min_psidist = psidist_lcfs_xpoints[argmin(abs(x) for x in psidist_lcfs_xpoints)]
-
-        sign_closest = sign(min_psidist)# sign of psi of closest X-point in psi to LCFS
-        index = psidist_lcfs_xpoints .* psi_sign .>= (psi_sign - sign_closest * 1E-5) * min_psidist
-        psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
-        eqt.boundary.x_point = eqt.boundary.x_point[index]
-        z_x = z_x[index]
+        # min_psidist = psidist_lcfs_xpoints[argmin(abs(x) for x in psidist_lcfs_xpoints)]
+        # sign_closest = sign(min_psidist)# sign of psi of closest X-point in psi to LCFS
+        # index = psidist_lcfs_xpoints .* psi_sign .>= (psi_sign - sign_closest * 1E-5) * min_psidist
+        # psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
+        # eqt.boundary.x_point = eqt.boundary.x_point[index]
+        # z_x = z_x[index]
 
         # sort a second time now by distance in psi
         index = sortperm(psidist_lcfs_xpoints; by=abs)
