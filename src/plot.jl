@@ -2169,32 +2169,48 @@ end
 end
 
 @recipe function plot_wd2dvu(wd2dvu::IMAS.wall__description_2d___vessel__unit)
-    centreline = closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed))
+    plot_data_items = []
+    is_closed = []
+    if !ismissing(wd2dvu.annular.centreline, :r)
+        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed))]
+        is_closed = [is_closed; Bool(wd2dvu.annular.centreline.closed)]
+    end
+    if !ismissing(wd2dvu.annular.outline_inner, :r)
+        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.annular.outline_inner.r, wd2dvu.annular.outline_inner.z, Bool(wd2dvu.annular.outline_inner.closed))]
+        is_closed = [is_closed; Bool(wd2dvu.annular.outline_inner.closed)]
+    end
+    if !ismissing(wd2dvu.annular.outline_outer, :r)
+        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.annular.outline_outer.r, wd2dvu.annular.outline_outer.z, Bool(wd2dvu.annular.outline_outer.closed))]
+        is_closed = [is_closed; Bool(wd2dvu.annular.outline_outer.closed)]
+    end
+    for j in 1:length(plot_data_items)
+        plotdata = plot_data_items[j]
 
-    if !ismissing(wd2dvu.annular, :thickness)
-        thickness = wd2dvu.annular.thickness
-        if Bool(wd2dvu.annular.centreline.closed)
-            thickness = [thickness; thickness[1]]
-        end
-
-        for i in 1:length(centreline.R)-1
-            pts = thick_line_polygon(centreline.R[i], centreline.Z[i], centreline.R[i+1], centreline.Z[i+1], thickness[i], thickness[i+1])
-            # Extract x and y coordinates for plotting
-            xs, ys = map(collect, zip(pts...))
-            @series begin
-                primary := i == 1
-                linewidth := 0.1
-                aspect_ratio := :equal
-                fill := (0, 0.5, :gray)
-                xlim := (0, Inf)
-                xs, ys
+        if !ismissing(wd2dvu.annular, :thickness)
+            thickness = wd2dvu.annular.thickness
+            if is_closed[j]
+                thickness = [thickness; thickness[1]]
             end
-        end
-    else
-        @series begin
-            label --> getproperty(wd2dvu, :name, "")
-            aspect_ratio := :equal
-            centreline.R, centreline.Z
+
+            for i in 1:length(plotdata.R)-1
+                pts = thick_line_polygon(plotdata.R[i], plotdata.Z[i], plotdata.R[i+1], plotdata.Z[i+1], thickness[i], thickness[i+1])
+                # Extract x and y coordinates for plotting
+                xs, ys = map(collect, zip(pts...))
+                @series begin
+                    primary := i == 1
+                    linewidth := 0.1
+                    aspect_ratio := :equal
+                    fill := (0, 0.5, :gray)
+                    xlim := (0, Inf)
+                    xs, ys
+                end
+            end
+        else
+            @series begin
+                label --> getproperty(wd2dvu, :name, "")
+                aspect_ratio := :equal
+                plotdata.R, plotdata.Z
+            end
         end
     end
 end
