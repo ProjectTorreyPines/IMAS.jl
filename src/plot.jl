@@ -2183,6 +2183,11 @@ end
         plot_data_items = [plot_data_items; closed_polygon(wd2dvu.annular.outline_outer.r, wd2dvu.annular.outline_outer.z, Bool(wd2dvu.annular.outline_outer.closed))]
         is_closed = [is_closed; Bool(wd2dvu.annular.outline_outer.closed)]
     end
+    for j in 1:length(wd2dvu.element)
+        wd2dvu.element[j].outline.r
+        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.element[j].outline.r, wd2dvu.element[j].outline.z, Bool(wd2dvu.element[j].outline.closed))]
+        is_closed = [is_closed; Bool(wd2dvu.element[j].outline.closed)]
+    end
     for j in 1:length(plot_data_items)
         plotdata = plot_data_items[j]
 
