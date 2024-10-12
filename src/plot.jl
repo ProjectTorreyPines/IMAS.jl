@@ -2170,35 +2170,33 @@ end
 
 @recipe function plot_wd2dvu(wd2dvu::IMAS.wall__description_2d___vessel__unit)
     plot_data_items = []
-    is_closed = []
+    closed_items = Bool[]
     if !ismissing(wd2dvu.annular.centreline, :r)
-        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed))]
-        is_closed = [is_closed; Bool(wd2dvu.annular.centreline.closed)]
+        push!(plot_data_items, closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed)))
+        push!(closed_items, Bool(wd2dvu.annular.centreline.closed))
     end
     if !ismissing(wd2dvu.annular.outline_inner, :r)
-        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.annular.outline_inner.r, wd2dvu.annular.outline_inner.z, Bool(wd2dvu.annular.outline_inner.closed))]
-        is_closed = [is_closed; Bool(wd2dvu.annular.outline_inner.closed)]
+        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_inner.r, wd2dvu.annular.outline_inner.z, Bool(wd2dvu.annular.outline_inner.closed)))
+        push!(closed_items, Bool(wd2dvu.annular.outline_inner.closed))
     end
     if !ismissing(wd2dvu.annular.outline_outer, :r)
-        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.annular.outline_outer.r, wd2dvu.annular.outline_outer.z, Bool(wd2dvu.annular.outline_outer.closed))]
-        is_closed = [is_closed; Bool(wd2dvu.annular.outline_outer.closed)]
+        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_outer.r, wd2dvu.annular.outline_outer.z, Bool(wd2dvu.annular.outline_outer.closed)))
+        push!(closed_items, Bool(wd2dvu.annular.outline_outer.closed))
     end
-    for j in 1:length(wd2dvu.element)
+    for j in eachindex(wd2dvu.element)
         wd2dvu.element[j].outline.r
-        plot_data_items = [plot_data_items; closed_polygon(wd2dvu.element[j].outline.r, wd2dvu.element[j].outline.z, Bool(wd2dvu.element[j].outline.closed))]
-        is_closed = [is_closed; Bool(wd2dvu.element[j].outline.closed)]
+        push!(plot_data_items, closed_polygon(wd2dvu.element[j].outline.r, wd2dvu.element[j].outline.z, Bool(wd2dvu.element[j].outline.closed)))
+        push!(closed_items, Bool(wd2dvu.element[j].outline.closed))
     end
-    for j in 1:length(plot_data_items)
-        plotdata = plot_data_items[j]
 
+    for (plotdata, is_closed) in zip(plot_data_items, closed_items)
         if !ismissing(wd2dvu.annular, :thickness)
             thickness = wd2dvu.annular.thickness
-            if is_closed[j]
+            if is_closed
                 thickness = [thickness; thickness[1]]
             end
-
-            for i in 1:length(plotdata.R)-1
-                pts = thick_line_polygon(plotdata.R[i], plotdata.Z[i], plotdata.R[i+1], plotdata.Z[i+1], thickness[i], thickness[i+1])
+            for i in 1:length(plotdata.r)-1
+                pts = thick_line_polygon(plotdata.r[i], plotdata.z[i], plotdata.r[i+1], plotdata.z[i+1], thickness[i], thickness[i+1])
                 # Extract x and y coordinates for plotting
                 xs, ys = map(collect, zip(pts...))
                 @series begin
@@ -2214,7 +2212,7 @@ end
             @series begin
                 label --> getproperty(wd2dvu, :name, "")
                 aspect_ratio := :equal
-                plotdata.R, plotdata.Z
+                plotdata.r, plotdata.z
             end
         end
     end
@@ -2241,7 +2239,7 @@ end
     poly = closed_polygon(outline.r, outline.z)
     @series begin
         aspect_ratio := :equal
-        poly.R, poly.Z
+        poly.r, poly.z
     end
 end
 
