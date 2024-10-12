@@ -5,6 +5,65 @@ import Measures
 import Graphs
 using GraphRecipes
 
+struct PlotHelpParameter2
+    dispatch::String
+    argument::Symbol
+    type::Any
+    description::String
+    value::Any
+end
+
+const _help_plot2 = Vector{PlotHelpParameter2}()
+
+function plot_help_id(args...)
+    return string(map(typeof, args))
+end
+
+function assert_type_and_record_argument(dispatch, type::Type, description::String; kw...)
+    @assert length(kw) == 1
+    argument = collect(keys(kw))[1]
+    value = collect(values(kw))[1]
+    @assert typeof(value) <: type
+    if !any(plotpar.argument == argument for plotpar in _help_plot2)
+        push!(_help_plot2, PlotHelpParameter2(dispatch, argument, type, description, value))
+    end
+    return nothing
+end
+
+function help_plot(args...; kw...)
+    empty!(_help_plot2)
+    plot(args...; kw...)
+    return _help_plot2
+end
+
+function Base.show(io::IO, ::MIME"text/plain", plotpar::PlotHelpParameter2)
+    printstyled(io, plotpar.argument; bold=true)
+    printstyled(io, "::$(plotpar.type)"; color=:blue)
+    printstyled(io, " = ")
+    printstyled(io, "$(repr(plotpar.value))"; color=:red, bold=true)
+    return printstyled(io, "  # $(plotpar.description)"; color=248)
+end
+
+function Base.show(io::IO, x::MIME"text/plain", plotpars::AbstractVector{<:PlotHelpParameter2})
+    old_dispatch = nothing
+    for (k, plotpar) in enumerate(plotpars)
+        dispatch = fs2u(replace(plotpar.dispatch, "IMASdd." => "", r"{\w+}" => ""))
+        if dispatch != old_dispatch
+            if k > 1
+                print(io, "\n")
+            end
+            printstyled(io, "$(dispatch)"; color=:green)
+            print(io, "\n")
+        end
+        old_dispatch = dispatch
+        print(io, "     ")
+        show(io, x, plotpar)
+        if k < length(plotpars)
+            print(io, "\n")
+        end
+    end
+end
+
 # ========= #
 # pf_active #
 # ========= #
@@ -16,8 +75,9 @@ Plots pf active cross-section
 NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
 """
 @recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time0=global_time(pfa), cname=:vik)
-    @assert typeof(time0) <: Float64
-    @assert typeof(cname) <: Symbol
+    id = plot_help_id(pfa, what)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Symbol, "Colormap name"; cname)
 
     if ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
@@ -126,7 +186,8 @@ end
 Plots cross-section of individual coils
 """
 @recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false) where {T<:Real}
-    @assert typeof(coil_names) <: Bool
+    id = plot_help_id(coil)
+    assert_type_and_record_argument(id, Bool, "Show coil names"; coil_names)
 
     r = T[]
     z = T[]
@@ -296,7 +357,8 @@ end
 Plots cross-section of individual loops
 """
 @recipe function plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
-    @assert typeof(loop_names) <: Bool
+    id = plot_help_id(loop)
+    assert_type_and_record_argument(id, Bool, "Show loop names"; loop_names)
 
     r = T[]
     z = T[]
@@ -305,7 +367,6 @@ Plots cross-section of individual loops
         @series begin
             primary := k == 1
             seriestype --> :shape
-            aspect_ratio := :equal
             linewidth --> 0.25
             colorbar --> :right
             label --> ""
@@ -411,14 +472,19 @@ end
 # equilibrium #
 # =========== #
 @recipe function plot_eq(eq::IMAS.equilibrium; time0=global_time(eq))
+    id = plot_help_id(eq)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
     @series begin
         return eq.time_slice[time0]
     end
 end
 
 @recipe function plot_eqt(eqt::IMAS.equilibrium__time_slice; cx=false, coordinate=:psi_norm, core_profiles_overlay=false)
-    @assert typeof(cx) <: Bool
-    @assert typeof(coordinate) <: Symbol
+    id = plot_help_id(eqt)
+    assert_type_and_record_argument(id, Bool, "Display 2D cross section"; cx)
+    assert_type_and_record_argument(id, Symbol, "X coordinate for 1D profiles"; coordinate)
+    assert_type_and_record_argument(id, Bool, "Overlay core_profiles data"; core_profiles_overlay)
 
     if !cx
         layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
@@ -549,21 +615,22 @@ end
 
 @recipe function plot_eqt2(
     eqt2d::IMAS.equilibrium__time_slice___profiles_2d;
-    psi_levels_in=nothing,
-    psi_levels_out=nothing,
+    psi_levels_in=11,
+    psi_levels_out=11,
     lcfs=false,
     secondary_separatrix=false,
     show_x_points=true,
     show_strike_points=true,
     magnetic_axis=true)
 
-    @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
-    @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
-    @assert typeof(lcfs) <: Bool
-    @assert typeof(secondary_separatrix) <: Bool
-    @assert typeof(show_x_points) <: Bool
-    @assert typeof(show_strike_points) <: Bool
-    @assert typeof(magnetic_axis) <: Bool
+    id = plot_help_id(eqt2d)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels inside LCFS"; psi_levels_in)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels outside LCFS"; psi_levels_out)
+    assert_type_and_record_argument(id, Bool, "Plot LCFS"; lcfs)
+    assert_type_and_record_argument(id, Bool, "Plot secondary separatrix"; secondary_separatrix)
+    assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
+    assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
+    assert_type_and_record_argument(id, Bool, "Plot magnetic axis"; magnetic_axis)
 
     label --> ""
     aspect_ratio := :equal
@@ -585,23 +652,17 @@ end
         psi_levels_in = [psi__boundary_level, psi__boundary_level]
         psi_levels_out = []
     else
-        npsi = 11
-        if psi_levels_in === nothing
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, npsi)
-        elseif isa(psi_levels_in, Int)
-            if psi_levels_in > 1
-                npsi = psi_levels_in
+        if typeof(psi_levels_in) <: Int
+            if psi_levels_in > 0
                 psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
             else
                 psi_levels_in = []
             end
         end
         delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
-        if psi_levels_out === nothing
-            psi_levels_out = delta_psi .* range(0.0, 1.0, npsi) .+ psi__boundary_level
-        elseif isa(psi_levels_out, Int)
-            if psi_levels_out > 1
-                psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
+        if typeof(psi_levels_out) <: Int
+            if psi_levels_out > 0
+                psi_levels_out = delta_psi / length(psi_levels_in) .* collect(0:psi_levels_out) .+ psi__boundary_level
             else
                 psi_levels_out = []
             end
@@ -621,7 +682,8 @@ end
                     linewidth --> 1.5
                 else
                     linewidth --> 0.5
-                    if psi_level in psi_levels_in && (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
+                    if psi_level in psi_levels_in &&
+                       (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
                         linestyle --> :solid
                     else
                         linestyle --> :dash
@@ -635,7 +697,7 @@ end
     if secondary_separatrix
         @series begin
             primary --> false
-            linewidth --> 1.5
+            linewidth --> 1.0
             eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
         end
     end
@@ -810,13 +872,13 @@ end
 Plot build cross-section
 """
 @recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, only=Symbol[], exclude_layers=Symbol[])
-
-    @assert typeof(cx) <: Bool
-    @assert typeof(equilibrium) <: Bool
-    @assert typeof(pf_active) <: Bool
-    @assert typeof(wireframe) <: Bool
-    @assert typeof(only) <: AbstractVector{Symbol}
-    @assert typeof(exclude_layers) <: AbstractVector{Symbol}
+    id = plot_help_id(bd)
+    assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
+    assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
+    assert_type_and_record_argument(id, Bool, "Include equilibrium"; equilibrium)
+    assert_type_and_record_argument(id, Bool, "Include pf_active"; pf_active)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include layers"; only)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude layers"; exclude_layers)
 
     legend_position --> :outerbottomright
     aspect_ratio := :equal
@@ -1032,7 +1094,7 @@ Plot build cross-section
                     if !wireframe
                         @series begin
                             seriestype --> :path
-                            linewidth := 2.0
+                            linewidth --> 2.0
                             color --> :lightblue
                             label --> (!wireframe && k == 1 ? "Vessel Port" : "")
                             xlim --> [0, maximum(bd.structure[index].outline.r)]
@@ -1540,8 +1602,8 @@ end
     integrated=false,
     flux=false,
     show_zeros=false,
-    show_source_number=false
-)
+    show_source_number=false)
+
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
