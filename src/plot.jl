@@ -223,6 +223,8 @@ end
     id = plot_help_id(coil)
     assert_type_and_record_argument(id, Bool, "Show coil names"; coil_names)
 
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
+
     r = T[]
     z = T[]
     for (k, element) in enumerate(coil.element)
@@ -230,7 +232,7 @@ end
         @series begin
             primary := k == 1
             seriestype --> :shape
-            linewidth --> 0.25
+            linewidth := 0.25 * base_linewidth
             colorbar --> :right
             label --> ""
             oute.r, oute.z
@@ -389,6 +391,8 @@ end
     id = plot_help_id(loop)
     assert_type_and_record_argument(id, Bool, "Show loop names"; loop_names)
 
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
+
     r = T[]
     z = T[]
     for (k, element) in enumerate(loop.element)
@@ -396,7 +400,7 @@ end
         @series begin
             primary := k == 1
             seriestype --> :shape
-            linewidth --> 0.25
+            linewidth := 0.25 * base_linewidth
             colorbar --> :right
             label --> ""
             oute.r, oute.z
@@ -701,14 +705,16 @@ end
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
+
     for psi_level in psi_levels
         for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
-                    linewidth --> 1.5
+                    linewidth := base_linewidth * 1.5
                 else
-                    linewidth --> 0.5
+                    linewidth := base_linewidth * 0.5
                     if psi_level in psi_levels_in &&
                        (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
                         linestyle --> :solid
@@ -724,7 +730,7 @@ end
     if show_secondary_separatrix
         @series begin
             primary --> false
-            linewidth --> 1.0
+            linewidth := base_linewidth * 1.0
             eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
         end
     end
@@ -876,8 +882,9 @@ end
 end
 
 @recipe function plot_divertors(surface_outline::IMAS.divertors__divertor___target___tile___surface_outline)
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
     @series begin
-        linewidth --> 2
+        linewidth := base_linewidth * 2
         aspect_ratio := :equal
         surface_outline.r, surface_outline.z
     end
@@ -901,6 +908,8 @@ end
     assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
+
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     legend_position --> :outerbottomright
     aspect_ratio := :equal
@@ -938,7 +947,7 @@ end
                 end
                 @series begin
                     seriestype --> :path
-                    linewidth --> 1
+                    linewidth := base_linewidth
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
@@ -967,7 +976,7 @@ end
             if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
                 @series begin
                     seriestype --> :path
-                    linewidth --> 1
+                    linewidth := base_linewidth
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
@@ -979,7 +988,7 @@ end
         # axis of symmetry
         @series begin
             seriestype --> :path
-            linewidth --> 1
+            linewidth := base_linewidth
             label --> ""
             linestyle --> :dash
             color --> :black
@@ -1003,7 +1012,7 @@ end
                     end
                     @series begin
                         seriestype --> :path
-                        linewidth --> 0.5
+                        linewidth := 0.5 * base_linewidth
                         color --> :black
                         label --> ""
                         xlim --> [0, rmax]
@@ -1061,7 +1070,7 @@ end
                 end
                 @series begin
                     seriestype --> :path
-                    linewidth --> 0.5
+                    linewidth := 0.5 * base_linewidth
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
@@ -1075,7 +1084,7 @@ end
             plasma_outline = outline(get_build_layer(bd.layer; type=_plasma_))
             @series begin
                 seriestype --> :path
-                linewidth --> 1.0
+                linewidth := base_linewidth
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
@@ -1099,7 +1108,7 @@ end
                     end
                     @series begin
                         seriestype --> :path
-                        linewidth --> 0.5
+                        linewidth := 0.5 * base_linewidth
                         color --> :black
                         label --> ""
                         xlim --> [0, rmax]
@@ -1116,7 +1125,7 @@ end
                     if !wireframe
                         @series begin
                             seriestype --> :path
-                            linewidth --> 2.0
+                            linewidth := 2.0 * base_linewidth
                             color --> :lightblue
                             label --> (!wireframe && k == 1 ? "Vessel Port" : "")
                             xlim --> [0, maximum(bd.structure[index].outline.r)]
@@ -1125,7 +1134,7 @@ end
                     end
                     @series begin
                         seriestype --> :path
-                        linewidth --> 0.5
+                        linewidth := 0.5 * base_linewidth
                         color --> :black
                         label --> ""
                         xlim --> [0, maximum(bd.structure[index].outline.r)]
@@ -1147,7 +1156,7 @@ end
 
         @series begin
             seriestype --> :vline
-            linewidth --> 2
+            linewidth := 2 * base_linewidth
             label --> ""
             linestyle --> :dash
             color --> :black
@@ -1193,7 +1202,7 @@ end
             at += l.thickness
             @series begin
                 seriestype --> :vline
-                linewidth --> 0.5
+                linewidth := 0.5 * base_linewidth
                 label --> ""
                 color --> :black
                 xlim --> [0, at]
@@ -2049,6 +2058,8 @@ end
     r_tf = smcs.grid.r_tf
     r_pl = getproperty(smcs.grid, :r_pl, missing)
 
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
+
     @series begin
         r_oh, stress.oh ./ 1E6
     end
@@ -2066,30 +2077,29 @@ end
     if typeof(stress) <: IMAS.solid_mechanics__center_stack__stress__vonmises
         @series begin
             linestyle := :dash
-            linewidth := 0.75
+            linewidth := 0.75 * base_linewidth
             label := "Yield strength"
             r_oh, r_oh .* 0.0 .+ smcs.properties.yield_strength.oh / 1E6
         end
         @series begin
             primary := false
             linestyle := :dash
-            linewidth := 0.75
+            linewidth := 0.75 * base_linewidth
             r_tf, r_tf .* 0.0 .+ smcs.properties.yield_strength.tf / 1E6
         end
         if r_pl !== missing
             @series begin
                 primary := false
                 linestyle := :dash
-                linewidth := 0.75
+                linewidth := 0.75 * base_linewidth
                 r_pl, r_pl .* 0.0 .+ smcs.properties.yield_strength.pl / 1E6
             end
         end
     end
 end
 
-@recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress; linewidth=1)
-    id = plot_help_id(stress)
-    assert_type_and_record_argument(id, Real, "Line width for plots"; linewidth)
+@recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress)
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     legend_position --> :bottomleft
     ylabel --> "Stresses [MPa]"
@@ -2116,19 +2126,19 @@ end
 
     @series begin
         label := "Von Mises" * config
-        linewidth := linewidth + 2
+        linewidth := base_linewidth * 3
         linestyle := :solid
         stress.vonmises
     end
     @series begin
         label := "Hoop" * config
-        linewidth := linewidth + 1
+        linewidth := base_linewidth * 2
         linestyle := :dash
         stress.hoop
     end
     @series begin
         label := "Radial" * config
-        linewidth := linewidth + 1
+        linewidth := base_linewidth * 2
         linestyle := :dashdot
         stress.radial
     end
@@ -2137,7 +2147,6 @@ end
     for radius in (smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end])
         @series begin
             seriestype := :vline
-            linewidth := linewidth
             label := ""
             linestyle := :dash
             color := :black
@@ -2149,9 +2158,8 @@ end
 # ================ #
 # balance_of_plant #
 # ================ #
-@recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant; linewidth=2)
-    id = plot_help_id(bop)
-    assert_type_and_record_argument(id, Real, "Line width for plots"; linewidth)
+@recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant)
+    base_linewidth = plotattributes[:linewidth]
 
     size --> (800, 600)
     legend_position --> :outertopright
@@ -2160,14 +2168,14 @@ end
 
     @series begin
         label := "Net electric"
-        linewidth := linewidth + 2
+        linewidth := base_linewidth * 3
         color := "Black"
         bop, :power_electric_net
     end
 
     @series begin
         label := "Electricity generated"
-        linewidth := linewidth + 1
+        linewidth := base_linewidth * 2
         linestyle --> :dash
         color := "Black"
         bop.power_plant, :power_electric_generated
@@ -2176,7 +2184,6 @@ end
     for sys in bop.power_electric_plant_operation.system
         @series begin
             label := string(sys.name)
-            linewidth := linewidth
             sys, :power
         end
     end
@@ -2189,6 +2196,8 @@ end
     id = plot_help_id(nwl)
     assert_type_and_record_argument(id, Symbol, "Component to plot (:norm, :r, :z, :power)"; component)
     assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
+
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     neutronics = top_ids(nwl)
     title = "Wall flux"
@@ -2213,7 +2222,7 @@ end
         seriestype --> :path
         line_z --> log10.(data)
         aspect_ratio := :equal
-        linewidth --> 8
+        linewidth := 8 * base_linewidth
         label --> ""
         if component in (:r, :z)
             linecolor --> :seismic
@@ -2321,6 +2330,8 @@ end
 end
 
 @recipe function plot_wd2dvu(wd2dvu::IMAS.wall__description_2d___vessel__unit)
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
+
     plot_data_items = []
     closed_items = Bool[]
     if !ismissing(wd2dvu.annular.centreline, :r)
@@ -2353,7 +2364,7 @@ end
                 xs, ys = map(collect, zip(pts...))
                 @series begin
                     primary := i == 1
-                    linewidth := 0.1
+                    linewidth := 0.1 * base_linewidth
                     aspect_ratio := :equal
                     fill := (0, 0.5, :gray)
                     xlim := (0, Inf)
