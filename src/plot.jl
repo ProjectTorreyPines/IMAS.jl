@@ -166,7 +166,7 @@ end
             @series begin
                 colorbar_entry := false
                 if all(currents .== 0.0)
-                    color --> :black
+                    color --> hash_to_color([func.index for func in c.function]; seed=4)
                 else
                     current_color_index = (currents[k] + CURRENT) / (2 * CURRENT)
                     color --> PlotUtils.cgrad(cname)[current_color_index]
@@ -2810,4 +2810,26 @@ function nice_units(units::String)
         units = " " * units
     end
     return units
+end
+
+"""
+    hash_to_color(input::Any; seed::Int=0)
+
+Generate a unique RGB color based on the hash of an input, with an optional seed for color adjustment.
+
+This function computes the hash of the given `input` and converts it to an RGB color in the [0,1] range.
+The optional `seed` parameter shifts the hash to allow different color mappings for the same input.
+Using a different `seed` value will produce a unique color set for the same input.
+"""
+function hash_to_color(input::Any; seed::Int=0)
+    # Generate a hash for the input
+    h = hash(hash(input) + seed)
+
+    # Convert the hash to a range for RGB values (0 to 1)
+    r = ((h >> 16) & 0xFF) / 255.0
+    g = ((h >> 8) & 0xFF) / 255.0
+    b = (h & 0xFF) / 255.0
+
+    # Return an RGB color using Plots' RGB type
+    return RGB(r, g, b)
 end
