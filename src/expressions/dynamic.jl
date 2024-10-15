@@ -131,6 +131,9 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
+dyexp["core_profiles.profiles_1d[:].zeff"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> zeff(profiles_1d)
+
 #  core_profiles.global_quantities  #
 
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
