@@ -393,6 +393,7 @@ end
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
+    aspect_ratio := :equal
     r = T[]
     z = T[]
     for (k, element) in enumerate(loop.element)
