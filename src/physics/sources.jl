@@ -409,10 +409,10 @@ function new_source(
     cs1d.grid.area = area
 
     if electrons_energy !== missing
-        cs1d.electrons.energy = value = interp1d(range(0, 1, length(electrons_energy)), electrons_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.energy = value = electrons_energy
         cs1d.electrons.power_inside = cumtrapz(volume, value)
     elseif electrons_power_inside !== missing
-        cs1d.electrons.power_inside = value = interp1d(range(0, 1, length(electrons_power_inside)), electrons_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.power_inside = value = electrons_power_inside
         cs1d.electrons.energy = gradient(volume, value)
     else
         cs1d.electrons.energy = zero(volume)
@@ -420,10 +420,10 @@ function new_source(
     end
 
     if total_ion_energy !== missing
-        cs1d.total_ion_energy = value = interp1d(range(0, 1, length(total_ion_energy)), total_ion_energy).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_energy = value = total_ion_energy
         cs1d.total_ion_power_inside = cumtrapz(volume, value)
     elseif total_ion_power_inside !== missing
-        cs1d.total_ion_power_inside = value = interp1d(range(0, 1, length(total_ion_power_inside)), total_ion_power_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.total_ion_power_inside = value = total_ion_power_inside
         cs1d.total_ion_energy = gradient(volume, value)
     else
         cs1d.total_ion_energy = zero(volume)
@@ -431,10 +431,10 @@ function new_source(
     end
 
     if electrons_particles !== missing
-        cs1d.electrons.particles = value = interp1d(range(0, 1, length(electrons_particles)), electrons_particles).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles = value = electrons_particles
         cs1d.electrons.particles_inside = cumtrapz(volume, value)
     elseif electrons_particles_inside !== missing
-        cs1d.electrons.particles_inside = value = interp1d(range(0, 1, length(electrons_particles_inside)), electrons_particles_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.electrons.particles_inside = value = electrons_particles_inside
         cs1d.electrons.particles = gradient(volume, value)
     else
         cs1d.electrons.particles = zero(volume)
@@ -442,10 +442,10 @@ function new_source(
     end
 
     if j_parallel !== missing
-        cs1d.j_parallel = value = interp1d(range(0, 1, length(j_parallel)), j_parallel).(cs1d.grid.rho_tor_norm)
+        cs1d.j_parallel = value = j_parallel
         cs1d.current_parallel_inside = cumtrapz(volume, value)
     elseif current_parallel_inside !== missing
-        cs1d.current_parallel_inside = value = interp1d(range(0, 1, length(current_parallel_inside)), current_parallel_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.current_parallel_inside = value = current_parallel_inside
         cs1d.j_parallel = gradient(volume, value)
     else
         cs1d.j_parallel = zero(volume)
@@ -453,10 +453,10 @@ function new_source(
     end
 
     if momentum_tor !== missing
-        cs1d.momentum_tor = value = interp1d(range(0, 1, length(momentum_tor)), momentum_tor).(cs1d.grid.rho_tor_norm)
+        cs1d.momentum_tor = value = momentum_tor
         cs1d.torque_tor_inside = cumtrapz(volume, value)
     elseif torque_tor_inside !== missing
-        cs1d.torque_tor_inside = value = interp1d(range(0, 1, length(torque_tor_inside)), torque_tor_inside).(cs1d.grid.rho_tor_norm)
+        cs1d.torque_tor_inside = value = torque_tor_inside
         cs1d.momentum_tor = gradient(volume, value)
     else
         cs1d.momentum_tor = zero(volume)
