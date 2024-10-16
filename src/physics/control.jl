@@ -51,14 +51,13 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
     I = controller.pid.i.data[1]
     D = controller.pid.d.data[1]
 
+    error = setpoint - value
+    push!(controller.inputs.time, time0)
+    controller.inputs.data = hcat(controller.inputs.data, [error])
+
     if fxp_has_controller(controller)
         control = fxp_controller(controller, 1.0; time=time0, setpoint, value, P, I, D)
-
     else
-        error = setpoint - value
-        push!(controller.inputs.time, time0)
-        controller.inputs.data = hcat(controller.inputs.data, [error])
-
         if size(controller.inputs.data)[2] < 2
             integral = zero(T)
             derivative = zero(T)
