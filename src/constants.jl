@@ -11,6 +11,7 @@ Named tuple with physics constants:
     m_e = 9.1093837015e-31 [kg]      # Electron mass
     m_p = 1.67262192369e-27 [kg]     # Proton mass
     m_n = 1.67492749804e-27 [kg]     # Neutron mass
+    m_d = 3.3435837768e-27 [kg]      # Deuteron mass
     atm = 101325.0 [Pa]              # Standard atmosphere
     m_u = 1.6605390666e-27 [kg]      # Atomic mass constant
     avog = 6.02214076e23 [mol^-1]    # Avogadro constant
@@ -26,6 +27,7 @@ const constants = (
     m_e=float(Float64, PCs.m_e).val,
     m_p=float(Float64, PCs.m_p).val,
     m_n=float(Float64, PCs.m_n).val,
+    m_d=3.3435837768e-27,
     atm=float(Float64, PCs.atm).val,
     m_u=float(Float64, PCs.m_u).val,
     avog=float(Float64, PCs.AvogadroConstant).val,
