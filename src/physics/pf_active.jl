@@ -124,7 +124,6 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil}, R0::Float6
     return coils
 end
 
-
 """
     outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
 

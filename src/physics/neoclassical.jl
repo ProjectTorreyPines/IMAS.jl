@@ -5,13 +5,14 @@ end
 function collision_frequencies(dd::IMAS.dd)
     # from TGYRO `collision_rates` subroutine
     cp1d = dd.core_profiles.profiles_1d[]
+    
+    mp = IMAS.gacode_units.mp # g
+    me = IMAS.gacode_units.me # g
+    e = gacode_units.e # statcoul
+    k = gacode_units.k # erg/eV
 
     Te = cp1d.electrons.temperature # ev
     ne = cp1d.electrons.density_thermal / 1E6 # cm^-3
-    me = constants.m_e * 1E3 # g
-    mp = constants.m_p * 1E3 # g
-    e = gacode_units.e # statcoul
-    k = gacode_units.k # erg/eV
 
     loglam = 24.0 .- log.(sqrt.(ne) ./ Te)
 
