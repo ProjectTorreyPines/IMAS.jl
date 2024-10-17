@@ -216,7 +216,7 @@ end
 # ================= #
 # show extract data #
 # ================= #
-function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Integer=0)
+function Base.show(io::IO, ::MIME"text/plain", xfun::ExtractFunction; group::Bool=true, indent::Integer=0)
     printstyled(io, " "^indent; bold=true)
     if group
         printstyled(io, " "^indent * "$(xfun.group)."; bold=true)
@@ -235,7 +235,7 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
     end
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=136)
+function Base.show(io::IO, ::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=136)
     return print_tiled(io, xtract; terminal_width)
 end
 
@@ -278,7 +278,7 @@ function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; termi
 
     function length_(xfun::ExtractFunction)
         buffer = IOBuffer()
-        show(buffer, xfun; group=false)
+        show(buffer, MIME("text/plain"), xfun; group=false)
         return length(String(take!(buffer)))
     end
 
@@ -317,7 +317,7 @@ function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; termi
                     print(io, (line_char^max_item_width * " "^(max_width - max_item_width)))
                 elseif list_row - 1 <= length(list)
                     item = list[list_row-1]
-                    show(io, item; group=false)
+                    show(io, MIME("text/plain"), item; group=false)
                     print(io, " "^(max_width - length_(item)))
                 else
                     print(io, " "^max_width)

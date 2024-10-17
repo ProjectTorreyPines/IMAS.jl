@@ -72,7 +72,7 @@ function constraint_cost_transform(value::Float64, operation::Function, limit::F
     return out
 end
 
-function Base.show(io::IO, cnst::ConstraintFunction)
+function Base.show(io::IO, ::MIME"text/plain", cnst::ConstraintFunction)
     printstyled(io, cnst.name; bold=true, color=:blue)
     print(io, " $(cnst.operation)")
     print(io, " $(cnst.limit)")

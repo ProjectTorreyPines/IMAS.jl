@@ -71,14 +71,14 @@ function (objf::ObjectiveFunction)(x::Float64)
     end
 end
 
-function Base.show(io::IO, f::ObjectiveFunction)
+function Base.show(io::IO, ::MIME"text/plain", f::ObjectiveFunction)
     printstyled(io, f.name; bold=true, color=:blue)
     print(io, " →")
     print(io, " $(f.target)")
     return print(io, " [$(f.units)]")
 end
 
-function Base.show(io::IO, x::MIME"text/plain", objfs::AbstractDict{Symbol,ObjectiveFunction})
+function Base.show(io::IO, ::MIME"text/plain", objfs::AbstractDict{Symbol,ObjectiveFunction})
     for objf in objfs
         show(io, x, objf)
         println(io, "")
