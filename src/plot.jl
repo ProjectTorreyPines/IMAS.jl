@@ -252,6 +252,13 @@ end
     end
 end
 
+@recipe function plot_coil(oute::pf_active__coil___element___geometry__outline{T}) where {T<:Real}
+    @series begin
+        seriestype --> :shape
+        oute.r, oute.z
+    end
+end
+
 @recipe function plot_pf_active_rail(rail::IMAS.build__pf_active__rail)
     if !ismissing(rail.outline, :r)
         @series begin
