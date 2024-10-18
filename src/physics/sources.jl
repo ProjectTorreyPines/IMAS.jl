@@ -11,7 +11,7 @@ function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion
     cp1d = cp.profiles_1d[]
     ion_list = (ion.label for ion in cp1d.ion)
     if "T" in ion_list || "DT" in ion_list
-        D_T_to_He4_source!(cs, cp)
+        D_T_to_He4_source!(cs, cp; combine_DT=("DT" in ion_list))
     elseif DD_fusion
         D_D_to_He3_source!(cs, cp)
         D_D_to_T_source!(cs, cp)

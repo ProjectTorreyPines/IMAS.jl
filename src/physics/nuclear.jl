@@ -218,11 +218,11 @@ function fusion_particle_source(
 end
 
 """
-    D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+    D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; combine_DT::Bool)
 
 Calculates DT fusion heating with an estimation of the alpha slowing down to the ions and electrons, modifies dd.core_sources
 """
-function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
+function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; combine_DT::Bool)
     cp1d = cp.profiles_1d[]
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
 
@@ -244,7 +244,11 @@ function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity, :D, :T, :He4, eV1)
+    if combine_DT
+        fusion_particle_source(source.profiles_1d[], reactivity, :DT, :DT, :He4, eV1)
+    else
+        fusion_particle_source(source.profiles_1d[], reactivity, :D, :T, :He4, eV1)
+    end
 
     return source
 end
