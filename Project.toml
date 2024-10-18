@@ -1,7 +1,7 @@
 name = "IMAS"
 uuid = "13ead8c1-b7d1-41bb-a6d0-5b8b65ed587a"
 authors = ["Orso Meneghini <orso82@gmail.com>"]
-version = "1.12.0"
+version = "1.13.0"
 
 [deps]
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
