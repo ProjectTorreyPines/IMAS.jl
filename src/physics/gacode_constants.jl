@@ -1,9 +1,10 @@
 const gacode_units = (
     e=4.8032e-10, # stacoul
     k=1.6022e-12, # erg/eV
-    me=9.1094e-28, # g
     c=2.9979e10, # cm/s
+    me=9.1094e-28, # g
     mp=1.6726e-24, # g
+    md=3.3435837768e-24, # g
     T_to_Gauss=1e4,
     Erg_to_J=1e-7,
     m_to_cm=1e2,
