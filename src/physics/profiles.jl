@@ -47,11 +47,16 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
 end
 
 """
-    list_ions(ct::IMAS.core_transport)
+    list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
-List ions in core_transport IDS
+List ions in core_transport IDS, 
 """
-function list_ions(ct::IMAS.core_transport)
+function list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+    tot = total_fluxes(ct, cp1d, T[])
+    return [Symbol(ion.label) for ion in tot.ion]
+end
+
+function list_ions(ct::IMAS.core_transport, cp1d::Nothing)
     ions = Symbol[]
     for model in ct.model
         ct1d = model.profiles_1d[]
@@ -63,11 +68,16 @@ function list_ions(ct::IMAS.core_transport)
 end
 
 """
-    list_ions(cs::IMAS.core_sources)
+    list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
 
 List ions in core_sources IDS
 """
-function list_ions(cs::IMAS.core_sources)
+function list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+    tot = total_sources(cs, cp1d)
+    return [Symbol(ion.label) for ion in tot.ion]
+end
+
+function list_ions(cs::IMAS.core_sources, cp1d::Nothing)
     ions = Symbol[]
     for source in cs.source
         for ion in source.profiles_1d[].ion

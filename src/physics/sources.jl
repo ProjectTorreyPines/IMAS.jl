@@ -259,6 +259,10 @@ function total_sources(
 
     # initialize ions
     total_source1d_ions = IMAS.core_sources__source___profiles_1d___ion[]
+    for ion in cp1d.ion
+        tmp = resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+        push!(total_source1d_ions, tmp)
+    end
     for source in core_sources.source
         if source.profiles_1d[1].time <= Float64(cp1d.time)
             source1d = source.profiles_1d[Float64(cp1d.time)]

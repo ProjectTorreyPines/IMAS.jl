@@ -48,7 +48,12 @@ end
 
 Sums up all the fluxes and returns it as a core_transport.model IDS
 """
-function total_fluxes(core_transport::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(core_transport)) where {T<:Real}
+function total_fluxes(
+    core_transport::IMAS.core_transport{T},
+    cp1d::IMAS.core_profiles__profiles_1d,
+    rho_total_fluxes::AbstractVector{<:Real};
+    time0::Float64=global_time(core_transport)) where {T<:Real}
+
     total_flux1d = IMAS.core_transport__model___profiles_1d{T}()
     total_flux1d.grid_flux.rho_tor_norm = rho_total_fluxes
 
@@ -57,6 +62,10 @@ function total_fluxes(core_transport::IMAS.core_transport{T}, cp1d::IMAS.core_pr
 
     # initialize ions
     total_flux1d_ions = IMAS.core_transport__model___profiles_1d___ion[]
+    for ion in cp1d.ion
+        tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+        push!(total_flux1d_ions, tmp)
+    end
     for model in core_transport.model
         model1d = model.profiles_1d[Float64(cp1d.time)]
         for ion in model1d.ion
@@ -79,38 +88,40 @@ function total_fluxes(core_transport::IMAS.core_transport{T}, cp1d::IMAS.core_pr
     push!(paths, (:momentum_tor,))
     push!(paths, (:total_ion_energy,))
 
-    for model in core_transport.model
-        # Make sure we don't double count a specific flux type
-        if index_to_name[model.identifier.index] ∈ skip_flux_list
-            @debug "skipped model.identifier.index = $(model.identifier.index) [$(index_to_name[model.identifier.index])]"
-            continue
-        end
-        push!(skip_flux_list, index_to_name[model.identifier.index])
+    if !isempty(rho_total_fluxes)
+        for model in core_transport.model
+            # Make sure we don't double count a specific flux type
+            if index_to_name[model.identifier.index] ∈ skip_flux_list
+                @debug "skipped model.identifier.index = $(model.identifier.index) [$(index_to_name[model.identifier.index])]"
+                continue
+            end
+            push!(skip_flux_list, index_to_name[model.identifier.index])
 
-        m1d = model.profiles_1d[time0]
-        x = m1d.grid_flux.rho_tor_norm
-        x_1 = argmin(abs.(rho_total_fluxes .- x[1]))
-        x_2 = argmin(abs.(rho_total_fluxes .- x[end]))
+            m1d = model.profiles_1d[time0]
+            x = m1d.grid_flux.rho_tor_norm
+            x_1 = argmin(abs.(rho_total_fluxes .- x[1]))
+            x_2 = argmin(abs.(rho_total_fluxes .- x[end]))
 
-        for path in paths
-            ids1 = try
-                IMAS.goto(m1d, path)
-            catch e
-                if isa(e, InterruptException)
-                    retrhow(e)
+            for path in paths
+                ids1 = try
+                    IMAS.goto(m1d, path)
+                catch e
+                    if isa(e, InterruptException)
+                        retrhow(e)
+                    end
+                    continue
                 end
-                continue
+                if ismissing(ids1, :flux)
+                    continue
+                end
+                ids2 = IMAS.goto(total_flux1d, path)
+                if ismissing(ids2, :flux)
+                    setproperty!(ids2, :flux, zeros(length(rho_total_fluxes)))
+                end
+                y = getproperty(ids1, :flux)
+                old_value = getproperty(ids2, :flux)
+                old_value[x_1:x_2] .+= interp1d(x, y, :linear).(rho_total_fluxes[x_1:x_2])
             end
-            if ismissing(ids1, :flux)
-                continue
-            end
-            ids2 = IMAS.goto(total_flux1d, path)
-            if ismissing(ids2, :flux)
-                setproperty!(ids2, :flux, zeros(length(rho_total_fluxes)))
-            end
-            y = getproperty(ids1, :flux)
-            old_value = getproperty(ids2, :flux)
-            old_value[x_1:x_2] .+= interp1d(x, y, :linear).(rho_total_fluxes[x_1:x_2])
         end
     end
 

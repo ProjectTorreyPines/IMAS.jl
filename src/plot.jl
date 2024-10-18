@@ -1391,6 +1391,13 @@ end
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
+    dd = top_dd(ct)
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    if ions == [:my_ions]
+        ions = list_ions(ct, cp1d)
+    end
+
     model_type = name_2_index(ct.model)
     rhos = D[]
     for model in ct.model
@@ -1401,12 +1408,6 @@ end
         append!(rhos, ct1d.grid_flux.rho_tor_norm)
     end
     rhos = unique(rhos)
-    if ions == [:my_ions]
-        ions = list_ions(ct)
-    end
-
-    dd = top_dd(ct)
-    cp1d = dd.core_profiles.profiles_1d[]
 
     if dd !== nothing
         @series begin
@@ -1414,6 +1415,7 @@ end
             color := :blue
             name := "Total source"
             flux := true
+            show_zeros := true
             ions := ions
             total_sources(dd; time0)
         end
@@ -1452,7 +1454,11 @@ end
 # ============ #
 # core_sources #
 # ============ #
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy})
+    return cs1d.electrons, Val(:energy)
+end
+
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy};
     name="",
     label="",
     integrated=false,
@@ -1462,7 +1468,7 @@ end
     only_positive_negative=0,
     show_source_number=false)
 
-    id = plot_help_id(cs1d, v)
+    id = plot_help_id(cs1de, v)
     assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
@@ -1472,11 +1478,13 @@ end
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
+    cs1d = parent(cs1de)
+
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
-    if !ismissing(cs1d.electrons, :energy)
-        tot = trapz(cs1d.grid.volume, cs1d.electrons.energy)
+    if !ismissing(cs1de, :energy)
+        tot = trapz(cs1d.grid.volume, cs1de.energy)
     end
     show_condition =
         show_zeros || identifier in [:total, :collisional_equipartition, :time_derivative] ||
@@ -1492,16 +1500,16 @@ end
             if identifier in [:ec, :ic, :lh, :nbi, :pellet]
                 fill0 --> true
             end
-            if !ismissing(cs1d.electrons, :power_inside) && flux
+            if !ismissing(cs1de, :power_inside) && flux
                 ylabel := "[MW/m²]"
                 normalization = 1E-6 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
-                cs1d.electrons, :power_inside
-            elseif !integrated && !ismissing(cs1d.electrons, :energy)
-                cs1d.electrons, :energy
-            elseif integrated && !ismissing(cs1d.electrons, :power_inside)
-                cs1d.electrons, :power_inside
+                cs1de, :power_inside
+            elseif !integrated && !ismissing(cs1de, :energy)
+                cs1de, :energy
+            elseif integrated && !ismissing(cs1de, :power_inside)
+                cs1de, :power_inside
             else
                 label := ""
                 [NaN], [NaN]
@@ -1573,7 +1581,11 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles})
+    return cs1d.electrons, Val(:particles)
+end
+
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles};
     name="",
     label="",
     integrated=false,
@@ -1581,7 +1593,7 @@ end
     show_zeros=false,
     show_source_number=false)
 
-    id = plot_help_id(cs1d, v)
+    id = plot_help_id(cs1de, v)
     assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
@@ -1589,11 +1601,13 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
+    cs1d = parent(cs1de)
+
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
-    if !ismissing(cs1d.electrons, :particles)
-        tot = trapz(cs1d.grid.volume, cs1d.electrons.particles)
+    if !ismissing(cs1de, :particles)
+        tot = trapz(cs1d.grid.volume, cs1de.particles)
     end
     show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
     @series begin
@@ -1604,16 +1618,16 @@ end
             if identifier in [:ec, :ic, :lh, :nbi, :pellet]
                 fill0 --> true
             end
-            if !ismissing(cs1d.electrons, :particles_inside) && flux
+            if !ismissing(cs1de, :particles_inside) && flux
                 ylabel := "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
-                cs1d.electrons, :particles_inside
-            elseif !integrated && !ismissing(cs1d.electrons, :particles)
-                cs1d.electrons, :particles
-            elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
-                cs1d.electrons, :particles_inside
+                cs1de, :particles_inside
+            elseif !integrated && !ismissing(cs1de, :particles)
+                cs1de, :particles
+            elseif integrated && !ismissing(cs1de, :particles_inside)
+                cs1de, :particles_inside
             else
                 label := ""
                 [NaN], [NaN]
@@ -1867,8 +1881,15 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Bool, "Aggregate radiation sources"; aggregate_radiation)
 
+    dd = top_dd(cs)
+
     if ions == [:my_ions]
-        ions = list_ions(cs)
+        if dd !== nothing && !isempty(dd.core_profiles.profiles_1d)
+            cp1d = dd.core_profiles.profiles_1d[]
+            ions = list_ions(cs, cp1d)
+        else
+            ions = list_ions(cs, nothing)
+        end
     end
 
     all_indexes = [source.identifier.index for source in cs.source]
