@@ -400,8 +400,8 @@ function greenwald_density(dd::IMAS.dd)
 end
 
 function greenwald_density(ps::IMAS.pulse_schedule; time0=global_time(ps))
-    ip = IMAS.get_time_array(ps.flux_control.i_plasma, :reference, time0, :linear)
-    minor_radius = IMAS.get_time_array(ps.position_control.minor_radius, :reference, time0, :linear)
+    ip = get_time_array(ps.flux_control.i_plasma, :reference, time0, :linear)
+    minor_radius = get_time_array(ps.position_control.minor_radius, :reference, time0, :linear)
     return greenwald_density(ip, minor_radius)
 end
 
@@ -445,9 +445,9 @@ returns n_e_line from pulse_schedule looking first in `pulse_schedule.density_co
 """
 function n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
     if !ismissing(ps.density_control.n_e_line, :reference)
-        return IMAS.get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
+        return get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
     elseif !ismissing(ps.density_control.n_e_greenwald_fraction, :reference)
-        return IMAS.get_time_array(ps.density_control.n_e_greenwald_fraction, :reference, time0, :linear) * greenwald_density(ps; time0)
+        return get_time_array(ps.density_control.n_e_greenwald_fraction, :reference, time0, :linear) * greenwald_density(ps; time0)
     else
         error("neither `pulse_schedule.density_control.ne_line.reference` or `pulse_schedule.density_control.greenwald_fraction.reference` have data")
     end

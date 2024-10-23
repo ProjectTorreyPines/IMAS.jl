@@ -167,7 +167,7 @@ end
 
 function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
     vl = vloop_time(ct)
-    return IMAS.get_time_array(vl.time, vl.data, [time0], :linear)[1]
+    return get_time_array(vl.time, vl.data, [time0], :linear)[1]
 end
 
 """
