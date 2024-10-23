@@ -49,7 +49,7 @@ end
 """
     list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
-List ions in core_transport IDS, 
+List ions in core_transport IDS,
 """
 function list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     tot = total_fluxes(ct, cp1d, T[])
@@ -299,6 +299,9 @@ end
     tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.plot_core_sources; subtract_radiation_losses::Bool=true)
 
 H98y2 ITER elmy H-mode confinement time scaling
+
+NOTE: H98y2 uses aereal elongation
+      See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
 function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
@@ -307,22 +310,27 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
         total_power_inside -= radiation_losses(cs)
     end
     total_power_inside = max(0.0, total_power_inside)
+
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
+    κ_areal = areal_elongation(eqt)
+
+    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+
     tau98 = (
         0.0562 *
         abs(eqt.global_quantities.ip / 1e6)^0.93 *
         abs(B0)^0.15 *
         (total_power_inside / 1e6)^-0.69 *
-        (ne_vol_avg(cp1d) / 1e19)^0.41 *
+        (ne_line / 1e19)^0.41 *
         isotope_factor^0.19 *
         R0^1.97 *
         (R0 / eqt.boundary.minor_radius)^-0.58 *
-        eqt.boundary.elongation^0.78
+        κ_areal^0.78
     )
     return tau98
 end
@@ -338,6 +346,8 @@ end
     tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
 
 Petty's 2003 confinement time scaling
+
+NOTE: Petty uses elongation at the separatrix and makes no distinction between volume and line-average density
 """
 function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
@@ -346,18 +356,22 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
         total_power_inside -= radiation_losses(cs)
     end
     total_power_inside = max(0.0, total_power_inside)
+
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
+    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+    ne_vol = ne_vol_avg(cp1d)
+
     tauds03 = (
         0.028 *
         abs(eqt.global_quantities.ip / 1e6)^0.83 *
         abs(B0)^0.07 *
         (total_power_inside / 1e6)^-0.55 *
-        (ne_vol_avg(cp1d) / 1e19)^0.49 *
+        (0.5 * (ne_line + ne_vol) / 1e19)^0.49 *
         isotope_factor^0.14 *
         R0^2.11 *
         (R0 / eqt.boundary.minor_radius)^-0.30 *
