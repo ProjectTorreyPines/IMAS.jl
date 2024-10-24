@@ -1902,3 +1902,16 @@ function luce_squareness(
 
     return zetaou, zetaol, zetail, zetaiu
 end
+
+"""
+    areal_elongation(eqt::IMAS.equilibrium__time_slice)
+
+A measure of the plasma elongation based on the averaged cross-sectional area of the plasma, most notably used in the H98y2 scaling
+
+See: https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf
+"""
+function areal_elongation(eqt::IMAS.equilibrium__time_slice)
+    a = 0.5 * (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end])
+    R = 0.5 * (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end])
+    return eqt.profiles_1d.volume[end] / (2π * R) / (π * a^2)
+end
