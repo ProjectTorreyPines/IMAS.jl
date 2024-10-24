@@ -455,7 +455,7 @@ end
         subplot := 1
         seriestype := :bar
         orientation := :horizontal
-        title := "\n" * "Direct Capital Cost in $(costing.construction_start_year) " * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
+        title := "\n" * "Direct Capital Cost in $(Int(round(costing.construction_start_year))) " * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
         titlefontsize := 10
         ylim := (0, length(costs))
         label := ""
