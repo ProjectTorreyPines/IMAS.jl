@@ -596,7 +596,7 @@ dyexp["pulse_schedule.time"] =
     (time; pulse_schedule, _...) -> begin
         all_times = Float64[]
         for item in keys(pulse_schedule)
-            if typeof(getfield(pulse_schedule, item)) <: IDS
+            if fieldtype(typeof(pulse_schedule), item) <: IDS
                 ids = getfield(pulse_schedule, item)
                 if hasfield(typeof(ids), :time) && !ismissing(ids, :time)
                     append!(all_times, ids.time)
