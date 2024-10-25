@@ -436,26 +436,49 @@ end
 # ======= #
 # costing #
 # ======= #
-@recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
-    costing = top_ids(cst)
+@recipe function plot_costing(cstdc::IMAS.costing__cost_direct_capital)
+    cstdcM = convert(Measurement{eltype(cstdc)}, cstdc)
+    @series begin
+        cstdcM
+    end
+end
+
+@recipe function plot_costing(cstdc::IMAS.costing__cost_direct_capital{T}) where {T<:Measurement}
+    costing = parent(cstdc)
+    cst = cstdc.system
+
     names = ["$(sys_cst.name)" for sys_cst in cst]
-    costs = [sys_cst.cost for sys_cst in cst]
-    perc = ["$(round(sys_cst.cost/sum(costs)*100))%" for sys_cst in cst]
+    uncertain_costs = [sys_cst.cost for sys_cst in cst]
+    costs = Float64[Measurements.value(sys_cst.cost) for sys_cst in cst]
+    perc = ["$(round(sys_cst/sum(costs)*100))%" for sys_cst in costs]
 
     name_series = [["$(sub_cst.name)" for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
-    cost_series = [[sub_cst.cost for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
-    perc_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)%" for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    uncertain_cost_series = [[sub_cst.cost for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    cost_series = [Float64[Measurements.value(sub_cst.cost) for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    perc_series = [["$(round(sub_cst/sum(sys_cst)*1000)/10)%" for sub_cst in sys_cst] for sys_cst in cost_series]
 
     size --> (1000, 300)
     cols = 1 + length(filter!(!isempty, cost_series))
     layout := RecipesBase.@layout (1, cols)
     margin --> 5 * Measures.mm
 
+    for s in (-1, 1)
+        @series begin
+            subplot := 1
+            seriestype := :bar
+            orientation := :horizontal
+            alpha := 0.25
+            linecolor := :match
+            label:=""
+            color := [PlotUtils.palette(:tab10)[c] for c in length(costs):-1:1]
+            reverse(names), reverse([Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_costs])
+        end
+    end
     @series begin
         subplot := 1
         seriestype := :bar
         orientation := :horizontal
-        title := "\n" * "Direct Capital Cost in $(Int(round(costing.construction_start_year))) " * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
+        title := "\n" * @sprintf("Direct Capital Cost in %d [%.3g \$\$B]", costing.construction_start_year, sum(costs) / 1E3)
         titlefontsize := 10
         ylim := (0, length(costs))
         label := ""
@@ -466,14 +489,27 @@ end
         xlabel := "[\$M]"
         showaxis := :x
         yaxis := nothing
-        alpha := 0.5
+        alpha := 0.25
+        primary := false
         linecolor := :match
         color := [PlotUtils.palette(:tab10)[c] for c in length(costs):-1:1]
         reverse(names), reverse(costs)
     end
 
-    for (k, (sub_names, sub_perc, sub_costs)) in enumerate(zip(name_series, perc_series, cost_series))
+    for (k, (sub_names, sub_perc, sub_costs, uncertain_sub_costs)) in enumerate(zip(name_series, perc_series, cost_series, uncertain_cost_series))
         if !isempty(sub_costs)
+            for s in (-1, 1)
+                @series begin
+                    subplot := 1 + k
+                    seriestype := :bar
+                    orientation := :horizontal
+                    alpha := 0.25
+                    linecolor := :match
+                    label:=""
+                    color := PlotUtils.palette(:tab10)[k]
+                    sub_names, [Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_sub_costs]
+                end
+            end
             @series begin
                 subplot := 1 + k
                 seriestype := :bar
@@ -491,26 +527,20 @@ end
                 end
                 xlabel := "[\$M]"
                 showaxis := :x
+                primary := false
                 ylim := (0, length(sub_costs))
-                alpha := 0.5
+                alpha := 0.25
                 linecolor := :match
                 color := PlotUtils.palette(:tab10)[k]
                 sub_names, sub_costs
             end
         end
     end
-
 end
 
-@recipe function plot_costing(cst::IMAS.costing__cost_direct_capital)
+@recipe function plot_costing(costing::IMAS.costing)
     @series begin
-        return cst.system
-    end
-end
-
-@recipe function plot_costing(cst::IMAS.costing)
-    @series begin
-        return cst.cost_direct_capital.system
+        return costing.cost_direct_capital
     end
 end
 
@@ -2754,7 +2784,7 @@ end
     end
 end
 
-@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurements.Measurement}, err::Symbol=:ribbon)
+@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurement}, err::Symbol=:ribbon)
     if err == :ribbon
         ribbon := Measurements.uncertainty.(y)
     elseif err == :bar
