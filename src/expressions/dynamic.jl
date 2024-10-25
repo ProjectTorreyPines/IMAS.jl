@@ -345,12 +345,12 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_tor"] =
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_r"] =
     (dim1, dim2; profiles_2d, _...) -> begin
-        return Br_Bz(profiles_2d)[1]
+        return Br_Bz(profiles_2d).Br
     end
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_z"] =
     (dim1, dim2; profiles_2d, _...) -> begin
-        return Br_Bz(profiles_2d)[2]
+        return Br_Bz(profiles_2d).Bz
     end
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =

@@ -7,12 +7,14 @@ using Plots
 Returns r, z, and ψ interpolant named tuple
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length(eqt2d.grid.dim1))
-    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length(eqt2d.grid.dim2))
+    dim1 = convert(Vector{Float64}, eqt2d.grid.dim1)
+    dim2 = convert(Vector{Float64}, eqt2d.grid.dim2)
+    r = range(dim1[1], dim1[end], length(dim1))
+    z = range(dim2[1], dim2[end], length(dim2))
     return ψ_interpolant(r, z, eqt2d.psi)
 end
 
-function ψ_interpolant(r::AbstractRange{T}, z::AbstractRange{T}, psi::Matrix{T}) where {T<:Real}
+function ψ_interpolant(r::AbstractRange{T1}, z::AbstractRange{T1}, psi::Matrix{T2}) where {T1<:Real,T2<:Real}
     PSI_interpolant = Interpolations.cubic_spline_interpolation((r, z), psi; extrapolation_bc=Interpolations.Line())
     return (r=r, z=z, PSI_interpolant=PSI_interpolant)
 end
@@ -152,20 +154,20 @@ function find_psi_boundary(
 end
 
 function find_psi_boundary(
-    dimR::Union{AbstractVector{T},AbstractRange{T}},
-    dimZ::Union{AbstractVector{T},AbstractRange{T}},
-    PSI::Matrix{T},
-    psi_axis::T,
-    original_psi_boundary::T,
-    RA::T,
-    ZA::T,
-    fw_r::AbstractVector{T},
-    fw_z::AbstractVector{T};
+    dimR::Union{AbstractVector{T1},AbstractRange{T1}},
+    dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
+    PSI::Matrix{T2},
+    psi_axis::Real,
+    original_psi_boundary::Real,
+    RA::T3,
+    ZA::T3,
+    fw_r::AbstractVector{T4},
+    fw_z::AbstractVector{T5};
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
     raise_error_on_not_closed::Bool,
-    verbose::Bool=false) where {T<:Real}
+    verbose::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
@@ -254,19 +256,19 @@ function find_psi_boundary(
 end
 
 function find_psi_boundary(
-    dimR::Union{AbstractVector{T},AbstractRange{T}},
-    dimZ::Union{AbstractVector{T},AbstractRange{T}},
-    PSI::Matrix{T},
-    psi_axis::T,
+    dimR::Union{AbstractVector{T1},AbstractRange{T1}},
+    dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
+    PSI::Matrix{T2},
+    psi_axis::Real,
     axis2bnd::Symbol,
-    RA::T,
-    ZA::T,
-    fw_r::AbstractVector{T}=T[],
-    fw_z::AbstractVector{T}=T[];
+    RA::T3,
+    ZA::T3,
+    fw_r::AbstractVector{T4}=T1[],
+    fw_z::AbstractVector{T4}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
-    raise_error_on_not_closed::Bool) where {T<:Real}
+    raise_error_on_not_closed::Bool) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
     @assert axis2bnd in (:increasing, :decreasing)
     verbose = false
@@ -984,7 +986,7 @@ end
 
 Update flux surface averaged and geometric quantities for all time_slices in the equilibrium IDS
 """
-function flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+function flux_surfaces(eq::equilibrium{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
     for time_index in eachindex(eq.time_slice)
         eqt = eq.time_slice[time_index]
         eqt2d = findfirst(:rectangular, eqt.profiles_2d)
@@ -996,12 +998,12 @@ function flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::Ab
 end
 
 function find_magnetic_axis(
-    r::AbstractVector{<:Real},
-    z::AbstractVector{<:Real},
+    r::AbstractVector{<:T1},
+    z::AbstractVector{<:T1},
     PSI_interpolant::Interpolations.AbstractInterpolation,
-    psi_sign::Real;
-    rguess::Real=r[Int(round(length(r) / 2))],
-    zguess::Real=z[Int(round(length(z) / 2))])
+    psi_sign::T2;
+    rguess::T1=r[Int(round(length(r) / 2))],
+    zguess::T1=z[Int(round(length(z) / 2))]) where {T1<:Real,T2<:Real}
 
     res = Optim.optimize(
         x -> begin
@@ -1009,7 +1011,7 @@ function find_magnetic_axis(
                 PSI_interpolant(x[1], x[2]) * psi_sign
             catch e
                 if typeof(e) <: BoundsError
-                    return Inf
+                    return T2(Inf)
                 else
                     rethrow(e)
                 end
@@ -1020,7 +1022,7 @@ function find_magnetic_axis(
         autodiff=:forward
     )
 
-    return res.minimizer[1], res.minimizer[2]
+    return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
 
 mutable struct FluxSurface{T}
@@ -1255,11 +1257,11 @@ function extrema_cost(
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+    flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice.
 """
-function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     PSI = eqt2d.psi
@@ -1322,7 +1324,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     N = length(eqt.profiles_1d.psi)
 
     Np = maximum(length(surface.r) for surface in surfaces)
-    shared_tmp = Vector{T}(undef, Np)
+    shared_tmp = Vector{T1}(undef, Np)
     for k in N:-1:1
         surface = surfaces[k]
         pr = surface.r
@@ -1454,7 +1456,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     # gm2: <∇ρ²/R²>
     dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
     dPHI2_interpolant = Interpolations.cubic_spline_interpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
-    dPHI2_R2 = Vector{T}(undef, Np)
+    dPHI2_R2 = Vector{T1}(undef, Np)
     for k in eachindex(surfaces)
         surface = surfaces[k]
         n = length(surface.r)
@@ -1478,7 +1480,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = trapz(eqt.profiles_1d.psi, T[trapz(surface.ll, surface.Bp) for surface in surfaces])
+    Bp2v = trapz(eqt.profiles_1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
     eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
@@ -1509,7 +1511,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     return eqt
 end
 
-function flux_surfaces(eqt::equilibrium__time_slice{T}, wall::IMAS.wall) where {T<:Real}
+function flux_surfaces(eqt::equilibrium__time_slice, wall::IMAS.wall)
     fw = IMAS.first_wall(wall)
     return flux_surfaces(eqt, fw.r, fw.z)
 end
@@ -1537,18 +1539,18 @@ function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Sy
 end
 
 function flux_surface(
-    dim1::AbstractVector{T},
-    dim2::AbstractVector{T},
-    PSI::AbstractArray{T},
-    RA::T,
-    ZA::T,
-    fw_r::AbstractVector{T},
-    fw_z::AbstractVector{T},
-    psi_level::T,
-    type::Symbol) where {T<:Real}
+    dim1::AbstractVector{T1},
+    dim2::AbstractVector{T1},
+    PSI::AbstractArray{T2},
+    RA::T3,
+    ZA::T3,
+    fw_r::AbstractVector{T4},
+    fw_z::AbstractVector{T4},
+    psi_level::T5,
+    type::Symbol) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
     # contouring routine
-    cl = Contour.contour(dim1, dim2, PSI, psi_level; VT=NTuple{2,T})
+    cl = Contour.contour(dim1, dim2, PSI, psi_level; VT=NTuple{2,T2})
 
     return flux_surface(dim1, dim2, cl, RA, ZA, fw_r, fw_z, type)
 end

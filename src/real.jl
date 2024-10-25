@@ -3,6 +3,7 @@
 # =============== #
 import Measurements
 import Measurements: ±
+import Ratios
 
 """
     convert(::Type{Array{<:Measurements.Measurement{T},N}}, a::AbstractArray{T,N}) where {N}
@@ -31,6 +32,14 @@ Unary operator that converts an IDS to Measurements
 """
 function ±(@nospecialize(ids::IDS))
     return Measurements.Measurement(ids)
+end
+
+function Base.convert(::Type{Measurements.Measurement{T}}, x::Ratios.SimpleRatio{S}) where {T<:AbstractFloat,S}
+    return x.num / x.den ± 0.0
+end
+
+function Base.unsafe_trunc(::Type{Int64}, x::Measurements.Measurement{T}) where {T<:Real}
+    return Int(x.val)
 end
 
 function Measurements.Measurement(@nospecialize(ids::IDS{T})) where {T<:Real}
