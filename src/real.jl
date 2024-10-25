@@ -5,15 +5,15 @@ import Measurements
 import Measurements: ±
 
 """
-    convert(::Type{Array{<:Measurements.Measurement{Float64},N}}, a::AbstractArray{Float64,N}) where {N}
+    convert(::Type{Array{<:Measurements.Measurement{T},N}}, a::AbstractArray{T,N}) where {N}
 
-convert a Vector of Float64 to a Measurements
+convert AbstractArray{T,N} to a Array{<:Measurements.Measurement{T},N}
 """
-function Base.convert(::Type{Array{<:Measurements.Measurement{Float64},N}}, a::AbstractArray{Float64,N}) where {N}
+function Base.convert(::Type{Array{<:Measurements.Measurement{T},N}}, a::AbstractArray{T,N}) where {T<:Real,N}
     return a .± 0.0
 end
 
-function Base.convert(::Type{Float64}, v::Measurements.Measurement{Float64})
+function Base.convert(::Type{T}, v::Measurements.Measurement{T}) where {T<:Real}
     return v.val
 end
 
@@ -33,17 +33,17 @@ function ±(@nospecialize(ids::IDS))
     return Measurements.Measurement(ids)
 end
 
-function Measurements.Measurement(@nospecialize(ids::IDS))
-    ids_new = typeof(ids).name.wrapper{Measurements.Measurement{Float64}}()
+function Measurements.Measurement(@nospecialize(ids::IDS{T})) where {T<:Real}
+    ids_new = typeof(ids).name.wrapper{Measurements.Measurement{T}}()
     return fill!(ids_new, ids)
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{Float64}}), @nospecialize(ids::IDS{<:Float64}), field::Symbol)
+    fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T<:Real}
 
-Go from Float64 to Measurements
+Go from IDS{T} to IDS{Measurements.Measurement{T}}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{Float64}}), @nospecialize(ids::IDS{<:Float64}), field::Symbol)
+function Base.fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T<:Real}
     if endswith(string(field), "__error")
         return nothing
     else
@@ -66,11 +66,11 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{Float6
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:Float64}), @nospecialize(ids::IDS{<:Measurements.Measurement{Float64}}), field::Symbol)
+    fill!(@nospecialize(ids_new::IDS{<:T}), @nospecialize(ids::IDS{<:Measurements.Measurement{T}}), field::Symbol)
 
-Go from Measurements to Float64
+Go from IDS{Measurements.Measurement{T}} to IDS{T}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:Float64}), @nospecialize(ids::IDS{<:Measurements.Measurement{Float64}}), field::Symbol)
+function Base.fill!(@nospecialize(ids_new::IDS{<:T}), @nospecialize(ids::IDS{<:Measurements.Measurement{T}}), field::Symbol) where {T<:Real}
     if endswith(string(field), "__error")
         return nothing
     else
