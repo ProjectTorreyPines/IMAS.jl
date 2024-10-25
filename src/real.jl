@@ -2,19 +2,19 @@
 # Measurements.jl #
 # =============== #
 import Measurements
-import Measurements: ±
+import Measurements: Measurement, ±
 import Ratios
 
 """
-    convert(::Type{Array{<:Measurements.Measurement{T},N}}, a::AbstractArray{T,N}) where {N}
+    convert(::Type{Array{<:Measurement{T},N}}, a::AbstractArray{T,N}) where {N}
 
-convert AbstractArray{T,N} to a Array{<:Measurements.Measurement{T},N}
+convert AbstractArray{T,N} to a Array{<:Measurement{T},N}
 """
-function Base.convert(::Type{Array{<:Measurements.Measurement{T},N}}, a::AbstractArray{T,N}) where {T<:Real,N}
+function Base.convert(::Type{Array{<:Measurement{T},N}}, a::AbstractArray{T,N}) where {T<:Real,N}
     return a .± 0.0
 end
 
-function Base.convert(::Type{T}, v::Measurements.Measurement{T}) where {T<:Real}
+function Base.convert(::Type{T}, v::Measurement{T}) where {T<:Real}
     return v.val
 end
 
@@ -31,28 +31,28 @@ Equivalent to Measurement.measurement(val, err)
 Unary operator that converts an IDS to Measurements
 """
 function ±(@nospecialize(ids::IDS))
-    return Measurements.Measurement(ids)
+    return Measurement(ids)
 end
 
-function Base.convert(::Type{Measurements.Measurement{T}}, x::Ratios.SimpleRatio{S}) where {T<:AbstractFloat,S}
+function Base.convert(::Type{Measurement{T}}, x::Ratios.SimpleRatio{S}) where {T<:AbstractFloat,S}
     return x.num / x.den ± 0.0
 end
 
-function Base.unsafe_trunc(::Type{Int64}, x::Measurements.Measurement{T}) where {T<:Real}
+function Base.unsafe_trunc(::Type{Int64}, x::Measurement{T}) where {T<:Real}
     return Int(x.val)
 end
 
-function Measurements.Measurement(@nospecialize(ids::IDS{T})) where {T<:Real}
-    ids_new = typeof(ids).name.wrapper{Measurements.Measurement{T}}()
+function Measurement(@nospecialize(ids::IDS{T})) where {T<:Real}
+    ids_new = typeof(ids).name.wrapper{Measurement{T}}()
     return fill!(ids_new, ids)
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T<:Real}
+    fill!(@nospecialize(ids_new::IDS{<:Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T<:Real}
 
-Go from IDS{T} to IDS{Measurements.Measurement{T}}
+Go from IDS{T} to IDS{Measurement{T}}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T<:Real}
+function Base.fill!(@nospecialize(ids_new::IDS{<:Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T<:Real}
     if endswith(string(field), "__error")
         return nothing
     else
@@ -75,11 +75,11 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:Measurements.Measurement{T}}), 
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:T}), @nospecialize(ids::IDS{<:Measurements.Measurement{T}}), field::Symbol)
+    fill!(@nospecialize(ids_new::IDS{<:T}), @nospecialize(ids::IDS{<:Measurement{T}}), field::Symbol)
 
-Go from IDS{Measurements.Measurement{T}} to IDS{T}
+Go from IDS{Measurement{T}} to IDS{T}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:T}), @nospecialize(ids::IDS{<:Measurements.Measurement{T}}), field::Symbol) where {T<:Real}
+function Base.fill!(@nospecialize(ids_new::IDS{<:T}), @nospecialize(ids::IDS{<:Measurement{T}}), field::Symbol) where {T<:Real}
     if endswith(string(field), "__error")
         return nothing
     else
