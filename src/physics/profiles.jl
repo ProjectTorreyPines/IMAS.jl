@@ -301,7 +301,8 @@ end
 H98y2 ITER elmy H-mode confinement time scaling
 
 NOTE: H98y2 uses aereal elongation
-      See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
+
+See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
 function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
@@ -749,6 +750,7 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         index = q_density_difference .> 0.0
         ion0.density_thermal = zero(cp1d.electrons.density_thermal)
         ion0.density_thermal[index] .= q_density_difference[index] .* ion0.z_ion
+        @assert all(ion0.density_thermal .> 0.0) "enforce_quasi_neutrality!() forced ion `$(ion0.label)` to have zero density somewhere in the profile: $(ion0.density_thermal)"
 
         # negative difference is assigned to electrons density_thermal
         index = q_density_difference .< 0.0
@@ -768,7 +770,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     ions = cp1d.ion
 
     if length(ions) < 2
-        error("lump_ions_as_bulk_and_impurity requires at least two ion species")
+        error("lump_ions_as_bulk_and_impurity() requires at least two ion species")
     end
 
     zs = [ion.element[1].z_n for ion in ions]
@@ -778,8 +780,9 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
 
     rho_tor_norm = cp1d.grid.rho_tor_norm
     ratios = zeros(length(rho_tor_norm), length(ions))
+    ntot = zeros(length(rho_tor_norm))
     for index in (bulk_index, impu_index)
-        ntot = zeros(length(rho_tor_norm))
+        ntot .*= 0.0
         for ix in index
             tmp = ions[ix].density_thermal
             ratios[:, ix] = tmp
@@ -788,6 +791,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
         for ix in index
             ratios[:, ix] ./= ntot
         end
+        @assert all(ntot .> 0.0) "Species $([ions[ix].label for ix in index]) have zero density: $(ntot)"
     end
 
     ne = cp1d.electrons.density_thermal
@@ -899,7 +903,6 @@ Memoize.@memoize function avgZinterpolator(filename::String)
     end
 
     return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1.0), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
-
 end
 
 """
