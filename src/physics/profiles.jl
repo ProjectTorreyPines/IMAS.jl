@@ -784,15 +784,14 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         @assert species_indx !== nothing
         ion0 = cp1d.ion[species_indx]
 
-        # evaluate the difference in number of charges needed to reach quasineutrality
-        q_density_difference =
-            cp1d.electrons.density .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion != ion0) .- ion0.density_fast .* ion0.z_ion .+ cp1d.electrons.density_fast
+        # evaluate the difference in number of thermal charges needed to reach quasineutrality
+        ne = cp1d.electrons.density .+ cp1d.electrons.density_fast
+        q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
 
         # positive difference is assigned to target ion density_thermal
         index = q_density_difference .> 0.0
         ion0.density_thermal = zero(cp1d.electrons.density_thermal)
-        ion0.density_thermal[index] .= q_density_difference[index] .* ion0.z_ion
-        @assert all(ion0.density_thermal .> 0.0) "enforce_quasi_neutrality!() forced ion `$(ion0.label)` to have zero density somewhere in the profile: $(ion0.density_thermal)"
+        ion0.density_thermal[index] .= q_density_difference[index] ./ ion0.z_ion
 
         # negative difference is assigned to electrons density_thermal
         index = q_density_difference .< 0.0
