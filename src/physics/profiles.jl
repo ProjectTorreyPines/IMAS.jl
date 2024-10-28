@@ -1,4 +1,46 @@
 """
+    pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+
+core_profiles thermal pressure
+"""
+function pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+    p = pressure_thermal(cp1d.electrons)
+    p .+= pressure_thermal(cp1d.ion)
+    return p
+end
+
+"""
+    pressure_thermal(cp1de::IMAS.core_profiles__profiles_1d___electrons)
+
+electrons thermal pressure
+"""
+function pressure_thermal(cp1de::IMAS.core_profiles__profiles_1d___electrons)
+    return cp1de.temperature .* cp1de.density_thermal .* IMAS.constants.e
+end
+
+"""
+    pressure_thermal(ion::IMAS.core_profiles__profiles_1d___ion)
+
+ion thermal pressure
+"""
+function pressure_thermal(ion::IMAS.core_profiles__profiles_1d___ion)
+    return ion.temperature .* ion.density_thermal .* IMAS.constants.e
+end
+
+"""
+    pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
+
+thermal pressure for all ions
+"""
+function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
+    p = cp1di[1].temperature .* 0.0
+    for ion in cp1di
+        p .+= ion.temperature .* ion.density_thermal
+    end
+    return p .* IMAS.constants.e
+end
+
+"""
     beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
 
 Normalised toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA]
