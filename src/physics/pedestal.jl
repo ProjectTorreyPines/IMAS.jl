@@ -187,16 +187,16 @@ function blend_core_edge_Lmode(
     return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
-function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value::Real, rho_ped::Real)
+function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value_ped::Real, rho_ped::Real)
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
-    profile_ped = IMAS.edge_profile(rho, rho_ped, value, profile[end], α)
-    z_profile_ped = IMAS.calc_z(rho, profile_ped, :backward)
+    profile_ped = edge_profile(rho, rho_ped, value_ped, profile[end], α)
+    z_profile_ped = calc_z(rho, profile_ped, :backward)
 
-    profile .+= (-profile[rho_ped_idx] + value)
-    z_profile = IMAS.calc_z(rho, profile, :backward)
+    profile .+= (-profile[rho_ped_idx] + value_ped)
+    z_profile = calc_z(rho, profile, :backward)
 
-    profile[rho_ped_idx+1:end] .= IMAS.interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
+    profile[rho_ped_idx+1:end] .= interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
 
     cost = abs.((z_profile[rho_ped_idx] - z_profile_ped[rho_ped_idx]) / z_profile[rho_ped_idx])
     return cost
