@@ -20,36 +20,6 @@ function get_build(bd::IMAS.build; kw...)
 end
 
 """
-    get_build_layers(
-        layers::IMAS.IDSvector{<:IMAS.build__layer};
-        type::Union{Nothing,BuildLayerType}=nothing,
-        name::Union{Nothing,String}=nothing,
-        identifier::Union{Nothing,Integer}=nothing,
-        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
-
-Select layer(s) in build based on a series of selection criteria
-"""
-function get_build_layers(
-    layers::IMAS.IDSvector{<:IMAS.build__layer};
-    type::Union{Nothing,BuildLayerType}=nothing,
-    name::Union{Nothing,String}=nothing,
-    identifier::Union{Nothing,Integer}=nothing,
-    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
-
-    valid_layers = eltype(layers)[]
-    for (k, l) in enumerate(layers)
-        if (name === nothing || l.name == name) &&
-           (type === nothing || l.type == Int(type)) &&
-           (identifier === nothing || l.identifier == identifier) &&
-           (fs === nothing || (typeof(fs) <: AbstractVector{BuildLayerSide} && l.side in map(Int, fs)) || (typeof(fs) <: BuildLayerSide && l.side == Int(fs)))
-            push!(valid_layers, l)
-        end
-    end
-
-    return valid_layers
-end
-
-"""
     get_build_indexes(
         layers::IMAS.IDSvector{<:IMAS.build__layer};
         type::Union{Nothing,BuildLayerType}=nothing,
@@ -80,36 +50,6 @@ function get_build_indexes(
 end
 
 """
-    get_build_layer(
-        layers::IMAS.IDSvector{<:IMAS.build__layer};
-        type::Union{Nothing,BuildLayerType}=nothing,
-        name::Union{Nothing,String}=nothing,
-        identifier::Union{Nothing,Integer}=nothing,
-        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
-
-Select layer in build based on a series of selection criteria
-
-It raises an error if none or more than one layer matches.
-"""
-function get_build_layer(
-    layers::IMAS.IDSvector{<:IMAS.build__layer};
-    type::Union{Nothing,BuildLayerType}=nothing,
-    name::Union{Nothing,String}=nothing,
-    identifier::Union{Nothing,Integer}=nothing,
-    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
-
-    valid_layers = get_build_layers(layers; type, name, identifier, fs)
-
-    if isempty(valid_layers)
-        error("Did not find build.layer: name=$(repr(name)) type=$type identifier=$identifier fs=$fs")
-    elseif length(valid_layers) > 1
-        error("Found multiple layers that satisfy name:$name type:$type identifier:$identifier fs:$fs")
-    end
-
-    return valid_layers[1]
-end
-
-"""
     get_build_index(
         layers::IMAS.IDSvector{<:IMAS.build__layer};
         type::Union{Nothing,BuildLayerType}=nothing,
@@ -137,6 +77,52 @@ function get_build_index(
     end
 
     return valid_layers_indexes[1]
+end
+
+"""
+    get_build_layers(
+        layers::IMAS.IDSvector{<:IMAS.build__layer};
+        type::Union{Nothing,BuildLayerType}=nothing,
+        name::Union{Nothing,String}=nothing,
+        identifier::Union{Nothing,Integer}=nothing,
+        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+Select layer(s) in build based on a series of selection criteria
+"""
+function get_build_layers(
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,Integer}=nothing,
+    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+    valid_layers_indexes = get_build_indexes(layers; type, name, identifier, fs)
+
+    return layers[valid_layers_indexes]
+end
+
+"""
+    get_build_layer(
+        layers::IMAS.IDSvector{<:IMAS.build__layer};
+        type::Union{Nothing,BuildLayerType}=nothing,
+        name::Union{Nothing,String}=nothing,
+        identifier::Union{Nothing,Integer}=nothing,
+        fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+Select layer in build based on a series of selection criteria
+
+It raises an error if none or more than one layer matches.
+"""
+function get_build_layer(
+    layers::IMAS.IDSvector{<:IMAS.build__layer};
+    type::Union{Nothing,BuildLayerType}=nothing,
+    name::Union{Nothing,String}=nothing,
+    identifier::Union{Nothing,Integer}=nothing,
+    fs::Union{Nothing,BuildLayerSide,AbstractVector{BuildLayerSide}}=nothing)
+
+    valid_layer_index = get_build_index(layers; type, name, identifier, fs)
+
+    return layers[valid_layer_index]
 end
 
 """
