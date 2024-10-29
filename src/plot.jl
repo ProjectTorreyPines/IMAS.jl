@@ -166,7 +166,7 @@ end
             @series begin
                 colorbar_entry := false
                 if all(currents .== 0.0)
-                    color --> hash_to_color([func.index for func in c.function]; seed=4)
+                    color --> hash_to_color(sort!([func.index for func in c.function]); seed=4)
                 else
                     current_color_index = (currents[k] + CURRENT) / (2 * CURRENT)
                     color --> PlotUtils.cgrad(cname)[current_color_index]
