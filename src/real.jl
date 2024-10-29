@@ -53,14 +53,14 @@ end
 Go from IDS{T} to IDS{Measurement{T}}
 """
 function Base.fill!(@nospecialize(ids_new::IDS{<:Measurement{T1}}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Real}
-    if endswith(string(field), "__error")
+    if endswith(string(field), "_σ")
         return nothing
     else
         if !(fieldtype(typeof(ids), field) <: eltype(ids))
             value = getraw(ids, field)
             setraw!(ids_new, field, value)
         else
-            efield = Symbol("$(field)__error")
+            efield = Symbol("$(field)_σ")
             val = getraw(ids, field)
             if !ismissing(ids, efield)
                 err = getraw(ids, efield)
@@ -80,7 +80,7 @@ end
 Go from IDS{Measurement{T}} to IDS{T}
 """
 function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:Measurement{T2}}), field::Symbol) where {T1<:Real,T2<:Real}
-    if endswith(string(field), "__error")
+    if endswith(string(field), "_σ")
         return nothing
     else
         value = getraw(ids, field)
@@ -88,7 +88,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
             setraw!(ids_new, field, value)
         else
             setraw!(ids_new, field, value.val)
-            setraw!(ids_new, Symbol("$(field)__error"), value.err)
+            setraw!(ids_new, Symbol("$(field)_σ"), value.err)
         end
     end
     return nothing
