@@ -131,14 +131,15 @@ function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, su
 
     # NOTE! this does not take into account summary.local.pedestal.zeff.value
     if what ∈ (:all, :densities)
-        ion_fractions = zeros(Float64, length(cp1d.ion), length(cp1d.electrons.density))
-        for (ii, ion) in enumerate(cp1d.ion)
-            ion_fractions[ii, :] = ion.density_thermal ./ cp1d.electrons.density
+        old_electron_density_thermal = cp1d.electrons.density_thermal
+        new_electron_density_thermal = blend_function(cp1d.electrons.density_thermal, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
+        fraction = new_electron_density_thermal ./ old_electron_density_thermal
+        for ion in cp1d.ion
+            if !ismissing(ion, :density_thermal)
+                ion.density_thermal = ion.density_thermal .* fraction
+            end
         end
-        cp1d.electrons.density_thermal = blend_function(cp1d.electrons.density, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
-        for (ii, ion) in enumerate(cp1d.ion)
-            ion.density_thermal = ion_fractions[ii, :] .* cp1d.electrons.density
-        end
+        cp1d.electrons.density_thermal = new_electron_density_thermal
     end
 
     if what ∈ (:all, :temperatures)
