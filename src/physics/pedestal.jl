@@ -205,9 +205,11 @@ end
 """
     pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
 
-Finds the pedetal height and width using the EPED1 definition
+Finds the pedetal height and width using the EPED1 definition.
 
-returns ped_height, ped_width
+NOTE: The width is limited to be between 0.01 and 0.1
+      If the width is at the 0.1 boundary it is likely an indication that the profile is not a typical H-mode profile
+      The height is the value of the profile evaluated at (1.0 - width)
 """
 function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}
     psi_norm_fit = range(0, 1, length(profile))
@@ -216,7 +218,7 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real
     expout = 1.0
 
     function cost_function(profile, params)
-        width = abs(params[1]) + 0.01
+        width = mirror_bound(params[1], 0.01, 0.1)
         core = abs(params[2])
         height = interp1d(psi_norm, profile)(1.0 - width)
 
@@ -229,7 +231,7 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real
 
     res = Optim.optimize(params -> cost_function(profile, params), [0.04, profile[1]], Optim.NelderMead())
 
-    width = abs(res.minimizer[1]) + 0.01
+    width = mirror_bound(res.minimizer[1], 0.01, 0.1)
     core = abs(res.minimizer[2])
     height = interp1d(psi_norm, profile)(1.0 - width)
 
@@ -242,5 +244,5 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real
     # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)]; primary=false)
     # display(p)
 
-    return height, width
+    return (height=height, width=width)
 end

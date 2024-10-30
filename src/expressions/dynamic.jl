@@ -440,6 +440,7 @@ dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles"] =
         gradient(profiles_1d.grid.volume, ion.particles_inside)
     end
 
+
 dyexp["core_sources.source[:].profiles_1d[:].time"] =
     (; core_sources, profiles_1d_index, _...) -> begin
         return core_sources.time[profiles_1d_index]

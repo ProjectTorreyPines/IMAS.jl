@@ -4,7 +4,7 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
-import FuseUtils: trapz, cumtrapz
+import FuseUtils: trapz, cumtrapz, mirror_bound
 import PeriodicTable: elements
 import MillerExtendedHarmonic: MXH, MXH!, flat_coeffs, reorder_flux_surface!
 import Memoize
