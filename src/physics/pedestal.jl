@@ -1,54 +1,41 @@
 """
-    blend_core_edge_EPED(
-        profile::AbstractVector{<:Real},
-        rho::AbstractVector{<:Real},
-        ped_height::Real,
-        ped_width::Real,
-        nml_bound::Real,
-        ped_bound::Real;
-        expin::Real,
-        expout::Real)
+    blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
 
-Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound as blending boundary
+Blends Te, Ti, ne, and nis in core_profiles with :H_mode or :L_mode like pedestal defined in summary IDS
 """
-function blend_core_edge_EPED(
-    profile::AbstractVector{<:Real},
-    rho::AbstractVector{<:Real},
-    ped_height::Real,
-    ped_width::Real,
-    nml_bound::Real,
-    ped_bound::Real,
-    expin::Real,
-    expout::Real)
+function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
+    if mode == :L_mode
+        blend_function = blend_core_edge_Lmode
+    elseif mode == :H_mode
+        blend_function = blend_core_edge_Hmode
+    else
+        @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
+    end
+    rho = cp1d.grid.rho_tor_norm
+    w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
 
-    @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
-    iped = argmin(abs.(rho .- ped_bound))
-    inml = argmin(abs.(rho .- nml_bound))
-
-    z_profile = -calc_z(rho, profile, :backward)
-    z_nml = z_profile[inml]
-
-    # H-mode profile used for pedestal
-    # NOTE: Note that we do not provide a core value as this causes the pedestal solution to depend on the core solution
-    #       which breaks finding self-consistent core-pedestal solution through an optimizer
-    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width)
-
-    # linear z between nml and pedestal
-    if nml_bound < ped_bound
-        z_profile_ped = -calc_z(rho, profile_ped, :backward)
-        z_ped = z_profile_ped[iped]
-        z_profile[inml:iped] = (z_nml - z_ped) ./ (rho[inml] - rho[iped]) .* (rho[inml:iped] .- rho[inml]) .+ z_nml
+    # NOTE! this does not take into account summary.local.pedestal.zeff.value
+    if what ∈ (:all, :densities)
+        old_electron_density_thermal = cp1d.electrons.density_thermal
+        new_electron_density_thermal = blend_function(cp1d.electrons.density_thermal, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
+        fraction = new_electron_density_thermal ./ old_electron_density_thermal
+        for ion in cp1d.ion
+            if !ismissing(ion, :density_thermal)
+                ion.density_thermal = ion.density_thermal .* fraction
+            end
+        end
+        cp1d.electrons.density_thermal = new_electron_density_thermal
     end
 
-    # integrate from pedestal inward
-    profile_new = deepcopy(profile_ped)
-    profile_new[inml:iped] = integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
-
-    # we avoid integ_z in the core region to avoid drift of profiles
-    # when calling blend_core_edge_EPED multiple times
-    profile_new[1:inml-1] = profile[1:inml-1] .- profile[inml] .+ profile_new[inml]
-
-    return profile_new
+    if what ∈ (:all, :temperatures)
+        cp1d.electrons.temperature = blend_function(cp1d.electrons.temperature, rho, @ddtime(summary_ped.t_e.value), w_ped, rho_nml, rho_ped)
+        ti_avg_new = blend_function(cp1d.t_i_average, rho, @ddtime(summary_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
+        for ion in cp1d.ion
+            if !ismissing(ion, :temperature)
+                ion.temperature = ti_avg_new
+            end
+        end
+    end
 end
 
 """
@@ -114,43 +101,56 @@ function blend_core_edge_Hmode(
 end
 
 """
-    blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
+    blend_core_edge_EPED(
+        profile::AbstractVector{<:Real},
+        rho::AbstractVector{<:Real},
+        ped_height::Real,
+        ped_width::Real,
+        nml_bound::Real,
+        ped_bound::Real;
+        expin::Real,
+        expout::Real)
 
-Blends Te, Ti, ne, and nis in core_profiles with :H_mode or :L_mode like pedestal defined in summary IDS
+Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound as blending boundary
 """
-function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
-    if mode == :L_mode
-        blend_function = blend_core_edge_Lmode
-    elseif mode == :H_mode
-        blend_function = blend_core_edge_Hmode
-    else
-        @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
-    end
-    rho = cp1d.grid.rho_tor_norm
-    w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
+function blend_core_edge_EPED(
+    profile::AbstractVector{<:Real},
+    rho::AbstractVector{<:Real},
+    ped_height::Real,
+    ped_width::Real,
+    nml_bound::Real,
+    ped_bound::Real,
+    expin::Real,
+    expout::Real)
 
-    # NOTE! this does not take into account summary.local.pedestal.zeff.value
-    if what ∈ (:all, :densities)
-        old_electron_density_thermal = cp1d.electrons.density_thermal
-        new_electron_density_thermal = blend_function(cp1d.electrons.density_thermal, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
-        fraction = new_electron_density_thermal ./ old_electron_density_thermal
-        for ion in cp1d.ion
-            if !ismissing(ion, :density_thermal)
-                ion.density_thermal = ion.density_thermal .* fraction
-            end
-        end
-        cp1d.electrons.density_thermal = new_electron_density_thermal
+    @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
+    iped = argmin(abs.(rho .- ped_bound))
+    inml = argmin(abs.(rho .- nml_bound))
+
+    z_profile = -calc_z(rho, profile, :backward)
+    z_nml = z_profile[inml]
+
+    # H-mode profile used for pedestal
+    # NOTE: Note that we do not provide a core value as this causes the pedestal solution to depend on the core solution
+    #       which breaks finding self-consistent core-pedestal solution through an optimizer
+    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width)
+
+    # linear z between nml and pedestal
+    if nml_bound < ped_bound
+        z_profile_ped = -calc_z(rho, profile_ped, :backward)
+        z_ped = z_profile_ped[iped]
+        z_profile[inml:iped] = (z_nml - z_ped) ./ (rho[inml] - rho[iped]) .* (rho[inml:iped] .- rho[inml]) .+ z_nml
     end
 
-    if what ∈ (:all, :temperatures)
-        cp1d.electrons.temperature = blend_function(cp1d.electrons.temperature, rho, @ddtime(summary_ped.t_e.value), w_ped, rho_nml, rho_ped)
-        ti_avg_new = blend_function(cp1d.t_i_average, rho, @ddtime(summary_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
-        for ion in cp1d.ion
-            if !ismissing(ion, :temperature)
-                ion.temperature = ti_avg_new
-            end
-        end
-    end
+    # integrate from pedestal inward
+    profile_new = deepcopy(profile_ped)
+    profile_new[inml:iped] = integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+
+    # we avoid integ_z in the core region to avoid drift of profiles
+    # when calling blend_core_edge_EPED multiple times
+    profile_new[1:inml-1] = profile[1:inml-1] .- profile[inml] .+ profile_new[inml]
+
+    return profile_new
 end
 
 function blend_core_edge_Lmode(
