@@ -36,18 +36,17 @@ Returns true/false if coil is part of the OH
 """
 function is_ohmic_coil(coil::IMAS.pf_active__coil)
     if isempty(coil.function)
-        error("`$(location(coil)).function` is not set. You may need to run `IMAS.set_coils_function(dd.pf_active.coil)`.")
+        error("`$(location(coil)).function` is not set. You may need to run `IMAS.set_coils_function(dd.pf_active.coil, R0)`.")
     end
     return findfirst(:flux, coil.function) !== nothing
 end
 
 """
-    set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
+    set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil}, R0::Float64; force::Bool=false)
 
 Setup the pf_active.coil[:].function
 """
-function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
-
+function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil}, R0::Float64; force::Bool=false)
     # set coil elements geometry_type attribute
     geometry_types = name_2_index(coils[1].element[1].geometry)
     for coil in coils
@@ -73,24 +72,35 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
     # define as OH coils all the coils that share that minimum radial coordinate
     oh_does_shaping = true
     for coil in coils
+        if force
+            empty!(coil.function)
+        end
         if isempty(coil.function)
-            func = resize!(coil.function, :shaping; wipe=false)
-            func.description = "PF"
+            if (!ismissing(coil, :name) && startswith(uppercase(coil.name), "V")) || (!ismissing(coil, :identifier) && startswith(uppercase(coil.identifier), "V"))
+                func = resize!(coil.function, :vertical; wipe=false)
+                func.description = "Vertical stability"
+                continue
+            else
+                func = resize!(coil.function, :shaping; wipe=false)
+                func.description = "PF"
+            end
 
             min_radius = Inf
+            max_radius = 0.0
             for element in coil.element
                 oute = outline(element)
                 min_radius = min(min_radius, minimum(oute.r))
+                max_radius = max(max_radius, maximum(oute.r))
             end
 
-            if (!ismissing(coil, :name) && contains(uppercase(coil.name), "OH")) || min_radius == oh_min_radius
+            if (!ismissing(coil, :name) && contains(uppercase(coil.name), "OH") || contains(uppercase(coil.name), "CS")) || (!ismissing(coil, :identifier) && contains(uppercase(coil.identifier), "OH") || contains(uppercase(coil.identifier), "CS")) || min_radius == oh_min_radius
                 func = resize!(coil.function, :flux; wipe=false)
                 func.description = "OH"
 
                 # here we assume that if some coils are labeled as OH and are not stacked vertically in the central solenoid
                 # then the configuration is like in DIII-D where there are OH compensation coils designed to decouple the
                 # flux-swing and the plasma shaping functionalities. This is really a DIII-D thing...
-                if min_radius !== oh_min_radius
+                if max_radius > R0
                     oh_does_shaping = false
                 end
             end
@@ -113,7 +123,6 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil})
 
     return coils
 end
-
 
 """
     outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}

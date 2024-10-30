@@ -30,7 +30,7 @@ dyexp["core_profiles.profiles_1d[:].electrons.density_fast"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
-    (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal .* constants.e
+    (rho_tor_norm; electrons, _...) -> pressure_thermal(electrons)
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_fast_parallel"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
@@ -74,7 +74,7 @@ dyexp["core_profiles.profiles_1d[:].ion[:].density_thermal"] =
     (rho_tor_norm; ion, _...) -> ion.density .- ion.density_fast
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_thermal"] =
-    (rho_tor_norm; ion, _...) -> ion.temperature .* ion.density_thermal .* constants.e
+    (rho_tor_norm; ion, _...) -> pressure_thermal(ion)
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_fast_parallel"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
@@ -82,21 +82,15 @@ dyexp["core_profiles.profiles_1d[:].ion[:].pressure_fast_parallel"] =
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_fast_perpendicular"] =
     (rho_tor_norm; _...) -> zero(rho_tor_norm)
 
-dyexp["core_profiles.profiles_1d[:]..ion[:].pressure"] =
+dyexp["core_profiles.profiles_1d[:].ion[:].pressure"] =
     (rho_tor_norm; ion, _...) -> ion.pressure_thermal .+ ion.pressure_fast_parallel .+ ion.pressure_fast_perpendicular .* 2.0
 
 
 dyexp["core_profiles.profiles_1d[:].pressure_ion_total"] =
-    (rho_tor_norm; profiles_1d, _...) -> begin
-        tmp = zero(rho_tor_norm)
-        for ion in profiles_1d.ion
-            tmp .+= ion.pressure_thermal
-        end
-        return tmp
-    end
+    (rho_tor_norm; profiles_1d, _...) -> pressure_thermal(profiles_1d.ion)
 
 dyexp["core_profiles.profiles_1d[:].pressure_thermal"] =
-    (rho_tor_norm; profiles_1d, _...) -> profiles_1d.electrons.pressure_thermal .+ profiles_1d.pressure_ion_total
+    (rho_tor_norm; profiles_1d, _...) -> pressure_thermal(profiles_1d)
 
 dyexp["core_profiles.profiles_1d[:].pressure_parallel"] =
     (rho_tor_norm; profiles_1d, _...) ->
@@ -130,6 +124,9 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
         eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
+
+dyexp["core_profiles.profiles_1d[:].zeff"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> zeff(profiles_1d)
 
 #  core_profiles.global_quantities  #
 
@@ -342,12 +339,12 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_tor"] =
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_r"] =
     (dim1, dim2; profiles_2d, _...) -> begin
-        return Br_Bz(profiles_2d)[1]
+        return Br_Bz(profiles_2d).Br
     end
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].b_field_z"] =
     (dim1, dim2; profiles_2d, _...) -> begin
-        return Br_Bz(profiles_2d)[2]
+        return Br_Bz(profiles_2d).Bz
     end
 
 dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =
@@ -593,7 +590,7 @@ dyexp["pulse_schedule.time"] =
     (time; pulse_schedule, _...) -> begin
         all_times = Float64[]
         for item in keys(pulse_schedule)
-            if typeof(getfield(pulse_schedule, item)) <: IDS
+            if fieldtype(typeof(pulse_schedule), item) <: IDS
                 ids = getfield(pulse_schedule, item)
                 if hasfield(typeof(ids), :time) && !ismissing(ids, :time)
                     append!(all_times, ids.time)

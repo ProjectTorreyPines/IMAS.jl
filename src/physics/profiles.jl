@@ -1,4 +1,46 @@
 """
+    pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+
+core_profiles thermal pressure
+"""
+function pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+    p = pressure_thermal(cp1d.electrons)
+    p .+= pressure_thermal(cp1d.ion)
+    return p
+end
+
+"""
+    pressure_thermal(cp1de::IMAS.core_profiles__profiles_1d___electrons)
+
+electrons thermal pressure
+"""
+function pressure_thermal(cp1de::IMAS.core_profiles__profiles_1d___electrons)
+    return cp1de.temperature .* cp1de.density_thermal .* IMAS.constants.e
+end
+
+"""
+    pressure_thermal(ion::IMAS.core_profiles__profiles_1d___ion)
+
+ion thermal pressure
+"""
+function pressure_thermal(ion::IMAS.core_profiles__profiles_1d___ion)
+    return ion.temperature .* ion.density_thermal .* IMAS.constants.e
+end
+
+"""
+    pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
+
+thermal pressure for all ions
+"""
+function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
+    p = cp1di[1].temperature .* 0.0
+    for ion in cp1di
+        p .+= ion.temperature .* ion.density_thermal
+    end
+    return p .* IMAS.constants.e
+end
+
+"""
     beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
 
 Normalised toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA]
@@ -47,11 +89,16 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
 end
 
 """
-    list_ions(ct::IMAS.core_transport)
+    list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
-List ions in core_transport IDS
+List ions in core_transport IDS,
 """
-function list_ions(ct::IMAS.core_transport)
+function list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+    tot = total_fluxes(ct, cp1d, T[])
+    return [Symbol(ion.label) for ion in tot.ion]
+end
+
+function list_ions(ct::IMAS.core_transport, cp1d::Nothing)
     ions = Symbol[]
     for model in ct.model
         ct1d = model.profiles_1d[]
@@ -63,11 +110,16 @@ function list_ions(ct::IMAS.core_transport)
 end
 
 """
-    list_ions(cs::IMAS.core_sources)
+    list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
 
 List ions in core_sources IDS
 """
-function list_ions(cs::IMAS.core_sources)
+function list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+    tot = total_sources(cs, cp1d)
+    return [Symbol(ion.label) for ion in tot.ion]
+end
+
+function list_ions(cs::IMAS.core_sources, cp1d::Nothing)
     ions = Symbol[]
     for source in cs.source
         for ion in source.profiles_1d[].ion
@@ -289,6 +341,10 @@ end
     tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.plot_core_sources; subtract_radiation_losses::Bool=true)
 
 H98y2 ITER elmy H-mode confinement time scaling
+
+NOTE: H98y2 uses aereal elongation
+
+See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
 function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
@@ -297,22 +353,27 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
         total_power_inside -= radiation_losses(cs)
     end
     total_power_inside = max(0.0, total_power_inside)
+
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
+    κ_areal = areal_elongation(eqt)
+
+    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+
     tau98 = (
         0.0562 *
         abs(eqt.global_quantities.ip / 1e6)^0.93 *
         abs(B0)^0.15 *
         (total_power_inside / 1e6)^-0.69 *
-        (ne_vol_avg(cp1d) / 1e19)^0.41 *
+        (ne_line / 1e19)^0.41 *
         isotope_factor^0.19 *
         R0^1.97 *
         (R0 / eqt.boundary.minor_radius)^-0.58 *
-        eqt.boundary.elongation^0.78
+        κ_areal^0.78
     )
     return tau98
 end
@@ -328,6 +389,8 @@ end
     tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
 
 Petty's 2003 confinement time scaling
+
+NOTE: Petty uses elongation at the separatrix and makes no distinction between volume and line-average density
 """
 function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
     total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
@@ -336,18 +399,22 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
         total_power_inside -= radiation_losses(cs)
     end
     total_power_inside = max(0.0, total_power_inside)
+
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
         trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
+    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+    ne_vol = ne_vol_avg(cp1d)
+
     tauds03 = (
         0.028 *
         abs(eqt.global_quantities.ip / 1e6)^0.83 *
         abs(B0)^0.07 *
         (total_power_inside / 1e6)^-0.55 *
-        (ne_vol_avg(cp1d) / 1e19)^0.49 *
+        (0.5 * (ne_line + ne_vol) / 1e19)^0.49 *
         isotope_factor^0.14 *
         R0^2.11 *
         (R0 / eqt.boundary.minor_radius)^-0.30 *
@@ -390,8 +457,8 @@ function greenwald_density(dd::IMAS.dd)
 end
 
 function greenwald_density(ps::IMAS.pulse_schedule; time0=global_time(ps))
-    ip = IMAS.get_time_array(ps.flux_control.i_plasma, :reference, time0, :linear)
-    minor_radius = IMAS.get_time_array(ps.position_control.minor_radius, :reference, time0, :linear)
+    ip = get_time_array(ps.flux_control.i_plasma, :reference, time0, :linear)
+    minor_radius = get_time_array(ps.position_control.minor_radius, :reference, time0, :linear)
     return greenwald_density(ip, minor_radius)
 end
 
@@ -435,9 +502,9 @@ returns n_e_line from pulse_schedule looking first in `pulse_schedule.density_co
 """
 function n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
     if !ismissing(ps.density_control.n_e_line, :reference)
-        return IMAS.get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
+        return get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
     elseif !ismissing(ps.density_control.n_e_greenwald_fraction, :reference)
-        return IMAS.get_time_array(ps.density_control.n_e_greenwald_fraction, :reference, time0, :linear) * greenwald_density(ps; time0)
+        return get_time_array(ps.density_control.n_e_greenwald_fraction, :reference, time0, :linear) * greenwald_density(ps; time0)
     else
         error("neither `pulse_schedule.density_control.ne_line.reference` or `pulse_schedule.density_control.greenwald_fraction.reference` have data")
     end
@@ -717,14 +784,14 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         @assert species_indx !== nothing
         ion0 = cp1d.ion[species_indx]
 
-        # evaluate the difference in number of charges needed to reach quasineutrality
-        q_density_difference =
-            cp1d.electrons.density .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion != ion0) .- ion0.density_fast .* ion0.z_ion .+ cp1d.electrons.density_fast
+        # evaluate the difference in number of thermal charges needed to reach quasineutrality
+        ne = cp1d.electrons.density .+ cp1d.electrons.density_fast
+        q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
 
         # positive difference is assigned to target ion density_thermal
         index = q_density_difference .> 0.0
         ion0.density_thermal = zero(cp1d.electrons.density_thermal)
-        ion0.density_thermal[index] .= q_density_difference[index] .* ion0.z_ion
+        ion0.density_thermal[index] .= q_density_difference[index] ./ ion0.z_ion
 
         # negative difference is assigned to electrons density_thermal
         index = q_density_difference .< 0.0
@@ -732,79 +799,6 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
     end
 
     return nothing
-end
-
-"""
-    broken_lump_ions_as_bulk_and_impurity((ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
-
-Changes core_profiles.ion to 2 species, bulk specie (H, D, T) and combined impurity specie by weigthing masses and densities
-
-NOTE: This version of lump_ions_as_bulk_and_impurity is not correct, but we keep it around for now because that's how some NNs have been trained.
-DO NOT USE IF YOU DON'T KNOW WHAT YOU ARE DOING.
-"""
-function broken_lump_ions_as_bulk_and_impurity(
-    ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}},
-    rho_tor_norm::Vector{<:T}
-)::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion{T}} where {T<:Real}
-    if length(ions) < 2
-        error("lump_ions_as_bulk_and_impurity requires at least two ion species")
-    end
-
-    zs = [ion.element[1].z_n for ion in ions]
-    as = [ion.element[1].a for ion in ions]
-
-    bulk_index = findall(zs .== 1)
-    impu_index = findall(zs .!= 1)
-
-    ratios = zeros(length(ions[1].density_thermal), length(ions))
-    for index in (bulk_index, impu_index)
-        ntot = zeros(length(ions[1].density_thermal))
-        for ix in index
-            tmp = ions[ix].density_thermal * sum(avgZ(zs[ix], ions[ix].temperature)) / length(ions[ix].temperature)
-            ratios[:, ix] = tmp
-            ntot .+= tmp
-        end
-        for ix in index
-            ratios[:, ix] ./= ntot
-        end
-    end
-
-    ions2 = IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}()
-
-    # bulk ions
-    push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
-    bulk = ions2[end]
-    resize!(bulk.element, 1)
-    bulk.label = "bulk"
-
-    # impurity ions
-    push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
-    impu = ions2[end]
-    resize!(impu.element, 1)
-    impu.label = "impurity"
-
-    # weight different ion quantities based on their density
-    for (index, ion2) in ((bulk_index, bulk), (impu_index, impu))
-        ion2.element[1].z_n = 0.0
-        ion2.element[1].a = 0.0
-        for ix in index # z_average is tricky since it's a single constant for the whole profile
-            ion2.element[1].z_n += sum(zs[ix] .* ratios[:, ix]) / length(ratios[:, ix])
-            ion2.element[1].a += sum(as[ix] .* ratios[:, ix]) / length(ratios[:, ix])
-        end
-        for item in (:density_thermal, :temperature, :rotation_frequency_tor)
-            value = rho_tor_norm .* 0.0
-            IMAS.setraw!(ion2, item, value)
-            for ix in index
-                tp = Vector{typeof(ions[ix]).parameters[1]}
-                tmp = getproperty(ions[ix], item, tp())::tp
-                if !isempty(tmp)
-                    value .+= tmp .* ratios[:, ix]
-                end
-            end
-        end
-    end
-
-    return ions2
 end
 
 """
@@ -817,7 +811,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     ions = cp1d.ion
 
     if length(ions) < 2
-        error("lump_ions_as_bulk_and_impurity requires at least two ion species")
+        error("lump_ions_as_bulk_and_impurity() requires at least two ion species")
     end
 
     zs = [ion.element[1].z_n for ion in ions]
@@ -827,8 +821,9 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
 
     rho_tor_norm = cp1d.grid.rho_tor_norm
     ratios = zeros(length(rho_tor_norm), length(ions))
+    ntot = zeros(length(rho_tor_norm))
     for index in (bulk_index, impu_index)
-        ntot = zeros(length(rho_tor_norm))
+        ntot .*= 0.0
         for ix in index
             tmp = ions[ix].density_thermal
             ratios[:, ix] = tmp
@@ -837,6 +832,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
         for ix in index
             ratios[:, ix] ./= ntot
         end
+        @assert all(ntot .> 0.0) "Species $([ions[ix].label for ix in index]) have zero density: $(ntot)"
     end
 
     ne = cp1d.electrons.density_thermal
@@ -948,7 +944,6 @@ Memoize.@memoize function avgZinterpolator(filename::String)
     end
 
     return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1.0), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
-
 end
 
 """

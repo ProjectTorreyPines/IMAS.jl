@@ -1,13 +1,15 @@
 const gacode_units = (
     e=4.8032e-10, # stacoul
     k=1.6022e-12, # erg/eV
-    me=9.1094e-28, # g
     c=2.9979e10, # cm/s
+    me=9.1094e-28, # g
     mp=1.6726e-24, # g
-    m_to_cm=1e2,
+    md=3.3435837768e-24, # g
     T_to_Gauss=1e4,
     Erg_to_J=1e-7,
-    m³_to_cm³=1e-6
+    m_to_cm=1e2,
+    m²_to_cm²=1E4,
+    m³_to_cm³=1e6,
 )
 
 struct flux_solution{T<:Real}
@@ -30,13 +32,13 @@ function Base.show(io::IO, ::MIME"text/plain", sol::flux_solution)
 end
 
 function c_s(cp1d::IMAS.core_profiles__profiles_1d)
-    return sqrt.(gacode_units.k .* cp1d.electrons.temperature ./ (cp1d.ion[1].element[1].a .* gacode_units.mp))
+    return sqrt.(gacode_units.k .* cp1d.electrons.temperature ./ gacode_units.md)
 end
 
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     eqt1d = eqt.profiles_1d
     bunit = interp1d(eqt1d.rho_tor_norm, abs.(IMAS.bunit(eqt1d)) .* gacode_units.T_to_Gauss).(cp1d.grid.rho_tor_norm)
-    return c_s(cp1d) ./ (gacode_units.e .* bunit) .* (cp1d.ion[1].element[1].a .* gacode_units.mp .* gacode_units.c)
+    return c_s(cp1d) ./ (gacode_units.e .* bunit) .* (gacode_units.md .* gacode_units.c)
 end
 
 function r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
@@ -46,8 +48,9 @@ end
 
 ##### Gyrobohm normalizations from gacode
 function gyrobohm_energy_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    return cp1d.electrons.density_thermal .* gacode_units.m³_to_cm³ .* gacode_units.k .* cp1d.electrons.temperature .*
-           c_s(cp1d) .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.Erg_to_J .* gacode_units.m_to_cm^2
+    return cp1d.electrons.density_thermal ./ gacode_units.m³_to_cm³ .* gacode_units.k .* cp1d.electrons.temperature .*
+           c_s(cp1d) .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.Erg_to_J .*
+           gacode_units.m²_to_cm²
 end
 
 function gyrobohm_particle_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
@@ -56,9 +59,9 @@ function gyrobohm_particle_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS
 end
 
 function gyrobohm_momentum_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    return cp1d.electrons.density_thermal .* gacode_units.m³_to_cm³ .* gacode_units.k .* cp1d.electrons.temperature .*
+    return cp1d.electrons.density_thermal ./ gacode_units.m³_to_cm³ .* gacode_units.k .* cp1d.electrons.temperature .*
            eqt.boundary.minor_radius .* gacode_units.m_to_cm .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* gacode_units.m_to_cm)) .^ 2 .* gacode_units.Erg_to_J .*
-           gacode_units.m_to_cm^2
+           gacode_units.m²_to_cm²
 end
 
 """

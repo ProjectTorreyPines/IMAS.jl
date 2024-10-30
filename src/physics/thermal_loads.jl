@@ -449,7 +449,7 @@ function mesher_HF(dd::IMAS.dd;
 
     R0 = eqt.global_quantities.magnetic_axis.r # R magentic axis 
     Z0 = eqt.global_quantities.magnetic_axis.z # Z magnetic axis
-    psi_separatrix = find_psi_boundary(eqt; raise_error_on_not_open=true).first_open # psi at LCFS
+    psi_separatrix = find_psi_boundary(eqt, fw.r,fw.z; raise_error_on_not_open=true).first_open # psi at LCFS
 
     if isempty(r) || isempty(q)
         ##########################################################################
@@ -735,4 +735,141 @@ function mesher_HF(dd::IMAS.dd;
     end
 
     return (Rwall=Rwall, Zwall=Zwall, rwall=rwall, zwall=zwall, s=s, SOL=SOL, r=r, q=q)
+end
+
+#= ============= =#
+#  plotting       #
+#= ============= =#
+"""
+Recipe for plot of heat flux
+  - which_plot = :twoD, :oneD
+  - plot_type  = :path, :scatter (only for 2D)
+  - q          =
+    :all (for 1D),
+    :wall,
+    :parallel
+    :particle
+    :core_radiation
+    :both (= :particle + :parallel)
+"""
+@recipe function plot_heat_flux(HF::WallHeatFlux; which_plot=:twoD, plot_type=:path, q=:wall)
+    @assert which_plot in (:oneD, :twoD)
+    @assert plot_type in (:path, :scatter)
+    @assert q in (:wall, :parallel, :particle, :core_radiation, :both, :all)
+
+    if q in (:both, :all)
+        if q == :both
+            qs = (:parallel, :particle)
+        else
+            qs = (:wall, :particle, :core_radiation)
+        end
+        if which_plot == :twoD
+            layout := (1, length(qs))
+        end
+        for (k, q) in enumerate(qs)
+            @series begin
+                if which_plot == :twoD
+                    subplot := k
+                end
+                which_plot := which_plot
+                plot_type := plot_type
+                q := q
+                HF
+            end
+        end
+
+    elseif which_plot == :oneD
+        @series begin
+            xlabel --> "Clockwise distance along wall [m]"
+            ylabel --> "Wall flux [W/m²]"
+            yscale --> :log10
+
+            x = []
+            y = []
+            if q == :particle
+                label --> "particles"
+                if !isempty(HF.q_part)
+                    x = HF.s
+                    y = HF.q_part .+ 1.0
+                end
+
+            elseif q == :core_radiation
+                label --> "core radiation"
+                if !isempty(HF.q_core_rad)
+                    x = HF.s
+                    y = HF.q_core_rad .+ 1.0
+                end
+
+            elseif q == :wall
+                label --> "wall"
+                if !isempty(HF.q_wall)
+                    x = HF.s
+                    y = HF.q_wall .+ 1.0
+                end
+
+            elseif q == :parallel
+                label --> "parallel"
+                if !isempty(HF.q_parallel)
+                    x = HF.s
+                    y = HF.q_parallel .+ 1.0
+                end
+            end
+
+            x, y
+        end
+
+    elseif which_plot == :twoD
+        @series begin
+            aspect_ratio := :equal
+            legend --> false
+            colorbar --> true
+            xlim --> [0.95 * minimum(HF.r) - 0.05 * (maximum(HF.r)), 1.05 * maximum(HF.r) - 0.05 * (minimum(HF.r))]
+            ylim --> [1.05 * minimum(HF.z) - 0.05 * (maximum(HF.z)), 1.05 * maximum(HF.z) - 0.05 * (minimum(HF.z))]
+            if plot_type == :path
+                seriestype --> :path
+                linewidth --> 8
+            elseif plot_type == :scatter
+                seriestype --> :scatter
+                markersize --> 2
+                markerstrokewidth --> 0
+            end
+
+            if q == :wall && !isempty(HF.q_wall)
+                colorbar_title := "log₁₀(q wall [W/m²])"
+                if plot_type == :path
+                    line_z := log10.(HF.q_wall .+ 1)
+                elseif plot_type == :scatter
+                    zcolor := log10.(HF.q_wall .+ 1)
+                end
+
+            elseif q == :core_radiation && !isempty(HF.q_core_rad)
+                colorbar_title := "log₁₀(q core rad [W/m²])"
+                if plot_type == :path
+                    line_z := log10.(HF.q_core_rad .+ 1)
+                elseif plot_type == :scatter
+                    zcolor := log10.(HF.q_core_rad .+ 1)
+                end
+
+            elseif q == :particle && !isempty(HF.q_part)
+                colorbar_title := "log₁₀(q particle [W/m²])"
+                floor = minimum(HF.q_part[HF.q_part.>0.0]) / 100.0
+                if plot_type == :path
+                    line_z --> log10.(HF.q_part .+ floor)
+                elseif plot_type == :scatter
+                    zcolor --> log10.(HF.q_part .+ floor)
+                end
+
+            elseif q == :parallel && !isempty(HF.q_parallel)
+                colorbar_title := "log₁₀(q parallel [W/m²])"
+                if plot_type == :path
+                    line_z --> log10.(HF.q_parallel .+ 1)
+                end
+                if plot_type == :scatter
+                    zcolor --> log10.(HF.q_parallel .+ 1)
+                end
+            end
+
+            HF.r, HF.z
+        end
+    end
 end

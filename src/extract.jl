@@ -54,7 +54,7 @@ function update_ExtractFunctionsLibrary!()
 
     ExtractLibFunction(:densities, :ne0, "m⁻³", dd -> @ddtime(dd.summary.local.magnetic_axis.n_e.value))
     ExtractLibFunction(:densities, :ne_ped, "m⁻³", dd -> @ddtime(dd.summary.local.pedestal.n_e.value))
-    ExtractLibFunction(:densities, Symbol("ne_line"), "m⁻³", dd -> IMAS.geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[]))
+    ExtractLibFunction(:densities, Symbol("ne_line"), "m⁻³", dd -> geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[]))
     ExtractLibFunction(:densities, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
     ExtractLibFunction(:densities, Symbol("ne0/<ne>"), "-", dd -> EFL[:ne0](dd) / EFL[Symbol("<ne>")](dd))
     ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> greenwald_fraction(dd))
@@ -71,8 +71,8 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:pressures, :βn, "-", dd -> @ddtime(dd.summary.global_quantities.beta_tor_norm.value))
     ExtractLibFunction(:pressures, :βn_th, "-", dd -> @ddtime(dd.summary.global_quantities.beta_tor_thermal_norm.value))
 
-    ExtractLibFunction(:transport, :τe, "s", dd -> IMAS.tau_e_thermal(dd))
-    ExtractLibFunction(:transport, :τe_exp, "s", dd -> IMAS.tau_e_thermal(dd; subtract_radiation_losses=false))
+    ExtractLibFunction(:transport, :τe, "s", dd -> tau_e_thermal(dd))
+    ExtractLibFunction(:transport, :τe_exp, "s", dd -> tau_e_thermal(dd; subtract_radiation_losses=false))
     ExtractLibFunction(:transport, :H98y2, "-", dd -> EFL[:τe](dd) / tau_e_h98(dd))
     ExtractLibFunction(:transport, :H98y2_exp, "-", dd -> EFL[:τe_exp](dd) / tau_e_h98(dd; subtract_radiation_losses=false))
     ExtractLibFunction(:transport, :Hds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
@@ -219,7 +219,7 @@ end
 # ================= #
 # show extract data #
 # ================= #
-function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Integer=0)
+function Base.show(io::IO, ::MIME"text/plain", xfun::ExtractFunction; group::Bool=true, indent::Integer=0)
     printstyled(io, " "^indent; bold=true)
     if group
         printstyled(io, " "^indent * "$(xfun.group)."; bold=true)
@@ -238,7 +238,7 @@ function Base.show(io::IO, xfun::ExtractFunction; group::Bool=true, indent::Inte
     end
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=136)
+function Base.show(io::IO, ::MIME"text/plain", xtract::AbstractDict{Symbol,ExtractFunction}; terminal_width::Int=136)
     return print_tiled(io, xtract; terminal_width)
 end
 
@@ -281,7 +281,7 @@ function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; termi
 
     function length_(xfun::ExtractFunction)
         buffer = IOBuffer()
-        show(buffer, xfun; group=false)
+        show(buffer, MIME("text/plain"), xfun; group=false)
         return length(String(take!(buffer)))
     end
 
@@ -320,7 +320,7 @@ function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; termi
                     print(io, (line_char^max_item_width * " "^(max_width - max_item_width)))
                 elseif list_row - 1 <= length(list)
                     item = list[list_row-1]
-                    show(io, item; group=false)
+                    show(io, MIME("text/plain"), item; group=false)
                     print(io, " "^(max_width - length_(item)))
                 else
                     print(io, " "^max_width)

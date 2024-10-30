@@ -7,12 +7,14 @@ using Plots
 Returns r, z, and ψ interpolant named tuple
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r = range(eqt2d.grid.dim1[1], eqt2d.grid.dim1[end], length(eqt2d.grid.dim1))
-    z = range(eqt2d.grid.dim2[1], eqt2d.grid.dim2[end], length(eqt2d.grid.dim2))
+    dim1 = convert(Vector{Float64}, eqt2d.grid.dim1)
+    dim2 = convert(Vector{Float64}, eqt2d.grid.dim2)
+    r = range(dim1[1], dim1[end], length(dim1))
+    z = range(dim2[1], dim2[end], length(dim2))
     return ψ_interpolant(r, z, eqt2d.psi)
 end
 
-function ψ_interpolant(r::AbstractRange{T}, z::AbstractRange{T}, psi::Matrix{T}) where {T<:Real}
+function ψ_interpolant(r::AbstractRange{T1}, z::AbstractRange{T1}, psi::Matrix{T2}) where {T1<:Real,T2<:Real}
     PSI_interpolant = Interpolations.cubic_spline_interpolation((r, z), psi; extrapolation_bc=Interpolations.Line())
     return (r=r, z=z, PSI_interpolant=PSI_interpolant)
 end
@@ -134,8 +136,7 @@ function find_psi_boundary(
     wall_z::AbstractVector{T};
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool=true,
-    raise_error_on_not_closed::Bool=true
-) where {T<:Real}
+    raise_error_on_not_closed::Bool=true) where {T<:Real}
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     original_psi_boundary = eqt.profiles_1d.psi[end]
@@ -153,21 +154,20 @@ function find_psi_boundary(
 end
 
 function find_psi_boundary(
-    dimR::Union{AbstractVector{T},AbstractRange{T}},
-    dimZ::Union{AbstractVector{T},AbstractRange{T}},
-    PSI::Matrix{T},
-    psi_axis::T,
-    original_psi_boundary::T,
-    RA::T,
-    ZA::T,
-    fw_r::AbstractVector{T},
-    fw_z::AbstractVector{T};
+    dimR::Union{AbstractVector{T1},AbstractRange{T1}},
+    dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
+    PSI::Matrix{T2},
+    psi_axis::Real,
+    original_psi_boundary::Real,
+    RA::T3,
+    ZA::T3,
+    fw_r::AbstractVector{T4},
+    fw_z::AbstractVector{T5};
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
-    raise_error_on_not_closed::Bool) where {T<:Real}
-
-    verbose = false
+    raise_error_on_not_closed::Bool,
+    verbose::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
@@ -211,6 +211,11 @@ function find_psi_boundary(
     # outermost tentative flux surface (which should be open!)
     surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
     if !isempty(surface)
+        if verbose
+            for surf in surface
+                display(plot!(surf.r, surf.z; color=:magenta, label=""))
+            end
+        end
         if raise_error_on_not_open
             error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
         else
@@ -229,8 +234,9 @@ function find_psi_boundary(
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
         surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
-        # closed flux surface
+
         if !isempty(surface)
+            # psimid corresonds to a closed flux surface
             ((pr, pz),) = surface
             if verbose
                 display(plot!(pr, pz; label="", color=:green))
@@ -239,8 +245,9 @@ function find_psi_boundary(
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
                 return (last_closed=psimid, first_open=psirange[end])
             end
-            # open flux surface
+
         else
+            # psimid corresonds to an open flux surface
             psirange[end] = psimid
         end
     end
@@ -249,19 +256,19 @@ function find_psi_boundary(
 end
 
 function find_psi_boundary(
-    dimR::Union{AbstractVector{T},AbstractRange{T}},
-    dimZ::Union{AbstractVector{T},AbstractRange{T}},
-    PSI::Matrix{T},
-    psi_axis::T,
+    dimR::Union{AbstractVector{T1},AbstractRange{T1}},
+    dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
+    PSI::Matrix{T2},
+    psi_axis::Real,
     axis2bnd::Symbol,
-    RA::T,
-    ZA::T,
-    fw_r::AbstractVector{T}=T[],
-    fw_z::AbstractVector{T}=T[];
+    RA::T3,
+    ZA::T3,
+    fw_r::AbstractVector{T4}=T1[],
+    fw_z::AbstractVector{T4}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
-    raise_error_on_not_closed::Bool) where {T<:Real}
+    raise_error_on_not_closed::Bool) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
     @assert axis2bnd in (:increasing, :decreasing)
     verbose = false
@@ -343,19 +350,62 @@ function find_psi_boundary(
 end
 
 """
-    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice; type::Symbol=:not_diverted, precision::Float64=1E-7)
+    find_psi_separatrix(eqt::IMAS.equilibrium__time_slice;
+                            precision::Float64=1E-7)
+
+Returns psi of the first magentic separatrix. This relies only on eqt and finds the 1st sep geometrically.
+Note: the first separatrix is the LCFS only in diverted plasmas
+"""
+function find_psi_separatrix(
+    eqt::IMAS.equilibrium__time_slice{T};
+    precision::Float64=1E-7
+) where {T<:Real}
+    psi_up = find_psi_2nd_separatrix(eqt; type=:diverted)
+    psi_low = eqt.profiles_1d.psi[1]
+
+    psi = (psi_up + psi_low) / 2.0
+    err = Inf
+    counter_max = 50
+
+    for k in 1:counter_max
+        surface = flux_surface(eqt, psi, :encircling, Float64[], Float64[])
+        if length(surface) > 1
+            error("find_psi_separatrix: more than one :encircling flux surfaces")
+        end
+
+        if abs(surface[1].r[1] - surface[1].r[end]) == 0 && abs(surface[1].z[1] - surface[1].z[end]) == 0
+            # the surface is inside the separatrix (= "closed" with no wall)
+            psi_low = psi
+        else
+            # the surface is outside the first separatrix
+            psi_up = psi
+        end
+
+        err = abs(psi_up - psi_low) / abs(psi_low)
+        psi = (psi_up + psi_low) / 2.0
+        if abs(err) < precision
+            break
+        end
+
+    end
+
+    return (psi_sep_closed=psi_up, psi_sep_open=psi_low)
+end
+
+"""
+    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice;
+                            type::Symbol=:not_diverted, 
+                            precision::Float64=1E-7)
 
 Returns psi of the second magentic separatrix. This relies only on eqt and finds the 2nd sep geometrically.
 """
 function find_psi_2nd_separatrix(
-    eqt::IMAS.equilibrium__time_slice{T},
-    wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T};
+    eqt::IMAS.equilibrium__time_slice{T};
     type::Symbol=:not_diverted,
     precision::Float64=1E-7
 ) where {T<:Real}
     psi_separatrix = eqt.profiles_1d.psi[end]
-    surface = flux_surface(eqt, psi_separatrix, :open, wall_r, wall_z)
+    surface = flux_surface(eqt, psi_separatrix, :open, Float64[], Float64[])
 
     # First check if we are in a double null configuration
     ZA = eqt.global_quantities.magnetic_axis.z
@@ -386,7 +436,7 @@ function find_psi_2nd_separatrix(
     counter = 0
     counter_max = 50
     while abs(err) > precision && counter < counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
         for (r, z) in surface
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
                 continue
@@ -444,22 +494,38 @@ function find_psi_last_diverted(
 
     # if no wall in dd, psi_last diverted not defined
     if isempty(wall_r) || isempty(wall_z) || isempty(eqt.boundary.x_point)
-        return (psi_last_lfs=NaN, psi_first_lfs_far=NaN, null_within_wall=true)
+        return (psi_last_lfs=NaN, psi_first_open=NaN, psi_first_lfs_far=NaN, null_within_wall=true)
     end
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
-    Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
 
-    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
-    psi_separatrix = eqt.profiles_1d.psi[end] # psi value last closed
+
+    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis\
     psi_first_open = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, wall_r, wall_z) # psi second magnetic separatrix
-    psi_sign = sign(psi_separatrix - psi_axis) # +1 incresing psi / -1 decreasing psi
+    psi_sign = sign(psi_first_open - psi_axis) # +1 incresing psi / -1 decreasing psi
+
+    # Case for limited plasmas
+    psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
+
+    limited = false
+    if psi_sign * psi_sep_open > psi_sign * psi_first_open
+        # if the LCFS is not the magnetic separatrix
+        # the plasma is limited and not diverted
+        limited = true
+        Xpoint2 = [eqt.boundary.x_point[1].r, eqt.boundary.x_point[1].z]
+        psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
+    # return (psi_last_lfs=psi_sep_closed, psi_first_open=psi_first_open,  psi_first_lfs_far=psi_sep_open, null_within_wall=true)
+    else
+        Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
+        psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
+    end
+
+
 
     # intersect 2nd separatrix with wall, and look
-    surface = flux_surface(eqt, psi_2ndseparatrix, :open, wall_r, wall_z)
+    surface = flux_surface(eqt, psi_2ndseparatrix, :open, Float64[], Float64[])
     rz_intersects = StaticArrays.SVector{2,Float64}[]
     r_max = 0.0
     for (r, z) in surface
@@ -526,22 +592,27 @@ function find_psi_last_diverted(
     if length(eqt.boundary.strike_point) == 4
         # LDFS is the separatrix
         # psi_first_lfs_far is determined using the precision condition
-        psi_first_lfs_far = psi_separatrix + psi_sign * precision * abs(psi_separatrix)
-        return (psi_last_lfs=psi_separatrix, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
+        psi_first_lfs_far = psi_first_open + psi_sign * precision * abs(psi_first_open)
+        return (psi_last_lfs=psi_first_open, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
     end
 
     # Single_null case
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, wall_r, wall_z; type=:diverted)
-    psi_first_lfs_far = psi_2ndseparatrix
-    psi_last_lfs = psi_separatrix
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:diverted)
+    if limited
+        psi_first_lfs_far = psi_sep_closed
+    else
+        psi_first_lfs_far = psi_2ndseparatrix
+    end
+
+    psi_last_lfs = psi_first_open
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
 
-    counter_max = 50
+    counter_max = 100
     err = Inf
     for counter in 1:counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :any, Float64[], Float64[])
 
         for (r, z) in surface
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
@@ -553,6 +624,7 @@ function find_psi_last_diverted(
             if isempty(crossings)
                 continue
             end
+            l = length(crossings)
 
             # r and z coordiante of intersections with wall
             r_intersect = (cr[1] for cr in crossings)
@@ -584,7 +656,13 @@ function find_psi_last_diverted(
                 # psi corresonds to a diverted surface
                 psi_last_lfs = psi
             else
-                psi_first_lfs_far = psi
+                if l == 2
+                    # if orginally psi had 2 intersections, move up psi_low instead than lowering psi_up
+                    # needed for limited case, probably cannot be done before filtering intersections (check)
+                    psi_last_lfs = psi
+                else
+                    psi_first_lfs_far = psi
+                end
             end
         end
 
@@ -613,6 +691,12 @@ function find_psi_last_diverted(
         psi_first_lfs_far = psi_2ndseparatrix_notdiverted
     end
 
+    # if LDFS is the 1st separatrix, be consistent with the find_psi_separatrix function
+    if psi_first_lfs_far == psi_sep_closed
+        psi_last_lfs = psi_sep_closed
+        psi_first_lfs_far = psi_sep_open
+    end
+
     return (psi_last_lfs=psi_last_lfs, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
 end
 
@@ -632,6 +716,8 @@ function find_psi_tangent_omp(
     wall_z::AbstractVector{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation;
     precision::Float64=1e-7)
+
+    psi_max = find_psi_max(eqt)
 
     # if no wall in dd, psi_last diverted not defined
     if isempty(wall_r) || isempty(wall_z)
@@ -677,7 +763,7 @@ function find_psi_tangent_omp(
     counter_max = 50
     err = Inf
     for counter in 1:counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
 
         for (r, z) in surface
             # exclude empty vectors, surfaces that do not cross the midplane ans surfaces that cross the midplane at the HFS
@@ -699,7 +785,19 @@ function find_psi_tangent_omp(
             break
         end
     end
-
+    # if tangent flux surface is outside the maximum useful value (psi_max), use psi_max and throw a warning
+    if psi_sign > 0
+        # psi is increasing
+        psi_tangent_in = minimum([psi_max, psi_tangent_in])
+        psi_tangent_out = minimum([psi_max, psi_tangent_out])
+    else
+        # psi is decreasing
+        psi_tangent_in = maximum([psi_max, psi_tangent_in])
+        psi_tangent_out = maximum([psi_max, psi_tangent_out])
+    end
+    if psi_tangent_in == psi_max || psi_tangent_out == psi_max
+        @warn "The tangent flux surface to the omp is outside the last useful surface (psi_max) [point of contact: G.Dose]"
+    end
     return (psi_tangent_in=psi_tangent_in, psi_tangent_out=psi_tangent_out)
 end
 
@@ -713,16 +811,14 @@ end
 Returns the max psi useful for an ofl in the SOL with no wall.
 """
 function find_psi_max(
-    eqt::IMAS.equilibrium__time_slice{T},
-    wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T};
+    eqt::IMAS.equilibrium__time_slice{T};
     precision::Float64=1e-2) where {T<:Real}
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt, wall_r, wall_z)
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt)
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
     psi_sign = sign(psi_2ndseparatrix - psi_axis) # +1 for increasing psi / -1 for decreasing psi
 
@@ -736,7 +832,7 @@ function find_psi_max(
     end
 
     # check first if psi_up is already the psi we want
-    surface = flux_surface(eqt, psi_up, :open, wall_r, wall_z)
+    surface = flux_surface(eqt, psi_up, :open, Float64[], Float64[])
     for (r, z) in surface
 
         if isempty(r) || all(z .> ZA) || all(z .< ZA)
@@ -773,7 +869,7 @@ function find_psi_max(
     counter_max = 50
     err = Inf
     for counter in 1:counter_max
-        surface = flux_surface(eqt, psi, :open, wall_r, wall_z)
+        surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
         for (r, z) in surface
 
             if isempty(r) || all(z .> ZA) || all(z .< ZA)
@@ -844,8 +940,10 @@ function find_psi_wall_omp(
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    psi_max = find_psi_max(eqt)
+    psi_sign = sign(psi_max - eqt.profiles_1d.psi[1])
 
-    return find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z)
+    return find_psi_wall_omp(PSI_interpolant, RA, ZA, wall_r, wall_z, psi_max, psi_sign)
 end
 
 function find_psi_wall_omp(
@@ -853,11 +951,23 @@ function find_psi_wall_omp(
     RA::T1,
     ZA::T1,
     wall_r::AbstractVector{T2},
-    wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
-
+    wall_z::AbstractVector{T2},
+    psi_max::T1,
+    psi_sign::T1) where {T1<:Real,T2<:Real}
     crossings = intersection([RA, maximum(wall_r) * 1.1], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
     r_wall_midplane = [cr[1] for cr in crossings] # R coordinate of the wall at OMP
-    return PSI_interpolant.(r_wall_midplane, ZA)[1] # psi at the intersection between wall and omp
+    # if flux surface passing through the wall at the omp is outside the maximum useful value (psi_max), use psi_max and throw a warning
+    if psi_sign > 0
+        # psi is increasing
+        psi_wall_omp = minimum([psi_max, PSI_interpolant.(r_wall_midplane, ZA)[1]])
+    else
+        # psi is decreasing
+        psi_wall_omp = maximum([psi_max, PSI_interpolant.(r_wall_midplane, ZA)[1]])
+    end
+    if psi_wall_omp == psi_max
+        @warn "The flux surface passing through the wall at the omp is outside the last useful surface (psi_max) [point of contact: G.Dose]"
+    end
+    return psi_wall_omp
 end
 
 """
@@ -874,24 +984,34 @@ end
 """
     flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
-Update flux surface averaged and geometric quantities in the equilibrium IDS
+Update flux surface averaged and geometric quantities for all time_slices in the equilibrium IDS
 """
-function flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+function flux_surfaces(eq::equilibrium{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
     for time_index in eachindex(eq.time_slice)
-        flux_surfaces(eq.time_slice[time_index], wall_r, wall_z)
+        eqt = eq.time_slice[time_index]
+        eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+        if eqt2d !== nothing
+            flux_surfaces(eqt, wall_r, wall_z)
+        end
     end
     return eq
 end
 
-function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}, PSI_interpolant::Interpolations.AbstractInterpolation, psi_sign::Real;
-    rguess::Real=r[Int(round(length(r) / 2))], zguess::Real=z[Int(round(length(z) / 2))])
+function find_magnetic_axis(
+    r::AbstractVector{<:T1},
+    z::AbstractVector{<:T1},
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    psi_sign::T2;
+    rguess::T1=r[Int(round(length(r) / 2))],
+    zguess::T1=z[Int(round(length(z) / 2))]) where {T1<:Real,T2<:Real}
+
     res = Optim.optimize(
         x -> begin
             try
                 PSI_interpolant(x[1], x[2]) * psi_sign
             catch e
                 if typeof(e) <: BoundsError
-                    return Inf
+                    return T2(Inf)
                 else
                     rethrow(e)
                 end
@@ -901,7 +1021,8 @@ function find_magnetic_axis(r::AbstractVector{<:Real}, z::AbstractVector{<:Real}
         Optim.Newton();
         autodiff=:forward
     )
-    return res.minimizer[1], res.minimizer[2]
+
+    return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
 
 mutable struct FluxSurface{T}
@@ -1136,11 +1257,11 @@ function extrema_cost(
 end
 
 """
-    flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+    flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
 
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice.
 """
-function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     PSI = eqt2d.psi
@@ -1203,7 +1324,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     N = length(eqt.profiles_1d.psi)
 
     Np = maximum(length(surface.r) for surface in surfaces)
-    shared_tmp = Vector{T}(undef, Np)
+    shared_tmp = Vector{T1}(undef, Np)
     for k in N:-1:1
         surface = surfaces[k]
         pr = surface.r
@@ -1335,7 +1456,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     # gm2: <∇ρ²/R²>
     dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
     dPHI2_interpolant = Interpolations.cubic_spline_interpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
-    dPHI2_R2 = Vector{T}(undef, Np)
+    dPHI2_R2 = Vector{T1}(undef, Np)
     for k in eachindex(surfaces)
         surface = surfaces[k]
         n = length(surface.r)
@@ -1359,7 +1480,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = trapz(eqt.profiles_1d.psi, T[trapz(surface.ll, surface.Bp) for surface in surfaces])
+    Bp2v = trapz(eqt.profiles_1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
     eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
 
     # beta_tor
@@ -1378,7 +1499,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
 
     # secondary separatrix
     if length(eqt.boundary.x_point) > 1
-        psi2nd = find_psi_2nd_separatrix(eqt, wall_r, wall_z)
+        psi2nd = find_psi_2nd_separatrix(eqt)
         pts = flux_surface(r, z, eqt2d.psi, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
         if !isempty(pts)
             (pr2nd, pz2nd) = pts[1]
@@ -1390,7 +1511,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T}, wall_r::AbstractVector{T
     return eqt
 end
 
-function flux_surfaces(eqt::equilibrium__time_slice{T}, wall::IMAS.wall) where {T<:Real}
+function flux_surfaces(eqt::equilibrium__time_slice, wall::IMAS.wall)
     fw = IMAS.first_wall(wall)
     return flux_surfaces(eqt, fw.r, fw.z)
 end
@@ -1418,18 +1539,18 @@ function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Sy
 end
 
 function flux_surface(
-    dim1::AbstractVector{T},
-    dim2::AbstractVector{T},
-    PSI::AbstractArray{T},
-    RA::T,
-    ZA::T,
-    fw_r::AbstractVector{T},
-    fw_z::AbstractVector{T},
-    psi_level::T,
-    type::Symbol) where {T<:Real}
+    dim1::AbstractVector{T1},
+    dim2::AbstractVector{T1},
+    PSI::AbstractArray{T2},
+    RA::T3,
+    ZA::T3,
+    fw_r::AbstractVector{T4},
+    fw_z::AbstractVector{T4},
+    psi_level::T5,
+    type::Symbol) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
     # contouring routine
-    cl = Contour.contour(dim1, dim2, PSI, psi_level; VT=NTuple{2,T})
+    cl = Contour.contour(dim1, dim2, PSI, psi_level; VT=NTuple{2,T2})
 
     return flux_surface(dim1, dim2, cl, RA, ZA, fw_r, fw_z, type)
 end
@@ -1495,7 +1616,10 @@ function flux_surface(
 
     elseif type == :encircling
         # look for open flux-surfaces that encircle the magnetic axis
-        for (pr, pz) in flux_surface(dim1, dim2, cl, RA, ZA, fw_r, fw_z, :open)
+        for (pr, pz) in flux_surface(dim1, dim2, cl, RA, ZA, fw_r, fw_z, :any)
+            if all(pz .> ZA) || all(pz .< ZA)
+                continue
+            end
             # close open flux surface
             tmp = collect(zip(pr, pz))
             push!(tmp, tmp[1])
@@ -1576,7 +1700,7 @@ Find the `n` X-points that are closest to the separatrix
 """
 function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     ((rlcfs, zlcfs),) = flux_surface(eqt, eqt.profiles_1d.psi[end], :closed, wall_r, wall_z)
-    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :open, wall_r, wall_z)
+    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :open, Float64[], Float64[])
     Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
 
@@ -1657,15 +1781,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
             deleteat!(psidist_lcfs_xpoints, k)
             deleteat!(z_x, k)
         end
-
-        # remove x-points that have fallen on the magnetic axis
-        min_psidist = psidist_lcfs_xpoints[argmin(abs(x) for x in psidist_lcfs_xpoints)]
-
-        sign_closest = sign(min_psidist)# sign of psi of closest X-point in psi to LCFS
-        index = psidist_lcfs_xpoints .* psi_sign .>= (psi_sign - sign_closest * 1E-5) * min_psidist
-        psidist_lcfs_xpoints = psidist_lcfs_xpoints[index]
-        eqt.boundary.x_point = eqt.boundary.x_point[index]
-        z_x = z_x[index]
 
         # sort a second time now by distance in psi
         index = sortperm(psidist_lcfs_xpoints; by=abs)
@@ -1788,4 +1903,17 @@ function luce_squareness(
     zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
 
     return zetaou, zetaol, zetail, zetaiu
+end
+
+"""
+    areal_elongation(eqt::IMAS.equilibrium__time_slice)
+
+A measure of the plasma elongation based on the averaged cross-sectional area of the plasma, most notably used in the H98y2 scaling
+
+See: https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf
+"""
+function areal_elongation(eqt::IMAS.equilibrium__time_slice)
+    a = 0.5 * (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end])
+    R = 0.5 * (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end])
+    return eqt.profiles_1d.volume[end] / (2π * R) / (π * a^2)
 end

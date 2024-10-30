@@ -41,10 +41,10 @@ function update_ConstraintFunctionsLibrary!()
     ConstraintFunction(:max_pl_stress, "%", dd -> maximum(dd.solid_mechanics.center_stack.stress.vonmises.pl) / (ismissing(dd.solid_mechanics.center_stack.stress.vonmises, :pl) ? 0.0 : dd.solid_mechanics.center_stack.properties.yield_strength.pl) + dd.requirements.coil_stress_margin, <, 1.0)
     ConstraintFunction(:max_tf_stress, "%", dd -> (1. + dd.requirements.coil_stress_margin) * maximum(dd.solid_mechanics.center_stack.stress.vonmises.tf) / dd.solid_mechanics.center_stack.properties.yield_strength.tf, <, 1.0)
     ConstraintFunction(:max_oh_stress, "%", dd -> (1. + dd.requirements.coil_stress_margin) * maximum(dd.solid_mechanics.center_stack.stress.vonmises.oh) / dd.solid_mechanics.center_stack.properties.yield_strength.oh, <, 1.0)
-    ConstraintFunction(:max_hds03, "%", dd -> (IMAS.tau_e_thermal(dd)/tau_e_ds03(dd) - dd.requirements.hds03)/dd.requirements.hds03, <, 0.0)
+    ConstraintFunction(:max_hds03, "%", dd -> (tau_e_thermal(dd)/tau_e_ds03(dd) - dd.requirements.hds03)/dd.requirements.hds03, <, 0.0)
     ConstraintFunction(:min_q95, "%", dd -> (dd.equilibrium.time_slice[].global_quantities.q_95 - dd.requirements.q95) / dd.requirements.q95, >, 0.0)
     ConstraintFunction(:max_βn, "", dd -> (dd.equilibrium.time_slice[].global_quantities.beta_normal - dd.requirements.beta_normal) / dd.requirements.beta_normal, <, 0.0)
-    ConstraintFunction(:max_Psol_R, "%", dd -> (((IMAS.power_sol(dd)/ 1E6) / dd.equilibrium.time_slice[].boundary.geometric_axis.r) - dd.requirements.Psol_R) / dd.requirements.Psol_R, <, 0.0)
+    ConstraintFunction(:max_Psol_R, "%", dd -> (((power_sol(dd)/ 1E6) / dd.equilibrium.time_slice[].boundary.geometric_axis.r) - dd.requirements.Psol_R) / dd.requirements.Psol_R, <, 0.0)
     ConstraintFunction(:max_transport_error, "", dd -> @ddtime(dd.transport_solver_numerics.convergence.time_step.data),<, 1e-1)
 
     #! format: on
@@ -72,7 +72,7 @@ function constraint_cost_transform(value::Float64, operation::Function, limit::F
     return out
 end
 
-function Base.show(io::IO, cnst::ConstraintFunction)
+function Base.show(io::IO, ::MIME"text/plain", cnst::ConstraintFunction)
     printstyled(io, cnst.name; bold=true, color=:blue)
     print(io, " $(cnst.operation)")
     print(io, " $(cnst.limit)")

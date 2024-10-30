@@ -6,18 +6,117 @@ import Graphs
 using GraphRecipes
 
 # ========= #
+# plot_help #
+# ========= #
+mutable struct PlotHelpParameter
+    dispatch::String
+    argument::Symbol
+    type::Any
+    description::String
+    value::Any
+end
+
+const _help_plot = Vector{PlotHelpParameter}()
+
+function plot_help_id(args...)
+    dispatches = String[]
+    for arg in args
+        if typeof(arg) <: IDS
+            push!(dispatches, ulocation(arg))
+        else
+            push!(dispatches, string(typeof(arg)))
+        end
+    end
+    return join(dispatches, ", ")
+end
+
+function assert_type_and_record_argument(dispatch, type::Type, description::String; kw...)
+    @assert length(kw) == 1
+    argument = collect(keys(kw))[1]
+    value = collect(values(kw))[1]
+
+    this_plotpar = PlotHelpParameter(dispatch, argument, type, description, value)
+
+    only_match = true
+    all_same_values = all(plotpar.value == this_plotpar.value for plotpar in _help_plot if "$(plotpar.dispatch), $(plotpar.argument)" == "$(dispatch), $(argument)")
+    for plotpar in _help_plot
+        if "$(plotpar.dispatch), $(plotpar.argument)" == "$(this_plotpar.dispatch), $(this_plotpar.argument)"
+            if !all_same_values
+                plotpar.value = :__MIXED__
+            end
+            only_match = false
+        end
+    end
+
+    if only_match
+        push!(_help_plot, this_plotpar)
+    end
+
+    return nothing
+end
+
+function Base.show(io::IO, ::MIME"text/plain", plotpar::PlotHelpParameter)
+    printstyled(io, plotpar.argument; bold=true)
+    printstyled(io, "::$(plotpar.type)"; color=:blue)
+    printstyled(io, " = ")
+    if plotpar.value == :__MIXED__
+        printstyled(io, "MIXED"; color=:magenta, bold=true)
+    else
+        printstyled(io, "$(repr(plotpar.value))"; color=:red, bold=true)
+    end
+    return printstyled(io, "  # $(plotpar.description)"; color=248)
+end
+
+function Base.show(io::IO, x::MIME"text/plain", plotpars::AbstractVector{<:PlotHelpParameter})
+    old_dispatch = nothing
+    for (k, plotpar) in enumerate(plotpars)
+        if plotpar.dispatch != old_dispatch
+            if k > 1
+                print(io, "\n")
+            end
+            printstyled(io, "$(plotpar.dispatch)"; color=:green)
+            print(io, "\n")
+        end
+        old_dispatch = plotpar.dispatch
+        print(io, "     ")
+        show(io, x, plotpar)
+        if k < length(plotpars)
+            print(io, "\n")
+        end
+    end
+end
+
+"""
+    help_plot(args...; kw...)
+
+Print plot arguments. Call `help_plot(...)` just like you would `plot(...)`
+"""
+function help_plot(args...; kw...)
+    empty!(_help_plot)
+    p = plot(args...; kw...)
+    display(_help_plot)
+    return p
+end
+
+"""
+    help_plot!(args...; kw...)
+
+Print plot arguments. Call `help_plot!(...)` just like you would `plot!(...)`
+"""
+function help_plot!(args...; kw...)
+    empty!(_help_plot)
+    p = plot!(args...; kw...)
+    display(_help_plot)
+    return p
+end
+
+# ========= #
 # pf_active #
 # ========= #
-"""
-    plot_pf_active_cx(pfa::pf_active)
-
-Plots pf active cross-section
-
-NOTE: Current plots are for the total current flowing in the coil (ie. it is multiplied by turns_with_sign)
-"""
 @recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time0=global_time(pfa), cname=:vik)
-    @assert typeof(time0) <: Float64
-    @assert typeof(cname) <: Symbol
+    id = plot_help_id(pfa, what)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Symbol, "Colormap name"; cname)
 
     if ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
@@ -67,7 +166,7 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
             @series begin
                 colorbar_entry := false
                 if all(currents .== 0.0)
-                    color --> :black
+                    color --> hash_to_color(sort!([func.index for func in c.function]); seed=4)
                 else
                     current_color_index = (currents[k] + CURRENT) / (2 * CURRENT)
                     color --> PlotUtils.cgrad(cname)[current_color_index]
@@ -120,13 +219,12 @@ NOTE: Current plots are for the total current flowing in the coil (ie. it is mul
 
 end
 
-"""
-    plot_coil(coil::pf_active__coil{T}; coil_names=false) where {T<:Real}
+@recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false, coil_identifiers=false) where {T<:Real}
+    id = plot_help_id(coil)
+    assert_type_and_record_argument(id, Bool, "Show coil names"; coil_names)
+    assert_type_and_record_argument(id, Bool, "Show coil identifiers"; coil_identifiers)
 
-Plots cross-section of individual coils
-"""
-@recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false) where {T<:Real}
-    @assert typeof(coil_names) <: Bool
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     r = T[]
     z = T[]
@@ -135,7 +233,7 @@ Plots cross-section of individual coils
         @series begin
             primary := k == 1
             seriestype --> :shape
-            linewidth --> 0.25
+            linewidth := 0.25 * base_linewidth
             colorbar --> :right
             label --> ""
             oute.r, oute.z
@@ -144,14 +242,25 @@ Plots cross-section of individual coils
         append!(z, oute.z)
     end
 
-    if coil_names
+    if coil_names || coil_identifiers
         r_avg = sum(r) / length(r)
         z_avg = sum(z) / length(z)
         @series begin
             label := ""
-            series_annotations := [(coil.name, :center, :middle, :red, 6)]
+            if coil_names
+                series_annotations := [(coil.name, :center, :middle, :red, 6)]
+            else
+                series_annotations := [(coil.identifier, :center, :middle, :red, 6)]
+            end
             [r_avg], [z_avg]
         end
+    end
+end
+
+@recipe function plot_coil(oute::pf_active__coil___element___geometry__outline{T}) where {T<:Real}
+    @series begin
+        seriestype --> :shape
+        oute.r, oute.z
     end
 end
 
@@ -290,14 +399,13 @@ end
     end
 end
 
-"""
-    plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
-
-Plots cross-section of individual loops
-"""
 @recipe function plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
-    @assert typeof(loop_names) <: Bool
+    id = plot_help_id(loop)
+    assert_type_and_record_argument(id, Bool, "Show loop names"; loop_names)
 
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
+
+    aspect_ratio := :equal
     r = T[]
     z = T[]
     for (k, element) in enumerate(loop.element)
@@ -305,8 +413,7 @@ Plots cross-section of individual loops
         @series begin
             primary := k == 1
             seriestype --> :shape
-            aspect_ratio := :equal
-            linewidth --> 0.25
+            linewidth := 0.25 * base_linewidth
             colorbar --> :right
             label --> ""
             oute.r, oute.z
@@ -329,26 +436,49 @@ end
 # ======= #
 # costing #
 # ======= #
-@recipe function plot_costing(cst::IMAS.IDSvector{<:IMAS.costing__cost_direct_capital__system})
-    costing = top_ids(cst)
+@recipe function plot_costing(cstdc::IMAS.costing__cost_direct_capital)
+    cstdcM = convert(Measurement{eltype(cstdc)}, cstdc)
+    @series begin
+        cstdcM
+    end
+end
+
+@recipe function plot_costing(cstdc::IMAS.costing__cost_direct_capital{T}) where {T<:Measurement}
+    costing = parent(cstdc)
+    cst = cstdc.system
+
     names = ["$(sys_cst.name)" for sys_cst in cst]
-    costs = [sys_cst.cost for sys_cst in cst]
-    perc = ["$(round(sys_cst.cost/sum(costs)*100))%" for sys_cst in cst]
+    uncertain_costs = [sys_cst.cost for sys_cst in cst]
+    costs = Float64[Measurements.value(sys_cst.cost) for sys_cst in cst]
+    perc = ["$(round(sys_cst/sum(costs)*100))%" for sys_cst in costs]
 
     name_series = [["$(sub_cst.name)" for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
-    cost_series = [[sub_cst.cost for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
-    perc_series = [["$(round(sub_cst.cost/sys_cst.cost*1000)/10)%" for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    uncertain_cost_series = [[sub_cst.cost for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    cost_series = [Float64[Measurements.value(sub_cst.cost) for sub_cst in reverse(sys_cst.subsystem)] for sys_cst in cst]
+    perc_series = [["$(round(sub_cst/sum(sys_cst)*1000)/10)%" for sub_cst in sys_cst] for sys_cst in cost_series]
 
     size --> (1000, 300)
     cols = 1 + length(filter!(!isempty, cost_series))
     layout := RecipesBase.@layout (1, cols)
     margin --> 5 * Measures.mm
 
+    for s in (-1, 1)
+        @series begin
+            subplot := 1
+            seriestype := :bar
+            orientation := :horizontal
+            alpha := 0.25
+            linecolor := :match
+            label:=""
+            color := [PlotUtils.palette(:tab10)[c] for c in length(costs):-1:1]
+            reverse(names), reverse([Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_costs])
+        end
+    end
     @series begin
         subplot := 1
         seriestype := :bar
         orientation := :horizontal
-        title := "\n" * "Direct Capital Cost in $(costing.construction_start_year) " * @sprintf("[%.3g \$\$B]", sum(costs) / 1E3)
+        title := "\n" * @sprintf("Direct Capital Cost in %d [%.3g \$\$B]", costing.construction_start_year, sum(costs) / 1E3)
         titlefontsize := 10
         ylim := (0, length(costs))
         label := ""
@@ -359,14 +489,27 @@ end
         xlabel := "[\$M]"
         showaxis := :x
         yaxis := nothing
-        alpha := 0.5
+        alpha := 0.25
+        primary := false
         linecolor := :match
         color := [PlotUtils.palette(:tab10)[c] for c in length(costs):-1:1]
         reverse(names), reverse(costs)
     end
 
-    for (k, (sub_names, sub_perc, sub_costs)) in enumerate(zip(name_series, perc_series, cost_series))
+    for (k, (sub_names, sub_perc, sub_costs, uncertain_sub_costs)) in enumerate(zip(name_series, perc_series, cost_series, uncertain_cost_series))
         if !isempty(sub_costs)
+            for s in (-1, 1)
+                @series begin
+                    subplot := 1 + k
+                    seriestype := :bar
+                    orientation := :horizontal
+                    alpha := 0.25
+                    linecolor := :match
+                    label:=""
+                    color := PlotUtils.palette(:tab10)[k]
+                    sub_names, [Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_sub_costs]
+                end
+            end
             @series begin
                 subplot := 1 + k
                 seriestype := :bar
@@ -384,26 +527,20 @@ end
                 end
                 xlabel := "[\$M]"
                 showaxis := :x
+                primary := false
                 ylim := (0, length(sub_costs))
-                alpha := 0.5
+                alpha := 0.25
                 linecolor := :match
                 color := PlotUtils.palette(:tab10)[k]
                 sub_names, sub_costs
             end
         end
     end
-
 end
 
-@recipe function plot_costing(cst::IMAS.costing__cost_direct_capital)
+@recipe function plot_costing(costing::IMAS.costing)
     @series begin
-        return cst.system
-    end
-end
-
-@recipe function plot_costing(cst::IMAS.costing)
-    @series begin
-        return cst.cost_direct_capital.system
+        return costing.cost_direct_capital
     end
 end
 
@@ -508,14 +645,19 @@ end
 # equilibrium #
 # =========== #
 @recipe function plot_eq(eq::IMAS.equilibrium; time0=global_time(eq))
+    id = plot_help_id(eq)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
     @series begin
         return eq.time_slice[time0]
     end
 end
 
 @recipe function plot_eqt(eqt::IMAS.equilibrium__time_slice; cx=false, coordinate=:psi_norm, core_profiles_overlay=false)
-    @assert typeof(cx) <: Bool
-    @assert typeof(coordinate) <: Symbol
+    id = plot_help_id(eqt)
+    assert_type_and_record_argument(id, Bool, "Display 2D cross section"; cx)
+    assert_type_and_record_argument(id, Symbol, "X coordinate for 1D profiles"; coordinate)
+    assert_type_and_record_argument(id, Bool, "Overlay core_profiles data"; core_profiles_overlay)
 
     if !cx
         layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
@@ -601,6 +743,7 @@ end
                 label := ""
                 subplot := 4
                 ylabel := ""
+                normalization := 1.0
                 if contains(string(coordinate), "psi")
                     title := L"\rho"
                     eqt.profiles_1d, :rho_tor_norm
@@ -625,6 +768,8 @@ end
             @series begin
                 label := ""
                 subplot := 5
+                ylabel := ""
+                normalization := 1.0
                 title := L"q"
                 eqt.profiles_1d, :q
             end
@@ -646,19 +791,20 @@ end
 
 @recipe function plot_eqt2(
     eqt2d::IMAS.equilibrium__time_slice___profiles_2d;
-    psi_levels_in=nothing,
-    psi_levels_out=nothing,
-    lcfs=false,
-    secondary_separatrix=false,
-    show_x_points=false,
-    magnetic_axis=true)
+    psi_levels_in=11,
+    psi_levels_out=11,
+    show_secondary_separatrix=false,
+    show_x_points=true,
+    show_strike_points=true,
+    show_magnetic_axis=true)
 
-    @assert typeof(psi_levels_in) <: Union{Nothing,Int,AbstractVector{<:Real}}
-    @assert typeof(psi_levels_out) <: Union{Nothing,Int,AbstractVector{<:Real}}
-    @assert typeof(lcfs) <: Bool
-    @assert typeof(secondary_separatrix) <: Bool
-    @assert typeof(show_x_points) <: Bool
-    @assert typeof(magnetic_axis) <: Bool
+    id = plot_help_id(eqt2d)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels inside LCFS"; psi_levels_in)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels outside LCFS"; psi_levels_out)
+    assert_type_and_record_argument(id, Bool, "Plot secondary separatrix"; show_secondary_separatrix)
+    assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
+    assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
+    assert_type_and_record_argument(id, Bool, "Show magnetic axis"; show_magnetic_axis)
 
     label --> ""
     aspect_ratio := :equal
@@ -676,61 +822,60 @@ end
     if tmp !== nothing
         psi__boundary_level = tmp
     end
-    if lcfs
-        psi_levels_in = [psi__boundary_level, psi__boundary_level]
-        psi_levels_out = []
-    else
-        npsi = 11
-        if psi_levels_in === nothing
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, npsi)
-        elseif isa(psi_levels_in, Int)
-            if psi_levels_in > 1
-                npsi = psi_levels_in
-                psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
-            else
-                psi_levels_in = []
-            end
+    if typeof(psi_levels_in) <: Int
+        if psi_levels_in == 1
+            psi_levels_in = [psi__boundary_level]
+        elseif psi_levels_in > 0
+            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
+        else
+            psi_levels_in = []
         end
-        delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
-        if psi_levels_out === nothing
-            psi_levels_out = delta_psi .* range(0.0, 1.0, npsi) .+ psi__boundary_level
-        elseif isa(psi_levels_out, Int)
-            if psi_levels_out > 1
-                psi_levels_out = delta_psi / npsi .* collect(0:psi_levels_out) .+ psi__boundary_level
-            else
-                psi_levels_out = []
-            end
+    end
+    delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
+    if typeof(psi_levels_out) <: Int
+        if psi_levels_out > 0
+            psi_levels_out = delta_psi / length(psi_levels_in) .* collect(0:psi_levels_out) .+ psi__boundary_level
+        else
+            psi_levels_out = []
         end
     end
     psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
 
     fw = first_wall(top_dd(eqt).wall)
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     for psi_level in psi_levels
         for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
             @series begin
                 seriestype --> :path
                 if psi_level == psi__boundary_level
-                    linewidth --> 2.0
-                elseif psi_level in psi_levels_in
-                    linewidth --> 1.0
+                    linewidth := base_linewidth * 1.5
                 else
-                    linewidth --> 0.5
+                    linewidth := base_linewidth * 0.5
+                    if psi_level in psi_levels_in &&
+                       (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
+                        linestyle --> :solid
+                    else
+                        linestyle --> :dash
+                    end
                 end
                 pr, pz
             end
         end
     end
 
-    if secondary_separatrix
+    if show_secondary_separatrix
         @series begin
             primary --> false
-            linewidth --> 1.5
+            linewidth := base_linewidth * 1.0
             eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
         end
     end
 
-    if magnetic_axis
+    if show_magnetic_axis
         @series begin
             primary --> false
             eqt.global_quantities.magnetic_axis
@@ -744,6 +889,13 @@ end
         end
     end
 
+    if show_strike_points
+        @series begin
+            primary --> false
+            eqt.boundary.strike_point
+        end
+    end
+
 end
 
 @recipe function plot_eqtb(eqtb::IMAS.equilibrium__time_slice___boundary)
@@ -753,6 +905,10 @@ end
     @series begin
         primary --> false
         eqtb.x_point
+    end
+    @series begin
+        primary --> false
+        eqtb.strike_point
     end
 end
 
@@ -780,6 +936,25 @@ end
         label --> ""
         aspect_ratio := :equal
         [(x_point.r, x_point.z)]
+    end
+end
+
+@recipe function plot_strike_points(s_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__strike_point})
+    for s_point in s_points
+        @series begin
+            s_point
+        end
+    end
+end
+
+@recipe function plot_strike_point(s_point::IMAS.equilibrium__time_slice___boundary__strike_point)
+    @series begin
+        seriestype := :scatter
+        marker --> :cross
+        markerstrokewidth --> 0
+        label --> ""
+        aspect_ratio := :equal
+        [(s_point.r, s_point.z)]
     end
 end
 
@@ -847,8 +1022,9 @@ end
 end
 
 @recipe function plot_divertors(surface_outline::IMAS.divertors__divertor___target___tile___surface_outline)
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
     @series begin
-        linewidth --> 2
+        linewidth := base_linewidth * 2
         aspect_ratio := :equal
         surface_outline.r, surface_outline.z
     end
@@ -864,19 +1040,16 @@ function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::Abstrac
     return r, z
 end
 
-"""
-    plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
-
-Plot build cross-section
-"""
 @recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, only=Symbol[], exclude_layers=Symbol[])
+    id = plot_help_id(bd)
+    assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
+    assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
+    assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
+    assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
 
-    @assert typeof(cx) <: Bool
-    @assert typeof(equilibrium) <: Bool
-    @assert typeof(pf_active) <: Bool
-    @assert typeof(wireframe) <: Bool
-    @assert typeof(only) <: AbstractVector{Symbol}
-    @assert typeof(exclude_layers) <: AbstractVector{Symbol}
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     legend_position --> :outerbottomright
     aspect_ratio := :equal
@@ -914,7 +1087,7 @@ Plot build cross-section
                 end
                 @series begin
                     seriestype --> :path
-                    linewidth --> 1
+                    linewidth := base_linewidth
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
@@ -930,6 +1103,7 @@ Plot build cross-section
                 seriestype --> :shape
                 linewidth := 0.0
                 color --> :white
+                linecolor --> :white
                 label --> ""
                 xlim --> [0, rmax]
                 join_outlines(
@@ -942,7 +1116,7 @@ Plot build cross-section
             if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
                 @series begin
                     seriestype --> :path
-                    linewidth --> 1
+                    linewidth := base_linewidth
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
@@ -954,7 +1128,7 @@ Plot build cross-section
         # axis of symmetry
         @series begin
             seriestype --> :path
-            linewidth --> 1
+            linewidth := base_linewidth
             label --> ""
             linestyle --> :dash
             color --> :black
@@ -978,7 +1152,7 @@ Plot build cross-section
                     end
                     @series begin
                         seriestype --> :path
-                        linewidth --> 0.5
+                        linewidth := 0.5 * base_linewidth
                         color --> :black
                         label --> ""
                         xlim --> [0, rmax]
@@ -1036,7 +1210,7 @@ Plot build cross-section
                 end
                 @series begin
                     seriestype --> :path
-                    linewidth --> 0.5
+                    linewidth := 0.5 * base_linewidth
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
@@ -1050,7 +1224,7 @@ Plot build cross-section
             plasma_outline = outline(get_build_layer(bd.layer; type=_plasma_))
             @series begin
                 seriestype --> :path
-                linewidth --> 1.0
+                linewidth := base_linewidth
                 color --> :black
                 label --> ""
                 xlim --> [0, rmax]
@@ -1074,7 +1248,7 @@ Plot build cross-section
                     end
                     @series begin
                         seriestype --> :path
-                        linewidth --> 0.5
+                        linewidth := 0.5 * base_linewidth
                         color --> :black
                         label --> ""
                         xlim --> [0, rmax]
@@ -1091,7 +1265,7 @@ Plot build cross-section
                     if !wireframe
                         @series begin
                             seriestype --> :path
-                            linewidth := 2.0
+                            linewidth := 2.0 * base_linewidth
                             color --> :lightblue
                             label --> (!wireframe && k == 1 ? "Vessel Port" : "")
                             xlim --> [0, maximum(bd.structure[index].outline.r)]
@@ -1100,7 +1274,7 @@ Plot build cross-section
                     end
                     @series begin
                         seriestype --> :path
-                        linewidth --> 0.5
+                        linewidth := 0.5 * base_linewidth
                         color --> :black
                         label --> ""
                         xlim --> [0, maximum(bd.structure[index].outline.r)]
@@ -1122,7 +1296,7 @@ Plot build cross-section
 
         @series begin
             seriestype --> :vline
-            linewidth --> 2
+            linewidth := 2 * base_linewidth
             label --> ""
             linestyle --> :dash
             color --> :black
@@ -1168,7 +1342,7 @@ Plot build cross-section
             at += l.thickness
             @series begin
                 seriestype --> :vline
-                linewidth --> 0.5
+                linewidth := 0.5 * base_linewidth
                 label --> ""
                 color --> :black
                 xlim --> [0, at]
@@ -1197,13 +1371,12 @@ end
 # ======== #
 # build tf #
 # ======== #
-@recipe function plot_build_tf(tf::IMAS.build__tf; cutouts=false)
-    @assert typeof(cutouts) <: Bool
+@recipe function plot_build_tf(tf::IMAS.build__tf)
     layers = parent(tf).layer
     TF = get_build_layers(layers; type=IMAS._tf_)
 
     for n in 1:tf.coils_n
-        x, y = top_outline(tf, n; cutouts)
+        x, y = top_outline(tf, n)
         @series begin
             linewidth := 2
             label := ""
@@ -1313,12 +1486,16 @@ function transport_channel_paths(ions::AbstractVector{<:IDS}, ions_list::Abstrac
 end
 
 @recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; only=nothing, ions=Symbol[])
-    @assert typeof(ions) <: AbstractVector{Symbol}
+    id = plot_help_id(ct1d)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
+
     paths = transport_channel_paths(ct1d.ion, ions)
 
     if only === nothing
         layout := 4 + length(ions)
-        size --> (800, 600)
+        Nr = Int(ceil(sqrt(4 + length(ions))))
+        size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
 
@@ -1337,8 +1514,16 @@ end
 end
 
 @recipe function plot_core_transport(ct::IMAS.core_transport{D}; ions=Symbol[:my_ions], time0=global_time(ct)) where {D<:Real}
-    @assert typeof(ions) <: AbstractVector{Symbol}
-    @assert typeof(time0) <: Float64
+    id = plot_help_id(ct)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    dd = top_dd(ct)
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    if ions == [:my_ions]
+        ions = list_ions(ct, cp1d)
+    end
 
     model_type = name_2_index(ct.model)
     rhos = D[]
@@ -1350,12 +1535,6 @@ end
         append!(rhos, ct1d.grid_flux.rho_tor_norm)
     end
     rhos = unique(rhos)
-    if ions == [:my_ions]
-        ions = list_ions(ct)
-    end
-
-    dd = top_dd(ct)
-    cp1d = dd.core_profiles.profiles_1d[]
 
     if dd !== nothing
         @series begin
@@ -1363,6 +1542,7 @@ end
             color := :blue
             name := "Total source"
             flux := true
+            show_zeros := true
             ions := ions
             total_sources(dd; time0)
         end
@@ -1401,7 +1581,11 @@ end
 # ============ #
 # core_sources #
 # ============ #
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:electrons__energy};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy})
+    return cs1d.electrons, Val(:energy)
+end
+
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy};
     name="",
     label="",
     integrated=false,
@@ -1409,13 +1593,25 @@ end
     show_zeros=false,
     min_power=1e3,
     only_positive_negative=0,
-    show_source_number=false
-)
+    show_source_number=false)
+
+    id = plot_help_id(cs1de, v)
+    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
+    assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
+    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+
+    cs1d = parent(cs1de)
+
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
-    if !ismissing(cs1d.electrons, :energy)
-        tot = trapz(cs1d.grid.volume, cs1d.electrons.energy)
+    if !ismissing(cs1de, :energy)
+        tot = trapz(cs1d.grid.volume, cs1de.energy)
     end
     show_condition =
         show_zeros || identifier in [:total, :collisional_equipartition, :time_derivative] ||
@@ -1431,16 +1627,16 @@ end
             if identifier in [:ec, :ic, :lh, :nbi, :pellet]
                 fill0 --> true
             end
-            if !ismissing(cs1d.electrons, :power_inside) && flux
+            if !ismissing(cs1de, :power_inside) && flux
                 ylabel := "[MW/m²]"
                 normalization = 1E-6 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
-                cs1d.electrons, :power_inside
-            elseif !integrated && !ismissing(cs1d.electrons, :energy)
-                cs1d.electrons, :energy
-            elseif integrated && !ismissing(cs1d.electrons, :power_inside)
-                cs1d.electrons, :power_inside
+                cs1de, :power_inside
+            elseif !integrated && !ismissing(cs1de, :energy)
+                cs1de, :energy
+            elseif integrated && !ismissing(cs1de, :power_inside)
+                cs1de, :power_inside
             else
                 label := ""
                 [NaN], [NaN]
@@ -1452,7 +1648,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:total_ion_energy};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy};
     name="",
     label="",
     integrated=false,
@@ -1460,8 +1656,17 @@ end
     show_zeros=false,
     min_power=1e3,
     only_positive_negative=0,
-    show_source_number=false
-)
+    show_source_number=false)
+
+    id = plot_help_id(cs1d, v)
+    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
+    assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
+    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
@@ -1503,19 +1708,33 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:electrons__particles};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles})
+    return cs1d.electrons, Val(:particles)
+end
+
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles};
     name="",
     label="",
     integrated=false,
     flux=false,
     show_zeros=false,
-    show_source_number=false
-)
+    show_source_number=false)
+
+    id = plot_help_id(cs1de, v)
+    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+
+    cs1d = parent(cs1de)
+
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
-    if !ismissing(cs1d.electrons, :particles)
-        tot = trapz(cs1d.grid.volume, cs1d.electrons.particles)
+    if !ismissing(cs1de, :particles)
+        tot = trapz(cs1d.grid.volume, cs1de.particles)
     end
     show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
     @series begin
@@ -1526,16 +1745,16 @@ end
             if identifier in [:ec, :ic, :lh, :nbi, :pellet]
                 fill0 --> true
             end
-            if !ismissing(cs1d.electrons, :particles_inside) && flux
+            if !ismissing(cs1de, :particles_inside) && flux
                 ylabel := "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
-                cs1d.electrons, :particles_inside
-            elseif !integrated && !ismissing(cs1d.electrons, :particles)
-                cs1d.electrons, :particles
-            elseif integrated && !ismissing(cs1d.electrons, :particles_inside)
-                cs1d.electrons, :particles_inside
+                cs1de, :particles_inside
+            elseif !integrated && !ismissing(cs1de, :particles)
+                cs1de, :particles
+            elseif integrated && !ismissing(cs1de, :particles_inside)
+                cs1de, :particles_inside
             else
                 label := ""
                 [NaN], [NaN]
@@ -1547,14 +1766,22 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, ::Val{:particles};
+@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles};
     name="",
     label="",
     integrated=false,
     flux=false,
     show_zeros=false,
-    show_source_number=false
-)
+    show_source_number=false)
+
+    id = plot_help_id(cs1di, v)
+    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+
     cs1d = parent(parent(cs1di))
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
@@ -1592,14 +1819,22 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:momentum_tor};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor};
     name="",
     label="",
     integrated=false,
     flux=false,
     show_zeros=false,
-    show_source_number=false
-)
+    show_source_number=false)
+
+    id = plot_help_id(cs1d, v)
+    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
@@ -1636,13 +1871,20 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, ::Val{:j_parallel};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel};
     name="",
     label="",
     integrated=false,
     show_zeros=false,
-    show_source_number=false
-)
+    show_source_number=false)
+
+    id = plot_help_id(cs1d, v)
+    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+
     name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
 
     tot = 0.0
@@ -1702,29 +1944,33 @@ end
     min_power=1e3,
     only_positive_negative=0,
     show_source_number=false,
-    ions=Symbol[]
-)
-    @assert typeof(name) <: AbstractString
-    @assert typeof(integrated) <: Bool
-    @assert typeof(flux) <: Bool
-    @assert typeof(label) <: Union{Nothing,AbstractString}
-    @assert typeof(show_zeros) <: Bool
-    @assert typeof(min_power) <: Float64
-    @assert typeof(only_positive_negative) <: Int
-    @assert typeof(show_source_number) <: Bool
-    @assert typeof(ions) <: AbstractVector{Symbol}
+    ions=Symbol[])
+
+    id = plot_help_id(cs1d)
+    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
+    assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
+    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
 
     paths = transport_channel_paths(cs1d.ion, ions)
     if !flux
-        push!(paths, [:j_parallel])
+        insert!(paths, 5, [:j_parallel])
     end
     if only === nothing
         if flux
-            layout := 4 + length(ions)
+            N = 4 + length(ions)
         else
-            layout := 5 + length(ions)
+            N = 5 + length(ions)
         end
-        size --> (800, 600)
+        layout := N
+        Nr = Int(ceil(sqrt(N)))
+        size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
 
@@ -1757,12 +2003,20 @@ end
 end
 
 @recipe function plot_core_sources(cs::IMAS.core_sources{T}; ions=[:my_ions], time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
-    @assert typeof(ions) <: AbstractVector{Symbol}
-    @assert typeof(time0) <: Float64
-    @assert typeof(aggregate_radiation) <: Bool
+    id = plot_help_id(cs)
+    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Bool, "Aggregate radiation sources"; aggregate_radiation)
+
+    dd = top_dd(cs)
 
     if ions == [:my_ions]
-        ions = list_ions(cs)
+        if dd !== nothing && !isempty(dd.core_profiles.profiles_1d)
+            cp1d = dd.core_profiles.profiles_1d[]
+            ions = list_ions(cs, cp1d)
+        else
+            ions = list_ions(cs, nothing)
+        end
     end
 
     all_indexes = [source.identifier.index for source in cs.source]
@@ -1808,6 +2062,9 @@ end
 end
 
 @recipe function plot_source(source::IMAS.core_sources__source; time0=global_time(source))
+    id = plot_help_id(source)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
     if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
         @series begin
             name := source.identifier.name
@@ -1820,14 +2077,20 @@ end
 # core_profiles #
 # ============= #
 @recipe function plot_core_profiles(cp::IMAS.core_profiles; time0=global_time(cp))
+    id = plot_help_id(cp)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
     @series begin
         return cp.profiles_1d[time0]
     end
 end
 
 @recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false)
+    id = plot_help_id(cpt)
+    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
 
-    @assert typeof(label) <: Union{Nothing,AbstractString}
     if label === nothing
         label = ""
     end
@@ -1942,7 +2205,6 @@ end
             end
         end
     end
-
 end
 
 # =============== #
@@ -1956,6 +2218,8 @@ end
     r_oh = smcs.grid.r_oh
     r_tf = smcs.grid.r_tf
     r_pl = getproperty(smcs.grid, :r_pl, missing)
+
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     @series begin
         r_oh, stress.oh ./ 1E6
@@ -1974,29 +2238,29 @@ end
     if typeof(stress) <: IMAS.solid_mechanics__center_stack__stress__vonmises
         @series begin
             linestyle := :dash
-            linewidth := 0.75
+            linewidth := 0.75 * base_linewidth
             label := "Yield strength"
             r_oh, r_oh .* 0.0 .+ smcs.properties.yield_strength.oh / 1E6
         end
         @series begin
             primary := false
             linestyle := :dash
-            linewidth := 0.75
+            linewidth := 0.75 * base_linewidth
             r_tf, r_tf .* 0.0 .+ smcs.properties.yield_strength.tf / 1E6
         end
         if r_pl !== missing
             @series begin
                 primary := false
                 linestyle := :dash
-                linewidth := 0.75
+                linewidth := 0.75 * base_linewidth
                 r_pl, r_pl .* 0.0 .+ smcs.properties.yield_strength.pl / 1E6
             end
         end
     end
 end
 
-@recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress; linewidth=1)
-    @assert typeof(linewidth) <: Real
+@recipe function plot_solid_mechanics(stress::IMAS.solid_mechanics__center_stack__stress)
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     legend_position --> :bottomleft
     ylabel --> "Stresses [MPa]"
@@ -2023,19 +2287,19 @@ end
 
     @series begin
         label := "Von Mises" * config
-        linewidth := linewidth + 2
+        linewidth := base_linewidth * 3
         linestyle := :solid
         stress.vonmises
     end
     @series begin
         label := "Hoop" * config
-        linewidth := linewidth + 1
+        linewidth := base_linewidth * 2
         linestyle := :dash
         stress.hoop
     end
     @series begin
         label := "Radial" * config
-        linewidth := linewidth + 1
+        linewidth := base_linewidth * 2
         linestyle := :dashdot
         stress.radial
     end
@@ -2044,7 +2308,6 @@ end
     for radius in (smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end])
         @series begin
             seriestype := :vline
-            linewidth := linewidth
             label := ""
             linestyle := :dash
             color := :black
@@ -2056,8 +2319,8 @@ end
 # ================ #
 # balance_of_plant #
 # ================ #
-@recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant; linewidth=2)
-    @assert typeof(linewidth) <: Real
+@recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant)
+    base_linewidth = plotattributes[:linewidth]
 
     size --> (800, 600)
     legend_position --> :outertopright
@@ -2066,14 +2329,14 @@ end
 
     @series begin
         label := "Net electric"
-        linewidth := linewidth + 2
+        linewidth := base_linewidth * 3
         color := "Black"
         bop, :power_electric_net
     end
 
     @series begin
         label := "Electricity generated"
-        linewidth := linewidth + 1
+        linewidth := base_linewidth * 2
         linestyle --> :dash
         color := "Black"
         bop.power_plant, :power_electric_generated
@@ -2082,7 +2345,6 @@ end
     for sys in bop.power_electric_plant_operation.system
         @series begin
             label := string(sys.name)
-            linewidth := linewidth
             sys, :power
         end
     end
@@ -2091,9 +2353,12 @@ end
 # ========== #
 # neutronics #
 # ========== #
-@recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading, component::Symbol=:norm; cx=true)
+@recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading; cx=true, component=:norm)
+    id = plot_help_id(nwl)
+    assert_type_and_record_argument(id, Symbol, "Component to plot (:norm, :r, :z, :power)"; component)
+    assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
 
-    @assert typeof(cx) <: Bool
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     neutronics = top_ids(nwl)
     title = "Wall flux"
@@ -2118,7 +2383,7 @@ end
         seriestype --> :path
         line_z --> log10.(data)
         aspect_ratio := :equal
-        linewidth --> 8
+        linewidth := 8 * base_linewidth
         label --> ""
         if component in (:r, :z)
             linecolor --> :seismic
@@ -2171,8 +2436,9 @@ end
 end
 
 @recipe function plot_wd2d(wd2d::IMAS.wall__description_2d; show_limiter=true, show_vessel=true)
-    @assert typeof(show_limiter) <: Bool
-    @assert typeof(show_vessel) <: Bool
+    id = plot_help_id(wd2d)
+    assert_type_and_record_argument(id, Bool, "Show limiter units"; show_limiter)
+    assert_type_and_record_argument(id, Bool, "Show vessel units"; show_vessel)
     if show_limiter
         @series begin
             return wd2d.limiter
@@ -2225,32 +2491,53 @@ end
 end
 
 @recipe function plot_wd2dvu(wd2dvu::IMAS.wall__description_2d___vessel__unit)
-    centreline = closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed))
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
-    if !ismissing(wd2dvu.annular, :thickness)
-        thickness = wd2dvu.annular.thickness
-        if Bool(wd2dvu.annular.centreline.closed)
-            thickness = [thickness; thickness[1]]
-        end
+    plot_data_items = []
+    closed_items = Bool[]
+    if !ismissing(wd2dvu.annular.centreline, :r)
+        push!(plot_data_items, closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed)))
+        push!(closed_items, Bool(wd2dvu.annular.centreline.closed))
+    end
+    if !ismissing(wd2dvu.annular.outline_inner, :r)
+        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_inner.r, wd2dvu.annular.outline_inner.z, Bool(wd2dvu.annular.outline_inner.closed)))
+        push!(closed_items, Bool(wd2dvu.annular.outline_inner.closed))
+    end
+    if !ismissing(wd2dvu.annular.outline_outer, :r)
+        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_outer.r, wd2dvu.annular.outline_outer.z, Bool(wd2dvu.annular.outline_outer.closed)))
+        push!(closed_items, Bool(wd2dvu.annular.outline_outer.closed))
+    end
+    for j in eachindex(wd2dvu.element)
+        wd2dvu.element[j].outline.r
+        push!(plot_data_items, closed_polygon(wd2dvu.element[j].outline.r, wd2dvu.element[j].outline.z, Bool(wd2dvu.element[j].outline.closed)))
+        push!(closed_items, Bool(wd2dvu.element[j].outline.closed))
+    end
 
-        for i in 1:length(centreline.R)-1
-            pts = thick_line_polygon(centreline.R[i], centreline.Z[i], centreline.R[i+1], centreline.Z[i+1], thickness[i], thickness[i+1])
-            # Extract x and y coordinates for plotting
-            xs, ys = map(collect, zip(pts...))
-            @series begin
-                primary := i == 1
-                linewidth := 0.1
-                aspect_ratio := :equal
-                fill := (0, 0.5, :gray)
-                xlim := (0, Inf)
-                xs, ys
+    for (plotdata, is_closed) in zip(plot_data_items, closed_items)
+        if !ismissing(wd2dvu.annular, :thickness)
+            thickness = wd2dvu.annular.thickness
+            if is_closed
+                thickness = [thickness; thickness[1]]
             end
-        end
-    else
-        @series begin
-            label --> getproperty(wd2dvu, :name, "")
-            aspect_ratio := :equal
-            centreline.R, centreline.Z
+            for i in 1:length(plotdata.r)-1
+                pts = thick_line_polygon(plotdata.r[i], plotdata.z[i], plotdata.r[i+1], plotdata.z[i+1], thickness[i], thickness[i+1])
+                # Extract x and y coordinates for plotting
+                xs, ys = map(collect, zip(pts...))
+                @series begin
+                    primary := i == 1
+                    linewidth := 0.1 * base_linewidth
+                    aspect_ratio := :equal
+                    fill := (0, 0.5, :gray)
+                    xlim := (0, Inf)
+                    xs, ys
+                end
+            end
+        else
+            @series begin
+                label --> getproperty(wd2dvu, :name, "")
+                aspect_ratio := :equal
+                plotdata.r, plotdata.z
+            end
         end
     end
 end
@@ -2276,7 +2563,7 @@ end
     poly = closed_polygon(outline.r, outline.z)
     @series begin
         aspect_ratio := :equal
-        poly.R, poly.Z
+        poly.r, poly.z
     end
 end
 
@@ -2284,7 +2571,9 @@ end
 #  pulse_schedule  #
 #= ============== =#
 @recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps), simulation_start=nothing)
-    @assert typeof(time0) <: Float64
+    id = plot_help_id(ps)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Union{Nothing,Float64}, "Simulation start time"; simulation_start)
     plots = []
     for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
         if field != :reference
@@ -2325,7 +2614,7 @@ end
 
     @series begin
         subplot := 1
-        label := "$(time) [s]"
+        label := "$(time0) [s]"
         aspect_ratio := :equal
         time0 := time0
         ps.position_control
@@ -2406,7 +2695,8 @@ end
 end
 
 @recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
-    @assert typeof(time0) <: Float64
+    id = plot_help_id(pc)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     aspect_ratio := :equal
     bnd = boundary(pc; time0)
     @series begin
@@ -2519,7 +2809,7 @@ end
     size --> (200 * N, 200 * N)
     for (k, leaf) in enumerate(valid_leaves)
         loc = replace(location(leaf.ids, leaf.field), ".value" => "")
-        _,title, label = rsplit(loc, ".", limit=3)
+        _, title, label = rsplit(loc, "."; limit=3)
         @series begin
             guidefontvalign := :top
             titlefont --> font(8, "Arial", "bold")
@@ -2535,12 +2825,13 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing, weighted=:none, fill0=false)
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
+    id = plot_help_id(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
-    @assert typeof(normalization) <: Union{Real,AbstractVector{<:Real}}
-    @assert typeof(coordinate) <: Union{Nothing,Symbol}
-    @assert typeof(weighted) <: Symbol
-    @assert typeof(fill0) <: Bool
+    assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
+    assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Coordinate for x-axis"; coordinate)
+    assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
+    assert_type_and_record_argument(id, Bool, "Fill area under curve"; fill0)
 
     coords = coordinates(ids, field; coord_leaves=[coordinate])
     coordinate_name = coords.names[1]
@@ -2557,7 +2848,7 @@ end
         end
 
         # multiply y by things like `:area` or `:volume`
-        if weighted != :none
+        if weighted !== nothing
             weight = coordinates(ids, field; coord_leaves=[weighted])
             yvalue .*= weight.values[1]
             ylabel = nice_units(units(ids, field) * "*" * units(weight.names[1]))
@@ -2590,7 +2881,7 @@ end
     end
 end
 
-@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurements.Measurement}, err::Symbol=:ribbon)
+@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurement}, err::Symbol=:ribbon)
     if err == :ribbon
         ribbon := Measurements.uncertainty.(y)
     elseif err == :bar
@@ -2682,140 +2973,24 @@ function nice_units(units::String)
     return units
 end
 
-#= ============= =#
-#  Thermal loads #
-#= ============= =#
 """
-Recipe for plot of heat flux
+    hash_to_color(input::Any; seed::Int=0)
 
-  - which_plot = :twoD, :oneD
-  - plot_type  = :path, :scatter (only for 2D)
-  - q          =
-    :all (for 1D),
-    :wall,
-    :parallel
-    :particle
-    :core_radiation
-    :both (= :particle + :parallel)
+Generate a unique RGB color based on the hash of an input, with an optional seed for color adjustment.
+
+This function computes the hash of the given `input` and converts it to an RGB color in the [0,1] range.
+The optional `seed` parameter shifts the hash to allow different color mappings for the same input.
+Using a different `seed` value will produce a unique color set for the same input.
 """
-@recipe function plot_heat_flux(HF::WallHeatFlux; which_plot=:twoD, plot_type=:path, q=:wall)
-    @assert which_plot in (:oneD, :twoD)
-    @assert plot_type in (:path, :scatter)
-    @assert q in (:wall, :parallel, :particle, :core_radiation, :both, :all)
+function hash_to_color(input::Any; seed::Int=0)
+    # Generate a hash for the input
+    h = hash(hash(input) + seed)
 
-    if q in (:both, :all)
-        if q == :both
-            qs = (:parallel, :particle)
-        else
-            qs = (:wall, :particle, :core_radiation)
-        end
-        if which_plot == :twoD
-            layout := (1, length(qs))
-        end
-        for (k, q) in enumerate(qs)
-            @series begin
-                if which_plot == :twoD
-                    subplot := k
-                end
-                which_plot := which_plot
-                plot_type := plot_type
-                q := q
-                HF
-            end
-        end
+    # Convert the hash to a range for RGB values (0 to 1)
+    r = ((h >> 16) & 0xFF) / 255.0
+    g = ((h >> 8) & 0xFF) / 255.0
+    b = (h & 0xFF) / 255.0
 
-    elseif which_plot == :oneD
-        @series begin
-            xlabel --> "Clockwise distance along wall [m]"
-            ylabel --> "Wall flux [W/m²]"
-            yscale --> :log10
-
-            x = []
-            y = []
-            if q == :particle
-                label --> "particles"
-                if !isempty(HF.q_part)
-                    x = HF.s
-                    y = HF.q_part .+ 1.0
-                end
-
-            elseif q == :core_radiation
-                label --> "core radiation"
-                if !isempty(HF.q_core_rad)
-                    x = HF.s
-                    y = HF.q_core_rad .+ 1.0
-                end
-
-            elseif q == :wall
-                label --> "wall"
-                if !isempty(HF.q_wall)
-                    x = HF.s
-                    y = HF.q_wall .+ 1.0
-                end
-
-            elseif q == :parallel
-                label --> "parallel"
-                if !isempty(HF.q_parallel)
-                    x = HF.s
-                    y = HF.q_parallel .+ 1.0
-                end
-            end
-
-            x, y
-        end
-
-    elseif which_plot == :twoD
-        @series begin
-            aspect_ratio := :equal
-            legend --> false
-            colorbar --> true
-            xlim --> [0.95 * minimum(HF.r) - 0.05 * (maximum(HF.r)), 1.05 * maximum(HF.r) - 0.05 * (minimum(HF.r))]
-            ylim --> [1.05 * minimum(HF.z) - 0.05 * (maximum(HF.z)), 1.05 * maximum(HF.z) - 0.05 * (minimum(HF.z))]
-            if plot_type == :path
-                seriestype --> :path
-                linewidth --> 8
-            elseif plot_type == :scatter
-                seriestype --> :scatter
-                markersize --> 2
-                markerstrokewidth --> 0
-            end
-
-            if q == :wall && !isempty(HF.q_wall)
-                colorbar_title := "log₁₀(q wall [W/m²])"
-                if plot_type == :path
-                    line_z := log10.(HF.q_wall .+ 1)
-                elseif plot_type == :scatter
-                    zcolor := log10.(HF.q_wall .+ 1)
-                end
-
-            elseif q == :core_radiation && !isempty(HF.q_core_rad)
-                colorbar_title := "log₁₀(q core rad [W/m²])"
-                if plot_type == :path
-                    line_z := log10.(HF.q_core_rad .+ 1)
-                elseif plot_type == :scatter
-                    zcolor := log10.(HF.q_core_rad .+ 1)
-                end
-
-            elseif q == :particle && !isempty(HF.q_part)
-                colorbar_title := "log₁₀(q particle [W/m²])"
-                floor = minimum(HF.q_part[HF.q_part.>0.0]) / 100.0
-                if plot_type == :path
-                    line_z --> log10.(HF.q_part .+ floor)
-                elseif plot_type == :scatter
-                    zcolor --> log10.(HF.q_part .+ floor)
-                end
-
-            elseif q == :parallel && !isempty(HF.q_parallel)
-                colorbar_title := "log₁₀(q parallel [W/m²])"
-                if plot_type == :path
-                    line_z --> log10.(HF.q_parallel .+ 1)
-                end
-                if plot_type == :scatter
-                    zcolor --> log10.(HF.q_parallel .+ 1)
-                end
-            end
-
-            HF.r, HF.z
-        end
-    end
+    # Return an RGB color using Plots' RGB type
+    return RGB(r, g, b)
 end
