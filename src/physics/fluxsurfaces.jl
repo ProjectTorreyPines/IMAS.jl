@@ -169,16 +169,31 @@ function find_psi_boundary(
     raise_error_on_not_closed::Bool,
     verbose::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
+    # detect cases where PSI comes from a closed-boundary solver
+    psi_domain = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
+    if all(psi_domain .== psi_domain[1])
+        return (last_closed=original_psi_boundary, first_open=nothing)
+    end
+    if psi_axis < original_psi_boundary # looking for the largest closed boundary flux surface outside of original_psi_boundary
+        psi_domain0 = minimum(psi_domain[psi_domain.>original_psi_boundary])
+    else
+        psi_domain0 = maximum(psi_domain[psi_domain.<original_psi_boundary])
+    end
+    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, Float64[], Float64[], psi_domain0, :closed)
+    if length(surface) == 1 && surface[1].r[1] == surface[1].r[end] && surface[1].z[1] == surface[1].z[end]
+        return (last_closed=original_psi_boundary, first_open=nothing)
+    end
+
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
-        psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
+        psi_edge = psi_domain
     end
-    if psi_axis < original_psi_boundary
-        psi_edge0 = maximum(psi_edge)
+    if psi_axis < original_psi_boundary # looking for the largest open boundary flux surface outside of original_psi_boundary
+        psi_edge0 = maximum(psi_edge[psi_edge.>original_psi_boundary])
     else
-        psi_edge0 = minimum(psi_edge)
+        psi_edge0 = minimum(psi_edge[psi_edge.<original_psi_boundary])
     end
     psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
