@@ -219,10 +219,11 @@ end
 
 end
 
-@recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false, coil_identifiers=false) where {T<:Real}
+@recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false, coil_identifiers=false, coil_numbers=false) where {T<:Real}
     id = plot_help_id(coil)
     assert_type_and_record_argument(id, Bool, "Show coil names"; coil_names)
     assert_type_and_record_argument(id, Bool, "Show coil identifiers"; coil_identifiers)
+    assert_type_and_record_argument(id, Bool, "Show coil numbers"; coil_numbers)
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
@@ -242,13 +243,15 @@ end
         append!(z, oute.z)
     end
 
-    if coil_names || coil_identifiers
+    if coil_names || coil_identifiers || coil_numbers
         r_avg = sum(r) / length(r)
         z_avg = sum(z) / length(z)
         @series begin
             label := ""
             if coil_names
                 series_annotations := [(coil.name, :center, :middle, :red, 6)]
+            elseif coil_numbers
+                series_annotations := [(index(coil), :center, :middle, :red, 6)]
             else
                 series_annotations := [(coil.identifier, :center, :middle, :red, 6)]
             end
