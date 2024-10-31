@@ -1071,7 +1071,7 @@ function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real
     was_open = is_open_polygon(R, Z)
     R = OutlineOpenVector(R, was_open)
     Z = OutlineOpenVector(Z, was_open)
-    return (was_closed=!was_open, was_open=was_open, R=R, Z=Z, r=R, z=Z)
+    return (was_closed=!was_open, was_open=was_open, R=R, Z=Z, r=R, z=Z, rz=(R,Z))
 end
 
 """
@@ -1085,7 +1085,7 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Re
     was_closed = is_closed_polygon(R, Z)
     R = OutlineClosedVector(R, was_closed)
     Z = OutlineClosedVector(Z, was_closed)
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z, rz=(R,Z))
 end
 
 """
@@ -1101,7 +1101,7 @@ function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool
     else
         was_closed = true
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z)
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z, rz=(R,Z))
 end
 
 """
