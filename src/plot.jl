@@ -946,12 +946,13 @@ function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::Abstrac
     return r, z
 end
 
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, only=Symbol[], exclude_layers=Symbol[])
+@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, pf_passive=true, only=Symbol[], exclude_layers=Symbol[])
     id = plot_help_id(bd)
     assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
     assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
     assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
     assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
+    assert_type_and_record_argument(id, Bool, "Include plot of pf_passive"; pf_passive)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
 
@@ -1195,6 +1196,15 @@ end
                 colorbar --> :false
                 xlim --> [0, rmax]
                 top_dd(bd).pf_active
+            end
+        end
+
+        if pf_passive
+            @series begin
+                colorbar --> :false
+                xlim --> [0, rmax]
+                color := :gray
+                top_dd(bd).pf_passive
             end
         end
 
