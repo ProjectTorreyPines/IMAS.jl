@@ -126,6 +126,16 @@ function get_build_layer(
 end
 
 """
+    opposite_side_layer(layer::IMAS.build__layer)
+
+Returns corresponding layer on the high/low field side 
+"""
+function opposite_side_layer(layer::IMAS.build__layer)
+    @assert layer.side in (Int(_hfs_), Int(_lfs_)) "Asking for opposite_side_layer of $(layer.name), which does not make sense"
+    return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+end
+
+"""
     structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1)
 
 return rmask, zmask, mask of structures that are not vacuum
