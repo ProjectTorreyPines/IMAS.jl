@@ -1894,34 +1894,24 @@ function luce_squareness(
     z_at_max_r::T, max_r::T,
     z_at_min_r::T, min_r::T) where {T<:Real}
 
-    # zetaou
-    PO = (r_at_max_z, z_at_max_r)
-    PE = (max_r, max_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetaou = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
+    names = (:zetaou, :zetaol, :zetaiu, :zetail)
+    POs = ((r_at_max_z, z_at_max_r),(r_at_min_z, z_at_max_r),(r_at_max_z, z_at_min_r), (r_at_min_z, z_at_min_r))
+    PEs = ((max_r, max_z), (max_r, min_z), (min_r, max_z),(min_r, min_z))
 
-    # zetaol
-    PO = (r_at_min_z, z_at_max_r)
-    PE = (max_r, min_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetaol = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
-
-    # zetaiu
-    PO = (r_at_max_z, z_at_min_r)
-    PE = (min_r, max_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetaiu = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
-
-    # zetail
-    PO = (r_at_min_z, z_at_min_r)
-    PE = (min_r, min_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
-
+    z = T[]
+    for (name, PO, PE) in zip(names, POs, PEs)
+        try
+            PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
+            PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
+            push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
+        catch e
+            push!(z, T(0.0))
+            # plot(pr,pz;aspect_ratio=:equal,title=name)
+            # display(plot!([PO[1], PE[1]], [PO[2], PE[2]]))
+            # rethrow(e)
+        end
+    end
+    zetaou, zetaol, zetail, zetaiu = z
     return zetaou, zetaol, zetail, zetaiu
 end
 
