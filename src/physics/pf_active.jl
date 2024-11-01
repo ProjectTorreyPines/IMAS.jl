@@ -93,7 +93,7 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil}, R0::Float6
                 max_radius = max(max_radius, maximum(oute.r))
             end
 
-            if (!ismissing(coil, :name) && contains(uppercase(coil.name), "OH") || contains(uppercase(coil.name), "CS")) || (!ismissing(coil, :identifier) && contains(uppercase(coil.identifier), "OH") || contains(uppercase(coil.identifier), "CS")) || min_radius == oh_min_radius
+            if (!ismissing(coil, :name) && (contains(uppercase(coil.name), "OH") || contains(uppercase(coil.name), "CS"))) || (!ismissing(coil, :identifier) && (contains(uppercase(coil.identifier), "OH") || contains(uppercase(coil.identifier), "CS"))) || min_radius == oh_min_radius
                 func = resize!(coil.function, :flux; wipe=false)
                 func.description = "OH"
 
