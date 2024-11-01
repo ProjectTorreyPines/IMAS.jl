@@ -56,7 +56,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:Measurement{T1}}), @nospecializ
     if endswith(string(field), "_σ")
         return nothing
     else
-        if !(fieldtype(typeof(ids), field) <: eltype(ids))
+        if !(fieldtype_typeof(ids, field) <: eltype(ids))
             value = getraw(ids, field)
             setraw!(ids_new, field, value)
         else
@@ -84,7 +84,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
         return nothing
     else
         value = getraw(ids, field)
-        if !(fieldtype(typeof(ids), field) <: eltype(ids))
+        if !(fieldtype_typeof(ids, field) <: eltype(ids))
             setraw!(ids_new, field, value)
         else
             setraw!(ids_new, field, value.val)
