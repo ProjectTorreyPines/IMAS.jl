@@ -190,14 +190,19 @@ function find_psi_boundary(
     else
         psi_edge = psi_domain
     end
+    psi_edge0 = original_psi_boundary + (original_psi_boundary - psi_axis)
     if psi_axis < original_psi_boundary # looking for the largest open boundary flux surface outside of original_psi_boundary
-        psi_edge0 = maximum(psi_edge[psi_edge.>original_psi_boundary])
+        psi_edge1 = maximum(psi_edge[psi_edge.>original_psi_boundary])
+        psi_edge_guess = min(psi_edge1, psi_edge0)
     else
-        psi_edge0 = minimum(psi_edge[psi_edge.<original_psi_boundary])
+        psi_edge1 = minimum(psi_edge[psi_edge.<original_psi_boundary])
+        psi_edge_guess = max(psi_edge1, psi_edge0)
     end
-    psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
+    psirange_init = [psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
 
     if verbose
+        @show psi_axis
+        @show original_psi_boundary
         @show psirange_init
         plot(; aspect_ratio=:equal)
         contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
