@@ -56,19 +56,18 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:Measurement{T1}}), @nospecializ
     if endswith(string(field), "_σ")
         return nothing
     else
-        if !(fieldtype_typeof(ids, field) <: eltype(ids))
-            value = getraw(ids, field)
+        value = getraw(ids, field)
+        if field == :time || !(eltype(value) <: T2)
             setraw!(ids_new, field, value)
         else
             efield = Symbol("$(field)_σ")
-            val = getraw(ids, field)
             if !ismissing(ids, efield)
-                err = getraw(ids, efield)
-                value = val ± err
+                error = getraw(ids, efield)
+                uncer = value ± error
             else
-                value = val .± 0.0
+                uncer = value .± 0.0
             end
-            setraw!(ids_new, field, value)
+            setraw!(ids_new, field, uncer)
         end
     end
     return nothing
@@ -84,7 +83,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
         return nothing
     else
         value = getraw(ids, field)
-        if !(fieldtype_typeof(ids, field) <: eltype(ids))
+        if !(eltype(value) <: T2)
             setraw!(ids_new, field, value)
         else
             setraw!(ids_new, field, value.val)
