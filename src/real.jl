@@ -48,21 +48,21 @@ function Measurement(@nospecialize(ids::IDS{T})) where {T<:Real}
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T1<:Real,T2<:Real}
+    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Measurement{<:Real},T2<:Real}
 
 Go from IDS{T} to IDS{Measurement{T}}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:Measurement{T1}}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Real}
+function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Measurement{<:Real},T2<:Real}
     if endswith(string(field), "_σ")
         return nothing
     else
-        value = getraw(ids, field)
+        value = getfield(ids, field)
         if field == :time || !(eltype(value) <: T2)
             setraw!(ids_new, field, value)
         else
             efield = Symbol("$(field)_σ")
             if !ismissing(ids, efield)
-                error = getraw(ids, efield)
+                error = getfield(ids, efield)
                 uncer = value ± error
             else
                 uncer = value .± 0.0
@@ -74,20 +74,20 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:Measurement{T1}}), @nospecializ
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:Measurement{T2}}), field::Symbol) where {T1<:Real,T2<:Real}
+    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Measurement{<:Real}}
 
 Go from IDS{Measurement{T}} to IDS{T}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:Measurement{T2}}), field::Symbol) where {T1<:Real,T2<:Real}
+function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Measurement{<:Real}}
     if endswith(string(field), "_σ")
         return nothing
     else
         value = getraw(ids, field)
-        if !(eltype(value) <: T2)
-            setraw!(ids_new, field, value)
-        else
+        if eltype(value) <: T2
             setraw!(ids_new, field, value.val)
             setraw!(ids_new, Symbol("$(field)_σ"), value.err)
+        else
+            setraw!(ids_new, field, value)
         end
     end
     return nothing
