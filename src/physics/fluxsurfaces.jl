@@ -522,8 +522,6 @@ function find_psi_last_diverted(
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
-
-
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis\
     psi_first_open = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
     psi_sign = sign(psi_first_open - psi_axis) # +1 incresing psi / -1 decreasing psi
@@ -531,7 +529,6 @@ function find_psi_last_diverted(
     # Case for limited plasmas
     psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
 
-    limited = false
     if psi_sign * psi_sep_open > psi_sign * psi_first_open
         # if the LCFS is not the magnetic separatrix
         # the plasma is limited and not diverted
@@ -540,14 +537,13 @@ function find_psi_last_diverted(
         psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
     # return (psi_last_lfs=psi_sep_closed, psi_first_open=psi_first_open,  psi_first_lfs_far=psi_sep_open, null_within_wall=true)
     else
+        limited = false
         Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
         psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
     end
 
-
-
     # intersect 2nd separatrix with wall, and look
-    surface = flux_surface(eqt, psi_2ndseparatrix, :open, Float64[], Float64[])
+    surface = flux_surface(eqt, psi_2ndseparatrix, :open, wall_r, wall_z)
     rz_intersects = StaticArrays.SVector{2,Float64}[]
     r_max = 0.0
     for (r, z) in surface
@@ -561,6 +557,7 @@ function find_psi_last_diverted(
 
         r_max = max(r_max, maximum(r))
     end
+    @assert r_max > 0.0 "Could not trace an open flux surface for 2nd separatrix"
 
     r_intersect = Float64[rr for (rr, zz) in rz_intersects]
     z_intersect = Float64[zz for (rr, zz) in rz_intersects]
@@ -1722,15 +1719,12 @@ Find the `n` X-points that are closest to the separatrix
 """
 function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     ((rlcfs, zlcfs),) = flux_surface(eqt, eqt.profiles_1d.psi[end], :closed, wall_r, wall_z)
-    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :open, Float64[], Float64[])
+    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :encircling, Float64[], Float64[])
     Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
 
     for (pr, pz) in private
-        if sign(pz[1] - Z0) != sign(pz[end] - Z0)
-            # open flux surface does not encicle the plasma
-            continue
-        elseif (sum(pz) < Z0)
+        if (sum(pz) < Z0)
             index = argmax(pz)
         elseif (sum(pz) > Z0)
             # upper private region
