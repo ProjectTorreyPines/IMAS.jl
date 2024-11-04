@@ -440,6 +440,7 @@ dyexp["core_sources.source[:].profiles_1d[:].ion[:].particles"] =
         gradient(profiles_1d.grid.volume, ion.particles_inside)
     end
 
+
 dyexp["core_sources.source[:].profiles_1d[:].time"] =
     (; core_sources, profiles_1d_index, _...) -> begin
         return core_sources.time[profiles_1d_index]
@@ -456,16 +457,16 @@ dyexp["build.layer[:].identifier"] =
     end
 
 dyexp["build.layer[:].outline.r"] =
-    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).outline.r
+    (x; layer, _...) -> opposite_side_layer(layer).outline.r
 
 dyexp["build.layer[:].outline.z"] =
-    (x; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).outline.z
+    (x; layer, _...) -> opposite_side_layer(layer).outline.z
 
 dyexp["build.layer[:].shape"] =
-    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).shape
+    (; layer, _...) -> opposite_side_layer(layer).shape
 
 dyexp["build.layer[:].shape_parameters"] =
-    (; build, layer, _...) -> get_build_layer(build.layer; identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_).shape_parameters
+    (; layer, _...) -> opposite_side_layer(layer).shape_parameters
 
 dyexp["build.layer[:].start_radius"] =
     (; build, layer_index, _...) -> build_radii(build)[1:end-1][layer_index]
@@ -590,7 +591,7 @@ dyexp["pulse_schedule.time"] =
     (time; pulse_schedule, _...) -> begin
         all_times = Float64[]
         for item in keys(pulse_schedule)
-            if fieldtype(typeof(pulse_schedule), item) <: IDS
+            if fieldtype_typeof(pulse_schedule, item) <: IDS
                 ids = getfield(pulse_schedule, item)
                 if hasfield(typeof(ids), :time) && !ismissing(ids, :time)
                     append!(all_times, ids.time)
