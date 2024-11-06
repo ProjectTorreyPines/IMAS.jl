@@ -593,7 +593,7 @@ end
                 subplot := 2
                 normalization := 1E-6
                 ylabel := ""
-                title := L"P~~[MPa]"
+                title := latex_support() ? L"P~~[MPa]" : "P [MPa]"
                 eqt.profiles_1d, :pressure
             end
         end
@@ -608,7 +608,7 @@ end
                     subplot := 2
                     normalization := 1E-6
                     ylabel := ""
-                    title := L"P~~[MPa]"
+                    title := latex_support() ? L"P~~[MPa]" : "P [MPa]"
                     cp1d, :pressure
                 end
             end
@@ -622,7 +622,7 @@ end
                 subplot := 3
                 normalization := 1E-6
                 ylabel := ""
-                title := L"J_{tor}~[MA/m^2]"
+                title := latex_support() ? L"J_{tor}~[MA/m^2]" : "Jtor [MA/m^2]"
                 eqt.profiles_1d, :j_tor
             end
         end
@@ -637,7 +637,7 @@ end
                     subplot := 3
                     normalization := 1E-6
                     ylabel := ""
-                    title := L"J_{tor}~[MA/m^2]"
+                    title := latex_support() ? L"J_{tor}~[MA/m^2]" : "Jtor [MA/m^2]"
                     cp1d, :j_tor
                 end
             end
@@ -651,10 +651,10 @@ end
                 ylabel := ""
                 normalization := 1.0
                 if contains(string(coordinate), "psi")
-                    title := L"\rho"
+                    title := latex_support() ? L"\rho" : "ρ"
                     eqt.profiles_1d, :rho_tor_norm
                 else
-                    title := L"\psi~~[Wb]"
+                    title := latex_support() ? L"\psi~~[Wb]" : "ψ [Wb]"
                     eqt.profiles_1d, :psi
                 end
             end
@@ -676,7 +676,7 @@ end
                 subplot := 5
                 ylabel := ""
                 normalization := 1.0
-                title := L"q"
+                title := latex_support() ? L"q" : "q"
                 eqt.profiles_1d, :q
             end
         end
@@ -2832,13 +2832,17 @@ end
     end
 end
 
+function latex_support()
+    return Plots.backend_name() in [:gr, :pgfplotsx, :pythonplot, :inspectdr]
+end
+
 #= ================== =#
 #  handling of labels  #
 #= ================== =#
 nice_field_symbols = Dict()
-nice_field_symbols["rho_tor_norm"] = L"\rho"
-nice_field_symbols["psi"] = L"\psi"
-nice_field_symbols["psi_norm"] = L"\psi_N"
+nice_field_symbols["rho_tor_norm"] = () -> latex_support() ? L"\rho" : "ρ"
+nice_field_symbols["psi"] = () -> latex_support() ? L"\psi" : "ψ"
+nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_N" : "ψₙ"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
 nice_field_symbols["i_plasma"] = "Plasma current"
 nice_field_symbols["b_field_tor_vacuum_r"] = "B₀×R₀"
@@ -2849,6 +2853,7 @@ nice_field_symbols["geometric_axis.z"] = "Zgeo"
 function nice_field(field::AbstractString)
     if field in keys(nice_field_symbols)
         field = nice_field_symbols[field]
+        return field isa Function ? field() : field
     else
         field = replace(field,
             r"n_e" => "nₑ",
@@ -2883,7 +2888,7 @@ function nice_units(units::String)
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
         units = replace(units, "." => s"\\,")
-        units = L"[%$units]"
+        units = latex_support() ? L"[%$units]" : "[$units]"
         units = " " * units
     end
     return units
