@@ -593,7 +593,7 @@ end
                 subplot := 2
                 normalization := 1E-6
                 ylabel := ""
-                title := latex_support() ? L"P~~[MPa]" : "P [MPa]"
+                title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
                 eqt.profiles_1d, :pressure
             end
         end
@@ -608,7 +608,7 @@ end
                     subplot := 2
                     normalization := 1E-6
                     ylabel := ""
-                    title := latex_support() ? L"P~~[MPa]" : "P [MPa]"
+                    title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
                     cp1d, :pressure
                 end
             end
@@ -622,7 +622,7 @@ end
                 subplot := 3
                 normalization := 1E-6
                 ylabel := ""
-                title := latex_support() ? L"J_{tor}~[MA/m^2]" : "Jtor [MA/m^2]"
+                title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
                 eqt.profiles_1d, :j_tor
             end
         end
@@ -637,7 +637,7 @@ end
                     subplot := 3
                     normalization := 1E-6
                     ylabel := ""
-                    title := latex_support() ? L"J_{tor}~[MA/m^2]" : "Jtor [MA/m^2]"
+                    title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
                     cp1d, :j_tor
                 end
             end
@@ -654,7 +654,7 @@ end
                     title := latex_support() ? L"\rho" : "ρ"
                     eqt.profiles_1d, :rho_tor_norm
                 else
-                    title := latex_support() ? L"\psi~~[Wb]" : "ψ [Wb]"
+                    title := latex_support() ? L"\psi~~[\mathrm{Wb}]" : "Ψ [Wb]"
                     eqt.profiles_1d, :psi
                 end
             end
@@ -2842,7 +2842,7 @@ end
 nice_field_symbols = Dict()
 nice_field_symbols["rho_tor_norm"] = () -> latex_support() ? L"\rho" : "ρ"
 nice_field_symbols["psi"] = () -> latex_support() ? L"\psi" : "ψ"
-nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_N" : "ψₙ"
+nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_\mathrm{N}" : "ψₙ"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
 nice_field_symbols["i_plasma"] = "Plasma current"
 nice_field_symbols["b_field_tor_vacuum_r"] = "B₀×R₀"
@@ -2888,7 +2888,7 @@ function nice_units(units::String)
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
         units = replace(units, "." => s"\\,")
-        units = latex_support() ? L"[%$units]" : "[$units]"
+        units = latex_support() ? L"[\mathrm{%$units}]" : "[$units]"
         units = " " * units
     end
     return units
