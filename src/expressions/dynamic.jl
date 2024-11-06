@@ -793,32 +793,3 @@ dyexp["summary.volume_average.zeff.value"] =
         end
         return tmp
     end
-
-#= ==== =#
-#  wall  #
-#= ==== =#
-dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_inner.r"] =
-    (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).r_inner
-    end
-
-dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_inner.z"] =
-    (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).z_inner
-    end
-
-dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_inner.closed"] =
-    (; annular, _...) -> annular.centreline.closed
-
-dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_outer.r"] =
-    (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).r_outer
-    end
-
-dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_outer.z"] =
-    (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).z_outer
-    end
-
-dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_outer.closed"] =
-    (; annular, _...) -> annular.centreline.closed
