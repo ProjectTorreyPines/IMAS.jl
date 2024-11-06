@@ -2405,7 +2405,7 @@ end
 end
 
 @recipe function plot_wd2dvua(annular::IMAS.wall__description_2d___vessel__unit___annular)
-    if false && !ismissing(annular, :thickness)
+    if !ismissing(annular, :thickness)
         tmp = closed_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness)
         r, z = tmp.rz
         thickness = tmp.args[1]
@@ -2431,7 +2431,12 @@ end
         end
 
     else
-        poly = join_outlines(annular.outline_inner.r, annular.outline_inner.z, annular.outline_outer.r, annular.outline_outer.z)
+        if Bool(annular.outline_inner.closed)
+            poly = join_outlines(annular.outline_inner.r, annular.outline_inner.z, annular.outline_outer.r, annular.outline_outer.z)
+        else
+            poly = ([reverse(annular.outline_inner.r); annular.outline_outer.r], [reverse(annular.outline_inner.z); annular.outline_outer.z])
+        end
+        poly = closed_polygon(poly...).rz
         @series begin
             aspect_ratio := :equal
             seriestype := :shape
@@ -2442,13 +2447,7 @@ end
             primary := false
             color := :black
             lw := 0.2
-            closed_polygon(annular.outline_inner.r, annular.outline_inner.z).rz
-        end
-        @series begin
-            primary := false
-            color := :black
-            lw := 0.2
-            closed_polygon(annular.outline_outer.r, annular.outline_outer.z).rz
+            poly
         end
     end
 end

@@ -799,12 +799,12 @@ dyexp["summary.volume_average.zeff.value"] =
 #= ==== =#
 dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_inner.r"] =
     (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, annular.thickness).r_inner
+        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).r_inner
     end
 
 dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_inner.z"] =
     (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, annular.thickness).z_inner
+        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).z_inner
     end
 
 dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_inner.closed"] =
@@ -812,12 +812,12 @@ dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_inner.closed"] =
 
 dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_outer.r"] =
     (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, annular.thickness).r_outer
+        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).r_outer
     end
 
 dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_outer.z"] =
     (x; annular, _...) -> begin
-        thick_line_polygon(annular.centreline.r, annular.centreline.z, annular.thickness).z_outer
+        thick_line_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness).z_outer
     end
 
 dyexp["wall.description_2d[:].vessel.unit[:].annular.outline_outer.closed"] =
