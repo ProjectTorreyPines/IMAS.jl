@@ -1067,11 +1067,12 @@ Returns a view of the vectors R and Z such that they are a open polygon
 
 Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
 """
-function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, args...) where {T<:Real}
     was_open = is_open_polygon(R, Z)
     R = OutlineOpenVector(R, was_open)
     Z = OutlineOpenVector(Z, was_open)
-    return (was_closed=!was_open, was_open=was_open, R=R, Z=Z, r=R, z=Z, rz=(R,Z))
+    args = collect(map(x -> OutlineOpenVector(x, was_open), args))
+    return (was_closed=!was_open, was_open=was_open, R=R, Z=Z, r=R, z=Z, rz=(R, Z), args=args)
 end
 
 """
@@ -1081,11 +1082,12 @@ Returns a view of the vectors R and Z such that they are a closed polygon
 
 Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
 """
-function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}) where {T<:Real}
+function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, args...) where {T<:Real}
     was_closed = is_closed_polygon(R, Z)
     R = OutlineClosedVector(R, was_closed)
     Z = OutlineClosedVector(Z, was_closed)
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z, rz=(R,Z))
+    args = collect(map(x -> OutlineClosedVector(x, was_closed), args))
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z, rz=(R, Z), args=args)
 end
 
 """
@@ -1093,15 +1095,16 @@ end
 
 Returns a closed polygon depending on `closed`
 """
-function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool) where {T<:Real}
+function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool, args...) where {T<:Real}
     if is_open_polygon(R, Z) && closed
         was_closed = is_closed_polygon(R, Z)
         R = OutlineClosedVector(R, was_closed)
         Z = OutlineClosedVector(Z, was_closed)
+        args = collect(map(x -> OutlineClosedVector(x, was_closed), args))
     else
         was_closed = true
     end
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z, rz=(R,Z))
+    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z, rz=(R, Z), args=args)
 end
 
 """
@@ -1159,3 +1162,55 @@ Returns true/false if polygon is defined counterclockwise
 function is_counterclockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
     return !is_clockwise(r, z)
 end
+
+"""
+    thick_line_polygon(r1, z1, r2, z2, thickness1, thickness2)
+
+Generates polygon from a thick line. Returns points of the quadrilateral polygon
+"""
+function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, thickness1::Float64, thickness2::Float64)
+    direction = normalize([z2 - z1, -(r2 - r1)]) # Perpendicular direction
+    offset1 = direction .* thickness1 / 2
+    offset2 = direction .* thickness2 / 2
+    p1 = [r1, z1] + offset1
+    p2 = [r2, z2] + offset2
+    p3 = [r2, z2] - offset2
+    p4 = [r1, z1] - offset1
+    return [p1, p2, p3, p4, p1]
+end
+
+"""
+    thick_line_polygon(r::Vector{T}, z::Vector{T}, thickness::Vector{T}) where {T<:Real}
+
+Generates right and left contours from a thick line polygon. Returns points of the inner and outer contours of the polygon.
+"""
+function thick_line_polygon(r::Vector{T}, z::Vector{T}, thickness::Vector{T}) where {T<:Real}
+    n = length(r)
+    tmp = closed_polygon(r, z, thickness)
+    r, z = tmp.rz
+    thickness = tmp.args[1]
+
+    r_right = zeros(T, length(r))
+    z_right = zeros(T, length(r))
+    r_left = zeros(T, length(r))
+    z_left = zeros(T, length(r))
+    for k in 1:length(r)-1
+        pts = thick_line_polygon(r[k], z[k], r[k+1], z[k+1], thickness[k], thickness[k+1])
+        r_right[k] = pts[1][1]
+        z_right[k] = pts[1][2]
+        r_left[k] = pts[3][1]
+        z_left[k] = pts[3][2]
+    end
+    r_right[end] = r_right[1]
+    z_right[end] = z_right[1]
+    r_left[end] = r_left[1]
+    z_left[end] = z_left[1]
+
+    n = length(r)
+    if perimeter(r_right,z_right) < perimeter(r_left,z_left)
+        return (r_inner=r_right[1:n], z_inner=z_right[1:n], r_outer=r_left[1:n], z_outer=z_left[1:n])
+    else
+        return (r_inner=r_left[1:n], z_inner=z_left[1:n], r_outer=r_right[1:n], z_outer=z_right[1:n])
+    end
+end
+

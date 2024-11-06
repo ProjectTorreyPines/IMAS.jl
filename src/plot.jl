@@ -472,9 +472,9 @@ end
             orientation := :horizontal
             alpha := 0.25
             linecolor := :match
-            label:=""
+            label := ""
             color := [PlotUtils.palette(:tab10)[c] for c in length(costs):-1:1]
-            reverse(names), reverse([Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_costs])
+            reverse(names), reverse([Measurements.value(c) + s * Measurements.uncertainty(c) for c in uncertain_costs])
         end
     end
     @series begin
@@ -508,9 +508,9 @@ end
                     orientation := :horizontal
                     alpha := 0.25
                     linecolor := :match
-                    label:=""
+                    label := ""
                     color := PlotUtils.palette(:tab10)[k]
-                    sub_names, [Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_sub_costs]
+                    sub_names, [Measurements.value(c) + s * Measurements.uncertainty(c) for c in uncertain_sub_costs]
                 end
             end
             @series begin
@@ -2336,14 +2336,13 @@ end
 # wall #
 # ==== #
 @recipe function plot_wall(wall::IMAS.wall)
+    aspect_ratio := :equal
     @series begin
-        color := :gray
         return wall.description_2d
     end
 end
 
 @recipe function plot_wd2d_list(wd2d_list::IDSvector{<:IMAS.wall__description_2d})
-    label := ""
     for wd2d in wd2d_list
         @series begin
             return wd2d
@@ -2382,22 +2381,6 @@ end
 
 # --- Vessel
 
-"""
-    thick_line_polygon(r1, z1, r2, z2, thickness1, thickness2)
-
-Casts thick line as a polygon. Returns points of the quadrilateral polygon
-"""
-function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, thickness1::Float64, thickness2::Float64)
-    direction = normalize([z2 - z1, -(r2 - r1)]) # Perpendicular direction
-    offset1 = direction .* thickness1 / 2
-    offset2 = direction .* thickness2 / 2
-    p1 = [r1, z1] + offset1
-    p2 = [r2, z2] + offset2
-    p3 = [r2, z2] - offset2
-    p4 = [r1, z1] - offset1
-    return [p1, p2, p3, p4, p1]
-end
-
 @recipe function plot_wd2dvu_list(wd2dvu_list::IDSvector{<:IMAS.wall__description_2d___vessel__unit})
     for wd2dvu in wd2dvu_list
         @series begin
@@ -2407,54 +2390,83 @@ end
 end
 
 @recipe function plot_wd2dvu(wd2dvu::IMAS.wall__description_2d___vessel__unit)
-    base_linewidth = get(plotattributes, :linewidth, 1.0)
+    if !isempty(wd2dvu.annular)
+        @series begin
+            label --> getproperty(wd2dvu, :name, "")
+            wd2dvu.annular
+        end
+    end
+    if !isempty(wd2dvu.element)
+        @series begin
+            label --> getproperty(wd2dvu, :name, "")
+            wd2dvu.element
+        end
+    end
+end
 
-    plot_data_items = []
-    closed_items = Bool[]
-    if !ismissing(wd2dvu.annular.centreline, :r)
-        push!(plot_data_items, closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed)))
-        push!(closed_items, Bool(wd2dvu.annular.centreline.closed))
-    end
-    if !ismissing(wd2dvu.annular.outline_inner, :r)
-        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_inner.r, wd2dvu.annular.outline_inner.z, Bool(wd2dvu.annular.outline_inner.closed)))
-        push!(closed_items, Bool(wd2dvu.annular.outline_inner.closed))
-    end
-    if !ismissing(wd2dvu.annular.outline_outer, :r)
-        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_outer.r, wd2dvu.annular.outline_outer.z, Bool(wd2dvu.annular.outline_outer.closed)))
-        push!(closed_items, Bool(wd2dvu.annular.outline_outer.closed))
-    end
-    for j in eachindex(wd2dvu.element)
-        wd2dvu.element[j].outline.r
-        push!(plot_data_items, closed_polygon(wd2dvu.element[j].outline.r, wd2dvu.element[j].outline.z, Bool(wd2dvu.element[j].outline.closed)))
-        push!(closed_items, Bool(wd2dvu.element[j].outline.closed))
-    end
+@recipe function plot_wd2dvua(annular::IMAS.wall__description_2d___vessel__unit___annular)
+    if false && !ismissing(annular, :thickness)
+        tmp = closed_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness)
+        r, z = tmp.rz
+        thickness = tmp.args[1]
 
-    for (plotdata, is_closed) in zip(plot_data_items, closed_items)
-        if !ismissing(wd2dvu.annular, :thickness)
-            thickness = wd2dvu.annular.thickness
-            if is_closed
-                thickness = [thickness; thickness[1]]
-            end
-            for i in 1:length(plotdata.r)-1
-                pts = thick_line_polygon(plotdata.r[i], plotdata.z[i], plotdata.r[i+1], plotdata.z[i+1], thickness[i], thickness[i+1])
-                # Extract x and y coordinates for plotting
-                xs, ys = map(collect, zip(pts...))
-                @series begin
-                    primary := i == 1
-                    linewidth := 0.1 * base_linewidth
-                    aspect_ratio := :equal
-                    fill := (0, 0.5, :gray)
-                    xlim := (0, Inf)
-                    xs, ys
-                end
-            end
-        else
+        for i in 1:length(r)-1
+            pts = thick_line_polygon(r[i], z[i], r[i+1], z[i+1], thickness[i], thickness[i+1])
+            # Extract x and y coordinates for plotting
+            xs, ys = map(collect, zip(pts...))
             @series begin
-                label --> getproperty(wd2dvu, :name, "")
+                primary := i == 1
                 aspect_ratio := :equal
-                plotdata.r, plotdata.z
+                seriestype := :shape
+                linewidth := 0.0
+                xs, ys
             end
         end
+        @series begin
+            primary := false
+            color := :black
+            lw := 0.2
+            linestyle := :dash
+            r, z
+        end
+
+    else
+        poly = join_outlines(annular.outline_inner.r, annular.outline_inner.z, annular.outline_outer.r, annular.outline_outer.z)
+        @series begin
+            aspect_ratio := :equal
+            seriestype := :shape
+            linewidth := 0.0
+            poly[1], poly[2]
+        end
+        @series begin
+            primary := false
+            color := :black
+            lw := 0.2
+            closed_polygon(annular.outline_inner.r, annular.outline_inner.z).rz
+        end
+        @series begin
+            primary := false
+            color := :black
+            lw := 0.2
+            closed_polygon(annular.outline_outer.r, annular.outline_outer.z).rz
+        end
+    end
+end
+
+@recipe function plot_wd2dvue(elements::IDSvector{<:IMAS.wall__description_2d___vessel__unit___element})
+    for (k, element) in enumerate(elements)
+        @series begin
+            primary := k == 1
+            element
+        end
+    end
+end
+
+@recipe function plot_wd2dvue(element::IMAS.wall__description_2d___vessel__unit___element)
+    aspect_ratio := :equal
+    seriestype := :shape
+    @series begin
+        element.outline.r, element.outline.z
     end
 end
 
@@ -2477,8 +2489,8 @@ end
 
 @recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
     poly = closed_polygon(outline.r, outline.z)
+    aspect_ratio := :equal
     @series begin
-        aspect_ratio := :equal
         poly.r, poly.z
     end
 end
@@ -2604,7 +2616,7 @@ end
             markerstrokewidth := 0.0
             titlefontsize := 10
             title := nice_field(plt[:label])
-            xlim = (tmin, tmax)
+            xlim := (tmin, tmax)
             [time0], interp1d(x[1:n], y[1:n]).([time0])
         end
     end

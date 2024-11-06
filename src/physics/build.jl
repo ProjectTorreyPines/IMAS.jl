@@ -267,15 +267,26 @@ end
 """
     first_wall(wall::IMAS.wall)
 
-returns named tuple with outline of first wall, or an empty outline if not present
+Returns named tuple with outline of the official contiguous first wall limiter contour, or an empty outline if not present
 """
 function first_wall(wall::IMAS.wall{T}) where {T<:Real}
-    if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
-        outline = wall.description_2d[1].limiter.unit[1].outline
-        tmp = closed_polygon(outline.r, outline.z)
-        return (r=tmp.r, z=tmp.z)
-    else
-        return (r=Float64[], z=Float64[])
+    for d2d in wall.description_2d
+        # d2d.limiter.type.index != 0 indicates a disjoint limiter
+        if !ismissing(d2d.limiter.type, :index) && d2d.limiter.type.index != 0
+            continue
+        end
+        for unit in d2d.limiter.unit
+            @assert length(d2d.limiter.unit) == 1 # there should be just one official contiguous limiter contour
+            oute = closed_polygon(unit.outline.r, unit.outline.z)
+            return (r=oute.r, z=oute.z)
+        end
+    end
+    return (r=Float64[], z=Float64[])
+end
+
+function thick_wall(unit::wall__description_2d___vessel__unit)
+    if !isempty(unit.anular)
+        
     end
 end
 
