@@ -567,6 +567,9 @@ end
 
     if !cx
         layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
+        if Plots.backend_name() == :unicodeplots
+            layout := 5
+        end
         size --> (800, 500)
     end
 
