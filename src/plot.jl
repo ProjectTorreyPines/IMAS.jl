@@ -2767,6 +2767,12 @@ end
     coordinate_name = coords.names[1]
     coordinate_value = coords.values[1]
 
+    # If the field is the reference coordinate of the given IDS,
+    # set the coordinate_value as its index
+    if coordinate_name == "1...N"
+        coordinate_value = 1:length(getproperty(ids, field))
+    end
+
     xvalue = coordinate_value
     yvalue = getproperty(ids, field) .* normalization
 
@@ -2788,7 +2794,11 @@ end
             label = nice_field(field)
         end
 
-        xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+        if coordinate_name == "1...N"
+            xlabel --> "index"
+        else
+            xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+        end
         ylabel --> ylabel
         label --> label
 
