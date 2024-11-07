@@ -2224,13 +2224,27 @@ end
     end
 
     smcs = parent(stress)
-    for radius in (smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end])
-        @series begin
-            seriestype := :vline
-            label := ""
-            linestyle := :dash
-            color := :black
-            [radius]
+    if smcs !== nothing
+        for radius in (smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end])
+            @series begin
+                seriestype := :vline
+                label := ""
+                linestyle := :dash
+                color := :black
+                [radius]
+            end
+        end
+        dd = top_dd(smcs)
+        if dd!== nothing
+            r_nose = smcs.grid.r_tf[1] + (smcs.grid.r_tf[end] - smcs.grid.r_tf[1]) * dd.build.tf.nose_hfs_fraction
+            @series begin
+                seriestype := :vline
+                label := ""
+                linestyle := :dash
+                color := :black
+                linewidth := base_linewidth / 2.0
+                [r_nose]
+            end
         end
     end
 end
