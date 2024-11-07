@@ -567,6 +567,9 @@ end
 
     if !cx
         layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
+        if Plots.backend_name() == :unicodeplots
+            layout := 5
+        end
         size --> (800, 500)
     end
 
@@ -593,7 +596,7 @@ end
                 subplot := 2
                 normalization := 1E-6
                 ylabel := ""
-                title := L"P~~[MPa]"
+                title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
                 eqt.profiles_1d, :pressure
             end
         end
@@ -608,7 +611,7 @@ end
                     subplot := 2
                     normalization := 1E-6
                     ylabel := ""
-                    title := L"P~~[MPa]"
+                    title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
                     cp1d, :pressure
                 end
             end
@@ -622,7 +625,7 @@ end
                 subplot := 3
                 normalization := 1E-6
                 ylabel := ""
-                title := L"J_{tor}~[MA/m^2]"
+                title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
                 eqt.profiles_1d, :j_tor
             end
         end
@@ -637,7 +640,7 @@ end
                     subplot := 3
                     normalization := 1E-6
                     ylabel := ""
-                    title := L"J_{tor}~[MA/m^2]"
+                    title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
                     cp1d, :j_tor
                 end
             end
@@ -651,10 +654,10 @@ end
                 ylabel := ""
                 normalization := 1.0
                 if contains(string(coordinate), "psi")
-                    title := L"\rho"
+                    title := latex_support() ? L"\rho" : "ρ"
                     eqt.profiles_1d, :rho_tor_norm
                 else
-                    title := L"\psi~~[Wb]"
+                    title := latex_support() ? L"\psi~~[\mathrm{Wb}]" : "Ψ [Wb]"
                     eqt.profiles_1d, :psi
                 end
             end
@@ -676,7 +679,7 @@ end
                 subplot := 5
                 ylabel := ""
                 normalization := 1.0
-                title := L"q"
+                title := latex_support() ? L"q" : "q"
                 eqt.profiles_1d, :q
             end
         end
@@ -2843,13 +2846,17 @@ end
     end
 end
 
+function latex_support()
+    return Plots.backend_name() in [:gr, :pgfplotsx, :pythonplot, :inspectdr]
+end
+
 #= ================== =#
 #  handling of labels  #
 #= ================== =#
 nice_field_symbols = Dict()
-nice_field_symbols["rho_tor_norm"] = L"\rho"
-nice_field_symbols["psi"] = L"\psi"
-nice_field_symbols["psi_norm"] = L"\psi_N"
+nice_field_symbols["rho_tor_norm"] = () -> latex_support() ? L"\rho" : "ρ"
+nice_field_symbols["psi"] = () -> latex_support() ? L"\psi" : "ψ"
+nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_\mathrm{N}" : "ψₙ"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
 nice_field_symbols["i_plasma"] = "Plasma current"
 nice_field_symbols["b_field_tor_vacuum_r"] = "B₀×R₀"
@@ -2860,6 +2867,7 @@ nice_field_symbols["geometric_axis.z"] = "Zgeo"
 function nice_field(field::AbstractString)
     if field in keys(nice_field_symbols)
         field = nice_field_symbols[field]
+        return field isa Function ? field() : field
     else
         field = replace(field,
             r"n_e" => "nₑ",
@@ -2894,7 +2902,7 @@ function nice_units(units::String)
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
         units = replace(units, "." => s"\\,")
-        units = L"[%$units]"
+        units = latex_support() ? L"[\mathrm{%$units}]" : "[$units]"
         units = " " * units
     end
     return units
@@ -2921,3 +2929,8 @@ function hash_to_color(input::Any; seed::Int=0)
     # Return an RGB color using Plots' RGB type
     return RGB(r, g, b)
 end
+
+# To fix a vscode's bug w.r.t UnicodePlots
+# (see https://github.com/JuliaPlots/Plots.jl/issues/4956  for more details)
+Base.showable(::MIME"image/png", ::Plots.Plot{Plots.UnicodePlotsBackend}) = applicable(UnicodePlots.save_image, devnull)
+
