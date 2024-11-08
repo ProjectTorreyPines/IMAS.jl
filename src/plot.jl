@@ -949,6 +949,42 @@ function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::Abstrac
     return r, z
 end
 
+function layer_attrs(l::IMAS.build__layer)
+    name = l.name
+    color = :gray
+    if l.material == "water"
+        name = ""
+        color = :lightblue
+    elseif l.type == Int(_gap_)
+        name = ""
+        color = :white
+    elseif l.type == Int(_oh_)
+        if l.side == _in_
+            color = :gray
+        else
+            color = :white
+        end
+    elseif l.type == Int(_tf_)
+        color = :green
+    elseif l.type == Int(_shield_)
+        color = :red
+    elseif l.type == Int(_blanket_)
+        color = :orange
+    elseif l.type == Int(_wall_)
+        color = :yellow
+    elseif l.type == Int(_vessel_)
+        color = :yellow
+    elseif l.type == Int(_cryostat_)
+        color = :lightgray
+    end
+    for nm in ("inner", "outer", "vacuum", "hfs", "lfs", "gap")
+        name = replace(name, Regex("$(nm) ", "i") => "")
+    end
+    return name, color
+end
+
+
+
 @recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, pf_passive=true, only=Symbol[], exclude_layers=Symbol[])
     id = plot_help_id(bd)
     assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
@@ -1079,33 +1115,7 @@ end
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
 
             # setup labels and colors
-            name = l.name
-            color = :gray
-            if l.type == Int(_gap_)
-                name = ""
-                color = :white
-            elseif l.type == Int(_oh_)
-                if l.side == _in_
-                    color = :gray
-                else
-                    color = :white
-                end
-            elseif l.type == Int(_tf_)
-                color = :green
-            elseif l.type == Int(_shield_)
-                color = :red
-            elseif l.type == Int(_blanket_)
-                color = :orange
-            elseif l.type == Int(_wall_)
-                color = :yellow
-            elseif l.type == Int(_vessel_)
-                color = :lightblue
-            elseif l.type == Int(_cryostat_)
-                color = :lightgray
-            end
-            for nm in ("inner", "outer", "vacuum", "hfs", "lfs", "gap")
-                name = replace(name, Regex("$(nm) ", "i") => "")
-            end
+            name, color = layer_attrs(l)
 
             if (isempty(only) || (Symbol(name) in only)) && (!(Symbol(name) in exclude_layers))
                 if !wireframe
@@ -1206,7 +1216,7 @@ end
             @series begin
                 colorbar --> :false
                 xlim --> [0, rmax]
-                color := :gray
+                color := :yellow
                 top_dd(bd).pf_passive
             end
         end
@@ -1224,36 +1234,10 @@ end
 
         at = 0
         for l in bd.layer
+            name, color = layer_attrs(l)
             @series begin
-                if l.type == Int(_plasma_)
-                    color --> :pink
-                elseif l.type == Int(_gap_)
-                    color --> :white
-                elseif l.type == Int(_oh_)
-                    if l.side == _in_
-                        color --> :gray
-                    else
-                        color --> :white
-                    end
-                elseif l.type == Int(_tf_)
-                    color --> :green
-                elseif l.type == Int(_shield_)
-                    color --> :red
-                elseif l.type == Int(_blanket_)
-                    color --> :orange
-                elseif l.type == Int(_wall_)
-                    color --> :yellow
-                elseif l.type == Int(_vessel_)
-                    color --> :lightblue
-                elseif l.type == Int(_cryostat_)
-                    color --> :lightgray
-                end
                 seriestype --> :vspan
-                if contains(l.name, "gap ")
-                    label --> ""
-                else
-                    label --> l.name
-                end
+                label --> name
                 alpha --> 0.2
                 xlim --> [0, at]
                 [at, at + l.thickness]
