@@ -995,6 +995,8 @@ end
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
 
+    dd = top_dd(bd)
+
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     legend_position --> :outerbottomright
@@ -1004,10 +1006,10 @@ end
     # cx
     if cx
 
-        if equilibrium
+        if dd !== nothing && equilibrium
             @series begin
                 cx := true
-                top_dd(bd).equilibrium
+                dd.equilibrium
             end
         end
 
@@ -1204,20 +1206,20 @@ end
             end
         end
 
-        if pf_active
+        if dd !== nothing && pf_active
             @series begin
                 colorbar --> :false
                 xlim --> [0, rmax]
-                top_dd(bd).pf_active
+                dd.pf_active
             end
         end
 
-        if pf_passive
+        if dd !== nothing && pf_passive
             @series begin
                 colorbar --> :false
                 xlim --> [0, rmax]
                 color := :yellow
-                top_dd(bd).pf_passive
+                dd.pf_passive
             end
         end
 
@@ -1238,6 +1240,7 @@ end
             @series begin
                 seriestype --> :vspan
                 label --> name
+                color --> color
                 alpha --> 0.2
                 xlim --> [0, at]
                 [at, at + l.thickness]
