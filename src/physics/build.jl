@@ -312,10 +312,10 @@ gap_VV_BL is the margin between the blanket module and the wall (10cm seems reas
 """
 function vertical_maintenance(bd::IMAS.build; tor_modularity::Int=2, pol_modularity::Int=1, gap_VV_BL::Float64=0.1)
     TFhfs = get_build_layer(bd.layer; type=_tf_, fs=_hfs_)
-    VV = get_build_layer(bd.layer; type=_vessel_, fs=_lfs_)
+    VV = get_build_layers(bd.layer; type=_vessel_, fs=_lfs_)[1]
     BLhfs = get_build_layer(bd.layer; type=_blanket_, fs=_hfs_)
     BLlfs = get_build_layer(bd.layer; type=_blanket_, fs=_lfs_)
-    iVVhfs = get_build_index(bd.layer; type=_vessel_, fs=_hfs_)
+    iVVhfs = get_build_indexes(bd.layer; type=_vessel_, fs=_hfs_)[end]
     gap_VV_TF = bd.layer[iVVhfs-1]
 
     n_TF = bd.tf.coils_n
