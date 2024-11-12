@@ -449,7 +449,7 @@ function greenwald_density(eqt::IMAS.equilibrium__time_slice)
 end
 
 function greenwald_density(ip::T, minor_radius::T) where {T<:Real}
-    return (ip / 1e6) / (pi * minor_radius^2) * 1e20
+    return abs(ip / 1e6) / (pi * minor_radius^2) * 1e20
 end
 
 function greenwald_density(dd::IMAS.dd)

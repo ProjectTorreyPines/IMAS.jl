@@ -57,6 +57,23 @@ function Base.setproperty!(@nospecialize(ids::IMASdd.IDS), field::Symbol, o::IMA
     end
 end
 
+# Custom materialize! for OutlineClosedVector
+function Base.materialize!(dest::OutlineClosedVector, bc::Base.Broadcast.Broadcasted)
+    if dest.data_is_closed
+        # Avoid reassigning the last point for closed outlines
+        for i in 1:length(dest.data)-1
+            dest.data[i] = bc[i]
+        end
+        dest.data[end] = dest.data[1]  # Ensures closure without reapplication
+    else
+        # Direct materialize! for open outlines
+        for i in 1:length(dest.data)
+            dest.data[i] = bc[i]
+        end
+    end
+    return dest
+end
+
 # ==================
 
 struct OutlineOpenVector{T,A<:AbstractVector{T}} <: AbstractVector{T}

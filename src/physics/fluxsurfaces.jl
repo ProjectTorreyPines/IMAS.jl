@@ -169,20 +169,42 @@ function find_psi_boundary(
     raise_error_on_not_closed::Bool,
     verbose::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
+    psi_domain = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
+
+    # !!! this does not work when PF coils are inside of the domain
+    # # detect cases where PSI comes from a closed-boundary solver
+    # if all(psi_domain .== psi_domain[1])
+    #     return (last_closed=original_psi_boundary, first_open=nothing)
+    # end
+    # if psi_axis < original_psi_boundary # looking for the largest closed boundary flux surface outside of original_psi_boundary
+    #     psi_domain0 = minimum(psi_domain[psi_domain.>original_psi_boundary])
+    # else
+    #     psi_domain0 = maximum(psi_domain[psi_domain.<original_psi_boundary])
+    # end
+    # surface = flux_surface(dimR, dimZ, PSI, RA, ZA, Float64[], Float64[], psi_domain0, :closed)
+    # if length(surface) == 1 && surface[1].r[1] == surface[1].r[end] && surface[1].z[1] == surface[1].z[end]
+    #     return (last_closed=original_psi_boundary, first_open=nothing)
+    # end
+
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
-        psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
+        psi_edge = psi_domain
     end
-    if psi_axis < original_psi_boundary
-        psi_edge0 = maximum(psi_edge)
+    psi_edge0 = original_psi_boundary + (original_psi_boundary - psi_axis)
+    if psi_axis < original_psi_boundary # looking for the largest open boundary flux surface outside of original_psi_boundary
+        psi_edge1 = maximum(psi_edge[psi_edge.>original_psi_boundary])
+        psi_edge_guess = min(psi_edge1, psi_edge0)
     else
-        psi_edge0 = minimum(psi_edge)
+        psi_edge1 = minimum(psi_edge[psi_edge.<original_psi_boundary])
+        psi_edge_guess = max(psi_edge1, psi_edge0)
     end
-    psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
+    psirange_init = [psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
 
     if verbose
+        @show psi_axis
+        @show original_psi_boundary
         @show psirange_init
         plot(; aspect_ratio=:equal)
         contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
@@ -500,8 +522,6 @@ function find_psi_last_diverted(
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
-
-
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis\
     psi_first_open = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
     psi_sign = sign(psi_first_open - psi_axis) # +1 incresing psi / -1 decreasing psi
@@ -509,7 +529,6 @@ function find_psi_last_diverted(
     # Case for limited plasmas
     psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
 
-    limited = false
     if psi_sign * psi_sep_open > psi_sign * psi_first_open
         # if the LCFS is not the magnetic separatrix
         # the plasma is limited and not diverted
@@ -518,14 +537,13 @@ function find_psi_last_diverted(
         psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
     # return (psi_last_lfs=psi_sep_closed, psi_first_open=psi_first_open,  psi_first_lfs_far=psi_sep_open, null_within_wall=true)
     else
+        limited = false
         Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
         psi_2ndseparatrix = find_psi_2nd_separatrix(eqt) # psi second magnetic separatrix
     end
 
-
-
     # intersect 2nd separatrix with wall, and look
-    surface = flux_surface(eqt, psi_2ndseparatrix, :open, Float64[], Float64[])
+    surface = flux_surface(eqt, psi_2ndseparatrix, :open, wall_r, wall_z)
     rz_intersects = StaticArrays.SVector{2,Float64}[]
     r_max = 0.0
     for (r, z) in surface
@@ -539,6 +557,7 @@ function find_psi_last_diverted(
 
         r_max = max(r_max, maximum(r))
     end
+    @assert r_max > 0.0 "Could not trace an open flux surface for 2nd separatrix"
 
     r_intersect = Float64[rr for (rr, zz) in rz_intersects]
     z_intersect = Float64[zz for (rr, zz) in rz_intersects]
@@ -1700,15 +1719,12 @@ Find the `n` X-points that are closest to the separatrix
 """
 function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     ((rlcfs, zlcfs),) = flux_surface(eqt, eqt.profiles_1d.psi[end], :closed, wall_r, wall_z)
-    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :open, Float64[], Float64[])
+    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :encircling, Float64[], Float64[])
     Z0 = sum(zlcfs) / length(zlcfs)
     empty!(eqt.boundary.x_point)
 
     for (pr, pz) in private
-        if sign(pz[1] - Z0) != sign(pz[end] - Z0)
-            # open flux surface does not encicle the plasma
-            continue
-        elseif (sum(pz) < Z0)
+        if (sum(pz) < Z0)
             index = argmax(pz)
         elseif (sum(pz) > Z0)
             # upper private region
@@ -1874,34 +1890,24 @@ function luce_squareness(
     z_at_max_r::T, max_r::T,
     z_at_min_r::T, min_r::T) where {T<:Real}
 
-    # zetaou
-    PO = (r_at_max_z, z_at_max_r)
-    PE = (max_r, max_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetaou = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
+    names = (:zetaou, :zetaol, :zetaiu, :zetail)
+    POs = ((r_at_max_z, z_at_max_r),(r_at_min_z, z_at_max_r),(r_at_max_z, z_at_min_r), (r_at_min_z, z_at_min_r))
+    PEs = ((max_r, max_z), (max_r, min_z), (min_r, max_z),(min_r, min_z))
 
-    # zetaol
-    PO = (r_at_min_z, z_at_max_r)
-    PE = (max_r, min_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetaol = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
-
-    # zetaiu
-    PO = (r_at_max_z, z_at_min_r)
-    PE = (min_r, max_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetaiu = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
-
-    # zetail
-    PO = (r_at_min_z, z_at_min_r)
-    PE = (min_r, min_z)
-    PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-    PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-    zetail = (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC)
-
+    z = T[]
+    for (name, PO, PE) in zip(names, POs, PEs)
+        try
+            PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
+            PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
+            push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
+        catch e
+            push!(z, T(0.0))
+            # plot(pr,pz;aspect_ratio=:equal,title=name)
+            # display(plot!([PO[1], PE[1]], [PO[2], PE[2]]))
+            # rethrow(e)
+        end
+    end
+    zetaou, zetaol, zetail, zetaiu = z
     return zetaou, zetaol, zetail, zetaiu
 end
 

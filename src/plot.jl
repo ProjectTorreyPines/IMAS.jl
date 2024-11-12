@@ -219,10 +219,11 @@ end
 
 end
 
-@recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false, coil_identifiers=false) where {T<:Real}
+@recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false, coil_identifiers=false, coil_numbers=false) where {T<:Real}
     id = plot_help_id(coil)
     assert_type_and_record_argument(id, Bool, "Show coil names"; coil_names)
     assert_type_and_record_argument(id, Bool, "Show coil identifiers"; coil_identifiers)
+    assert_type_and_record_argument(id, Bool, "Show coil numbers"; coil_numbers)
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
@@ -242,13 +243,15 @@ end
         append!(z, oute.z)
     end
 
-    if coil_names || coil_identifiers
+    if coil_names || coil_identifiers || coil_numbers
         r_avg = sum(r) / length(r)
         z_avg = sum(z) / length(z)
         @series begin
             label := ""
             if coil_names
                 series_annotations := [(coil.name, :center, :middle, :red, 6)]
+            elseif coil_numbers
+                series_annotations := [(index(coil), :center, :middle, :red, 6)]
             else
                 series_annotations := [(coil.identifier, :center, :middle, :red, 6)]
             end
@@ -469,9 +472,9 @@ end
             orientation := :horizontal
             alpha := 0.25
             linecolor := :match
-            label:=""
+            label := ""
             color := [PlotUtils.palette(:tab10)[c] for c in length(costs):-1:1]
-            reverse(names), reverse([Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_costs])
+            reverse(names), reverse([Measurements.value(c) + s * Measurements.uncertainty(c) for c in uncertain_costs])
         end
     end
     @series begin
@@ -505,9 +508,9 @@ end
                     orientation := :horizontal
                     alpha := 0.25
                     linecolor := :match
-                    label:=""
+                    label := ""
                     color := PlotUtils.palette(:tab10)[k]
-                    sub_names, [Measurements.value(c)+ s * Measurements.uncertainty(c) for c in uncertain_sub_costs]
+                    sub_names, [Measurements.value(c) + s * Measurements.uncertainty(c) for c in uncertain_sub_costs]
                 end
             end
             @series begin
@@ -661,6 +664,9 @@ end
 
     if !cx
         layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
+        if Plots.backend_name() == :unicodeplots
+            layout := 5
+        end
         size --> (800, 500)
     end
 
@@ -687,7 +693,7 @@ end
                 subplot := 2
                 normalization := 1E-6
                 ylabel := ""
-                title := L"P~~[MPa]"
+                title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
                 eqt.profiles_1d, :pressure
             end
         end
@@ -702,7 +708,7 @@ end
                     subplot := 2
                     normalization := 1E-6
                     ylabel := ""
-                    title := L"P~~[MPa]"
+                    title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
                     cp1d, :pressure
                 end
             end
@@ -716,7 +722,7 @@ end
                 subplot := 3
                 normalization := 1E-6
                 ylabel := ""
-                title := L"J_{tor}~[MA/m^2]"
+                title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
                 eqt.profiles_1d, :j_tor
             end
         end
@@ -731,7 +737,7 @@ end
                     subplot := 3
                     normalization := 1E-6
                     ylabel := ""
-                    title := L"J_{tor}~[MA/m^2]"
+                    title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
                     cp1d, :j_tor
                 end
             end
@@ -745,10 +751,10 @@ end
                 ylabel := ""
                 normalization := 1.0
                 if contains(string(coordinate), "psi")
-                    title := L"\rho"
+                    title := latex_support() ? L"\rho" : "ρ"
                     eqt.profiles_1d, :rho_tor_norm
                 else
-                    title := L"\psi~~[Wb]"
+                    title := latex_support() ? L"\psi~~[\mathrm{Wb}]" : "Ψ [Wb]"
                     eqt.profiles_1d, :psi
                 end
             end
@@ -770,7 +776,7 @@ end
                 subplot := 5
                 ylabel := ""
                 normalization := 1.0
-                title := L"q"
+                title := latex_support() ? L"q" : "q"
                 eqt.profiles_1d, :q
             end
         end
@@ -1040,14 +1046,53 @@ function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::Abstrac
     return r, z
 end
 
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, only=Symbol[], exclude_layers=Symbol[])
+function layer_attrs(l::IMAS.build__layer)
+    name = l.name
+    color = :gray
+    if l.material == "water"
+        name = ""
+        color = :lightblue
+    elseif l.type == Int(_gap_)
+        name = ""
+        color = :white
+    elseif l.type == Int(_oh_)
+        if l.side == _in_
+            color = :gray
+        else
+            color = :white
+        end
+    elseif l.type == Int(_tf_)
+        color = :green
+    elseif l.type == Int(_shield_)
+        color = :red
+    elseif l.type == Int(_blanket_)
+        color = :orange
+    elseif l.type == Int(_wall_)
+        color = :yellow
+    elseif l.type == Int(_vessel_)
+        color = :yellow
+    elseif l.type == Int(_cryostat_)
+        color = :lightgray
+    end
+    for nm in ("inner", "outer", "vacuum", "hfs", "lfs", "gap")
+        name = replace(name, Regex("$(nm) ", "i") => "")
+    end
+    return name, color
+end
+
+
+
+@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, pf_passive=true, only=Symbol[], exclude_layers=Symbol[])
     id = plot_help_id(bd)
     assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
     assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
     assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
     assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
+    assert_type_and_record_argument(id, Bool, "Include plot of pf_passive"; pf_passive)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
+
+    dd = top_dd(bd)
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
@@ -1058,10 +1103,10 @@ end
     # cx
     if cx
 
-        if equilibrium
+        if dd !== nothing && equilibrium
             @series begin
                 cx := true
-                top_dd(bd).equilibrium
+                dd.equilibrium
             end
         end
 
@@ -1169,33 +1214,7 @@ end
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
 
             # setup labels and colors
-            name = l.name
-            color = :gray
-            if l.type == Int(_gap_)
-                name = ""
-                color = :white
-            elseif l.type == Int(_oh_)
-                if l.side == _in_
-                    color = :gray
-                else
-                    color = :white
-                end
-            elseif l.type == Int(_tf_)
-                color = :green
-            elseif l.type == Int(_shield_)
-                color = :red
-            elseif l.type == Int(_blanket_)
-                color = :orange
-            elseif l.type == Int(_wall_)
-                color = :yellow
-            elseif l.type == Int(_vessel_)
-                color = :lightblue
-            elseif l.type == Int(_cryostat_)
-                color = :lightgray
-            end
-            for nm in ("inner", "outer", "vacuum", "hfs", "lfs", "gap")
-                name = replace(name, Regex("$(nm) ", "i") => "")
-            end
+            name, color = layer_attrs(l)
 
             if (isempty(only) || (Symbol(name) in only)) && (!(Symbol(name) in exclude_layers))
                 if !wireframe
@@ -1284,11 +1303,20 @@ end
             end
         end
 
-        if pf_active
+        if dd !== nothing && pf_active
             @series begin
                 colorbar --> :false
                 xlim --> [0, rmax]
-                top_dd(bd).pf_active
+                dd.pf_active
+            end
+        end
+
+        if dd !== nothing && pf_passive
+            @series begin
+                colorbar --> :false
+                xlim --> [0, rmax]
+                color := :yellow
+                dd.pf_passive
             end
         end
 
@@ -1305,36 +1333,11 @@ end
 
         at = 0
         for l in bd.layer
+            name, color = layer_attrs(l)
             @series begin
-                if l.type == Int(_plasma_)
-                    color --> :pink
-                elseif l.type == Int(_gap_)
-                    color --> :white
-                elseif l.type == Int(_oh_)
-                    if l.side == _in_
-                        color --> :gray
-                    else
-                        color --> :white
-                    end
-                elseif l.type == Int(_tf_)
-                    color --> :green
-                elseif l.type == Int(_shield_)
-                    color --> :red
-                elseif l.type == Int(_blanket_)
-                    color --> :orange
-                elseif l.type == Int(_wall_)
-                    color --> :yellow
-                elseif l.type == Int(_vessel_)
-                    color --> :lightblue
-                elseif l.type == Int(_cryostat_)
-                    color --> :lightgray
-                end
                 seriestype --> :vspan
-                if contains(l.name, "gap ")
-                    label --> ""
-                else
-                    label --> l.name
-                end
+                label --> name
+                color --> color
                 alpha --> 0.2
                 xlim --> [0, at]
                 [at, at + l.thickness]
@@ -2305,13 +2308,27 @@ end
     end
 
     smcs = parent(stress)
-    for radius in (smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end])
-        @series begin
-            seriestype := :vline
-            label := ""
-            linestyle := :dash
-            color := :black
-            [radius]
+    if smcs !== nothing
+        for radius in (smcs.grid.r_oh[1], smcs.grid.r_oh[end], smcs.grid.r_tf[1], smcs.grid.r_tf[end])
+            @series begin
+                seriestype := :vline
+                label := ""
+                linestyle := :dash
+                color := :black
+                [radius]
+            end
+        end
+        dd = top_dd(smcs)
+        if dd!== nothing
+            r_nose = smcs.grid.r_tf[1] + (smcs.grid.r_tf[end] - smcs.grid.r_tf[1]) * dd.build.tf.nose_hfs_fraction
+            @series begin
+                seriestype := :vline
+                label := ""
+                linestyle := :dash
+                color := :black
+                linewidth := base_linewidth / 2.0
+                [r_nose]
+            end
         end
     end
 end
@@ -2420,14 +2437,13 @@ end
 # wall #
 # ==== #
 @recipe function plot_wall(wall::IMAS.wall)
+    aspect_ratio := :equal
     @series begin
-        color := :gray
         return wall.description_2d
     end
 end
 
 @recipe function plot_wd2d_list(wd2d_list::IDSvector{<:IMAS.wall__description_2d})
-    label := ""
     for wd2d in wd2d_list
         @series begin
             return wd2d
@@ -2466,22 +2482,6 @@ end
 
 # --- Vessel
 
-"""
-    thick_line_polygon(r1, z1, r2, z2, thickness1, thickness2)
-
-Casts thick line as a polygon. Returns points of the quadrilateral polygon
-"""
-function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, thickness1::Float64, thickness2::Float64)
-    direction = normalize([z2 - z1, -(r2 - r1)]) # Perpendicular direction
-    offset1 = direction .* thickness1 / 2
-    offset2 = direction .* thickness2 / 2
-    p1 = [r1, z1] + offset1
-    p2 = [r2, z2] + offset2
-    p3 = [r2, z2] - offset2
-    p4 = [r1, z1] - offset1
-    return [p1, p2, p3, p4, p1]
-end
-
 @recipe function plot_wd2dvu_list(wd2dvu_list::IDSvector{<:IMAS.wall__description_2d___vessel__unit})
     for wd2dvu in wd2dvu_list
         @series begin
@@ -2491,54 +2491,82 @@ end
 end
 
 @recipe function plot_wd2dvu(wd2dvu::IMAS.wall__description_2d___vessel__unit)
-    base_linewidth = get(plotattributes, :linewidth, 1.0)
+    if !isempty(wd2dvu.annular)
+        @series begin
+            label --> getproperty(wd2dvu, :name, "")
+            wd2dvu.annular
+        end
+    end
+    if !isempty(wd2dvu.element)
+        @series begin
+            label --> getproperty(wd2dvu, :name, "")
+            wd2dvu.element
+        end
+    end
+end
 
-    plot_data_items = []
-    closed_items = Bool[]
-    if !ismissing(wd2dvu.annular.centreline, :r)
-        push!(plot_data_items, closed_polygon(wd2dvu.annular.centreline.r, wd2dvu.annular.centreline.z, Bool(wd2dvu.annular.centreline.closed)))
-        push!(closed_items, Bool(wd2dvu.annular.centreline.closed))
-    end
-    if !ismissing(wd2dvu.annular.outline_inner, :r)
-        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_inner.r, wd2dvu.annular.outline_inner.z, Bool(wd2dvu.annular.outline_inner.closed)))
-        push!(closed_items, Bool(wd2dvu.annular.outline_inner.closed))
-    end
-    if !ismissing(wd2dvu.annular.outline_outer, :r)
-        push!(plot_data_items, closed_polygon(wd2dvu.annular.outline_outer.r, wd2dvu.annular.outline_outer.z, Bool(wd2dvu.annular.outline_outer.closed)))
-        push!(closed_items, Bool(wd2dvu.annular.outline_outer.closed))
-    end
-    for j in eachindex(wd2dvu.element)
-        wd2dvu.element[j].outline.r
-        push!(plot_data_items, closed_polygon(wd2dvu.element[j].outline.r, wd2dvu.element[j].outline.z, Bool(wd2dvu.element[j].outline.closed)))
-        push!(closed_items, Bool(wd2dvu.element[j].outline.closed))
-    end
+@recipe function plot_wd2dvua(annular::IMAS.wall__description_2d___vessel__unit___annular)
+    if !ismissing(annular, :thickness)
+        tmp = closed_polygon(annular.centreline.r, annular.centreline.z, Bool(annular.centreline.closed), annular.thickness)
+        r, z = tmp.rz
+        thickness = tmp.args[1]
 
-    for (plotdata, is_closed) in zip(plot_data_items, closed_items)
-        if !ismissing(wd2dvu.annular, :thickness)
-            thickness = wd2dvu.annular.thickness
-            if is_closed
-                thickness = [thickness; thickness[1]]
-            end
-            for i in 1:length(plotdata.r)-1
-                pts = thick_line_polygon(plotdata.r[i], plotdata.z[i], plotdata.r[i+1], plotdata.z[i+1], thickness[i], thickness[i+1])
-                # Extract x and y coordinates for plotting
-                xs, ys = map(collect, zip(pts...))
-                @series begin
-                    primary := i == 1
-                    linewidth := 0.1 * base_linewidth
-                    aspect_ratio := :equal
-                    fill := (0, 0.5, :gray)
-                    xlim := (0, Inf)
-                    xs, ys
-                end
-            end
-        else
+        for i in 1:length(r)-1
+            pts = thick_line_polygon(r[i], z[i], r[i+1], z[i+1], thickness[i], thickness[i+1])
+            # Extract x and y coordinates for plotting
+            xs, ys = map(collect, zip(pts...))
             @series begin
-                label --> getproperty(wd2dvu, :name, "")
+                primary := i == 1
                 aspect_ratio := :equal
-                plotdata.r, plotdata.z
+                seriestype := :shape
+                linewidth := 0.0
+                xs, ys
             end
         end
+        @series begin
+            primary := false
+            color := :black
+            lw := 0.2
+            linestyle := :dash
+            r, z
+        end
+
+    else
+        if Bool(annular.outline_inner.closed)
+            poly = join_outlines(annular.outline_inner.r, annular.outline_inner.z, annular.outline_outer.r, annular.outline_outer.z)
+        else
+            poly = ([reverse(annular.outline_inner.r); annular.outline_outer.r], [reverse(annular.outline_inner.z); annular.outline_outer.z])
+        end
+        poly = closed_polygon(poly...).rz
+        @series begin
+            aspect_ratio := :equal
+            seriestype := :shape
+            linewidth := 0.0
+            poly[1], poly[2]
+        end
+        @series begin
+            primary := false
+            color := :black
+            lw := 0.2
+            poly
+        end
+    end
+end
+
+@recipe function plot_wd2dvue(elements::IDSvector{<:IMAS.wall__description_2d___vessel__unit___element})
+    for (k, element) in enumerate(elements)
+        @series begin
+            primary := k == 1
+            element
+        end
+    end
+end
+
+@recipe function plot_wd2dvue(element::IMAS.wall__description_2d___vessel__unit___element)
+    aspect_ratio := :equal
+    seriestype := :shape
+    @series begin
+        element.outline.r, element.outline.z
     end
 end
 
@@ -2561,8 +2589,8 @@ end
 
 @recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
     poly = closed_polygon(outline.r, outline.z)
+    aspect_ratio := :equal
     @series begin
-        aspect_ratio := :equal
         poly.r, poly.z
     end
 end
@@ -2688,7 +2716,7 @@ end
             markerstrokewidth := 0.0
             titlefontsize := 10
             title := nice_field(plt[:label])
-            xlim = (tmin, tmax)
+            xlim := (tmin, tmax)
             [time0], interp1d(x[1:n], y[1:n]).([time0])
         end
     end
@@ -2837,6 +2865,12 @@ end
     coordinate_name = coords.names[1]
     coordinate_value = coords.values[1]
 
+    # If the field is the reference coordinate of the given IDS,
+    # set the coordinate_value as its index
+    if coordinate_name == "1...N"
+        coordinate_value = 1:length(getproperty(ids, field))
+    end
+
     xvalue = coordinate_value
     yvalue = getproperty(ids, field) .* normalization
 
@@ -2858,7 +2892,11 @@ end
             label = nice_field(field)
         end
 
-        xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+        if coordinate_name == "1...N"
+            xlabel --> "index"
+        else
+            xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+        end
         ylabel --> ylabel
         label --> label
 
@@ -2916,13 +2954,17 @@ end
     end
 end
 
+function latex_support()
+    return Plots.backend_name() in [:gr, :pgfplotsx, :pythonplot, :inspectdr]
+end
+
 #= ================== =#
 #  handling of labels  #
 #= ================== =#
 nice_field_symbols = Dict()
-nice_field_symbols["rho_tor_norm"] = L"\rho"
-nice_field_symbols["psi"] = L"\psi"
-nice_field_symbols["psi_norm"] = L"\psi_N"
+nice_field_symbols["rho_tor_norm"] = () -> latex_support() ? L"\rho" : "ρ"
+nice_field_symbols["psi"] = () -> latex_support() ? L"\psi" : "ψ"
+nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_\mathrm{N}" : "ψₙ"
 nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
 nice_field_symbols["i_plasma"] = "Plasma current"
 nice_field_symbols["b_field_tor_vacuum_r"] = "B₀×R₀"
@@ -2933,6 +2975,7 @@ nice_field_symbols["geometric_axis.z"] = "Zgeo"
 function nice_field(field::AbstractString)
     if field in keys(nice_field_symbols)
         field = nice_field_symbols[field]
+        return field isa Function ? field() : field
     else
         field = replace(field,
             r"n_e" => "nₑ",
@@ -2967,7 +3010,7 @@ function nice_units(units::String)
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
         units = replace(units, "." => s"\\,")
-        units = L"[%$units]"
+        units = latex_support() ? L"[\mathrm{%$units}]" : "[$units]"
         units = " " * units
     end
     return units
@@ -2994,3 +3037,8 @@ function hash_to_color(input::Any; seed::Int=0)
     # Return an RGB color using Plots' RGB type
     return RGB(r, g, b)
 end
+
+# To fix a vscode's bug w.r.t UnicodePlots
+# (see https://github.com/JuliaPlots/Plots.jl/issues/4956  for more details)
+Base.showable(::MIME"image/png", ::Plots.Plot{Plots.UnicodePlotsBackend}) = applicable(UnicodePlots.save_image, devnull)
+

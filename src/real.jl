@@ -48,47 +48,46 @@ function Measurement(@nospecialize(ids::IDS{T})) where {T<:Real}
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:Measurement{T}}), @nospecialize(ids::IDS{<:T}), field::Symbol) where {T1<:Real,T2<:Real}
+    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Measurement{<:Real},T2<:Real}
 
 Go from IDS{T} to IDS{Measurement{T}}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:Measurement{T1}}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Real}
+function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Measurement{<:Real},T2<:Real}
     if endswith(string(field), "_σ")
         return nothing
     else
-        if !(fieldtype(typeof(ids), field) <: eltype(ids))
-            value = getraw(ids, field)
+        value = getfield(ids, field)
+        if field == :time || !(eltype(value) <: T2)
             setraw!(ids_new, field, value)
         else
             efield = Symbol("$(field)_σ")
-            val = getraw(ids, field)
             if !ismissing(ids, efield)
-                err = getraw(ids, efield)
-                value = val ± err
+                error = getfield(ids, efield)
+                uncer = value ± error
             else
-                value = val .± 0.0
+                uncer = value .± 0.0
             end
-            setraw!(ids_new, field, value)
+            setraw!(ids_new, field, uncer)
         end
     end
     return nothing
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:Measurement{T2}}), field::Symbol) where {T1<:Real,T2<:Real}
+    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Measurement{<:Real}}
 
 Go from IDS{Measurement{T}} to IDS{T}
 """
-function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:Measurement{T2}}), field::Symbol) where {T1<:Real,T2<:Real}
+function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Measurement{<:Real}}
     if endswith(string(field), "_σ")
         return nothing
     else
         value = getraw(ids, field)
-        if !(fieldtype(typeof(ids), field) <: eltype(ids))
-            setraw!(ids_new, field, value)
-        else
+        if eltype(value) <: T2
             setraw!(ids_new, field, value.val)
             setraw!(ids_new, Symbol("$(field)_σ"), value.err)
+        else
+            setraw!(ids_new, field, value)
         end
     end
     return nothing

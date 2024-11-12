@@ -126,6 +126,16 @@ function get_build_layer(
 end
 
 """
+    opposite_side_layer(layer::IMAS.build__layer)
+
+Returns corresponding layer on the high/low field side 
+"""
+function opposite_side_layer(layer::IMAS.build__layer)
+    @assert layer.side in (Int(_hfs_), Int(_lfs_)) "Asking for opposite_side_layer of $(layer.name), which does not make sense"
+    return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+end
+
+"""
     structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1)
 
 return rmask, zmask, mask of structures that are not vacuum
@@ -257,15 +267,26 @@ end
 """
     first_wall(wall::IMAS.wall)
 
-returns named tuple with outline of first wall, or an empty outline if not present
+Returns named tuple with outline of the official contiguous first wall limiter contour, or an empty outline if not present
 """
 function first_wall(wall::IMAS.wall{T}) where {T<:Real}
-    if (!ismissing(wall.description_2d, ["1", "limiter", "unit", "1", "outline", "r"])) && (length(wall.description_2d[1].limiter.unit[1].outline.r) > 4)
-        outline = wall.description_2d[1].limiter.unit[1].outline
-        tmp = closed_polygon(outline.r, outline.z)
-        return (r=tmp.r, z=tmp.z)
-    else
-        return (r=Float64[], z=Float64[])
+    for d2d in wall.description_2d
+        # d2d.limiter.type.index != 0 indicates a disjoint limiter
+        if !ismissing(d2d.limiter.type, :index) && d2d.limiter.type.index != 0
+            continue
+        end
+        for unit in d2d.limiter.unit
+            @assert length(d2d.limiter.unit) == 1 # there should be just one official contiguous limiter contour
+            oute = closed_polygon(unit.outline.r, unit.outline.z)
+            return (r=oute.r, z=oute.z)
+        end
+    end
+    return (r=Float64[], z=Float64[])
+end
+
+function thick_wall(unit::wall__description_2d___vessel__unit)
+    if !isempty(unit.anular)
+        
     end
 end
 
@@ -291,10 +312,10 @@ gap_VV_BL is the margin between the blanket module and the wall (10cm seems reas
 """
 function vertical_maintenance(bd::IMAS.build; tor_modularity::Int=2, pol_modularity::Int=1, gap_VV_BL::Float64=0.1)
     TFhfs = get_build_layer(bd.layer; type=_tf_, fs=_hfs_)
-    VV = get_build_layer(bd.layer; type=_vessel_, fs=_lfs_)
+    VV = get_build_layers(bd.layer; type=_vessel_, fs=_lfs_)[1]
     BLhfs = get_build_layer(bd.layer; type=_blanket_, fs=_hfs_)
     BLlfs = get_build_layer(bd.layer; type=_blanket_, fs=_lfs_)
-    iVVhfs = get_build_index(bd.layer; type=_vessel_, fs=_hfs_)
+    iVVhfs = get_build_indexes(bd.layer; type=_vessel_, fs=_hfs_)[end]
     gap_VV_TF = bd.layer[iVVhfs-1]
 
     n_TF = bd.tf.coils_n
