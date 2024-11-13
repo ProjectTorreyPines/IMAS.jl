@@ -652,15 +652,21 @@ end
     ITB(rho0::T, width::T, height::T, rho::AbstractVector{T}) where {T<:Real}
 
 tanh profile to be added to existing profiles to model Internal Transport Barrier (ITB).
-The ITB is centered at `rho0`, with a full width of `width` and a total height of `height`
+The ITB is centered at `rho0`, with a full width of `width` and given `height`
 """
 function ITB(rho0::T, width::T, height::T, rho::AbstractVector{T}) where {T<:Real}
-    return @. (tanh((-rho + rho0) / width * pi / 2) + 1.0) * 0.5 * height
+    return @. (tanh((-rho + rho0) / width * pi) + 1.0) * 0.5 * height
 end
 
-function ITB(rho0::T, width::T, height::T, n::Int) where {T<:Real}
-    rho = range(0.0, 1.0, n)
-    return ITB(rho0, width, height, rho)
+"""
+    ITB_profile(rho::AbstractVector{T}, input_profile::AbstractVector{T}, rho0::T, width::T, height_ratio::T) where {T<:Real}
+
+Add ITB to existing profile. The ITB is centered at `rho0`, with a full width of `width`, and a height expressed as a ratio of the input_profile evaluated on axis
+"""
+function ITB_profile(rho::AbstractVector{T}, input_profile::AbstractVector{T}, rho0::T, width::T, height_ratio::T) where {T<:Real}
+    height = interp1d(rho, input_profile).(0.0) * height_ratio
+    itb = ITB(rho0, width, height, rho)
+    return input_profile .+ itb
 end
 
 """
