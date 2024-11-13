@@ -649,44 +649,19 @@ function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
 end
 
 """
-    ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
+    ITB(rho0::T, width::T, height::T, rho::AbstractVector{T}) where {T<:Real}
 
-Generate H-mode density and temperature profiles with Internal Transport Barrier (ITB).
-This makes an H-mode profile and adds a tanh offset at the ITB radial location.
-Note that core, ped, and ITBh are all in absolute units, so if core < ped + ITBh there will be negative gradients.
-
-:param edge: separatrix height
-
-:param ped: pedestal height
-
-:param core: on-axis profile height
-
-:param ngrid: number of radial grid points
-
-:param expin: inner core exponent for H-mode pedestal profile
-
-:param expout: outer core exponent for H-mode pedestal profile
-
-:param widthp: width of pedestal
-
-:param ITBr: radial location of ITB center
-
-:param ITBw: width of ITB
-
-:param ITBh: height of ITB
+tanh profile to be added to existing profiles to model Internal Transport Barrier (ITB).
+The ITB is centered at `rho0`, with a full width of `width` and a total height of `height`
 """
-function ITB_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real, ITBr::Real, ITBw::Real, ITBh::Real)
-    xpsi = range(0.0, 1.0, ngrid)
-
-    # H mode part
-    val = Hmode_profiles(edge, ped, core - ITBh, ngrid, expin, expout, widthp)
-
-    # ITB part
-    itb = @. 0.5 * ITBh * (1.0 - tanh((xpsi - ITBr) / ITBw))
-
-    return val + itb
+function ITB(rho0::T, width::T, height::T, rho::AbstractVector{T}) where {T<:Real}
+    return @. (tanh((-rho + rho0) / width * pi / 2) + 1.0) * 0.5 * height
 end
 
+function ITB(rho0::T, width::T, height::T, n::Int) where {T<:Real}
+    rho = range(0.0, 1.0, n)
+    return ITB(rho0, width, height, rho)
+end
 
 """
     species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Symbol=:all, only_thermal_fast::Symbol=:all)

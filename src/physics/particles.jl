@@ -45,7 +45,6 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     source_2d .*= mask .== 1 # set things to zero outsize of lcfs
     source_2d .*= R .* (2π * (r[2] - r[1]) * (z[2] - z[1])) # unit of intensity = volume integral of source_2d
 
-
     # cumulative distribution function
     CDF = cumsum(source_2d[:])
     I_per_trace = CDF[end] / N
@@ -75,7 +74,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
 end
 
 """
-find_flux(particles::Vector{particle{T}}, I_per_trace:T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10)
+    find_flux(particles::Vector{particle{T}}, I_per_trace:T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10)
 
 Returns the flux at the wall of the quantity brought by particles, together with a vector of the surface elements on the wall (wall_s)
 
