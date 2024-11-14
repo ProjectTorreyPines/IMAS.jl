@@ -78,7 +78,7 @@ function Base.show(io::IO, ::MIME"text/plain", f::ObjectiveFunction)
     return print(io, " [$(f.units)]")
 end
 
-function Base.show(io::IO, ::MIME"text/plain", objfs::AbstractDict{Symbol,ObjectiveFunction})
+function Base.show(io::IO, x::MIME"text/plain", objfs::AbstractDict{Symbol,ObjectiveFunction})
     for objf in objfs
         show(io, x, objf)
         println(io, "")
