@@ -1,4 +1,4 @@
-import FuseUtils: trapz, cumtrapz
+import IMASutils: trapz, cumtrapz
 
 function IMASdd.get_expressions(::Type{Val{:dynamic}})
     return dynamic_expressions
