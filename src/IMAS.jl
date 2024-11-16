@@ -12,7 +12,7 @@ for n in names(IMASdd; all=true)
         @eval import IMASdd: $n
     end
 end
-import IMASdd: @ddtime
+import IMASdd: @ddtime, @findall
 
 #= ===== =#
 #= UTILS =#
@@ -45,9 +45,15 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export @ddtime, constants, ±, extract, help_plot, help_plot!
+export @ddtime, @findall
+export constants, ±, extract, help_plot, help_plot!
 
-const document = Dict()
-document[Symbol(@__MODULE__)] = [name for name in Base.names(@__MODULE__, all=false, imported=false) if name != Symbol(@__MODULE__)]
+const document = OrderedCollections.OrderedDict()
+
+document[:Physics] = Symbol[]
+push!(document[:Physics], :constants)
+
+document[:Plot] = Symbol[]
+push!(document[:Plot], :help_plot, :help_plot!, :extract)
 
 end # module
