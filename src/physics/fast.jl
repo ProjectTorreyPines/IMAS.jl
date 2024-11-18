@@ -1,29 +1,28 @@
+document[Symbol("Physics fast")] = Symbol[]
+
 """
     estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Int)
 
-Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
+Returns solution to `i2` and `i4` integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
 
-:param ne: electron density [m^-3]
+* `ne`: electron density [m^-3]
 
-:param Te: electron temperature [eV]
+* `Te`: electron temperature [eV]
 
-:param ni: list of ion densities [m^-3]
+* `ni`: list of ion densities [m^-3]
 
-:param Ti: list of ion temperatures [eV]
+* `Ti`: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+* `mi`: list of ion masses [amu]
 
-:param Zi: list of ion charges
+* `Zi`: list of ion charges
 
-:param Ef: fast ion energy [eV]
+* `Ef`: fast ion energy [eV]
 
-:param mf: mass of fast ion [amu]
+* `mf`: mass of fast ion [amu]
 
-:param Zf: fast ion charge
-
-:return: i2 and i4
+* `Zf`: fast ion charge
 """
-
 function estrada_I_integrals(
     ne::Real,
     Te::Real,
@@ -37,7 +36,7 @@ function estrada_I_integrals(
 )
     Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
     i2, i4 = estrada_I_integrals(Ec, Ef)
-    return i2, i4
+    return (i2=i2, i4=i4)
 end
 
 """
@@ -45,43 +44,41 @@ end
 
 Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
 
-:param Ef: fast ion energy [eV]
+* `Ef`: fast ion energy [eV]
 
-:param Ec: critical energy [eV]
-
-:return: i2 and i4
+* `Ec`: critical energy [eV]
 """
 function estrada_I_integrals(Ec::Real, Ef::Real)
     a = sqrt.(Ec ./ Ef)
     i2 = (1 / 3.0) .* log.((1 .+ a .^ 3) ./ (a .^ 3))
     i4 = 0.5 .- a .^ 2 .* ((1 / 6.0) .* log.((1 .- a .+ a .^ 2) ./ (1 .+ a) .^ 2) .+
                            1 ./ sqrt(3.0) .* (atan.((2 .- a) ./ (a .* sqrt(3.0))) .+ pi / 6))
-    return i2, i4
+    return (i2=i2, i4=i4)
 end
 
+@compat public estrada_I_integrals
+push!(document[Symbol("Physics fast")], :estrada_I_integrals)
 
 """
     slowing_down_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int)
 
-Calculates the slowing down time τ_s [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
+Returns the slowing down time `τ_s` in seconds [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
-:param ne: electron density [m^-3]
+* `ne`: electron density [m^-3]
 
-:param Te: electron temperature [eV]
+* `Te`: electron temperature [eV]
 
-:param ni: list of ion densities [m^-3]
+* `ni`: list of ion densities [m^-3]
 
-:param Ti: list of ion temperatures [eV]
+* `Ti`: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+* `mi`: list of ion masses [amu]
 
-:param Zi: list of ion charges
+* `Zi`: list of ion charges
 
-:param mf: mass of fast ion [amu]
+* `mf`: mass of fast ion [amu]
 
-:param Zf: fast ion charge
-
-:return: τ_s: slowing down time
+* `Zf`: fast ion charge
 """
 function slowing_down_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int)
     lnΛ = lnΛ_ei(ne, Te, ni, Ti, mi, Zi)
@@ -93,17 +90,15 @@ end
 """
     slowing_down_time(ne::Real, Te::Real, mf::Real, Zf::Int)
 
-Calculates the slowing down time τ_s for Ti*me/mi < 10Zi^2 eV < Te [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
+Calculates the slowing down time `τ_s` in seconds for `Ti*me/mi < 10Zi^2 eV < Te` [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
-:param ne: electron density [m^-3]
+* `ne`: electron density [m^-3]
 
-:param Te: electron temperature [eV]
+* `Te`: electron temperature [eV]
 
-:param mf: mass of fast ion [amu]
+* `mf`: mass of fast ion [amu]
 
-:param Zf: fast ion charge
-
-:return: τ_s: slowing down time
+* `Zf`: fast ion charge
 """
 function slowing_down_time(ne::Real, Te::Real, mf::Real, Zf::Int)
     lnΛ = lnΛ_ei(ne, Te)
@@ -115,29 +110,30 @@ end
 """
     α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d)
 
-Returns the slowing down time of α particles evaluated on axis
+Returns the slowing down time in seconds of α particles evaluated on axis
 """
 function α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d)
     α = ion_properties(:α)
     return slowing_down_time(cp1d.electrons.density_thermal[1], cp1d.electrons.temperature[1], α.a, Int(α.z_n))
 end
 
+@compat public α_slowing_down_time
+push!(document[Symbol("Physics fast")], :α_slowing_down_time)
+
 """
     _drag_coefficient(n::Real, Z::Int, mf::Real, Zf::Int, lnΛ::Real)
 
-Drag coefficient (Γ) for a fast-ions interacting with a thermal species as defined Eq. 8 in [Gaffey, J. D. (1976). Energetic ion distribution resulting from neutral beam injection in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
+Returns drag coefficient `Γ` for a fast-ions interacting with a thermal species as defined Eq. 8 in [Gaffey, J. D. (1976). Energetic ion distribution resulting from neutral beam injection in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
 
-:param n: density of the thermal species [m^-3]
+* `n`: density of the thermal species [m^-3]
 
-:param Z: charge of the thermal species
+* `Z`: charge of the thermal species
 
-:param mf: fast-ion mass [amu]
+* `mf`: fast-ion mass [amu]
 
-:param Zf: fast-ion charge
+* `Zf`: fast-ion charge
 
-:param lnΛ: Couloumb logarithm
-
-:return Γ: drag coefficient
+* `lnΛ`: Couloumb logarithm
 """
 function _drag_coefficient(n::Real, Z::Int, mf::Real, Zf::Int, lnΛ::Real)
     n *= 1e-6 #cm^-3
@@ -149,27 +145,25 @@ end
 """
     _electron_ion_drag_difference(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
 
-Calculates the difference of the electron and ion drag terms in the collision operator defined in Eq. 19 in [Gaffey, J.D (1976). Energetic ion distribution resulting from neutral beam injectioin in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
+Returns `ΔD` the difference of the electron and ion drag terms in the collision operator defined in Eq. 19 in [Gaffey, J.D (1976). Energetic ion distribution resulting from neutral beam injectioin in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
 
-:param ne: electron density [m^-3]
+* `ne`: electron density [m^-3]
 
-:param Te: electron temperature [eV]
+* `Te`: electron temperature [eV]
 
-:param ni: list of ion densities [m^-3]
+* `ni`: list of ion densities [m^-3]
 
-:param Ti: list of ion temperatures [eV]
+* `Ti`: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+* `mi`: list of ion masses [amu]
 
-:param Zi: list of ion charges
+* `Zi`: list of ion charges
 
-:param Ef: fast ion energy [eV]
+* `Ef`: fast ion energy [eV]
 
-:param mf: mass of fast ion [amu]
+* `mf`: mass of fast ion [amu]
 
-:param Zf: fast ion charge
-
-:return ΔD: drag difference
+* `Zf`: fast ion charge
 """
 function _electron_ion_drag_difference(
     ne::Real,
@@ -202,25 +196,25 @@ end
 """
     critical_energy(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int; approximate::Bool=false)
 
-Calculate the critical energy by finding the root of the difference between the electron and ion drag
+Returns `Ec` the critical energy by finding the root of the difference between the electron and ion drag
 
-:param ne: electron density [m^-3]
+* `ne`: electron density [m^-3]
 
-:param Te: electron temperature [eV]
+* `Te`: electron temperature [eV]
 
-:param ni: list of ion densities [m^-3]
+* `ni`: list of ion densities [m^-3]
 
-:param Ti: list of ion temperatures [eV]
+* `Ti`: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+* `mi`: list of ion masses [amu]
 
-:param Zi: list of ion charges
+* `Zi`: list of ion charges
 
-:param mf: mass of fast ion [amu]
+* `mf`: mass of fast ion [amu]
 
-:param Zf: fast ion charge
+* `Zf`: fast ion charge
 
-:param approximate: calculate critical energy assuming lnΛ_fe == lnΛ_fi. For DIII-D a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2 can be used.
+* `approximate`: calculate critical energy assuming `lnΛ_fe == lnΛ_fi`. For DIII-D this results in a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2.
 """
 function critical_energy(
     ne::Real,
@@ -242,16 +236,19 @@ function critical_energy(
     return Ec
 end
 
+@compat public critical_energy
+push!(document[Symbol("Physics fast")], :critical_energy)
+
 """
     thermalization_time(v_f, v_c, tau_s)
 
-Calculate thermalization time
+Calculate thermalization time in seconds
 
-:param v_f: fast ion velocity
+* `v_f`: fast ion velocity
 
-:param v_c: critical velocity
+* `v_c`: critical velocity
 
-:param tau_s: slowing down time
+* `tau_s`: slowing down time
 """
 function thermalization_time(v_f::Real, v_c::Real, tau_s::Real)
     vf3 = v_f^3
@@ -262,25 +259,25 @@ end
 """
     thermalization_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real, mf::Real, Zf::Int)
 
-Calculate thermalization time of a fast ion with energy Ef and Ti*me/mi < 10Zi^2 eV < Te
+Calculate thermalization time in seconds of a fast ion with energy Ef and `Ti*me/mi < 10Zi^2 eV < Te`
 
-:param ne: electron density [m^-3]
+* `ne`: electron density [m^-3]
 
-:param Te: electron temperature [eV]
+* `Te`: electron temperature [eV]
 
-:param ni: list of ion densities [m^-3]
+* `ni`: list of ion densities [m^-3]
 
-:param Ti: list of ion temperatures [eV]
+* `Ti`: list of ion temperatures [eV]
 
-:param mi: list of ion masses [amu]
+* `mi`: list of ion masses [amu]
 
-:param Zi: list of ion charges
+* `Zi`: list of ion charges
 
-:param Ef: fast ion energy [eV]
+* `Ef`: fast ion energy [eV]
 
-:param mf: mass of fast ion [amu]
+* `mf`: mass of fast ion [amu]
 
-:param Zf: fast ion charge
+* `Zf`: fast ion charge
 """
 function thermalization_time(
     ne::Real,
@@ -307,7 +304,7 @@ end
 """
     α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
 
-Returns the thermalization time of α particles evaluated on axis
+Returns the thermalization time in seconds of α particles evaluated on axis
 """
 function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
     α = ion_properties(:α)
@@ -323,10 +320,15 @@ function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
         Int(α.z_n))
 end
 
+@compat public thermalization_time
+push!(document[Symbol("Physics fast")], :thermalization_time)
+
 """
     fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
 
-Calculates the core_profiles fast ion density and pressures resulting from fast ion sources (fusion, nbi)
+Fills the core_profiles fast ion densities and pressures that result from fast ion sources (eg. fusion and nbi)
+
+This calculation is done based on the `slowing_down_time` and `thermalization_time` of the fast ion species.
 """
 function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
     ne = cp1d.electrons.density_thermal
@@ -421,10 +423,13 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     end
 end
 
+@compat public fast_particles!
+push!(document[Symbol("Physics fast")], :fast_particles!)
+
 """
     sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
 
-Compute a low-accuracy but fast approximation to the ion heating fraction (for alpha particles and beam particles)
+Compute a low-accuracy but fast approximation of the ion to electron heating fraction for fast particles (like alpha particles and beam particles)
 """
 function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)
     Te = cp1d.electrons.temperature
@@ -463,3 +468,6 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
 
     return ion_to_electron_fraction
 end
+
+@compat public sivukhin_fraction
+push!(document[Symbol("Physics fast")], :sivukhin_fraction)
