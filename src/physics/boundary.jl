@@ -1,3 +1,5 @@
+document[Symbol("Physics boundary")] = Symbol[]
+
 """
     contour_no_edges(X, Y, F, l, n::Int=1)
 
@@ -30,24 +32,24 @@ end
 
 Function used to generate boundary shapes based on `T. C. Luce, PPCF, 55 9 (2013)`
 
-  - a: minor radius
-  - eps: aspect ratio
-  - kapu: upper elongation
-  - lkap: lower elongation
-  - delu: upper triangularity
-  - dell: lower triangularity
-  - zetaou: upper outer squareness
-  - zetaiu: upper inner squareness
-  - zetail: lower inner squareness
-  - zetaol: lower outer squareness
-  - zoffset: z-offset
-  - upnull: toggle upper x-point
-  - lonull: toggle lower x-point
-  - npts: number of points (per quadrant)
+  - `a`: minor radius
+  - `eps`: aspect ratio
+  - `kapu`: upper elongation
+  - `lkap`: lower elongation
+  - `delu`: upper triangularity
+  - `dell`: lower triangularity
+  - `zetaou`: upper outer squareness
+  - `zetaiu`: upper inner squareness
+  - `zetail`: lower inner squareness
+  - `zetaol`: lower outer squareness
+  - `zoffset`: z-offset
+  - `upnull`: toggle upper x-point
+  - `lonull`: toggle lower x-point
+  - `npts`: number of points (per quadrant)
 
 returns tuple with arrays of (r, z, zref)
 
-> > boundary_shape(;a=0.608,eps=0.374,kapu=1.920,kapl=1.719,delu=0.769,dell=0.463,zetaou=-0.155,zetaiu=-0.255,zetail=-0.174,zetaol=-0.227,zoffset=0.000,upnull=true,lonull=false)
+    >> boundary_shape(;a=0.608,eps=0.374,kapu=1.920,kapl=1.719,delu=0.769,dell=0.463,zetaou=-0.155,zetaiu=-0.255,zetail=-0.174,zetaol=-0.227,zoffset=0.000,upnull=true,lonull=false)
 """
 function boundary_shape(;
     a::T,
@@ -259,11 +261,25 @@ function boundary_shape(;
     return (r=r, z=z, zref=zref)
 end
 
+@compat public boundary_shape
+push!(document[Symbol("Physics boundary")], :boundary_shape)
+
+"""
+    boundary(pc::IMAS.pulse_schedule__position_control{T}, time0::Float64)
+
+return boundary from pulse_schedule.position_control at a given time0
+"""
 function boundary(pc::IMAS.pulse_schedule__position_control{T}, time0::Float64) where {T<:Real}
-    return (r=T[extrap1d(interp1d_itp(pc.time, pcb.r.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline],
+    return (
+        r=T[extrap1d(interp1d_itp(pc.time, pcb.r.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline],
         z=T[extrap1d(interp1d_itp(pc.time, pcb.z.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline])
 end
 
+"""
+    boundary(pc::IMAS.pulse_schedule__position_control{T}, time_index::Int)
+
+returns boundary from pulse_schedule.position_control at a given time_index
+"""
 function boundary(pc::IMAS.pulse_schedule__position_control{T}, time_index::Int) where {T<:Real}
     return (r=T[pcb.r.reference[time_index] for pcb in pc.boundary_outline],
         z=T[pcb.z.reference[time_index] for pcb in pc.boundary_outline])
@@ -277,6 +293,9 @@ Beturns r,z vectors from pulse_schedule.position_control.equilibrium__time_slice
 function boundary(pc::IMAS.pulse_schedule__position_control; time0::Float64=global_time(pc))
     return boundary(pc, time0)
 end
+
+@compat public boundary
+push!(document[Symbol("Physics boundary")], :boundary)
 
 """
     x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__x_point{T}}; time0::Float64=global_time(x_points)) where {T<:Real}
@@ -293,6 +312,9 @@ function x_points(x_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_contr
     return x_points0
 end
 
+@compat public x_points
+push!(document[Symbol("Physics boundary")], :x_points)
+
 """
     strike_points(strike_points::IMAS.IDSvector{<:IMAS.pulse_schedule__position_control__strike_point{T}}; time0::Float64=global_time(strike_points)) where {T<:Real}
 
@@ -307,3 +329,6 @@ function strike_points(strike_points::IMAS.IDSvector{<:IMAS.pulse_schedule__posi
     end
     return strike_points0
 end
+
+@compat public strike_points
+push!(document[Symbol("Physics boundary")], :strike_points)

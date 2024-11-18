@@ -470,10 +470,10 @@ dyexp["build.layer[:].shape_parameters"] =
     (; layer, _...) -> opposite_side_layer(layer).shape_parameters
 
 dyexp["build.layer[:].start_radius"] =
-    (; build, layer_index, _...) -> build_radii(build)[1:end-1][layer_index]
+    (; build, layer_index, _...) -> build_radii(build.layer)[1:end-1][layer_index]
 
 dyexp["build.layer[:].end_radius"] =
-    (; build, layer_index, _...) -> build_radii(build)[2:end][layer_index]
+    (; build, layer_index, _...) -> build_radii(build.layer)[2:end][layer_index]
 
 dyexp["build.layer[:].area"] =
     (; layer, _...) -> area(layer)
