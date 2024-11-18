@@ -89,7 +89,11 @@ end
 """
     help_plot(args...; kw...)
 
-Print plot arguments. Call `help_plot(...)` just like you would `plot(...)`
+Prints plotting arguments for object that are part of IMAS.
+
+Call `help_plot(...)` just like you would `plot(...)`
+
+Returns the plot.
 """
 function help_plot(args...; kw...)
     empty!(_help_plot)
@@ -98,10 +102,17 @@ function help_plot(args...; kw...)
     return p
 end
 
+export help_plot
+push!(document[:Plot], :help_plot)
+
 """
     help_plot!(args...; kw...)
 
-Print plot arguments. Call `help_plot!(...)` just like you would `plot!(...)`
+Prints plotting arguments for object that are part of IMAS.
+
+Call `help_plot!(...)` just like you would `plot!(...)`
+
+Returns the plot.
 """
 function help_plot!(args...; kw...)
     empty!(_help_plot)
@@ -109,6 +120,9 @@ function help_plot!(args...; kw...)
     display(_help_plot)
     return p
 end
+
+export help_plot!
+push!(document[:Plot], :help_plot!)
 
 # ========= #
 # pf_active #

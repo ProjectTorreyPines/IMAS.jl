@@ -35,3 +35,5 @@ const constants = (
     E_n=14.072e6
 )
 
+export constants
+push!(document[:Physics], :constants)

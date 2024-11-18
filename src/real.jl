@@ -5,33 +5,12 @@ import Measurements
 import Measurements: Measurement, ±
 import Ratios
 
-"""
-    convert(::Type{Array{<:Measurement{T},N}}, a::AbstractArray{T,N}) where {N}
-
-convert AbstractArray{T,N} to a Array{<:Measurement{T},N}
-"""
 function Base.convert(::Type{Array{<:Measurement{T},N}}, a::AbstractArray{T,N}) where {T<:Real,N}
     return a .± 0.0
 end
 
 function Base.convert(::Type{T}, v::Measurement{T}) where {T<:Real}
     return v.val
-end
-
-"""
-    val ± err
-
-Equivalent to Measurement.measurement(val, err)
-"""
-±
-
-"""
-    ± IDS
-
-Unary operator that converts an IDS to Measurements
-"""
-function ±(@nospecialize(ids::IDS))
-    return Measurement(ids)
 end
 
 function Base.convert(::Type{Measurement{T}}, x::Ratios.SimpleRatio{S}) where {T<:AbstractFloat,S}
@@ -48,9 +27,9 @@ function Measurement(@nospecialize(ids::IDS{T})) where {T<:Real}
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Measurement{<:Real},T2<:Real}
+    fill!(ids_new::IDS{<:T1}, ids::IDS{<:T2}, field::Symbol) where {T1<:Measurement{<:Real},T2<:Real}
 
-Go from IDS{T} to IDS{Measurement{T}}
+Function used to map fields in `IDS{T}` to `IDS{Measurement{T}}`
 """
 function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Measurement{<:Real},T2<:Real}
     if endswith(string(field), "_σ")
@@ -74,9 +53,9 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
 end
 
 """
-    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Measurement{<:Real}}
+    fill!(ids_new::IDS{<:T1}, ids::IDS{<:T2}, field::Symbol) where {T1<:Real,T2<:Measurement{<:Real}}
 
-Go from IDS{Measurement{T}} to IDS{T}
+Function used to map fields in `IDS{Measurement{T}}` to `IDS{T}`
 """
 function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Real,T2<:Measurement{<:Real}}
     if endswith(string(field), "_σ")
@@ -92,3 +71,6 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     end
     return nothing
 end
+
+@compat public fill!
+push!(document[:Real], :fill!)

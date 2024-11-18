@@ -10,7 +10,7 @@ open(joinpath(@__DIR__, "src/api.md"), "w") do f
         println(f, "## $page\n")
         println(f, "```@docs")
         for item in IMAS.document[page]
-            println(f, "$item")
+            println(f, "IMAS.$item")
         end
         println(f, "```")
     end

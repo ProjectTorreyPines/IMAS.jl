@@ -1,6 +1,9 @@
 module IMAS
 
 using Printf
+using Compat:@compat
+import OrderedCollections
+const document = OrderedCollections.OrderedDict()
 
 #= ====== =#
 #= IMASdd =#
@@ -17,18 +20,27 @@ import IMASdd: @ddtime, @findall
 #= ===== =#
 #= UTILS =#
 #= ===== =#
+document[:Real] = Symbol[]
 include("real.jl")
-include("constants.jl")
 include("math.jl")
-include("constraints.jl")
-include("objectives.jl")
-include("extract.jl")
+document[Symbol("get from")] = Symbol[]
 include("get_from.jl")
 include("fxp.jl")
 
 #= ======= =#
+#= EXTRACT =#
+#= ======= =#
+document[Symbol("Functions library")] = Symbol[]
+document[:Extract] = Symbol[]
+include("constraints.jl")
+include("objectives.jl")
+include("extract.jl")
+
+#= ======= =#
 #= PHYSICS =#
 #= ======= =#
+document[:Physics] = Symbol[]
+include("constants.jl")
 include("physics.jl")
 
 #= =========== =#
@@ -40,20 +52,12 @@ include(joinpath(["expressions", "dynamic.jl"]))
 #= ======== =#
 #= PLOTTING =#
 #= ======== =#
+document[:Plot] = Symbol[]
 include("plot.jl")
 
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
 export @ddtime, @findall
-export constants, ±, extract, help_plot, help_plot!
-
-const document = OrderedCollections.OrderedDict()
-
-document[:Physics] = Symbol[]
-push!(document[:Physics], :constants)
-
-document[:Plot] = Symbol[]
-push!(document[:Plot], :help_plot, :help_plot!, :extract)
 
 end # module
