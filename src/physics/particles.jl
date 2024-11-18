@@ -158,6 +158,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     wall_s = d .* wall_r .* 2π
 
     if debug
+        @show minimum(d)
         @show length(d)
         @show length(l)
         @show ns
@@ -186,7 +187,7 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
 
         σw = maximum([1250 * l[end] / length(particles), 2 * maximum([dr, dz])])  # standard deviation of the distribution
     end
-
+    @assert minimum(d) !== 0.0 "Error in mesher_HF: mesh has repeating points, instead of unique ones"
     ns = maximum([ns, Int(ceil(5 * σw / minimum(d)))])
 
     # check that the window size is smaller than the whole wall
