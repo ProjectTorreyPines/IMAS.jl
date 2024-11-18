@@ -649,6 +649,90 @@ function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
 end
 
 """
+    _A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+
+_A_effective towards L to H scaling see G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+"""
+function _A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+    numerator = T[]
+    denominator = T[]
+    for ion in cp1d.ion
+        if ion.element[1].z_n == 1
+            n_int = trapz(cp1d.grid.volume, ion.density)
+            push!(numerator, n_int * ion.element[1].a)
+            push!(denominator, n_int)
+        end
+    end
+    return reduce(+, numerator) / reduce(+, denominator)
+end
+
+"""
+    scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
+
+L to H transition power scaling for metal walls and isotope effect according to : G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+
+inputs in SI and returns power in W
+"""
+function scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
+    return 1e6 * 0.8 * 2.0 / A_effective * 0.049 * (ne_volume / 1e20)^0.72 * abs(B0)^0.8 * surface_area^0.94
+end
+
+"""
+    scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+"""
+function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    B0 = B0_geo(eqt)
+    return scaling_L_to_H_power(
+        _A_effective(cp1d),
+        trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
+        B0,
+        eqt.profiles_1d.surface[end]
+    )
+end
+
+"""
+    scaling_L_to_H_power(dd::IMAS.dd)
+"""
+function scaling_L_to_H_power(dd::IMAS.dd)
+    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
+end
+
+"""
+    L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+
+Returns ratio of Psol to Plh
+"""
+function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    Psol = power_sol(cs, cp1d)
+    Plh = scaling_L_to_H_power(cp1d, eqt)
+    return Psol / Plh
+end
+
+"""
+    L_H_threshold(dd::IMAS.dd)
+"""
+function L_H_threshold(dd::IMAS.dd)
+    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
+end
+
+"""
+    satisfies_h_mode_conditions(dd::IMAS.dd)
+
+Returns `true` if the plasma is diverted, has positive triangularity, and `Psol>Plh`
+"""
+function satisfies_h_mode_conditions(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
+    diverted = length(eqt.boundary.x_point) > 0
+    Psol_gt_Plh = IMAS.L_H_threshold(dd) > getproperty(dd.requirements, :lh_power_threshold_fraction, 1.0)
+    positive_triangularity = eqt.boundary.triangularity > 0.0
+    if Psol_gt_Plh && diverted && positive_triangularity
+        return true
+    else
+        return false
+    end
+end
+
+"""
     ITB(rho0::T, width::T, height::T, rho::AbstractVector{T}) where {T<:Real}
 
 tanh profile to be added to existing profiles to model Internal Transport Barrier (ITB).
