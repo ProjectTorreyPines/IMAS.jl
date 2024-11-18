@@ -1,5 +1,11 @@
 """
+    ENERGY_FLUX_e::T
+    ENERGY_FLUX_i::T
+    PARTICLE_FLUX_e::T
+    PARTICLE_FLUX_i::Vector{T}
+    STRESS_TOR_i::T
 
+Structure used to store fluxes information from GA code in Gyrobohm units
 """
 struct flux_solution{T<:Real}
     ENERGY_FLUX_e::T
@@ -8,9 +14,6 @@ struct flux_solution{T<:Real}
     PARTICLE_FLUX_i::Vector{T}
     STRESS_TOR_i::T
 end
-
-@compat public cgs
-push!(document[Symbol("Physics constants")], :cgs)
 
 function Base.show(io::IO, ::MIME"text/plain", sol::flux_solution)
     txt = """
@@ -23,33 +26,63 @@ function Base.show(io::IO, ::MIME"text/plain", sol::flux_solution)
     return print(io, txt)
 end
 
+"""
+    c_s(cp1d::IMAS.core_profiles__profiles_1d)
+
+Sounds speed in [cm/s]
+"""
 function c_s(cp1d::IMAS.core_profiles__profiles_1d)
     return sqrt.(cgs.k .* cp1d.electrons.temperature ./ cgs.md)
 end
 
+"""
+    rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+
+sound gyro radius in [cm]
+"""
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     eqt1d = eqt.profiles_1d
     bunit = interp1d(eqt1d.rho_tor_norm, abs.(IMAS.bunit(eqt1d)) .* cgs.T_to_Gauss).(cp1d.grid.rho_tor_norm)
     return c_s(cp1d) ./ (cgs.e .* bunit) .* (cgs.md .* cgs.c)
 end
 
+"""
+    r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+
+Geometric minor radius in [cm] evaluated
+"""
 function r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     eq1d = eqt.profiles_1d
     return interp1d(eq1d.rho_tor_norm, cgs.m_to_cm * 0.5 * (eq1d.r_outboard - eq1d.r_inboard)).(cp1d.grid.rho_tor_norm)
 end
 
 ##### Gyrobohm normalizations from gacode
+"""
+    gyrobohm_energy_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+
+Gyrobohm energy flux
+"""
 function gyrobohm_energy_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     return cp1d.electrons.density_thermal ./ cgs.m³_to_cm³ .* cgs.k .* cp1d.electrons.temperature .*
            c_s(cp1d) .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* cgs.m_to_cm)) .^ 2 .* cgs.Erg_to_J .*
            cgs.m²_to_cm²
 end
 
+"""
+    gyrobohm_particle_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+
+Gyrobohm particle flux
+"""
 function gyrobohm_particle_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     norm = mks.e .* cp1d.electrons.temperature
     return gyrobohm_energy_flux(cp1d, eqt) ./ norm
 end
 
+"""
+    gyrobohm_momentum_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+
+Gyrobohm momentum flux
+"""
 function gyrobohm_momentum_flux(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     return cp1d.electrons.density_thermal ./ cgs.m³_to_cm³ .* cgs.k .* cp1d.electrons.temperature .*
            eqt.boundary.minor_radius .* cgs.m_to_cm .* (rho_s(cp1d, eqt) ./ (eqt.boundary.minor_radius .* cgs.m_to_cm)) .^ 2 .* cgs.Erg_to_J .*
@@ -72,7 +105,8 @@ end
         flux_solutions::Vector{<:IMAS.flux_solution},
         m1d::IMAS.core_transport__model___profiles_1d,
         eqt::IMAS.equilibrium__time_slice,
-        cp1d::core_profiles__profiles_1d)
+        cp1d::core_profiles__profiles_1d
+    )
 
 Normalizes specified transport fluxes output by GA code via gyrobohm normalization and Miller volume correction
 """
@@ -81,7 +115,8 @@ function flux_gacode_to_fuse(
     flux_solutions::Vector{<:IMAS.flux_solution},
     m1d::IMAS.core_transport__model___profiles_1d,
     eqt::IMAS.equilibrium__time_slice,
-    cp1d::core_profiles__profiles_1d)
+    cp1d::core_profiles__profiles_1d
+)
 
     rho_eq_idxs = [argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
     rho_cp_idxs = [argmin(abs.(cp1d.grid.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
@@ -107,17 +142,16 @@ function flux_gacode_to_fuse(
             ion.particles.flux = gyrobohm_particle_flux(cp1d, eqt)[rho_cp_idxs] .* [pick_ion_flux(f.PARTICLE_FLUX_i, kk) for f in flux_solutions] .* vprime_miller[rho_eq_idxs]
         end
     end
-
 end
 
 """
-    pick_ion_flux(ion_fluxes::Vector, kk::Int)
+    pick_ion_flux(ion_fluxes::AbstractVector{T}, kk::Int) where {T<:Real}
 
 Select which ion flux to take
 """
-function pick_ion_flux(ion_fluxes::Vector{T}, kk::Int) where {T<:Real}
+function pick_ion_flux(ion_fluxes::AbstractVector{T}, kk::Int) where {T<:Real}
     if isempty(ion_fluxes)
-        return 0.0
+        return T(0.0)
     elseif kk <= length(ion_fluxes)
         return ion_fluxes[kk]
     else
