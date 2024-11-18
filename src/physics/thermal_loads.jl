@@ -698,6 +698,14 @@ function mesher_HF(dd::IMAS.dd;
                 add_z = zwall[rwall.>(minimum([Rwall[ind],Rwall[ind+1]])-dr) .&& rwall .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
                               zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz)   ]
                 #! format: on
+                
+                # check that (add_r,add_z) are unique points
+                add_rz = unique!(collect(zip(add_r,add_z)))
+                if length(add_r) > length(add_rz)
+                    add_r  = [rz[1] for rz in add_rz]
+                    add_z  = [rz[2] for rz in add_rz]
+                end
+
                 Rwall = append!(Rwall[1:ind], add_r, Rwall[ind+1:end])
                 Zwall = append!(Zwall[1:ind], add_z, Zwall[ind+1:end])
             end
