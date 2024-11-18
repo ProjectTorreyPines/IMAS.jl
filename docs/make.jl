@@ -3,7 +3,7 @@ using Documenter, IMAS
 # Call functions
 open(joinpath(@__DIR__, "src/api.md"), "w") do f
     println(f, "# API Reference\n")
-    for page in keys(IMAS.document)
+    for page in sort!(collect(keys(IMAS.document)))
         if page == :Expressions
             continue
         end

@@ -1,3 +1,5 @@
+document[Symbol("Physics constants")] = Symbol[]
+
 import PhysicalConstants.CODATA2018 as PCs
 
 """
@@ -35,6 +37,5 @@ const constants = (
     E_n=14.072e6
 )
 
-export constants
-push!(document[:Physics], :constants)
-
+export constants # make it public instead?
+push!(document[Symbol("Physics constants")], :constants)

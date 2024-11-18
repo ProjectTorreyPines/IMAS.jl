@@ -1,16 +1,15 @@
+document[Symbol("Control")] = Symbol[]
+
 import Dates
 import ExpiringCaches
 import FuseExchangeProtocol as FXP
 
 """
-Manually set service information e.g. FXP_CONTROLLERS["ip"] = Dict("service_name"=>"ip_control","session_id"=>"matlab")
-"""
-FXP_CONTROLLERS = Dict()
-
-"""
     controller(ct::IMAS.controllers, name::String)
 
-Pick a controller based on its name
+Pick a controller based on its name, returns `nothing` if not found
+
+NOTE: for now only looks under `dd.controllers.linear_controller`
 """
 function controller(ct::IMAS.controllers, name::String)
     index = findfirst(c -> c.name == name, ct.linear_controller)
@@ -19,6 +18,9 @@ function controller(ct::IMAS.controllers, name::String)
     end
     return ct.linear_controller[index]
 end
+
+@compat public controller
+push!(document[Symbol("Control")], :controller)
 
 """
     pid_controller(controller::IMAS.controllers__linear_controller, kP::T, kI::T, kD::T) where {T<:Real}
@@ -40,6 +42,9 @@ function pid_controller(controller::IMAS.controllers__linear_controller, kP::T, 
     controller.outputs.data = zeros(T, (1, 0))
     return controller
 end
+
+@compat public pid_controller
+push!(document[Symbol("Control")], :pid_controller)
 
 """
     (controller::controllers__linear_controller{T})(setpoint::T, value::T, time0::Float64) where {T<:Real}
@@ -76,6 +81,9 @@ function (controller::controllers__linear_controller{T})(setpoint::T, value::T, 
 
     return control
 end
+
+@compat public controllers__linear_controller
+push!(document[Symbol("Control")], :controllers__linear_controller)
 
 function fxp_request_service(controller::controllers__linear_controller)::Bool
     controller.description = "fxp_serviced"

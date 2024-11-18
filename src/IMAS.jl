@@ -24,7 +24,6 @@ document[:Real] = Symbol[]
 include("real.jl")
 document[Symbol("get from")] = Symbol[]
 include("get_from.jl")
-include("fxp.jl")
 
 #= ==== =#
 #= MATH =#
@@ -40,6 +39,12 @@ document[:Extract] = Symbol[]
 include(joinpath("extract", "constraints.jl"))
 include(joinpath("extract", "objectives.jl"))
 include(joinpath("extract", "extract.jl"))
+
+#= ======= =#
+#= CONTROL =#
+#= ======= =#
+include(joinpath("control", "control.jl"))
+include(joinpath("control", "fxp.jl"))
 
 #= ======= =#
 #= PHYSICS =#

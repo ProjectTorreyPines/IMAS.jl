@@ -1,8 +1,11 @@
+document[Symbol("Physics currents")] = Symbol[]
+
 """
     j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T) where {T<:Real}
 
-Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target ip
-Requires constant loop voltage: Vl = 2π * η * <J_oh⋅B> / (F * <R⁻²>) = constant
+Sets `j_ohmic` parallel current density to what it would be at steady-state, based on parallel conductivity and `j_non_inductive` and a target ip
+
+Requires constant loop voltage: `Vl = 2π * η * <J_oh⋅B> / (F * <R⁻²>) = constant`
 """
 function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T) where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
@@ -33,29 +36,23 @@ function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.c
     return I_ohmic_par .* j_oh_par_norm
 end
 
-"""
-    j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}; ip::T) where {T<:Real}
-
-Sets j_ohmic parallel current density to what it would be at steady-state, based on parallel conductivity and j_non_inductive and a target ip
-"""
-function j_ohmic_steady_state!(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T) where {T<:Real}
-    return cp1d.j_ohmic = j_ohmic_steady_state(eqt, cp1d, ip)
-end
+@compat public j_ohmic_steady_state
+push!(document[Symbol("Physics currents")], :j_ohmic_steady_state)
 
 """
     JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
 
-Given <Jt/R> returns <J⋅B>
+Given `<Jt/R>` returns `<J⋅B>`
 
-Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))
+Transformation obeys `<J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))`
 
 Includes_bootstrap set to true if input current includes bootstrap
 
-NOTE: Jtor ≂̸ JtoR
+NOTE: `Jtor ≂̸ JtoR`
 
-    JtoR = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+    <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
 
-NOTE: Jpar ≂̸ JparB
+NOTE: `Jpar ≂̸ JparB`
 
     JparB = Jpar * B0
 """
@@ -74,20 +71,23 @@ function JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includ
     end
 end
 
+@compat public JtoR_2_JparB
+push!(document[Symbol("Physics currents")], :JtoR_2_JparB)
+
 """
     JparB_2_JtoR(rho_tor_norm::Vector{<:Real}, JparB::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
 
-Given <J⋅B> returns <Jt/R>
+Given `<J⋅B>` returns `<Jt/R>`
 
-Transformation obeys <J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))
+Transformation obeys `<J⋅B> = (1/f)*(<B^2>/<1/R^2>)*(<Jt/R> + dp/dpsi*(1 - f^2*<1/R^2>/<B^2>))`
 
 Includes_bootstrap set to true if input current includes bootstrap
 
-NOTE: Jtor ≂̸ JtoR
+NOTE: `Jtor ≂̸ JtoR`
 
-    JtoR = <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+    <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
 
-NOTE: Jpar ≂̸ JparB
+NOTE: `Jpar ≂̸ JparB`
 
     JparB = Jpar * B0
 """
@@ -106,16 +106,24 @@ function JparB_2_JtoR(rho_tor_norm::Vector{<:Real}, JparB::Vector{<:Real}, inclu
     end
 end
 
-function Jpar_2_Jtor(rho_tor_norm::Vector{<:Real}, Jpar::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
-    eq = top_ids(eqt)
-    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time, :constant)
-    JparB = Jpar .* B0
-    JtoR = JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt)
-    rho_eq = eqt.profiles_1d.rho_tor_norm
-    Jtor = JtoR ./ interp1d(rho_eq, eqt.profiles_1d.gm9, :cubic).(rho_tor_norm)
-    return Jtor
-end
+@compat public JparB_2_JtoR
+push!(document[Symbol("Physics currents")], :JparB_2_JtoR)
 
+"""
+    Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+
+Given `Jtor` returns `Jpar`
+
+Includes_bootstrap set to true if input current includes bootstrap
+
+NOTE: `Jtor ≂̸ JtoR`
+
+    <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+
+NOTE: `Jpar ≂̸ JparB`
+
+    JparB = Jpar * B0
+"""
 function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
     JtoR = Jtor .* interp1d(rho_eq, eqt.profiles_1d.gm9, :cubic).(rho_tor_norm)
@@ -126,10 +134,41 @@ function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, include
     return Jpar
 end
 
+@compat public Jtor_2_Jpar
+push!(document[Symbol("Physics currents")], :Jtor_2_Jpar)
+
+"""
+    Jpar_2_Jtor(rho_tor_norm::Vector{<:Real}, Jpar::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+
+Given `Jpar` returns `Jtor`
+
+Includes_bootstrap set to true if input current includes bootstrap
+
+NOTE: `Jtor ≂̸ JtoR`
+
+    <Jt/R> = <Jt/R>/<1/R> * <1/R> = Jtor * <1/R> = Jtor * gm9
+
+NOTE: `Jpar ≂̸ JparB`
+
+    JparB = Jpar * B0
+"""
+function Jpar_2_Jtor(rho_tor_norm::Vector{<:Real}, Jpar::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
+    eq = top_ids(eqt)
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time, :constant)
+    JparB = Jpar .* B0
+    JtoR = JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt)
+    rho_eq = eqt.profiles_1d.rho_tor_norm
+    Jtor = JtoR ./ interp1d(rho_eq, eqt.profiles_1d.gm9, :cubic).(rho_tor_norm)
+    return Jtor
+end
+
+@compat public Jpar_2_Jtor
+push!(document[Symbol("Physics currents")], :Jpar_2_Jtor)
+
 """
     vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
 
-Vloop = 2π * η * <J_oh⋅B> / (F * <R⁻²>): method emphasizes the resistive nature of the plasma
+`Vloop = 2π * η * <J_oh⋅B> / (F * <R⁻²>)`: method emphasizes the resistive nature of the plasma
 """
 function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}; method::Symbol=:area)::T where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
@@ -160,15 +199,31 @@ function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
 end
 
+"""
+    vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
+
+Returns `vloop` at `time0` from controller named `ip`
+"""
+function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
+    vl = vloop_time(ct)
+    return get_time_array(vl.time, vl.data, [time0], :linear)[1]
+end
+
+@compat public vloop
+push!(document[Symbol("Physics currents")], :vloop)
+
+"""
+    vloop_time(ct::IMAS.controllers{T}) where {T<:Real}
+
+Returns named tuple with `time` and `data` with `vloop` from controller named `ip`
+"""
 function vloop_time(ct::IMAS.controllers{T}) where {T<:Real}
     ctrl = controller(ct, "ip")
     return (time=ctrl.outputs.time, data=ctrl.outputs.data[1, :])
 end
 
-function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
-    vl = vloop_time(ct)
-    return get_time_array(vl.time, vl.data, [time0], :linear)[1]
-end
+@compat public vloop_time
+push!(document[Symbol("Physics currents")], :vloop_time)
 
 """
     Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
@@ -179,6 +234,9 @@ function Ip_non_inductive(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.eq
     return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_non_inductive, true, eqt))
 end
 
+@compat public Ip_non_inductive
+push!(document[Symbol("Physics currents")], :Ip_non_inductive)
+
 """
     Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
@@ -188,6 +246,9 @@ function Ip_bootstrap(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equili
     return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_bootstrap, true, eqt))
 end
 
+@compat public Ip_bootstrap
+push!(document[Symbol("Physics currents")], :Ip_bootstrap)
+
 """
     Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
@@ -196,6 +257,9 @@ Integrated toroidal ohmic current
 function Ip_ohmic(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
     return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_ohmic, false, eqt))
 end
+
+@compat public Ip_ohmic
+push!(document[Symbol("Physics currents")], :Ip_ohmic)
 
 """
     Ip(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
@@ -220,6 +284,9 @@ function Ip(eqt1d::IMAS.equilibrium__time_slice___profiles_1d{T}) where {T<:Real
     return trapz(eqt1d.area, eqt1d.j_tor)
 end
 
+@compat public Ip
+push!(document[Symbol("Physics currents")], :Ip)
+
 """
     plasma_lumped_resistance(dd::IMAS.dd)
 
@@ -235,3 +302,6 @@ function plasma_lumped_resistance(dd::IMAS.dd)
     Rp = Pohm / (Ip * Iohm)
     return Rp
 end
+
+@compat public plasma_lumped_resistance
+push!(document[Symbol("Physics currents")], :plasma_lumped_resistance)
