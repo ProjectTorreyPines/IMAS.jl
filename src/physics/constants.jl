@@ -3,7 +3,7 @@ document[Symbol("Physics constants")] = Symbol[]
 import PhysicalConstants.CODATA2018 as PCs
 
 """
-Named tuple with physics constants:
+Named tuple with physics constants in mks (and eV):
 
     μ_0 = 1.25663706212e-6 [N A^-2]  # Vacuum permeability
     c = 2.99792458e8 [m s^-1]        # Speed of light in vacuum
@@ -20,7 +20,7 @@ Named tuple with physics constants:
     E_α = 3.518e6 [eV]               # Alpha particle energy
     E_n = 14.072e6 [eV]              # Neutron energy
 """
-const constants = (
+const mks = (
     μ_0=float(Float64, PCs.μ_0).val,
     c=float(Float64, PCs.c_0).val,
     ϵ_0=float(Float64, PCs.ε_0).val,
@@ -37,5 +37,37 @@ const constants = (
     E_n=14.072e6
 )
 
-export constants # make it public instead?
-push!(document[Symbol("Physics constants")], :constants)
+@compat public mks
+push!(document[Symbol("Physics constants")], :mks)
+
+"""
+Named tuple with physics constants used for interfacing with CGS codes:
+
+    e=4.8032e-10 # stacoul
+    k=1.6022e-12 # erg/eV
+    c=2.9979e10 # cm/s
+    me=9.1094e-28 # g
+    mp=1.6726e-24 # g
+    md=3.3435837768e-24 # g
+    T_to_Gauss=1e4
+    Erg_to_J=1e-7
+    m_to_cm=1e2
+    m²_to_cm²=1E4
+    m³_to_cm³=1e6
+"""
+const cgs = (
+    e=4.8032e-10, # stacoul
+    k=1.6022e-12, # erg/eV
+    c=2.9979e10, # cm/s
+    me=9.1094e-28, # g
+    mp=1.6726e-24, # g
+    md=3.3435837768e-24, # g
+    T_to_Gauss=1e4,
+    Erg_to_J=1e-7,
+    m_to_cm=1e2,
+    m²_to_cm²=1E4,
+    m³_to_cm³=1e6,
+)
+
+@compat public cgs
+push!(document[Symbol("Physics constants")], :cgs)

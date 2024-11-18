@@ -15,7 +15,7 @@ end
 electrons thermal pressure
 """
 function pressure_thermal(cp1de::IMAS.core_profiles__profiles_1d___electrons)
-    return cp1de.temperature .* cp1de.density_thermal .* IMAS.constants.e
+    return cp1de.temperature .* cp1de.density_thermal .* mks.e
 end
 
 """
@@ -24,7 +24,7 @@ end
 ion thermal pressure
 """
 function pressure_thermal(ion::IMAS.core_profiles__profiles_1d___ion)
-    return ion.temperature .* ion.density_thermal .* IMAS.constants.e
+    return ion.temperature .* ion.density_thermal .* mks.e
 end
 
 """
@@ -37,7 +37,7 @@ function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d_
     for ion in cp1di
         p .+= ion.temperature .* ion.density_thermal
     end
-    return p .* IMAS.constants.e
+    return p .* mks.e
 end
 
 """
@@ -76,7 +76,7 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     volume = cp1d.grid.volume
     pressure_avg = trapz(volume, pressure) / volume[end]
 
-    beta_tor = 2.0 * constants.μ_0 * pressure_avg / B0^2
+    beta_tor = 2.0 * mks.μ_0 * pressure_avg / B0^2
 
     if norm
         eqt = eq.time_slice[cp1d.time]
@@ -276,11 +276,11 @@ Returns the estimated nucleus mass including the estimated effect of binding ene
 """
 function atomic_mass(Z::Int, N::Int)
     # Mass of proton and neutron (in amu)
-    mass_proton = IMAS.constants.m_p / IMAS.constants.m_u
-    mass_neutron = IMAS.constants.m_n / IMAS.constants.m_u
+    mass_proton = mks.m_p / mks.m_u
+    mass_neutron = mks.m_n / mks.m_u
 
     # Conversion factor from MeV/c^2 to atomic mass units (amu)
-    mev_to_amu = IMAS.constants.m_u * IMAS.constants.c^2 / (IMAS.constants.e * 1E6)
+    mev_to_amu = mks.m_u * mks.c^2 / (mks.e * 1E6)
 
     # Estimate binding energy
     E = binding_energy(Z, N)

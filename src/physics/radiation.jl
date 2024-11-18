@@ -45,13 +45,13 @@ function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient)
     #---------------------------------------------------
     # MKS to CGS
     aspect_ratio = 1 / ϵ
-    r_min = a * gacode_units.m_to_cm # [cm]
-    b_ref = B0 * gacode_units.T_to_Gauss # [G]
-    ne = ne / gacode_units.m³_to_cm³ # [1/cm^3]
-    e = gacode_units.e # [statcoul]
-    k = gacode_units.k # [erg / eV]
-    m_e = gacode_units.me # [g]
-    c = gacode_units.c # [cm / s]
+    r_min = a * cgs.m_to_cm # [cm]
+    b_ref = B0 * cgs.T_to_Gauss # [G]
+    ne = ne / cgs.m³_to_cm³ # [1/cm^3]
+    e = cgs.e # [statcoul]
+    k = cgs.k # [erg / eV]
+    m_e = cgs.me # [g]
+    c = cgs.c # [cm / s]
     #---------------------------------------------------
     wpe = sqrt(4.0 * pi * ne * e^2 / m_e)
     wce = e * abs(b_ref) / (m_e * c)

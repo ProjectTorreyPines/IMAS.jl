@@ -137,8 +137,8 @@ Returns drag coefficient `Γ` for a fast-ions interacting with a thermal species
 """
 function _drag_coefficient(n::Real, Z::Int, mf::Real, Zf::Int, lnΛ::Real)
     n *= 1e-6 #cm^-3
-    mf *= constants.m_u # kg
-    Γ = (2 * pi * n * (constants.e)^4 * Z^2 * Zf^2 * lnΛ) / (mf^2)
+    mf *= mks.m_u # kg
+    Γ = (2 * pi * n * (mks.e)^4 * Z^2 * Zf^2 * lnΛ) / (mf^2)
     return Γ
 end
 
@@ -176,19 +176,19 @@ function _electron_ion_drag_difference(
     mf::Real,
     Zf::Int
 )
-    m_e = constants.m_e
-    m_f = mf * constants.m_u
+    m_e = mks.m_e
+    m_f = mf * mks.m_u
 
-    v_f = sqrt(2 * Ef * constants.e / m_f)
-    v_e = sqrt(2 * Te * constants.e / m_e)
+    v_f = sqrt(2 * Ef * mks.e / m_f)
+    v_e = sqrt(2 * Te * mks.e / m_e)
 
     lnΛ_fe = lnΛ_ei(ne, Te)
     Γ_fe = _drag_coefficient(ne, -1, mf, Zf, lnΛ_fe)
     electron_drag = ((8 * Γ_fe * m_f) / (3 * sqrt(pi) * m_e * v_e^3)) * v_f^3
 
-    lnΛ_fis = k -> lnΛ_fi(ne, Te, ni[k], Ti[k], mi[k], Zi[k], v_f / constants.c, mf, Zf; verbose=false)
+    lnΛ_fis = k -> lnΛ_fi(ne, Te, ni[k], Ti[k], mi[k], Zi[k], v_f / mks.c, mf, Zf; verbose=false)
     Γ_fi = k -> _drag_coefficient(ni[k], Zi[k], mf, Zf, lnΛ_fis(k))
-    ion_drag = 2 * m_f * sum(Γ_fi(k) / mi[k] for k in eachindex(mi)) / constants.m_u
+    ion_drag = 2 * m_f * sum(Γ_fi(k) / mi[k] for k in eachindex(mi)) / mks.m_u
 
     return electron_drag - ion_drag
 end
@@ -290,13 +290,13 @@ function thermalization_time(
     mf::Real,
     Zf::Int
 )
-    m_f = mf * constants.m_u
+    m_f = mf * mks.m_u
 
     tau_s = slowing_down_time(ne, Te, mf, Zf)
     Ec = critical_energy(ne, Te, ni, Ti, mi, Zi, mf, Zf)
 
-    v_f = sqrt(2 * constants.e * Ef / m_f)
-    v_c = sqrt(2 * constants.e * Ec / m_f)
+    v_f = sqrt(2 * mks.e * Ef / m_f)
+    v_c = sqrt(2 * mks.e * Ec / m_f)
 
     return thermalization_time(v_f, v_c, tau_s)
 end
@@ -315,7 +315,7 @@ function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
         [ion.temperature[1] for ion in cp1d.ion],
         [ion.element[1].a for ion in cp1d.ion],
         [Int(ion.element[1].z_n) for ion in cp1d.ion],
-        constants.E_α,
+        mks.E_α,
         α.a,
         Int(α.z_n))
 end
@@ -413,7 +413,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                     end
 
                     sion_particles = IMAS.interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
-                    pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* constants.e)
+                    pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
                     cion.pressure_fast_parallel += pressa ./ 3.0
                     cion.pressure_fast_perpendicular += pressa ./ 3.0
                     cion.density_fast += sion_particles .* taut
@@ -448,7 +448,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
         end
     end
 
-    W_crit = Te .* (4.0 .* sqrt.(constants.m_e / (constants.m_p * particle_mass)) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)
+    W_crit = Te .* (4.0 .* sqrt.(mks.m_e / (mks.m_p * particle_mass)) ./ (3.0 * sqrt(pi) .* c_a)) .^ (-2.0 / 3.0)
     ion_to_electron_fraction = similar(W_crit)
     x = particle_energy ./ W_crit
     for (idx, x_i) in enumerate(x)

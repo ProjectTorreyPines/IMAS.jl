@@ -39,7 +39,7 @@ function lnΛ_ei(ne::S, Te::P, ni::AbstractVector{Q}, Ti::AbstractVector{R}, mi:
     ni *= 1e-6 #cm^-3
 
     lnΛ = zeros(promote_type(S, P, Q, R, T), ni)
-    m_e = constants.m_e / constants.m_u
+    m_e = mks.m_e / mks.m_u
 
     for i in 1:length(ni)
         mr = m_e / mi[i]
@@ -106,10 +106,10 @@ function lnΛ_ii(ne::Real, Te::Real, ni1::Real, Ti1::Real, mi1::Real, Zi1::Int, 
     ni2 *= 1e-6 #cm^-3
     ne *= 1e-6 #cm^-3
 
-    c = constants.c
-    m_u = constants.m_u
-    m_e = constants.m_e
-    e = constants.e
+    c = mks.c
+    m_u = mks.m_u
+    m_e = mks.m_e
+    e = mks.e
 
     U = Te * e / m_e
 
@@ -154,10 +154,10 @@ Calculate Couloumb logarithm (lnΛ) for beam/fast ion in the presence of warm el
 function lnΛ_fi(ne::Real, Te::Real, n_i::Real, T_i::Real, m_i::Real, Z_i::Int, beta_f::Real, mf::Real, Zf::Int; verbose=true)
     ne *= 1e-6 #cm^-3
 
-    c = constants.c
-    m_u = constants.m_u
-    m_e = constants.m_e
-    e = constants.e
+    c = mks.c
+    m_u = mks.m_u
+    m_e = mks.m_e
+    e = mks.e
 
     U = Te * e / m_e
     L = T_i * e / (m_i * m_u)

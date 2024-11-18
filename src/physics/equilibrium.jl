@@ -61,10 +61,10 @@ function calc_pprime_ffprim_f(
 
     if j_tor !== missing && f_df_dpsi === missing
         f_df_dpsi = j_tor .* COCOS.sigma_Bp ./ (2π)^COCOS.exp_Bp .+ dpressure_dpsi .* R
-        f_df_dpsi .*= -constants.μ_0 ./ one_R
+        f_df_dpsi .*= -mks.μ_0 ./ one_R
     elseif j_tor_over_R !== missing && f_df_dpsi === missing
         f_df_dpsi = j_tor_over_R * COCOS.sigma_Bp / (2π)^COCOS.exp_Bp + dpressure_dpsi
-        f_df_dpsi .*= -constants.μ_0 ./ one_R2
+        f_df_dpsi .*= -mks.μ_0 ./ one_R2
     end
 
     if f === missing

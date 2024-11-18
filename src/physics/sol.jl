@@ -707,7 +707,7 @@ end
 Average poloidal magnetic field magnitude
 """
 function Bpol(a::T, κ::T, Ip::T) where {T<:Real}
-    return (constants.μ_0 * Ip) / (2π * a * sqrt((1.0 + κ^2) / 2.0))
+    return (mks.μ_0 * Ip) / (2π * a * sqrt((1.0 + κ^2) / 2.0))
 end
 
 """

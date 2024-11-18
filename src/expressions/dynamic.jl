@@ -352,7 +352,7 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =
     (dim1, dim2; profiles_2d, _...) -> begin
         dBzdR = gradient(dim1, dim2, profiles_2d.b_field_z, 1)
         dBrdZ = gradient(dim1, dim2, profiles_2d.b_field_r, 2)
-        return (dBrdZ - dBzdR) ./ constants.μ_0
+        return (dBrdZ - dBzdR) ./ mks.μ_0
     end
 
 

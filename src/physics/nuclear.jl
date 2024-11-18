@@ -227,11 +227,11 @@ function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; combi
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
 
     name = "D+T→He4"
-    eV1 = constants.E_α # 3.518e6
-    eV2 = constants.E_n # 14.072e6
+    eV1 = mks.E_α # 3.518e6
+    eV2 = mks.E_n # 14.072e6
     reactivity = D_T_to_He4_reactions(cp1d; polarized_fuel_fraction)
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 4.0)
-    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV1 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -266,7 +266,7 @@ function D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     eV2 = 2.4525e6
     reactivity = D_D_to_He3_reactions(cp1d)
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 3.0)
-    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV1 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -296,7 +296,7 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     eV1 = 1.0075e6
     reactivity = D_D_to_T_reactions(cp1d)
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 3.0)
-    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV1 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -314,7 +314,7 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     name = "D+D→H"
     eV2 = 3.0225e6
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV2, 1.0)
-    energy = reactivity .* eV2 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV2 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -341,7 +341,7 @@ end
 Volumetric heating source of He4 particles coming from D-T reactions [W m⁻³]
 """
 function D_T_to_He4_heating(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
-    energy = 3.518e6 * constants.e  # Joules
+    energy = 3.518e6 * mks.e  # Joules
     return D_T_to_He4_reactions(cp1d; polarized_fuel_fraction) .* energy
 end
 
@@ -351,7 +351,7 @@ end
 Volumetric heating source of He3 particles coming from D-D reactions [W m⁻³]
 """
 function D_D_to_He3_heating(cp1d::IMAS.core_profiles__profiles_1d)
-    energy = 0.8175e6 * constants.e  # Joules
+    energy = 0.8175e6 * mks.e  # Joules
     return D_D_to_He3_reactions(cp1d) .* energy
 end
 
@@ -361,7 +361,7 @@ end
 Volumetric heating source of T and H particles coming from D-D reactions [W m⁻³]
 """
 function D_D_to_T_heating(cp1d::IMAS.core_profiles__profiles_1d)
-    energy = (1.0075e6 + 3.0225e6) * constants.e  # Joules
+    energy = (1.0075e6 + 3.0225e6) * mks.e  # Joules
     return D_D_to_T_reactions(cp1d) .* energy
 end
 

@@ -35,7 +35,7 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Ti = cp1d.t_i_average
 
     nu_exch = collision_frequencies(dd).nu_exch
-    delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
+    delta = 1.5 .* nu_exch .* ne .* mks.e .* (Te .- Ti)
 
     source = resize!(dd.core_sources.source, :collisional_equipartition; wipe=false)
     new_source(source, source.identifier.index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
@@ -147,9 +147,9 @@ end
     total_mass_density(cp1d::IMAS.core_profiles__profiles_1d)
 """
 function total_mass_density(cp1d::IMAS.core_profiles__profiles_1d)
-    mass_density = constants.m_e * cp1d.electrons.density
+    mass_density = mks.m_e * cp1d.electrons.density
     for ion in cp1d.ion
-        mass_density .+= ion.density * ion.element[1].a * constants.m_p
+        mass_density .+= ion.density * ion.element[1].a * mks.m_p
     end
     return mass_density
 end

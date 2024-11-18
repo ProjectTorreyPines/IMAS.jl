@@ -1560,7 +1560,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         # j_tor = <j_tor/R> / <1/R> [A/m²]
         eqt.profiles_1d.j_tor[k] =
             (
-                -(eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / constants.μ_0) *
+                -(eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / mks.μ_0) *
                 (2π)
             ) / eqt.profiles_1d.gm9[k]
 
@@ -1637,18 +1637,18 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     Btvac = B0 * R0 / Rgeo
 
     # average poloidal magnetic field
-    Bpave = eqt.global_quantities.ip * constants.μ_0 / eqt.global_quantities.length_pol
+    Bpave = eqt.global_quantities.ip * mks.μ_0 / eqt.global_quantities.length_pol
 
     # li
     Bp2v = trapz(eqt.profiles_1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
-    eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * constants.μ_0)^2
+    eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * mks.μ_0)^2
 
     # beta_tor
     avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
-    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / constants.μ_0))
+    eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / mks.μ_0))
 
     # beta_pol
-    eqt.global_quantities.beta_pol = abs(avg_press / (Bpave^2 / 2.0 / constants.μ_0))
+    eqt.global_quantities.beta_pol = abs(avg_press / (Bpave^2 / 2.0 / mks.μ_0))
 
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
