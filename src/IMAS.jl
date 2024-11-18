@@ -22,19 +22,24 @@ import IMASdd: @ddtime, @findall
 #= ===== =#
 document[:Real] = Symbol[]
 include("real.jl")
-include("math.jl")
 document[Symbol("get from")] = Symbol[]
 include("get_from.jl")
 include("fxp.jl")
+
+#= ==== =#
+#= MATH =#
+#= ==== =#
+include(joinpath("math", "geometry.jl"))
+include(joinpath("math", "math.jl"))
 
 #= ======= =#
 #= EXTRACT =#
 #= ======= =#
 document[Symbol("Functions library")] = Symbol[]
 document[:Extract] = Symbol[]
-include("constraints.jl")
-include("objectives.jl")
-include("extract.jl")
+include(joinpath("extract", "constraints.jl"))
+include(joinpath("extract", "objectives.jl"))
+include(joinpath("extract", "extract.jl"))
 
 #= ======= =#
 #= PHYSICS =#
@@ -46,8 +51,9 @@ include("physics.jl")
 #= =========== =#
 #= EXPRESSIONS =#
 #= =========== =#
-include(joinpath(["expressions", "onetime.jl"]))
-include(joinpath(["expressions", "dynamic.jl"]))
+document[:Expressions] = Symbol[]
+include(joinpath("expressions", "onetime.jl"))
+include(joinpath("expressions", "dynamic.jl"))
 
 #= ======== =#
 #= PLOTTING =#

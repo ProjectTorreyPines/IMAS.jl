@@ -4,7 +4,8 @@ function IMASdd.get_expressions(::Type{Val{:dynamic}})
     return dynamic_expressions
 end
 
-const dynamic_expressions = dyexp = Dict{String,Function}()
+const dynamic_expressions = Dict{String,Function}()
+dyexp = dynamic_expressions
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
@@ -793,3 +794,14 @@ dyexp["summary.volume_average.zeff.value"] =
         end
         return tmp
     end
+
+# ============ #
+
+Base.Docs.@doc """
+    dynamic_expressions = Dict{String,Function}()
+
+Expressions
+* `$(join(sort!(collect(keys(dynamic_expressions))),"`\n* `"))`
+""" dynamic_expressions
+
+push!(document[:Expressions], :dynamic_expressions)

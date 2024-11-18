@@ -2,7 +2,8 @@ function IMASdd.get_expressions(::Type{Val{:onetime}})
     return onetime_expressions
 end
 
-const onetime_expressions = otexp = Dict{String,Function}()
+const onetime_expressions = Dict{String,Function}()
+otexp = onetime_expressions
 
 # These expressions are frozen the first time they are accessed.
 # This is necessary to ensure that core_profiles, core_sources, and core_transport grids do not change after changing the equilibrium.
@@ -130,3 +131,14 @@ otexp["core_sources.source[:].profiles_1d[:].grid.psi"] =
         psi = eqt.profiles_1d.psi
         return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
     end
+
+# ============ #
+
+Base.Docs.@doc """
+    onetime_expressions = Dict{String,Function}()
+
+Expressions that are frozen after first evaluation
+* `$(join(sort!(collect(keys(onetime_expressions))),"`\n* `"))`
+""" onetime_expressions
+
+push!(document[:Expressions], :onetime_expressions)
