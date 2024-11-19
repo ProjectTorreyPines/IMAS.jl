@@ -1,3 +1,5 @@
+document[Symbol("Math")] = Symbol[]
+
 """
     norm01(x::T)::T where {T<:AbstractVector{<:Real}}
 
@@ -7,6 +9,9 @@ This is handy where psi_norm should be used (and IMAS does not define a psi_norm
 function norm01(x::T)::T where {T<:AbstractVector{<:Real}}
     return (x .- x[1]) ./ (x[end] .- x[1])
 end
+
+@compat public norm01
+push!(document[Symbol("Math")], :norm01)
 
 """
     to_range(vector::AbstractVector)
@@ -23,6 +28,9 @@ function to_range(vector::AbstractVector{<:Real})
     return range(vector[1], vector[end], N)
 end
 
+@compat public to_range
+push!(document[Symbol("Math")], :to_range)
+
 """
     meshgrid(x::AbstractVector{T}, y::AbstractVector{T}) where {T}
 
@@ -31,6 +39,9 @@ Return coordinate matrices from coordinate vectors
 function meshgrid(x::AbstractVector{T}, y::AbstractVector{T}) where {T}
     return last.(Iterators.product(y, x)), first.(Iterators.product(y, x))
 end
+
+@compat public meshgrid
+push!(document[Symbol("Math")], :meshgrid)
 
 """
     moving_average(data::Vector{<:Real}, window_size::Int)
@@ -53,6 +64,9 @@ function moving_average(data::Vector{<:Real}, window_size::Int)
     return smoothed_data
 end
 
+@compat public moving_average
+push!(document[Symbol("Math")], :moving_average)
+
 """
     calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
 
@@ -66,6 +80,9 @@ function calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Sy
     g = gradient(x, f; method)
     return g ./ f
 end
+
+@compat public calc_z
+push!(document[Symbol("Math")], :calc_z)
 
 """
     integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
@@ -86,27 +103,8 @@ function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real},
     return profile_new
 end
 
-"""
-    unique_indices(vec::AbstractVector)::Vector{Int}
-
-Return the indices of the first occurrence of each unique element in the input vector `vec`
-"""
-function unique_indices(vec::AbstractVector)::Vector{Int}
-    uniq_elements = unique(vec)
-    return [findfirst(==(elem), vec) for elem in uniq_elements]
-end
-
-"""
-    getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
-
-Return the element of the vector `vec` at the position `idx`.
-
-If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
-"""
-function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
-    cidx = mod(idx - 1, length(vec)) + 1
-    return vec[cidx]
-end
+@compat public integ_z
+push!(document[Symbol("Math")], :integ_z)
 
 """
     pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_points::Int=length(x), l::Float64=1E-2) where {T<:Float64}
@@ -125,6 +123,37 @@ function pack_grid_gradients(x::AbstractVector{T}, y::AbstractVector{T}; n_point
     tmp ./= tmp[end]
     return interp1d(tmp, x).(range(0.0, 1.0, n_points))
 end
+
+@compat public pack_grid_gradients
+push!(document[Symbol("Math")], :pack_grid_gradients)
+
+"""
+    unique_indices(vec::AbstractVector)::Vector{Int}
+
+Return the indices of the first occurrence of each unique element in the input vector `vec`
+"""
+function unique_indices(vec::AbstractVector)::Vector{Int}
+    uniq_elements = unique(vec)
+    return [findfirst(==(elem), vec) for elem in uniq_elements]
+end
+
+@compat public unique_indices
+push!(document[Symbol("Math")], :unique_indices)
+
+"""
+    getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
+
+Return the element of the vector `vec` at the position `idx`.
+
+If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
+"""
+function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
+    cidx = mod(idx - 1, length(vec)) + 1
+    return vec[cidx]
+end
+
+@compat public getindex_circular
+push!(document[Symbol("Math")], :getindex_circular)
 
 """
     chunk_indices(dims::Tuple{Vararg{Int}}, N::Int)
@@ -165,3 +194,6 @@ function chunk_indices(dims::Tuple{Vararg{Int}}, N::Int)
 
     return chunks
 end
+
+@compat public chunk_indices
+push!(document[Symbol("Math")], :chunk_indices)

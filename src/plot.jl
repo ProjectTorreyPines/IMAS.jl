@@ -1298,7 +1298,7 @@ end
     TF = get_build_layers(layers; type=IMAS._tf_)
 
     for n in 1:tf.coils_n
-        x, y = top_outline(tf, n)
+        x, y = top_view_outline(tf, n)
         @series begin
             linewidth := 2
             label := ""

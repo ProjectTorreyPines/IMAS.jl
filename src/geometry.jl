@@ -583,7 +583,6 @@ function resample_2d_path(
         c = moving_average(abs.(curvature(x, y)), Int(ceil(length(x) / 2.0 * (1.0 - curvature_weight))))
         c = c ./ maximum(c)
         c = cumsum((1.0 - curvature_weight) .+ c * curvature_weight)
-        #c = moving_average(c, Int(ceil(length(x) / 20)))
         t = (c .- c[1]) ./ (c[end] - c[1]) .* (t[end] - t[1]) .+ t[1]
     end
 

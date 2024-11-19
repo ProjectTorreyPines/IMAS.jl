@@ -109,6 +109,9 @@ function OpenFieldLine(
     return OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion, wall_index)
 end
 
+@compat public OpenFieldLine
+push!(document[Symbol("Physics sol")], :OpenFieldLine)
+
 @recipe function plot_ofl(ofl::OpenFieldLine)
     @series begin
         aspect_ratio --> :equal
