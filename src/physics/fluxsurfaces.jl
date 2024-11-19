@@ -1112,7 +1112,7 @@ function trace_simple_surfaces(
     wall_z::AbstractVector{T}) where {T<:Real}
 
     surfaces = Vector{SimpleSurface{T}}(undef, length(psi))
-    return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z, r_cache, z_cache)
+    return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z)
 end
 
 
