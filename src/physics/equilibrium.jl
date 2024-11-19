@@ -182,6 +182,7 @@ Jungpyo Lee, Jeffrey P. Freidberg, Antoine J. Cerfon, Martin Greenwald https://d
 NOTE:
 
 * `γτw` is the feedback capability parameter and represents how fast a instability is controllable (`𝛾` is the instability growth rate and `τw` is the wall diffusion time)
+   (typically `γτw < 10` is assumed for controllability, see `VacuumFields.normalized_growth_rate()`)
 
 * `∆o` is the outer gap (NOTE: assumes `∆o = ∆i = 1/3 * ∆v`) detemines the relation between `κ` and `δ` of the plasma boundary and the `κw=(κ+3∆o)(1+∆o)` and `δw=δ(1+∆o)` of the wall boundary
 """
