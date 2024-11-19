@@ -20,22 +20,14 @@ import IMASdd: @ddtime, @findall
 #= ===== =#
 #= UTILS =#
 #= ===== =#
-document[:Real] = Symbol[]
 include("real.jl")
-document[Symbol("get from")] = Symbol[]
 include("get_from.jl")
-
-#= ==== =#
-#= MATH =#
-#= ==== =#
-include(joinpath("math", "geometry.jl"))
-include(joinpath("math", "math.jl"))
+include("geometry.jl")
+include("math.jl")
 
 #= ======= =#
 #= EXTRACT =#
 #= ======= =#
-document[Symbol("Functions library")] = Symbol[]
-document[:Extract] = Symbol[]
 include(joinpath("extract", "constraints.jl"))
 include(joinpath("extract", "objectives.jl"))
 include(joinpath("extract", "extract.jl"))
@@ -49,20 +41,17 @@ include(joinpath("control", "fxp.jl"))
 #= ======= =#
 #= PHYSICS =#
 #= ======= =#
-document[:Physics] = Symbol[]
 include("physics.jl")
 
 #= =========== =#
 #= EXPRESSIONS =#
 #= =========== =#
-document[:Expressions] = Symbol[]
 include(joinpath("expressions", "onetime.jl"))
 include(joinpath("expressions", "dynamic.jl"))
 
 #= ======== =#
 #= PLOTTING =#
 #= ======== =#
-document[:Plot] = Symbol[]
 include("plot.jl")
 
 #= ====== =#

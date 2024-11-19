@@ -1,3 +1,5 @@
+document[:Real] = Symbol[]
+
 # =============== #
 # Measurements.jl #
 # =============== #

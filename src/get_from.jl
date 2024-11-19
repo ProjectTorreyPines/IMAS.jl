@@ -1,3 +1,5 @@
+document[Symbol("get from")] = Symbol[]
+
 #===
 IMAS stores the same physical quantities in different IDSs.
 These sets of functions can used to abstract where information should come from,

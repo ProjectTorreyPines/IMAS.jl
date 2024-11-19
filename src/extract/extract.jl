@@ -1,8 +1,17 @@
+document[:Extract] = Symbol[]
 import OrderedCollections
 
 # ==================== #
 # extract data from dd #
 # ==================== #
+"""
+    group::Symbol
+    name::Symbol
+    units::String
+    func::Function
+    error::Union{Nothing,Exception}
+    value::Any
+"""
 mutable struct ExtractFunction
     group::Symbol
     name::Symbol
@@ -11,6 +20,9 @@ mutable struct ExtractFunction
     error::Union{Nothing,Exception}
     value::Any
 end
+
+@compat public ExtractFunction
+push!(document[Symbol("Functions library")], :ExtractFunction)
 
 function ExtractFunction(group::Symbol, name::Symbol, units::String, func::Function)
     return ExtractFunction(group, name, units, func, nothing, NaN)
@@ -42,11 +54,13 @@ end
 """
     extract(dd::IMAS.dd, library::Symbol=:extract)
 
-Libraries:
+library can be one of:
 
-  - `:extract => ExtractFunctionsLibrary`
-  - `:moopt => ConstraintFunctionsLibrary + ObjectiveFunctionsLibrary`
-  - `:all => ExtractFunctionsLibrary + ConstraintFunctionsLibrary + ObjectiveFunctionsLibrary`
+* `:extract` => `ExtractFunctionsLibrary`
+
+* `:moopt` => `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
+
+* `:all` => `ExtractFunctionsLibrary` + `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
 """
 function extract(dd::IMAS.dd, library::Symbol=:extract)
     if library == :extract

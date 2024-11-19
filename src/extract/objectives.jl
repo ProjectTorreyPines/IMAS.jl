@@ -1,3 +1,9 @@
+"""
+    name::Symbol
+    units::String
+    func::Function
+    target::Float64
+"""
 mutable struct ObjectiveFunction
     name::Symbol
     units::String
@@ -10,6 +16,9 @@ mutable struct ObjectiveFunction
         return objf
     end
 end
+
+@compat public ObjectiveFunction
+push!(document[Symbol("Functions library")], :ObjectiveFunction)
 
 """
     (objf::ObjectiveFunction)(dd::IMAS.dd)

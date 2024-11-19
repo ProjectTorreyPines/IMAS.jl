@@ -1,3 +1,5 @@
+document[:Expressions] = Symbol[]
+
 function IMASdd.get_expressions(::Type{Val{:onetime}})
     return onetime_expressions
 end

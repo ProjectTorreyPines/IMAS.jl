@@ -1,3 +1,12 @@
+document[Symbol("Functions library")] = Symbol[]
+"""
+    name::Symbol
+    units::String
+    func::Function
+    operation::Function
+    limit::Float64
+    tolerance::Float64 
+"""
 mutable struct ConstraintFunction
     name::Symbol
     units::String
@@ -19,6 +28,9 @@ mutable struct ConstraintFunction
         return cnst
     end
 end
+
+@compat public ConstraintFunction
+push!(document[Symbol("Functions library")], :ConstraintFunction)
 
 function (cnst::ConstraintFunction)(dd::IMAS.dd)
     return constraint_cost_transform(cnst.func(dd), cnst.operation, cnst.limit, cnst.tolerance)

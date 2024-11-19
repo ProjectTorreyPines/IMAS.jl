@@ -1,3 +1,5 @@
+document[:Plot] = Symbol[]
+
 import PlotUtils
 using RecipesBase
 using LaTeXStrings
