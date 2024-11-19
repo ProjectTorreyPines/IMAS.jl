@@ -1,9 +1,21 @@
+document[Symbol("Physics particles")] = Symbol[]
+
 #= ======================================= =#
 #  Particle tracker in a toroidal geometry  #
 #= ======================================= =#
 
-mutable struct particle{T<:Real}
-    x::T        # cartesian coordinate system centered in (R=0, Z=0); R = sqrt(X^2 + Y^2) Z = Z
+"""
+    x::T
+    y::T
+    z::T
+    δvx::T
+    δvy::T
+    δvz::T
+
+Cartesian coordinate system centered in (R=0, Z=0); R = sqrt(X^2 + Y^2) Z = Z
+"""
+mutable struct Particle{T<:Real}
+    x::T
     y::T
     z::T
     δvx::T
@@ -11,18 +23,57 @@ mutable struct particle{T<:Real}
     δvz::T
 end
 
-function Rcoord(p::particle)
-    return sqrt(p.x^2 + p.y^2)
-end
+@compat public Particle
+push!(document[Symbol("Physics particles")], :Particle)
 
-function Zcoord(p::particle)
-    return p.z
+@recipe function plot_particles(particles::Vector{Particle{T}}, eqt::IMAS.equilibrium__time_slice) where {T<:Real}
+    N = length(particles)
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r = eqt2d.grid.dim1
+    z = eqt2d.grid.dim2
+
+    # normalization weight to bring bin value in the unitary range
+    plot_norm = 0.5 / (N * (r[2] - r[1]) * (z[2] - z[1]) / eqt.profiles_1d.area[end])
+
+    @series begin
+        seriestype --> :histogram2d
+        nbins := (range(minimum(r), maximum(r), length(r) - 1), range(minimum(z), maximum(z), length(z) - 1))
+        aspect_ratio := :equal
+        grid := false
+        weights := zeros(N) .+ plot_norm
+        Rcoord.(particles), Zcoord.(particles)
+    end
 end
 
 """
-    define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T} , N::Int) where {T<:Real}
+    Rcoord(p::Particle)
+
+Return R coordinate of a Particle
+"""
+function Rcoord(p::Particle)
+    return sqrt(p.x^2 + p.y^2)
+end
+
+@compat public Rcoord
+push!(document[Symbol("Physics particles")], :Rcoord)
+
+"""
+    Zcoord(p::Particle)
+
+Return Z coordinate of a Particle
+"""
+function Zcoord(p::Particle)
+    return p.z
+end
+
+@compat public Particle
+push!(document[Symbol("Physics particles")], :Particle)
+
+"""
+    define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
 
 Creates a vector of particles from a 1D source (psi, source_1d) launching N particles.
+
 Returns also a scalar (I_per_trace) which is the intensity per trace.
 """
 function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
@@ -52,7 +103,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     ICDF = IMAS.interp1d(CDF, Float64.(1:length(CDF)), :linear)
 
     # particles structures
-    particles = Vector{particle{Float64}}(undef, N)
+    particles = Vector{Particle{Float64}}(undef, N)
     for k in eachindex(particles)
         dk = Int(ceil(ICDF(rand())))
         ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D
@@ -66,25 +117,29 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
         zk = Zk
         δvyk, δvxk = (sin(ϕv)) .* sincos(θv)
         δvzk = cos(ϕv)
-        particles[k] = particle(xk, yk, zk, δvxk, δvyk, δvzk)
+        particles[k] = Particle(xk, yk, zk, δvxk, δvyk, δvzk)
     end
 
     return (particles=particles, I_per_trace=I_per_trace, dr=dr, dz=dz)
-
 end
 
+@compat public define_particles
+push!(document[Symbol("Physics particles")], :define_particles)
+
 """
-    find_flux(particles::Vector{particle{T}}, I_per_trace:T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int = 10)
+    find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int=10, debug::Bool=false) where {T<:Real}
 
 Returns the flux at the wall of the quantity brought by particles, together with a vector of the surface elements on the wall (wall_s)
 
-I_per_trace is the intensity per trace
-(rwall, zwall) is the coordinate of the wall
-dr,dz is the grid size used for the 2d source generation
-ns is the window size
-if debug = true activates code for debugging
+`I_per_trace` is the intensity per trace
+
+`(rwall, zwall)` are the coordinates of the wall
+
+`dr`, `dz` are the grid sizes used for the 2d source generation
+
+`ns` is the window size
 """
-function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int=10, debug::Bool=false) where {T<:Real}
+function find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector{T}, zwall::Vector{T}, dr::T, dz::T; ns::Int=10, debug::Bool=false) where {T<:Real}
     rz_wall = collect(zip(rwall, zwall))
     Nw = length(rz_wall)
 
@@ -271,27 +326,23 @@ function find_flux(particles::Vector{particle{T}}, I_per_trace::T, rwall::Vector
     return (flux_r=flux_r, flux_z=flux_z, wall_s=wall_s)
 end
 
+@compat public find_flux
+push!(document[Symbol("Physics particles")], :find_flux)
 
-@recipe function plot_particles(particles::Vector{particle{T}}, eqt::IMAS.equilibrium__time_slice) where {T<:Real}
-    N = length(particles)
-    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    r = eqt2d.grid.dim1
-    z = eqt2d.grid.dim2
+"""
+    toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, y::Real, z::Real, vx::Real, vy::Real, vz::Real, v2::Real, vz2::Real) -> Real
 
-    # normalization weight to bring bin value in the unitary range
-    plot_norm = 0.5 / (N * (r[2] - r[1]) * (z[2] - z[1]) / eqt.profiles_1d.area[end])
+Compute the time of intersection between a moving particle and a toroidal surface defined by two points `(r1, z1)` and `(r2, z2)`.
 
-    @series begin
-        seriestype --> :histogram2d
-        nbins := (range(minimum(r), maximum(r), length(r) - 1), range(minimum(z), maximum(z), length(z) - 1))
-        aspect_ratio := :equal
-        grid := false
-        weights := zeros(N) .+ plot_norm
-        Rcoord.(particles), Zcoord.(particles)
-    end
-end
+Returns the smallest positive time at which the particle intersects the surface segment. Returns `Inf` if no valid intersection occurs.
 
-
+* `r1`, `z1`: Coordinates of the first endpoint of the toroidal surface segment.
+* `r2`, `z2`: Coordinates of the second endpoint of the toroidal surface segment.
+* `x`, `y`, `z`: Current position of the particle in Cartesian coordinates.
+* `vx`, `vy`, `vz`: Velocity components of the particle.
+* `v2`: Squared radial velocity component, `vx^2 + vy^2`.
+* `vz2`: Squared z-velocity component, `vz^2`.
+"""
 function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, y::Real, z::Real, vx::Real, vy::Real, vz::Real, v2::Real, vz2::Real)
     t = Inf
 
@@ -359,3 +410,6 @@ function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, x::Real, 
 
     return t
 end
+
+@compat public toroidal_intersection
+push!(document[Symbol("Physics particles")], :toroidal_intersection)

@@ -1,3 +1,5 @@
+document[Symbol("Physics radiation")] = Symbol[]
+
 """
     radiation_losses(sources::IMAS.core_sources)
 
@@ -5,7 +7,8 @@ Evaluate total plasma radiation losses [W] due to bremsstrahlung, synchrotron, a
 """
 function radiation_losses(sources::IMAS.core_sources)
     n2i = name_2_index(sources.source)
-    radiation_indices = [n2i[name] for name in (:bremsstrahlung, :synchrotron_radiation, :line_radiation, :radiation, :cyclotron_radiation, :cyclotron_synchrotron_radiation, :impurity_radiation)]
+    radiation_indices =
+        [n2i[name] for name in (:bremsstrahlung, :synchrotron_radiation, :line_radiation, :radiation, :cyclotron_radiation, :cyclotron_synchrotron_radiation, :impurity_radiation)]
     radiation_energy = 0.0
     for source in sources.source
         if source.identifier.index ∈ radiation_indices
@@ -14,6 +17,9 @@ function radiation_losses(sources::IMAS.core_sources)
     end
     return radiation_energy
 end
+
+@compat public radiation_losses
+push!(document[Symbol("Physics radiation")], :radiation_losses)
 
 """
     bremsstrahlung_source!(dd::IMAS.dd)
@@ -31,6 +37,9 @@ function bremsstrahlung_source!(dd::IMAS.dd)
     new_source(source, source.identifier.index, "brem", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensityBrem)
     return dd
 end
+
+@compat public bremsstrahlung_source!
+push!(document[Symbol("Physics radiation")], :bremsstrahlung_source!)
 
 """
     rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient) where {T<:Real}
@@ -61,6 +70,9 @@ function rad_sync(ϵ::T, a::T, B0::T, ne::T, Te::T; wall_reflection_coefficient)
     return -qsync * 1E-7 * 1E6 #[W/m^3]
 end
 
+@compat public rad_sync
+push!(document[Symbol("Physics radiation")], :rad_sync)
+
 """
     synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.0)
 
@@ -85,6 +97,9 @@ function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
     new_source(source, source.identifier.index, "synch", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area; electrons_energy=powerDensitySync)
     return source
 end
+
+@compat public synchrotron_source!
+push!(document[Symbol("Physics radiation")], :synchrotron_source!)
 
 """
     line_radiation_source!(dd::IMAS.dd)
@@ -111,6 +126,9 @@ function line_radiation_source!(dd::IMAS.dd)
     return sources
 end
 
+@compat public line_radiation_source!
+push!(document[Symbol("Physics radiation")], :line_radiation_source!)
+
 function rad_ion_adas(Te, ne, ni, zi, namei)
     ne = ne ./ 1E6 # [1 / cm^3]
     ni = ni ./ 1E6 # [1 / cm^3]
@@ -136,17 +154,17 @@ end
 """
     adas21(Te, name)
 
-NOTE: Te in [keV] and output is in [erg cm^3 / s]
+NOTE: Te in [keV] and output is in `[erg cm^3 / s]`
 
 Chebyshev polynomial fits to ADAS data
 
   - Transpiled from gacode/tgyro/src/tgyro_rad.f90
-  - Lz = Lz_line + Lz_continuum
+  - `Lz` = `Lz_line` + `Lz_continuum`
   - Aurora follows the radiation nomenclature of ADAS (as described here), separating
     "line" and "continuum" radiation. Line radiation basically comes from ADF11 PLT
-    files and continuum radiation comes from ADF11 PRB files. Bremsstrahlung is
-    included in the continuum term.
-  - Supports ["W","Xe","Mo","Kr","Ni","Fe","Ca","Ar","Si","Al","Ne","F","N","O","C","Be","He","H","T","D","DT"]
+    files and continuum radiation comes from ADF11 PRB files.
+    Bremsstrahlung is included in the continuum term.
+  - Supports `["W", "Xe", "Mo", "Kr", "Ni", "Fe", "Ca", "Ar", "Si", "Al", "Ne", "F", "N", "O", "C", "Be", "He", "H", "T", "D", "DT"]`
 """
 function adas21(Te, name)
     # Min and max values of Te
@@ -447,3 +465,6 @@ function adas21(Te, name)
 
     return Lz
 end
+
+@compat public adas21
+push!(document[Symbol("Physics radiation")], :adas21)

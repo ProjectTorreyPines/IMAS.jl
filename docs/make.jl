@@ -22,12 +22,15 @@ open(joinpath(@__DIR__, "src/expressions.md"), "w") do f
     for item in IMAS.document[:Expressions]
         println(f, "IMAS.$item")
     end
-    println(f, "```")
+    return println(f, "```")
 end
 
 makedocs(;
     modules=[IMAS],
-    format=Documenter.HTML(;analytics="G-65D8V8C8VQ"),
+    format=Documenter.HTML(;
+        analytics="G-65D8V8C8VQ",
+        size_threshold=nothing,
+        size_threshold_warn=nothing),
     sitename="IMAS",
     checkdocs=:none,
     pages=[

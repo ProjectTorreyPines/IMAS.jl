@@ -1,3 +1,5 @@
+document[Symbol("Physics profiles")] = Symbol[]
+
 """
     pressure_thermal(cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -40,6 +42,9 @@ function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d_
     return p .* mks.e
 end
 
+@compat public pressure_thermal
+push!(document[Symbol("Physics profiles")], :pressure_thermal)
+
 """
     beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -49,6 +54,9 @@ function beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__p
     return beta_tor(eq, cp1d; norm=true, thermal=true)
 end
 
+@compat public beta_tor_thermal_norm
+push!(document[Symbol("Physics profiles")], :beta_tor_thermal_norm)
+
 """
     beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -57,6 +65,9 @@ Normalised toroidal beta from total pressure, defined as 100 * beta_tor * a[m] *
 function beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
     return beta_tor(eq, cp1d; norm=true, thermal=false)
 end
+
+@compat public beta_tor_norm
+push!(document[Symbol("Physics profiles")], :beta_tor_norm)
 
 """
     beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
@@ -87,6 +98,9 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
 
     return out
 end
+
+@compat public beta_tor
+push!(document[Symbol("Physics profiles")], :beta_tor)
 
 """
     list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
@@ -129,38 +143,8 @@ function list_ions(cs::IMAS.core_sources, cp1d::Nothing)
     return unique(ions)
 end
 
-function ion_element!(
-    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
-    ion_z::Int;
-    fast::Bool=false)
-    return ion_element!(ion, elements[ion_z].symbol; fast)
-end
-
-function ion_element!(
-    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
-    ion_z::Int, ion_a::Float64; fast::Bool=false)
-    if ion_z == 1 && ion_a == 1.0
-        ion_symbol = :H
-    elseif ion_z == 1 && ion_a == 2.0
-        ion_symbol = :D
-    elseif ion_z == 1 && ion_a == 2.5
-        ion_symbol = :DT
-    elseif ion_z == 1 && ion_a == 3.0
-        ion_symbol = :T
-    elseif ion_z == 2 && ion_a == 4.0
-        ion_symbol = :α
-    else
-        ion_symbol = elements[Int(ion_z)].symbol
-    end
-    return ion_element!(ion, ion_symbol; fast)
-end
-
-function ion_element!(
-    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
-    ion_string::AbstractString;
-    fast::Bool=false)
-    return ion_element!(ion, Symbol(ion_string); fast)
-end
+@compat public list_ions
+push!(document[Symbol("Physics profiles")], :list_ions)
 
 """
     ion_element!(
@@ -184,6 +168,42 @@ function ion_element!(
 
     return ion.element
 end
+
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_string::AbstractString;
+    fast::Bool=false)
+    return ion_element!(ion, Symbol(ion_string); fast)
+end
+
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_z::Int, ion_a::Float64; fast::Bool=false)
+    if ion_z == 1 && ion_a == 1.0
+        ion_symbol = :H
+    elseif ion_z == 1 && ion_a == 2.0
+        ion_symbol = :D
+    elseif ion_z == 1 && ion_a == 2.5
+        ion_symbol = :DT
+    elseif ion_z == 1 && ion_a == 3.0
+        ion_symbol = :T
+    elseif ion_z == 2 && ion_a == 4.0
+        ion_symbol = :α
+    else
+        ion_symbol = elements[Int(ion_z)].symbol
+    end
+    return ion_element!(ion, ion_symbol; fast)
+end
+
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_z::Int;
+    fast::Bool=false)
+    return ion_element!(ion, elements[ion_z].symbol; fast)
+end
+
+@compat public ion_element!
+push!(document[Symbol("Physics profiles")], :ion_element!)
 
 """
     ion_properties( ion_symbol::Symbol; fast::Bool=false)
@@ -239,6 +259,9 @@ function ion_properties(ion_symbol::Symbol; fast::Bool=false)
     return (z_n=z_n, a=a, label=label)
 end
 
+@compat public ion_properties
+push!(document[Symbol("Physics profiles")], :ion_properties)
+
 """
     binding_energy(Z::Int, N::Int)
 
@@ -269,6 +292,9 @@ function binding_energy(Z::Int, N::Int)
     return E
 end
 
+@compat public binding_energy
+push!(document[Symbol("Physics profiles")], :binding_energy)
+
 """
     atomic_mass(Z::Int, N::Int)
 
@@ -291,9 +317,20 @@ function atomic_mass(Z::Int, N::Int)
     return mass
 end
 
+@compat public atomic_mass
+push!(document[Symbol("Physics profiles")], :atomic_mass)
+
+"""
+    energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculates the thermal stored energy
+"""
 function energy_thermal(cp1d::IMAS.core_profiles__profiles_1d)
     return 3.0 / 2.0 * trapz(cp1d.grid.volume, cp1d.pressure_thermal)
 end
+
+@compat public energy_thermal
+push!(document[Symbol("Physics profiles")], :energy_thermal)
 
 """
     energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary)
@@ -307,13 +344,8 @@ function energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summ
     return 3.0 / 2.0 * trapz(cp1d.grid.volume, pressure)
 end
 
-function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
-    return trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
-end
-
-function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-    return tau_e_thermal(dd.core_profiles.profiles_1d[time0], dd.core_sources; subtract_radiation_losses)
-end
+@compat public energy_thermal_ped
+push!(document[Symbol("Physics profiles")], :energy_thermal_ped)
 
 """
     tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources; subtract_radiation_losses::Bool=true)
@@ -330,12 +362,15 @@ function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sour
     return energy_thermal(cp1d) / total_power_inside
 end
 
-function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-    eqt = dd.equilibrium.time_slice[time0]
-    cp1d = dd.core_profiles.profiles_1d[time0]
-    cs = dd.core_sources
-    return tau_e_h98(eqt, cp1d, cs; subtract_radiation_losses)
+"""
+    tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+"""
+function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    return tau_e_thermal(dd.core_profiles.profiles_1d[time0], dd.core_sources; subtract_radiation_losses)
 end
+
+@compat public tau_e_thermal
+push!(document[Symbol("Physics profiles")], :tau_e_thermal)
 
 """
     tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.plot_core_sources; subtract_radiation_losses::Bool=true)
@@ -378,12 +413,18 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
     return tau98
 end
 
-function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+"""
+    tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+"""
+function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
     eqt = dd.equilibrium.time_slice[time0]
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
-    return tau_e_ds03(eqt, cp1d, cs; subtract_radiation_losses)
+    return tau_e_h98(eqt, cp1d, cs; subtract_radiation_losses)
 end
+
+@compat public tau_e_h98
+push!(document[Symbol("Physics profiles")], :tau_e_h98)
 
 """
     tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
@@ -425,6 +466,19 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
 end
 
 """
+    tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+"""
+function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    eqt = dd.equilibrium.time_slice[time0]
+    cp1d = dd.core_profiles.profiles_1d[time0]
+    cs = dd.core_sources
+    return tau_e_ds03(eqt, cp1d, cs; subtract_radiation_losses)
+end
+
+@compat public tau_e_ds03
+push!(document[Symbol("Physics profiles")], :tau_e_ds03)
+
+"""
     bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
 
 Calculate bunit from equilibrium
@@ -439,6 +493,9 @@ function bunit(eqt::IMAS.equilibrium__time_slice)
     return bunit(eqt.profiles_1d)
 end
 
+@compat public bunit
+push!(document[Symbol("Physics profiles")], :bunit)
+
 """
     greenwald_density(eqt::IMAS.equilibrium__time_slice)
 
@@ -448,19 +505,31 @@ function greenwald_density(eqt::IMAS.equilibrium__time_slice)
     return greenwald_density(eqt.global_quantities.ip, eqt.boundary.minor_radius)
 end
 
+"""
+    greenwald_density(ip::T, minor_radius::T) where {T<:Real}
+"""
 function greenwald_density(ip::T, minor_radius::T) where {T<:Real}
     return abs(ip / 1e6) / (pi * minor_radius^2) * 1e20
 end
 
+"""
+    greenwald_density(dd::IMAS.dd)
+"""
 function greenwald_density(dd::IMAS.dd)
     return greenwald_density(dd.equilibrium.time_slice[])
 end
 
+"""
+    greenwald_density(ps::IMAS.pulse_schedule; time0=global_time(ps))
+"""
 function greenwald_density(ps::IMAS.pulse_schedule; time0=global_time(ps))
     ip = get_time_array(ps.flux_control.i_plasma, :reference, time0, :linear)
     minor_radius = get_time_array(ps.position_control.minor_radius, :reference, time0, :linear)
     return greenwald_density(ip, minor_radius)
 end
+
+@compat public greenwald_density
+push!(document[Symbol("Physics profiles")], :greenwald_density)
 
 """
     greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
@@ -473,9 +542,15 @@ function greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_p
     return nel / ngw
 end
 
+"""
+    greenwald_fraction(dd::IMAS.dd)
+"""
 function greenwald_fraction(dd::IMAS.dd)
     return greenwald_fraction(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
 end
+
+@compat public greenwald_fraction
+push!(document[Symbol("Physics profiles")], :greenwald_fraction)
 
 """
     geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
@@ -486,21 +561,30 @@ function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_sl
     return geometric_midplane_line_averaged_density(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
 end
 
+"""
+    geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+"""
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
     a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
     return trapz(a_cp, ne_profile) / a_cp[end]
 end
 
+"""
+    geometric_midplane_line_averaged_density(dd::IMAS.dd)
+"""
 function geometric_midplane_line_averaged_density(dd::IMAS.dd)
     return geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
 end
 
+@compat public greenwald_fraction
+push!(document[Symbol("Physics profiles")], :greenwald_fraction)
+
 """
-    n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+    ne_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
 
 returns n_e_line from pulse_schedule looking first in `pulse_schedule.density_control.ne_line.reference` and then `pulse_schedule.density_control.greenwald_fraction.reference`
 """
-function n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+function ne_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
     if !ismissing(ps.density_control.n_e_line, :reference)
         return get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
     elseif !ismissing(ps.density_control.n_e_greenwald_fraction, :reference)
@@ -509,6 +593,21 @@ function n_e_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
         error("neither `pulse_schedule.density_control.ne_line.reference` or `pulse_schedule.density_control.greenwald_fraction.reference` have data")
     end
 end
+
+@compat public ne_line
+push!(document[Symbol("Physics profiles")], :ne_line)
+
+"""
+    ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
+
+Volume averaged electron density
+"""
+function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
+    return trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
+end
+
+@compat public ne_vol_avg
+push!(document[Symbol("Physics profiles")], :ne_vol_avg)
 
 """
     beta_tor(pressure_average::Real, Bt::Real)
@@ -519,6 +618,9 @@ function beta_tor(pressure_average::Real, Bt::Real)
     return pi * 8.0e-7 * pressure_average / Bt^2
 end
 
+@compat public beta_tor
+push!(document[Symbol("Physics profiles")], :beta_tor)
+
 """
     beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
 
@@ -527,6 +629,9 @@ Calculates BetaN from beta_tor
 function beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
     return beta_tor * minor_radius * abs(Bt) / abs(Ip / 1e6) * 1.0e2 # [%]
 end
+
+@compat public beta_n
+push!(document[Symbol("Physics profiles")], :beta_n)
 
 """
     pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip::Real)
@@ -537,24 +642,27 @@ function pressure_avg_from_beta_n(beta_n::Real, minor_radius::Real, Bt::Real, Ip
     return beta_n * abs(Bt) * abs(Ip / 1e6) / (minor_radius * pi * 8.0e-7 * 1.0e2)
 end
 
+@compat public pressure_avg_from_beta_n
+push!(document[Symbol("Physics profiles")], :pressure_avg_from_beta_n)
+
 """
     Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
 
-Generate H-mode density and temperature profiles evenly spaced in your favorite radial coordinate
+Generate H-mode density and temperature profiles evenly spaced in the radial coordinate
 
-:param edge: separatrix height
+* `edge`: separatrix value
 
-:param ped: pedestal height
+* `ped`: pedestal value
 
-:param core: on-axis profile height
+* `core`: on-axis value
 
-:param ngrid: number of radial grid points
+* `ngrid`: number of radial grid points
 
-:param expin: inner core exponent for H-mode pedestal profile
+* `expin`: inner core exponent for H-mode pedestal profile
 
-:param expout: outer core exponent for H-mode pedestal profile
+* `expout`: outer core exponent for H-mode pedestal profile
 
-:param width: width of pedestal
+* `width`: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
     @assert edge >= 0.0
@@ -590,21 +698,7 @@ end
 """
     Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
 
-Generate H-mode density and temperature profiles evenly spaced in your favorite radial coordinate
-
 NOTE: The core value is allowed to float
-
-:param edge: separatrix height
-
-:param ped: pedestal height
-
-:param ngrid: number of radial grid points
-
-:param expin: inner core exponent for H-mode pedestal profile
-
-:param expout: outer core exponent for H-mode pedestal profile
-
-:param width: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
     @assert edge >= 0.0
@@ -633,6 +727,26 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     return val
 end
 
+@compat public Hmode_profiles
+push!(document[Symbol("Physics profiles")], :Hmode_profiles)
+
+"""
+    Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+
+Generate L-mode density and temperature profiles evenly spaced in the radial coordinate
+
+* `edge`: separatrix value
+
+* `ped`: pedestal value
+
+* `ngrid`: number of radial grid points
+
+* `expin`: inner core exponent for H-mode pedestal profile
+
+* `expout`: outer core exponent for H-mode pedestal profile
+
+* `width`: width of pedestal
+"""
 function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
     rho = range(0.0, 1.0, ngrid)
     rho_ped = 1.0 - widthp
@@ -648,12 +762,15 @@ function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
     return profile
 end
 
-"""
-    _A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+@compat public Lmode_profiles
+push!(document[Symbol("Physics profiles")], :Lmode_profiles)
 
-_A_effective towards L to H scaling see G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 """
-function _A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+    A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+
+A_effective towards L to H scaling see G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+"""
+function A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     numerator = T[]
     denominator = T[]
     for ion in cp1d.ion
@@ -665,6 +782,9 @@ function _A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     end
     return reduce(+, numerator) / reduce(+, denominator)
 end
+
+@compat public A_effective
+push!(document[Symbol("Physics profiles")], :A_effective)
 
 """
     scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
@@ -683,7 +803,7 @@ end
 function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     B0 = B0_geo(eqt)
     return scaling_L_to_H_power(
-        _A_effective(cp1d),
+        A_effective(cp1d),
         trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
         B0,
         eqt.profiles_1d.surface[end]
@@ -696,6 +816,9 @@ end
 function scaling_L_to_H_power(dd::IMAS.dd)
     return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
+
+@compat public scaling_L_to_H_power
+push!(document[Symbol("Physics profiles")], :scaling_L_to_H_power)
 
 """
     L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
@@ -715,6 +838,9 @@ function L_H_threshold(dd::IMAS.dd)
     return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
 
+@compat public L_H_threshold
+push!(document[Symbol("Physics profiles")], :L_H_threshold)
+
 """
     satisfies_h_mode_conditions(dd::IMAS.dd)
 
@@ -732,6 +858,9 @@ function satisfies_h_mode_conditions(dd::IMAS.dd)
     end
 end
 
+@compat public satisfies_h_mode_conditions
+push!(document[Symbol("Physics profiles")], :satisfies_h_mode_conditions)
+
 """
     ITB(rho0::T, width::T, height::T, rho::AbstractVector{T}) where {T<:Real}
 
@@ -741,6 +870,9 @@ The ITB is centered at `rho0`, with a full width of `width` and given `height`
 function ITB(rho0::T, width::T, height::T, rho::AbstractVector{T}) where {T<:Real}
     return @. (tanh((-rho + rho0) / width * pi) + 1.0) * 0.5 * height
 end
+
+@compat public ITB
+push!(document[Symbol("Physics profiles")], :ITB)
 
 """
     ITB_profile(rho::AbstractVector{T}, input_profile::AbstractVector{T}, rho0::T, width::T, height_ratio::T) where {T<:Real}
@@ -752,6 +884,9 @@ function ITB_profile(rho::AbstractVector{T}, input_profile::AbstractVector{T}, r
     itb = ITB(rho0, width, height, rho)
     return input_profile .+ itb
 end
+
+@compat public ITB_profile
+push!(document[Symbol("Physics profiles")], :ITB_profile)
 
 """
     species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Symbol=:all, only_thermal_fast::Symbol=:all)
@@ -795,12 +930,8 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
     return out
 end
 
-"""
-    is_quasi_neutral(dd::IMAS.dd)
-"""
-function is_quasi_neutral(dd::IMAS.dd; rtol::Float64=0.001)
-    return is_quasi_neutral(dd.core_profiles.profiles_1d[]; rtol)
-end
+@compat public species
+push!(document[Symbol("Physics profiles")], :species)
 
 """
     is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0.001)
@@ -818,11 +949,14 @@ function is_quasi_neutral(cp1d::IMAS.core_profiles__profiles_1d; rtol::Float64=0
 end
 
 """
-    enforce_quasi_neutrality!(dd::IMAS.dd, species::Symbol)
+    is_quasi_neutral(dd::IMAS.dd)
 """
-function enforce_quasi_neutrality!(dd::IMAS.dd, species::Symbol)
-    return enforce_quasi_neutrality!(dd.core_profiles.profiles_1d[], species)
+function is_quasi_neutral(dd::IMAS.dd; rtol::Float64=0.001)
+    return is_quasi_neutral(dd.core_profiles.profiles_1d[]; rtol)
 end
+
+@compat public is_quasi_neutral
+push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 
 """
     enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
@@ -865,6 +999,16 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
 
     return nothing
 end
+
+"""
+    enforce_quasi_neutrality!(dd::IMAS.dd, species::Symbol)
+"""
+function enforce_quasi_neutrality!(dd::IMAS.dd, species::Symbol)
+    return enforce_quasi_neutrality!(dd.core_profiles.profiles_1d[], species)
+end
+
+@compat public enforce_quasi_neutrality!
+push!(document[Symbol("Physics profiles")], :enforce_quasi_neutrality!)
 
 """
     lump_ions_as_bulk_and_impurity(ions::IMAS.IDSvector{<:IMAS.core_profiles__profiles_1d___ion}, rho_tor_norm::Vector{<:Real})
@@ -950,6 +1094,9 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     return ions2
 end
 
+@compat public lump_ions_as_bulk_and_impurity
+push!(document[Symbol("Physics profiles")], :lump_ions_as_bulk_and_impurity)
+
 """
     zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ionization_state::Bool=true)
 
@@ -972,15 +1119,8 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ioniz
     return num ./ cp1d.electrons.density
 end
 
-"""
-    avgZ(Z::Float64,Ti::T)::T
-
-Returns average ionization state of an ion at a given temperature
-"""
-function avgZ(Z::Float64, Ti::T)::T where {T}
-    func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
-    return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
-end
+@compat public zeff
+push!(document[Symbol("Physics profiles")], :zeff)
 
 Memoize.@memoize function avgZinterpolator(filename::String)
     txt = open(filename, "r") do io
@@ -1012,6 +1152,19 @@ Memoize.@memoize function avgZinterpolator(filename::String)
 end
 
 """
+    avgZ(Z::Float64,Ti::T)::T
+
+Returns average ionization state of an ion at a given temperature
+"""
+function avgZ(Z::Float64, Ti::T)::T where {T}
+    func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
+    return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
+end
+
+@compat public avgZ
+push!(document[Symbol("Physics profiles")], :avgZ)
+
+"""
     t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
 
 Returns the average ion temperature weighted by each species density over the total number of ion particles
@@ -1027,10 +1180,13 @@ function t_i_average(cp1d::IMAS.core_profiles__profiles_1d)::Vector{<:Real}
     return t_i_a ./= ntot
 end
 
+@compat public t_i_average
+push!(document[Symbol("Physics profiles")], :t_i_average)
+
 """
     edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
 
-Function for edge blending
+Function for edge blending using exponential function
 """
 function edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
     @assert x[1] == 0.0
@@ -1050,3 +1206,6 @@ end
 function edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
     return exp.(.-(x .- x0) / sigma)
 end
+
+@compat public edge_profile
+push!(document[Symbol("Physics profiles")], :edge_profile)
