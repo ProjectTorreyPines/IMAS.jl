@@ -416,7 +416,7 @@ end
 
 """
     find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice;
-                            type::Symbol=:not_diverted, 
+                            type::Symbol=:not_diverted,
                             precision::Float64=1E-7)
 
 Returns psi of the second magentic separatrix. This relies only on eqt and finds the 2nd sep geometrically.
@@ -1044,6 +1044,15 @@ function find_magnetic_axis(
     return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
 
+mutable struct SimpleSurface{T}
+    psi::T
+    r::Vector{T}
+    z::Vector{T}
+    ll::Vector{T}
+    fluxexpansion::Vector{T}
+    int_fluxexpansion_dl::T
+end
+
 mutable struct FluxSurface{T}
     psi::T
     r::Vector{T}
@@ -1091,6 +1100,77 @@ end
     end
 end
 
+function trace_simple_surfaces(
+    psi::AbstractVector{T},
+    r::AbstractVector{T},
+    z::AbstractVector{T},
+    PSI::Matrix{T},
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    RA::T,
+    ZA::T,
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T}) where {T<:Real}
+
+    surfaces = Vector{SimpleSurface{T}}(undef, length(psi))
+    return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z, r_cache, z_cache)
+end
+
+
+function trace_simple_surfaces!(
+    surfaces::Vector{SimpleSurface{T}},
+    psi::AbstractVector{T},
+    r::AbstractVector{T},
+    z::AbstractVector{T},
+    PSI::Matrix{T},
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    RA::T,
+    ZA::T,
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T}) where {T<:Real}
+
+    N = length(psi)
+
+
+    for k in N:-1:1
+        psi_level = psi[k]
+
+        # trace surfaces
+        if k == 1 # on axis flux surface is a artificial one, generated from the second surface
+            pr = (surfaces[2].r .- RA) ./ 100.0 .+ RA
+            pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
+
+        else  # other flux surfaces
+            # trace flux surface
+
+            tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi_level, :closed)
+            if isempty(tmp)
+                error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
+            end
+            (pr, pz) = tmp[1]
+        end
+
+        # surface length
+        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
+        ll = cumsum(dl)
+
+        # poloidal magnetic field (with sign)
+        Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
+        tmp = Br .^ 2.0 .+ Bz .^ 2.0 #Bp2
+        Bp_abs = sqrt.(tmp)
+        Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
+
+        # flux expansion
+        fluxexpansion = 1.0 ./ Bp_abs
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+
+        # create
+        surfaces[k] = SimpleSurface(psi_level, pr, pz,  ll, fluxexpansion, int_fluxexpansion_dl)
+    end
+
+    return surfaces
+end
+
+
 function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
@@ -1113,8 +1193,8 @@ function trace_surfaces(
     wall_r::AbstractVector{T},
     wall_z::AbstractVector{T}) where {T<:Real}
 
-    surfaces = Dict{Int,FluxSurface}()
     N = length(psi)
+    surfaces = Vector{FluxSurface{T}}(undef, N)
     for k in N:-1:1
         psi_level = psi[k]
 
@@ -1154,7 +1234,7 @@ function trace_surfaces(
         # Extrema on array indices
         (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
 
-        # create 
+        # create
         surfaces[k] = FluxSurface(
             psi_level,
             pr,
@@ -1661,7 +1741,7 @@ end
 
 Flux surface averaging of a quantity
 """
-function flux_surface_avg(quantity::AbstractVector{T}, surface::FluxSurface{T}) where {T<:Real}
+function flux_surface_avg(quantity::AbstractVector{T}, surface::Union{SimpleSurface{T}, FluxSurface{T}}) where {T<:Real}
     f = (k, xx) -> quantity[k] * surface.fluxexpansion[k]
     return trapz(surface.ll, f) / surface.int_fluxexpansion_dl
 end
