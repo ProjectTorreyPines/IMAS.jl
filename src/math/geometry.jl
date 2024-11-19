@@ -1,3 +1,5 @@
+document[Symbol("Geometry")] = Symbol[]
+
 import StaticArrays
 import MillerExtendedHarmonic: MXH
 import LinearAlgebra
@@ -20,6 +22,9 @@ function centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real
 
     return x_c, y_c
 end
+
+@compat public centroid
+push!(document[Symbol("Geometry")], :centroid)
 
 """
     perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real}
@@ -46,6 +51,9 @@ function perimeter(r::AbstractVector{T}, z::AbstractVector{T})::T where {T<:Real
     return perimeter
 end
 
+@compat public perimeter
+push!(document[Symbol("Geometry")], :perimeter)
+
 """
     area(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
 
@@ -59,6 +67,9 @@ function area(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
     return abs.(sum(x1 .* y2) - sum(y1 .* x2)) ./ 2
 end
 
+@compat public area
+push!(document[Symbol("Geometry")], :area)
+
 """
     revolution_volume(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
 
@@ -68,8 +79,18 @@ function revolution_volume(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where
     return area(x, y) * 2pi * centroid(x, y)[1]
 end
 
+@compat public revolution_volume
+push!(document[Symbol("Geometry")], :revolution_volume)
+
 """
-    intersection_angles(path1_r::AbstractVector{T}, path1_z::AbstractVector{T}, path2_r::AbstractVector{T}, path2_z::AbstractVector{T}, intersection_indexes::Vector{Tuple{Int,Int}}) where {T<:Real}
+    intersection_angles(
+        path1_r::AbstractVector{T},
+        path1_z::AbstractVector{T},
+        path2_r::AbstractVector{T},
+        path2_z::AbstractVector{T},
+        intersection_indexes::Vector{StaticArrays.SVector{2,Int}};
+        mod_pi::Bool=true
+    ) where {T<:Real}
 
 returns angles of intersections between two paths and intersection_indexes given by intersection() function
 """
@@ -100,12 +121,16 @@ function intersection_angles(
     return angles
 end
 
+@compat public intersection_angles
+push!(document[Symbol("Geometry")], :intersection_angles)
+
 """
     intersection(
         l1_x::AbstractVector{T},
         l1_y::AbstractVector{T},
         l2_x::AbstractVector{T},
-        l2_y::AbstractVector{T}) where {T<:Real}
+        l2_y::AbstractVector{T}
+    ) where {T<:Real}
 
 Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
 """
@@ -113,7 +138,8 @@ function intersection(
     l1_x::AbstractVector{T},
     l1_y::AbstractVector{T},
     l2_x::AbstractVector{T},
-    l2_y::AbstractVector{T}) where {T<:Real}
+    l2_y::AbstractVector{T}
+) where {T<:Real}
 
     indexes = StaticArrays.SVector{2,Int}[]
     crossings = StaticArrays.SVector{2,T}[]
@@ -184,6 +210,9 @@ function intersection(
 
     return (indexes=indexes, crossings=crossings)
 end
+
+@compat public intersection
+push!(document[Symbol("Geometry")], :intersection)
 
 function intersects(
     l1_x::AbstractVector{<:Real},
@@ -309,6 +338,9 @@ function intersection_split(
     return segments
 end
 
+@compat public intersection_split
+push!(document[Symbol("Geometry")], :intersection_split)
+
 """
     point_to_line_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
 
@@ -317,6 +349,9 @@ Distance of point (x0,y0) from line defined by points (x1,y1) and (x2,y2)
 function point_to_line_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
     return abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / sqrt((y2 - y1)^2 + (x2 - x1)^2)
 end
+
+@compat public point_to_line_distance
+push!(document[Symbol("Geometry")], :point_to_line_distance)
 
 """
     closest_point_to_segment(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
@@ -345,6 +380,9 @@ function closest_point_to_segment(x0::Real, y0::Real, x1::Real, y1::Real, x2::Re
     return (closest_x=closest_x, closest_y=closest_y)
 end
 
+@compat public closest_point_to_segment
+push!(document[Symbol("Geometry")], :closest_point_to_segment)
+
 """
     point_to_segment_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::Real, y2::Real)
 
@@ -358,6 +396,9 @@ function point_to_segment_distance(x0::Real, y0::Real, x1::Real, y1::Real, x2::R
 
     return distance
 end
+
+@compat public point_to_segment_distance
+push!(document[Symbol("Geometry")], :point_to_segment_distance)
 
 """
     point_to_path_distance(x0::Real, y0::Real, x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
@@ -379,6 +420,9 @@ function point_to_path_distance(x0::Real, y0::Real, x::AbstractVector{<:Real}, y
     end
     return d
 end
+
+@compat public point_to_path_distance
+push!(document[Symbol("Geometry")], :point_to_path_distance)
 
 """
     rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
@@ -435,6 +479,9 @@ function rdp_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon:
     end
 end
 
+@compat public rdp_simplify_2d_path
+push!(document[Symbol("Geometry")], :rdp_simplify_2d_path)
+
 """
     rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, epsilon::T) where {T<:Real}
 
@@ -460,6 +507,10 @@ function rwa_simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, threshol
     return simplified_x, simplified_y
 end
 
+
+@compat public rwa_simplify_2d_path
+push!(document[Symbol("Geometry")], :rwa_simplify_2d_path)
+
 """
     calculate_angle(p1::T, p2::T, p3::T) where {T}
 
@@ -472,6 +523,9 @@ function calculate_angle(p1::Tuple{T,T}, p2::Tuple{T,T}, p3::Tuple{T,T}) where {
     magnitude_product = norm(v1) * norm(v2)
     return acosd(min(dot_product / magnitude_product, one(T)))
 end
+
+@compat public calculate_angle
+push!(document[Symbol("Geometry")], :calculate_angle)
 
 """
     simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplification_factor::T; model::Symbol=:distance)
@@ -487,6 +541,9 @@ function simplify_2d_path(x::AbstractArray{T}, y::AbstractArray{T}, simplificati
         error("simplify_2d_line model can be either :curvature or :distance")
     end
 end
+
+@compat public simplify_2d_path
+push!(document[Symbol("Geometry")], :simplify_2d_path)
 
 """
     resample_2d_path(
@@ -568,6 +625,9 @@ function resample_2d_path(
     return xi, yi
 end
 
+@compat public resample_2d_path
+push!(document[Symbol("Geometry")], :resample_2d_path)
+
 """
     resample_plasma_boundary(
         x::AbstractVector{T},
@@ -594,6 +654,9 @@ function resample_plasma_boundary(
     return x, y
 end
 
+@compat public resample_plasma_boundary
+push!(document[Symbol("Geometry")], :resample_plasma_boundary)
+
 """
     is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
 
@@ -605,12 +668,13 @@ end
 
 """
     is_updown_symmetric(mxh::MXH; precision::Float64=1E-3)
-
-Returns true if mxh boundary is updown symmetric
 """
 function is_updown_symmetric(mxh::MXH; precision::Float64=1E-3)
     return sum(abs.(mxh.c)) / length(mxh.c) < precision
 end
+
+@compat public is_updown_symmetric
+push!(document[Symbol("Geometry")], :is_updown_symmetric)
 
 """
     minimum_distance_polygons_vertices(
@@ -649,6 +713,9 @@ function minimum_distance_polygons_vertices(
     end
 end
 
+@compat public minimum_distance_polygons_vertices
+push!(document[Symbol("Geometry")], :minimum_distance_polygons_vertices)
+
 """
     minimum_distance_polygons(
         R_obj1::AbstractVector{<:T},
@@ -676,6 +743,9 @@ function minimum_distance_polygons(
 
     return distance
 end
+
+@compat public minimum_distance_polygons
+push!(document[Symbol("Geometry")], :minimum_distance_polygons)
 
 """
     min_mean_distance_polygons(
@@ -711,6 +781,9 @@ function min_mean_distance_polygons(
 
     return (min_distance=min_distance, mean_distance=mean_distance)
 end
+
+@compat public min_mean_distance_polygons
+push!(document[Symbol("Geometry")], :min_mean_distance_polygons)
 
 """
     curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
@@ -757,6 +830,9 @@ function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     return curvature_res
 end
 
+@compat public curvature
+push!(document[Symbol("Geometry")], :curvature)
+
 """
     angle_between_two_vectors(
         v1_p1::Tuple{T,T},
@@ -781,6 +857,9 @@ function angle_between_two_vectors(
     # limit arg to [-1.0, 1.0], which is guaranteed mathematically by (a · b) / (|a| |b|)
     return acos(max(min(arg, 1.0), -1.0))
 end
+
+@compat public angle_between_two_vectors
+push!(document[Symbol("Geometry")], :angle_between_two_vectors)
 
 """
     bisector(v1, v2, v3)
@@ -815,6 +894,9 @@ function bisector(v1, v2, v3)
     return bisect * sign(cross_prod)
 end
 
+@compat public bisector
+push!(document[Symbol("Geometry")], :bisector)
+
 """
     polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
 
@@ -841,6 +923,9 @@ function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Flo
 
     return rays
 end
+
+@compat public polygon_rays
+push!(document[Symbol("Geometry")], :polygon_rays)
 
 """
     split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_length::Float64) where {T<:Real}
@@ -886,116 +971,8 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, n_point
     return split_long_segments(R, Z, max_length)
 end
 
-"""
-    is_open_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
-
-Determine if a polygon, defined by separate vectors for R and Z coordinates, is open.
-"""
-function is_open_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
-    return R[1] != R[end] || Z[1] != Z[end]
-end
-
-function is_open_polygon(vertices::AbstractVector)::Bool
-    r1 = vertices[1][1]
-    z1 = vertices[1][2]
-    rend = vertices[end][1]
-    zend = vertices[end][2]
-    return r1 != rend || z1 != zend
-end
-
-"""
-    is_closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
-
-Determine if a polygon, defined by separate vectors for R and Z coordinates, is closed.
-"""
-function is_closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T})::Bool where {T<:Real}
-    return !is_open_polygon(R, Z)
-end
-
-function is_closed_polygon(vertices::AbstractVector)::Bool
-    return !is_open_polygon(vertices)
-end
-
-"""
-    open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, args...) where {T<:Real}
-
-Returns a view of the vectors R and Z such that they are a open polygon
-
-Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
-"""
-function open_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, args...) where {T<:Real}
-    was_open = is_open_polygon(R, Z)
-    R = OutlineOpenVector(R, was_open)
-    Z = OutlineOpenVector(Z, was_open)
-    args = collect(map(x -> OutlineOpenVector(x, was_open), args))
-    return (was_closed=!was_open, was_open=was_open, R=R, Z=Z, r=R, z=Z, rz=(R, Z), args=args)
-end
-
-"""
-    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, args...) where {T<:Real}
-
-Returns a view of the vectors R and Z such that they are a closed polygon
-
-Returns a named tuple containing the status of the polygon (was_closed, was_open) and the views of the R and Z vectors.
-"""
-function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, args...) where {T<:Real}
-    was_closed = is_closed_polygon(R, Z)
-    R = OutlineClosedVector(R, was_closed)
-    Z = OutlineClosedVector(Z, was_closed)
-    args = collect(map(x -> OutlineClosedVector(x, was_closed), args))
-    return (was_closed=was_closed, was_open=!was_closed, R=R, Z=Z, r=R, z=Z, rz=(R, Z), args=args)
-end
-
-"""
-    closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool, args...) where {T<:Real}
-
-Returns a closed polygon depending on `closed` otherwise returns an open polygon
-"""
-function closed_polygon(R::AbstractVector{T}, Z::AbstractVector{T}, closed::Bool, args...) where {T<:Real}
-    was_closed = is_closed_polygon(R, Z)
-    was_open = !was_closed
-    if closed
-        R = OutlineClosedVector(R, was_closed)
-        Z = OutlineClosedVector(Z, was_closed)
-        args = collect(map(x -> OutlineClosedVector(x, was_closed), args))
-    else
-        R = OutlineOpenVector(R, was_open)
-        Z = OutlineOpenVector(Z, was_open)
-        args = collect(map(x -> OutlineOpenVector(x, was_open), args))
-    end
-    return (was_closed=was_closed, was_open=was_open, R=R, Z=Z, r=R, z=Z, rz=(R, Z), args=args)
-end
-
-"""
-    is_clockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
-
-Returns true/false if polygon is defined clockwise
-"""
-function is_clockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
-    # Check if the vectors are of the same length
-    if length(r) != length(z)
-        error("Vectors must be of the same length")
-    end
-
-    area = zero(T)
-    n = length(r)
-
-    for i in 1:n-1
-        area += (r[i] * z[i+1] - r[i+1] * z[i])
-    end
-    area += (r[n] * z[1] - r[1] * z[n])
-
-    return area < 0
-end
-
-"""
-    is_counterclockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
-
-Returns true/false if polygon is defined counterclockwise
-"""
-function is_counterclockwise(r::AbstractVector{T}, z::AbstractVector{T})::Bool where {T<:Real}
-    return !is_clockwise(r, z)
-end
+@compat public split_long_segments
+push!(document[Symbol("Geometry")], :split_long_segments)
 
 """
     thick_line_polygon(r1, z1, r2, z2, thickness1, thickness2)
@@ -1012,3 +989,6 @@ function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, 
     p4 = [r1, z1] - offset1
     return [p1, p2, p3, p4, p1]
 end
+
+@compat public thick_line_polygon
+push!(document[Symbol("Geometry")], :thick_line_polygon)
