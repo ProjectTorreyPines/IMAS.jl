@@ -2941,7 +2941,4 @@ function hash_to_color(input::Any; seed::Int=0)
     return RGB(r, g, b)
 end
 
-# To fix a vscode's bug w.r.t UnicodePlots
-# (see https://github.com/JuliaPlots/Plots.jl/issues/4956  for more details)
-Base.showable(::MIME"image/png", ::Plots.Plot{Plots.UnicodePlotsBackend}) = applicable(UnicodePlots.save_image, devnull)
 
