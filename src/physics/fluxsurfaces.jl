@@ -169,21 +169,6 @@ function find_psi_boundary(
     raise_error_on_not_closed::Bool,
     verbose::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
-    # !!! this does not work when PF coils are inside of the domain
-    # # detect cases where PSI comes from a closed-boundary solver
-    # if all(psi_domain .== psi_domain[1])
-    #     return (last_closed=original_psi_boundary, first_open=nothing)
-    # end
-    # if psi_axis < original_psi_boundary # looking for the largest closed boundary flux surface outside of original_psi_boundary
-    #     psi_domain0 = minimum(psi_domain[psi_domain.>original_psi_boundary])
-    # else
-    #     psi_domain0 = maximum(psi_domain[psi_domain.<original_psi_boundary])
-    # end
-    # surface = flux_surface(dimR, dimZ, PSI, RA, ZA, Float64[], Float64[], psi_domain0, :closed)
-    # if length(surface) == 1 && surface[1].r[1] == surface[1].r[end] && surface[1].z[1] == surface[1].z[end]
-    #     return (last_closed=original_psi_boundary, first_open=nothing)
-    # end
-
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
         psi_edge = PSI_interpolant.(fw_r, fw_z)
@@ -334,14 +319,6 @@ function find_psi_boundary(
     end
 
     # innermost tentative flux surface (which should be closed!)
-    # surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
-    # if isempty(surface)
-    #     if raise_error_on_not_closed
-    #         error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
-    #     else
-    #         return (last_closed=nothing, first_open=nothing)
-    #     end
-    # end
     pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[1], RA, ZA, psi_axis)
     if isempty(pr) || is_open_polygon(pr, pz)
         if raise_error_on_not_closed
@@ -356,14 +333,6 @@ function find_psi_boundary(
     end
 
     # outermost tentative flux surface (which should be open!)
-    # surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
-    # if !isempty(surface)
-    #     if raise_error_on_not_open
-    #         error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
-    #     else
-    #         return (last_closed=nothing, first_open=nothing)
-    #     end
-    # end
     pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[end], RA, ZA, psi_axis)
     if is_closed_surface(pr, pz, fw_r, fw_z)
         if raise_error_on_not_closed
@@ -1072,7 +1041,9 @@ function find_magnetic_axis(
     return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
 
-mutable struct SimpleSurface{T}
+abstract type AbstractFluxSurface{T<:Real} end
+
+mutable struct SimpleSurface{T<:Real} <: AbstractFluxSurface{T}
     psi::T
     r::Vector{T}
     z::Vector{T}
@@ -1081,7 +1052,7 @@ mutable struct SimpleSurface{T}
     int_fluxexpansion_dl::T
 end
 
-mutable struct FluxSurface{T}
+mutable struct FluxSurface{T<:Real} <: AbstractFluxSurface{T}
     psi::T
     r::Vector{T}
     z::Vector{T}
@@ -1775,7 +1746,7 @@ end
 
 Flux surface averaging of a quantity
 """
-function flux_surface_avg(quantity::AbstractVector{T}, surface::Union{SimpleSurface{T}, FluxSurface{T}}) where {T<:Real}
+function flux_surface_avg(quantity::AbstractVector{T}, surface::AbstractFluxSurface{T}) where {T<:Real}
     f = (k, xx) -> quantity[k] * surface.fluxexpansion[k]
     return trapz(surface.ll, f) / surface.int_fluxexpansion_dl
 end
