@@ -2833,7 +2833,7 @@ end
     end
 end
 
-default_abbreviations = Dict(
+const default_abbreviations = Dict(
     "dd." => "",
     "equilibrium" => "eq",
     "description" => "desc",
@@ -2844,7 +2844,7 @@ default_abbreviations = Dict(
 )
 
 # Function to shorten names directly in the original text
-function shorten_ids_name(full_name::String; abbreviations::Dict=default_abbreviations)
+function shorten_ids_name(full_name::String, abbreviations::Dict=default_abbreviations)
     # Apply each abbreviation to the full name
     for (key, value) in abbreviations
         full_name = replace(full_name, key => value)
@@ -2852,7 +2852,7 @@ function shorten_ids_name(full_name::String; abbreviations::Dict=default_abbrevi
     return full_name
 end
 
-@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations::Dict=default_abbreviations)
+@recipe function plot_IFF(IFF::IDS_Field_Finder)
     if Plots.backend_name() == :unicodeplots
         seriestype_3d = get(plotattributes, :seriestype_3d, :contour)
     else
@@ -2860,13 +2860,14 @@ end
     end
 
     seriestype_2d = get(plotattributes, :seriestype_2d, :line)
+    abbreviations = get(plotattributes, :abbreviations, default_abbreviations)
 
     id = plot_help_id(IFF)
     assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
     assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:line (default), :scatter, :bar ...]"; seriestype_2d)
     assert_type_and_record_argument(id, Symbol, "Seriestype for 3D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_3d)
 
-    filed_name = shorten_ids_name(IFF.field_path; abbreviations)
+    filed_name = shorten_ids_name(IFF.field_path, abbreviations)
 
     if IFF.field_type <: AbstractVector{<:Real} && length(IFF.value) > 0
         if length(IFF.value) == 1
