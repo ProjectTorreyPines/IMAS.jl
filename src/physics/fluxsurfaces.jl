@@ -85,7 +85,7 @@ function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T
     return (Br=Br, Bz=Bz)
 end
 
-function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
+function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
     # Check that r and z are the same size
     @assert size(r) == size(z)
     Br, Bz = similar(r), similar(r)
@@ -169,8 +169,6 @@ function find_psi_boundary(
     raise_error_on_not_closed::Bool,
     verbose::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
-    psi_domain = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
-
     # !!! this does not work when PF coils are inside of the domain
     # # detect cases where PSI comes from a closed-boundary solver
     # if all(psi_domain .== psi_domain[1])
@@ -190,7 +188,7 @@ function find_psi_boundary(
     if !isempty(fw_r)
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
-        psi_edge = psi_domain
+        @views psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
     end
     psi_edge0 = original_psi_boundary + (original_psi_boundary - psi_axis)
     if psi_axis < original_psi_boundary # looking for the largest open boundary flux surface outside of original_psi_boundary
@@ -277,6 +275,20 @@ function find_psi_boundary(
     return error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
 end
 
+function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T},
+                           fw_r::AbstractVector{T}=T[], fw_z::AbstractVector{T}=T[]) where {T<:Real}
+    @assert length(pr) == length(pz)
+    closed = !isempty(pr) && is_closed_polygon(pr, pz)
+    if closed
+        @assert length(fw_r) == length(fw_z)
+        if !isempty(fw_r)
+            closed = !IMAS.intersects(pr, pz, fw_r, fw_z)
+        end
+    end
+    return closed
+end
+
+
 function find_psi_boundary(
     dimR::Union{AbstractVector{T1},AbstractRange{T1}},
     dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
@@ -286,7 +298,9 @@ function find_psi_boundary(
     RA::T3,
     ZA::T3,
     fw_r::AbstractVector{T4}=T1[],
-    fw_z::AbstractVector{T4}=T1[];
+    fw_z::AbstractVector{T4}=T1[],
+    r_cache::AbstractVector{T1}=T1[],
+    z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
@@ -299,7 +313,7 @@ function find_psi_boundary(
     f_ext = (axis2bnd === :increasing) ? maximum : minimum
 
     if !isempty(fw_r)
-        psi_edge0 = f_ext(PSI_interpolant.(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
+        psi_edge0 = f_ext(PSI_interpolant(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
     else
         @views psi_edge0 = f_ext((f_ext(PSI[1, :]), f_ext(PSI[end, :]), f_ext(PSI[:, 1]), f_ext(PSI[:, end])))
     end
@@ -315,9 +329,21 @@ function find_psi_boundary(
         display(plot!())
     end
 
+    if isempty(r_cache)
+        r_cache, z_cache = IMASutils.contour_cache(PSI)
+    end
+
     # innermost tentative flux surface (which should be closed!)
-    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
-    if isempty(surface)
+    # surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
+    # if isempty(surface)
+    #     if raise_error_on_not_closed
+    #         error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
+    #     else
+    #         return (last_closed=nothing, first_open=nothing)
+    #     end
+    # end
+    pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[1], RA, ZA, psi_axis)
+    if isempty(pr) || is_open_polygon(pr, pz)
         if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
         else
@@ -325,36 +351,38 @@ function find_psi_boundary(
         end
     end
     if verbose
-        for surf in surface
-            plot!(surf.r, surf.z; color=:blue, label="")
-        end
+        plot!(pr, pz; color=:blue, label="")
         display(plot!())
     end
 
     # outermost tentative flux surface (which should be open!)
-    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
-    if !isempty(surface)
-        if raise_error_on_not_open
+    # surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
+    # if !isempty(surface)
+    #     if raise_error_on_not_open
+    #         error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
+    #     else
+    #         return (last_closed=nothing, first_open=nothing)
+    #     end
+    # end
+    pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[end], RA, ZA, psi_axis)
+    if is_closed_surface(pr, pz, fw_r, fw_z)
+        if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
         else
             return (last_closed=nothing, first_open=nothing)
         end
     end
     if verbose
-        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
-        for surf in surface
-            plot!(surf.r, surf.z; color=:red, label="")
-        end
+        plot!(pr, pz; color=:red, label="")
         display(plot!())
     end
 
     psirange = deepcopy(psirange_init)
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
-        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
+        pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psimid, RA, ZA, psi_axis)
         # closed flux surface
-        if !isempty(surface)
-            ((pr, pz),) = surface
+        if is_closed_surface(pr, pz, fw_r, fw_z)
             if verbose
                 display(plot!(pr, pz; label="", color=:green))
             end
@@ -1112,7 +1140,8 @@ function trace_simple_surfaces(
     wall_z::AbstractVector{T}) where {T<:Real}
 
     surfaces = Vector{SimpleSurface{T}}(undef, length(psi))
-    return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z)
+    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z, r_cache, z_cache)
 end
 
 
@@ -1126,10 +1155,16 @@ function trace_simple_surfaces!(
     RA::T,
     ZA::T,
     wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T}) where {T<:Real}
+    wall_z::AbstractVector{T},
+    r_cache::AbstractVector{T}=T[],
+    z_cache::AbstractVector{T}=T[]) where {T<:Real}
 
     N = length(psi)
 
+    if isempty(r_cache) || isempty(z_cache)
+        r_cache, z_cache = IMASutils.contour_cache(PSI)
+    end
+    PSIA = PSI_interpolant(RA, ZA)
 
     for k in N:-1:1
         psi_level = psi[k]
@@ -1141,12 +1176,11 @@ function trace_simple_surfaces!(
 
         else  # other flux surfaces
             # trace flux surface
+            pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
 
-            tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi_level, :closed)
-            if isempty(tmp)
+            if !is_closed_surface(pr, pz, wall_r, wall_z)
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
-            (pr, pz) = tmp[1]
         end
 
         # surface length
@@ -1164,7 +1198,7 @@ function trace_simple_surfaces!(
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
         # create
-        surfaces[k] = SimpleSurface(psi_level, pr, pz,  ll, fluxexpansion, int_fluxexpansion_dl)
+        surfaces[k] = SimpleSurface(psi_level, collect(pr), collect(pz),  ll, fluxexpansion, int_fluxexpansion_dl)
     end
 
     return surfaces
