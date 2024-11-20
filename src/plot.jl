@@ -2769,17 +2769,17 @@ end
 
 @recipe function plot_IFF_list(IFF_list::AbstractArray{IDS_Field_Finder})
 
-    nrows = get(plotattributes, :nrows, "auto")
-    ncols = get(plotattributes, :ncols, "auto")
+    nrows = get(plotattributes, :nrows, :auto)
+    ncols = get(plotattributes, :ncols, :auto)
     each_size = get(plotattributes, :each_size, (500, 400))
 
     id = plot_help_id(IFF_list)
-    assert_type_and_record_argument(id, Tuple{Int,Int}, "Size of each subplot. (Default: (500, 400))"; each_size)
-    assert_type_and_record_argument(id, Int, "Number of rows for subplots' layout"; nrows)
-    assert_type_and_record_argument(id, Int, "Number of columns for subplots' layout"; ncols)
+    assert_type_and_record_argument(id, Tuple{Int,Int}, "Size of each subplot. (Default=(500, 400))"; each_size)
+    assert_type_and_record_argument(id, Union{Int, Symbol}, "Number of rows for subplots' layout (Default = :auto)"; nrows)
+    assert_type_and_record_argument(id, Union{Int, Symbol}, "Number of columns for subplots' layout (Default = :auto)"; ncols)
 
-    # # Keep only non-empty array type data
-    IFF_list = filter(IFF -> IFF.field_type <: AbstractArray{<:Real}, IFF_list)
+    # Keep only non-empty Vector or Matrix type data
+    IFF_list = filter(IFF -> IFF.field_type <: Union{AbstractVector{<:Real}, AbstractMatrix{<:Real}}, IFF_list)
     IFF_list = filter(IFF -> length(IFF.value) > 0, IFF_list)
 
     # At least one valid filed name is required to proceed
@@ -2789,11 +2789,11 @@ end
         # Fallback: Compute my_layout using nrows or ncols if provided
         layout_spec = length(IFF_list)
 
-        if nrows !== "auto" && ncols == "auto"
+        if nrows !== :auto && ncols == :auto
             layout_spec = (layout_spec, (nrows, :))
-        elseif ncols !== "auto" && nrows == "auto"
+        elseif ncols !== :auto && nrows == :auto
             layout_spec = (layout_spec, (:, ncols))
-        elseif nrows !== "auto" || ncols !== "auto"
+        elseif nrows !== :auto || ncols !== :auto
             layout_spec = (layout_spec, (nrows, ncols))
         end
         return Plots.layout_args(layout_spec...)
@@ -2801,7 +2801,7 @@ end
 
     # Define layout and compute nrows & ncols
     if my_layout isa Tuple{Plots.GridLayout,Int}
-        if isnothing(nrows) && isnothing(ncols)
+        if nrows == :auto && ncols == :auto
             layout --> my_layout[2]
         else
             layout --> my_layout[1]
@@ -2819,10 +2819,7 @@ end
         ncols = size(tmp_grid)[2]
     end
 
-    scaled_width = ncols * each_size[1]
-    scaled_height = nrows * each_size[2]
-
-    size := (scaled_width, scaled_height)
+    size := (ncols * each_size[1], nrows * each_size[2])
 
     legend_position --> :best
     left_margin --> [10mm 10mm]
@@ -2831,7 +2828,7 @@ end
     # Create subplots for the current group
     for IFF in IFF_list
         @series begin
-            IFF # (calls "plot_ids_named_tuple" recipe)
+            IFF # (calls "plot_IFF" recipe)
         end
     end
 end
@@ -2862,8 +2859,11 @@ end
         seriestype_3d = get(plotattributes, :seriestype_3d, :contourf)
     end
 
+    seriestype_2d = get(plotattributes, :seriestype_2d, :line)
+
     id = plot_help_id(IFF)
     assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:line (default), :scatter, :bar ...]"; seriestype_2d)
     assert_type_and_record_argument(id, Symbol, "Seriestype for 3D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_3d)
 
     filed_name = shorten_ids_name(IFF.field_path; abbreviations)
@@ -2871,10 +2871,12 @@ end
     if IFF.field_type <: AbstractVector{<:Real} && length(IFF.value) > 0
         if length(IFF.value) == 1
             seriestype --> :scatter
+        else
+            seriestype --> seriestype_2d
         end
 
         title --> filed_name
-        IFF.parent_ids, IFF.field # (calls "plot_fields" recipe)
+        IFF.parent_ids, IFF.field # (calls "plot_field" recipe)
 
     elseif IFF.field_type <: AbstractMatrix{<:Real} && length(IFF.value) > 0
         seriestype --> seriestype_3d
@@ -2900,7 +2902,7 @@ end
         ylim --> (minimum(yvalue), maximum(yvalue))
         aspect_ratio --> :equal
 
-        xvalue, yvalue, zvalue' # (calls Plots' "contourf" recipe)
+        xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
     end
 end
 
