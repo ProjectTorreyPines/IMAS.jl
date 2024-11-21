@@ -2776,7 +2776,6 @@ end
 #= ================ =#
 
 @recipe function plot_multiple_fields(ids::Union{IDS,IDSvector}, target_fields::Union{AbstractArray{Symbol},Regex})
-
     @series begin
         # calls "plot_IFF_list" recipe
         IFF_list = findall(ids, target_fields)
@@ -2784,7 +2783,6 @@ end
 end
 
 @recipe function plot_IFF_list(IFF_list::AbstractArray{IDS_Field_Finder}; nrows=:auto, ncols=:auto, each_size=(500, 400))
-
     id = plot_help_id(IFF_list)
     assert_type_and_record_argument(id, Tuple{Integer,Integer}, "Size of each subplot. (Default=(500, 400))"; each_size)
     assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of rows for subplots' layout (Default = :auto)"; nrows)
@@ -2865,7 +2863,7 @@ function shorten_ids_name(full_name::String, abbreviations::Dict=default_abbrevi
     return full_name
 end
 
-@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_2d=:line, seriestype_3d=:contourf, nicer_title=true)
+@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_2d=:path, seriestype_3d=:contourf, nicer_title=true)
     if Plots.backend_name() == :unicodeplots && seriestype_3d == :contourf
         # unicodeplots cannot render :contourf, use :contour instead
         seriestype_3d = :contour
@@ -2873,10 +2871,9 @@ end
 
     id = plot_help_id(IFF)
     assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:line (default), :scatter, :bar ...]"; seriestype_2d)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:path (default), :scatter, :bar ...]"; seriestype_2d)
     assert_type_and_record_argument(id, Symbol, "Seriestype for 3D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_3d)
     assert_type_and_record_argument(id, Bool, "Flag to use nicer title"; nicer_title)
-
 
     field_name = shorten_ids_name(IFF.field_path, abbreviations)
 
@@ -2901,7 +2898,6 @@ end
         if nicer_title
             title --> field_name * " " * nice_units(units(IFF.parent_ids, IFF.field))
         else
-            # title --> field_name * " [" * units(IFF.parent_ids, IFF.field) * "]"
             title --> field_name * " [" * units(IFF.parent_ids, IFF.field) * "]"
         end
 
