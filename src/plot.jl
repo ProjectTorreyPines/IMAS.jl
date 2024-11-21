@@ -2759,8 +2759,6 @@ end
 #  generic plotting  #
 #= ================ =#
 
-using Plots.PlotMeasures
-
 @recipe function plot_multiple_fields(ids::Union{IDS,IDSvector}, target_fields::Union{AbstractArray{Symbol},Regex})
 
     @series begin
@@ -2820,8 +2818,8 @@ end
     size := (ncols * each_size[1], nrows * each_size[2])
 
     legend_position --> :best
-    left_margin --> [10mm 10mm]
-    bottom_margin --> 10mm
+    left_margin --> [10 * Measures.mm 10 * Measures.mm]
+    bottom_margin --> 10 * Measures.mm
 
     # Create subplots for the current group
     for IFF in IFF_list
