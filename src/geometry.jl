@@ -253,9 +253,10 @@ end
 @inline function _out_of_bounds(A, B, C, D)
     abxl, abxu = A[1] < B[1] ? (A[1], B[1]) : (B[1], A[1])
     cdxl, cdxu = C[1] < D[1] ? (C[1], D[1]) : (D[1], C[1])
-    abyl, abyu = A[1] < B[1] ? (A[1], B[1]) : (B[1], A[1])
-    cdyl, cdyu = C[1] < D[1] ? (C[1], D[1]) : (D[1], C[1])
-    return (abxu < cdxl || abxl > cdxu || abyu < cdyl || abyl > cdyu)
+    (abxu < cdxl || abxl > cdxu) && return true
+    abyl, abyu = A[2] < B[2] ? (A[2], B[2]) : (B[2], A[2])
+    cdyl, cdyu = C[2] < D[2] ? (C[2], D[2]) : (D[2], C[2])
+    return abyu < cdyl || abyl > cdyu
 end
 
 @inline function _intersect(A, B, C, D)
