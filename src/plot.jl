@@ -2224,7 +2224,7 @@ end
             end
         end
         dd = top_dd(smcs)
-        if dd!== nothing
+        if dd !== nothing
             r_nose = smcs.grid.r_tf[1] + (smcs.grid.r_tf[end] - smcs.grid.r_tf[1]) * dd.build.tf.nose_hfs_fraction
             @series begin
                 seriestype := :vline
@@ -2772,12 +2772,12 @@ end
 @recipe function plot_IFF_list(IFF_list::AbstractArray{IDS_Field_Finder}; nrows=:auto, ncols=:auto, each_size=(500, 400))
 
     id = plot_help_id(IFF_list)
-    assert_type_and_record_argument(id, Tuple{Integer, Integer}, "Size of each subplot. (Default=(500, 400))"; each_size)
-    assert_type_and_record_argument(id, Union{Integer, Symbol}, "Number of rows for subplots' layout (Default = :auto)"; nrows)
-    assert_type_and_record_argument(id, Union{Integer, Symbol}, "Number of columns for subplots' layout (Default = :auto)"; ncols)
+    assert_type_and_record_argument(id, Tuple{Integer,Integer}, "Size of each subplot. (Default=(500, 400))"; each_size)
+    assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of rows for subplots' layout (Default = :auto)"; nrows)
+    assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of columns for subplots' layout (Default = :auto)"; ncols)
 
     # Keep only non-empty Vector or Matrix type data
-    IFF_list = filter(IFF -> IFF.field_type <: Union{AbstractVector{<:Real}, AbstractMatrix{<:Real}}, IFF_list)
+    IFF_list = filter(IFF -> IFF.field_type <: Union{AbstractVector{<:Real},AbstractMatrix{<:Real}}, IFF_list)
     IFF_list = filter(IFF -> length(IFF.value) > 0, IFF_list)
 
     # At least one valid filed name is required to proceed
@@ -2852,7 +2852,7 @@ function shorten_ids_name(full_name::String, abbreviations::Dict=default_abbrevi
 end
 
 @recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_2d=:line, seriestype_3d=:contourf, nicer_title=true)
-    if Plots.backend_name() == :unicodeplots && seriestype_3d==:contourf
+    if Plots.backend_name() == :unicodeplots && seriestype_3d == :contourf
         # unicodeplots cannot render :contourf, use :contour instead
         seriestype_3d = :contour
     end
