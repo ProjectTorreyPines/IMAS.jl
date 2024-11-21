@@ -2863,16 +2863,16 @@ function shorten_ids_name(full_name::String, abbreviations::Dict=default_abbrevi
     return full_name
 end
 
-@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_2d=:path, seriestype_3d=:contourf, nicer_title=true)
-    if Plots.backend_name() == :unicodeplots && seriestype_3d == :contourf
+@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_1d=:path, seriestype_2d=:contourf, nicer_title=true)
+    if Plots.backend_name() == :unicodeplots && seriestype_2d == :contourf
         # unicodeplots cannot render :contourf, use :contour instead
-        seriestype_3d = :contour
+        seriestype_2d = :contour
     end
 
     id = plot_help_id(IFF)
     assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:path (default), :scatter, :bar ...]"; seriestype_2d)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 3D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_3d)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 1D data [:path (default), :scatter, :bar ...]"; seriestype_1d)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_2d)
     assert_type_and_record_argument(id, Bool, "Flag to use nicer title"; nicer_title)
 
     field_name = shorten_ids_name(IFF.field_path, abbreviations)
@@ -2886,14 +2886,14 @@ end
         if length(IFF.value) == 1
             seriestype --> :scatter
         else
-            seriestype --> seriestype_2d
+            seriestype --> seriestype_1d
         end
 
         title --> field_name
         IFF.parent_ids, IFF.field # (calls "plot_field" recipe)
 
     elseif IFF.field_type <: AbstractMatrix{<:Real} && length(IFF.value) > 0
-        seriestype --> seriestype_3d
+        seriestype --> seriestype_2d
 
         if nicer_title
             title --> field_name * " " * nice_units(units(IFF.parent_ids, IFF.field))
