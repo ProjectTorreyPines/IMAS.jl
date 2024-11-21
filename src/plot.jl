@@ -35,6 +35,8 @@ function assert_type_and_record_argument(dispatch, type::Type, description::Stri
     argument = collect(keys(kw))[1]
     value = collect(values(kw))[1]
 
+    @assert typeof(value) <: type "\"$argument\" has the wrong type of [$(typeof(value))]. It must be a subtype of [$(type)]"
+
     this_plotpar = PlotHelpParameter(dispatch, argument, type, description, value)
 
     only_match = true
