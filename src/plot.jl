@@ -2898,8 +2898,8 @@ end
             # Plot zvalue with the coordinates
             xvalue = coord.values[1]
             yvalue = coord.values[2]
-            xlabel --> "dim1"
-            ylabel --> "dim2"
+            xlabel --> split(coord.names[1], '.')[end] # dim1
+            ylabel --> split(coord.names[2], '.')[end] # dim2
 
             xlim --> (minimum(xvalue), maximum(xvalue))
             ylim --> (minimum(yvalue), maximum(yvalue))
