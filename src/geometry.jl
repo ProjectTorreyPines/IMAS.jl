@@ -662,6 +662,9 @@ push!(document[Symbol("Geometry")], :resample_plasma_boundary)
 Returns true if boundary is updown symmetric
 """
 function is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
+    pr = deepcopy(pr)
+    pz = deepcopy(pz)
+    IMAS.reorder_flux_surface!(pr, pz)
     return is_updown_symmetric(MXH(pr, pz, order); precision)
 end
 
