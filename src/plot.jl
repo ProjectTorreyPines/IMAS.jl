@@ -37,6 +37,8 @@ function assert_type_and_record_argument(dispatch, type::Type, description::Stri
     argument = collect(keys(kw))[1]
     value = collect(values(kw))[1]
 
+    @assert typeof(value) <: type "\"$argument\" has the wrong type of [$(typeof(value))]. It must be a subtype of [$(type)]"
+
     this_plotpar = PlotHelpParameter(dispatch, argument, type, description, value)
 
     only_match = true
@@ -2238,7 +2240,7 @@ end
             end
         end
         dd = top_dd(smcs)
-        if dd!== nothing
+        if dd !== nothing
             r_nose = smcs.grid.r_tf[1] + (smcs.grid.r_tf[end] - smcs.grid.r_tf[1]) * dd.build.tf.nose_hfs_fraction
             @series begin
                 seriestype := :vline
@@ -2772,6 +2774,166 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
+
+@recipe function plot_multiple_fields(ids::Union{IDS,IDSvector}, target_fields::Union{AbstractArray{Symbol},Regex})
+
+    @series begin
+        # calls "plot_IFF_list" recipe
+        IFF_list = findall(ids, target_fields)
+    end
+end
+
+@recipe function plot_IFF_list(IFF_list::AbstractArray{IDS_Field_Finder}; nrows=:auto, ncols=:auto, each_size=(500, 400))
+
+    id = plot_help_id(IFF_list)
+    assert_type_and_record_argument(id, Tuple{Integer,Integer}, "Size of each subplot. (Default=(500, 400))"; each_size)
+    assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of rows for subplots' layout (Default = :auto)"; nrows)
+    assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of columns for subplots' layout (Default = :auto)"; ncols)
+
+    # Keep only non-empty Vector or Matrix type data
+    IFF_list = filter(IFF -> IFF.field_type <: Union{AbstractVector{<:Real},AbstractMatrix{<:Real}}, IFF_list)
+    IFF_list = filter(IFF -> length(IFF.value) > 0, IFF_list)
+
+    # At least one valid filed name is required to proceed
+    @assert length(IFF_list) > 0 "All field names are complex type, or invalid, or missing"
+
+    my_layout = get(plotattributes, :layout) do
+        # Fallback: Compute my_layout using nrows or ncols if provided
+        layout_spec = length(IFF_list)
+
+        if nrows !== :auto && ncols == :auto
+            layout_spec = (layout_spec, (nrows, :))
+        elseif ncols !== :auto && nrows == :auto
+            layout_spec = (layout_spec, (:, ncols))
+        elseif nrows !== :auto || ncols !== :auto
+            layout_spec = (layout_spec, (nrows, ncols))
+        end
+        return Plots.layout_args(layout_spec...)
+    end
+
+    # Define layout and compute nrows & ncols
+    if my_layout isa Tuple{Plots.GridLayout,Int}
+        if nrows == :auto && ncols == :auto
+            layout --> my_layout[2]
+        else
+            layout --> my_layout[1]
+        end
+        nrows = size(my_layout[1].grid)[1]
+        ncols = size(my_layout[1].grid)[2]
+    elseif my_layout isa Plots.GridLayout
+        layout --> my_layout
+        nrows = size(my_layout.grid)[1]
+        ncols = size(my_layout.grid)[2]
+    elseif my_layout isa Int
+        layout --> my_layout
+        tmp_grid = Plots.layout_args(plotattributes, my_layout)[1].grid
+        nrows = size(tmp_grid)[1]
+        ncols = size(tmp_grid)[2]
+    end
+
+    size := (ncols * each_size[1], nrows * each_size[2])
+
+    legend_position --> :best
+    left_margin --> [10 * Measures.mm 10 * Measures.mm]
+    bottom_margin --> 10 * Measures.mm
+
+    # Create subplots for the current group
+    for IFF in IFF_list
+        @series begin
+            IFF # (calls "plot_IFF" recipe)
+        end
+    end
+end
+
+const default_abbreviations = Dict(
+    "dd." => "",
+    "equilibrium" => "eq",
+    "description" => "desc",
+    "time_slice" => "time_sc",
+    "profiles" => "prof",
+    "source" => "src",
+    "parallel" => "para"
+)
+
+# Function to shorten names directly in the original text
+function shorten_ids_name(full_name::String, abbreviations::Dict=default_abbreviations)
+    # Apply each abbreviation to the full name
+    for (key, value) in abbreviations
+        value = value isa Function ? value() : value
+        full_name = replace(full_name, key => value)
+    end
+    return full_name
+end
+
+@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_2d=:line, seriestype_3d=:contourf, nicer_title=true)
+    if Plots.backend_name() == :unicodeplots && seriestype_3d == :contourf
+        # unicodeplots cannot render :contourf, use :contour instead
+        seriestype_3d = :contour
+    end
+
+    id = plot_help_id(IFF)
+    assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:line (default), :scatter, :bar ...]"; seriestype_2d)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 3D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_3d)
+    assert_type_and_record_argument(id, Bool, "Flag to use nicer title"; nicer_title)
+
+
+    field_name = shorten_ids_name(IFF.field_path, abbreviations)
+
+    if nicer_title
+        field_name = shorten_ids_name(field_name, nice_field_symbols)
+        field_name = nice_field(field_name)
+    end
+
+    if IFF.field_type <: AbstractVector{<:Real} && length(IFF.value) > 0
+        if length(IFF.value) == 1
+            seriestype --> :scatter
+        else
+            seriestype --> seriestype_2d
+        end
+
+        title --> field_name
+        IFF.parent_ids, IFF.field # (calls "plot_field" recipe)
+
+    elseif IFF.field_type <: AbstractMatrix{<:Real} && length(IFF.value) > 0
+        seriestype --> seriestype_3d
+
+        if nicer_title
+            title --> field_name * " " * nice_units(units(IFF.parent_ids, IFF.field))
+        else
+            # title --> field_name * " [" * units(IFF.parent_ids, IFF.field) * "]"
+            title --> field_name * " [" * units(IFF.parent_ids, IFF.field) * "]"
+        end
+
+        zvalue = getproperty(IFF.parent_ids, IFF.field)
+
+        coord = coordinates(IFF.parent_ids, IFF.field)
+        if ~isempty(coord.values) && issorted(coord.values[1]) && issorted(coord.values[2])
+            # Plot zvalue with the coordinates
+            xvalue = coord.values[1]
+            yvalue = coord.values[2]
+            xlabel --> split(coord.names[1], '.')[end] # dim1
+            ylabel --> split(coord.names[2], '.')[end] # dim2
+
+            xlim --> (minimum(xvalue), maximum(xvalue))
+            ylim --> (minimum(yvalue), maximum(yvalue))
+            aspect_ratio --> :equal
+            xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
+        else
+            # Plot zvalue as "matrix"
+            xlabel --> "column"
+            ylabel --> "row"
+
+            xlim --> (1, size(zvalue, 2))
+            ylim --> (1, size(zvalue, 1))
+
+            yflip --> true # To make 'row' counting starts from the top
+            zvalue
+        end
+
+    end
+end
+
 @recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
     id = plot_help_id(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
@@ -2957,7 +3119,4 @@ function hash_to_color(input::Any; seed::Int=0)
     return RGB(r, g, b)
 end
 
-# To fix a vscode's bug w.r.t UnicodePlots
-# (see https://github.com/JuliaPlots/Plots.jl/issues/4956  for more details)
-Base.showable(::MIME"image/png", ::Plots.Plot{Plots.UnicodePlotsBackend}) = applicable(UnicodePlots.save_image, devnull)
 
