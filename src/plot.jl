@@ -2893,23 +2893,13 @@ end
 
         zvalue = getproperty(IFF.parent_ids, IFF.field)
 
-        # Check if the parend_ids has a valid grid
-        flag_valid_grid = false
-        if hasfield(typeof(IFF.parent_ids), :grid)
-            grid = getproperty(IFF.parent_ids, :grid)
-            flag_valid_grid = true
-            flag_valid_grid *= length(grid.dim1) == size(zvalue, 1)
-            flag_valid_grid *= length(grid.dim2) == size(zvalue, 2)
-            flag_valid_grid *= issorted(grid.dim1)
-            flag_valid_grid *= issorted(grid.dim2)
-        end
-
-        if flag_valid_grid
-            grid = getproperty(IFF.parent_ids, :grid)
-            xvalue = grid.dim1
-            yvalue = grid.dim2
-            xlabel --> "grid.dim1"
-            ylabel --> "grid.dim2"
+        coord = coordinates(IFF.parent_ids, IFF.field)
+        if ~isempty(coord.values) && issorted(coord.values[1]) && issorted(coord.values[2])
+            # Plot zvalue with the coordinates
+            xvalue = coord.values[1]
+            yvalue = coord.values[2]
+            xlabel --> "dim1"
+            ylabel --> "dim2"
 
             xlim --> (minimum(xvalue), maximum(xvalue))
             ylim --> (minimum(yvalue), maximum(yvalue))
