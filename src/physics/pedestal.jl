@@ -1,3 +1,5 @@
+document[Symbol("Physics pedestal")] = Symbol[]
+
 """
     blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
 
@@ -38,6 +40,9 @@ function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, su
     end
 end
 
+@compat public blend_core_edge
+push!(document[Symbol("Physics pedestal")], :blend_core_edge)
+
 """
     blend_core_edge_Hmode(
         profile::AbstractVector{<:Real},
@@ -45,7 +50,8 @@ end
         ped_height::Real,
         ped_width::Real,
         tr_bound0::Real,
-        tr_bound1::Real)
+        tr_bound1::Real
+    )
 
 Blends the core profiles to the pedestal for H-mode profiles, making sure the Z's at tr_bound0 and tr_bound1 match the Z's from the original profile
 """
@@ -55,7 +61,8 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real)
+    tr_bound1::Real
+)
 
     function cost_find_EPED_exps(
         x::AbstractVector{<:Real},
@@ -89,16 +96,11 @@ function blend_core_edge_Hmode(
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
-    return blend_core_edge_EPED(
-        profile,
-        rho,
-        ped_height,
-        ped_width,
-        tr_bound0,
-        tr_bound1,
-        expin,
-        expout)
+    return blend_core_edge_EPED(profile, rho, ped_height, ped_width, tr_bound0, tr_bound1, expin, expout)
 end
+
+@compat public blend_core_edge_Hmode
+push!(document[Symbol("Physics pedestal")], :blend_core_edge_Hmode)
 
 """
     blend_core_edge_EPED(
@@ -109,7 +111,8 @@ end
         nml_bound::Real,
         ped_bound::Real;
         expin::Real,
-        expout::Real)
+        expout::Real
+    )
 
 Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound as blending boundary
 """
@@ -121,7 +124,8 @@ function blend_core_edge_EPED(
     nml_bound::Real,
     ped_bound::Real,
     expin::Real,
-    expout::Real)
+    expout::Real
+)
 
     @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
     iped = argmin(abs.(rho .- ped_bound))
@@ -153,17 +157,8 @@ function blend_core_edge_EPED(
     return profile_new
 end
 
-function blend_core_edge_Lmode(
-    profile::AbstractVector{<:Real},
-    rho::AbstractVector{<:Real},
-    value::Real,
-    rho_bound::Real)
-
-    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
-    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
-
-    return profile
-end
+@compat public blend_core_edge_EPED
+push!(document[Symbol("Physics pedestal")], :blend_core_edge_EPED)
 
 """
     blend_core_edge_Lmode(
@@ -188,6 +183,21 @@ function blend_core_edge_Lmode(
     return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
+function blend_core_edge_Lmode(
+    profile::AbstractVector{<:Real},
+    rho::AbstractVector{<:Real},
+    value::Real,
+    rho_bound::Real)
+
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
+
+    return profile
+end
+
+@compat public blend_core_edge_Lmode
+push!(document[Symbol("Physics pedestal")], :blend_core_edge_Lmode)
+
 function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value_ped::Real, rho_ped::Real)
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
@@ -204,15 +214,15 @@ function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Re
 end
 
 """
-    pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
+    pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=false) where {T<:Real}
 
 Finds the pedetal height and width using the EPED1 definition.
 
-NOTE: The width is limited to be between 0.01 and 0.1
-      If the width is at the 0.1 boundary it is likely an indication that the profile is not a typical H-mode profile
-      The height is the value of the profile evaluated at (1.0 - width)
+NOTE: The width is limited to be between 0.01 and 0.1.
+If the width is at the 0.1 boundary it is likely an indication that the profile is not a typical H-mode profile.
+The height is the value of the profile evaluated at (1.0 - width)
 """
-function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}
+function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=false) where {T<:Real}
     psi_norm_fit = range(0, 1, length(profile))
     mask = psi_norm .> 0.5
     expin = 1.0
@@ -236,14 +246,19 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real
     core = abs(res.minimizer[2])
     height = interp1d(psi_norm, profile)(1.0 - width)
 
-    # profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
-    # p = plot(psi_norm, profile; label="profile", marker=:circle, markersize=1)
-    # plot!(p, psi_norm_fit, profile_fit; label="fit")
-    # hline!(p, [height]; ls=:dash, primary=false)
-    # vline!(p, [1.0 .- width]; ls=:dash, primary=false)
-    # vline!(p, [1.0 - 2.0 * width]; ls=:dash, primary=false)
-    # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)]; primary=false)
-    # display(p)
+    if do_plot
+        profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
+        p = plot(psi_norm, profile; label="profile", marker=:circle, markersize=1)
+        plot!(p, psi_norm_fit, profile_fit; label="fit")
+        hline!(p, [height]; ls=:dash, primary=false)
+        vline!(p, [1.0 .- width]; ls=:dash, primary=false)
+        vline!(p, [1.0 - 2.0 * width]; ls=:dash, primary=false)
+        scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)]; primary=false)
+        display(p)
+    end
 
     return (height=height, width=width)
 end
+
+@compat public pedestal_finder
+push!(document[Symbol("Physics pedestal")], :pedestal_finder)

@@ -4,7 +4,8 @@ function IMASdd.get_expressions(::Type{Val{:dynamic}})
     return dynamic_expressions
 end
 
-const dynamic_expressions = dyexp = Dict{String,Function}()
+const dynamic_expressions = Dict{String,Function}()
+dyexp = dynamic_expressions
 
 # NOTE: make sure that expressions accept as argument (not keyword argument)
 # the coordinates of the quantitiy you are writing the expression of
@@ -351,7 +352,7 @@ dyexp["equilibrium.time_slice[:].profiles_2d[:].j_tor"] =
     (dim1, dim2; profiles_2d, _...) -> begin
         dBzdR = gradient(dim1, dim2, profiles_2d.b_field_z, 1)
         dBrdZ = gradient(dim1, dim2, profiles_2d.b_field_r, 2)
-        return (dBrdZ - dBzdR) ./ constants.μ_0
+        return (dBrdZ - dBzdR) ./ mks.μ_0
     end
 
 
@@ -469,10 +470,10 @@ dyexp["build.layer[:].shape_parameters"] =
     (; layer, _...) -> opposite_side_layer(layer).shape_parameters
 
 dyexp["build.layer[:].start_radius"] =
-    (; build, layer_index, _...) -> build_radii(build)[1:end-1][layer_index]
+    (; build, layer_index, _...) -> build_radii(build.layer)[1:end-1][layer_index]
 
 dyexp["build.layer[:].end_radius"] =
-    (; build, layer_index, _...) -> build_radii(build)[2:end][layer_index]
+    (; build, layer_index, _...) -> build_radii(build.layer)[2:end][layer_index]
 
 dyexp["build.layer[:].area"] =
     (; layer, _...) -> area(layer)
@@ -793,3 +794,14 @@ dyexp["summary.volume_average.zeff.value"] =
         end
         return tmp
     end
+
+# ============ #
+
+Base.Docs.@doc """
+    dynamic_expressions = Dict{String,Function}()
+
+Expressions
+* `$(join(sort!(collect(keys(dynamic_expressions))),"`\n* `"))`
+""" dynamic_expressions
+
+push!(document[:Expressions], :dynamic_expressions)

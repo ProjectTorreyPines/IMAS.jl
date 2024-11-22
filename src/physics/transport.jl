@@ -1,3 +1,5 @@
+document[Symbol("Physics transport")] = Symbol[]
+
 """
     profile_from_z_transport(
         profile_old::AbstractVector{<:Real},
@@ -39,9 +41,8 @@ function profile_from_z_transport(
     return profile_new
 end
 
-function total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
-    return total_fluxes(dd.core_transport, dd.core_profiles.profiles_1d[], rho_total_fluxes; time0)
-end
+@compat public profile_from_z_transport
+push!(document[Symbol("Physics transport")], :profile_from_z_transport)
 
 """
     total_fluxes(core_transport::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(core_transport)) where {T<:Real}
@@ -127,3 +128,13 @@ function total_fluxes(
 
     return total_flux1d
 end
+
+"""
+    total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
+"""
+function total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
+    return total_fluxes(dd.core_transport, dd.core_profiles.profiles_1d[], rho_total_fluxes; time0)
+end
+
+@compat public total_fluxes
+push!(document[Symbol("Physics transport")], :total_fluxes)

@@ -6,10 +6,10 @@ function collision_frequencies(dd::IMAS.dd)
     # from TGYRO `collision_rates` subroutine
     cp1d = dd.core_profiles.profiles_1d[]
     
-    mp = IMAS.gacode_units.mp # g
-    me = IMAS.gacode_units.me # g
-    e = gacode_units.e # statcoul
-    k = gacode_units.k # erg/eV
+    mp = cgs.mp # g
+    me = cgs.me # g
+    e = cgs.e # statcoul
+    k = cgs.k # erg/eV
 
     Te = cp1d.electrons.temperature # ev
     ne = cp1d.electrons.density_thermal / 1E6 # cm^-3

@@ -1,50 +1,38 @@
-mutable struct WallHeatFlux
+document[Symbol("Physics thermal loads")] = Symbol[]
+
+"""
     r::Vector{Float64}                  # R coordinate of the wall mesh                     - m
     z::Vector{Float64}                  # Z coordinate of the wall mesh                     - m
     q_wall::Vector{Float64}             # total heat flux on the wall                       - W/m2
     q_part::Vector{Float64}             # heat flux on the wall due to particles            - W/m2
     q_core_rad::Vector{Float64}         # heat flux on the wall due to core radiation       - W/m2
     q_parallel::Vector{Float64}         # parallel heat flux due to particles at the wall   - W/m2
-    s::Vector{Float64}                  # wall curvilinear abscissa                         - m
+    s::Vector{Float64}                  # wall curvilinear abscissa
+"""
+Base.@kwdef mutable struct WallHeatFlux{T}
+    r::Vector{Float64}=Float64[]
+    z::Vector{Float64}=Float64[]
+    q_wall::Vector{T}=T[]
+    q_part::Vector{T}=T[]
+    q_core_rad::Vector{T}=T[]
+    q_parallel::Vector{T}=T[]
+    s::Vector{Float64}=Float64[]
 end
 
 """
-    WallHeatFlux(; 
-        r::Vector{Float64} = Float64[],
-        z::Vector{Float64} = Float64[],
-        q_wall::Vector{Float64} = Float64[],
-        q_part::Vector{Float64} = Float64[],
-        q_core_rad::Vector{Float64} = Float64[],
-        q_parallel::Vector{Float64} = Float64[],
-        s::Vector{Float64} = Float64[])
-
-Initializes a WallHeatFlux struct. WallHeatFlux() returns a WallHeatFlux with all empty entries.
-"""
-function WallHeatFlux(;
-    r::Vector{Float64}=Float64[],
-    z::Vector{Float64}=Float64[],
-    q_wall::Vector{Float64}=Float64[],
-    q_part::Vector{Float64}=Float64[],
-    q_core_rad::Vector{Float64}=Float64[],
-    q_parallel::Vector{Float64}=Float64[],
-    s::Vector{Float64}=Float64[])
-    return WallHeatFlux(r, z, q_wall, q_part, q_core_rad, q_parallel, s)
-end
-
-"""
-    particle_HF(
-        eqt::IMAS.equilibrium__time_slice, 
-        SOL::OrderedCollections.OrderedDict{Symbol, Vector{OpenFieldLine}}, 
-        wall_r::AbstractVector{<:Real}, 
-        wall_z::AbstractVector{<:Real}, 
-        r::Vector{<:Real}, 
-        q::Vector{<:Real}; 
-        merge_wall::Bool = true)
+    particle_heat_flux(
+        eqt::IMAS.equilibrium__time_slice,
+        SOL::OrderedCollections.OrderedDict{Symbol,Vector{OpenFieldLine}},
+        wall_r::AbstractVector{<:Real},
+        wall_z::AbstractVector{<:Real},
+        r::Vector{<:Real},
+        q::Vector{<:Real};
+        merge_wall::Bool=true)
 
 Computes the heat flux on the wall due to the influx of charged particles, using the magnetic equilibrium,
 the Scrape Off-Layer, the wall, and an hypothesis of the decay of the parallel heat flux at the OMP
 """
-function particle_HF(
+function particle_heat_flux(
     eqt::IMAS.equilibrium__time_slice,
     SOL::OrderedCollections.OrderedDict{Symbol,Vector{OpenFieldLine}},
     wall_r::AbstractVector{<:Real},
@@ -352,8 +340,11 @@ function particle_HF(
     return (Qwall=Qwall, Qpara=Qpara)
 end
 
+@compat public particle_heat_flux
+push!(document[Symbol("Physics thermal loads")], :particle_heat_flux)
+
 """
-    core_radiation_HF(
+    core_radiation_heat_flux(
         eqt::IMAS.equilibrium__time_slice, 
         psi::Vector{<:Real}, 
         source_1d::Vector{<:Real}, 
@@ -362,7 +353,7 @@ end
         wall_z::AbstractVector{<:Real},
         Prad_core::Float64)
 """
-function core_radiation_HF(
+function core_radiation_heat_flux(
     eqt::IMAS.equilibrium__time_slice,
     psi::Vector{<:Real},
     source_1d::Vector{<:Real},
@@ -418,7 +409,7 @@ function core_radiation_HF(
 end
 
 """
-    mesher_HF(dd::IMAS.dd; 
+    mesher_heat_flux(dd::IMAS.dd; 
         r::AbstractVector{T}=Float64[], 
         q::AbstractVector{T}=Float64[], 
         merge_wall::Bool = true, 
@@ -433,7 +424,7 @@ s                     curvilinear abscissa computed from (Rwall, Zwall), clockwi
 SOL                   list of OpenFieldLines used to compute (Rwall, Zwall)
 (r,q)                 Hypothesis of power density decay at omp for definition of SOL
 """
-function mesher_HF(dd::IMAS.dd;
+function mesher_heat_flux(dd::IMAS.dd;
     r::AbstractVector{T}=Float64[],
     q::AbstractVector{T}=Float64[],
     merge_wall::Bool=true,
