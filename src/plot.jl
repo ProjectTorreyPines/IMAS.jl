@@ -2863,16 +2863,16 @@ function shorten_ids_name(full_name::String, abbreviations::Dict=default_abbrevi
     return full_name
 end
 
-@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_2d=:path, seriestype_3d=:contourf, nicer_title=true)
-    if Plots.backend_name() == :unicodeplots && seriestype_3d == :contourf
+@recipe function plot_IFF(IFF::IDS_Field_Finder; abbreviations=default_abbreviations, seriestype_1d=:path, seriestype_2d=:contourf, nicer_title=true)
+    if Plots.backend_name() == :unicodeplots && seriestype_2d == :contourf
         # unicodeplots cannot render :contourf, use :contour instead
-        seriestype_3d = :contour
+        seriestype_2d = :contour
     end
 
     id = plot_help_id(IFF)
     assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:path (default), :scatter, :bar ...]"; seriestype_2d)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 3D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_3d)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 1D data [:path (default), :scatter, :bar ...]"; seriestype_1d)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_2d)
     assert_type_and_record_argument(id, Bool, "Flag to use nicer title"; nicer_title)
 
     field_name = shorten_ids_name(IFF.field_path, abbreviations)
@@ -2886,14 +2886,14 @@ end
         if length(IFF.value) == 1
             seriestype --> :scatter
         else
-            seriestype --> seriestype_2d
+            seriestype --> seriestype_1d
         end
 
         title --> field_name
-        IFF.parent_ids, IFF.field # (calls "plot_field" recipe)
+        IFF.parent_ids, IFF.field, Val(:plt_1d) # (calls "plot_field_1d" recipe)
 
     elseif IFF.field_type <: AbstractMatrix{<:Real} && length(IFF.value) > 0
-        seriestype --> seriestype_3d
+        seriestype --> seriestype_2d
 
         if nicer_title
             title --> field_name * " " * nice_units(units(IFF.parent_ids, IFF.field))
@@ -2901,36 +2901,23 @@ end
             title --> field_name * " [" * units(IFF.parent_ids, IFF.field) * "]"
         end
 
-        zvalue = getproperty(IFF.parent_ids, IFF.field)
-
-        coord = coordinates(IFF.parent_ids, IFF.field)
-        if ~isempty(coord.values) && issorted(coord.values[1]) && issorted(coord.values[2])
-            # Plot zvalue with the coordinates
-            xvalue = coord.values[1]
-            yvalue = coord.values[2]
-            xlabel --> split(coord.names[1], '.')[end] # dim1
-            ylabel --> split(coord.names[2], '.')[end] # dim2
-
-            xlim --> (minimum(xvalue), maximum(xvalue))
-            ylim --> (minimum(yvalue), maximum(yvalue))
-            aspect_ratio --> :equal
-            xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
-        else
-            # Plot zvalue as "matrix"
-            xlabel --> "column"
-            ylabel --> "row"
-
-            xlim --> (1, size(zvalue, 2))
-            ylim --> (1, size(zvalue, 1))
-
-            yflip --> true # To make 'row' counting starts from the top
-            zvalue
-        end
-
+        IFF.parent_ids, IFF.field, Val(:plt_2d) # calls "plot_field_2d" recipe
     end
 end
 
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
+@recipe function plot_field(ids::IMAS.IDS, field::Symbol)
+    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
+
+    fType = fieldtype_typeof(ids, field)
+
+    if fType <: Vector{<:Real}
+        ids, field, Val(:plt_1d) # calls plot_field_1d recipe
+    elseif fType <: Matrix{<:Real}
+        ids, field, Val(:plt_2d) # calls plot_field_2d recipe
+    end
+end
+
+@recipe function plot_field_1d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_1d}; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
     id = plot_help_id(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
     assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
@@ -2995,6 +2982,45 @@ end
         end
     end
 end
+
+@recipe function plot_field_2d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_2d}; normalization=1.0, seriestype=:contourf)
+    id = plot_help_id(ids, field)
+    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
+
+    assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
+    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype)
+
+    zvalue = getproperty(ids, field) .* normalization
+
+    @series begin
+        background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
+
+        coord = coordinates(ids, field)
+        if ~isempty(coord.values) && issorted(coord.values[1]) && issorted(coord.values[2])
+            # Plot zvalue with the coordinates
+            xvalue = coord.values[1]
+            yvalue = coord.values[2]
+            xlabel --> split(coord.names[1], '.')[end] # dim1
+            ylabel --> split(coord.names[2], '.')[end] # dim2
+
+            xlim --> (minimum(xvalue), maximum(xvalue))
+            ylim --> (minimum(yvalue), maximum(yvalue))
+            aspect_ratio --> :equal
+            xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
+        else
+            # Plot zvalue as "matrix"
+            xlabel --> "column"
+            ylabel --> "row"
+
+            xlim --> (1, size(zvalue, 2))
+            ylim --> (1, size(zvalue, 1))
+
+            yflip --> true # To make 'row' counting starts from the top
+            zvalue
+        end
+    end
+end
+
 
 @recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurement}, err::Symbol=:ribbon)
     if err == :ribbon
