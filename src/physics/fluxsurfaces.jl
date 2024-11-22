@@ -235,11 +235,12 @@ function find_psi_boundary(
         @views psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
     end
     psi_edge0 = original_psi_boundary + (original_psi_boundary - psi_axis)
-    if psi_axis < original_psi_boundary # looking for the largest open boundary flux surface outside of original_psi_boundary
-        psi_edge1 = minimum(psi > original_psi_boundary ? psi : Inf for psi in psi_edge)
+    # BCL 11/22/24: Need to handle local extrema (coils) inside domain
+    if psi_axis < original_psi_boundary
+        psi_edge1 = maximum(psi_edge)
         psi_edge_guess = min(psi_edge1, psi_edge0)
     else
-        psi_edge1 = maximum(psi < original_psi_boundary ? psi : -Inf for psi in psi_edge)
+        psi_edge1 = minimum(psi_edge)
         psi_edge_guess = max(psi_edge1, psi_edge0)
     end
     psirange_init = StaticArrays.@MVector[psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
