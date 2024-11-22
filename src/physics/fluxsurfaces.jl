@@ -1378,6 +1378,8 @@ function trace_surfaces(
 
     N = length(psi)
     surfaces = Vector{FluxSurface{T}}(undef, N)
+    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    PSIA = PSI_interpolant(RA, ZA)
     for k in N:-1:1
         psi_level = psi[k]
 
@@ -1387,16 +1389,13 @@ function trace_surfaces(
             pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
 
         else  # other flux surfaces
+
             # trace flux surface
-            tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi_level, :closed)
-            if isempty(tmp)
-                # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
-                # contour!(r, z, PSI'; color=:white, levels=100)
-                # contour!(r, z, PSI'; levels=[psi[end]], color=:white, lw=2)
-                # display(p)
+            tmp = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
+            pr, pz = collect(tmp[1]), collect(tmp[2])
+            if !is_closed_surface(pr, pz, wall_r, wall_z)
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
-            (pr, pz) = tmp[1]
         end
 
         # surface length
