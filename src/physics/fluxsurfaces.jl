@@ -239,7 +239,7 @@ function find_psi_boundary(
         psi_edge1 = minimum(psi > original_psi_boundary ? psi : Inf for psi in psi_edge)
         psi_edge_guess = min(psi_edge1, psi_edge0)
     else
-        psi_edge1 = maximum(psi < original_psi_boundary ? psi : Inf for psi in psi_edge)
+        psi_edge1 = maximum(psi < original_psi_boundary ? psi : -Inf for psi in psi_edge)
         psi_edge_guess = max(psi_edge1, psi_edge0)
     end
     psirange_init = StaticArrays.@MVector[psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
