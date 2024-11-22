@@ -218,7 +218,9 @@ function find_psi_boundary(
     RA::T3,
     ZA::T3,
     fw_r::AbstractVector{T4},
-    fw_z::AbstractVector{T5};
+    fw_z::AbstractVector{T5},
+    r_cache::AbstractVector{T1}=T1[],
+    z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
@@ -234,20 +236,20 @@ function find_psi_boundary(
     end
     psi_edge0 = original_psi_boundary + (original_psi_boundary - psi_axis)
     if psi_axis < original_psi_boundary # looking for the largest open boundary flux surface outside of original_psi_boundary
-        psi_edge1 = maximum(psi_edge[psi_edge.>original_psi_boundary])
+        psi_edge1 = minimum(psi > original_psi_boundary ? psi : Inf for psi in psi_edge)
         psi_edge_guess = min(psi_edge1, psi_edge0)
     else
-        psi_edge1 = minimum(psi_edge[psi_edge.<original_psi_boundary])
+        psi_edge1 = maximum(psi < original_psi_boundary ? psi : Inf for psi in psi_edge)
         psi_edge_guess = max(psi_edge1, psi_edge0)
     end
-    psirange_init = [psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
+    psirange_init = StaticArrays.@MVector[psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
 
     if verbose
         @show psi_axis
         @show original_psi_boundary
     end
 
-    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
+    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z, r_cache, z_cache; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
 end
 
 """
@@ -260,7 +262,9 @@ end
         RA::T3,
         ZA::T3,
         fw_r::AbstractVector{T4}=T1[],
-        fw_z::AbstractVector{T5}=T1[];
+        fw_z::AbstractVector{T5}=T1[],
+        r_cache::AbstractVector{T1}=T1[],
+        z_cache::AbstractVector{T1}=T1[];
         PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
         precision::Float64=1e-6,
         raise_error_on_not_open::Bool,
@@ -277,7 +281,9 @@ function find_psi_boundary(
     RA::T3,
     ZA::T3,
     fw_r::AbstractVector{T4}=T1[],
-    fw_z::AbstractVector{T5}=T1[];
+    fw_z::AbstractVector{T5}=T1[],
+    r_cache::AbstractVector{T1}=T1[],
+    z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
@@ -291,17 +297,17 @@ function find_psi_boundary(
     f_ext = (axis2bnd === :increasing) ? maximum : minimum
 
     if !isempty(fw_r)
-        psi_edge0 = f_ext(PSI_interpolant.(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
+        psi_edge0 = f_ext(PSI_interpolant(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
     else
         @views psi_edge0 = f_ext((f_ext(PSI[1, :]), f_ext(PSI[end, :]), f_ext(PSI[:, 1]), f_ext(PSI[:, end])))
     end
     psirange_init = StaticArrays.@MVector[psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
-    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
+    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z, r_cache, z_cache; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
 end
 
 """
-    function find_psi_boundary(
+    find_psi_boundary(
         dimR::Union{AbstractVector{T1},AbstractRange{T1}},
         dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
         PSI::Matrix{T2},
@@ -309,7 +315,9 @@ end
         RA::T3,
         ZA::T3,
         fw_r::AbstractVector{T4},
-        fw_z::AbstractVector{T5};
+        fw_z::AbstractVector{T5},
+        r_cache::AbstractVector{T1}=T1[],
+        z_cache::AbstractVector{T1}=T1[];
         PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
         precision::Float64=1e-6,
         raise_error_on_not_open::Bool,
@@ -325,149 +333,15 @@ function find_psi_boundary(
     RA::T3,
     ZA::T3,
     fw_r::AbstractVector{T4},
-    fw_z::AbstractVector{T5};
+    fw_z::AbstractVector{T5},
+    r_cache::AbstractVector{T1}=T1[],
+    z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
     raise_error_on_not_closed::Bool,
     verbose::Bool=false
 ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
-
-    if verbose
-        @show psirange_init
-        plot(; aspect_ratio=:equal)
-        contour!(dimR, dimZ, transpose(PSI); color=:gray, clim=(min(psirange_init...), max(psirange_init...)))
-        if !isempty(fw_r)
-            plot!(fw_r, fw_z; color=:black, lw=2, label="")
-        end
-        display(plot!())
-    end
-
-    # innermost tentative flux surface (which should be closed!)
-    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
-    if isempty(surface)
-        if raise_error_on_not_closed
-            error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
-        else
-            return (last_closed=nothing, first_open=nothing)
-        end
-    end
-    if verbose
-        for surf in surface
-            plot!(surf.r, surf.z; color=:blue, label="")
-        end
-        display(plot!())
-    end
-
-    # outermost tentative flux surface (which should be open!)
-    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
-    if !isempty(surface)
-        if verbose
-            for surf in surface
-                display(plot!(surf.r, surf.z; color=:magenta, label=""))
-            end
-        end
-        if raise_error_on_not_open
-            error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
-        else
-            return (last_closed=nothing, first_open=nothing)
-        end
-    end
-    if verbose
-        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
-        for surf in surface
-            plot!(surf.r, surf.z; color=:red, label="")
-        end
-        display(plot!())
-    end
-
-    psirange = deepcopy(psirange_init)
-    for k in 1:100
-        psimid = (psirange[1] + psirange[end]) / 2.0
-        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
-
-        if !isempty(surface)
-            # psimid corresonds to a closed flux surface
-            ((pr, pz),) = surface
-            if verbose
-                display(plot!(pr, pz; label="", color=:green))
-            end
-            psirange[1] = psimid
-            if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
-                return (last_closed=psimid, first_open=psirange[end])
-            end
-
-        else
-            # psimid corresonds to an open flux surface
-            psirange[end] = psimid
-        end
-    end
-
-    return error("Could not find closed boundary between ψ=$(psirange_init[1]) and ψ=$(psirange_init[end])")
-end
-
-function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T},
-                           fw_r::AbstractVector{T}=T[], fw_z::AbstractVector{T}=T[]) where {T<:Real}
-    @assert length(pr) == length(pz)
-    closed = !isempty(pr) && is_closed_polygon(pr, pz)
-    if closed
-        @assert length(fw_r) == length(fw_z)
-        if !isempty(fw_r)
-            closed = !IMAS.intersects(pr, pz, fw_r, fw_z)
-        end
-    end
-    return closed
-end
-
-
-"""
-    function find_psi_boundary(
-        dimR::Union{AbstractVector{T1},AbstractRange{T1}},
-        dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
-        PSI::Matrix{T2},
-        psi_axis::Real,
-        axis2bnd::Symbol,
-        RA::T3,
-        ZA::T3,
-        fw_r::AbstractVector{T4}=T1[],
-        fw_z::AbstractVector{T4}=T1[],
-        r_cache::AbstractVector{T1}=T1[],
-        z_cache::AbstractVector{T1}=T1[];
-        PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-        precision::Float64=1e-6,
-        raise_error_on_not_open::Bool,
-        raise_error_on_not_closed::Bool
-    )
-"""
-function find_psi_boundary(
-    dimR::Union{AbstractVector{T1},AbstractRange{T1}},
-    dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
-    PSI::Matrix{T2},
-    psi_axis::Real,
-    axis2bnd::Symbol,
-    RA::T3,
-    ZA::T3,
-    fw_r::AbstractVector{T4}=T1[],
-    fw_z::AbstractVector{T4}=T1[],
-    r_cache::AbstractVector{T1}=T1[],
-    z_cache::AbstractVector{T1}=T1[];
-    PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-    precision::Float64=1e-6,
-    raise_error_on_not_open::Bool,
-    raise_error_on_not_closed::Bool) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
-
-    @assert axis2bnd in (:increasing, :decreasing)
-    verbose = false
-
-    # here we figure out the range of psi to use to find the psi boundary
-    f_ext = (axis2bnd === :increasing) ? maximum : minimum
-
-    if !isempty(fw_r)
-        psi_edge0 = f_ext(PSI_interpolant(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
-    else
-        @views psi_edge0 = f_ext((f_ext(PSI[1, :]), f_ext(PSI[end, :]), f_ext(PSI[:, 1]), f_ext(PSI[:, end])))
-    end
-    psirange_init = StaticArrays.@MVector[psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
     if verbose
         @show psirange_init
@@ -484,6 +358,7 @@ function find_psi_boundary(
     end
 
     # innermost tentative flux surface (which should be closed!)
+    psi_axis = PSI_interpolant(RA, ZA)
     pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[1], RA, ZA, psi_axis)
     if isempty(pr) || is_open_polygon(pr, pz)
         if raise_error_on_not_closed
@@ -535,6 +410,19 @@ end
 
 @compat public find_psi_boundary
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_boundary)
+
+function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T},
+                           fw_r::AbstractVector{T}=T[], fw_z::AbstractVector{T}=T[]) where {T<:Real}
+    @assert length(pr) == length(pz)
+    closed = !isempty(pr) && is_closed_polygon(pr, pz)
+    if closed
+        @assert length(fw_r) == length(fw_z)
+        if !isempty(fw_r)
+            closed = !IMAS.intersects(pr, pz, fw_r, fw_z)
+        end
+    end
+    return closed
+end
 
 """
     find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-7) where {T<:Real}
