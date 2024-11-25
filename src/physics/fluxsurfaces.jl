@@ -1308,18 +1308,19 @@ function trace_simple_surfaces!(
             end
         end
 
-        # surface length
-        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
-        ll = cumsum(dl)
+        ll = zero(pr)
+        fluxexpansion = similar(pr)
+        for i in eachindex(pr)
+            if i > 1
+                # surface length
+                dl = sqrt((pr[i] - pr[i-1]) ^ 2 + (pz[i] - pz[i-1])^2)
+                ll[i] = ll[i-1] + dl
+            end
 
-        # poloidal magnetic field (with sign)
-        Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
-        tmp = Br .^ 2.0 .+ Bz .^ 2.0 #Bp2
-        Bp_abs = sqrt.(tmp)
-        Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
-
-        # flux expansion
-        fluxexpansion = 1.0 ./ Bp_abs
+            # flux expansion = 1 / abs(Bp)
+            Br, Bz = Br_Bz(PSI_interpolant, pr[i], pz[i])
+            fluxexpansion[i] = 1.0 / sqrt(Br ^ 2.0 + Bz ^ 2.0)
+        end
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
         # create
