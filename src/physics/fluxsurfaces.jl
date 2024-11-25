@@ -1130,6 +1130,9 @@ abstract type AbstractFluxSurface{T<:Real} end
         fluxexpansion::Vector{T}
         int_fluxexpansion_dl::T
     end
+
+A simplified version of FluxSurface that only has the contour points and
+what is needed to compute flux surface averages
 """
 mutable struct SimpleSurface{T<:Real} <: AbstractFluxSurface{T}
     psi::T
@@ -1234,6 +1237,9 @@ end
         wall_r::AbstractVector{T},
         wall_z::AbstractVector{T}
     ) where {T<:Real}
+
+Trace flux surfaces and returns vector of SimpleSurface structures. The result
+contains only the contours and what is needed to perform flux-surface averaging.
 """
 function trace_simple_surfaces(
     psi::AbstractVector{T},
@@ -1269,6 +1275,9 @@ push!(document[Symbol("Physics flux-surfaces")], :trace_simple_surfaces)
         r_cache::AbstractVector{T}=T[],
         z_cache::AbstractVector{T}=T[])
     ) where {T<:Real}
+
+Trace flux surfaces and store in `surfaces` vector of SimpleSurface structures.
+The result contains only the contours and what is needed to perform flux-surface averaging.
 """
 function trace_simple_surfaces!(
     surfaces::Vector{SimpleSurface{T}},
