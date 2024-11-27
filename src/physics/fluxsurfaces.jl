@@ -1586,10 +1586,26 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         empty!(eqt.global_quantities, field)
     end
 
-    # accurately find magnetic axis and lcfs and scale psi accordingly
-    RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+    # accurately find magnetic axis
+    # first find a guess for the starting point
+    #   by finding all interior extrema that could be near axes
+    #   then excluding points outside the first wall (i.e., likely coils)
+    pts = (psi_sign > 0.0) ? IMASutils.findall_interior_argmin(PSI) : IMASutils.findall_interior_argmax(PSI)
+    wall = collect(zip(wall_r, wall_z))
+    pts_in_wall = [PolygonOps.inpolygon((r[i], z[j]), wall) for (i, j) in pts] # 1 if in wall
+    npts_in_wall = sum(pts_in_wall)
+    if npts_in_wall == 0
+        error("Could not find guess for magnetic axis inside wall")
+    elseif npts_in_wall > 1
+        error("Multiple guesses for magnetic axis found inside wall")
+    end
+    ig, jg = pts[argmax(pts_in_wall)] # this are the indices for the guess inside the wall
+    rguess, zguess = r[ig], z[jg]
+    RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess, zguess)
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
     psi_axis = PSI_interpolant(RA, ZA)
+
+    # accurately find the lcfs and scale psi accordingly
     original_psi_boundary = eqt.profiles_1d.psi[end]
     psi_boundaries =
         find_psi_boundary(r, z, eqt2d.psi, psi_axis, original_psi_boundary, RA, ZA, wall_r, wall_z; PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
