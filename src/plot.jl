@@ -2847,7 +2847,7 @@ const default_abbreviations = Dict(
     "dd." => "",
     "equilibrium" => "eq",
     "description" => "desc",
-    "time_slice" => "time_sc",
+    "time_slice" => "time",
     "profiles" => "prof",
     "source" => "src",
     "parallel" => "para"
@@ -3064,7 +3064,7 @@ end
 #= ================== =#
 #  handling of labels  #
 #= ================== =#
-nice_field_symbols = Dict()
+const nice_field_symbols = Dict()
 nice_field_symbols["rho_tor_norm"] = () -> latex_support() ? L"\rho" : "ρ"
 nice_field_symbols["psi"] = () -> latex_support() ? L"\psi" : "ψ"
 nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_\mathrm{N}" : "ψₙ"
@@ -3095,9 +3095,6 @@ function nice_field(field::AbstractString)
             r"\bnb\b" => "NB",
             r"\bnbi\b" => "NBI",
             "_" => " ")
-        if length(split(field, " ")[1]) > 2
-            field = uppercasefirst(field)
-        end
     end
     return field
 end
