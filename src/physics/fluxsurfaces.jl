@@ -5,6 +5,7 @@ using Plots
 
 """
     ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
+
 Returns r, z, and ψ interpolant named tuple
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
@@ -474,9 +475,9 @@ Returns psi of the second magentic separatrix
 
 returns either `:diverted` or `:not_diverted` surface depending on `type`
 
-* `:diverted` is when the surface starts and finishes on the same side of the midplane
+  - `:diverted` is when the surface starts and finishes on the same side of the midplane
 
-* `:not_diverted` is when the surface starts and finishes on opposite sides of the midplane
+  - `:not_diverted` is when the surface starts and finishes on opposite sides of the midplane
 """
 function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; type::Symbol, precision::Float64=1E-7) where {T<:Real}
 
@@ -562,9 +563,9 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_2nd_separatrix)
 
 Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
 
-* `psi_first_lfs_far` will be the first surface inside `OFL[:lfs_far]`
+  - `psi_first_lfs_far` will be the first surface inside `OFL[:lfs_far]`
 
-* `psi_last_lfs` will be the last surface inside `OFL[:lfs]`
+  - `psi_last_lfs` will be the last surface inside `OFL[:lfs]`
 
 Precision between the two is defined on the poloidal crossection area at the OMP (`Psol*precision` = power flowing between `psi_first_lfs_far` and `psi_last_lfs` ~ 0)
 """
@@ -1449,74 +1450,87 @@ function trace_surfaces(
             int_fluxexpansion_dl)
     end
 
-    N2 = Int(ceil(N / 2))
-    algorithm = Optim.NelderMead()
-    psi_norm = norm01(psi)
-    space_norm = surfaces[N].max_r - surfaces[N].min_r
+    begin
+        N2 = Int(ceil(N / 2))
+        algorithm = Optim.NelderMead()
+        psi_norm = abs(psi[end] - psi[1]) / N
+        space_norm = (surfaces[N].max_r - surfaces[N].min_r) / 2 / N
 
-    # extrema in R
-    lines = Contour.lines(Contour.contour(r, z, BR, 0.0))
-    k = 0
-    d = Inf
-    for (kk, line) in enumerate(lines)
-        pr, pz = Contour.coordinates(line)
-        dd = minimum(sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2))
-        if dd < d
-            d = dd
-            k = kk
+        # Find where Br changes sign
+        lines = Contour.lines(Contour.contour(r, z, BR, 0.0))
+        k = 0
+        d = Inf
+        for (kk, line) in enumerate(lines)
+            pr, pz = Contour.coordinates(line)
+            #plot!(pr, pz)
+            dd = minimum(sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2))
+            if dd < d
+                d = dd
+                k = kk
+            end
         end
-    end
-    leftright_r, leftright_z = Contour.coordinates(lines[k])
-    for k in [N2:-1:2; N2+1:N]
-        cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, psi_norm[k], space_norm, :right)
-        surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
-        cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, psi_norm[k], space_norm, :left)
-        surfaces[k].min_r, surfaces[k].z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
-        if 2 < k <= N2
-            surfaces[k-1].z_at_max_r = surfaces[k].z_at_max_r
-            surfaces[k-1].z_at_min_r = surfaces[k].z_at_min_r
-        elseif k < N
-            surfaces[k+1].z_at_max_r = surfaces[k].z_at_max_r
-            surfaces[k+1].z_at_min_r = surfaces[k].z_at_min_r
-        end
-    end
+        leftright_r, leftright_z = Contour.coordinates(lines[k])
 
-    # extrema in Z
-    lines = Contour.lines(Contour.contour(r, z, BZ, 0.0))
-    k = 0
-    d = Inf
-    for (kk, line) in enumerate(lines)
-        pr, pz = Contour.coordinates(line)
-        dd = minimum(sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2))
-        if dd < d
-            d = dd
-            k = kk
+        # extrema in R
+        for k in [N2:-1:2; N2+1:N]
+            #@show "R", k
+            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, RA, ZA, psi_norm, space_norm, :right)
+            surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
+            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, RA, ZA, psi_norm, space_norm, :left)
+            surfaces[k].min_r, surfaces[k].z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
+            if 2 < k <= N2
+                surfaces[k-1].z_at_max_r = surfaces[k].z_at_max_r
+                surfaces[k-1].z_at_min_r = surfaces[k].z_at_min_r
+            elseif k < N
+                surfaces[k+1].z_at_max_r = surfaces[k].z_at_max_r
+                surfaces[k+1].z_at_min_r = surfaces[k].z_at_min_r
+            end
         end
-    end
-    updown_r, updown_z = Contour.coordinates(lines[k])
-    for k in [N2:-1:2; N2+1:N]
-        cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, psi_norm[k], space_norm, :up)
-        surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
-        cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, psi_norm[k], space_norm, :down)
-        surfaces[k].r_at_min_z, surfaces[k].min_z = Optim.optimize(cost, [surfaces[k].r_at_min_z, surfaces[k].min_z], algorithm; autodiff=:forward).minimizer
-        if 2 < k <= N2
-            surfaces[k-1].r_at_max_z = surfaces[k].r_at_max_z
-            surfaces[k-1].r_at_min_z = surfaces[k].r_at_min_z
-        elseif k < N
-            surfaces[k+1].r_at_max_z = surfaces[k].r_at_max_z
-            surfaces[k+1].r_at_min_z = surfaces[k].r_at_min_z
-        end
-    end
 
-    # first flux surface just a scaled down version of the second one
-    surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z .- RA) ./ 100.0 .+ RA
-    surfaces[1].max_z = (surfaces[2].max_z .- ZA) ./ 100.0 .+ ZA
-    surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z .- RA) ./ 100.0 .+ RA
-    surfaces[1].min_z = (surfaces[2].min_z .- ZA) ./ 100.0 .+ ZA
-    surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r .- ZA) ./ 100.0 .+ ZA
-    surfaces[1].max_r = (surfaces[2].max_r - RA) / 100.0 + RA
-    surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r .- ZA) ./ 100.0 .+ ZA
-    surfaces[1].min_r = (surfaces[2].min_r - RA) / 100.0 + RA
+        # Find where Bz changes sign
+        lines = Contour.lines(Contour.contour(r, z, BZ, 0.0))
+        k = 0
+        d = Inf
+        for (kk, line) in enumerate(lines)
+            pr, pz = Contour.coordinates(line)
+            #plot!(pr, pz)
+            dd = minimum(sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2))
+            if dd < d
+                d = dd
+                k = kk
+            end
+        end
+        updown_r, updown_z = Contour.coordinates(lines[k])
+
+        # extrema in Z
+        for k in [N2:-1:2; N2+1:N]
+            #@show "Z", k
+            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, RA, ZA, psi_norm, space_norm, :up)
+            surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
+            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, RA, ZA, psi_norm, space_norm, :down)
+            surfaces[k].r_at_min_z, surfaces[k].min_z = Optim.optimize(cost, [surfaces[k].r_at_min_z, surfaces[k].min_z], algorithm; autodiff=:forward).minimizer
+            if 2 < k <= N2
+                surfaces[k-1].r_at_max_z = surfaces[k].r_at_max_z
+                surfaces[k-1].r_at_min_z = surfaces[k].r_at_min_z
+            elseif k < N
+                surfaces[k+1].r_at_max_z = surfaces[k].r_at_max_z
+                surfaces[k+1].r_at_min_z = surfaces[k].r_at_min_z
+            end
+        end
+
+        # first flux surface just a scaled down version of the second one
+        surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z .- RA) ./ 100.0 .+ RA
+        surfaces[1].max_z = (surfaces[2].max_z .- ZA) ./ 100.0 .+ ZA
+        surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z .- RA) ./ 100.0 .+ RA
+        surfaces[1].min_z = (surfaces[2].min_z .- ZA) ./ 100.0 .+ ZA
+        surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r .- ZA) ./ 100.0 .+ ZA
+        surfaces[1].max_r = (surfaces[2].max_r - RA) / 100.0 + RA
+        surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r .- ZA) ./ 100.0 .+ ZA
+        surfaces[1].min_r = (surfaces[2].min_r - RA) / 100.0 + RA
+
+        # plot!(leftright_r, leftright_z)
+        # plot!(updown_r, updown_z)
+    end
 
     return FluxSurface[surfaces[k] for k in 1:N]
 end
@@ -1533,21 +1547,29 @@ function _extrema_cost(
     z_rail::AbstractVector{T},
     r_orig::T,
     z_orig::T,
+    RA::T,
+    ZA::T,
     psi_norm::T,
     space_norm::T,
     direction::Symbol
 ) where {T<:Real}
-    d = point_to_path_distance(x[1], x[2], r_rail, z_rail) / space_norm
+    cost_line = (point_to_path_distance(x[1], x[2], r_rail, z_rail) / space_norm)
+    cost_psi = ((PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm)
     if direction == :right
-        cost = ((x[1] - r_orig) / space_norm)^2
+        cost_dir = ((x[1] - r_orig) / space_norm)^2
+        cost_dir += abs(x[1] - RA) * (x[1] < RA) # extra penalty for flux surfaces near axis
     elseif direction == :left
-        cost = ((x[1] - r_orig) / space_norm)^2
+        cost_dir = ((x[1] - r_orig) / space_norm)^2
+        cost_dir += abs(x[1] - RA) * (x[1] > RA)
     elseif direction == :up
-        cost = ((x[2] - z_orig) / space_norm)^2
+        cost_dir = ((x[2] - z_orig) / space_norm)^2
+        cost_dir += abs(x[2] - ZA) * (x[2] < ZA)
     elseif direction == :down
-        cost = ((x[2] - z_orig) / space_norm)^2
+        cost_dir = ((x[2] - z_orig) / space_norm)^2
+        cost_dir += abs(x[2] - ZA) * (x[2] > ZA)
     end
-    cost += 0.001 * ((PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm)^2 + d^2
+    #@show cost_line, cost_psi, cost_dir
+    cost = norm((cost_line, cost_psi, cost_dir))
     return cost
 end
 
@@ -1855,11 +1877,11 @@ Returns a vector with the (r,z) coordiates of flux surface at given psi_level
 
 The `type` parameter:
 
-* `:any`: return all contours
-* `:closed`: all closed flux-surface that encircle the magnetic axis and do not cross the wall
-* `:open`: all open flux-surfaces (considerning open even closed flux surfaces that hit the first wall)
-* `:open_no_wall`: all open flux-surfaces independently of wall
-* `:encircling`: open flux-surfaces encircling the magnetic axis
+  - `:any`: return all contours
+  - `:closed`: all closed flux-surface that encircle the magnetic axis and do not cross the wall
+  - `:open`: all open flux-surfaces (considerning open even closed flux surfaces that hit the first wall)
+  - `:open_no_wall`: all open flux-surfaces independently of wall
+  - `:encircling`: open flux-surfaces encircling the magnetic axis
 """
 function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
@@ -2262,8 +2284,8 @@ function luce_squareness(
     z_at_min_r::T, min_r::T) where {T<:Real}
 
     names = (:zetaou, :zetaol, :zetaiu, :zetail)
-    POs = ((r_at_max_z, z_at_max_r),(r_at_min_z, z_at_max_r),(r_at_max_z, z_at_min_r), (r_at_min_z, z_at_min_r))
-    PEs = ((max_r, max_z), (max_r, min_z), (min_r, max_z),(min_r, min_z))
+    POs = ((r_at_max_z, z_at_max_r), (r_at_min_z, z_at_max_r), (r_at_max_z, z_at_min_r), (r_at_min_z, z_at_min_r))
+    PEs = ((max_r, max_z), (max_r, min_z), (min_r, max_z), (min_r, min_z))
 
     z = T[]
     for (name, PO, PE) in zip(names, POs, PEs)
