@@ -1063,7 +1063,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     resize!(bulk.element, 1)
     bulk.label = "bulk"
     bulk.element[1].z_n = 1.0
-    IMAS.setraw!(bulk, :density_thermal, n1)
+    IMAS.setproperty!(bulk, :density_thermal, n1; error_on_missing_coordinates=false)
 
     # impurity ions
     push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
@@ -1071,7 +1071,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     resize!(impu.element, 1)
     impu.label = "impurity"
     impu.element[1].z_n = Zi
-    IMAS.setraw!(impu, :density_thermal, ni)
+    IMAS.setproperty!(impu, :density_thermal, ni; error_on_missing_coordinates=false)
 
     # weight different ion quantities based on their density
     for (index, ion2) in ((bulk_index, bulk), (impu_index, impu))
@@ -1081,7 +1081,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
         end
         for item in (:temperature, :rotation_frequency_tor)
             value = rho_tor_norm .* 0.0
-            IMAS.setraw!(ion2, item, value)
+            IMAS.setproperty!(ion2, item, value; error_on_missing_coordinates=false)
             for ix in index
                 tmp = getproperty(ions[ix], item, T[])
                 if !isempty(tmp)
