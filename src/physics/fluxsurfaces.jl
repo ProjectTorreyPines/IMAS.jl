@@ -1462,7 +1462,7 @@ function trace_surfaces(
         d = Inf
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
-            #plot!(pr, pz)
+            # plot!(pr, pz)
             dd = minimum(sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2))
             if dd < d
                 d = dd
@@ -1472,15 +1472,15 @@ function trace_surfaces(
         leftright_r, leftright_z = Contour.coordinates(lines[k])
 
         # extrema in R
-        for k in [N2:-1:2; N2+1:N]
+        for k in 1:N
             #@show "R", k
             cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, RA, ZA, psi_norm, space_norm, :right)
             surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
             cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, RA, ZA, psi_norm, space_norm, :left)
             surfaces[k].min_r, surfaces[k].z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
-            if 2 < k <= N2
-                surfaces[k-1].z_at_max_r = surfaces[k].z_at_max_r
-                surfaces[k-1].z_at_min_r = surfaces[k].z_at_min_r
+            if k < 3
+                surfaces[k+1].z_at_max_r = ZA
+                surfaces[k+1].z_at_min_r = ZA
             elseif k < N
                 surfaces[k+1].z_at_max_r = surfaces[k].z_at_max_r
                 surfaces[k+1].z_at_min_r = surfaces[k].z_at_min_r
@@ -1493,7 +1493,7 @@ function trace_surfaces(
         d = Inf
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
-            #plot!(pr, pz)
+            # plot!(pr, pz)
             dd = minimum(sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2))
             if dd < d
                 d = dd
@@ -1503,15 +1503,15 @@ function trace_surfaces(
         updown_r, updown_z = Contour.coordinates(lines[k])
 
         # extrema in Z
-        for k in [N2:-1:2; N2+1:N]
+        for k in 1:N
             #@show "Z", k
             cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, RA, ZA, psi_norm, space_norm, :up)
             surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
             cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, RA, ZA, psi_norm, space_norm, :down)
             surfaces[k].r_at_min_z, surfaces[k].min_z = Optim.optimize(cost, [surfaces[k].r_at_min_z, surfaces[k].min_z], algorithm; autodiff=:forward).minimizer
-            if 2 < k <= N2
-                surfaces[k-1].r_at_max_z = surfaces[k].r_at_max_z
-                surfaces[k-1].r_at_min_z = surfaces[k].r_at_min_z
+            if k < 3
+                surfaces[k+1].r_at_max_z = RA
+                surfaces[k+1].r_at_min_z = RA
             elseif k < N
                 surfaces[k+1].r_at_max_z = surfaces[k].r_at_max_z
                 surfaces[k+1].r_at_min_z = surfaces[k].r_at_min_z
@@ -1519,14 +1519,15 @@ function trace_surfaces(
         end
 
         # first flux surface just a scaled down version of the second one
-        surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z .- RA) ./ 100.0 .+ RA
-        surfaces[1].max_z = (surfaces[2].max_z .- ZA) ./ 100.0 .+ ZA
-        surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z .- RA) ./ 100.0 .+ RA
-        surfaces[1].min_z = (surfaces[2].min_z .- ZA) ./ 100.0 .+ ZA
-        surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r .- ZA) ./ 100.0 .+ ZA
-        surfaces[1].max_r = (surfaces[2].max_r - RA) / 100.0 + RA
-        surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r .- ZA) ./ 100.0 .+ ZA
-        surfaces[1].min_r = (surfaces[2].min_r - RA) / 100.0 + RA
+        frac = 0.01
+        surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z .- RA) .* frac .+ RA
+        surfaces[1].max_z = (surfaces[2].max_z .- ZA) .* frac .+ ZA
+        surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z .- RA) .* frac .+ RA
+        surfaces[1].min_z = (surfaces[2].min_z .- ZA) .* frac .+ ZA
+        surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r .- ZA) .* frac .+ ZA
+        surfaces[1].max_r = (surfaces[2].max_r - RA) * frac + RA
+        surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r .- ZA) .* frac .+ ZA
+        surfaces[1].min_r = (surfaces[2].min_r - RA) * frac + RA
 
         # plot!(leftright_r, leftright_z)
         # plot!(updown_r, updown_z)
@@ -1553,23 +1554,23 @@ function _extrema_cost(
     space_norm::T,
     direction::Symbol
 ) where {T<:Real}
-    cost_line = (point_to_path_distance(x[1], x[2], r_rail, z_rail) / space_norm)
-    cost_psi = ((PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm)
+    cost_psi = (PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm * space_norm # convert psi cost into spatial units
+    cost_line = point_to_path_distance(x[1], x[2], r_rail, z_rail)
     if direction == :right
-        cost_dir = ((x[1] - r_orig) / space_norm)^2
-        cost_dir += abs(x[1] - RA) * (x[1] < RA) # extra penalty for flux surfaces near axis
+        cost_dir = abs(x[1] - r_orig) * (x[1] > r_orig)
+        cost_dir += abs(x[1] - RA) * (x[1] < RA) # extra penalty needed for flux surfaces near axis
     elseif direction == :left
-        cost_dir = ((x[1] - r_orig) / space_norm)^2
+        cost_dir = abs(x[1] - r_orig) * (x[1] < r_orig)
         cost_dir += abs(x[1] - RA) * (x[1] > RA)
     elseif direction == :up
-        cost_dir = ((x[2] - z_orig) / space_norm)^2
+        cost_dir = abs(x[2] - z_orig) * (x[2] > z_orig)
         cost_dir += abs(x[2] - ZA) * (x[2] < ZA)
     elseif direction == :down
-        cost_dir = ((x[2] - z_orig) / space_norm)^2
+        cost_dir = abs(x[2] - z_orig) * (x[2] < z_orig)
         cost_dir += abs(x[2] - ZA) * (x[2] > ZA)
     end
-    #@show cost_line, cost_psi, cost_dir
-    cost = norm((cost_line, cost_psi, cost_dir))
+    #@show x, cost_line, cost_psi, cost_dir
+    cost = norm((cost_psi, cost_line^2, cost_dir^2)) # linear in psi since it already varies quadratically in space
     return cost
 end
 
