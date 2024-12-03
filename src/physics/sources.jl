@@ -1,3 +1,5 @@
+document[Symbol("Physics sources")] = Symbol[]
+
 """
     fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion::Bool=false)
 
@@ -19,9 +21,15 @@ function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion
     return fast_particles!(cs, cp.profiles_1d[])
 end
 
+"""
+    fusion_source!(dd::IMAS.dd; DD_fusion::Bool=false)
+"""
 function fusion_source!(dd::IMAS.dd; DD_fusion::Bool=false)
     return fusion_source!(dd.core_sources, dd.core_profiles; DD_fusion)
 end
+
+@compat public fusion_source!
+push!(document[Symbol("Physics sources")], :fusion_source!)
 
 """
     collisional_exchange_source!(dd::IMAS.dd)
@@ -35,13 +43,16 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Ti = cp1d.t_i_average
 
     nu_exch = collision_frequencies(dd).nu_exch
-    delta = 1.5 .* nu_exch .* ne .* constants.e .* (Te .- Ti)
+    delta = 1.5 .* nu_exch .* ne .* mks.e .* (Te .- Ti)
 
     source = resize!(dd.core_sources.source, :collisional_equipartition; wipe=false)
     new_source(source, source.identifier.index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
         electrons_energy=-delta, total_ion_energy=delta)
     return source
 end
+
+@compat public collisional_exchange_source!
+push!(document[Symbol("Physics sources")], :collisional_exchange_source!)
 
 """
     ohmic_source!(dd::IMAS.dd)
@@ -67,6 +78,9 @@ function ohmic_source!(dd::IMAS.dd)
     end
 end
 
+@compat public ohmic_source!
+push!(document[Symbol("Physics sources")], :ohmic_source!)
+
 """
     bootstrap_source!(dd::IMAS.dd)
 
@@ -81,6 +95,9 @@ function bootstrap_source!(dd::IMAS.dd)
         return source
     end
 end
+
+@compat public bootstrap_source!
+push!(document[Symbol("Physics sources")], :bootstrap_source!)
 
 """
     sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
@@ -102,10 +119,32 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion
     return nothing
 end
 
+@compat public sources!
+push!(document[Symbol("Physics sources")], :sources!)
+
 """
-    time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
+    time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
 
 Calculates the time dependent sources and sinks and adds them to `dd.core_sources`
+
+These are the ∂/∂t term in the transport equations.
+"""
+function time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
+    Sne = -(cp1d_new.electrons.density .- cp1d_old.electrons.density) / Δt
+
+    Qe = -1.5 * (cp1d_new.electrons.pressure .- cp1d_old.electrons.pressure) / Δt
+
+    Qi = -1.5 * (cp1d_new.pressure_ion_total .- cp1d_old.pressure_ion_total) / Δt
+
+    d1 = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R_flux_avg / Δt
+    d2 = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
+    PI = d2 - d1
+
+    return (Sne=Sne, Qi=Qi, Qe=Qe, PI=PI)
+end
+
+"""
+    time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
 """
 function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -124,35 +163,24 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
     return source
 end
 
-"""
-    time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
-
-These are the ∂/∂t term in the transport equations
-"""
-function time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
-    Sne = -(cp1d_new.electrons.density .- cp1d_old.electrons.density) / Δt
-
-    Qe = -1.5 * (cp1d_new.electrons.pressure .- cp1d_old.electrons.pressure) / Δt
-
-    Qi = -1.5 * (cp1d_new.pressure_ion_total .- cp1d_old.pressure_ion_total) / Δt
-
-    d1 = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R_flux_avg / Δt
-    d2 = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
-    PI = d2 - d1
-
-    return (Sne=Sne, Qi=Qi, Qe=Qe, PI=PI)
-end
+@compat public time_derivative_source!
+push!(document[Symbol("Physics sources")], :time_derivative_source!)
 
 """
     total_mass_density(cp1d::IMAS.core_profiles__profiles_1d)
+
+Finds the total mass density [kg/m^-3]
 """
 function total_mass_density(cp1d::IMAS.core_profiles__profiles_1d)
-    mass_density = constants.m_e * cp1d.electrons.density
+    mass_density = mks.m_e * cp1d.electrons.density
     for ion in cp1d.ion
-        mass_density .+= ion.density * ion.element[1].a * constants.m_p
+        mass_density .+= ion.density * ion.element[1].a * mks.m_p
     end
     return mass_density
 end
+
+@compat public total_mass_density
+push!(document[Symbol("Physics sources")], :total_mass_density)
 
 """
     total_power_source(source::IMAS.core_sources__source___profiles_1d)
@@ -162,6 +190,9 @@ Returns the total power (electron + ion) for a single source
 function total_power_source(source::IMAS.core_sources__source___profiles_1d)
     return getproperty(source.electrons, :power_inside, [0.0])[end] + getproperty(source, :total_ion_power_inside, [0.0])[end]
 end
+
+@compat public total_power_source
+push!(document[Symbol("Physics sources")], :total_power_source)
 
 """
     total_power_time(core_sources::IMAS.core_sources, include_indexes::Vector{<:Integer})
@@ -181,11 +212,15 @@ function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vect
     return total_power, time_array
 end
 
-function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
-    return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
-end
+@compat public total_power_time
+push!(document[Symbol("Physics sources")], :total_power_time)
 
-function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})
+"""
+    retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})::Bool
+
+Function that decides whether a source should be kept or ignored when totaling sources
+"""
+function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})::Bool
     index = source.identifier.index
     if index ∈ include_indexes
         return true
@@ -206,6 +241,9 @@ function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{In
     end
     return true
 end
+
+@compat public retain_source
+push!(document[Symbol("Physics sources")], :retain_source)
 
 """
     total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
@@ -346,9 +384,15 @@ function total_sources(
     return total_source1d
 end
 
-function total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
-    return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+"""
+    total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+"""
+function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+    return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
 end
+
+@compat public total_sources
+push!(document[Symbol("Physics sources")], :retain_source)
 
 function total_radiation_sources(
     core_sources::IMAS.core_sources{T},
@@ -364,6 +408,16 @@ function total_radiation_sources(
     only_positive_negative = -1
     return total_sources(core_sources, cp1d; include_indexes, exclude_indexes, fields, only_positive_negative)
 end
+
+"""
+    total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+"""
+function total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+    return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+end
+
+@compat public total_radiation_sources
+push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
 """
     new_source(
@@ -469,3 +523,6 @@ function new_source(
 
     return source
 end
+
+@compat public new_source
+push!(document[Symbol("Physics sources")], :new_source)

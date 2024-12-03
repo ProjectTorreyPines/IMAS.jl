@@ -1,4 +1,5 @@
-#
+document[Symbol("Physics nuclear")] = Symbol[]
+
 # D+T→He4   (3.518 MeV)  + n (14.072 MeV) + 17.59MeV
 #
 # D+D→He3   (0.8175 MeV) + n (2.4525 MeV) + 3.27MeV
@@ -92,6 +93,9 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
     return ((1.0 .- polarized_fuel_fraction) .+ spf * polarized_fuel_fraction) .* sigv / 1e6  # m^3/s
 end
 
+@compat public reactivity
+push!(document[Symbol("Physics nuclear")], :reactivity)
+
 #===========#
 # REACTIONS #
 #===========#
@@ -124,6 +128,9 @@ function D_T_to_He4_reactions(cp1d::IMAS.core_profiles__profiles_1d; polarized_f
     return result
 end
 
+@compat public D_T_to_He4_reactions
+push!(document[Symbol("Physics nuclear")], :D_T_to_He4_reactions)
+
 """
     D_D_to_He3_reactions(dd::IMAS.dd)
 
@@ -150,6 +157,9 @@ function D_D_to_He3_reactions(cp1d::IMAS.core_profiles__profiles_1d)
 
     return result
 end
+
+@compat public D_D_to_He3_reactions
+push!(document[Symbol("Physics nuclear")], :D_D_to_He3_reactions)
 
 """
     D_D_to_T_reactions(dd::IMAS.dd)
@@ -178,16 +188,32 @@ function D_D_to_T_reactions(cp1d::IMAS.core_profiles__profiles_1d)
     return result
 end
 
+@compat public D_D_to_T_reactions
+push!(document[Symbol("Physics nuclear")], :D_D_to_T_reactions)
+
 #=========#
 # SOURCES #
 #=========#
-function fusion_particle_source(
+"""
+    fusion_reaction_source(
+        s1d::IMAS.core_sources__source___profiles_1d,
+        reactivity::Vector{<:Real},
+        in1::Symbol,
+        in2::Symbol,
+        out::Symbol,
+        eV::Float64
+    )
+
+Add a fusion reaction source for two isotopes coming in and one coming out
+"""
+function fusion_reaction_source(
     s1d::IMAS.core_sources__source___profiles_1d,
     reactivity::Vector{<:Real},
     in1::Symbol,
     in2::Symbol,
     out::Symbol,
-    eV::Float64)
+    eV::Float64
+)
 
     k = 0
 
@@ -217,6 +243,9 @@ function fusion_particle_source(
     return nothing
 end
 
+@compat public fusion_reaction_source
+push!(document[Symbol("Physics nuclear")], :fusion_reaction_source)
+
 """
     D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; combine_DT::Bool)
 
@@ -227,11 +256,11 @@ function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; combi
     polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
 
     name = "D+T→He4"
-    eV1 = constants.E_α # 3.518e6
-    eV2 = constants.E_n # 14.072e6
+    eV1 = mks.E_α # 3.518e6
+    eV2 = mks.E_n # 14.072e6
     reactivity = D_T_to_He4_reactions(cp1d; polarized_fuel_fraction)
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 4.0)
-    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV1 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -245,13 +274,16 @@ function D_T_to_He4_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; combi
     )
 
     if combine_DT
-        fusion_particle_source(source.profiles_1d[], reactivity, :DT, :DT, :He4, eV1)
+        fusion_reaction_source(source.profiles_1d[], reactivity, :DT, :DT, :He4, eV1)
     else
-        fusion_particle_source(source.profiles_1d[], reactivity, :D, :T, :He4, eV1)
+        fusion_reaction_source(source.profiles_1d[], reactivity, :D, :T, :He4, eV1)
     end
 
     return source
 end
+
+@compat public D_T_to_He4_source!
+push!(document[Symbol("Physics nuclear")], :D_T_to_He4_source!)
 
 """
     D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
@@ -266,7 +298,7 @@ function D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     eV2 = 2.4525e6
     reactivity = D_D_to_He3_reactions(cp1d)
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 3.0)
-    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV1 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -279,10 +311,13 @@ function D_D_to_He3_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity, :D, :D, :He3, eV1)
+    fusion_reaction_source(source.profiles_1d[], reactivity, :D, :D, :He3, eV1)
 
     return source
 end
+
+@compat public D_D_to_He3_source!
+push!(document[Symbol("Physics nuclear")], :D_D_to_He3_source!)
 
 """
     D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
@@ -296,7 +331,7 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
     eV1 = 1.0075e6
     reactivity = D_D_to_T_reactions(cp1d)
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV1, 3.0)
-    energy = reactivity .* eV1 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV1 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -309,12 +344,12 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :T, eV1)
+    fusion_reaction_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :T, eV1)
 
     name = "D+D→H"
     eV2 = 3.0225e6
     ion_to_electron_fraction = sivukhin_fraction(cp1d, eV2, 1.0)
-    energy = reactivity .* eV2 * constants.e # J/m^3/s = W/m^3
+    energy = reactivity .* eV2 * mks.e # J/m^3/s = W/m^3
     source = resize!(cs.source, :fusion, "identifier.name" => name; wipe=false)
     new_source(
         source,
@@ -327,10 +362,13 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_particle_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :H, eV2)
+    fusion_reaction_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :H, eV2)
 
     return source
 end
+
+@compat public D_D_to_T_source!
+push!(document[Symbol("Physics nuclear")], :D_D_to_T_source!)
 
 #========#
 # TOTALS #
@@ -341,9 +379,12 @@ end
 Volumetric heating source of He4 particles coming from D-T reactions [W m⁻³]
 """
 function D_T_to_He4_heating(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
-    energy = 3.518e6 * constants.e  # Joules
+    energy = 3.518e6 * mks.e  # Joules
     return D_T_to_He4_reactions(cp1d; polarized_fuel_fraction) .* energy
 end
+
+@compat public D_T_to_He4_heating
+push!(document[Symbol("Physics nuclear")], :D_T_to_He4_heating)
 
 """
     D_D_to_He3_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
@@ -351,9 +392,12 @@ end
 Volumetric heating source of He3 particles coming from D-D reactions [W m⁻³]
 """
 function D_D_to_He3_heating(cp1d::IMAS.core_profiles__profiles_1d)
-    energy = 0.8175e6 * constants.e  # Joules
+    energy = 0.8175e6 * mks.e  # Joules
     return D_D_to_He3_reactions(cp1d) .* energy
 end
+
+@compat public D_D_to_He3_heating
+push!(document[Symbol("Physics nuclear")], :D_D_to_He3_heating)
 
 """
     D_D_to_T_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
@@ -361,9 +405,12 @@ end
 Volumetric heating source of T and H particles coming from D-D reactions [W m⁻³]
 """
 function D_D_to_T_heating(cp1d::IMAS.core_profiles__profiles_1d)
-    energy = (1.0075e6 + 3.0225e6) * constants.e  # Joules
+    energy = (1.0075e6 + 3.0225e6) * mks.e  # Joules
     return D_D_to_T_reactions(cp1d) .* energy
 end
+
+@compat public D_D_to_T_heating
+push!(document[Symbol("Physics nuclear")], :D_D_to_T_heating)
 
 """
     D_T_to_He4_plasma_power(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
@@ -374,6 +421,9 @@ function D_T_to_He4_plasma_power(cp1d::IMAS.core_profiles__profiles_1d; polarize
     return trapz(cp1d.grid.volume, D_T_to_He4_heating(cp1d; polarized_fuel_fraction))
 end
 
+@compat public D_T_to_He4_plasma_power
+push!(document[Symbol("Physics nuclear")], :D_T_to_He4_plasma_power)
+
 """
     D_D_to_He3_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -382,6 +432,9 @@ Total power in He3 from D-D reaction [W]
 function D_D_to_He3_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
     return trapz(cp1d.grid.volume, D_D_to_He3_heating(cp1d))
 end
+
+@compat public D_D_to_He3_plasma_power
+push!(document[Symbol("Physics nuclear")], :D_D_to_He3_plasma_power)
 
 """
     D_D_to_T_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
@@ -392,9 +445,8 @@ function D_D_to_T_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
     return trapz(cp1d.grid.volume, D_D_to_T_heating(cp1d))
 end
 
-function fusion_plasma_power(dd::IMAS.dd)
-    return fusion_plasma_power(dd.core_profiles.profiles_1d[])
-end
+@compat public D_D_to_T_plasma_power
+push!(document[Symbol("Physics nuclear")], :D_D_to_T_plasma_power)
 
 """
     fusion_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
@@ -416,9 +468,15 @@ function fusion_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
     return tot_pow
 end
 
-function fusion_power(dd::IMAS.dd)
-    return fusion_power(dd.core_profiles.profiles_1d[])
+"""
+    fusion_plasma_power(dd::IMAS.dd)
+"""
+function fusion_plasma_power(dd::IMAS.dd)
+    return fusion_plasma_power(dd.core_profiles.profiles_1d[])
 end
+
+@compat public fusion_plasma_power
+push!(document[Symbol("Physics nuclear")], :fusion_plasma_power)
 
 """
     fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
@@ -440,9 +498,15 @@ function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
     return tot_pow
 end
 
-function fusion_neutron_power(dd::IMAS.dd)
-    return fusion_neutron_power(dd.core_profiles.profiles_1d[])
+"""
+    fusion_power(dd::IMAS.dd)
+"""
+function fusion_power(dd::IMAS.dd)
+    return fusion_power(dd.core_profiles.profiles_1d[])
 end
+
+@compat public fusion_power
+push!(document[Symbol("Physics nuclear")], :fusion_power)
 
 """
     fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
@@ -462,3 +526,13 @@ function fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
     end
     return tot_pow
 end
+
+"""
+    fusion_neutron_power(dd::IMAS.dd)
+"""
+function fusion_neutron_power(dd::IMAS.dd)
+    return fusion_neutron_power(dd.core_profiles.profiles_1d[])
+end
+
+@compat public fusion_neutron_power
+push!(document[Symbol("Physics nuclear")], :fusion_neutron_power)

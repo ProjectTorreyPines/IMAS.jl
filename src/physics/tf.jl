@@ -1,3 +1,5 @@
+document[Symbol("Physics tf")] = Symbol[]
+
 """
     tf_ripple(r, R_tf::Real, N_tf::Integer)
 
@@ -9,6 +11,9 @@ function tf_ripple(r, R_tf::Real, N_tf::Integer)
     return eta ./ (1.0 .- eta)
 end
 
+@compat public tf_ripple
+push!(document[Symbol("Physics tf")], :tf_ripple)
+
 """
     R_tf_ripple(r, ripple::Real, N_tf::Integer)
 
@@ -18,12 +23,15 @@ function R_tf_ripple(r, ripple::Real, N_tf::Integer)
     return r .* (ripple ./ (ripple .+ 1.0)) .^ (-1 / N_tf)
 end
 
+@compat public R_tf_ripple
+push!(document[Symbol("Physics tf")], :R_tf_ripple)
+
 """
-    top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
+    top_view_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
 
 returns x,y outline (top view) of the n'th TF coil
 """
-function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
+function top_view_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
     layers = parent(tf).layer
     TF = get_build_layers(layers; type=IMAS._tf_)
 
@@ -102,3 +110,6 @@ function top_outline(tf::IMAS.build__tf, n::Int=1; cutouts::Bool=false)
     yrot = x .* sin(ϕrot) .+ y .* cos(ϕrot)
     return (x=xrot, y=yrot)
 end
+
+@compat public top_view_outline
+push!(document[Symbol("Physics tf")], :top_view_outline)

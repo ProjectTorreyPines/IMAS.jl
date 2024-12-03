@@ -1,3 +1,4 @@
+document[Symbol("Physics pf_active")] = Symbol[]
 
 """
     area(coil::IMAS.pf_active__coil)
@@ -12,6 +13,9 @@ function area(coil::IMAS.pf_active__coil)
     end
     return A
 end
+
+@compat public area
+push!(document[Symbol("Physics pf_active")], :area)
 
 """
     volume(coil::IMAS.pf_active__coil)
@@ -29,6 +33,9 @@ function volume(coil::IMAS.pf_active__coil)
     return V
 end
 
+@compat public volume
+push!(document[Symbol("Physics pf_active")], :volume)
+
 """
     is_ohmic_coil(coil::IMAS.pf_active__coil)
 
@@ -40,6 +47,9 @@ function is_ohmic_coil(coil::IMAS.pf_active__coil)
     end
     return findfirst(:flux, coil.function) !== nothing
 end
+
+@compat public is_ohmic_coil
+push!(document[Symbol("Physics pf_active")], :is_ohmic_coil)
 
 """
     set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil}, R0::Float64; force::Bool=false)
@@ -124,6 +134,9 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil}, R0::Float6
     return coils
 end
 
+@compat public set_coils_function
+push!(document[Symbol("Physics pf_active")], :set_coils_function)
+
 """
     outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passive__loop___element{T}}) where {T<:Real}
 
@@ -160,3 +173,6 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
 
     return (r=r, z=z)
 end
+
+@compat public outline
+push!(document[Symbol("Physics pf_active")], :outline)

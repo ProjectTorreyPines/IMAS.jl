@@ -1,6 +1,5 @@
-"""
-Material properties
-"""
+document[Symbol("Physics technology")] = Symbol[]
+
 Base.@kwdef struct MaterialProperties
     yield_strength::Float64 = NaN
     young_modulus::Float64 = NaN
@@ -19,7 +18,13 @@ const pure_copper = MaterialProperties(;
     poisson_ratio=0.34
 )
 
+"""
+    mechanical_technology(dd::IMAS.dd, what::Symbol)
+
+Set `yield_strength`, `poisson_ratio`, and `young_modulus` properties for `:pl`, `:oh` and `:tf`
+"""
 function mechanical_technology(dd::IMAS.dd, what::Symbol)
+    @assert what in (:pl, :oh, :tf)
     if what != :pl && getproperty(dd.build, what).technology.material == "copper"
         material = pure_copper
     else
@@ -97,6 +102,14 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
     return coil_tech
 end
 
+@compat public coil_technology
+push!(document[Symbol("Physics technology")], :coil_technology)
+
+"""
+    fraction_conductor(coil_tech::Union{IMAS.build__pf_active__technology,IMAS.build__oh__technology,IMAS.build__tf__technology})
+
+returns the fraction of (super)conductor in a coil technology
+"""
 function fraction_conductor(coil_tech::Union{IMAS.build__pf_active__technology,IMAS.build__oh__technology,IMAS.build__tf__technology})
     frac = 1.0 - coil_tech.fraction_steel - coil_tech.fraction_void # fraction of coil that is a conductor
     @assert frac > 0.0 "coil technology has no room for conductor"
@@ -107,6 +120,14 @@ function fraction_conductor(coil_tech::Union{IMAS.build__pf_active__technology,I
     end
 end
 
+@compat public fraction_conductor
+push!(document[Symbol("Physics technology")], :fraction_conductor)
+
+"""
+    GAMBL_blanket(bm::IMAS.blanket__module)
+
+Define layers for the `dd.blanket.module` for a GAMBL type blanket technology
+"""
 function GAMBL_blanket(bm::IMAS.blanket__module)
     layers = resize!(bm.layer, 3)
 
@@ -127,3 +148,6 @@ function GAMBL_blanket(bm::IMAS.blanket__module)
 
     return bm
 end
+
+@compat public GAMBL_blanket
+push!(document[Symbol("Physics technology")], :GAMBL_blanket)

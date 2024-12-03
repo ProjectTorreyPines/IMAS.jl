@@ -1,6 +1,13 @@
 import Jedis
 import FuseExchangeProtocol as FXP
 
+"""
+    FXP_CONTROLLERS
+
+Manually set service information e.g. FXP_CONTROLLERS["ip"] = Dict("service_name"=>"ip_control", "session_id"=>"matlab")
+"""
+const FXP_CONTROLLERS = Dict()
+
 mutable struct FxpDD
     enabled::Bool
     identifier::String

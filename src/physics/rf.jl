@@ -4,7 +4,7 @@
 Returns electron plasma frequency [rad/s] given electron density in m⁻³
 """
 function ω_pe(ne::Real)
-    return sqrt(ne * constants.e^2 / (constants.ϵ_0 * constants.m_e))
+    return sqrt(ne * mks.e^2 / (mks.ϵ_0 * mks.m_e))
 end
 
 """
@@ -13,7 +13,7 @@ end
 Returns electron cyclotron frequency [rad/s] given magnetic field B in T
 """
 function ω_ce(B::Real)
-    return constants.e * abs(B) / constants.m_e
+    return mks.e * abs(B) / mks.m_e
 end
 
 """
@@ -22,7 +22,7 @@ end
 Returns magnetic field B in T for a given electron cyclotron frequency [rad/s]
 """
 function B_ω_ce(ω::Real)
-    return ω / constants.e * constants.m_e
+    return ω / mks.e * mks.m_e
 end
 
 """
@@ -31,7 +31,7 @@ end
 Returns ion cyclotron frequency [rad/s] given magnetic field B in T and the ion charge and mass in amu
 """
 function ω_ci(B::Real, Z::Real, A::Real)
-    return constants.e * abs(B) * Z / A * constants.m_p
+    return mks.e * abs(B) * Z / A * mks.m_p
 end
 
 """
