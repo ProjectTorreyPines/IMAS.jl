@@ -312,10 +312,12 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:sources, :Pheat, "MW", dd ->  EFL[:Paux_tot](dd) + EFL[:Pα](dd) + EFL[:Pohm](dd))
     ExtractLibFunction(:sources, :Prad_tot, "MW", dd -> radiation_losses(dd.core_sources) / 1E6)
     
-    ts = total_sources(dd)
     ExtractLibFunction(:exhaust, :Psol, "MW", dd -> power_sol(dd) / 1E6)
-    ExtractLibFunction(:exhaust, :Psol_e, "MW", dd -> ts.electrons.power_inside[end] / 1E6)
-    ExtractLibFunction(:exhaust, :Psol_i, "MW", dd -> power_sol(dd) - EFL[:Psol_e])
+    ExtractLibFunction(:exhaust, :Psol_e, "MW", dd -> begin
+        ts = total_sources(dd)
+        ts.electrons.power_inside[end] / 1E6
+    end)
+    ExtractLibFunction(:exhaust, :Psol_i, "MW", dd -> EFL[:Psol](dd) - EFL[:Psol_e](dd))
     ExtractLibFunction(:exhaust, :PLH, "MW", dd -> scaling_L_to_H_power(dd) / 1E6)
     ExtractLibFunction(:exhaust, :Bpol_omp, "T", dd -> Bpol_omp(dd.equilibrium.time_slice[]))
     ExtractLibFunction(:exhaust, :λq, "mm", dd -> widthSOL_eich(dd) * 1E3)
