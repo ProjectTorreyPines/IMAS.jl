@@ -2033,6 +2033,15 @@ Flux surface averaging of a quantity
 """
 function flux_surface_avg(quantity::AbstractVector{T}, surface::AbstractFluxSurface{T}) where {T<:Real}
     f = (k, xx) -> quantity[k] * surface.fluxexpansion[k]
+    return flux_surface_avg(f, surface)
+end
+
+"""
+    flux_surface_avg(f::F1, surface::FluxSurface{T}) where {F1<:Function, T<:Real}
+
+Flux surface averaging of a function
+"""
+@inline function flux_surface_avg(f::F1, surface::FluxSurface{T}) where {F1<:Function, T<:Real}
     return trapz(surface.ll, f) / surface.int_fluxexpansion_dl
 end
 
