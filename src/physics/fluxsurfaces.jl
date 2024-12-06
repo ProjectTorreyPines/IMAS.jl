@@ -2041,7 +2041,7 @@ end
 
 Flux surface averaging of a function
 """
-@inline function flux_surface_avg(f::F1, surface::FluxSurface{T}) where {F1<:Function, T<:Real}
+@inline function flux_surface_avg(f::F1, surface::AbstractFluxSurface{T}) where {F1<:Function, T<:Real}
     return trapz(surface.ll, f) / surface.int_fluxexpansion_dl
 end
 
