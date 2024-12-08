@@ -858,7 +858,7 @@ end
 @recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
     @series begin
         seriestype := :scatter
-        marker --> :circle
+        marker --> :star
         markerstrokewidth --> 0
         label --> ""
         aspect_ratio := :equal
@@ -877,7 +877,7 @@ end
 @recipe function plot_strike_point(s_point::IMAS.equilibrium__time_slice___boundary__strike_point)
     @series begin
         seriestype := :scatter
-        marker --> :cross
+        marker --> :circle
         markerstrokewidth --> 0
         label --> ""
         aspect_ratio := :equal
