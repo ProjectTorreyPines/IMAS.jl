@@ -251,7 +251,23 @@ function find_psi_boundary(
         @show original_psi_boundary
     end
 
-    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z, r_cache, z_cache; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
+    return find_psi_boundary(
+        dimR,
+        dimZ,
+        PSI,
+        psirange_init,
+        RA,
+        ZA,
+        fw_r,
+        fw_z,
+        r_cache,
+        z_cache;
+        PSI_interpolant,
+        precision,
+        raise_error_on_not_open,
+        raise_error_on_not_closed,
+        verbose
+    )
 end
 
 """
@@ -305,7 +321,23 @@ function find_psi_boundary(
     end
     psirange_init = StaticArrays.@MVector[psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
-    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z, r_cache, z_cache; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
+    return find_psi_boundary(
+        dimR,
+        dimZ,
+        PSI,
+        psirange_init,
+        RA,
+        ZA,
+        fw_r,
+        fw_z,
+        r_cache,
+        z_cache;
+        PSI_interpolant,
+        precision,
+        raise_error_on_not_open,
+        raise_error_on_not_closed,
+        verbose
+    )
 end
 
 """
@@ -413,8 +445,7 @@ end
 @compat public find_psi_boundary
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_boundary)
 
-function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T},
-                           fw_r::AbstractVector{T}=T[], fw_z::AbstractVector{T}=T[]) where {T<:Real}
+function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T}, fw_r::AbstractVector{T}=T[], fw_z::AbstractVector{T}=T[]) where {T<:Real}
     @assert length(pr) == length(pz)
     closed = !isempty(pr) && is_closed_polygon(pr, pz)
     if closed
@@ -1323,18 +1354,18 @@ function trace_simple_surfaces!(
         for i in eachindex(pr)
             if i > 1
                 # surface length
-                dl = sqrt((pr[i] - pr[i-1]) ^ 2 + (pz[i] - pz[i-1])^2)
+                dl = sqrt((pr[i] - pr[i-1])^2 + (pz[i] - pz[i-1])^2)
                 ll[i] = ll[i-1] + dl
             end
 
             # flux expansion = 1 / abs(Bp)
             Br, Bz = Br_Bz(PSI_interpolant, pr[i], pz[i])
-            fluxexpansion[i] = 1.0 / sqrt(Br ^ 2.0 + Bz ^ 2.0)
+            fluxexpansion[i] = 1.0 / sqrt(Br^2.0 + Bz^2.0)
         end
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
         # create
-        surfaces[k] = SimpleSurface(psi_level, collect(pr), collect(pz),  ll, fluxexpansion, int_fluxexpansion_dl)
+        surfaces[k] = SimpleSurface(psi_level, collect(pr), collect(pz), ll, fluxexpansion, int_fluxexpansion_dl)
     end
 
     return surfaces
@@ -2041,7 +2072,7 @@ end
 
 Flux surface averaging of a function
 """
-@inline function flux_surface_avg(f::F1, surface::AbstractFluxSurface{T}) where {F1<:Function, T<:Real}
+@inline function flux_surface_avg(f::F1, surface::AbstractFluxSurface{T}) where {F1<:Function,T<:Real}
     return trapz(surface.ll, f) / surface.int_fluxexpansion_dl
 end
 
