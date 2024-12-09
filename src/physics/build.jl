@@ -173,7 +173,7 @@ push!(document[Symbol("Physics build")], :get_build_layer)
 """
     opposite_side_layer(layer::IMAS.build__layer)
 
-Returns corresponding layer on the high/low field side 
+Returns corresponding layer on the high/low field side
 """
 function opposite_side_layer(layer::IMAS.build__layer)
     @assert layer.side in (Int(_hfs_), Int(_lfs_)) "Asking for opposite_side_layer of $(layer.name), which does not make sense"
@@ -330,7 +330,7 @@ end
 push!(document[Symbol("Physics build")], :volume)
 
 """
-    first_wall(wall::IMAS.wall)
+    first_wall(wall::IMAS.wall{T}) where {T<:Real}
 
 Returns named tuple with outline of the official contiguous first wall limiter contour, or an empty outline if not present
 
@@ -349,6 +349,38 @@ function first_wall(wall::IMAS.wall{T}) where {T<:Real}
         end
     end
     return (r=Float64[], z=Float64[])
+end
+
+"""
+    first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
+
+Returns named tuple with outline of the wall defined by the pf_active.coils
+"""
+function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
+    rce = Float64[]
+    zce = Float64[]
+    for coil in pf_active.coil
+        for element in coil.element
+            r, z = IMAS.outline(element)
+            rc, zc = IMAS.centroid(r, z)
+            append!(rce, rc)
+            append!(zce, zc)
+        end
+    end
+
+    hull = IMAS.convex_hull(rce, zce; closed_polygon=true)
+    rhull = [r for (r, z) in hull]
+    zhull = [z for (r, z) in hull]
+    rhull, zhull = IMAS.resample_2d_path(rhull, zhull; method=:linear, n_points=100)
+    append!(rce, rhull)
+    append!(zce, zhull)
+
+    R0 = sum(extrema(rce)) / 2.0
+    Z0 = sum(extrema(zce)) / 2.0
+    index = sortperm(atan.(zce .- Z0, rce .- R0))
+    scatter!([R0], [Z0]; aspect_ratio=:equal)
+
+    return (r=rce[index], z=zce[index])
 end
 
 @compat public first_wall
