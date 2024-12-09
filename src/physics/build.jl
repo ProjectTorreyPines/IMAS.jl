@@ -387,6 +387,23 @@ end
 push!(document[Symbol("Physics build")], :first_wall)
 
 """
+    first_wall!(wall::IMAS.wall{T}, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+
+Set `wall.description_2d[?].limiter.unit[1].outline` from input `r` and `z`
+"""
+function first_wall!(wall::IMAS.wall{T}, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    d2d = resize!(wall.description_2d, "limiter.type.index" => 0)
+    resize!(d2d.limiter.unit, 1)
+    oute = open_polygon(r, z)
+    d2d.limiter.unit[1].outline.r = oute.r
+    d2d.limiter.unit[1].outline.z = oute.z
+    return wall
+end
+
+@compat public first_wall!
+push!(document[Symbol("Physics build")], :first_wall!)
+
+"""
     build_max_R0_B0(bd::IMAS.build)
 
 Returns the plasma geometric center (r0) and the maximum vacuum toroidal magnetic field (b0) evaluated at (r0) that the TF build allows
