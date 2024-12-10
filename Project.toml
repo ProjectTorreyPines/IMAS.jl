@@ -1,7 +1,7 @@
 name = "IMAS"
 uuid = "13ead8c1-b7d1-41bb-a6d0-5b8b65ed587a"
 authors = ["Orso Meneghini <orso82@gmail.com>"]
-version = "2.3.0"
+version = "2.3.1"
 
 [deps]
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
