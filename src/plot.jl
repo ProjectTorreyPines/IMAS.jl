@@ -1001,8 +1001,6 @@ function layer_attrs(l::IMAS.build__layer)
     return name, color
 end
 
-
-
 @recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, pf_passive=true, only=Symbol[], exclude_layers=Symbol[])
     id = plot_help_id(bd)
     assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
