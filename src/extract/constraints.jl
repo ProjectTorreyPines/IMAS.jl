@@ -109,6 +109,12 @@ function update_ConstraintFunctionsLibrary!()
     ConstraintFunction(:max_βn, "", dd -> (dd.equilibrium.time_slice[].global_quantities.beta_normal - dd.requirements.beta_normal) / dd.requirements.beta_normal, <, 0.0)
     ConstraintFunction(:max_Psol_R, "%", dd -> (((power_sol(dd)/ 1E6) / dd.equilibrium.time_slice[].boundary.geometric_axis.r) - dd.requirements.Psol_R) / dd.requirements.Psol_R, <, 0.0)
     ConstraintFunction(:max_transport_error, "", dd -> @ddtime(dd.transport_solver_numerics.convergence.time_step.data),<, 1e-1)
+    ConstraintFunction(:min_Psol_e_frac, "%", dd -> begin
+        Psol = power_sol(dd) / 1E6
+        ts = total_sources(dd)
+        Psol_e = ts.electrons.power_inside[end] / 1E6
+        Psol_e / Psol
+    end, >, 0.0)
 
     #! format: on
     return ConstraintFunctionsLibrary
