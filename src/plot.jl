@@ -1527,9 +1527,9 @@ end
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de)
-
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    cs1d = parent(cs1de; error_parent_of_nothing=false)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1de, :energy)
@@ -1589,7 +1589,9 @@ end
     assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1d, :total_ion_energy)
@@ -1650,9 +1652,9 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de)
-
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    cs1d = parent(cs1de; error_parent_of_nothing=false)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1de, :particles)
@@ -1704,8 +1706,9 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(parent(cs1di))
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    cs1d = parent(parent(cs1di; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1di, :particles)
@@ -1757,7 +1760,8 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1d, :momentum_tor)
@@ -1807,7 +1811,8 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1d, :j_parallel)
