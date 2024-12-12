@@ -1,4 +1,4 @@
-document[Symbol("Neoclassical")] = Symbol[]
+document[Symbol("Physics neoclassical")] = Symbol[]
 
 """
     spitzer_conductivity(ne, Te, Zeff)
@@ -10,7 +10,7 @@ function spitzer_conductivity(ne, Te, Zeff)
 end
 
 @compat public spitzer_conductivity
-push!(document[Symbol("Neoclassical")], :spitzer_conductivity)
+push!(document[Symbol("Physics neoclassical")], :spitzer_conductivity)
 
 """
     collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
@@ -65,7 +65,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
 end
 
 @compat public collision_frequencies
-push!(document[Symbol("Neoclassical")], :collision_frequencies)
+push!(document[Symbol("Physics neoclassical")], :collision_frequencies)
 
 function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool=true, same_ne_ni::Bool=false)
     eqt = dd.equilibrium.time_slice[]
@@ -109,7 +109,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
 end
 
 @compat public Sauter_neo2021_bootstrap
-push!(document[Symbol("Neoclassical")], :Sauter_neo2021_bootstrap)
+push!(document[Symbol("Physics neoclassical")], :Sauter_neo2021_bootstrap)
 
 function Sauter_neo2021_bootstrap(
     psi::T,
@@ -335,7 +335,7 @@ function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, 
 end
 
 @compat public collisionless_bootstrap_coefficient
-push!(document[Symbol("Neoclassical")], :collisionless_bootstrap_coefficient)
+push!(document[Symbol("Physics neoclassical")], :collisionless_bootstrap_coefficient)
 
 """
 nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
@@ -369,7 +369,7 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 end
 
 @compat public nuestar
-push!(document[Symbol("Neoclassical")], :nuestar)
+push!(document[Symbol("Physics neoclassical")], :nuestar)
 
 
 """
@@ -404,7 +404,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 end
 
 @compat public nuistar
-push!(document[Symbol("Neoclassical")], :nuistar)
+push!(document[Symbol("Physics neoclassical")], :nuistar)
 
 """
     lnLambda_e(ne, Te)
@@ -454,4 +454,4 @@ function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
 end
 
 @compat public neo_conductivity
-push!(document[Symbol("Neoclassical")], :neo_conductivity)
+push!(document[Symbol("Physics neoclassical")], :neo_conductivity)
