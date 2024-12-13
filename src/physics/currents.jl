@@ -295,12 +295,12 @@ Returns equivalent plasma lumped resistance in ohms
 function plasma_lumped_resistance(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
     eqt = dd.equilibrium.time_slice[]
-    Pohm = dd.core_sources.source[:ohmic].profiles_1d[].electrons.power_inside[end]
-    Ini = Ip_non_inductive(cp1d, eqt)
-    Ip = Ip(cp1d)
-    Iohm = Ip - Ini
-    Rp = Pohm / (Ip * Iohm)
-    return Rp
+    P_ohm = dd.core_sources.source[:ohmic].profiles_1d[].electrons.power_inside[end]
+    I_ni = Ip_non_inductive(cp1d, eqt)
+    I_p = Ip(cp1d)
+    I_ohm = I_p - I_ni
+    R_p = P_ohm / (I_p * I_ohm)
+    return R_p
 end
 
 @compat public plasma_lumped_resistance
