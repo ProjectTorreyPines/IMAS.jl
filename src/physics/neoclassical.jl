@@ -455,3 +455,19 @@ end
 
 @compat public neo_conductivity
 push!(document[Symbol("Physics neoclassical")], :neo_conductivity)
+
+"""
+    sawtooth_conductivity(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+
+Jardin's model for stationary sawteeth to raise q>1
+"""
+function sawtooth_conductivity(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+    i_q = findlast(q .< q_sawtooth)
+    if i_q !== nothing
+        conductivity[1:i_q] .= conductivity[i_q]
+    end
+    return conductivity
+end
+
+@compat public sawtooth_conductivity
+push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
