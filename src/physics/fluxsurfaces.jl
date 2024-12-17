@@ -110,9 +110,9 @@ function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T
 end
 
 """
-    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
+    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
 """
-function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::Array{T}, z::Array{T}) where {T<:Real}
+function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
     # Check that r and z are the same size
     @assert size(r) == size(z)
     Br, Bz = similar(r), similar(r)
@@ -219,7 +219,9 @@ function find_psi_boundary(
     RA::T3,
     ZA::T3,
     fw_r::AbstractVector{T4},
-    fw_z::AbstractVector{T5};
+    fw_z::AbstractVector{T5},
+    r_cache::AbstractVector{T1}=T1[],
+    z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
@@ -227,45 +229,45 @@ function find_psi_boundary(
     verbose::Bool=false
 ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
-    psi_domain = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
-
-    # !!! this does not work when PF coils are inside of the domain
-    # # detect cases where PSI comes from a closed-boundary solver
-    # if all(psi_domain .== psi_domain[1])
-    #     return (last_closed=original_psi_boundary, first_open=nothing)
-    # end
-    # if psi_axis < original_psi_boundary # looking for the largest closed boundary flux surface outside of original_psi_boundary
-    #     psi_domain0 = minimum(psi_domain[psi_domain.>original_psi_boundary])
-    # else
-    #     psi_domain0 = maximum(psi_domain[psi_domain.<original_psi_boundary])
-    # end
-    # surface = flux_surface(dimR, dimZ, PSI, RA, ZA, Float64[], Float64[], psi_domain0, :closed)
-    # if length(surface) == 1 && surface[1].r[1] == surface[1].r[end] && surface[1].z[1] == surface[1].z[end]
-    #     return (last_closed=original_psi_boundary, first_open=nothing)
-    # end
-
     # here we figure out the range of psi to use to find the psi boundary
     if !isempty(fw_r)
         psi_edge = PSI_interpolant.(fw_r, fw_z)
     else
-        psi_edge = psi_domain
+        @views psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
     end
     psi_edge0 = original_psi_boundary + (original_psi_boundary - psi_axis)
-    if psi_axis < original_psi_boundary # looking for the largest open boundary flux surface outside of original_psi_boundary
-        psi_edge1 = maximum(psi_edge[psi_edge.>original_psi_boundary])
+    # BCL 11/22/24: Need to handle local extrema (coils) inside domain
+    if psi_axis < original_psi_boundary
+        psi_edge1 = maximum(psi_edge)
         psi_edge_guess = min(psi_edge1, psi_edge0)
     else
-        psi_edge1 = minimum(psi_edge[psi_edge.<original_psi_boundary])
+        psi_edge1 = minimum(psi_edge)
         psi_edge_guess = max(psi_edge1, psi_edge0)
     end
-    psirange_init = [psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
+    psirange_init = StaticArrays.@MVector[psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
 
     if verbose
         @show psi_axis
         @show original_psi_boundary
     end
 
-    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
+    return find_psi_boundary(
+        dimR,
+        dimZ,
+        PSI,
+        psirange_init,
+        RA,
+        ZA,
+        fw_r,
+        fw_z,
+        r_cache,
+        z_cache;
+        PSI_interpolant,
+        precision,
+        raise_error_on_not_open,
+        raise_error_on_not_closed,
+        verbose
+    )
 end
 
 """
@@ -278,7 +280,9 @@ end
         RA::T3,
         ZA::T3,
         fw_r::AbstractVector{T4}=T1[],
-        fw_z::AbstractVector{T5}=T1[];
+        fw_z::AbstractVector{T5}=T1[],
+        r_cache::AbstractVector{T1}=T1[],
+        z_cache::AbstractVector{T1}=T1[];
         PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
         precision::Float64=1e-6,
         raise_error_on_not_open::Bool,
@@ -295,7 +299,9 @@ function find_psi_boundary(
     RA::T3,
     ZA::T3,
     fw_r::AbstractVector{T4}=T1[],
-    fw_z::AbstractVector{T5}=T1[];
+    fw_z::AbstractVector{T5}=T1[],
+    r_cache::AbstractVector{T1}=T1[],
+    z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
@@ -309,17 +315,33 @@ function find_psi_boundary(
     f_ext = (axis2bnd === :increasing) ? maximum : minimum
 
     if !isempty(fw_r)
-        psi_edge0 = f_ext(PSI_interpolant.(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
+        psi_edge0 = f_ext(PSI_interpolant(fw_r[k], fw_z[k]) for k in eachindex(fw_r))
     else
         @views psi_edge0 = f_ext((f_ext(PSI[1, :]), f_ext(PSI[end, :]), f_ext(PSI[:, 1]), f_ext(PSI[:, end])))
     end
     psirange_init = StaticArrays.@MVector[psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
-    return find_psi_boundary(dimR, dimZ, PSI, psirange_init, RA, ZA, fw_r, fw_z; PSI_interpolant, precision, raise_error_on_not_open, raise_error_on_not_closed, verbose)
+    return find_psi_boundary(
+        dimR,
+        dimZ,
+        PSI,
+        psirange_init,
+        RA,
+        ZA,
+        fw_r,
+        fw_z,
+        r_cache,
+        z_cache;
+        PSI_interpolant,
+        precision,
+        raise_error_on_not_open,
+        raise_error_on_not_closed,
+        verbose
+    )
 end
 
 """
-    function find_psi_boundary(
+    find_psi_boundary(
         dimR::Union{AbstractVector{T1},AbstractRange{T1}},
         dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
         PSI::Matrix{T2},
@@ -327,7 +349,9 @@ end
         RA::T3,
         ZA::T3,
         fw_r::AbstractVector{T4},
-        fw_z::AbstractVector{T5};
+        fw_z::AbstractVector{T5},
+        r_cache::AbstractVector{T1}=T1[],
+        z_cache::AbstractVector{T1}=T1[];
         PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
         precision::Float64=1e-6,
         raise_error_on_not_open::Bool,
@@ -343,7 +367,9 @@ function find_psi_boundary(
     RA::T3,
     ZA::T3,
     fw_r::AbstractVector{T4},
-    fw_z::AbstractVector{T5};
+    fw_z::AbstractVector{T5},
+    r_cache::AbstractVector{T1}=T1[],
+    z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=1e-6,
     raise_error_on_not_open::Bool,
@@ -361,9 +387,14 @@ function find_psi_boundary(
         display(plot!())
     end
 
+    if isempty(r_cache)
+        r_cache, z_cache = IMASutils.contour_cache(PSI)
+    end
+
     # innermost tentative flux surface (which should be closed!)
-    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[1], :closed)
-    if isempty(surface)
+    psi_axis = PSI_interpolant(RA, ZA)
+    pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[1], RA, ZA, psi_axis)
+    if isempty(pr) || is_open_polygon(pr, pz)
         if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[1]) is not closed; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
         else
@@ -371,42 +402,30 @@ function find_psi_boundary(
         end
     end
     if verbose
-        for surf in surface
-            plot!(surf.r, surf.z; color=:blue, label="")
-        end
+        plot!(pr, pz; color=:blue, label="")
         display(plot!())
     end
 
     # outermost tentative flux surface (which should be open!)
-    surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :closed)
-    if !isempty(surface)
-        if verbose
-            for surf in surface
-                display(plot!(surf.r, surf.z; color=:magenta, label=""))
-            end
-        end
-        if raise_error_on_not_open
+    pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[end], RA, ZA, psi_axis)
+    if is_closed_surface(pr, pz, fw_r, fw_z)
+        if raise_error_on_not_closed
             error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
         else
             return (last_closed=nothing, first_open=nothing)
         end
     end
     if verbose
-        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psirange_init[end], :open)
-        for surf in surface
-            plot!(surf.r, surf.z; color=:red, label="")
-        end
+        plot!(pr, pz; color=:red, label="")
         display(plot!())
     end
 
     psirange = deepcopy(psirange_init)
     for k in 1:100
         psimid = (psirange[1] + psirange[end]) / 2.0
-        surface = flux_surface(dimR, dimZ, PSI, RA, ZA, fw_r, fw_z, psimid, :closed)
-
-        if !isempty(surface)
-            # psimid corresonds to a closed flux surface
-            ((pr, pz),) = surface
+        pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psimid, RA, ZA, psi_axis)
+        # closed flux surface
+        if is_closed_surface(pr, pz, fw_r, fw_z)
             if verbose
                 display(plot!(pr, pz; label="", color=:green))
             end
@@ -414,9 +433,8 @@ function find_psi_boundary(
             if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
                 return (last_closed=psimid, first_open=psirange[end])
             end
-
+            # open flux surface
         else
-            # psimid corresonds to an open flux surface
             psirange[end] = psimid
         end
     end
@@ -426,6 +444,18 @@ end
 
 @compat public find_psi_boundary
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_boundary)
+
+function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T}, fw_r::AbstractVector{T}=T[], fw_z::AbstractVector{T}=T[]) where {T<:Real}
+    @assert length(pr) == length(pz)
+    closed = !isempty(pr) && is_closed_polygon(pr, pz)
+    if closed
+        @assert length(fw_r) == length(fw_z)
+        if !isempty(fw_r)
+            closed = !IMAS.intersects(pr, pz, fw_r, fw_z)
+        end
+    end
+    return closed
+end
 
 """
     find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-7) where {T<:Real}
@@ -1120,8 +1150,43 @@ function find_magnetic_axis(
     return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
 
+
+abstract type AbstractFluxSurface{T<:Real} end
+
 """
-    struct FluxSurface{T}
+    struct SimpleSurface{T<:Real} <: AbstractFluxSurface{T}
+        psi::T
+        r::Vector{T}
+        z::Vector{T}
+        ll::Vector{T}
+        fluxexpansion::Vector{T}
+        int_fluxexpansion_dl::T
+    end
+
+A simplified version of FluxSurface that only has the contour points and
+what is needed to compute flux surface averages
+"""
+mutable struct SimpleSurface{T<:Real} <: AbstractFluxSurface{T}
+    psi::T
+    r::Vector{T}
+    z::Vector{T}
+    ll::Vector{T}
+    fluxexpansion::Vector{T}
+    int_fluxexpansion_dl::T
+end
+
+@compat public SimpleSurface
+push!(document[Symbol("Physics flux-surfaces")], :SimpleSurface)
+
+@recipe function plot_SimpleSurface(surface::SimpleSurface)
+    @series begin
+        aspect_ratio := :equal
+        surface.r, surface.z
+    end
+end
+
+"""
+    struct FluxSurface{T<:Real} <: AbstractFluxSurface{T}
         psi::T
         r::Vector{T}
         z::Vector{T}
@@ -1142,7 +1207,7 @@ end
         int_fluxexpansion_dl::T
     end
 """
-mutable struct FluxSurface{T}
+mutable struct FluxSurface{T<:Real} <: AbstractFluxSurface{T}
     psi::T
     r::Vector{T}
     z::Vector{T}
@@ -1182,7 +1247,7 @@ push!(document[Symbol("Physics flux-surfaces")], :FluxSurface)
     end
 end
 
-@recipe function plot_FluxSurfaces(surfaces::Vector{FluxSurface})
+@recipe function plot_FluxSurfaces(surfaces::Vector{<:AbstractFluxSurface})
     for k in eachindex(surfaces)
         @series begin
             label --> ""
@@ -1191,6 +1256,124 @@ end
         end
     end
 end
+
+"""
+    trace_simple_surfaces(
+        psi::AbstractVector{T},
+        r::AbstractVector{T},
+        z::AbstractVector{T},
+        PSI::Matrix{T},
+        PSI_interpolant::Interpolations.AbstractInterpolation,
+        RA::T,
+        ZA::T,
+        wall_r::AbstractVector{T},
+        wall_z::AbstractVector{T}
+    ) where {T<:Real}
+
+Trace flux surfaces and returns vector of SimpleSurface structures. The result
+contains only the contours and what is needed to perform flux-surface averaging.
+"""
+function trace_simple_surfaces(
+    psi::AbstractVector{T},
+    r::AbstractVector{T},
+    z::AbstractVector{T},
+    PSI::Matrix{T},
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    RA::T,
+    ZA::T,
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T}) where {T<:Real}
+
+    surfaces = Vector{SimpleSurface{T}}(undef, length(psi))
+    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z, r_cache, z_cache)
+end
+
+@compat public trace_simple_surfaces
+push!(document[Symbol("Physics flux-surfaces")], :trace_simple_surfaces)
+
+"""
+    trace_simple_surfaces!(
+        surfaces::Vector{SimpleSurface{T}},
+        psi::AbstractVector{T},
+        r::AbstractVector{T},
+        z::AbstractVector{T},
+        PSI::Matrix{T},
+        PSI_interpolant::Interpolations.AbstractInterpolation,
+        RA::T,
+        ZA::T,
+        wall_r::AbstractVector{T},
+        wall_z::AbstractVector{T},
+        r_cache::AbstractVector{T}=T[],
+        z_cache::AbstractVector{T}=T[])
+    ) where {T<:Real}
+
+Trace flux surfaces and store in `surfaces` vector of SimpleSurface structures.
+The result contains only the contours and what is needed to perform flux-surface averaging.
+"""
+function trace_simple_surfaces!(
+    surfaces::Vector{SimpleSurface{T}},
+    psi::AbstractVector{T},
+    r::AbstractVector{T},
+    z::AbstractVector{T},
+    PSI::Matrix{T},
+    PSI_interpolant::Interpolations.AbstractInterpolation,
+    RA::T,
+    ZA::T,
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T},
+    r_cache::AbstractVector{T}=T[],
+    z_cache::AbstractVector{T}=T[]) where {T<:Real}
+
+    N = length(psi)
+
+    if isempty(r_cache) || isempty(z_cache)
+        r_cache, z_cache = IMASutils.contour_cache(PSI)
+    end
+    PSIA = PSI_interpolant(RA, ZA)
+
+    for k in N:-1:1
+        psi_level = psi[k]
+
+        # trace surfaces
+        if k == 1 # on axis flux surface is a artificial one, generated from the second surface
+            pr = (surfaces[2].r .- RA) ./ 100.0 .+ RA
+            pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
+
+        else  # other flux surfaces
+            # trace flux surface
+            pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
+
+            if !is_closed_surface(pr, pz, wall_r, wall_z)
+                error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
+            end
+        end
+
+        ll = zero(pr)
+        fluxexpansion = similar(pr)
+        for i in eachindex(pr)
+            if i > 1
+                # surface length
+                dl = sqrt((pr[i] - pr[i-1])^2 + (pz[i] - pz[i-1])^2)
+                ll[i] = ll[i-1] + dl
+            end
+
+            # flux expansion = 1 / abs(Bp)
+            Br, Bz = Br_Bz(PSI_interpolant, pr[i], pz[i])
+            fluxexpansion[i] = 1.0 / sqrt(Br^2.0 + Bz^2.0)
+        end
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+
+        # create
+        surfaces[k] = SimpleSurface(psi_level, collect(pr), collect(pz), ll, fluxexpansion, int_fluxexpansion_dl)
+    end
+
+    return surfaces
+end
+
+@compat public trace_simple_surfaces!
+push!(document[Symbol("Physics flux-surfaces")], :trace_simple_surfaces!)
+
 
 """
     trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
@@ -1236,8 +1419,10 @@ function trace_surfaces(
     wall_z::AbstractVector{T}
 ) where {T<:Real}
 
-    surfaces = Dict{Int,FluxSurface}()
     N = length(psi)
+    surfaces = Vector{FluxSurface{T}}(undef, N)
+    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    PSIA = PSI_interpolant(RA, ZA)
     for k in N:-1:1
         psi_level = psi[k]
 
@@ -1247,16 +1432,13 @@ function trace_surfaces(
             pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
 
         else  # other flux surfaces
+
             # trace flux surface
-            tmp = flux_surface(r, z, PSI, RA, ZA, wall_r, wall_z, psi_level, :closed)
-            if isempty(tmp)
-                # p = heatmap(r, z, PSI'; colorbar=true, aspect_ratio=:equal)
-                # contour!(r, z, PSI'; color=:white, levels=100)
-                # contour!(r, z, PSI'; levels=[psi[end]], color=:white, lw=2)
-                # display(p)
+            tmp = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
+            pr, pz = collect(tmp[1]), collect(tmp[2])
+            if !is_closed_surface(pr, pz, wall_r, wall_z)
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
-            (pr, pz) = tmp[1]
         end
 
         # surface length
@@ -1277,7 +1459,7 @@ function trace_surfaces(
         # Extrema on array indices
         (imaxr, iminr, imaxz, iminz, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) = fluxsurface_extrema(pr, pz)
 
-        # create 
+        # create
         surfaces[k] = FluxSurface(
             psi_level,
             pr,
@@ -1458,10 +1640,30 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         empty!(eqt.global_quantities, field)
     end
 
-    # accurately find magnetic axis and lcfs and scale psi accordingly
-    RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+    # accurately find magnetic axis
+    # If there's a wall, start by finding all interior extrema that could be near axes
+    # then exclude points outside the first wall (i.e., likely coils)
+    if !isempty(wall_r)
+        pts = (psi_sign > 0.0) ? IMASutils.findall_interior_argmin(PSI) : IMASutils.findall_interior_argmax(PSI)
+        wall = collect(zip(wall_r, wall_z))
+        pts_in_wall = [PolygonOps.inpolygon((r[i], z[j]), wall) == 1 for (i, j) in pts] # 1 if in wall
+        npts_in_wall = sum(pts_in_wall)
+        if npts_in_wall == 1
+            ig, jg = pts[argmax(pts_in_wall)] # this are the indices for the only guess inside the wall
+            RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess=r[ig], zguess=z[jg])
+        else
+            # No way to exclude coils, so use default guess
+            RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+        end
+    else
+        # No way to exclude coils, so use default guess
+        RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+    end
+
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
     psi_axis = PSI_interpolant(RA, ZA)
+
+    # accurately find the lcfs and scale psi accordingly
     original_psi_boundary = eqt.profiles_1d.psi[end]
     psi_boundaries =
         find_psi_boundary(r, z, eqt2d.psi, psi_axis, original_psi_boundary, RA, ZA, wall_r, wall_z; PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
@@ -1858,8 +2060,17 @@ push!(document[Symbol("Physics flux-surfaces")], :flux_surface)
 
 Flux surface averaging of a quantity
 """
-function flux_surface_avg(quantity::AbstractVector{T}, surface::FluxSurface{T}) where {T<:Real}
+function flux_surface_avg(quantity::AbstractVector{T}, surface::AbstractFluxSurface{T}) where {T<:Real}
     f = (k, xx) -> quantity[k] * surface.fluxexpansion[k]
+    return flux_surface_avg(f, surface)
+end
+
+"""
+    flux_surface_avg(f::F1, surface::FluxSurface{T}) where {F1<:Function, T<:Real}
+
+Flux surface averaging of a function
+"""
+@inline function flux_surface_avg(f::F1, surface::AbstractFluxSurface{T}) where {F1<:Function,T<:Real}
     return trapz(surface.ll, f) / surface.int_fluxexpansion_dl
 end
 

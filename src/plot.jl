@@ -131,12 +131,13 @@ push!(document[:Plot], :help_plot!)
 # ========= #
 # pf_active #
 # ========= #
-@recipe function plot_pf_active_cx(pfa::pf_active, what::Symbol=:cx; time0=global_time(pfa), cname=:vik)
+@recipe function plot_pf_active_cx(pfa::pf_active; what=:cx, time0=global_time(pfa), cname=:vik)
     id = plot_help_id(pfa, what)
+    assert_type_and_record_argument(id, Symbol, "What to plot [:currents, :cx, :coils_flux]"; what)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Symbol, "Colormap name"; cname)
 
-    if ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
+    if isempty(pfa.coil) || ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
         c_unit = "A"
     else
@@ -858,7 +859,7 @@ end
 @recipe function plot_x_point(x_point::IMAS.equilibrium__time_slice___boundary__x_point)
     @series begin
         seriestype := :scatter
-        marker --> :circle
+        marker --> :star
         markerstrokewidth --> 0
         label --> ""
         aspect_ratio := :equal
@@ -877,7 +878,7 @@ end
 @recipe function plot_strike_point(s_point::IMAS.equilibrium__time_slice___boundary__strike_point)
     @series begin
         seriestype := :scatter
-        marker --> :cross
+        marker --> :circle
         markerstrokewidth --> 0
         label --> ""
         aspect_ratio := :equal
@@ -1001,19 +1002,56 @@ function layer_attrs(l::IMAS.build__layer)
     return name, color
 end
 
-
-
-@recipe function plot_build_cx(bd::IMAS.build; cx=true, wireframe=false, equilibrium=true, pf_active=true, pf_passive=true, only=Symbol[], exclude_layers=Symbol[])
+@recipe function plot_build(bd::IMAS.build; equilibrium=true, pf_active=true, pf_passive=true)
     id = plot_help_id(bd)
-    assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
-    assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
     assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
     assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
     assert_type_and_record_argument(id, Bool, "Include plot of pf_passive"; pf_passive)
+
+    dd = top_dd(bd)
+
+    legend_position --> :outerbottomright
+    aspect_ratio := :equal
+    grid --> :none
+
+    rmax = maximum(bd.layer[end].outline.r)
+    xlim --> [0, rmax]
+
+    if dd !== nothing && equilibrium
+        @series begin
+            cx := true
+            dd.equilibrium
+        end
+    end
+
+    @series begin
+        dd.build.layer
+    end
+
+    if dd !== nothing && pf_active
+        @series begin
+            colorbar --> :false
+            dd.pf_active
+        end
+    end
+
+    if dd !== nothing && pf_passive
+        @series begin
+            colorbar --> :false
+            color := :yellow
+            dd.pf_passive
+        end
+    end
+end
+
+@recipe function plot_build_layer(layers::IDSvector{<:IMAS.build__layer}; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
+    id = plot_help_id(layers)
+    assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
+    assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
 
-    dd = top_dd(bd)
+    bd = parent(layers)
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
@@ -1023,19 +1061,11 @@ end
 
     # cx
     if cx
-
-        if dd !== nothing && equilibrium
-            @series begin
-                cx := true
-                dd.equilibrium
-            end
-        end
-
-        rmax = maximum(bd.layer[end].outline.r)
+        rmax = maximum(layers[end].outline.r)
 
         # everything after first vacuum in _out_
         if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
-            for k in get_build_indexes(bd.layer; fs=_out_)[2:end]
+            for k in get_build_indexes(layers; fs=_out_)[2:end]
                 if !wireframe
                     @series begin
                         seriestype --> :shape
@@ -1044,10 +1074,10 @@ end
                         label --> (!wireframe ? "Cryostat" : "")
                         xlim --> [0, rmax]
                         join_outlines(
-                            bd.layer[k].outline.r,
-                            bd.layer[k].outline.z,
-                            bd.layer[k-1].outline.r,
-                            bd.layer[k-1].outline.z
+                            layers[k].outline.r,
+                            layers[k].outline.z,
+                            layers[k-1].outline.r,
+                            layers[k-1].outline.z
                         )
                     end
                 end
@@ -1057,14 +1087,14 @@ end
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
-                    bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+                    layers[k].outline.r[1:end-1], layers[k].outline.z[1:end-1]
                 end
             end
         end
 
         # first vacuum in _out_
         if !wireframe
-            k = get_build_indexes(bd.layer; fs=_out_)[1]
+            k = get_build_indexes(layers; fs=_out_)[1]
             @series begin
                 seriestype --> :shape
                 linewidth := 0.0
@@ -1073,10 +1103,10 @@ end
                 label --> ""
                 xlim --> [0, rmax]
                 join_outlines(
-                    bd.layer[k].outline.r,
-                    bd.layer[k].outline.z,
-                    get_build_layer(bd.layer; type=_plasma_).outline.r,
-                    get_build_layer(bd.layer; type=_plasma_).outline.z
+                    layers[k].outline.r,
+                    layers[k].outline.z,
+                    get_build_layer(layers; type=_plasma_).outline.r,
+                    get_build_layer(layers; type=_plasma_).outline.z
                 )
             end
             if (isempty(only) || (:cryostat in only)) && :cryostat ∉ exclude_layers
@@ -1086,7 +1116,7 @@ end
                     color --> :black
                     label --> ""
                     xlim --> [0, rmax]
-                    bd.layer[k].outline.r[1:end-1], bd.layer[k].outline.z[1:end-1]
+                    layers[k].outline.r[1:end-1], layers[k].outline.z[1:end-1]
                 end
             end
         end
@@ -1098,13 +1128,13 @@ end
             label --> ""
             linestyle --> :dash
             color --> :black
-            [0.0, 0.0], [minimum(bd.layer[end].outline.z), maximum(bd.layer[end].outline.z)]
+            [0.0, 0.0], [minimum(layers[end].outline.z), maximum(layers[end].outline.z)]
         end
 
         # all layers inside of the TF
         if (isempty(only) || (:oh in only)) && (!(:oh in exclude_layers))
-            for k in get_build_indexes(bd.layer; fs=_in_)
-                layer = bd.layer[k]
+            for k in get_build_indexes(layers; fs=_in_)
+                layer = layers[k]
                 if getproperty(layer, :material, "not_vacuum") != "vacuum"
                     if !wireframe
                         @series begin
@@ -1129,9 +1159,9 @@ end
         end
 
         # all layers between the OH and the plasma
-        for k in get_build_indexes(bd.layer; fs=_hfs_)
-            l = bd.layer[k]
-            l1 = bd.layer[k+1]
+        for k in get_build_indexes(layers; fs=_hfs_)
+            l = layers[k]
+            l1 = layers[k+1]
             poly = join_outlines(l.outline.r, l.outline.z, l1.outline.r, l1.outline.z)
 
             # setup labels and colors
@@ -1161,7 +1191,7 @@ end
 
         # plasma
         if (isempty(only) || (:plasma in only)) && (!(:plasma in exclude_layers))
-            plasma_outline = outline(get_build_layer(bd.layer; type=_plasma_))
+            plasma_outline = outline(get_build_layer(layers; type=_plasma_))
             @series begin
                 seriestype --> :path
                 linewidth := base_linewidth
@@ -1224,23 +1254,6 @@ end
             end
         end
 
-        if dd !== nothing && pf_active
-            @series begin
-                colorbar --> :false
-                xlim --> [0, rmax]
-                dd.pf_active
-            end
-        end
-
-        if dd !== nothing && pf_passive
-            @series begin
-                colorbar --> :false
-                xlim --> [0, rmax]
-                color := :yellow
-                dd.pf_passive
-            end
-        end
-
     else  # not-cx
 
         @series begin
@@ -1253,7 +1266,7 @@ end
         end
 
         at = 0
-        for l in bd.layer
+        for l in layers
             name, color = layer_attrs(l)
             @series begin
                 seriestype --> :vspan
@@ -1276,19 +1289,31 @@ end
     end
 end
 
-@recipe function plot_build_layer_outline(layer::IMAS.build__layer)
+@recipe function plot_build_layer(layer::IMAS.build__layer)
     @series begin
-        aspect_ratio := :equal
         label --> layer.name
-        layer.outline.r, layer.outline.z
+        layer.outline
     end
 end
 
-@recipe function plot_build_structure_outline(structure::IMAS.build__structure)
+@recipe function plot_build_layer_outline(outline::IMAS.build__layer___outline)
     @series begin
         aspect_ratio := :equal
-        label --> structure.name
-        structure.outline.r, structure.outline.z
+        outline.r, outline.z
+    end
+end
+
+@recipe function plot_build_structure(structure::IMAS.build__structure)
+    @series begin
+        aspect_ratio := :equal
+        structure.outline
+    end
+end
+
+@recipe function plot_build_structure_outline(outline::IMAS.build__structure___outline)
+    @series begin
+        aspect_ratio := :equal
+        outline.r, outline.z
     end
 end
 
@@ -1529,9 +1554,9 @@ end
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de)
-
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    cs1d = parent(cs1de; error_parent_of_nothing=false)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1de, :energy)
@@ -1591,7 +1616,9 @@ end
     assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1d, :total_ion_energy)
@@ -1652,9 +1679,9 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de)
-
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    cs1d = parent(cs1de; error_parent_of_nothing=false)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1de, :particles)
@@ -1706,8 +1733,9 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(parent(cs1di))
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    cs1d = parent(parent(cs1di; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1di, :particles)
@@ -1759,7 +1787,8 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1d, :momentum_tor)
@@ -1809,7 +1838,8 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    name, identifier, idx = source_name_identifier(parent(parent(cs1d); error_parent_of_nothing=false), name, show_source_number)
+    source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
     if !ismissing(cs1d, :j_parallel)
@@ -3020,7 +3050,6 @@ end
         end
     end
 end
-
 
 @recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurement}, err::Symbol=:ribbon)
     if err == :ribbon

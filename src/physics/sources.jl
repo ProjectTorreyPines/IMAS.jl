@@ -42,12 +42,13 @@ function collisional_exchange_source!(dd::IMAS.dd)
     Te = cp1d.electrons.temperature
     Ti = cp1d.t_i_average
 
-    nu_exch = collision_frequencies(dd).nu_exch
+    nu_exch = collision_frequencies(cp1d).nu_exch
     delta = 1.5 .* nu_exch .* ne .* mks.e .* (Te .- Ti)
 
     source = resize!(dd.core_sources.source, :collisional_equipartition; wipe=false)
     new_source(source, source.identifier.index, "exchange", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
         electrons_energy=-delta, total_ion_energy=delta)
+
     return source
 end
 
