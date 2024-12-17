@@ -614,16 +614,16 @@ dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
 dyexp["pulse_schedule.tf.time"] =
     (time; dd, _...) -> dd.equilibrium.time
 
-#= ========= =#
-#  stability  #
-#= ========= =#
-dyexp["stability.model[:].cleared"] =
-    (time; model, _...) -> Int.(model.fraction .<= 1.0)
+#= ====== =#
+#  limits  #
+#= ====== =#
+dyexp["limits.model[:].cleared"] =
+    (time; model, _...) -> Int.(model.fraction .< 1.0)
 
-dyexp["stability.all_cleared"] =
-    (time; stability, _...) -> begin
+dyexp["limits.all_cleared"] =
+    (time; limits, _...) -> begin
         all_cleared = ones(Int, length(time))
-        for model in stability.model
+        for model in limits.model
             all_cleared .= all_cleared .* model.cleared
         end
         return all_cleared
