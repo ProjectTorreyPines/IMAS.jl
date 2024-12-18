@@ -2288,7 +2288,7 @@ end
 # balance_of_plant #
 # ================ #
 @recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant)
-    base_linewidth = plotattributes[:linewidth]
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     size --> (800, 600)
     legend_position --> :outertopright
