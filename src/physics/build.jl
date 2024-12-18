@@ -357,17 +357,40 @@ end
 Returns named tuple with outline of the wall defined by the pf_active.coils
 """
 function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
-    rce = Float64[]
-    zce = Float64[]
+    # find center of the coils
+    min_r = Inf
+    max_r = -Inf
+    min_z = Inf
+    max_z = -Inf
     for coil in pf_active.coil
         for element in coil.element
             r, z = IMAS.outline(element)
-            rc, zc = IMAS.centroid(r, z)
-            append!(rce, rc)
-            append!(zce, zc)
+            min_r = min(min_r, minimum(r))
+            max_r = max(max_r, maximum(r))
+            min_z = min(min_z, minimum(z))
+            max_z = max(max_z, maximum(z))
         end
     end
+    R0 = (min_r + max_r) / 2.0
+    Z0 = (min_z + max_z) / 2.0
 
+    # pick point closes to this center
+    rce = T[]
+    zce = T[]
+    for coil in pf_active.coil
+        re = T[]
+        ze = T[]
+        for element in coil.element
+            r, z = IMAS.outline(element)
+            append!(re, r)
+            append!(ze, z)
+        end
+        index = argmin(sqrt.((re .- R0) .^ 2 .+ (ze .- Z0) .^ 2))
+        push!(rce, re[index])
+        push!(zce, ze[index])
+    end
+
+    # convex hull wall all around
     hull = IMAS.convex_hull(rce, zce; closed_polygon=true)
     rhull = [r for (r, z) in hull]
     zhull = [z for (r, z) in hull]
@@ -375,10 +398,8 @@ function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
     append!(rce, rhull)
     append!(zce, zhull)
 
-    R0 = sum(extrema(rce)) / 2.0
-    Z0 = sum(extrema(zce)) / 2.0
+    # reorder
     index = sortperm(atan.(zce .- Z0, rce .- R0))
-    scatter!([R0], [Z0]; aspect_ratio=:equal)
 
     return (r=rce[index], z=zce[index])
 end
