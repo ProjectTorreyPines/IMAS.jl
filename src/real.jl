@@ -39,7 +39,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     else
         value = getfield(ids, field)
         if field == :time || !(eltype(value) <: T2)
-            setraw!(ids_new, field, value)
+            _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
         else
             efield = Symbol("$(field)_σ")
             if !ismissing(ids, efield)
@@ -48,7 +48,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
             else
                 uncer = value .± 0.0
             end
-            setraw!(ids_new, field, uncer)
+            _setproperty!(ids_new, field, uncer; from_cocos=internal_cocos)
         end
     end
     return nothing
@@ -65,10 +65,10 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     else
         value = getraw(ids, field)
         if eltype(value) <: T2
-            setraw!(ids_new, field, value.val)
-            setraw!(ids_new, Symbol("$(field)_σ"), value.err)
+            _setproperty!(ids_new, field, value.val; from_cocos=internal_cocos)
+            _setproperty!(ids_new, Symbol("$(field)_σ"), value.err; from_cocos=internal_cocos)
         else
-            setraw!(ids_new, field, value)
+            _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
         end
     end
     return nothing
