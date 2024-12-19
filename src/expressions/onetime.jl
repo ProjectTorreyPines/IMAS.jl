@@ -58,6 +58,24 @@ macro store_expr(expr)
         $expr_info_dict[$(key_expr)] = ExprInfo($key_expr, $expr_args, $expr_body)
     end
 end
+
+"""
+    @explain expr
+
+Temporarily sets a flag to explain the execution of `expr`. When `expr` runs under this macro,
+`IMASdd.FLAG_EXPLAIN_EXPRESSION` is enabled, allowing additional diagnostic or explanatory
+information to be displayed. After `expr` completes (successfully or not), the flag is reset.
+"""
+macro explain(expr)
+    return quote
+        IMASdd.FLAG_EXPLAIN_EXPRESSION[] = true
+        try
+            $(esc(expr))
+        finally
+            IMASdd.FLAG_EXPLAIN_EXPRESSION[] = false
+        end
+    end
+end
 # These expressions are frozen the first time they are accessed.
 # This is necessary to ensure that core_profiles, core_sources, and core_transport grids do not change after changing the equilibrium.
 # The idea is that we want to freeze in the core_profiles, core_sources, and core_transport grids the rho, psi, volume, area, ... info that were used when those IDSs were filled.

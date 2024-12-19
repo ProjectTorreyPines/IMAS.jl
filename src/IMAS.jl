@@ -58,6 +58,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export @ddtime, @findall
+export @ddtime, @findall, @explain
 
 end # module
