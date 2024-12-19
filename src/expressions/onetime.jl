@@ -7,6 +7,28 @@ end
 const onetime_expressions = Dict{String,Function}()
 otexp = onetime_expressions
 
+function IMASdd.get_expr_info_dict(::Type{Val{:onetime_and_dynamic}})
+    return expr_info_dict
+end
+
+struct ExprInfo
+    name::String
+    args::String
+    body::String
+end
+
+const expr_info_dict = Dict{String,ExprInfo}()
+
+function Base.show(io::IO, ::MIME"text/plain", expr_info::ExprInfo)
+    printstyled(io, "-"^length(expr_info.name) * "\n"; color=:red)
+    printstyled(io, "$(expr_info.name)\n"; color=:red, bold=true)
+    printstyled(io, "-"^length(expr_info.name) * "\n"; color=:red)
+    printstyled(io, "[Args]\n"; color=:blue)
+    print(io, "$(expr_info.args)\n")
+    printstyled(io, "[Body]\n"; color=:blue)
+    return print(io, "$(expr_info.body)\n")
+end
+
 # These expressions are frozen the first time they are accessed.
 # This is necessary to ensure that core_profiles, core_sources, and core_transport grids do not change after changing the equilibrium.
 # The idea is that we want to freeze in the core_profiles, core_sources, and core_transport grids the rho, psi, volume, area, ... info that were used when those IDSs were filled.
