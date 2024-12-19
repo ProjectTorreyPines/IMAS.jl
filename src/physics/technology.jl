@@ -112,7 +112,7 @@ returns the fraction of (super)conductor in a coil technology
 """
 function fraction_conductor(coil_tech::Union{IMAS.build__pf_active__technology,IMAS.build__oh__technology,IMAS.build__tf__technology})
     frac = 1.0 - coil_tech.fraction_steel - coil_tech.fraction_void # fraction of coil that is a conductor
-    @assert frac > 0.0 "coil technology has no room for conductor"
+    @assert frac > 0.0 "coil technology has no room for conductor (fraction_steel = $(coil_tech.fraction_steel), fraction_void = $(coil_tech.fraction_void))"
     if coil_tech.material == "copper"
         return frac
     else
