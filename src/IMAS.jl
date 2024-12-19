@@ -3,6 +3,7 @@ module IMAS
 using Printf
 using Compat:@compat
 import OrderedCollections
+import MacroTools
 const document = OrderedCollections.OrderedDict()
 
 #= ====== =#
@@ -46,6 +47,7 @@ include("physics.jl")
 #= =========== =#
 #= EXPRESSIONS =#
 #= =========== =#
+include(joinpath("expressions", "expr_info.jl"))
 include(joinpath("expressions", "onetime.jl"))
 include(joinpath("expressions", "dynamic.jl"))
 
@@ -57,6 +59,6 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export @ddtime, @findall
+export @ddtime, @findall, @explain
 
 end # module
