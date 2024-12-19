@@ -3,6 +3,7 @@ module IMAS
 using Printf
 using Compat:@compat
 import OrderedCollections
+import MacroTools
 const document = OrderedCollections.OrderedDict()
 
 #= ====== =#
