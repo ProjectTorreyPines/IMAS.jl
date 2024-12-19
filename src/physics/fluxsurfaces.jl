@@ -1899,7 +1899,7 @@ end
     flux_surfaces(eqt::equilibrium__time_slice, wall::IMAS.wall)
 """
 function flux_surfaces(eqt::equilibrium__time_slice, wall::IMAS.wall)
-    fw = IMAS.first_wall(wall)
+    fw = first_wall(wall)
     return flux_surfaces(eqt, fw.r, fw.z)
 end
 

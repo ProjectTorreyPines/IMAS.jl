@@ -357,6 +357,10 @@ end
 Returns named tuple with outline of the wall defined by the pf_active.coils
 """
 function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
+    if isempty(pf_active.coil)
+        return (r=T[], z=T[])
+    end
+
     # find center of the coils
     min_r = Inf
     max_r = -Inf
@@ -374,7 +378,7 @@ function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
     R0 = (min_r + max_r) / 2.0
     Z0 = (min_z + max_z) / 2.0
 
-    # pick point closes to this center
+    # pick points closer to this center
     rce = T[]
     zce = T[]
     for coil in pf_active.coil
@@ -389,19 +393,31 @@ function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
         push!(rce, re[index])
         push!(zce, ze[index])
     end
-
-    # convex hull wall all around
-    hull = IMAS.convex_hull(rce, zce; closed_polygon=true)
-    rhull = [r for (r, z) in hull]
-    zhull = [z for (r, z) in hull]
-    rhull, zhull = IMAS.resample_2d_path(rhull, zhull; method=:linear, n_points=100)
-    append!(rce, rhull)
-    append!(zce, zhull)
-
-    # reorder
     index = sortperm(atan.(zce .- Z0, rce .- R0))
+    r, z = IMAS.closed_polygon(rce[index], zce[index]).rz
 
-    return (r=rce[index], z=zce[index])
+    return (r=r, z=z)
+end
+
+"""
+    first_wall(eqt::IMAS.equilibrium__time_slice; precision::Float=1E-3) where {T<:Real}
+
+Returns named tuple with outline of the wall defined by equilibrium computation domain
+"""
+function first_wall(eqt::IMAS.equilibrium__time_slice; precision::Float64=1E-3) where {T<:Real}
+    # equilibrium compute box
+    eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+    if eqt2d === nothing
+        return (r=T[], z=T[])
+    else
+        r_start = eqt2d.grid.dim1[1] + precision
+        r_end = eqt2d.grid.dim1[end] - precision
+        z_low = eqt2d.grid.dim2[1] + precision
+        z_high = eqt2d.grid.dim2[end] - precision
+        r = [r_start, r_start, r_end, r_end, r_start]
+        z = [z_low, z_high, z_high, z_low, z_low]
+        return (r=r, z=z)
+    end
 end
 
 @compat public first_wall
