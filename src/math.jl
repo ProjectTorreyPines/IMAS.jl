@@ -141,6 +141,18 @@ end
 push!(document[Symbol("Math")], :unique_indices)
 
 """
+    index_circular(N::Int, idx::Int)
+
+If `idx` is beyond N or less than 1, it wraps around in a circular manner.
+"""
+function index_circular(N::Int, idx::Int)
+    return mod(idx - 1, N) + 1
+end
+
+@compat public index_circular
+push!(document[Symbol("Math")], :index_circular)
+
+"""
     getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
 
 Return the element of the vector `vec` at the position `idx`.
@@ -148,7 +160,7 @@ Return the element of the vector `vec` at the position `idx`.
 If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
 """
 function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
-    cidx = mod(idx - 1, length(vec)) + 1
+    cidx = index_circular(length(vec), idx)
     return vec[cidx]
 end
 
