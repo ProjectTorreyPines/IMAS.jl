@@ -47,6 +47,7 @@ include("physics.jl")
 #= =========== =#
 #= EXPRESSIONS =#
 #= =========== =#
+include(joinpath("expressions", "expr_info.jl"))
 include(joinpath("expressions", "onetime.jl"))
 include(joinpath("expressions", "dynamic.jl"))
 
