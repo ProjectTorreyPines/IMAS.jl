@@ -1057,7 +1057,8 @@ end
         psi_first_open::Union{T3,Nothing};
         strike_surfaces_r::AbstractVector{T4}=wall_r,
         strike_surfaces_z::AbstractVector{T4}=wall_z,
-        private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
+        private_flux_regions::Bool=true
+    ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
 Finds equilibrium strike points and angle of incidence between wall and strike leg
 """
@@ -1068,7 +1069,8 @@ function find_strike_points(
     psi_first_open::Union{T3,Nothing};
     strike_surfaces_r::AbstractVector{T4}=wall_r,
     strike_surfaces_z::AbstractVector{T4}=wall_z,
-    private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
+    private_flux_regions::Bool=true
+) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
     Rxx = Float64[]
     Zxx = Float64[]
@@ -1112,8 +1114,9 @@ push!(document[Symbol("Physics sol")], :find_strike_points)
         wall_z::AbstractVector{T2},
         psi_first_open::Union{T3,Nothing},
         dv::IMAS.divertors{T1};
-        private_flux_regions::Bool=false,
-        in_place::Bool=true) where {T1<:Real,T2<:Real,T3<:Real}
+        private_flux_regions::Bool=true,
+        in_place::Bool=true
+    ) where {T1<:Real,T2<:Real,T3<:Real}
 
 Adds strike points location to equilibrium IDS and the tilt_angle_pol in the divertors IDS
 """
@@ -1123,8 +1126,9 @@ function find_strike_points!(
     wall_z::AbstractVector{T2},
     psi_first_open::Union{T3,Nothing},
     dv::IMAS.divertors{T1};
-    private_flux_regions::Bool=false,
-    in_place::Bool=true) where {T1<:Real,T2<:Real,T3<:Real}
+    private_flux_regions::Bool=true,
+    in_place::Bool=true
+) where {T1<:Real,T2<:Real,T3<:Real}
 
     Rxx = Float64[]
     Zxx = Float64[]
@@ -1174,7 +1178,8 @@ end
         wall_z::AbstractVector{T2},
         psi_first_open::Union{T3,Nothing},
         dv::IMAS.divertors{T1};
-        private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real}
+        private_flux_regions::Bool=true
+    ) where {T1<:Real,T2<:Real,T3<:Real}
 
 Return strike points location in the divertors
 """
@@ -1184,7 +1189,8 @@ function find_strike_points(
     wall_z::AbstractVector{T2},
     psi_first_open::Union{T3,Nothing},
     dv::IMAS.divertors{T1};
-    private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real}
+    private_flux_regions::Bool=true
+) where {T1<:Real,T2<:Real,T3<:Real}
 
     return find_strike_points!(eqt, wall_r, wall_z, psi_first_open, dv; private_flux_regions, in_place=false)
 end
@@ -1194,13 +1200,15 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
-        psi_first_open::T3) where {T1<:Real,T2<:Real,T3<:Real}
+        psi_first_open::T3
+    ) where {T1<:Real,T2<:Real,T3<:Real}
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
-    psi_first_open::T3) where {T1<:Real,T2<:Real,T3<:Real}
+    psi_first_open::T3
+) where {T1<:Real,T2<:Real,T3<:Real}
 
     Rxx, Zxx, θxx = find_strike_points(eqt, wall_r, wall_z, psi_first_open)
     resize!(eqt.boundary.strike_point, length(Rxx))
@@ -1217,14 +1225,15 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
-        psi_first_open::Nothing) where {T1<:Real,T2<:Real}
+        psi_first_open::Nothing
+    ) where {T1<:Real,T2<:Real}
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
-    psi_first_open::Nothing) where {T1<:Real,T2<:Real}
-
+    psi_first_open::Nothing
+) where {T1<:Real,T2<:Real}
     return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[])
 end
 
