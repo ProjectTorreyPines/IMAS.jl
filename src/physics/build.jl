@@ -404,7 +404,7 @@ end
 
 Returns named tuple with outline of the wall defined by equilibrium computation domain
 """
-function first_wall(eqt::IMAS.equilibrium__time_slice; precision::Float64=1E-3) where {T<:Real}
+function first_wall(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-3) where {T<:Real}
     # equilibrium compute box
     eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
     if eqt2d === nothing
