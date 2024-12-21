@@ -396,6 +396,32 @@ function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
     index = sortperm(atan.(zce .- Z0, rce .- R0))
     r, z = IMAS.closed_polygon(rce[index], zce[index]).rz
 
+    r = T[]
+    z = T[]
+    for k in 1:length(rce)-1
+        r0 = rce[k]
+        z0 = zce[k]
+        r1 = rce[k+1]
+        z1 = zce[k+1]
+        push!(r, r0)
+        push!(z, z0)
+        if r1 >= r0 && z1 <= z0
+            push!(r, r1)
+            push!(z, z0)
+        elseif r1 <= r0 && z1 <= z0
+            push!(r, r0)
+            push!(z, z1)
+        elseif r1 <= r0 && z1 >= z0
+            push!(r, r1)
+            push!(z, z0)
+        elseif r1 >= r0 && z1 >= z0
+            push!(r, r0)
+            push!(z, z1)
+        end
+    end
+    push!(r, rce[1])
+    push!(z, zce[1])
+
     return (r=r, z=z)
 end
 
@@ -414,8 +440,8 @@ function first_wall(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-
         r_end = eqt2d.grid.dim1[end] - precision
         z_low = eqt2d.grid.dim2[1] + precision
         z_high = eqt2d.grid.dim2[end] - precision
-        r = [r_start, r_start, r_end, r_end, r_start]
-        z = [z_low, z_high, z_high, z_low, z_low]
+        r = T[r_start, r_start, r_end, r_end, r_start]
+        z = T[z_low, z_high, z_high, z_low, z_low]
         return (r=r, z=z)
     end
 end
