@@ -368,7 +368,7 @@ function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
     max_z = -Inf
     for coil in pf_active.coil
         for element in coil.element
-            r, z = IMAS.outline(element)
+            r, z = outline(element)
             min_r = min(min_r, minimum(r))
             max_r = max(max_r, maximum(r))
             min_z = min(min_z, minimum(z))
@@ -385,7 +385,7 @@ function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
         re = T[]
         ze = T[]
         for element in coil.element
-            r, z = IMAS.outline(element)
+            r, z = outline(element)
             append!(re, r)
             append!(ze, z)
         end
@@ -394,7 +394,7 @@ function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
         push!(zce, ze[index])
     end
     index = sortperm(atan.(zce .- Z0, rce .- R0))
-    r, z = IMAS.closed_polygon(rce[index], zce[index]).rz
+    r, z = closed_polygon(rce[index], zce[index]).rz
 
     r = T[]
     z = T[]
@@ -432,7 +432,7 @@ Returns named tuple with outline of the wall defined by equilibrium computation 
 """
 function first_wall(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-3) where {T<:Real}
     # equilibrium compute box
-    eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     if eqt2d === nothing
         return (r=T[], z=T[])
     else
@@ -444,6 +444,46 @@ function first_wall(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-
         z = T[z_low, z_high, z_high, z_low, z_low]
         return (r=r, z=z)
     end
+end
+
+"""
+    first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
+
+Returns named tuple with outline of the wall defined as the equilibrium computational domain with cutouts for the pf_active.coils that fall in it
+"""
+function first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
+    r_eq, z_eq = first_wall(eqt)
+    eq_domain = collect(zip(r_eq, z_eq))
+
+    R0 = sum(extrema(r_eq)) / 2.0
+    Z0 = sum(extrema(z_eq)) / 2.0
+
+    # pick point closes to this center
+    rce = T[]
+    zce = T[]
+    for coil in pf_active.coil
+        re = T[]
+        ze = T[]
+        for element in coil.element
+            r, z = outline(element)
+            append!(re, r)
+            append!(ze, z)
+        end
+        index = argmin(sqrt.((re .- R0) .^ 2 .+ (ze .- Z0) .^ 2))
+        if PolygonOps.inpolygon((re[index], ze[index]), eq_domain) == 1
+            push!(rce, re[index])
+            push!(zce, ze[index])
+        end
+    end
+
+    r_eq, z_eq = resample_2d_path(r_eq, z_eq; method=:linear, n_points=100)
+    append!(rce, r_eq)
+    append!(zce, z_eq)
+
+    # reorder
+    index = sortperm(atan.(zce .- Z0, rce .- R0))
+
+    return (r=rce[[index; index[1]]], z=zce[[index; index[1]]])
 end
 
 @compat public first_wall
