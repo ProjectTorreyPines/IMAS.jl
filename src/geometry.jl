@@ -980,7 +980,7 @@ push!(document[Symbol("Geometry")], :split_long_segments)
 """
     thick_line_polygon(r1, z1, r2, z2, thickness1, thickness2)
 
-Generates polygon from a thick line. Returns points of the quadrilateral polygon
+Generates a closed polygon from a thick line. Returns points of the quadrilateral polygon
 """
 function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, thickness1::Float64, thickness2::Float64)
     direction = normalize([z2 - z1, -(r2 - r1)]) # Perpendicular direction
@@ -991,6 +991,28 @@ function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, 
     p3 = [r2, z2] - offset2
     p4 = [r1, z1] - offset1
     return [p1, p2, p3, p4, p1]
+end
+
+"""
+    thick_line_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float64}, thickness::AbstractVector{Float64})
+"""
+function thick_line_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float64}, thickness::AbstractVector{Float64})
+    PTS = [thick_line_polygon(pr[i], pz[i], pr[i+1], pz[i+1], thickness[i], thickness[i+1]) for i in 1:length(pr)-1]
+    x1 = map(x -> x[1][1], PTS)
+    y1 = map(x -> x[1][2], PTS)
+    x2 = map(x -> x[2][1], PTS)
+    y2 = map(x -> x[2][2], PTS)
+    x3 = map(x -> x[3][1], PTS)
+    y3 = map(x -> x[3][2], PTS)
+    x4 = map(x -> x[4][1], PTS)
+    y4 = map(x -> x[4][2], PTS)
+
+    r1 = [x1; x2[end]; x3[end]; reverse!(x4); x1[1]]
+    z1 = [y1; y2[end]; y3[end]; reverse!(y4); y1[1]]
+    r2 = [x1[1]; x2; reverse!(x3); x4[end]; x1[1]]
+    z2 = [y1[1]; y2; reverse!(y3); y4[end]; y1[1]]
+
+    return (r=(r1 .+ r2) / 2.0, z=(z1 .+ z2) / 2.0)
 end
 
 @compat public thick_line_polygon
