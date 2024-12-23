@@ -176,8 +176,11 @@ push!(document[Symbol("Physics build")], :get_build_layer)
 Returns corresponding layer on the high/low field side
 """
 function opposite_side_layer(layer::IMAS.build__layer)
-    @assert layer.side in (Int(_hfs_), Int(_lfs_)) "Asking for opposite_side_layer of $(layer.name), which does not make sense"
-    return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+    if layer.side in (Int(_hfs_), Int(_lfs_))
+        return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+    else
+        return layer
+    end
 end
 
 @compat public opposite_side_layer
