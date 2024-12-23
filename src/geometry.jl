@@ -658,9 +658,34 @@ end
 push!(document[Symbol("Geometry")], :resample_plasma_boundary)
 
 """
+    is_z_offset(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
+
+Returns true the shape is offset from z=0 (ie. does not have mxh.z0=0)
+"""
+function is_z_offset(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
+    if abs(maximum(pz) + minimum(pz)) / 2 > precision
+        return true
+    end
+    pr = deepcopy(pr)
+    pz = deepcopy(pz)
+    IMAS.reorder_flux_surface!(pr, pz)
+    return is_z_offset(MXH(pr, pz, order); precision)
+end
+
+"""
+    is_z_offset(mxh::MXH; precision::Float64=1E-3)
+"""
+function is_z_offset(mxh::MXH; precision::Float64=1E-3)
+    return abs(mxh.Z0) > precision
+end
+
+@compat public is_z_offset
+push!(document[Symbol("Geometry")], :is_z_offset)
+
+"""
     is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
 
-Returns true if boundary is updown symmetric
+Returns true if boundary is updown symmetric (independent of mxh.z0)
 """
 function is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
     pr = deepcopy(pr)
