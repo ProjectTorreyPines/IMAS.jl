@@ -1832,7 +1832,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # phi 2D
     tmp .= eqt.profiles_1d.psi .* psi_sign
-    phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :cubic)
+    phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :linear) # must be linear
     eqt2d.phi = phi_itp.(psi_sign .* eqt2d.psi)
 
     # rho 2D in meters
@@ -1848,7 +1848,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         dPHI2_R2[1:n] .= dPHI2_interpolant.(surface.r, surface.z) ./ surface.r .^ 2.0
         @views eqt.profiles_1d.gm2[k] = flux_surface_avg(dPHI2_R2[1:n], surface)
     end
-    @views gm2_itp = interp1d(tmp[2:end], eqt.profiles_1d.gm2[2:end], :cubic)
+    @views gm2_itp = interp1d(tmp[2:5], eqt.profiles_1d.gm2[2:5], :cubic)
     eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
 
     # ip
