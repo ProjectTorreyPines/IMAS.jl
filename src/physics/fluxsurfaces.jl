@@ -1611,7 +1611,7 @@ end
 Update flux surface averaged and geometric quantities for all time_slices in the equilibrium IDS
 """
 function flux_surfaces(eq::equilibrium{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
-    for time_index in eachindex(eq.time_slice)
+    Threads.@threads for time_index in eachindex(eq.time_slice)
         eqt = eq.time_slice[time_index]
         eqt2d = findfirst(:rectangular, eqt.profiles_2d)
         if eqt2d !== nothing
