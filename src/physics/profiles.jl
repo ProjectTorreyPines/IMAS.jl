@@ -665,11 +665,11 @@ Generate H-mode density and temperature profiles evenly spaced in the radial coo
 * `width`: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
-    @assert edge >= 0.0
-    @assert ped >= 0.0
-    @assert core >= 0.0
-    @assert expin >= 0.0
-    @assert expout >= 0.0
+    @assert edge >= 0.0 "invalid edge = $edge"
+    @assert ped >= 0.0 "invalid ped = $ped"
+    @assert core >= 0.0 "invalid core = $core"
+    @assert expin >= 0.0 "invalid expin = $expin"
+    @assert expout >= 0.0 "invalid expout = $expout"
     @assert 0.0 < widthp < 1.0 "pedestal width cannot be $widthp"
 
     xpsi = range(0.0, 1.0, ngrid)

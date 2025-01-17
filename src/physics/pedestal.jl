@@ -14,6 +14,7 @@ function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, su
         @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
     end
     rho = cp1d.grid.rho_tor_norm
+    @assert rho[end] == 1.0
     w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
 
     # NOTE! this does not take into account summary.local.pedestal.zeff.value
@@ -85,6 +86,8 @@ function blend_core_edge_Hmode(
         return norm(z_targets .- z_ped_values) / sum(abs.(z_targets)) .+ norm(p_targets .- p_values) / sum(abs.(p_targets))
     end
 
+    @assert rho[end] == 1.0
+
     z_profile = -calc_z(rho, profile, :backward)
     rho_targets = [tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
@@ -126,7 +129,7 @@ function blend_core_edge_EPED(
     expin::Real,
     expout::Real
 )
-
+    @assert rho[end] == 1.0
     @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
     iped = argmin(abs.(rho .- ped_bound))
     inml = argmin(abs.(rho .- nml_bound))
@@ -179,7 +182,9 @@ function blend_core_edge_Lmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real)
+    tr_bound1::Real
+)
+    @assert rho[end] == 1.0
     return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
@@ -187,7 +192,9 @@ function blend_core_edge_Lmode(
     profile::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     value::Real,
-    rho_bound::Real)
+    rho_bound::Real
+)
+    @assert rho[end] == 1.0
 
     res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
     cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
@@ -199,6 +206,8 @@ end
 push!(document[Symbol("Physics pedestal")], :blend_core_edge_Lmode)
 
 function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value_ped::Real, rho_ped::Real)
+    @assert rho[end] == 1.0
+
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
     profile_ped = edge_profile(rho, rho_ped, value_ped, profile[end], α)
@@ -227,6 +236,8 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=
     mask = psi_norm .> 0.5
     expin = 1.0
     expout = 1.0
+
+    @assert psi_norm[end] == 1.0
 
     function cost_function(profile, params)
         width = mirror_bound(params[1], 0.01, 0.1)
