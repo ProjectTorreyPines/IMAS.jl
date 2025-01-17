@@ -305,6 +305,10 @@ dyexp["equilibrium.time_slice[:].profiles_1d.j_parallel"] =
 dyexp["equilibrium.time_slice[:].profiles_1d.dpressure_dpsi"] =
     (psi; time_slice, profiles_1d, _...) -> gradient(psi, profiles_1d.pressure)
 
+dyexp["equilibrium.time_slice[:].profiles_1d.f_df_dpsi"] =
+    (psi; time_slice, profiles_1d, _...) -> profiles_1d.f .* gradient(psi, profiles_1d.f)
+
+
 dyexp["equilibrium.time_slice[:].profiles_1d.dvolume_drho_tor"] =
     (psi; profiles_1d, _...) -> gradient(profiles_1d.rho_tor, profiles_1d.volume)
 
