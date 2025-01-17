@@ -2161,6 +2161,99 @@ end
     end
 end
 
+# ============ #
+# ec_launchers #
+# ============ #
+function label(beam::IMAS.ec_launchers__beam)
+    name = beam.name
+    freq = "$(Int(round(maximum(beam.frequency.data)/1E9))) GHz"
+    mode = beam.mode==1 ? "O" : "X"
+    return "$name @ $freq $mode"
+end
+
+@recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; show_harmonic=Int[1, 2, 3]) where {T<:Real}
+    id = plot_help_id(beam)
+    assert_type_and_record_argument(id, Vector{Int}, "Show resonance harmonics"; show_harmonic)
+
+    if !isempty(show_harmonic)
+        fundamental_B_ec_resonance = B_ω_ce(frequency(beam) * 2π)
+        dd = top_dd(beam)
+        eqt = dd.equilibrium.time_slice[]
+        eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+        R = eqt2d.grid.dim1
+        Z = eqt2d.grid.dim2
+        b_field_tot = fundamental_B_ec_resonance ./ transpose(sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z^2))
+        @series begin
+            primary := false
+            seriestype --> :contour
+            colorbar_entry --> false
+            levels --> show_harmonic
+            R, Z, b_field_tot
+        end
+    end
+
+    @series begin
+        label --> label(beam)
+        seriestype --> :scatter
+        [beam.launching_position.r], [beam.launching_position.z]
+    end
+end
+
+@recipe function plot_ec_beam(beams::AbstractVector{<:IMAS.ec_launchers__beam{<:T}}) where {T<:Real}
+    for beam in beams
+        @series begin
+            beam
+        end
+    end
+end
+
+@recipe function plot_ec_beam_power_lauched(pl::IMAS.ec_launchers__beam___power_launched)
+    beam = parent(pl)
+    @series begin
+        label --> label(beam)
+        ylabel := "Power Launched [MW]"
+        xlabel := "Time [s]"
+        pl.time, pl.data ./ 1E6
+    end
+end
+
+@recipe function plot_ec_beam_power_lauched(pls::AbstractVector{<:IMAS.ec_launchers__beam___power_launched{T}}; show_total=true) where {T<:Real}
+    id = plot_help_id(pls)
+    assert_type_and_record_argument(id, Bool, "Show total power launched"; show_total)
+
+    background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
+    legend_position --> :bottomright
+
+    if show_total
+        # time basis for the total
+        time_range = T[]
+        for pl in pls
+            append!(time_range, pl.time)
+        end
+        time_range = unique(time_range)
+
+        # accumulate total
+        total = time_range .* 0.0
+        for pl in pls
+            total += interp1d(pl.time, pl.data).(time_range)
+        end
+
+        # plot total
+        @series begin
+            color := :black
+            lw := 2
+            label := "Total"
+            time_range, total / 1E6
+        end
+    end
+
+    for pl in pls
+        @series begin
+            pl
+        end
+    end
+end
+
 # =============== #
 # solid_mechanics #
 # =============== #

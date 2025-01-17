@@ -60,3 +60,13 @@ D (Difference term) of the Stix dielectric tensor
 function stix_D(ω::Real, ne::Real, B::Real)
     return 1.0 - ω_ce(B) * ω_p(ne)^2 / (ω * (ω^2 - ω_ce(B)^2))
 end
+
+"""
+    frequency(beam::IMAS.ec_launchers__beam)
+
+Returns operating frequency of a given Gyrotron in Hz
+"""
+function frequency(beam::IMAS.ec_launchers__beam)
+    @assert minimum(beam.frequency.data) == maximum(beam.frequency.data)
+    return maximum(beam.frequency.data)
+end
