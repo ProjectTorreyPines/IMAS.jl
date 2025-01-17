@@ -2171,7 +2171,7 @@ function label(beam::IMAS.ec_launchers__beam)
     return "$name @ $freq $mode"
 end
 
-@recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; show_harmonic=Int[1, 2, 3]) where {T<:Real}
+@recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; show_harmonic=Int[0]) where {T<:Real}
     id = plot_help_id(beam)
     assert_type_and_record_argument(id, Vector{Int}, "Show resonance harmonics"; show_harmonic)
 
@@ -2183,6 +2183,16 @@ end
         R = eqt2d.grid.dim1
         Z = eqt2d.grid.dim2
         b_field_tot = fundamental_B_ec_resonance ./ transpose(sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z^2))
+        mode = beam.mode==1 ? "O" : "X"
+        for (k,harmonic) in enumerate(show_harmonic)
+            if harmonic == 0
+                if mode == "O"
+                    show_harmonic[k] = 1
+                else
+                    show_harmonic[k] = 2
+                end
+            end
+        end
         @series begin
             primary := false
             seriestype --> :contour
