@@ -2694,12 +2694,14 @@ end
     layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1000, 1000)
 
-    @series begin
-        subplot := 1
-        label := "$(time0) [s]"
-        aspect_ratio := :equal
-        time0 := time0
-        ps.position_control
+    if !isempty(ps.position_control)
+        @series begin
+            subplot := 1
+            label := "$(time0) [s]"
+            aspect_ratio := :equal
+            time0 := time0
+            ps.position_control
+        end
     end
 
     eqt = try
@@ -2733,7 +2735,7 @@ end
         end
     end
 
-    # plotting at infinity does not work
+    # plotting at infinity does not show
     tmax = -Inf
     tmin = Inf
     for plt in plots
@@ -2743,7 +2745,7 @@ end
     end
 
     for (k, plt) in enumerate(plots)
-        x = plt[:x]
+        x = deepcopy(plt[:x])
         x[x.==Inf] .= tmax
         x[x.==-Inf] .= tmin
         y = plt[:y]
