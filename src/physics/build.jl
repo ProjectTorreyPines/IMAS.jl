@@ -357,7 +357,7 @@ end
 """
     first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
 
-Returns named tuple with outline of the wall defined by the pf_active.coils
+Returns named tuple with outline of the first wall, defined by the pf_active.coils
 """
 function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
     if isempty(pf_active.coil)
@@ -431,7 +431,7 @@ end
 """
     first_wall(eqt::IMAS.equilibrium__time_slice; precision::Float=1E-3) where {T<:Real}
 
-Returns named tuple with outline of the wall defined by equilibrium computation domain
+Returns named tuple with outline of the first wall, defined by equilibrium computation domain
 """
 function first_wall(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-3) where {T<:Real}
     # equilibrium compute box
@@ -452,7 +452,7 @@ end
 """
     first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
 
-Returns named tuple with outline of the wall defined as the equilibrium computational domain with cutouts for the pf_active.coils that fall in it
+Returns named tuple with outline of the first wall, defined as the equilibrium computational domain with cutouts for the pf_active.coils that fall in it
 """
 function first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
     r_eq, z_eq = first_wall(eqt)
