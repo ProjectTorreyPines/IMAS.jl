@@ -2791,7 +2791,7 @@ end
         markerstrokewidth --> 0
         primary := false
         Xs = x_points(pc.x_point; time0)
-        [x[1] for x in Xs if x[1] != 0.0], [x[2] for x in Xs if x[1] != 0.0]
+        [x[1] for x in Xs], [x[2] for x in Xs]
     end
     @series begin
         seriestype := :scatter
@@ -2799,7 +2799,7 @@ end
         markerstrokewidth --> 0
         primary := false
         Ss = strike_points(pc.strike_point; time0)
-        [x[1] for x in Ss if x[1] != 0.0], [x[2] for x in Ss if x[1] != 0.0]
+        [x[1] for x in Ss], [x[2] for x in Ss]
     end
     if !ismissing(pc.magnetic_axis.r, :reference) && !ismissing(pc.magnetic_axis.z, :reference)
         @series begin
