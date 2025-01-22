@@ -1799,7 +1799,7 @@ end
         color := idx
         title --> "Momentum"
         if show_condition
-            label := "$name " * @sprintf("[%.3g N m]", tot / 1E6) * label
+            label := "$name " * @sprintf("[%.3g N m]", tot) * label
             if identifier in [:ec, :ic, :lh, :nbi, :pellet]
                 fill0 --> true
             end
