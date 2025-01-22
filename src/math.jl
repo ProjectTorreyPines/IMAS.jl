@@ -64,6 +64,35 @@ function moving_average(data::Vector{<:Real}, window_size::Int)
     return smoothed_data
 end
 
+"""
+    moving_average(t::AbstractVector, data::AbstractVector, new_time::AbstractVector; causal::Bool)
+
+Calculate the moving average of a data vector on a new time basis
+"""
+function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, new_time::AbstractVector{Float64}; causal::Bool=false) where {T<:Real}
+    new_data = similar(new_time, T)
+    width = new_time[2] - new_time[1]
+    for k in 1:length(new_time)
+        new_data[k] = moving_average(time, data, new_time[k], width; causal)
+    end
+    return new_data
+end
+
+"""
+    moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width; causal::Bool=false) where {T<:Real}
+
+Calculate the moving average of a data vector at given time with given average width
+"""
+function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width; causal::Bool=false) where {T<:Real}
+    width = Float64(width)
+    if causal
+        w = pulse.(-time, -t0 - width, width)
+    else
+        w = pulse.(-time, -t0 - width / 2, width)
+    end
+    return sum(data .* w ./ sum(w))
+end
+
 @compat public moving_average
 push!(document[Symbol("Math")], :moving_average)
 
