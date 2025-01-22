@@ -24,6 +24,7 @@ include("real.jl")
 include("get_from.jl")
 include("geometry.jl")
 include("math.jl")
+include("signal.jl")
 
 #= ======= =#
 #= EXTRACT =#
