@@ -1209,3 +1209,28 @@ end
 
 @compat public edge_profile
 push!(document[Symbol("Physics profiles")], :edge_profile)
+
+"""
+    core_edge_energy(cp1d::IMAS.core_profiles__profiles_1d, rho_ped::Real; thermal::Bool=true)
+
+Evaluate stored energy in the core (< rho_ped) or the pedestal (> rho_ped)
+"""
+function core_edge_energy(cp1d::IMAS.core_profiles__profiles_1d, rho_ped::Real; thermal::Bool=true)
+    if thermal
+        p = pressure_thermal(cp1d)
+    else
+        p = pressure(cp1d)
+    end
+    rho_tor_norm = cp1d.grid.rho_tor_norm
+    rho_bound_idx = argmin(abs(rho - rho_ped) for rho in rho_tor_norm)
+    pedge = p[rho_bound_idx]
+    fedge = (k, x) -> (k <= rho_bound_idx) ? pedge : p[k]
+    fcore = (k, x) -> (k <= rho_bound_idx) ? (p[k] - pedge) : 0.0
+    volume = cp1d.grid.volume
+    core_value = 1.5 * trapz(volume, fcore)
+    edge_value = 1.5 * trapz(volume, fedge)
+    return (core_value=core_value, edge_value=edge_value)
+end
+
+@compat public core_edge_energy
+push!(document[Symbol("Physics profiles")], :core_edge_energy)
