@@ -2142,8 +2142,8 @@ Find the `n` X-points that are closest to the separatrix
 """
 function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     ((rlcfs, zlcfs),) = flux_surface(eqt, eqt.profiles_1d.psi[end], :closed, wall_r, wall_z)
-    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :encircling, Float64[], Float64[])
-    Z0 = sum(zlcfs) / length(zlcfs)
+    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :open, wall_r, wall_z)
+    Z0 = sum(extrema(zlcfs)) / 2.0
     empty!(eqt.boundary.x_point)
 
     for (pr, pz) in private
