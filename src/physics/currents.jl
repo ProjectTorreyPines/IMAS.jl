@@ -195,7 +195,7 @@ end
 """
 function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
     @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
-    index = causal_time_index(eq.time, time0)
+    index, perfect_match = causal_time_index(eq.time, time0)
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
 end
 
