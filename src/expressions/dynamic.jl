@@ -118,7 +118,14 @@ dyexp["core_profiles.profiles_1d[:].j_non_inductive"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; exclude_indexes=[7, 13], fields=[:j_parallel]).j_parallel .+ profiles_1d.j_bootstrap
 
 dyexp["core_profiles.profiles_1d[:].j_total"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> profiles_1d.j_ohmic .+ profiles_1d.j_non_inductive
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        if hasdata(profiles_1d, :j_ohmic)
+            return profiles_1d.j_ohmic .+ profiles_1d.j_non_inductive
+        elseif !isempty(dd.equilibrium.time) && profiles_1d.time>=dd.equilibrium.time[1]
+            eqt1d = dd.equilibrium.time_slice[profiles_1d.time].profiles_1d
+            return interp1d(eqt1d.rho_tor_norm, eqt1d.j_parallel).(rho_tor_norm)
+        end
+    end
 
 dyexp["core_profiles.profiles_1d[:].j_tor"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin

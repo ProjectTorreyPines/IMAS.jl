@@ -1,5 +1,9 @@
 document[Symbol("Physics currents")] = Symbol[]
 
+function J_tor(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
+    return @. (-(eqt1d.dpressure_dpsi + eqt1d.f_df_dpsi * eqt1d.gm1 / mks.μ_0) * (2π)) / eqt1d.gm9
+end
+
 """
     j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T, j_ohmic_shape::AbstractVector{T}=cp1d.conductivity_parallel) where {T<:Real}
 
