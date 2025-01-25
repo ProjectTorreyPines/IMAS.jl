@@ -331,17 +331,17 @@ function total_sources(
             continue
         end
         if isempty(source.profiles_1d)
-            continue # skip sources that have no profiles_1d
+            continue # skip sources that have no profiles_1d time slices
         end
-        if source.profiles_1d[1].time > Float64(cp1d.time)
         if !isempty(source.profiles_1d) && source.profiles_1d[1].time > Float64(cp1d.time)
             continue # skip sources that start after time of interest
         end
 
-        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
-        @debug "total_sources() including $source_name source with index $(source.identifier.index)"
-
         source1d = source.profiles_1d[Float64(cp1d.time)]
+
+        if ismissing(source1d.grid, :rho_tor_norm)
+            continue # skip sources don't have radial coordinate, since they cannot have data
+        end
 
         # ions that this source contributes to
         ion_ids1_ids2 = []
