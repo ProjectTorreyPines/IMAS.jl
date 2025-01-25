@@ -503,13 +503,13 @@ function new_source(
 
     if j_parallel !== missing
         cs1d.j_parallel = value = j_parallel
-        cs1d.current_parallel_inside = cumtrapz(volume, value)
+        cs1d.current_parallel_inside = cumtrapz(area, value)
     elseif current_parallel_inside !== missing
         cs1d.current_parallel_inside = value = current_parallel_inside
-        cs1d.j_parallel = gradient(volume, value)
+        cs1d.j_parallel = gradient(area, value)
     else
-        cs1d.j_parallel = zero(volume)
-        cs1d.current_parallel_inside = zero(volume)
+        cs1d.j_parallel = zero(area)
+        cs1d.current_parallel_inside = zero(area)
     end
 
     if momentum_tor !== missing
