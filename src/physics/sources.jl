@@ -284,7 +284,7 @@ function total_sources(
         value = getproperty(cp1d.grid, prop, missing)
         if value === missing
             for source in core_sources.source
-                if source.profiles_1d[1].time <= Float64(cp1d.time)
+                if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= Float64(cp1d.time)
                     value = getproperty(source.profiles_1d[Float64(cp1d.time)].grid, prop, missing)
                     if value !== missing
                         break
@@ -303,7 +303,7 @@ function total_sources(
         push!(total_source1d_ions, tmp)
     end
     for source in core_sources.source
-        if source.profiles_1d[1].time <= Float64(cp1d.time)
+        if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= Float64(cp1d.time)
             source1d = source.profiles_1d[Float64(cp1d.time)]
             for ion in source1d.ion
                 l = length(total_source1d.ion)
@@ -334,6 +334,7 @@ function total_sources(
             continue # skip sources that have no profiles_1d
         end
         if source.profiles_1d[1].time > Float64(cp1d.time)
+        if !isempty(source.profiles_1d) && source.profiles_1d[1].time > Float64(cp1d.time)
             continue # skip sources that start after time of interest
         end
 
