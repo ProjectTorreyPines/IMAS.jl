@@ -650,19 +650,14 @@ push!(document[Symbol("Physics profiles")], :pressure_avg_from_beta_n)
 
 Generate H-mode density and temperature profiles evenly spaced in the radial coordinate
 
-* `edge`: separatrix value
+  - `edge`: separatrix value
 
-* `ped`: pedestal value
-
-* `core`: on-axis value
-
-* `ngrid`: number of radial grid points
-
-* `expin`: inner core exponent for H-mode pedestal profile
-
-* `expout`: outer core exponent for H-mode pedestal profile
-
-* `width`: width of pedestal
+  - `ped`: pedestal value
+  - `core`: on-axis value
+  - `ngrid`: number of radial grid points
+  - `expin`: inner core exponent for H-mode pedestal profile
+  - `expout`: outer core exponent for H-mode pedestal profile
+  - `width`: width of pedestal
 """
 function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
     @assert edge >= 0.0 "invalid edge = $edge"
@@ -735,17 +730,13 @@ push!(document[Symbol("Physics profiles")], :Hmode_profiles)
 
 Generate L-mode density and temperature profiles evenly spaced in the radial coordinate
 
-* `edge`: separatrix value
+  - `edge`: separatrix value
 
-* `ped`: pedestal value
-
-* `ngrid`: number of radial grid points
-
-* `expin`: inner core exponent for H-mode pedestal profile
-
-* `expout`: outer core exponent for H-mode pedestal profile
-
-* `width`: width of pedestal
+  - `ped`: pedestal value
+  - `ngrid`: number of radial grid points
+  - `expin`: inner core exponent for H-mode pedestal profile
+  - `expout`: outer core exponent for H-mode pedestal profile
+  - `width`: width of pedestal
 """
 function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
     rho = range(0.0, 1.0, ngrid)
