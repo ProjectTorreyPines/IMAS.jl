@@ -6,7 +6,7 @@ document[Symbol("Physics neoclassical")] = Symbol[]
 Calculates the Spitzer conductivity in [1/(Ω*m)]
 """
 function spitzer_conductivity(ne, Te, Zeff)
-    return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e(ne, Te))
+    return @. 1.9012e4 * Te ^ 1.5 / (Zeff * 0.58 + 0.74 / (0.76 + Zeff) * lnLambda_e(ne, Te))
 end
 
 @compat public spitzer_conductivity
@@ -338,7 +338,7 @@ end
 push!(document[Symbol("Physics neoclassical")], :collisionless_bootstrap_coefficient)
 
 """
-nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculate the electron collisionality, ν_*e, as a dimensionless measure of the
 frequency of electron collisions relative to their characteristic transit frequency.
@@ -361,11 +361,9 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
     @assert all(a .> 0.0) "a=$a"
 
-    eps = a ./ R
-
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
-    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * eps^1.5)
+    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * (a / R)^1.5)
 end
 
 @compat public nuestar
@@ -386,8 +384,6 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     a = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
-    eps = a ./ R
-
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
     nis = hcat((ion.density for ion in cp1d.ion)...)
@@ -400,7 +396,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 
     Zavg = ne ./ ni
 
-    return @. 4.90e-18 * abs(q) * R * ni * Zdom^4 * lnLambda_i(ni, Ti, Zavg) / (Ti^2 * eps^1.5)
+    return @. 4.90e-18 * abs(q) * R * ni * Zdom^4 * lnLambda_i(ni, Ti, Zavg) / (Ti^2 * (a / R)^1.5)
 end
 
 @compat public nuistar

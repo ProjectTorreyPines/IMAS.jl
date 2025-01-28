@@ -103,7 +103,7 @@ push!(document[Symbol("Physics sources")], :bootstrap_source!)
 """
     sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
 
-Calculates intrisic sources and sinks and adds them to `dd.core_sources`
+Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
 function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
     if bootstrap
@@ -126,7 +126,7 @@ push!(document[Symbol("Physics sources")], :sources!)
 """
     time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
 
-Calculates the time dependent sources and sinks and adds them to `dd.core_sources`
+Calculates time dependent sources and sinks, and adds them to `dd.core_sources`
 
 These are the ∂/∂t term in the transport equations.
 """

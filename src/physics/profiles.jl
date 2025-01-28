@@ -1096,18 +1096,20 @@ Returns plasma effective charge
 `temperature_dependent_ionization_state` evaluates Zeff with average ionization state of an ion at a given temperature
 """
 function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ionization_state::Bool=true)
-    num = zero(cp1d.grid.rho_tor_norm)
-    den = zero(cp1d.grid.rho_tor_norm)
+    z = zero(cp1d.grid.rho_tor_norm)
     for ion in cp1d.ion
         if temperature_dependent_ionization_state
             Zi = avgZ(ion.element[1].z_n, ion.temperature)
         else
             Zi = ion.element[1].z_n
         end
-        num .+= ion.density .* Zi .^ 2
-        den .+= ion.density .* Zi
+        z .+= ion.density .* Zi .^ 2
     end
-    return num ./ cp1d.electrons.density
+    ne = cp1d.electrons.density
+    for k in eachindex(z)
+        z[k] = z[k] / ne[k]
+    end
+    return z
 end
 
 @compat public zeff
