@@ -842,15 +842,15 @@ end
 push!(document[Symbol("Physics profiles")], :L_H_threshold)
 
 """
-    satisfies_h_mode_conditions(dd::IMAS.dd)
+    satisfies_h_mode_conditions(dd::IMAS.dd; threshold_multiple::Float64=1.0)
 
-Returns `true` if the plasma is diverted, has positive triangularity, and `Psol>Plh`
+Returns `true` if the plasma is diverted, has positive triangularity, and `Psol > Plh * threshold_multiple`
 """
 function satisfies_h_mode_conditions(dd::IMAS.dd; threshold_multiple::Float64=1.0)
     eqt = dd.equilibrium.time_slice[]
     diverted = length(eqt.boundary.x_point) > 0
     LH_transition_fraction = getproperty(dd.requirements, :lh_power_threshold_fraction, 1.0)
-    Psol_gt_Plh = IMAS.L_H_threshold(dd) > LH_transition_fraction * multiple
+    Psol_gt_Plh = IMAS.L_H_threshold(dd) > LH_transition_fraction * threshold_multiple
     positive_triangularity = eqt.boundary.triangularity > 0.0
     if Psol_gt_Plh && diverted && positive_triangularity
         return true
