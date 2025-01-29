@@ -2666,7 +2666,7 @@ end
             continue
         end
 
-        time_value = time_array_parent(ids)
+        time_value = parent_ids_with_time_array(ids).time
         data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> !isinf(x), time_value))) == 1
