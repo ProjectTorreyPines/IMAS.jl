@@ -2687,7 +2687,16 @@ end
                 "." => " ",
                 "[" => " ",
                 "]" => " ")
+
         plt[:label] = replace(p2i(filter(x -> x ∉ remove, path[2:end])), substitute...)
+        h = ids
+        while h !== nothing
+            if hasfield(typeof(h), :name) && hasdata(h, :name)
+                plt[:label] = h.name
+                break
+            end
+            h = parent(h)
+        end
         push!(plots, plt)
     end
 
