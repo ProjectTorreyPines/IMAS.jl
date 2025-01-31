@@ -506,18 +506,20 @@ function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{
     n = length(power)
     smoothed_power = similar(power)
 
-    smoothed_power[1] = power[1]
-    for i in 2:n
-        dt = time[i] - time[i - 1]
+    if !isempty(power)
+        smoothed_power[1] = power[1]
+        for i in 2:n
+            dt = time[i] - time[i - 1]
 
-        # Calculate the decay factor for the current time step
-        decay_factor = exp(-dt / taus)
+            # Calculate the decay factor for the current time step
+            decay_factor = exp(-dt / taus)
 
-        # Calculate the source contribution
-        source_term = power[i] * (1.0 - decay_factor)
+            # Calculate the source contribution
+            source_term = power[i] * (1.0 - decay_factor)
 
-        # Update the smoothed density
-        smoothed_power[i] = smoothed_power[i - 1] * decay_factor + source_term
+            # Update the smoothed density
+            smoothed_power[i] = smoothed_power[i - 1] * decay_factor + source_term
+        end
     end
 
     return smoothed_power
