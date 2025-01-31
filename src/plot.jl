@@ -699,6 +699,11 @@ end
                 ylabel := ""
                 normalization := 1.0
                 title := latex_support() ? L"q" : "q"
+                if eqt.profiles_1d.q[end] > 0.0
+                    ylim := (0.0, 5)
+                else
+                    ylim := (-5.0, 0.0)
+                end
                 eqt.profiles_1d, :q
             end
         end
