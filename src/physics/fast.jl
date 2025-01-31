@@ -493,3 +493,66 @@ end
 
 @compat public sivukhin_fraction
 push!(document[Symbol("Physics fast")], :sivukhin_fraction)
+
+"""
+    smooth_beam_power(power::Vector{Float64}, time::AbstractVector{Float64}, taus::Float64) where {T<:Real}
+
+Smooths out the beam power history based on a given thermalization constant `taus`
+
+Such smoothing mimics the delayed contribution from the instantaneous source,
+as well as the gradual decay of the previous fast ion population over time.
+"""
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Float64) where {T<:Real}
+    n = length(power)
+    smoothed_power = similar(power)
+
+    smoothed_power[1] = power[1]
+    for i in 2:n
+        dt = time[i] - time[i - 1]
+
+        # Calculate the decay factor for the current time step
+        decay_factor = exp(-dt / taus)
+
+        # Calculate the source contribution
+        source_term = power[i] * (1.0 - decay_factor)
+
+        # Update the smoothed density
+        smoothed_power[i] = smoothed_power[i - 1] * decay_factor + source_term
+    end
+
+    return smoothed_power
+end
+
+"""
+    smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
+
+return smoothed beam power at time0
+"""
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
+    n = length(power)
+
+    smoothed_power = power[1]
+    if time0 > time[1]
+        for i in 2:n
+            dt = time[i] - time[i - 1]
+
+            # Calculate the decay factor for the current time step
+            decay_factor = exp(-dt / taus)
+
+            # Calculate the source contribution
+            source_term = power[i] * (1.0 - decay_factor)
+
+            # Update the smoothed density
+            smoothed_power = smoothed_power * decay_factor + source_term
+
+            if time[i] >= time0
+                break
+            end
+        end
+    end
+
+    return smoothed_power
+end
+
+@compat public smooth_beam_power
+push!(document[Symbol("Physics fast")], :smooth_beam_power)
