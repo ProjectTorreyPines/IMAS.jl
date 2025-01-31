@@ -4,7 +4,7 @@
 Unitary step triggered at t=0
 """
 function step(t::Float64)
-    return t >= 0.0
+    return Float64(t >= 0.0)
 end
 
 """
