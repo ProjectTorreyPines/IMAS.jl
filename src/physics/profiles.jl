@@ -666,7 +666,7 @@ function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
     @assert core >= 0.0 "invalid core = $core"
     @assert expin >= 0.0 "invalid expin = $expin"
     @assert expout >= 0.0 "invalid expout = $expout"
-    @assert 0.0 < widthp < 1.0 "pedestal width cannot be $widthp"
+    @assert 0.0 < widthp < 1.0 "invalid width = $widthp"
 
     xpsi = range(0.0, 1.0, ngrid)
 
