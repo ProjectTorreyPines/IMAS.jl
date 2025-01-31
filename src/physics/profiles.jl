@@ -83,6 +83,7 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     else
         pressure = cp1d.pressure
     end
+    @assert !any(isnan.(pressure))
 
     volume = cp1d.grid.volume
     pressure_avg = trapz(volume, pressure) / volume[end]

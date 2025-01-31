@@ -79,6 +79,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, 
     if from_where == :summary
         return get_time_array(dd.summary.local.pedestal.n_e, :value, time0, :linear)
     elseif from_where == :core_profiles
+        @assert !isnan(rho_ped)
         cp1d = dd.core_profiles.profiles_1d[time0]
         return interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(rho_ped)
     elseif from_where == :pulse_schedule
