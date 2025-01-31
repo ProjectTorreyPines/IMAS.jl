@@ -301,6 +301,9 @@ function thermalization_time(
     return thermalization_time(v_f, v_c, tau_s)
 end
 
+@compat public thermalization_time
+push!(document[Symbol("Physics fast")], :thermalization_time)
+
 """
     α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -320,8 +323,29 @@ function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
         Int(α.z_n))
 end
 
-@compat public thermalization_time
-push!(document[Symbol("Physics fast")], :thermalization_time)
+@compat public α_thermalization_time
+push!(document[Symbol("Physics fast")], :α_thermalization_time)
+
+"""
+    beam_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d, ion, ion_energy::Real)
+
+Returns the beam thermalization time in seconds evaluated on axis
+"""
+function beam_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.nbi__unit___species, ion_energy::Real)
+    return thermalization_time(
+        cp1d.electrons.density_thermal[1],
+        cp1d.electrons.temperature[1],
+        [ion.density_thermal[1] for ion in cp1d.ion],
+        [ion.temperature[1] for ion in cp1d.ion],
+        [ion.element[1].a for ion in cp1d.ion],
+        [Int(ion.element[1].z_n) for ion in cp1d.ion],
+        ion_energy,
+        ion.a,
+        Int(ion.z_n))
+end
+
+@compat public beam_thermalization_time
+push!(document[Symbol("Physics fast")], :beam_thermalization_time)
 
 """
     fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
