@@ -90,7 +90,12 @@ function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, 
     else
         w = pulse.(-time, -t0 - width / 2, width)
     end
-    return sum(data .* w ./ sum(w))
+    norm = sum(w)
+    if norm == 0.0
+        return interp1d(time, data).(t0)
+    else
+        return sum(data .* w ./ norm)
+    end
 end
 
 @compat public moving_average
