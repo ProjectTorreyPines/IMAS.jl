@@ -379,8 +379,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     for source in cs.source
         source1d = source.profiles_1d[]
         for sion in source1d.ion
-            if !ismissing(sion, :particles) && !ismissing(sion, :fast_particles_energy)
-
+            if !ismissing(sion, :particles) && sum(sion.particles) > 0.0 && !ismissing(sion, :fast_particles_energy) && sion.fast_particles_energy > 0.0
                 particle_mass = sion.element[1].a
                 particle_charge = Int(sion.element[1].z_n)
                 particle_energy = sion.fast_particles_energy
@@ -408,8 +407,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                     for i in 1:Npsi
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
                         taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
-                        i2tmp, i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
-                        i4[i] = i4tmp
+                        _, i4[i] = @views estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
                     end
 
                     sion_particles = IMAS.interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
