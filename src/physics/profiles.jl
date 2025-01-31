@@ -104,45 +104,55 @@ end
 @compat public beta_tor
 push!(document[Symbol("Physics profiles")], :beta_tor)
 
-"""
-    list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
-
-List ions in core_transport IDS,
-"""
-function list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
-    tot = total_fluxes(ct, cp1d, T[])
-    return [Symbol(ion.label) for ion in tot.ion]
-end
-
-function list_ions(ct::IMAS.core_transport, cp1d::Nothing)
-    ions = Symbol[]
+function list_ions!(ct::IMAS.core_transport, ions::Vector{Symbol}; time0::Float64)
     for model in ct.model
-        ct1d = model.profiles_1d[]
+        if isempty(model.profiles_1d)
+            continue
+        end
+        ct1d = model.profiles_1d[time0]
         for ion in ct1d.ion
             push!(ions, Symbol(ion.label))
         end
     end
-    return unique(ions)
+    return ions
 end
 
-"""
-    list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-
-List ions in core_sources IDS
-"""
-function list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-    tot = total_sources(cs, cp1d)
-    return [Symbol(ion.label) for ion in tot.ion]
+function list_ions!(cp::IMAS.core_profiles, ions::Vector{Symbol}; time0::Float64)
+    if isempty(cp.profiles_1d)
+        return ions
+    end
+    cp1d = cp.profiles_1d[time0]
+    for ion in cp1d.ion
+        push!(ions, Symbol(ion.label))
+    end
+    return ions
 end
 
-function list_ions(cs::IMAS.core_sources, cp1d::Nothing)
-    ions = Symbol[]
+function list_ions!(cs::IMAS.core_sources, ions::Vector{Symbol}; time0::Float64)
     for source in cs.source
-        for ion in source.profiles_1d[].ion
+        if isempty(source.profiles_1d)
+            continue
+        end
+        sc1d = source.profiles_1d[time0]
+        for ion in sc1d.ion
             push!(ions, Symbol(ion.label))
         end
     end
-    return unique(ions)
+    return ions
+end
+
+"""
+    list_ions(ids::IDS, idss::Vararg{<:IDS}; time0::Float64)
+
+List of ions mentioned in multiple IDSs at a given time
+"""
+function list_ions(ids1::IDS, idss::Vararg{<:IDS}; time0::Float64)
+    ions = Symbol[]
+    for ids in [ids1; idss...]
+        append!(ions, list_ions!(ids, ions; time0))
+        sort!(unique!(ions))
+    end
+    return ions
 end
 
 @compat public list_ions

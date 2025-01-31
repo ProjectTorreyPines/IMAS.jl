@@ -1468,10 +1468,10 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(ct)
-    cp1d = dd.core_profiles.profiles_1d[]
+    cp1d = dd.core_profiles.profiles_1d[time0]
 
     if ions == [:my_ions]
-        ions = list_ions(ct, cp1d)
+        ions = list_ions(ct, dd.core_profiles; time0)
     end
 
     model_type = name_2_index(ct.model)
@@ -1480,7 +1480,7 @@ end
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
-        ct1d = model.profiles_1d[]
+        ct1d = model.profiles_1d[time0]
         append!(rhos, ct1d.grid_flux.rho_tor_norm)
     end
     rhos = unique(rhos)
@@ -1965,11 +1965,10 @@ end
     dd = top_dd(cs)
 
     if ions == [:my_ions]
-        if dd !== nothing && !isempty(dd.core_profiles.profiles_1d)
-            cp1d = dd.core_profiles.profiles_1d[]
-            ions = list_ions(cs, cp1d)
+        if dd !== nothing
+            ions = list_ions(cs,  dd.core_profiles; time0)
         else
-            ions = list_ions(cs, nothing)
+            ions = list_ions(cs; time0)
         end
     end
 
@@ -1989,7 +1988,6 @@ end
         end
     end
 
-    dd = top_dd(cs)
     if dd !== nothing
 
         if aggregate_radiation

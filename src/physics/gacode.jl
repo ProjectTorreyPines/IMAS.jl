@@ -113,10 +113,9 @@ Normalizes specified transport fluxes output by GA code via gyrobohm normalizati
 function flux_gacode_to_fuse(
     flux_types::Tuple{Vararg{Symbol}},
     flux_solutions::Vector{<:IMAS.flux_solution},
-    m1d::IMAS.core_transport__model___profiles_1d,
-    eqt::IMAS.equilibrium__time_slice,
-    cp1d::core_profiles__profiles_1d
-)
+    m1d::IMAS.core_transport__model___profiles_1d{T},
+    eqt::IMAS.equilibrium__time_slice{T},
+    cp1d::core_profiles__profiles_1d{T}) where {T<:Real}
 
     rho_eq_idxs = [argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
     rho_cp_idxs = [argmin(abs.(cp1d.grid.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
