@@ -75,7 +75,8 @@ push!(document[Symbol("Physics profiles")], :beta_tor_norm)
 Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
 """
 function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
-    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, cp1d.time, :constant)
+    dd = top_dd(eq)
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, dd.global_time, :constant)
     ip = Ip(cp1d)
 
     if thermal
@@ -91,7 +92,7 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     beta_tor = 2.0 * mks.μ_0 * pressure_avg / B0^2
 
     if norm
-        eqt = eq.time_slice[cp1d.time]
+        eqt = eq.time_slice[dd.global_time]
         out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(ip / 1e6) * 1.0e2
     else
         out = beta_tor
@@ -354,7 +355,8 @@ push!(document[Symbol("Physics profiles")], :energy_thermal_ped)
 Evaluate thermal energy confinement time
 """
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
+    dd = top_dd(cp1d)
+    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
@@ -383,7 +385,8 @@ NOTE: H98y2 uses aereal elongation
 See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
 function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
+    dd = top_dd(cp1d)
+    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
@@ -435,7 +438,8 @@ Petty's 2003 confinement time scaling
 NOTE: Petty uses elongation at the separatrix and makes no distinction between volume and line-average density
 """
 function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
+    dd = top_dd(cp1d)
+    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)

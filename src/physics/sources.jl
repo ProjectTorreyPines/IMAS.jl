@@ -247,7 +247,14 @@ end
 push!(document[Symbol("Physics sources")], :retain_source)
 
 """
-    total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
+    total_sources(
+        core_sources::IMAS.core_sources{T},
+        cp1d::IMAS.core_profiles__profiles_1d{T};
+        time0::Float64;
+        include_indexes::Vector{Int}=Int[],
+        exclude_indexes::Vector{Int}=Int[],
+        fields::Vector{Symbol}=Symbol[],
+        only_positive_negative::Int=0) where {T<:Real}
 
 Returns core_sources__source___profiles_1d with sources totals and possiblity to
 
@@ -257,6 +264,7 @@ Returns core_sources__source___profiles_1d with sources totals and possiblity to
 function total_sources(
     core_sources::IMAS.core_sources{T},
     cp1d::IMAS.core_profiles__profiles_1d{T};
+    time0::Float64,
     include_indexes::Vector{Int}=Int[],
     exclude_indexes::Vector{Int}=Int[],
     fields::Vector{Symbol}=Symbol[],
@@ -264,7 +272,7 @@ function total_sources(
 
     total_source1d = IMAS.core_sources__source___profiles_1d{T}()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
-    total_source1d.time = cp1d.time
+    total_source1d.time = time0
 
     matching = Dict{Symbol,Symbol}()
     matching[:power_inside] = :energy
@@ -284,8 +292,8 @@ function total_sources(
         value = getproperty(cp1d.grid, prop, missing)
         if value === missing
             for source in core_sources.source
-                if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= Float64(cp1d.time)
-                    value = getproperty(source.profiles_1d[Float64(cp1d.time)].grid, prop, missing)
+                if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
+                    value = getproperty(source.profiles_1d[time0].grid, prop, missing)
                     if value !== missing
                         break
                     end
@@ -303,8 +311,8 @@ function total_sources(
         push!(total_source1d_ions, tmp)
     end
     for source in core_sources.source
-        if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= Float64(cp1d.time)
-            source1d = source.profiles_1d[Float64(cp1d.time)]
+        if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
+            source1d = source.profiles_1d[time0]
             for ion in source1d.ion
                 l = length(total_source1d.ion)
                 tmp = resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
@@ -333,11 +341,11 @@ function total_sources(
         if isempty(source.profiles_1d)
             continue # skip sources that have no profiles_1d time slices
         end
-        if !isempty(source.profiles_1d) && source.profiles_1d[1].time > Float64(cp1d.time)
+        if !isempty(source.profiles_1d) && source.profiles_1d[1].time > time0
             continue # skip sources that start after time of interest
         end
 
-        source1d = source.profiles_1d[Float64(cp1d.time)]
+        source1d = source.profiles_1d[time0]
 
         if ismissing(source1d.grid, :rho_tor_norm)
             continue # skip sources don't have radial coordinate, since they cannot have data
@@ -390,7 +398,7 @@ end
     total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
 """
 function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
-    return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+    return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0, kw...)
 end
 
 @compat public total_sources
@@ -399,6 +407,7 @@ push!(document[Symbol("Physics sources")], :retain_source)
 function total_radiation_sources(
     core_sources::IMAS.core_sources{T},
     cp1d::IMAS.core_profiles__profiles_1d{T};
+    time0::Float64,
     include_indexes::Vector{Int}=Int[],
     exclude_indexes::Vector{Int}=Int[]) where {T<:Real}
 
@@ -408,14 +417,14 @@ function total_radiation_sources(
 
     fields = [:power_inside, :energy]
     only_positive_negative = -1
-    return total_sources(core_sources, cp1d; include_indexes, exclude_indexes, fields, only_positive_negative)
+    return total_sources(core_sources, cp1d; time0, include_indexes, exclude_indexes, fields, only_positive_negative)
 end
 
 """
     total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
 """
 function total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
-    return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+    return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0, kw...)
 end
 
 @compat public total_radiation_sources

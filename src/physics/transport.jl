@@ -45,7 +45,11 @@ end
 push!(document[Symbol("Physics transport")], :profile_from_z_transport)
 
 """
-    total_fluxes(core_transport::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(core_transport)) where {T<:Real}
+    total_fluxes(
+        core_transport::IMAS.core_transport{T},
+        cp1d::IMAS.core_profiles__profiles_1d,
+        rho_total_fluxes::AbstractVector{<:Real};
+        time0::Float64) where {T<:Real}
 
 Sums up all the fluxes and returns it as a core_transport.model IDS
 """
@@ -53,7 +57,7 @@ function total_fluxes(
     core_transport::IMAS.core_transport{T},
     cp1d::IMAS.core_profiles__profiles_1d,
     rho_total_fluxes::AbstractVector{<:Real};
-    time0::Float64=global_time(core_transport)) where {T<:Real}
+    time0::Float64) where {T<:Real}
 
     total_flux1d = IMAS.core_transport__model___profiles_1d{T}()
     total_flux1d.grid_flux.rho_tor_norm = rho_total_fluxes
