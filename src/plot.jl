@@ -2167,7 +2167,7 @@ end
 function label(beam::IMAS.ec_launchers__beam)
     name = beam.name
     freq = "$(Int(round(maximum(beam.frequency.data)/1E9))) GHz"
-    mode = beam.mode==1 ? "O" : "X"
+    mode = beam.mode == 1 ? "O" : "X"
     return "$name @ $freq $mode"
 end
 
@@ -2183,8 +2183,8 @@ end
         R = eqt2d.grid.dim1
         Z = eqt2d.grid.dim2
         b_field_tot = fundamental_B_ec_resonance ./ transpose(sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z^2))
-        mode = beam.mode==1 ? "O" : "X"
-        for (k,harmonic) in enumerate(show_harmonic)
+        mode = beam.mode == 1 ? "O" : "X"
+        for (k, harmonic) in enumerate(show_harmonic)
             if harmonic == 0
                 if mode == "O"
                     show_harmonic[k] = 1
@@ -2209,43 +2209,87 @@ end
     end
 end
 
-@recipe function plot_ec_beam(beams::AbstractVector{<:IMAS.ec_launchers__beam{<:T}}) where {T<:Real}
-    for beam in beams
-        @series begin
-            beam
-        end
+@recipe function plot_ec(ec::IMAS.ec_launchers{T}) where {T<:Real}
+    @series begin
+        [beam.power_launched for beam in ec.beam]
     end
 end
 
-@recipe function plot_ec_beam_power_lauched(pl::IMAS.ec_launchers__beam___power_launched)
-    beam = parent(pl)
+# === #
+# nbi #
+# === #
+function label(unit::IMAS.nbi__unit)
+    return unit.name
+end
+
+@recipe function plot_nb(nb::IMAS.nbi{T}) where {T<:Real}
     @series begin
-        label --> label(beam)
+        [unit.power_launched for unit in nb.unit]
+    end
+end
+
+@recipe function plot_power_lauched(
+    pl::Union{
+        IMAS.ec_launchers__beam___power_launched{T},
+        IMAS.nbi__unit___power_launched{T},
+        IMAS.ic_antennas__antenna___power_launched{T},
+        IMAS.lh_antennas__antenna___power_launched{T}
+    };
+    beam_smooth_tau=0.0
+) where {T<:Real}
+    id = plot_help_id(pl)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power"; beam_smooth_tau)
+    hcd = parent(pl)
+    data1 = pl.data
+    if typeof(pl) <: IMAS.nbi__unit___power_launched && beam_smooth_tau > 0.0
+        data1 = smooth_beam_power(pl.time, pl.data, beam_smooth_tau)
+    end
+    @series begin
+        label --> label(hcd)
         ylabel := "Power Launched [MW]"
         xlabel := "Time [s]"
-        pl.time, pl.data ./ 1E6
+        legend_position --> :topleft
+        pl.time, data1 ./ 1E6
     end
 end
 
-@recipe function plot_ec_beam_power_lauched(pls::AbstractVector{<:IMAS.ec_launchers__beam___power_launched{T}}; show_total=true) where {T<:Real}
+@recipe function plot_hcd_power_lauched(
+    pls::AbstractVector{
+        <:Union{
+            IMAS.ec_launchers__beam___power_launched{T},
+            IMAS.nbi__unit___power_launched{T},
+            IMAS.ic_antennas__antenna___power_launched{T},
+            IMAS.lh_antennas__antenna___power_launched{T}
+        }
+    };
+    show_total=true,
+    beam_smooth_tau=0.0
+) where {T<:Real}
     id = plot_help_id(pls)
     assert_type_and_record_argument(id, Bool, "Show total power launched"; show_total)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power"; beam_smooth_tau)
 
     background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
-    legend_position --> :bottomright
 
     if show_total
         # time basis for the total
         time_range = T[]
         for pl in pls
             append!(time_range, pl.time)
+            unique!(time_range)
         end
-        time_range = unique(time_range)
 
         # accumulate total
         total = time_range .* 0.0
         for pl in pls
-            total += interp1d(pl.time, pl.data).(time_range)
+            if time_range == pl.time
+                total += pl.data
+            else
+                total += interp1d(pl.time, pl.data).(time_range)
+            end
+        end
+        if eltype(pls) <: IMAS.nbi__unit___power_launched && beam_smooth_tau > 0.0
+            total = smooth_beam_power(time_range, total, beam_smooth_tau)
         end
 
         # plot total
@@ -2259,6 +2303,7 @@ end
 
     for pl in pls
         @series begin
+            beam_smooth_tau := beam_smooth_tau
             pl
         end
     end
