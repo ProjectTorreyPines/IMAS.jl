@@ -2238,14 +2238,14 @@ end
         IMAS.ic_antennas__antenna___power_launched{T},
         IMAS.lh_antennas__antenna___power_launched{T}
     };
-    beam_smooth_tau=0.0
+    smooth_beam_tau=0.0
 ) where {T<:Real}
     id = plot_help_id(pl)
-    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power"; beam_smooth_tau)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power assuming τ thermalization time [s]"; smooth_beam_tau)
     hcd = parent(pl)
     data1 = pl.data
-    if typeof(pl) <: IMAS.nbi__unit___power_launched && beam_smooth_tau > 0.0
-        data1 = smooth_beam_power(pl.time, pl.data, beam_smooth_tau)
+    if typeof(pl) <: IMAS.nbi__unit___power_launched && smooth_beam_tau > 0.0
+        data1 = smooth_beam_power(pl.time, pl.data, smooth_beam_tau)
     end
     @series begin
         label --> label(hcd)
@@ -2266,11 +2266,11 @@ end
         }
     };
     show_total=true,
-    beam_smooth_tau=0.0
+    smooth_beam_tau=0.0
 ) where {T<:Real}
     id = plot_help_id(pls)
     assert_type_and_record_argument(id, Bool, "Show total power launched"; show_total)
-    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power"; beam_smooth_tau)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power"; smooth_beam_tau)
 
     background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
@@ -2291,8 +2291,8 @@ end
                 total += interp1d(pl.time, pl.data).(time_range)
             end
         end
-        if eltype(pls) <: IMAS.nbi__unit___power_launched && beam_smooth_tau > 0.0
-            total = smooth_beam_power(time_range, total, beam_smooth_tau)
+        if eltype(pls) <: IMAS.nbi__unit___power_launched && smooth_beam_tau > 0.0
+            total = smooth_beam_power(time_range, total, smooth_beam_tau)
         end
 
         # plot total
@@ -2306,7 +2306,7 @@ end
 
     for pl in pls
         @series begin
-            beam_smooth_tau := beam_smooth_tau
+            smooth_beam_tau := smooth_beam_tau
             pl
         end
     end
