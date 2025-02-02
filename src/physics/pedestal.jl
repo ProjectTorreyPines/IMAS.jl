@@ -241,19 +241,20 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=
 
     function cost_function(params)
         width0 = mirror_bound(params[1], 0.01, 0.1)
-        height0 = interp1d(psi_norm0, profile0)(1.0 - width)
+        height0 = interp1d(psi_norm0, profile0)(1.0 - width0)
         core0 = abs(params[2])
         expin0 = abs(params[3]) + 1.0
         expout0 = abs(params[4]) + 1.0
 
         profile_fit0 = Hmode_profiles(profile0[end], height0, core0, length(profile0), expin0, expout0, width0)
 
-        cost = trapz(psi_norm0, (mask .* (profile_fit0 .- profile0)) .^ 2)
-        return cost
+        return trapz(psi_norm0, (mask .* (profile_fit0 .- profile0)) .^ 2)
     end
 
-    width = 0.1
-    height = interp1d(psi_norm, profile)(1.0 - width)
+    # display(plot(psi_norm0 .* abs.(gradient(psi_norm0, profile0))./ (profile[1] .+ profile0)  ))
+
+    width = (1 - psi_norm0[argmax(psi_norm0 .* abs.(gradient(psi_norm0, profile0)))]) * 2
+    height = interp1d(psi_norm0, profile0)(1.0 - width)
     core = profile[1]
     expin = 1.0
     expout = 1.0
@@ -261,18 +262,19 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=
     res = Optim.optimize(params -> cost_function(params), [width, core, expin - 1.0, expout - 1.0], Optim.NelderMead())
 
     width = mirror_bound(res.minimizer[1], 0.01, 0.1)
-    height = interp1d(psi_norm, profile)(1.0 - width)
+    height = interp1d(psi_norm0, profile0)(1.0 - width)
     core = abs(res.minimizer[2])
     expin = 1.0 + abs(res.minimizer[3])
     expout = 1.0 + abs(res.minimizer[4])
 
     if do_plot
         profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
-        p = plot(psi_norm, profile; label="profile", marker=:circle, markersize=1)
+        p = plot(psi_norm0, profile0; label="profile", marker=:circle, markersize=1)
         plot!(p, psi_norm0, profile_fit; label="fit")
         hline!(p, [height]; ls=:dash, primary=false)
-        vline!(p, [1.0 .- width]; ls=:dash, primary=false)
-        vline!(p, [1.0 - 2.0 * width]; ls=:dash, primary=false)
+        vline!(p, [1.0 .- width/2]; ls=:dash, primary=false)
+        vline!(p, [1.0 .- width/2*1.5]; ls=:dash, primary=false)
+        vline!(p, [1.0 - width]; ls=:dash, primary=false)
         scatter!(p, [1.0 - width], [height]; primary=false)
         display(p)
     end
