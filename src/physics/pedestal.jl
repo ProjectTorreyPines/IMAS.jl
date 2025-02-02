@@ -65,6 +65,8 @@ function blend_core_edge_Hmode(
     tr_bound1::Real
 )
 
+    @assert 0.0 < ped_width < 1.0
+
     function cost_find_EPED_exps(
         x::AbstractVector{<:Real},
         ped_height::Real,

@@ -661,40 +661,40 @@ end
 push!(document[Symbol("Physics profiles")], :pressure_avg_from_beta_n)
 
 """
-    Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real; offset::Real=0.0)
 
 Generate H-mode density and temperature profiles evenly spaced in the radial coordinate
 
   - `edge`: separatrix value
-
   - `ped`: pedestal value
   - `core`: on-axis value
   - `ngrid`: number of radial grid points
   - `expin`: inner core exponent for H-mode pedestal profile
   - `expout`: outer core exponent for H-mode pedestal profile
-  - `width`: width of pedestal
+  - `width`: full width of pedestal (from the separatrix to the pedestal itself)
+  - `offset`: offset of the pedestal center
 """
-function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real; offset::Real=0.0)
     @assert edge >= 0.0 "invalid edge = $edge"
     @assert ped >= 0.0 "invalid ped = $ped"
     @assert core >= 0.0 "invalid core = $core"
     @assert expin >= 0.0 "invalid expin = $expin"
     @assert expout >= 0.0 "invalid expout = $expout"
-    @assert 0.0 < widthp < 1.0 "invalid width = $widthp"
+    @assert 0.0 < width < 1.0 "invalid width = $width"
 
     xpsi = range(0.0, 1.0, ngrid)
 
-    w_E1 = 0.5 * widthp  # width as defined in eped
-    xphalf = 1.0 - w_E1
-    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    widthp = 0.5 * width  # width as defined in eped
+    xphalf = 1.0 - widthp - offset
+    pconst = 1.0 - tanh((1.0 - xphalf) / widthp)
     a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
-    coretanh = 0.5 * a_t * (1.0 - tanh(-xphalf / w_E1) - pconst) + edge
+    coretanh = 0.5 * a_t * (1.0 - tanh(-xphalf / widthp) - pconst) + edge
 
     # edge tanh part
-    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge + core * 0.0
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / widthp) - pconst) + edge + core * 0.0
 
     # core tanh+polynomial part
-    xped = xphalf - w_E1
+    xped = xphalf - widthp
     xtoped = xpsi ./ xped
     for i in 1:ngrid
         if xtoped[i] < 1.0
@@ -706,31 +706,31 @@ function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
 end
 
 """
-    Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
 
 NOTE: The core value is allowed to float
 """
-function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
     @assert edge >= 0.0
     @assert ped >= 0.0
     @assert expin >= 0.0
     @assert expout >= 0.0
-    @assert 0.0 < widthp < 1.0 "pedestal width cannot be $widthp"
+    @assert 0.0 < width < 1.0 "pedestal width cannot be $width"
 
     xpsi = range(0.0, 1.0, ngrid)
 
-    w_E1 = 0.5 * widthp  # width as defined in eped
-    xphalf = 1.0 - w_E1
-    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    widthp = 0.5 * width  # width as defined in eped
+    xphalf = 1.0 - widthp
+    pconst = 1.0 - tanh((1.0 - xphalf) / widthp)
     a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
 
     # edge tanh part
-    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / widthp) - pconst) + edge
 
     # core tanh+polynomial part
-    xped = xphalf - w_E1
+    xped = xphalf - widthp
     xtoped = xpsi ./ xped
-    factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / w_E1) - pconst) + edge
+    factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / widthp) - pconst) + edge
     index = xtoped .< 1.0
     val[index] += factor .* (1.0 .- xtoped[index] .^ expin) .^ expout
 
@@ -741,21 +741,20 @@ end
 push!(document[Symbol("Physics profiles")], :Hmode_profiles)
 
 """
-    Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
 
 Generate L-mode density and temperature profiles evenly spaced in the radial coordinate
 
   - `edge`: separatrix value
-
   - `ped`: pedestal value
   - `ngrid`: number of radial grid points
   - `expin`: inner core exponent for H-mode pedestal profile
   - `expout`: outer core exponent for H-mode pedestal profile
   - `width`: width of pedestal
 """
-function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
     rho = range(0.0, 1.0, ngrid)
-    rho_ped = 1.0 - widthp
+    rho_ped = 1.0 - width
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
     f(x) = abs.(1.0 - x .^ expin) .^ expout
