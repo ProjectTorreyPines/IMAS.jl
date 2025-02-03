@@ -233,7 +233,7 @@ NOTE: The width is limited to be between 0.01 and 0.1.
 If the width is at the 0.1 boundary it is likely an indication that the profile is not a typical H-mode profile.
 The height is the value of the profile evaluated at (1.0 - width)
 """
-function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=false) where {T<:Real}
+function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=false, guess=nothing) where {T<:Real}
     @assert psi_norm[end] == 1.0
 
     psi_norm0 = range(0, 1, length(profile))
@@ -247,41 +247,49 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=
         core0 = abs(params[2])
         expin0 = abs(params[3]) + 1.0
         expout0 = abs(params[4]) + 1.0
+        offset0 = mirror_bound(params[5], 0.0, width0 * 0.4)
 
-        profile_fit0 = Hmode_profiles(profile0[end], height0, core0, length(profile0), expin0, expout0, width0)
+        profile_fit0 = Hmode_profiles(profile0[end], height0, core0, length(profile0), expin0, expout0, width0 - offset0; offset=offset0)
 
-        return trapz(psi_norm0, (mask .* (profile_fit0 .- profile0)) .^ 2)
+        return norm(mask .* (profile_fit0 .- profile0))
     end
 
-    # display(plot(psi_norm0 .* abs.(gradient(psi_norm0, profile0))./ (profile[1] .+ profile0)  ))
+    if guess!=nothing
+        width = guess.width
+        height = interp1d(psi_norm0, profile0)(1.0 - width)
+        core = profile[1]
+        expin = guess.expin
+        expout = guess.expout
+        offset = guess.offset
+    else
+        width = (1.0 - psi_norm0[argmax(psi_norm0 .* abs.(gradient(psi_norm0, profile0)))]) * 2.0
+        height = interp1d(psi_norm0, profile0)(1.0 - width)
+        core = profile[1]
+        expin = 1.0
+        expout = 1.0
+        offset = 0.0
+    end
 
-    width = (1 - psi_norm0[argmax(psi_norm0 .* abs.(gradient(psi_norm0, profile0)))]) * 2
-    height = interp1d(psi_norm0, profile0)(1.0 - width)
-    core = profile[1]
-    expin = 1.0
-    expout = 1.0
-
-    res = Optim.optimize(params -> cost_function(params), [width, core, expin - 1.0, expout - 1.0], Optim.NelderMead())
+    res = Optim.optimize(params -> cost_function(params), [width, core, expin - 1.0, expout - 1.0, offset], Optim.NelderMead())
 
     width = mirror_bound(res.minimizer[1], 0.01, 0.1)
     height = interp1d(psi_norm0, profile0)(1.0 - width)
     core = abs(res.minimizer[2])
     expin = 1.0 + abs(res.minimizer[3])
     expout = 1.0 + abs(res.minimizer[4])
+    offset = mirror_bound(res.minimizer[1], 0.0, width * 0.4)
 
     if do_plot
-        profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
+        profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width - offset; offset)
         p = plot(psi_norm0, profile0; label="profile", marker=:circle, markersize=1)
         plot!(p, psi_norm0, profile_fit; label="fit")
         hline!(p, [height]; ls=:dash, primary=false)
-        vline!(p, [1.0 .- width/2]; ls=:dash, primary=false)
-        vline!(p, [1.0 .- width/2*1.5]; ls=:dash, primary=false)
-        vline!(p, [1.0 - width]; ls=:dash, primary=false)
+        vline!(p, [1.0 .- width]; ls=:dash, primary=false)
         scatter!(p, [1.0 - width], [height]; primary=false)
         display(p)
     end
 
-    return (height=height, width=width)
+    return (height=height, width=width, expin=expin, expout=expout, offset=offset, core=core, edge=profile[end])
 end
 
 @compat public pedestal_finder
