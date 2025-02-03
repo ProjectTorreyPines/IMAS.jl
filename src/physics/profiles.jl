@@ -1191,11 +1191,11 @@ end
 push!(document[Symbol("Physics profiles")], :t_i_average)
 
 """
-    edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
+    exponential_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
 
 Function for edge blending using exponential function
 """
-function edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
+function exponential_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
     @assert x[1] == 0.0
     @assert x[end] == 1.0
     @assert 0.0 < x0 < 1.0
@@ -1204,13 +1204,13 @@ function edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, al
     else
         sigma = 1 / alpha
     end
-    y = edge_profile0(x, x0, sigma)
-    y0 = edge_profile0(x0, x0, sigma)
-    y1 = edge_profile0(1.0, x0, sigma)
+    y = exponential_profile(x, x0, sigma)
+    y0 = exponential_profile(x0, x0, sigma)
+    y1 = exponential_profile(1.0, x0, sigma)
     return @. (y - y1) / (y0 - y1) * (T0 - T1) + T1
 end
 
-function edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
+function exponential_profile(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
     return exp.(.-(x .- x0) / sigma)
 end
 

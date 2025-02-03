@@ -13,21 +13,25 @@ function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, su
     else
         @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
     end
+
     rho = cp1d.grid.rho_tor_norm
     @assert rho[end] == 1.0
     w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
 
-    # NOTE! this does not take into account summary.local.pedestal.zeff.value
     if what ∈ (:all, :densities)
-        old_electron_density_thermal = cp1d.electrons.density_thermal
-        new_electron_density_thermal = blend_function(cp1d.electrons.density_thermal, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
-        fraction = new_electron_density_thermal ./ old_electron_density_thermal
+        @assert all(cp1d.zeff .>= 1.0) "zeff < 1.0 before entering blend_core_edge"
+        old_ne_ped = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(1.0 - w_ped)
+        ne_ped = @ddtime(summary_ped.n_e.value)
+        cp1d.electrons.density_thermal[end] = ne_ped / 4.0
+        cp1d.electrons.density_thermal = blend_function(cp1d.electrons.density_thermal, rho, ne_ped, w_ped, rho_nml, rho_ped)
         for ion in cp1d.ion
             if !ismissing(ion, :density_thermal)
-                ion.density_thermal = ion.density_thermal .* fraction
+                ni_ped = interp1d(cp1d.grid.rho_tor_norm, ion.density_thermal).(1.0 - w_ped) * ne_ped / old_ne_ped
+                ion.density_thermal[end] = ni_ped / 4.0
+                ion.density_thermal = blend_function(ion.density_thermal, rho, ni_ped, w_ped, rho_nml, rho_ped)
             end
         end
-        cp1d.electrons.density_thermal = new_electron_density_thermal
+        @assert all(cp1d.zeff .>= 1.0) "blend_core_edge() made zeff < 1.0"
     end
 
     if what ∈ (:all, :temperatures)
@@ -212,7 +216,7 @@ function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Re
 
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
-    profile_ped = edge_profile(rho, rho_ped, value_ped, profile[end], α)
+    profile_ped = exponential_profile(rho, rho_ped, value_ped, profile[end], α)
     z_profile_ped = calc_z(rho, profile_ped, :backward)
 
     profile .+= (-profile[rho_ped_idx] + value_ped)
@@ -254,7 +258,7 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=
         return norm(mask .* (profile_fit0 .- profile0))
     end
 
-    if guess!=nothing
+    if guess != nothing
         width = guess.width
         height = interp1d(psi_norm0, profile0)(1.0 - width)
         core = profile[1]
