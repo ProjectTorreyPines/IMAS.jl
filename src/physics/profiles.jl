@@ -568,6 +568,15 @@ end
 push!(document[Symbol("Physics profiles")], :greenwald_fraction)
 
 """
+    geometric_midplane_line_averaged_density(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculates the averaged density along rho_tor_norm (to be used when equilibrium information is not available)
+"""
+function geometric_midplane_line_averaged_density(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
+    return trapz(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal)
+end
+
+"""
     geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the line averaged density from a midplane horizantal line
@@ -580,7 +589,7 @@ end
     geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
 """
 function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
-    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
+    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard).(rho_ne)
     return trapz(a_cp, ne_profile) / a_cp[end]
 end
 
@@ -1121,7 +1130,7 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ioniz
     end
     ne = cp1d.electrons.density
     for k in eachindex(z)
-        z[k] = z[k] / ne[k]
+        z[k] = max(1.0, z[k] / ne[k])
     end
     return z
 end
