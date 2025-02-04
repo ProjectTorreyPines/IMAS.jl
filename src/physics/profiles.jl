@@ -109,7 +109,9 @@ function list_ions!(ct::IMAS.core_transport, ions::Vector{Symbol}; time0::Float6
         if isempty(model.profiles_1d)
             continue
         end
-        ct1d = model.profiles_1d[time0]
+        time = [ids.time for ids in model.profiles_1d]
+        k = causal_time_index(time, time0; bounds_error=false).index
+        ct1d = model.profiles_1d[k]
         for ion in ct1d.ion
             push!(ions, Symbol(ion.label))
         end
@@ -121,7 +123,9 @@ function list_ions!(cp::IMAS.core_profiles, ions::Vector{Symbol}; time0::Float64
     if isempty(cp.profiles_1d)
         return ions
     end
-    cp1d = cp.profiles_1d[time0]
+    time = [ids.time for ids in cp.profiles_1d]
+    k = causal_time_index(time, time0; bounds_error=false).index
+    cp1d = cp.profiles_1d[k]
     for ion in cp1d.ion
         push!(ions, Symbol(ion.label))
     end
@@ -133,7 +137,9 @@ function list_ions!(cs::IMAS.core_sources, ions::Vector{Symbol}; time0::Float64)
         if isempty(source.profiles_1d)
             continue
         end
-        sc1d = source.profiles_1d[time0]
+        time = [ids.time for ids in source.profiles_1d]
+        k = causal_time_index(time, time0; bounds_error=false).index
+        sc1d = source.profiles_1d[k]
         for ion in sc1d.ion
             push!(ions, Symbol(ion.label))
         end
