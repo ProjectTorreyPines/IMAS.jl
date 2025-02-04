@@ -72,12 +72,14 @@ function total_fluxes(
         push!(total_flux1d_ions, tmp)
     end
     for model in core_transport.model
-        model1d = model.profiles_1d[time0]
-        for ion in model1d.ion
-            l = length(total_flux1d.ion)
-            tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
-            if l != length(total_flux1d.ion)
-                push!(total_flux1d_ions, tmp)
+        if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
+            model1d = model.profiles_1d[time0]
+            for ion in model1d.ion
+                l = length(total_flux1d.ion)
+                tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+                if l != length(total_flux1d.ion)
+                    push!(total_flux1d_ions, tmp)
+                end
             end
         end
     end

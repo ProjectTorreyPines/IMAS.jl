@@ -1485,8 +1485,10 @@ end
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
-        ct1d = model.profiles_1d[time0]
-        append!(rhos, ct1d.grid_flux.rho_tor_norm)
+        if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
+            ct1d = model.profiles_1d[time0]
+            append!(rhos, ct1d.grid_flux.rho_tor_norm)
+        end
     end
     rhos = unique(rhos)
 
@@ -1514,20 +1516,22 @@ end
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
-        @series begin
-            ions := ions
-            label := model.identifier.name
-            if model.identifier.index == model_type[:anomalous]
-                markershape := :diamond
-                markerstrokewidth := 0.5
-                linewidth := 0
-                color := :orange
-            elseif model.identifier.index == model_type[:neoclassical]
-                markershape := :cross
-                linewidth := 0
-                color := :purple
+        if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
+            @series begin
+                ions := ions
+                label := model.identifier.name
+                if model.identifier.index == model_type[:anomalous]
+                    markershape := :diamond
+                    markerstrokewidth := 0.5
+                    linewidth := 0
+                    color := :orange
+                elseif model.identifier.index == model_type[:neoclassical]
+                    markershape := :cross
+                    linewidth := 0
+                    color := :purple
+                end
+                model.profiles_1d[time0]
             end
-            model.profiles_1d[time0]
         end
     end
 end
