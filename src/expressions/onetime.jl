@@ -18,11 +18,11 @@ otexp = onetime_expressions
 #
 # For example, this will FAIL:
 #    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
-#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
+#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * mks.e
 #
 # This is GOOD:
 #    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
-#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
+#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * mks.e
 
 #= =========== =#
 # core_profiles #
