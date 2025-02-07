@@ -66,10 +66,7 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real
-)
-
-    @assert 0.0 < ped_width < 1.0
+    tr_bound1::Real)
 
     function cost_find_EPED_exps(
         x::AbstractVector{<:Real},
@@ -92,6 +89,7 @@ function blend_core_edge_Hmode(
         return norm(z_targets .- z_ped_values) / sum(abs.(z_targets)) .+ norm(p_targets .- p_values) / sum(abs.(p_targets))
     end
 
+    @assert 0.0 < ped_width < 1.0 "ped_width=($ped_width)"
     @assert rho[end] == 1.0
 
     z_profile = -calc_z(rho, profile, :backward)
