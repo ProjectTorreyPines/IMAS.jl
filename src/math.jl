@@ -44,64 +44,6 @@ end
 push!(document[Symbol("Math")], :meshgrid)
 
 """
-    moving_average(data::Vector{<:Real}, window_size::Int)
-
-Calculate the moving average of a data vector using a specified window size.
-The window size is always rounded up to the closest odd number to maintain symmetry around each data point.
-"""
-function moving_average(data::Vector{<:Real}, window_size::Int)
-    smoothed_data = copy(data)
-    window_size = isodd(window_size) ? window_size : window_size + 1
-    pad_size = div(window_size - 1, 2)
-    if pad_size < 1
-        return smoothed_data
-    end
-    for i in eachindex(data)
-        window_start = max(1, i - pad_size)
-        window_end = min(length(data), i + pad_size)
-        smoothed_data[i] = sum(data[window_start:window_end]) / (window_end - window_start + 1)
-    end
-    return smoothed_data
-end
-
-"""
-    moving_average(t::AbstractVector, data::AbstractVector, new_time::AbstractVector; causal::Bool)
-
-Calculate the moving average of a data vector on a new time basis
-"""
-function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, new_time::AbstractVector{Float64}; causal::Bool=false) where {T<:Real}
-    new_data = similar(new_time, T)
-    width = new_time[2] - new_time[1]
-    for k in 1:length(new_time)
-        new_data[k] = moving_average(time, data, new_time[k], width; causal)
-    end
-    return new_data
-end
-
-"""
-    moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width; causal::Bool=false) where {T<:Real}
-
-Calculate the moving average of a data vector at given time with given average width
-"""
-function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width; causal::Bool=false) where {T<:Real}
-    width = Float64(width)
-    if causal
-        w = pulse.(-time, -t0 - width, width)
-    else
-        w = pulse.(-time, -t0 - width / 2, width)
-    end
-    norm = sum(w)
-    if norm == 0.0
-        return interp1d(time, data).(t0)
-    else
-        return sum(data .* w ./ norm)
-    end
-end
-
-@compat public moving_average
-push!(document[Symbol("Math")], :moving_average)
-
-"""
     calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
 
 Returns the gradient scale lengths of vector f on x
