@@ -1,3 +1,7 @@
+using DSP
+
+document[Symbol("Signal")] = Symbol[]
+
 """
     step(t::Float64)
 
@@ -15,6 +19,9 @@ Unitary step triggered at t=t_start
 function step(t::Float64, t_start::Float64)
     return step(t - t_start)
 end
+
+@compat public step
+push!(document[Symbol("Signal")], :step)
 
 """
     pulse(t::Float64)
@@ -35,6 +42,9 @@ Unitary pulse with given width Δt, starting at t=t_start
 function pulse(t::Float64, t_start::Float64, Δt::Float64)
     return pulse((t - t_start) / Δt)
 end
+
+@compat public pulse
+push!(document[Symbol("Signal")], :pulse)
 
 """
     ramp(t::Float64)
@@ -75,6 +85,9 @@ function ramp(t::Float64, t_start::Float64, Δt::Float64)
     return ramp((t - t_start) / Δt)
 end
 
+@compat public ramp
+push!(document[Symbol("Signal")], :ramp)
+
 """
     trap(t::Float64, ramp_fraction::Float64)
 
@@ -105,6 +118,9 @@ function trap(t::Float64, t_start::Float64, Δt::Float64, ramp_fraction::Float64
     return trap((t - t_start) / Δt, ramp_fraction)
 end
 
+@compat public trap
+push!(document[Symbol("Signal")], :trap)
+
 """
     gaus(t::Float64, order::Float64=1.0)
 
@@ -122,6 +138,9 @@ Unitary gaussian centered at t_start and with standard deviation Δt
 function gaus(t::Float64, t_start::Float64, Δt::Float64, order::Float64=1.0)
     return gaus((t - t_start) / Δt, order)
 end
+
+@compat public gaus
+push!(document[Symbol("Signal")], :gaus)
 
 """
     beta(t::Float64, mode::Float64)
@@ -174,6 +193,9 @@ function beta(t::Float64, t_start::Float64, Δt::Float64, mode::Float64)
     return beta((t - t_start) / Δt, mode)
 end
 
+@compat public beta
+push!(document[Symbol("Signal")], :beta)
+
 """
     sequence(t::Float64, t_y_sequence::Vector{Tuple{Float64,Float64}}; scheme::Symbol=:linear)
 
@@ -184,6 +206,9 @@ function sequence(t::Float64, t_y_sequence::Vector{Tuple{Float64,Float64}}; sche
     yy = [y0 for (t0, y0) in t_y_sequence]
     return IMAS.extrap1d(IMAS.interp1d_itp(tt, yy, scheme); first=:flat, last=:flat)(t)
 end
+
+@compat public sequence
+push!(document[Symbol("Signal")], :sequence)
 
 """
     moving_average(data::Vector{<:Real}, window_size::Int)
@@ -241,5 +266,33 @@ function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, 
 end
 
 @compat public moving_average
-push!(document[Symbol("Math")], :moving_average)
+push!(document[Symbol("Signal")], :moving_average)
 
+"""
+    highpassfilter(signals, fs, cutoff, order=4)
+
+Apply butterworth high pass filter of given order to signals sampled with frequency `fs`
+"""
+function highpassfilter(signals::AbstractArray{<:Real}, fs::Real, cutoff::Real, order=4)
+    wdo = 2.0 * cutoff / fs
+    filth = DSP.digitalfilter(DSP.Highpass(wdo), DSP.Butterworth(order))
+    return DSP.filtfilt(filth, signals)
+end
+
+
+@compat public highpassfilter
+push!(document[Symbol("Signal")], :highpassfilter)
+
+"""
+    lowpassfilter(signals, fs, cutoff, order=4)
+
+Apply butterworth low pass filter of given order to signals sampled with frequency `fs`
+"""
+function lowpassfilter(signals::AbstractArray{<:Real}, fs::Real, cutoff::Real, order=4)
+    wdo = 2.0 * cutoff / fs
+    filth = DSP.digitalfilter(DSP.Lowpass(wdo), DSP.Butterworth(order))
+    return DSP.filtfilt(filth, signals)
+end
+
+@compat public lowpassfilter
+push!(document[Symbol("Signal")], :lowpassfilter)
