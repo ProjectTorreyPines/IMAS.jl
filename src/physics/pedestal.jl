@@ -30,8 +30,9 @@ function blend_core_edge_Hmode(
         z_targets::AbstractVector{<:Real},
         rho_targets::AbstractVector{<:Real})
 
-        x = abs.(x)
-        profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
+        expin = abs(x[1])
+        expout = abs(x[2])
+        profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width)
         z_ped = -calc_z(rho, profile_ped, :backward)
         z_ped_values = interp1d(rho, z_ped).(rho_targets)
         p_values = interp1d(rho, profile_ped).(rho_targets)
@@ -41,7 +42,8 @@ function blend_core_edge_Hmode(
         return norm(z_targets .- z_ped_values) / sum(abs.(z_targets)) .+ norm(p_targets .- p_values) / sum(abs.(p_targets))
     end
 
-    @assert 0.0 < ped_width < 1.0 "ped_width=($ped_width)"
+    @assert 0.0 < ped_height "invalid ped_height = $(ped_height)"
+    @assert 0.0 < ped_width < 1.0 "invalid ped_width = ($ped_width)"
     @assert rho[end] == 1.0
 
     z_profile = -calc_z(rho, profile, :backward)

@@ -723,11 +723,11 @@ end
 NOTE: The core value is allowed to float
 """
 function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
-    @assert edge >= 0.0
-    @assert ped >= 0.0
-    @assert expin >= 0.0
-    @assert expout >= 0.0
-    @assert 0.0 < width < 1.0 "pedestal width cannot be $width"
+    @assert edge >= 0.0 "invalid edge = $edge"
+    @assert ped >= 0.0 "invalid ped = $ped"
+    @assert expin >= 0.0 "invalid expin = $expin"
+    @assert expout >= 0.0 "invalid expout = $expout"
+    @assert 0.0 < width < 1.0 "invalid width = $width"
 
     xpsi = range(0.0, 1.0, ngrid)
 
