@@ -417,14 +417,14 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
 
     κ_areal = areal_elongation(eqt)
 
-    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+    nel = ne_line(eqt, cp1d)
 
     tau98 = (
         0.0562 *
         abs(eqt.global_quantities.ip / 1e6)^0.93 *
         abs(B0)^0.15 *
         (total_power_inside / 1e6)^-0.69 *
-        (ne_line / 1e19)^0.41 *
+        (nel / 1e19)^0.41 *
         isotope_factor^0.19 *
         R0^1.97 *
         (R0 / eqt.boundary.minor_radius)^-0.58 *
@@ -468,7 +468,7 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
-    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+    nel = ne_line(eqt, cp1d)
     ne_vol = ne_vol_avg(cp1d)
 
     tauds03 = (
@@ -476,7 +476,7 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
         abs(eqt.global_quantities.ip / 1e6)^0.83 *
         abs(B0)^0.07 *
         (total_power_inside / 1e6)^-0.55 *
-        (0.5 * (ne_line + ne_vol) / 1e19)^0.49 *
+        (0.5 * (nel + ne_vol) / 1e19)^0.49 *
         isotope_factor^0.14 *
         R0^2.11 *
         (R0 / eqt.boundary.minor_radius)^-0.30 *
@@ -558,7 +558,7 @@ push!(document[Symbol("Physics profiles")], :greenwald_density)
 Greewald fraction
 """
 function greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    nel = IMAS.geometric_midplane_line_averaged_density(eqt, cp1d)
+    nel = ne_line(eqt, cp1d)
     ngw = greenwald_density(eqt)
     return nel / ngw
 end
@@ -574,47 +574,44 @@ end
 push!(document[Symbol("Physics profiles")], :greenwald_fraction)
 
 """
-    geometric_midplane_line_averaged_density(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
+    ne_line(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the averaged density along rho_tor_norm (to be used when equilibrium information is not available)
 """
-function geometric_midplane_line_averaged_density(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
+function ne_line(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
     return trapz(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal)
 end
 
 """
-    geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    ne_line(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Calculates the line averaged density from a midplane horizantal line
+Calculates the line averaged density from the equilibrium midplane horizantal line
 """
-function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    return geometric_midplane_line_averaged_density(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
+function ne_line(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    return ne_line(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
 end
 
 """
-    geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+    ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
 """
-function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+function ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
     a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard).(rho_ne)
     return trapz(a_cp, ne_profile) / a_cp[end]
 end
 
 """
-    geometric_midplane_line_averaged_density(dd::IMAS.dd)
+    ne_line(dd::IMAS.dd; time0::Float64=dd.global_time)
 """
-function geometric_midplane_line_averaged_density(dd::IMAS.dd)
-    return geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
+function ne_line(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return ne_line(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0])
 end
-
-@compat public greenwald_fraction
-push!(document[Symbol("Physics profiles")], :greenwald_fraction)
 
 """
     ne_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
 
 returns n_e_line from pulse_schedule looking first in `pulse_schedule.density_control.ne_line.reference` and then `pulse_schedule.density_control.greenwald_fraction.reference`
 """
-function ne_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+function ne_line(ps::IMAS.pulse_schedule; time0::Float64=global_time(ps))
     if !ismissing(ps.density_control.n_e_line, :reference)
         return get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
     elseif !ismissing(ps.density_control.n_e_greenwald_fraction, :reference)
@@ -833,8 +830,8 @@ end
 """
     scaling_L_to_H_power(dd::IMAS.dd)
 """
-function scaling_L_to_H_power(dd::IMAS.dd)
-    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
+function scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0])
 end
 
 @compat public scaling_L_to_H_power
@@ -869,8 +866,7 @@ Returns `true` if the plasma is diverted, has positive triangularity, and `Psol 
 function satisfies_h_mode_conditions(dd::IMAS.dd; threshold_multiplier::Float64=1.0)
     eqt = dd.equilibrium.time_slice[]
     diverted = length(eqt.boundary.x_point) > 0
-    LH_transition_fraction = getproperty(dd.requirements, :lh_power_threshold_fraction, 1.0)
-    Psol_gt_Plh = IMAS.L_H_threshold(dd) > LH_transition_fraction * threshold_multiplier
+    Psol_gt_Plh = L_H_threshold(dd) > threshold_multiplier
     positive_triangularity = eqt.boundary.triangularity > 0.0
     if Psol_gt_Plh && diverted && positive_triangularity
         return true
