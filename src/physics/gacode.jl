@@ -42,8 +42,8 @@ sound gyro radius in [cm]
 """
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     eqt1d = eqt.profiles_1d
-    bunit = interp1d(eqt1d.rho_tor_norm, abs.(bunit(eqt1d)) .* cgs.T_to_Gauss).(cp1d.grid.rho_tor_norm)
-    return c_s(cp1d) ./ (cgs.e .* bunit) .* (cgs.md .* cgs.c)
+    bu = interp1d(eqt1d.rho_tor_norm, abs.(bunit(eqt1d)) .* cgs.T_to_Gauss).(cp1d.grid.rho_tor_norm)
+    return c_s(cp1d) ./ (cgs.e .* bu) .* (cgs.md .* cgs.c)
 end
 
 """
