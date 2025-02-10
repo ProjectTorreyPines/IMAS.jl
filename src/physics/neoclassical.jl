@@ -99,13 +99,13 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
 
-    nuestar = IMAS.nuestar(eqt, cp1d)
-    nuistar = IMAS.nuistar(eqt, cp1d)
+    ν_es = nuestar(eqt, cp1d)
+    ν_is = nuistar(eqt, cp1d)
 
     B0 = B0_geo(eqt)
     ip = eqt.global_quantities.ip
 
-    return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, nuestar, nuistar, ip, B0; neo_2021, same_ne_ni)
+    return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, ν_es, ν_is, ip, B0; neo_2021, same_ne_ni)
 end
 
 @compat public Sauter_neo2021_bootstrap

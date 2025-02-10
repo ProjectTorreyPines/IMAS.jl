@@ -451,7 +451,7 @@ function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T}, fw_r::A
     if closed
         @assert length(fw_r) == length(fw_z)
         if !isempty(fw_r)
-            closed = !IMAS.intersects(pr, pz, fw_r, fw_z)
+            closed = !intersects(pr, pz, fw_r, fw_z)
         end
     end
     return closed
@@ -1921,8 +1921,8 @@ The `type` parameter:
 """
 function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    dim1 = IMAS.to_range(eqt2d.grid.dim1)
-    dim2 = IMAS.to_range(eqt2d.grid.dim2)
+    dim1 = to_range(eqt2d.grid.dim1)
+    dim2 = to_range(eqt2d.grid.dim2)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
     return flux_surface(dim1, dim2, eqt2d.psi, RA, ZA, wall_r, wall_z, psi_level, type)
@@ -1994,7 +1994,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surface that closes, contains magnetic axis, and does not intersect any wall element
-            if (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw_r, fw_z))
+            if (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !intersects(pr, pz, fw_r, fw_z))
                 push!(prpz, (r=pr, z=pz))
                 break
             end
@@ -2017,7 +2017,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # only lines that intersect with the wall are open
-            if IMAS.intersects(pr, pz, fw_r, fw_z)
+            if intersects(pr, pz, fw_r, fw_z)
                 reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
                 segments = intersection_split(pr, pz, fw_r, fw_z)
                 for segment in segments

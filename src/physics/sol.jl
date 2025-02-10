@@ -564,7 +564,7 @@ function find_levels_from_wall(
     psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
 
     levels = PSI_interpolant.(wall_r, wall_z)
-    psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant)
+    psi_tangent, _ = find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant)
     push!(levels, psi_tangent)
     levels = levels[levels.>=psi_separatrix.&&levels.<=psi_wall_midplane]
     return sort!(levels)

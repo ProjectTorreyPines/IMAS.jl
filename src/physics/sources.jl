@@ -107,16 +107,16 @@ Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
 function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
     if bootstrap
-        IMAS.bootstrap_source!(dd)
+        bootstrap_source!(dd)
     end
     if ohmic
-        IMAS.ohmic_source!(dd)
+        ohmic_source!(dd)
     end
-    IMAS.collisional_exchange_source!(dd)
-    IMAS.bremsstrahlung_source!(dd)
-    IMAS.line_radiation_source!(dd)
-    IMAS.synchrotron_source!(dd)
-    IMAS.fusion_source!(dd; DD_fusion)
+    collisional_exchange_source!(dd)
+    bremsstrahlung_source!(dd)
+    line_radiation_source!(dd)
+    synchrotron_source!(dd)
+    fusion_source!(dd; DD_fusion)
     return nothing
 end
 
@@ -151,7 +151,7 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
 
-    R_flux_avg = IMAS.interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
+    R_flux_avg = interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
     ddt_sources = time_derivative_source!(cp1d, cp1d_old, Δt, R_flux_avg)
 
     source = resize!(dd.core_sources.source, :time_derivative; wipe=false)
@@ -412,7 +412,7 @@ function total_radiation_sources(
     exclude_indexes::Vector{Int}=Int[]) where {T<:Real}
 
     # we need to exclude the collisional_equipartition term
-    index = IMAS.name_2_index(core_sources.source)[:collisional_equipartition]
+    index = name_2_index(core_sources.source)[:collisional_equipartition]
     push!(exclude_indexes, index)
 
     fields = [:power_inside, :energy]

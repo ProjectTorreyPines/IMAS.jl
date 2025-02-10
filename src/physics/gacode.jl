@@ -42,7 +42,7 @@ sound gyro radius in [cm]
 """
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     eqt1d = eqt.profiles_1d
-    bunit = interp1d(eqt1d.rho_tor_norm, abs.(IMAS.bunit(eqt1d)) .* cgs.T_to_Gauss).(cp1d.grid.rho_tor_norm)
+    bunit = interp1d(eqt1d.rho_tor_norm, abs.(bunit(eqt1d)) .* cgs.T_to_Gauss).(cp1d.grid.rho_tor_norm)
     return c_s(cp1d) ./ (cgs.e .* bunit) .* (cgs.md .* cgs.c)
 end
 
@@ -96,7 +96,7 @@ Correction to account for transformation from Miller r grid in GA code equilibri
 """
 function volume_prime_miller_correction(eqt::IMAS.equilibrium__time_slice)
     a_minor = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
-    return IMAS.gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
+    return gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
 end
 
 """

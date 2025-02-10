@@ -88,11 +88,11 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     R = [rr for rr in r, zz in z] # 2D
     Z = [zz for rr in r, zz in z] # 2D
     rz_lcfs = collect(zip(eqt.boundary.outline.r, eqt.boundary.outline.z))
-    mask = [IMAS.PolygonOps.inpolygon((rr, zz), rz_lcfs) for rr in r, zz in z]
+    mask = [PolygonOps.inpolygon((rr, zz), rz_lcfs) for rr in r, zz in z]
 
     # 2D source
     tmp = eqt2d.psi .* (mask .== 1) .+ eqt2d.psi[end] .* .*(mask .== 0) # to avoid extrapolation
-    source_2d = IMAS.interp1d(psi, source_1d).(tmp) # intensity/m^3
+    source_2d = interp1d(psi, source_1d).(tmp) # intensity/m^3
     source_2d .*= mask .== 1 # set things to zero outsize of lcfs
     source_2d .*= R .* (2π * (r[2] - r[1]) * (z[2] - z[1])) # unit of intensity = volume integral of source_2d
 
@@ -100,7 +100,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     CDF = cumsum(source_2d[:])
     I_per_trace = CDF[end] / N
     CDF .= (CDF .- CDF[1]) ./ (CDF[end] - CDF[1])
-    ICDF = IMAS.interp1d(CDF, Float64.(1:length(CDF)), :linear)
+    ICDF = interp1d(CDF, Float64.(1:length(CDF)), :linear)
 
     # particles structures
     particles = Vector{Particle{Float64}}(undef, N)

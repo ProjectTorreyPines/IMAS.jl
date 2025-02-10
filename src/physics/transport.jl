@@ -111,7 +111,7 @@ function total_fluxes(
 
             for path in paths
                 ids1 = try
-                    IMAS.goto(m1d, path)
+                    goto(m1d, path)
                 catch e
                     if isa(e, InterruptException)
                         retrhow(e)
@@ -121,7 +121,7 @@ function total_fluxes(
                 if ismissing(ids1, :flux)
                     continue
                 end
-                ids2 = IMAS.goto(total_flux1d, path)
+                ids2 = goto(total_flux1d, path)
                 if ismissing(ids2, :flux)
                     setproperty!(ids2, :flux, zeros(length(rho_total_fluxes)))
                 end
