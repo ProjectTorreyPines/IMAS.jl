@@ -537,3 +537,30 @@ end
 
 @compat public new_source
 push!(document[Symbol("Physics sources")], :new_source)
+
+"""
+    total_power(
+        ps::Union{IMAS.pulse_schedule,IMAS.pulse_schedule__ec,IMAS.pulse_schedule__ic,IMAS.pulse_schedule__lh,IMAS.pulse_schedule__nbi},
+        times::AbstractVector{Float64};
+        time_smooth::Float64)
+
+Total injected power interpolated on a given time basis
+"""
+function total_power(
+    ps::Union{IMAS.pulse_schedule,IMAS.pulse_schedule__ec,IMAS.pulse_schedule__ic,IMAS.pulse_schedule__lh,IMAS.pulse_schedule__nbi},
+    times::AbstractVector{Float64};
+    tau_smooth::Float64
+)
+    datas = zero(times)
+    for leaf in leaves(ps)
+        if contains(location(leaf.ids), ".power")
+            time = coordinates(leaf.ids, leaf.field).values[1]
+            data = getproperty(leaf.ids, leaf.field)
+            datas .+= interp1d(time, smooth_beam_power(time, data, tau_smooth)).(times)
+        end
+    end
+    return datas
+end
+
+@compat public total_power
+push!(document[Symbol("Physics sources")], :total_power)
