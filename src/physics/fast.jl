@@ -503,6 +503,11 @@ Such smoothing mimics the delayed contribution from the instantaneous source,
 as well as the gradual decay of the previous fast ion population over time.
 """
 function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Float64) where {T<:Real}
+    @assert taus >= 0.0
+    if taus == 0.0
+        return power
+    end
+
     n = length(power)
     smoothed_power = similar(power)
 
