@@ -1,54 +1,6 @@
 document[Symbol("Physics pedestal")] = Symbol[]
 
 """
-    blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
-
-Blends Te, Ti, ne, and nis in core_profiles with :H_mode or :L_mode like pedestal defined in summary IDS
-"""
-function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
-    if mode == :L_mode
-        blend_function = blend_core_edge_Lmode
-    elseif mode == :H_mode
-        blend_function = blend_core_edge_Hmode
-    else
-        @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
-    end
-
-    rho = cp1d.grid.rho_tor_norm
-    @assert rho[end] == 1.0
-    w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
-
-    if what ∈ (:all, :densities)
-        @assert all(cp1d.zeff .>= 1.0) "zeff < 1.0 before entering blend_core_edge"
-        old_ne_ped = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(1.0 - w_ped)
-        ne_ped = @ddtime(summary_ped.n_e.value)
-        cp1d.electrons.density_thermal[end] = ne_ped / 4.0
-        cp1d.electrons.density_thermal = blend_function(cp1d.electrons.density_thermal, rho, ne_ped, w_ped, rho_nml, rho_ped)
-        for ion in cp1d.ion
-            if !ismissing(ion, :density_thermal)
-                ni_ped = interp1d(cp1d.grid.rho_tor_norm, ion.density_thermal).(1.0 - w_ped) * ne_ped / old_ne_ped
-                ion.density_thermal[end] = ni_ped / 4.0
-                ion.density_thermal = blend_function(ion.density_thermal, rho, ni_ped, w_ped, rho_nml, rho_ped)
-            end
-        end
-        @assert all(cp1d.zeff .>= 1.0) "blend_core_edge() made zeff < 1.0"
-    end
-
-    if what ∈ (:all, :temperatures)
-        cp1d.electrons.temperature = blend_function(cp1d.electrons.temperature, rho, @ddtime(summary_ped.t_e.value), w_ped, rho_nml, rho_ped)
-        ti_avg_new = blend_function(cp1d.t_i_average, rho, @ddtime(summary_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
-        for ion in cp1d.ion
-            if !ismissing(ion, :temperature)
-                ion.temperature = ti_avg_new
-            end
-        end
-    end
-end
-
-@compat public blend_core_edge
-push!(document[Symbol("Physics pedestal")], :blend_core_edge)
-
-"""
     blend_core_edge_Hmode(
         profile::AbstractVector{<:Real},
         rho::AbstractVector{<:Real},
