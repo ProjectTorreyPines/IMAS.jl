@@ -6,7 +6,7 @@ document[Symbol("Physics neoclassical")] = Symbol[]
 Calculates the Spitzer conductivity in [1/(Ω*m)]
 """
 function spitzer_conductivity(ne, Te, Zeff)
-    return @. 1.9012e4 * Te ^ 1.5 / (Zeff * 0.58 + 0.74 / (0.76 + Zeff) * lnLambda_e(ne, Te))
+    return @. 1.9012e4 * Te ^ 1.5 / (Zeff * (0.58 + 0.74 / (0.76 + Zeff)) * lnLambda_e(ne, Te))
 end
 
 @compat public spitzer_conductivity
