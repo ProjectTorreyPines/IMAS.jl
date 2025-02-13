@@ -1030,7 +1030,7 @@ end
     end
 
     @series begin
-        dd.build.layer
+        bd.layer
     end
 
     if dd !== nothing && pf_active
