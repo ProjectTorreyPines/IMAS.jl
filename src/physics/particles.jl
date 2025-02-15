@@ -454,3 +454,30 @@ end
 
 @compat public pol_tor_angles_2_vector
 push!(document[Symbol("Physics particles")], :pol_tor_angles_2_vector)
+
+"""
+    pencil_beam(starting_position::Vector{T}, velocity_vector::Vector{T}, time::AbstractVector{Float64})
+
+returns named tuple with (x, y, z, r) of a beam injected at given (px, py, pz) starting_position with velocity (vx, vy, vz)
+"""
+function pencil_beam(starting_position::Vector{T}, velocity_vector::Vector{T}, time::AbstractVector{Float64}) where {T<:Real}
+    velocity_vector = velocity_vector / norm(velocity_vector)
+    x = starting_position[1] .+ velocity_vector[1] .* time
+    y = starting_position[2] .+ velocity_vector[2] .* time
+    z = starting_position[3] .+ velocity_vector[3] .* time
+    r = sqrt.(x .^ 2.0 .+ y .^ 2.0)
+    return (x=x, y=y, z=z, r=r)
+end
+
+"""
+    pencil_beam(starting_position::Vector{T}, pol_angle::T, tor_angle::T, time::AbstractVector{Float64}) where {T<:Real}
+
+returns named tuple with (x, y, z, r) of a beam injected at given (px, py, pz) starting_position with given poloidal and toroidal angles
+"""
+function pencil_beam(starting_position::Vector{T}, pol_angle::T, tor_angle::T, time::AbstractVector{Float64}) where {T<:Real}
+    vx, vy, vz = pol_tor_angles_2_vector(pol_angle, tor_angle)
+    return pencil_beam(starting_position, [vx, vy, vz], time)
+end
+
+@compat public pencil_beam
+push!(document[Symbol("Physics particles")], :pencil_beam)
