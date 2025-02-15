@@ -67,6 +67,42 @@ end
 Returns operating frequency of a given Gyrotron in Hz
 """
 function frequency(beam::IMAS.ec_launchers__beam)
-    @assert minimum(beam.frequency.data) == maximum(beam.frequency.data)
-    return maximum(beam.frequency.data)
+    return frequency(beam.frequency)
+end
+
+function frequency(beam_freq::IMAS.ec_launchers__beam___frequency)
+    @assert minimum(beam_freq.data) == maximum(beam_freq.data)
+    return maximum(beam_freq.data)
+end
+
+"""
+    ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T; harmonics::AbstractVector{Int}=[0, 1, 2, 3]) where {T<:Real}
+
+Returns named tuple with (r, z, harmonic) of ECH resonance layer closest to the plasma axis
+"""
+function ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T; harmonics::AbstractVector{Int}=[0, 1, 2, 3]) where {T<:Real}
+    fundamental_B_ec_resonance = B_ω_ce(frequency * 2π)
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    R = eqt2d.grid.dim1
+    Z = eqt2d.grid.dim2
+    Bωce_over_Btot = fundamental_B_ec_resonance ./ transpose(sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z .^ 2))
+
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.r
+
+    layers = Dict{T,Tuple{Vector{T},Vector{T}, Int}}()
+    for harmonic in harmonics
+        for line in Contour.lines(Contour.contour(R, Z, Bωce_over_Btot', harmonic))
+            pr, pz = Contour.coordinates(line)
+            dl = minimum((pr.-RA).^2 .+ (pz.-ZA).^2)
+            layers[dl] = (pr, pz, harmonic)
+        end
+    end
+
+    if isempty(layers)
+        return (r=T[], z=T[], harmonic=0)
+    else
+        core_layer = layers[minimum(keys(layers))]
+        return (r=core_layer[1], z=core_layer[2], harmonic=core_layer[3])
+    end
 end
