@@ -1975,7 +1975,7 @@ end
 
     if ions == [:my_ions]
         if dd !== nothing
-            ions = list_ions(cs,  dd.core_profiles; time0)
+            ions = list_ions(cs, dd.core_profiles; time0)
         else
             ions = list_ions(cs; time0)
         end
@@ -1998,7 +1998,6 @@ end
     end
 
     if dd !== nothing
-
         if aggregate_radiation
             @series begin
                 rad_source = IMAS.core_sources__source{T}()
@@ -2173,46 +2172,65 @@ end
 # ============ #
 function label(beam::IMAS.ec_launchers__beam)
     name = beam.name
-    freq = "$(Int(round(maximum(beam.frequency.data)/1E9))) GHz"
+    freq = frequency(beam.frequency)
     mode = beam.mode == 1 ? "O" : "X"
-    return "$name @ $freq $mode"
+    angle_pol = sum(beam.steering_angle_pol) / length(beam.steering_angle_pol) * 180 / pi
+    angle_tor = sum(beam.steering_angle_tor) / length(beam.steering_angle_tor) * 180 / pi
+    return "$name @ $(@sprintf("%.0f", freq/1E9)) GHz $mode ∠ₜ=$(@sprintf("%.1f", angle_tor))° ∠ₚ=$(@sprintf("%.1f", angle_pol))°"
 end
 
-@recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; show_harmonic=Int[0]) where {T<:Real}
+@recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; time0=global_time(beam))
     id = plot_help_id(beam)
-    assert_type_and_record_argument(id, Vector{Int}, "Show resonance harmonics"; show_harmonic)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
-    if !isempty(show_harmonic)
-        fundamental_B_ec_resonance = B_ω_ce(frequency(beam) * 2π)
-        dd = top_dd(beam)
-        eqt = dd.equilibrium.time_slice[]
-        eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-        R = eqt2d.grid.dim1
-        Z = eqt2d.grid.dim2
-        b_field_tot = fundamental_B_ec_resonance ./ transpose(sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z^2))
-        mode = beam.mode == 1 ? "O" : "X"
-        for (k, harmonic) in enumerate(show_harmonic)
-            if harmonic == 0
-                if mode == "O"
-                    show_harmonic[k] = 1
-                else
-                    show_harmonic[k] = 2
-                end
-            end
-        end
-        @series begin
-            primary := false
-            seriestype --> :contour
-            colorbar_entry --> false
-            levels --> show_harmonic
-            R, Z, b_field_tot
-        end
-    end
+    aspect_ratio := :equal
+    legend_position --> :outerbottomright
+
+    dd = top_dd(beam)
 
     @series begin
-        label --> label(beam)
         seriestype --> :scatter
+        xlim --> (0.0, Inf)
+        label --> label(beam)
         [beam.launching_position.r], [beam.launching_position.z]
+    end
+
+    if !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
+        @series begin
+            xlim --> (0.0, Inf)
+            primary := false
+            beam_index = index(beam)
+            beam_tracing = dd.waves.coherent_wave[beam_index].beam_tracing[time0].beam[1]
+            lw := 2
+            beam_tracing.position.r, beam_tracing.position.z
+        end
+    end
+end
+
+@recipe function plot_ec_beam_frequencies(beam_freqs::AbstractVector{<:IMAS.ec_launchers__beam___frequency{T}}) where {T<:Real}
+    freqs_dict = Dict{Float64,ec_launchers__beam___frequency{T}}()
+    for beam_freq in beam_freqs
+        freqs_dict[frequency(beam_freq)] = beam_freq
+    end
+    for beam_freq in values(freqs_dict)
+        @series begin
+            beam_freq
+        end
+    end
+end
+
+@recipe function plot_ec_beam_frequency(beam_freq::IMAS.ec_launchers__beam___frequency; time0::global_time(beam_freq))
+    id = plot_help_id(beam_freq)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    dd = top_dd(beam_freq)
+    eqt = dd.equilibrium.time_slice[time0]
+
+    freq = frequency(beam_freq)
+    resonance_layer = ech_resonance_layer(eqt, freq)
+    @series begin
+        label := "$(resonance_layer.harmonic) @ harmonic $(@sprintf("%.0f", freq/1E9)) GHz"
+        resonance_layer.r, resonance_layer.z
     end
 end
 
@@ -2222,11 +2240,45 @@ end
     end
 end
 
+@recipe function plot_ec(beams::IDSvector{<:IMAS.ec_launchers__beam{T}}; time0::global_time(beams)) where {T<:Real}
+    id = plot_help_id(beams)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    dd = top_dd(beams)
+    eqt = dd.equilibrium.time_slice[time0]
+
+    @series begin
+        cx := true
+        color := :gray
+        eqt
+    end
+
+    @series begin
+        color := :black
+        dd.wall
+    end
+
+    @series begin
+        [beam.frequency for beam in beams]
+    end
+
+    for beam in beams
+        @series begin
+            beam
+        end
+    end
+end
+
 # === #
 # nbi #
 # === #
 function label(unit::IMAS.nbi__unit)
-    return unit.name
+    if !isempty(unit.beamlets_group) && !ismissing(unit.beamlets_group[1], :angle)
+        angle_tor = unit.beamlets_group[1].angle * 180 / pi
+        return "$(unit.name) (∠ₜ=$(@sprintf("%.1f", angle_tor))°)"
+    else
+        return unit.name
+    end
 end
 
 @recipe function plot_nb(nb::IMAS.nbi{T}) where {T<:Real}
@@ -2242,14 +2294,14 @@ end
         IMAS.ic_antennas__antenna___power_launched{T},
         IMAS.lh_antennas__antenna___power_launched{T}
     };
-    smooth_beam_tau=0.0
+    smooth_tau=0.0
 ) where {T<:Real}
     id = plot_help_id(pl)
-    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power assuming τ thermalization time [s]"; smooth_beam_tau)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous power assuming τ decorrelation time [s]"; smooth_tau)
     hcd = parent(pl)
     data1 = pl.data
-    if typeof(pl) <: IMAS.nbi__unit___power_launched && smooth_beam_tau > 0.0
-        data1 = smooth_beam_power(pl.time, pl.data, smooth_beam_tau)
+    if smooth_tau > 0.0
+        data1 = smooth_beam_power(pl.time, pl.data, smooth_tau)
     end
     @series begin
         label --> label(hcd)
@@ -2270,11 +2322,11 @@ end
         }
     };
     show_total=true,
-    smooth_beam_tau=0.0
+    smooth_tau=0.0
 ) where {T<:Real}
     id = plot_help_id(pls)
     assert_type_and_record_argument(id, Bool, "Show total power launched"; show_total)
-    assert_type_and_record_argument(id, Float64, "Smooth instantaneous NBI power"; smooth_beam_tau)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous power"; smooth_tau)
 
     background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
@@ -2295,8 +2347,8 @@ end
                 total += interp1d(pl.time, pl.data).(time_range)
             end
         end
-        if eltype(pls) <: IMAS.nbi__unit___power_launched && smooth_beam_tau > 0.0
-            total = smooth_beam_power(time_range, total, smooth_beam_tau)
+        if smooth_tau > 0.0
+            total = smooth_beam_power(time_range, total, smooth_tau)
         end
 
         # plot total
@@ -2310,7 +2362,7 @@ end
 
     for pl in pls
         @series begin
-            smooth_beam_tau := smooth_beam_tau
+            smooth_tau := smooth_tau
             pl
         end
     end
