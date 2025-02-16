@@ -592,6 +592,8 @@ end
         size --> (800, 500)
     end
 
+    coordinate := coordinate
+
     @series begin
         if !cx
             subplot := 1
@@ -600,8 +602,6 @@ end
     end
 
     if !cx
-        coordinate := coordinate
-
         if core_profiles_overlay
             cp = top_dd(eqt).core_profiles
             cp1d = top_dd(eqt).core_profiles.profiles_1d[argmin(abs.(cp.time .- eqt.time))]
@@ -724,16 +724,18 @@ end
 
 @recipe function plot_eqt2(
     eqt2d::IMAS.equilibrium__time_slice___profiles_2d;
-    psi_levels_in=11,
-    psi_levels_out=11,
+    levels_in=11,
+    levels_out=11,
     show_secondary_separatrix=false,
     show_x_points=true,
     show_strike_points=true,
     show_magnetic_axis=true)
+    show_magnetic_axis=true,
 
     id = plot_help_id(eqt2d)
-    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels inside LCFS"; psi_levels_in)
-    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels outside LCFS"; psi_levels_out)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels outside LCFS"; levels_out)
+    assert_type_and_record_argument(id, Symbol, "X coordinate for 2D contours"; coordinate)
     assert_type_and_record_argument(id, Bool, "Plot secondary separatrix"; show_secondary_separatrix)
     assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
     assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
@@ -748,31 +750,44 @@ end
 
     eqt = parent(parent(eqt2d))
 
-    # plot cx
-    # handle psi levels
-    psi__boundary_level = eqt.profiles_1d.psi[end]
-    tmp = eqt.profiles_1d.psi[end]
-    if tmp !== nothing
-        psi__boundary_level = tmp
-    end
-    if typeof(psi_levels_in) <: Int
-        if psi_levels_in == 1
-            psi_levels_in = [psi__boundary_level]
-        elseif psi_levels_in > 0
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
+    # handle levels
+    @show coordinate
+    x_coord = getproperty(eqt.profiles_1d, coordinate)
+    boundary_level = x_coord[end]
+    axis_level = x_coord[1]
+    if typeof(levels_in) <: Int
+        if levels_in == 1
+            levels_in = [boundary_level]
+        elseif levels_in > 0
+            levels_in = range(axis_level, boundary_level, levels_in)
         else
-            psi_levels_in = []
+            levels_in = []
         end
     end
-    delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
-    if typeof(psi_levels_out) <: Int
-        if psi_levels_out > 0
-            psi_levels_out = delta_psi / length(psi_levels_in) .* collect(0:psi_levels_out) .+ psi__boundary_level
+    delta_psi = (boundary_level - axis_level)
+    if typeof(levels_out) <: Int
+        if levels_out > 0
+            levels_out = delta_psi / length(levels_in) .* collect(0:levels_out) .+ boundary_level
         else
-            psi_levels_out = []
+            levels_out = []
         end
     end
-    psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
+    levels = unique(vcat(levels_in, levels_out))
+
+    if coordinate == :psi
+        psi_levels_in = levels_in
+        psi_levels_out = levels_out
+        psi_levels = levels
+        psi__boundary_level = boundary_level
+        psi__axis_level = axis_level
+    else
+        psi_interp=interp1d(x_coord, eqt.profiles_1d.psi)
+        psi_levels_in = psi_interp.(levels_in)
+        psi_levels_out = psi_interp.(levels_out)
+        psi_levels = psi_interp.(levels)
+        psi__boundary_level = psi_interp.(boundary_level)
+        psi__axis_level = psi_interp.(axis_level)
+    end
 
     fw = first_wall(top_dd(eqt).wall)
     RA = eqt.global_quantities.magnetic_axis.r
