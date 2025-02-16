@@ -730,7 +730,6 @@ end
     show_x_points=true,
     show_strike_points=true,
     show_magnetic_axis=true)
-    show_magnetic_axis=true,
 
     id = plot_help_id(eqt2d)
     assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
@@ -2188,36 +2187,36 @@ end
 function label(beam::IMAS.ec_launchers__beam)
     name = beam.name
     freq = frequency(beam.frequency)
-    mode = beam.mode == 1 ? "O" : "X"
-    angle_pol = sum(beam.steering_angle_pol) / length(beam.steering_angle_pol) * 180 / pi
-    angle_tor = sum(beam.steering_angle_tor) / length(beam.steering_angle_tor) * 180 / pi
-    return "$name @ $(@sprintf("%.0f", freq/1E9)) GHz $mode ∠ₜ=$(@sprintf("%.1f", angle_tor))° ∠ₚ=$(@sprintf("%.1f", angle_pol))°"
+    if ismissing(beam, :mode)
+        mode = "?"
+    else
+        mode = beam.mode == 1 ? "O" : "X"
+    end
+    if ismissing(beam, :steering_angle_pol)
+        angle_pol = "?"
+    else
+        angle_pol = "$(@sprintf("%.1f", @ddtime(beam.steering_angle_pol) * 180 / pi))"
+    end
+    if ismissing(beam, :steering_angle_tor)
+        angle_tor = "?"
+    else
+        angle_tor = "$(@sprintf("%.1f", @ddtime(beam.steering_angle_tor) * 180 / pi))"
+    end
+    return "$name @ $(@sprintf("%.0f", freq/1E9)) GHz $mode ∠ₜ=$(angle_tor)° ∠ₚ=$(angle_pol)°"
 end
 
 @recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; time0=global_time(beam))
     id = plot_help_id(beam)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
-    aspect_ratio := :equal
-    legend_position --> :outerbottomright
-
     dd = top_dd(beam)
 
-    @series begin
-        seriestype --> :scatter
-        xlim --> (0.0, Inf)
-        label --> label(beam)
-        [beam.launching_position.r], [beam.launching_position.z]
-    end
-
     if !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
+        beam_index = index(beam)
         @series begin
-            xlim --> (0.0, Inf)
-            primary := false
-            beam_index = index(beam)
-            beam_tracing = dd.waves.coherent_wave[beam_index].beam_tracing[time0].beam[1]
-            lw := 2
-            beam_tracing.position.r, beam_tracing.position.z
+            label --> label(beam)
+            time0 := time0
+            dd.waves.coherent_wave[beam_index]
         end
     end
 end
@@ -2380,6 +2379,61 @@ end
             smooth_tau := smooth_tau
             pl
         end
+    end
+end
+
+# ===== #
+# waves #
+# ===== #
+@recipe function plot_waves_profiles_1d(wvc1d::IMAS.waves__coherent_wave___profiles_1d)
+    layout := RecipesBase.@layout [1,1]
+    if !ismissing(parent(parent(wvc1d)).identifier, :antenna_name)
+        name = parent(parent(wvc1d)).identifier.antenna_name
+    else
+        name = "Antenna $(index(parent(parent(wvc1d))))"
+    end
+
+    @series begin
+        subplot := 1
+        title := "Power density"
+        label := name
+        wvc1d, :power_density
+    end
+    @series begin
+        subplot := 2
+        title := "Parallel current density"
+        label := name
+        wvc1d, :current_parallel_density
+    end
+end
+
+@recipe function plot_waves_profiles_1d(wvc1ds::AbstractVector{<:IMAS.waves__coherent_wave___profiles_1d})
+    for wvc1d in wvc1ds
+        @series begin
+            wvc1d
+        end
+    end
+end
+
+@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv))
+    id = plot_help_id(wv)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    aspect_ratio := :equal
+    legend_position --> :outerbottomright
+
+    beam = wv.beam_tracing[time0].beam[1]
+    @series begin
+        seriestype --> :scatter
+        xlim --> (0.0, Inf)
+        label --> wv.identifier.antenna_name
+        [beam.position.r[1]], [beam.position.z[1]]
+    end
+    @series begin
+        xlim --> (0.0, Inf)
+        primary := false
+        lw := 2
+        beam.position.r, beam.position.z
     end
 end
 
