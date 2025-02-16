@@ -461,7 +461,6 @@ push!(document[Symbol("Physics particles")], :pol_tor_angles_2_vector)
 returns named tuple with (x, y, z, r) of a beam injected at given (px, py, pz) starting_position with velocity (vx, vy, vz)
 """
 function pencil_beam(starting_position::Vector{T}, velocity_vector::Vector{T}, time::AbstractVector{Float64}) where {T<:Real}
-    velocity_vector = velocity_vector / norm(velocity_vector)
     x = starting_position[1] .+ velocity_vector[1] .* time
     y = starting_position[2] .+ velocity_vector[2] .* time
     z = starting_position[3] .+ velocity_vector[3] .* time
