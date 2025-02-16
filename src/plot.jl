@@ -729,7 +729,8 @@ end
     show_secondary_separatrix=false,
     show_x_points=true,
     show_strike_points=true,
-    show_magnetic_axis=true)
+    show_magnetic_axis=true,
+    coordinate=:psi)
 
     id = plot_help_id(eqt2d)
     assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
@@ -750,7 +751,6 @@ end
     eqt = parent(parent(eqt2d))
 
     # handle levels
-    @show coordinate
     x_coord = getproperty(eqt.profiles_1d, coordinate)
     boundary_level = x_coord[end]
     axis_level = x_coord[1]
