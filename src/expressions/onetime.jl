@@ -134,6 +134,40 @@ otexp["core_sources.source[:].profiles_1d[:].grid.psi"] =
         return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
     end
 
+#= ===== =#
+#  waves  #
+#= ===== =#
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.psi_norm"] =
+    (rho_tor_norm; grid, _...) -> norm01(grid.psi)
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.volume"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        volume = eqt.profiles_1d.volume
+        return interp1d(eqt.profiles_1d.rho_tor_norm, volume, :cubic).(rho_tor_norm)
+    end
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.area"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        area = eqt.profiles_1d.area
+        return interp1d(eqt.profiles_1d.rho_tor_norm, area, :cubic).(rho_tor_norm)
+    end
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.surface"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        surface = eqt.profiles_1d.surface
+        return interp1d(eqt.profiles_1d.rho_tor_norm, surface, :cubic).(rho_tor_norm)
+    end
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.psi"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        psi = eqt.profiles_1d.psi
+        return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
+    end
+
 # ============ #
 
 Base.Docs.@doc """
