@@ -386,7 +386,13 @@ function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py:
     a = v2 # V_R^2
     b = 2 * (vx * px + vy * py)
     c = px^2 + py^2 # R^2 coordinate of the particle
-    rmin = sqrt(c - b^2 / (4a))
+    rmin2 = c - b^2 / (4a)
+    if 1 + rmin2 ≈ 1.0
+        # this is to avoid issues when c - b^2 / (4a) is essentially zero but negative
+        rmin = 0.0
+    else
+        rmin = sqrt(rmin2)
+    end
 
     ti = Inf
     @inbounds for k in eachindex(wallr)
