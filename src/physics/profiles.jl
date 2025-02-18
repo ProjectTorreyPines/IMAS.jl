@@ -1241,12 +1241,24 @@ function core_edge_energy(cp1d::IMAS.core_profiles__profiles_1d, rho_ped::Real; 
     else
         p = pressure(cp1d)
     end
-    rho_tor_norm = cp1d.grid.rho_tor_norm
-    rho_bound_idx = argmin(abs(rho - rho_ped) for rho in rho_tor_norm)
-    pedge = p[rho_bound_idx]
-    fedge = (k, x) -> (k <= rho_bound_idx) ? pedge : p[k]
-    fcore = (k, x) -> (k <= rho_bound_idx) ? (p[k] - pedge) : 0.0
-    volume = cp1d.grid.volume
+    return core_edge_energy(p, cp1d.grid.rho_tor_norm, cp1d.grid.volume, rho_ped)
+end
+
+"""
+    core_edge_energy(eqt::IMAS.equilibrium__time_slice, rho_ped::Real)
+
+Evaluate stored energy in the core (< rho_ped) or the pedestal (> rho_ped)
+"""
+function core_edge_energy(eqt::IMAS.equilibrium__time_slice, rho_ped::Real)
+    eqt1d = eqt.profiles_1d
+    return core_edge_energy(eqt1d.pressure, eqt1d.rho_tor_norm, eqt1d.volume, rho_ped)
+end
+
+function core_edge_energy(pressure::AbstractVector{T}, rho::AbstractVector{T}, volume::AbstractVector{T}, rho_ped::Real) where {T<:Real}
+    rho_bound_idx = argmin(abs.(rho .- rho_ped))
+    pedge = pressure[rho_bound_idx]
+    fedge = (k, x) -> (k <= rho_bound_idx) ? pedge : pressure[k]
+    fcore = (k, x) -> (k <= rho_bound_idx) ? (pressure[k] - pedge) : 0.0
     core_value = 1.5 * trapz(volume, fcore)
     edge_value = 1.5 * trapz(volume, fedge)
     return (core_value=core_value, edge_value=edge_value)
