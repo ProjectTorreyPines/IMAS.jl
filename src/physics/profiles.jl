@@ -805,31 +805,70 @@ end
 push!(document[Symbol("Physics profiles")], :A_effective)
 
 """
-    scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
+    scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; metallic_wall:Bool=true)
 
-L to H transition power scaling for metal walls and isotope effect according to : G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+L to H transition power threshold for metal walls and isotope effect according to: G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 
-inputs in SI and returns power in W
+See also: `Reducing the L-H Transition Power Threshold in DIII-D ITER-Similar-Shape Hydrogen Plasmas, L. Schmitz IAEA FEC 2020`
+
+NOTE: This scaling does not reflect a well documented nonmonotonic density dependence.
+
+L_H_threshold doubles when ion ∇B drift is away from X-point
+
+returns Infinity if the plasma is diverted or in negative triangularity
 """
-function scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
-    return 1e6 * 0.8 * 2.0 / A_effective * 0.049 * (ne_volume / 1e20)^0.72 * abs(B0)^0.8 * surface_area^0.94
+function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; metallic_wall::Bool=true)
+    if isempty(eqt.boundary.x_point)
+        return Inf
+    end
+    if eqt.boundary.triangularity < 0.0
+        return Inf
+    end
+
+    Bgeo = B0_geo(eqt)
+
+    if Bgeo < 0
+        # COCOS 11: Negative Bt is clockwise --> B×∇B is downward
+        # This checks out with ITER. Negative B in COCOS 11 and lower single null.
+        ∇B_drift_direction = -1
+    else
+        # COCOS 11: Positive Bt is counter clockwise --> B×∇B is upward
+        # This checks out with DIII-D shot 200204, where at 1.2 s
+        # they go from lower to upper single null to go into H-mode
+        ∇B_drift_direction = +1
+    end
+    # L_H_threshold doubles when ion ∇B drift is away from primary X-point
+    if sign(eqt.boundary.x_point[1].z) == ∇B_drift_direction
+        ∇B_drift_multiplier = 1.0
+    else
+        ∇B_drift_multiplier = 2.0
+    end
+
+    # The Martin scaling is only valid for plasma densities above the power threshold minimum
+    ne_volume = trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end] / 1E20
+    Rgeo = eqt.boundary.geometric_axis.r
+    ageo = eqt.boundary.minor_radius
+    ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * (Rgeo / ageo)^0.4
+    ne_volume = max(ne_min, ne_volume)
+
+    surface_area = eqt.profiles_1d.surface[end]
+
+    if metallic_wall
+        # PLH is at least 20% lower in a metallic wall compared to the original ITPA scaling, which was derived from carbon wall data
+        wall_factor = 0.8
+    else
+        wall_factor = 1.0
+    end
+
+    isotope_effect = 2.0 / A_effective(cp1d)
+
+    power_threshold = 1e6 * wall_factor * isotope_effect * 0.049 * ne_volume^0.72 * abs(Bgeo)^0.8 * surface_area^0.94 * ∇B_drift_multiplier
+
+    return power_threshold
 end
 
 """
-    scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-"""
-function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    B0 = B0_geo(eqt)
-    return scaling_L_to_H_power(
-        A_effective(cp1d),
-        trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
-        B0,
-        eqt.profiles_1d.surface[end]
-    )
-end
-
-"""
-    scaling_L_to_H_power(dd::IMAS.dd)
+    scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
 """
 function scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
     return scaling_L_to_H_power(dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0])
@@ -839,12 +878,12 @@ end
 push!(document[Symbol("Physics profiles")], :scaling_L_to_H_power)
 
 """
-    L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time)
 
 Returns ratio of Psol to Plh
 """
-function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    Psol = power_sol(cs, cp1d)
+function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time)
+    Psol = power_sol(cs, cp1d; time0)
     Plh = scaling_L_to_H_power(cp1d, eqt)
     return Psol / Plh
 end
@@ -852,8 +891,8 @@ end
 """
     L_H_threshold(dd::IMAS.dd)
 """
-function L_H_threshold(dd::IMAS.dd)
-    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
+function L_H_threshold(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0]; time0)
 end
 
 @compat public L_H_threshold
@@ -865,11 +904,8 @@ push!(document[Symbol("Physics profiles")], :L_H_threshold)
 Returns `true` if the plasma is diverted, has positive triangularity, and `Psol > Plh * threshold_multiplier`
 """
 function satisfies_h_mode_conditions(dd::IMAS.dd; threshold_multiplier::Float64=1.0)
-    eqt = dd.equilibrium.time_slice[]
-    diverted = length(eqt.boundary.x_point) > 0
     Psol_gt_Plh = L_H_threshold(dd) > threshold_multiplier
-    positive_triangularity = eqt.boundary.triangularity > 0.0
-    if Psol_gt_Plh && diverted && positive_triangularity
+    if Psol_gt_Plh
         return true
     else
         return false
