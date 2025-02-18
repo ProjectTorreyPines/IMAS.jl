@@ -807,15 +807,14 @@ end
 push!(document[Symbol("Physics sol")], :Bpol_omp)
 
 """
-    power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+    power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; time0::Float64=global_time(cp1d))
 
 Total power coming out of the SOL [W]
 
 NOTE: This function returns 1.0 [W] if power is less than that so that SOL quantities remain finite
 """
-function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-    dd = top_dd(cp1d)
-    Psol = total_power_source(total_sources(core_sources, cp1d; time0=dd.global_time, fields=[:power_inside, :total_ion_power_inside]))
+function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; time0::Float64=global_time(cp1d))
+    Psol = total_power_source(total_sources(core_sources, cp1d; time0, fields=[:power_inside, :total_ion_power_inside]))
     if Psol < 1.0
         return one(Psol)
     else
@@ -824,10 +823,10 @@ function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__pr
 end
 
 """
-    power_sol(dd::IMAS.dd)
+    power_sol(dd::IMAS.dd; time0::Float64=dd.global_time)
 """
-function power_sol(dd::IMAS.dd)
-    return power_sol(dd.core_sources, dd.core_profiles.profiles_1d[])
+function power_sol(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return power_sol(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0)
 end
 
 @compat public power_sol
