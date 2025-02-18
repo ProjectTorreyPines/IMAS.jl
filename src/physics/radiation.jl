@@ -154,7 +154,7 @@ end
 """
     adas21(Te, name)
 
-NOTE: Te in [keV] and output is in `[erg cm^3 / s]`
+NOTE: Te in [keV] and output is in `[erg / cm^3 / s]`
 
 Chebyshev polynomial fits to ADAS data
 
@@ -164,7 +164,7 @@ Chebyshev polynomial fits to ADAS data
     "line" and "continuum" radiation. Line radiation basically comes from ADF11 PLT
     files and continuum radiation comes from ADF11 PRB files.
     Bremsstrahlung is included in the continuum term.
-  - Supports `["W", "Xe", "Mo", "Kr", "Ni", "Fe", "Ca", "Ar", "Si", "Al", "Ne", "F", "N", "O", "C", "Be", "He", "H", "T", "D", "DT"]`
+  - Supports `["W", "Xe", "Mo", "Kr", "Ni", "Fe", "Ca", "Ar", "Si", "Al", "Ne", "F", "N", "O", "C", "Be", "He", "H", "T", "D", "Li", "DT"]`
 """
 function adas21(Te, name)
     # Min and max values of Te
@@ -427,6 +427,21 @@ function adas21(Te, name)
             +2.501544833223e-04,
             -3.856698155759e-04
         ]
+    elseif name == "Li"
+        coefficients = [
+            -4.978562496154e+01,
+            -2.505216545881e-01,
+            +8.650665756334e-01,
+            -1.291711692636e-01,
+            -1.599934526332e-01,
+            +1.322662928235e-01,
+            -5.487930945808e-03,
+            -6.479708903897e-02,
+            +4.332749716030e-02,
+            +1.391112355350e-02,
+            -3.887843175798e-02,
+            -3.887843175798e-02
+        ]
     elseif name in ("H", "D", "T", "DT")
         # Hydrogen - like ions (H, D, T, DT)
         coefficients = [
@@ -460,7 +475,7 @@ function adas21(Te, name)
         s = s .+ (coefficients[i] .* cos.((i - 1) .* acos.(x)))
     end
 
-    # Lz (cooling rate) in [erg cm^3 / s]
+    # Lz (cooling rate) in [erg / cm^3 / s]
     Lz = exp.(s)
 
     return Lz
