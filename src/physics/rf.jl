@@ -76,23 +76,30 @@ function frequency(beam_freq::IMAS.ec_launchers__beam___frequency)
 end
 
 """
-    ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T; harmonics::AbstractVector{Int}=[1, 2, 3]) where {T<:Real}
+    ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T; harmonics::AbstractVector{Int}=[1, 2, 3], only_vacuum_Bt::Bool=false) where {T<:Real}
 
 Returns named tuple with (r, z, harmonic) of ECH resonance layer closest to the plasma axis
 """
-function ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T; harmonics::AbstractVector{Int}=[1, 2, 3]) where {T<:Real}
+function ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T; harmonics::AbstractVector{Int}=[1, 2, 3], only_vacuum_Bt::Bool=false) where {T<:Real}
     fundamental_B_ec_resonance = B_ω_ce(frequency * 2π)
+
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     R = eqt2d.grid.dim1
     Z = eqt2d.grid.dim2
-    Bωce_over_Btot = fundamental_B_ec_resonance ./ transpose(sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z .^ 2))
+    if only_vacuum_Bt
+        RR, ZZ = meshgrid(R, Z)
+        vacuum_Bt = abs(eqt.global_quantities.vacuum_toroidal_field.b0 * eqt.global_quantities.vacuum_toroidal_field.r0) ./ RR'
+        Bωce_over_Btot = fundamental_B_ec_resonance ./ vacuum_Bt
+    else
+        Bωce_over_Btot = fundamental_B_ec_resonance ./ sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z .^ 2)
+    end
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.r
 
     layers = Dict{T,Tuple{Vector{T},Vector{T},Int}}()
     for harmonic in harmonics
-        for line in Contour.lines(Contour.contour(R, Z, Bωce_over_Btot', harmonic))
+        for line in Contour.lines(Contour.contour(R, Z, Bωce_over_Btot, harmonic))
             pr, pz = Contour.coordinates(line)
             dl = minimum((pr .- RA) .^ 2 .+ (pz .- ZA) .^ 2)
             layers[dl] = (pr, pz, harmonic)
@@ -110,10 +117,10 @@ end
 """
     ech_resonance(eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
-Returns the ech_resonance desirable for a given equilibrium, that is the layer that resonates with the vacuum field at the geometric center of the plasma
+Returns the ech_resonance desirable for a given equilibrium, that is the layer that resonates with the vacuum field at the magnetic axis
 """
 function ech_resonance(eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
-    Bgeo = eqt.global_quantities.vacuum_toroidal_field.b0 .* eqt.global_quantities.vacuum_toroidal_field.r0 / eqt.boundary.geometric_axis.r
+    Bgeo = eqt.global_quantities.vacuum_toroidal_field.b0 .* eqt.global_quantities.vacuum_toroidal_field.r0 / eqt.global_quantities.magnetic_axis.r
     f_fundamental = ω_ce(Bgeo) / 2π
     if f_fundamental * 2 < 170E9
         return (frequency=f_fundamental * 2, harmonic=2, mode="X")
