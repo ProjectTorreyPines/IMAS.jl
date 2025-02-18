@@ -785,19 +785,20 @@ push!(document[Symbol("Physics profiles")], :Lmode_profiles)
 """
     A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
-A_effective towards L to H scaling see G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+A_effective towards L to H scaling see: G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 """
 function A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
-    numerator = T[]
-    denominator = T[]
+    numerator = zero(T)
+    denominator = zero(T)
     for ion in cp1d.ion
         if ion.element[1].z_n == 1
             n_int = trapz(cp1d.grid.volume, ion.density)
-            push!(numerator, n_int * ion.element[1].a)
-            push!(denominator, n_int)
+            numerator += n_int * ion.element[1].a
+            denominator += n_int
         end
     end
-    return reduce(+, numerator) / reduce(+, denominator)
+
+    return numerator / denominator
 end
 
 @compat public A_effective
