@@ -780,7 +780,7 @@ end
         psi__boundary_level = boundary_level
         psi__axis_level = axis_level
     else
-        psi_interp=interp1d(x_coord, eqt.profiles_1d.psi)
+        psi_interp = interp1d(x_coord, eqt.profiles_1d.psi)
         psi_levels_in = psi_interp.(levels_in)
         psi_levels_out = psi_interp.(levels_out)
         psi_levels = psi_interp.(levels)
@@ -868,8 +868,9 @@ end
 end
 
 @recipe function plot_x_points(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point})
-    for x_point in x_points
+    for (k, x_point) in enumerate(x_points)
         @series begin
+            markersize --> (length(x_points) + 1 - k) * 4
             x_point
         end
     end
@@ -2233,9 +2234,10 @@ end
     end
 end
 
-@recipe function plot_ec_beam_frequency(beam_freq::IMAS.ec_launchers__beam___frequency; time0::global_time(beam_freq))
+@recipe function plot_ec_beam_frequency(beam_freq::IMAS.ec_launchers__beam___frequency; time0::global_time(beam_freq), show_vacuum_Bt=false)
     id = plot_help_id(beam_freq)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Bool, "Show EC resonance assuming only vacuum Bt"; show_vacuum_Bt)
 
     dd = top_dd(beam_freq)
     eqt = dd.equilibrium.time_slice[time0]
@@ -2245,6 +2247,14 @@ end
     @series begin
         label := "$(resonance_layer.harmonic) @ harmonic $(@sprintf("%.0f", freq/1E9)) GHz"
         resonance_layer.r, resonance_layer.z
+    end
+    if show_vacuum_Bt
+        resonance_layer = ech_resonance_layer(eqt, freq; only_vacuum_Bt=true)
+        @series begin
+            primary := false
+            linestyle := :dash
+            resonance_layer.r, resonance_layer.z
+        end
     end
 end
 
@@ -2264,6 +2274,7 @@ end
     @series begin
         cx := true
         color := :gray
+        coordinate := :rho_tor_norm
         eqt
     end
 
@@ -2386,7 +2397,7 @@ end
 # waves #
 # ===== #
 @recipe function plot_waves_profiles_1d(wvc1d::IMAS.waves__coherent_wave___profiles_1d)
-    layout := RecipesBase.@layout [1,1]
+    layout := RecipesBase.@layout [1, 1]
     if !ismissing(parent(parent(wvc1d)).identifier, :antenna_name)
         name = parent(parent(wvc1d)).identifier.antenna_name
     else
