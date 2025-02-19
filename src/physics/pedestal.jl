@@ -7,8 +7,8 @@ document[Symbol("Physics pedestal")] = Symbol[]
         ped_height::Real,
         ped_width::Real,
         tr_bound0::Real,
-        tr_bound1::Real
-    )
+        tr_bound1::Real;
+        method::Symbol=:shift)
 
 Blends the core profiles to the pedestal for H-mode profiles, making sure the Z's at tr_bound0 and tr_bound1 match the Z's from the original profile
 """
@@ -18,7 +18,8 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real)
+    tr_bound1::Real;
+    method::Symbol=:shift)
 
     function cost_find_EPED_exps(
         x::AbstractVector{<:Real},
@@ -59,7 +60,7 @@ function blend_core_edge_Hmode(
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
-    return blend_core_edge_EPED(profile, rho, ped_height, ped_width, tr_bound0, tr_bound1, expin, expout)
+    return blend_core_edge_EPED(profile, rho, ped_height, ped_width, tr_bound0, tr_bound1, expin, expout; method)
 end
 
 @compat public blend_core_edge_Hmode
@@ -74,8 +75,8 @@ push!(document[Symbol("Physics pedestal")], :blend_core_edge_Hmode)
         nml_bound::Real,
         ped_bound::Real;
         expin::Real,
-        expout::Real
-    )
+        expout::Real;
+        method::Symbol=:shift)
 
 Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound and ped_bound as blending boundaries
 """
@@ -87,13 +88,14 @@ function blend_core_edge_EPED(
     nml_bound::Real,
     ped_bound::Real,
     expin::Real,
-    expout::Real
+    expout::Real;
+    method::Symbol=:shift
 )
     # H-mode profile used for pedestal
     # NOTE: Note that we do not provide a core value as this causes the pedestal solution to depend on the core solution
     #       which breaks finding self-consistent core-pedestal solution through an optimizer
     profile_ped = ped_height_at_09(rho, Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width), ped_height)
-    return blend_core_edge(profile, profile_ped, rho, nml_bound, ped_bound)
+    return blend_core_edge(profile, profile_ped, rho, nml_bound, ped_bound; method)
 end
 
 @compat public blend_core_edge_EPED
@@ -105,16 +107,23 @@ push!(document[Symbol("Physics pedestal")], :blend_core_edge_EPED)
         profile_ped::AbstractVector{<:Real},
         rho::AbstractVector{<:Real},
         nml_bound::Real,
-        ped_bound::Real)
+        ped_bound::Real;
+        method::Symbol=:shift)
 
-Blends two profiles core and edge using nml_bound and ped_bound as blending boundaries
+Blends core and edge profiles via inverse-scale-lenghts method using `nml_bound` and `ped_bound` as blending boundaries
+
+Different methods for connecting core region are:
+    * z: inverse scale lenght
+    * shift: add/subract constant to core region
+    * scale: multiply/divide by a constant the core region
 """
 function blend_core_edge(
     profile::AbstractVector{<:Real},
     profile_ped::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     nml_bound::Real,
-    ped_bound::Real
+    ped_bound::Real;
+    method::Symbol=:shift
 )
     @assert rho[end] == 1.0
     @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
@@ -134,11 +143,19 @@ function blend_core_edge(
 
     # integrate from pedestal inward
     profile_new = deepcopy(profile_ped)
-    profile_new[inml:iped] = integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+    profile_new[inml:iped] .= integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
 
-    # we avoid integ_z in the core region to avoid drift of profiles
-    # when calling blend_core_edge_EPED multiple times
-    profile_new[1:inml-1] = profile[1:inml-1] .- profile[inml] .+ profile_new[inml]
+    # different blending strategies for the core
+    @assert method in (:shift, :scale, :z)
+    if method == :shift
+        profile_new[inml:iped] .= integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+        profile_new[1:inml-1] = profile[1:inml-1] .- profile[inml] .+ profile_new[inml]
+    elseif method == :scale
+        profile_new[inml:iped] .= integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+        profile_new[1:inml-1] .= profile[1:inml-1] ./ profile[inml] .* profile_new[inml]
+    elseif method == :z
+        profile_new[1:iped] .= integ_z(rho[1:iped], z_profile[1:iped], profile_ped[iped])
+    end
 
     return profile_new
 end
