@@ -1302,3 +1302,134 @@ end
 
 @compat public core_edge_energy
 push!(document[Symbol("Physics profiles")], :core_edge_energy)
+
+"""
+    scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+
+Returns scale coefficients for main ions and impurity density profiles needed to achieve a target zeff at a specific radial location
+"""
+function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+    rho_index = argmin(abs.(cp1d.grid.rho_tor_norm .- rho_scale))
+    ne = cp1d.electrons.density_thermal[rho_index]
+    Ti = cp1d.t_i_average[rho_index]
+    nh = zero(T)
+    nim_Z = zero(T)
+    nim_Z2 = zero(T)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                nh += ion.density_thermal[rho_index]
+            else
+                nimp = ion.density_thermal[rho_index]
+                Zimp = IMAS.avgZ(ion.element[1].z_n, Ti)
+                nim_Z += nimp .* Zimp
+                nim_Z2 += nimp .* Zimp^2
+            end
+        end
+    end
+
+    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    @assert all(manion_scale .>= 0.0)
+    @assert all(impurity_scale .>= 0.0)
+    original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
+    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
+    original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
+    new_quasineutrality = (ne .- manion_scale .* nh .- impurity_scale .* nim_Z) ./ ne
+
+    return (
+        impurity_scale=impurity_scale,
+        manion_scale=manion_scale,
+        original_zeff=original_zeff,
+        new_zeff=new_zeff,
+        original_quasineutrality=original_quasineutrality,
+        new_quasineutrality=new_quasineutrality
+    )
+end
+
+"""
+    scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+
+Returns scale coefficients for main ions and impurity density profiles needed to achieve a target zeff profile
+"""
+function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+    ne = cp1d.electrons.density_thermal
+    Ti = cp1d.t_i_average
+    nh = zero(ne)
+    nim_Z = zero(ne)
+    nim_Z2 = zero(ne)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                nh .+= ion.density_thermal
+            else
+                nimp = ion.density_thermal
+                Zimp = IMAS.avgZ(ion.element[1].z_n, Ti)
+                nim_Z .+= nimp .* Zimp
+                nim_Z2 .+= nimp .* Zimp .^ 2
+            end
+        end
+    end
+
+    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    @assert all(manion_scale .>= 0.0)
+    @assert all(impurity_scale .>= 0.0)
+    original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
+    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
+    original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
+    new_quasineutrality = (ne .- manion_scale .* nh .- impurity_scale .* nim_Z) ./ ne
+
+    return (
+        impurity_scale=impurity_scale,
+        manion_scale=manion_scale,
+        original_zeff=original_zeff,
+        new_zeff=new_zeff,
+        original_quasineutrality=original_quasineutrality,
+        new_quasineutrality=new_quasineutrality
+    )
+end
+
+@compat public scale_ion_densities_to_target_zeff
+push!(document[Symbol("Physics profiles")], :scale_ion_densities_to_target_zeff)
+
+"""
+    scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+
+Scale main ions and impurity density profiles in place to achieve a target zeff at a specific radial location
+"""
+function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+    scales = scale_ion_densities_to_target_zeff(cp1d, rho_scale, target_zeff)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+            else
+                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+            end
+        end
+    end
+    return cp1d
+end
+
+"""
+    scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+
+Scale main ions and impurity density profiles in place to achieve a target zeff profile
+"""
+function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+    scales = scale_ion_densities_to_target_zeff(cp1d, target_zeff)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+            else
+                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+            end
+        end
+    end
+    return cp1d
+end
+
+@compat public scale_ion_densities_to_target_zeff!
+push!(document[Symbol("Physics profiles")], :scale_ion_densities_to_target_zeff!)
