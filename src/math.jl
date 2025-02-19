@@ -66,17 +66,22 @@ push!(document[Symbol("Math")], :calc_z)
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    profile_new = similar(rho)
-    profile_new[end] = bc
-    for i in length(rho)-1:-1:1
+    @assert length(rho) == length(z_profile)
+
+    # logarithmic summation and then exponentiate at the end
+    log_profile = similar(rho)
+    log_profile[end] = log(bc)
+
+    @inbounds for i in length(rho)-1:-1:1
         a = rho[i]
         fa = z_profile[i]
         b = rho[i+1]
         fb = z_profile[i+1]
         trapz_integral = (b - a) * (fa + fb) / 2.0
-        profile_new[i] = profile_new[i+1] * exp(trapz_integral)
+        log_profile[i] = log_profile[i+1] + trapz_integral  # Accumulate in log space
     end
-    return profile_new
+
+    return exp.(log_profile)  # Convert back at the end
 end
 
 @compat public integ_z
