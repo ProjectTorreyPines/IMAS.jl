@@ -1664,13 +1664,15 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     psi_axis = PSI_interpolant(RA, ZA)
 
     # accurately find the lcfs and scale psi accordingly
-    original_psi_boundary = eqt.profiles_1d.psi[end]
-    psi_boundaries =
-        find_psi_boundary(r, z, eqt2d.psi, psi_axis, original_psi_boundary, RA, ZA, wall_r, wall_z; PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+    psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt.profiles_1d.psi[end], RA, ZA, wall_r, wall_z;
+        PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+    if psi_boundaries.last_closed !== nothing
+        eqt.profiles_1d.psi =
+            (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
+    end
 
+    # find strike points
     find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.first_open)
-    eqt.profiles_1d.psi =
-        (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
 
     for item in (
         :b_field_average,
