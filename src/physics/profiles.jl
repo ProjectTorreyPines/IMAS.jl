@@ -1399,6 +1399,7 @@ push!(document[Symbol("Physics profiles")], :scale_ion_densities_to_target_zeff)
 Scale main ions and impurity density profiles in place to achieve a target zeff at a specific radial location
 """
 function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+    @assert 0.0 <= rho_scale <= 1.0
     scales = scale_ion_densities_to_target_zeff(cp1d, rho_scale, target_zeff)
     for ion in cp1d.ion
         if !ismissing(ion, :density_thermal)
