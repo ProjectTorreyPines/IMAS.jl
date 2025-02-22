@@ -920,17 +920,11 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_tangent_omp)
 
 """
-    find_psi_max(
-        eqt::IMAS.equilibrium__time_slice{T},
-        wall_r::AbstractVector{T},
-        wall_z::AbstractVector{T};
-        precision::Float64=1e-2) where {T<:Real}
+    find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1e-2) where {T<:Real}
 
 Returns the max psi useful for an ofl in the SOL with no wall.
 """
-function find_psi_max(
-    eqt::IMAS.equilibrium__time_slice{T};
-    precision::Float64=1e-2) where {T<:Real}
+function find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1e-2) where {T<:Real}
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     RA = eqt.global_quantities.magnetic_axis.r
@@ -1044,19 +1038,12 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_max)
 
 """
-    find_psi_wall_omp(
-        eqt::IMAS.equilibrium__time_slice,
-        wall_r::AbstractVector{<:Real},
-        wall_z::AbstractVector{<:Real}
-    )
+    find_psi_wall_omp(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{<:Real}, wall_z::AbstractVector{<:Real})
 
 Returns the psi of the magnetic surface in the SOL which intersects the wall at the outer midplane
 """
-function find_psi_wall_omp(
-    eqt::IMAS.equilibrium__time_slice,
-    wall_r::AbstractVector{<:Real},
-    wall_z::AbstractVector{<:Real}
-)
+function find_psi_wall_omp(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{<:Real}, wall_z::AbstractVector{<:Real})
+    @assert lenght(wall_r) == length(wall_z)
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z

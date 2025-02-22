@@ -60,6 +60,7 @@ function OpenFieldLine(
     RA::T,
     ZA::T
 ) where {T<:Real}
+    @assert lenght(wall_r) == length(wall_z)
     if isempty(wall_r)
         # SOL without wall
         rr = r
@@ -149,14 +150,14 @@ Returns vectors of hfs and lfs OpenFieldLine
 
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
-function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true) where {T<:Real}
-
+function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(wall_r)) where {T<:Real}
+    @assert lenght(wall_r) == length(wall_z)
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
 
-    # force use_wall = false if wall_r is empty
+    # empty wall if use_wall = false
     if use_wall == false
-        wall_r = Float64[]
-        wall_z = Float64[]
+        wall_r = T[]
+        wall_z = T[]
     end
 
     ############
@@ -169,7 +170,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis
 
-    psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open # find psi at LCFS
+    psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true, raise_error_on_not_closed=false).first_open # find psi at LCFS
     if psi__boundary_level === nothing
         return OFL
     end
@@ -284,7 +285,7 @@ end
 """
     sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
 """
-function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
+function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(first_wall(wall).r))
     fw = first_wall(wall)
     return sol(eqt, fw.r, fw.z; levels, use_wall)
 end
@@ -292,7 +293,7 @@ end
 """
     sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
 """
-function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
+function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(first_wall(dd.wall).r))
     return sol(dd.equilibrium.time_slice[], dd.wall; levels, use_wall)
 end
 
@@ -324,6 +325,7 @@ function find_levels_from_P(
     levels::Int
 )
     ################### Housekeeping on function q(r) ###################
+    @assert lenght(wall_r) == length(wall_z)
     @assert length(r) == length(q)
     @assert all(q .>= 0) # q is all positive
     @assert all(r .>= 0) # r is all positive
@@ -545,29 +547,30 @@ push!(document[Symbol("Physics sol")], :find_levels_from_P)
 Function for that computes the value of psi at the points of the wall mesh in dd
 """
 function find_levels_from_wall(
-    eqt::IMAS.equilibrium__time_slice,
+    eqt::IMAS.equilibrium__time_slice{T},
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation
-)
-    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
-    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
-    psi_separatrix = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open #psi on separatrix
-    if isempty(wall_r) .|| isempty(wall_z)
+) where {T<:Real}
+
+    @assert lenght(wall_r) == length(wall_z)
+    if isempty(wall_r)
         # no wall
-        return Float64[]
-    else
-        # there is a wall
-        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
+        return T[]
     end
+
+    psi_separatrix = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open #psi on separatrix
     psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
 
     levels = PSI_interpolant.(wall_r, wall_z)
-    psi_tangent, _ = find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant)
-    push!(levels, psi_tangent)
-    levels = levels[levels.>=psi_separatrix.&&levels.<=psi_wall_midplane]
-    return sort!(levels)
+    psi_tangent_in = find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant).psi_tangent_in
+    push!(levels, psi_tangent_in)
+
+    index = levels.>=psi_separatrix .&& levels.<=psi_wall_midplane
+    levels = levels[index]
+    sort!(levels)
+
+    return levels
 end
 
 """
@@ -596,6 +599,8 @@ Returns r, z coordinates of open field line contained within wall, as well as an
 RA and ZA are the coordinate of the magnetic axis
 """
 function line_wall_2_wall(r::AbstractVector{T}, z::AbstractVector{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}, RA::Real, ZA::Real) where {T<:Real}
+    @assert lenght(wall_r) == length(wall_z)
+
     indexes, crossings = intersection(r, z, wall_r, wall_z, 1E-6) # find where flux surface crosses wall ("strike points" of surface)
     # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"
     # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
