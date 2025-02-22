@@ -60,7 +60,7 @@ function OpenFieldLine(
     RA::T,
     ZA::T
 ) where {T<:Real}
-    @assert lenght(wall_r) == length(wall_z)
+    @assert length(wall_r) == length(wall_z)
     if isempty(wall_r)
         # SOL without wall
         rr = r
@@ -151,7 +151,7 @@ Returns vectors of hfs and lfs OpenFieldLine
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
 function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(wall_r)) where {T<:Real}
-    @assert lenght(wall_r) == length(wall_z)
+    @assert length(wall_r) == length(wall_z)
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
 
     # empty wall if use_wall = false
@@ -325,7 +325,7 @@ function find_levels_from_P(
     levels::Int
 )
     ################### Housekeeping on function q(r) ###################
-    @assert lenght(wall_r) == length(wall_z)
+    @assert length(wall_r) == length(wall_z)
     @assert length(r) == length(q)
     @assert all(q .>= 0) # q is all positive
     @assert all(r .>= 0) # r is all positive
@@ -553,7 +553,7 @@ function find_levels_from_wall(
     PSI_interpolant::Interpolations.AbstractInterpolation
 ) where {T<:Real}
 
-    @assert lenght(wall_r) == length(wall_z)
+    @assert length(wall_r) == length(wall_z)
     if isempty(wall_r)
         # no wall
         return T[]
@@ -599,7 +599,7 @@ Returns r, z coordinates of open field line contained within wall, as well as an
 RA and ZA are the coordinate of the magnetic axis
 """
 function line_wall_2_wall(r::AbstractVector{T}, z::AbstractVector{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}, RA::Real, ZA::Real) where {T<:Real}
-    @assert lenght(wall_r) == length(wall_z)
+    @assert length(wall_r) == length(wall_z)
 
     indexes, crossings = intersection(r, z, wall_r, wall_z, 1E-6) # find where flux surface crosses wall ("strike points" of surface)
     # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"

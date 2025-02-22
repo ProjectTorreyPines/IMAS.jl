@@ -1043,7 +1043,7 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_max)
 Returns the psi of the magnetic surface in the SOL which intersects the wall at the outer midplane
 """
 function find_psi_wall_omp(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{<:Real}, wall_z::AbstractVector{<:Real})
-    @assert lenght(wall_r) == length(wall_z)
+    @assert length(wall_r) == length(wall_z)
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z

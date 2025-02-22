@@ -110,10 +110,10 @@ push!(document[Symbol("Physics pedestal")], :blend_core_edge_EPED)
         ped_bound::Real;
         method::Symbol=:shift)
 
-Blends core and edge profiles via inverse-scale-lenghts method using `nml_bound` and `ped_bound` as blending boundaries
+Blends core and edge profiles via inverse-scale-lengths method using `nml_bound` and `ped_bound` as blending boundaries
 
 Different methods for connecting core region are:
-    * z: inverse scale lenght
+    * z: inverse scale length
     * shift: add/subract constant to core region
     * scale: multiply/divide by a constant the core region
 """
