@@ -1330,8 +1330,8 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
 
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
     manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
-    @assert all(manion_scale .>= 0.0)
-    @assert all(impurity_scale .>= 0.0)
+    @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
+    @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
     new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
     original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
@@ -1373,8 +1373,8 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
 
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
     manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
-    @assert all(manion_scale .>= 0.0)
-    @assert all(impurity_scale .>= 0.0)
+    @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
+    @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
     new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
     original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
