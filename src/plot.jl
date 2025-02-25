@@ -3358,6 +3358,35 @@ end
     return x, Measurements.value.(y)
 end
 
+"""
+    ylim(extrema::Dict{Int,Float64})
+
+Set y-limits for n-th subplot in a layout
+
+Negative `n`'s are interpreted as minimum value and positive `n`'s as maximum value
+
+For example:
+
+    ylim(Dict{Int,Float64}(
+        3=>3.0, 4=>1E20,
+        -6=>-.5, 6=>1.5, -7=>-.5, 7=>1.5, -8=>-2E20, 8=>2.5E20,
+        -10=>0.0, 10=>0.101, -11=>0.0, 11=>0.101, -12=>-1.2E19, 12=>1.2E19))
+"""
+function ylim(extrema::Dict{Int,Float64})
+    extrema = deepcopy(extrema)
+    for n in collect(keys(extrema))
+        if n > 0 && -n ∉ keys(extrema)
+            extrema[-n] = -Inf
+        elseif n < 0 && -n ∉ keys(extrema)
+            extrema[-n] = Inf
+        end
+    end
+    for n in unique!(abs.(collect(keys(extrema))))
+        plot!(; ylim=(extrema[-n], extrema[n]), subplot=n)
+    end
+    return plot!()
+end
+
 #= ============= =#
 #  time plotting  #
 #= ============= =#
