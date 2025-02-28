@@ -188,7 +188,8 @@ function _electron_ion_drag_difference(
 
     lnΛ_fis = k -> lnΛ_fi(ne, Te, ni[k], Ti[k], mi[k], Zi[k], v_f / mks.c, mf, Zf; verbose=false)
     Γ_fi = k -> _drag_coefficient(ni[k], Zi[k], mf, Zf, lnΛ_fis(k))
-    ion_drag = 2 * m_f * sum(Γ_fi(k) / mi[k] for k in eachindex(mi)) / mks.m_u
+    valid = k -> ni[k] > 0.0 && Ti[k] > 0.0
+    ion_drag = 2 * m_f * sum(valid(k) ? Γ_fi(k) / mi[k] : 0.0 for k in eachindex(mi)) / mks.m_u
 
     return electron_drag - ion_drag
 end
@@ -227,11 +228,10 @@ function critical_energy(
     Zf::Int;
     approximate::Bool=false
 )
-    avg_cmr = sum(ni .* (Zi .^ 2) ./ mi) / ne
-    Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
+    avg_cmr = sum(ni[k] * (Zi[k] ^ 2) / mi[k] for k in eachindex(ni)) / ne
+    Ec = 14.8 * mf * Te * avg_cmr ^ (2.0 / 3.0)
     if !approximate
-        index = ni .> 0.0 .&& Ti .> 0.0
-        Ec = Roots.find_zero(Ec0 -> _electron_ion_drag_difference(ne, Te, ni[index], Ti[index], mi[index], Zi[index], Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
+        Ec = Roots.find_zero(Ec0 -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
     end
     return Ec
 end
