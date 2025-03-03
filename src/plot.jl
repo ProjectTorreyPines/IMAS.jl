@@ -2426,25 +2426,57 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv))
+@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam, antenna_name::String, top=false, d3d=false)
+    if top
+        offset = 0.0
+        if d3d
+            offset = pi/2.0
+        end
+        @series begin
+            seriestype --> :scatter
+            label --> antenna_name
+            [beam.position.r[1] * cos(beam.position.phi[1] + offset)], 
+            [beam.position.r[1] * sin(beam.position.phi[1] + offset)]
+        end
+        @series begin
+            primary --> false
+            lw := 2
+            beam.position.r .* cos.(beam.position.phi .+ offset), beam.position.r .* sin.(beam.position.phi .+ offset)
+        end
+    else
+        @series begin
+            seriestype --> :scatter
+            xlim --> (0.0, Inf)
+            label --> antenna_name
+            [beam.position.r[1]], [beam.position.z[1]]
+        end
+        @series begin
+            xlim --> (0.0, Inf)
+            primary --> false
+            lw := 2
+            beam.position.r, beam.position.z
+        end
+    end
+end
+
+@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv), top=false, d3d=false)
     id = plot_help_id(wv)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     aspect_ratio := :equal
     legend_position --> :outerbottomright
-
-    beam = wv.beam_tracing[time0].beam[1]
-    @series begin
-        seriestype --> :scatter
-        xlim --> (0.0, Inf)
-        label --> wv.identifier.antenna_name
-        [beam.position.r[1]], [beam.position.z[1]]
-    end
-    @series begin
-        xlim --> (0.0, Inf)
-        primary := false
-        lw := 2
-        beam.position.r, beam.position.z
+    colors = palette(:auto)
+    for (ibeam, beam) in enumerate(wv.beam_tracing[time0].beam)
+        @series begin
+            if ibeam==1
+                color --> colors[ibeam]
+                beam, wv.identifier.antenna_name, top, d3d
+            else
+                primary := false
+                color --> colors[ibeam]
+                beam, "", top, d3d
+            end
+        end
     end
 end
 
