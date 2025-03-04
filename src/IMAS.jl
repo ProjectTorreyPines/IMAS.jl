@@ -60,4 +60,7 @@ include("plot.jl")
 #= ====== =#
 export @ddtime, @findall
 
+import HelpPlots: help_plot, help_plot!
+export help_plot, help_plot!
+
 end # module

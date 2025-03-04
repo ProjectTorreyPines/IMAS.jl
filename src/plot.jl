@@ -6,136 +6,28 @@ using LaTeXStrings
 import Measures
 import Graphs
 using GraphRecipes
+import HelpPlots
 
-# ========= #
-# plot_help #
-# ========= #
-mutable struct PlotHelpParameter
-    dispatch::String
-    argument::Symbol
-    type::Any
-    description::String
-    value::Any
-end
-
-const _help_plot = Vector{PlotHelpParameter}()
-
-function plot_help_id(args...)
-    dispatches = String[]
+function recipe_id_for_help_plot(args...)
+    name = String[]
     for arg in args
         if typeof(arg) <: IDS
-            push!(dispatches, ulocation(arg))
+            push!(name, ulocation(arg))
         else
-            push!(dispatches, string(typeof(arg)))
+            push!(name, string(typeof(arg)))
         end
     end
-    return join(dispatches, ", ")
+    return join(name, ", ")
 end
-
-function assert_type_and_record_argument(dispatch, type::Type, description::String; kw...)
-    @assert length(kw) == 1
-    argument = collect(keys(kw))[1]
-    value = collect(values(kw))[1]
-
-    @assert typeof(value) <: type "\"$argument\" has the wrong type of [$(typeof(value))]. It must be a subtype of [$(type)]"
-
-    this_plotpar = PlotHelpParameter(dispatch, argument, type, description, value)
-
-    only_match = true
-    all_same_values = all(plotpar.value == this_plotpar.value for plotpar in _help_plot if "$(plotpar.dispatch), $(plotpar.argument)" == "$(dispatch), $(argument)")
-    for plotpar in _help_plot
-        if "$(plotpar.dispatch), $(plotpar.argument)" == "$(this_plotpar.dispatch), $(this_plotpar.argument)"
-            if !all_same_values
-                plotpar.value = :__MIXED__
-            end
-            only_match = false
-        end
-    end
-
-    if only_match
-        push!(_help_plot, this_plotpar)
-    end
-
-    return nothing
-end
-
-function Base.show(io::IO, ::MIME"text/plain", plotpar::PlotHelpParameter)
-    printstyled(io, plotpar.argument; bold=true)
-    printstyled(io, "::$(plotpar.type)"; color=:blue)
-    printstyled(io, " = ")
-    if plotpar.value == :__MIXED__
-        printstyled(io, "MIXED"; color=:magenta, bold=true)
-    else
-        printstyled(io, "$(repr(plotpar.value))"; color=:red, bold=true)
-    end
-    return printstyled(io, "  # $(plotpar.description)"; color=248)
-end
-
-function Base.show(io::IO, x::MIME"text/plain", plotpars::AbstractVector{<:PlotHelpParameter})
-    old_dispatch = nothing
-    for (k, plotpar) in enumerate(plotpars)
-        if plotpar.dispatch != old_dispatch
-            if k > 1
-                print(io, "\n")
-            end
-            printstyled(io, "$(plotpar.dispatch)"; color=:green)
-            print(io, "\n")
-        end
-        old_dispatch = plotpar.dispatch
-        print(io, "     ")
-        show(io, x, plotpar)
-        if k < length(plotpars)
-            print(io, "\n")
-        end
-    end
-end
-
-"""
-    help_plot(args...; kw...)
-
-Prints plotting arguments for object that are part of IMAS.
-
-Call `help_plot(...)` just like you would `plot(...)`
-
-Returns the plot.
-"""
-function help_plot(args...; kw...)
-    empty!(_help_plot)
-    p = plot(args...; kw...)
-    display(_help_plot)
-    return p
-end
-
-export help_plot
-push!(document[:Plot], :help_plot)
-
-"""
-    help_plot!(args...; kw...)
-
-Prints plotting arguments for object that are part of IMAS.
-
-Call `help_plot!(...)` just like you would `plot!(...)`
-
-Returns the plot.
-"""
-function help_plot!(args...; kw...)
-    empty!(_help_plot)
-    p = plot!(args...; kw...)
-    display(_help_plot)
-    return p
-end
-
-export help_plot!
-push!(document[:Plot], :help_plot!)
 
 # ========= #
 # pf_active #
 # ========= #
 @recipe function plot_pf_active_cx(pfa::pf_active; what=:cx, time0=global_time(pfa), cname=:vik)
-    id = plot_help_id(pfa, what)
-    assert_type_and_record_argument(id, Symbol, "What to plot [:currents, :cx, :coils_flux]"; what)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
-    assert_type_and_record_argument(id, Symbol, "Colormap name"; cname)
+    id = recipe_id_for_help_plot(pfa, what)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "What to plot [:currents, :cx, :coils_flux]"; what)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "Colormap name"; cname)
 
     if isempty(pfa.coil) || ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
         currents = [0.0 for c in pfa.coil]
@@ -239,10 +131,10 @@ push!(document[:Plot], :help_plot!)
 end
 
 @recipe function plot_coil(coil::pf_active__coil{T}; coil_names=false, coil_identifiers=false, coil_numbers=false) where {T<:Real}
-    id = plot_help_id(coil)
-    assert_type_and_record_argument(id, Bool, "Show coil names"; coil_names)
-    assert_type_and_record_argument(id, Bool, "Show coil identifiers"; coil_identifiers)
-    assert_type_and_record_argument(id, Bool, "Show coil numbers"; coil_numbers)
+    id = recipe_id_for_help_plot(coil)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show coil names"; coil_names)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show coil identifiers"; coil_identifiers)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show coil numbers"; coil_numbers)
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
@@ -422,8 +314,8 @@ end
 end
 
 @recipe function plot_loop(loop::pf_passive__loop{T}; loop_names=false) where {T<:Real}
-    id = plot_help_id(loop)
-    assert_type_and_record_argument(id, Bool, "Show loop names"; loop_names)
+    id = recipe_id_for_help_plot(loop)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show loop names"; loop_names)
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
@@ -570,8 +462,8 @@ end
 # equilibrium #
 # =========== #
 @recipe function plot_eq(eq::IMAS.equilibrium; time0=global_time(eq))
-    id = plot_help_id(eq)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    id = recipe_id_for_help_plot(eq)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     @series begin
         return eq.time_slice[time0]
@@ -579,10 +471,10 @@ end
 end
 
 @recipe function plot_eqt(eqt::IMAS.equilibrium__time_slice; cx=false, coordinate=:psi_norm, core_profiles_overlay=false)
-    id = plot_help_id(eqt)
-    assert_type_and_record_argument(id, Bool, "Display 2D cross section"; cx)
-    assert_type_and_record_argument(id, Symbol, "X coordinate for 1D profiles"; coordinate)
-    assert_type_and_record_argument(id, Bool, "Overlay core_profiles data"; core_profiles_overlay)
+    id = recipe_id_for_help_plot(eqt)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Display 2D cross section"; cx)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "X coordinate for 1D profiles"; coordinate)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Overlay core_profiles data"; core_profiles_overlay)
 
     if !cx
         layout := RecipesBase.@layout [a{0.35w} [a b; c d]]
@@ -732,14 +624,14 @@ end
     show_magnetic_axis=true,
     coordinate=:psi)
 
-    id = plot_help_id(eqt2d)
-    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
-    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels outside LCFS"; levels_out)
-    assert_type_and_record_argument(id, Symbol, "X coordinate for 2D contours"; coordinate)
-    assert_type_and_record_argument(id, Bool, "Plot secondary separatrix"; show_secondary_separatrix)
-    assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
-    assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
-    assert_type_and_record_argument(id, Bool, "Show magnetic axis"; show_magnetic_axis)
+    id = recipe_id_for_help_plot(eqt2d)
+    HelpPlots.assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
+    HelpPlots.assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels outside LCFS"; levels_out)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "X coordinate for 2D contours"; coordinate)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot secondary separatrix"; show_secondary_separatrix)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show magnetic axis"; show_magnetic_axis)
 
     label --> ""
     aspect_ratio := :equal
@@ -1023,10 +915,10 @@ function layer_attrs(l::IMAS.build__layer)
 end
 
 @recipe function plot_build(bd::IMAS.build; equilibrium=true, pf_active=true, pf_passive=true)
-    id = plot_help_id(bd)
-    assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
-    assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
-    assert_type_and_record_argument(id, Bool, "Include plot of pf_passive"; pf_passive)
+    id = recipe_id_for_help_plot(bd)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Include plot of pf_passive"; pf_passive)
 
     dd = top_dd(bd)
 
@@ -1065,11 +957,11 @@ end
 end
 
 @recipe function plot_build_layer(layers::IDSvector{<:IMAS.build__layer}; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
-    id = plot_help_id(layers)
-    assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
-    assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
-    assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
-    assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
+    id = recipe_id_for_help_plot(layers)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
+    HelpPlots.assert_type_and_record_argument(id, AbstractVector{Symbol}, "Only include certain layers"; only)
+    HelpPlots.assert_type_and_record_argument(id, AbstractVector{Symbol}, "Exclude certain layers"; exclude_layers)
 
     bd = parent(layers)
 
@@ -1455,9 +1347,9 @@ function transport_channel_paths(ions::AbstractVector{<:IDS}, ions_list::Abstrac
 end
 
 @recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; only=nothing, ions=Symbol[])
-    id = plot_help_id(ct1d)
-    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
-    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
+    id = recipe_id_for_help_plot(ct1d)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    HelpPlots.assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
 
     paths = transport_channel_paths(ct1d.ion, ions)
 
@@ -1483,9 +1375,9 @@ end
 end
 
 @recipe function plot_core_transport(ct::IMAS.core_transport{D}; ions=Symbol[:my_ions], time0=global_time(ct)) where {D<:Real}
-    id = plot_help_id(ct)
-    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    id = recipe_id_for_help_plot(ct)
+    HelpPlots.assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(ct)
     cp1d = dd.core_profiles.profiles_1d[time0]
@@ -1568,15 +1460,15 @@ end
     only_positive_negative=0,
     show_source_number=false)
 
-    id = plot_help_id(cs1de, v)
-    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
-    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
-    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
-    assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
-    assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
-    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    id = recipe_id_for_help_plot(cs1de, v)
+    HelpPlots.assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
+    HelpPlots.assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
     cs1d = parent(cs1de; error_parent_of_nothing=false)
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
@@ -1631,15 +1523,15 @@ end
     only_positive_negative=0,
     show_source_number=false)
 
-    id = plot_help_id(cs1d, v)
-    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
-    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
-    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
-    assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
-    assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
-    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    id = recipe_id_for_help_plot(cs1d, v)
+    HelpPlots.assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
+    HelpPlots.assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
@@ -1695,13 +1587,13 @@ end
     show_zeros=false,
     show_source_number=false)
 
-    id = plot_help_id(cs1de, v)
-    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
-    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
-    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
-    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    id = recipe_id_for_help_plot(cs1de, v)
+    HelpPlots.assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
     cs1d = parent(cs1de; error_parent_of_nothing=false)
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
@@ -1749,13 +1641,13 @@ end
     show_zeros=false,
     show_source_number=false)
 
-    id = plot_help_id(cs1di, v)
-    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
-    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
-    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
-    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    id = recipe_id_for_help_plot(cs1di, v)
+    HelpPlots.assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
     cs1d = parent(parent(cs1di; error_parent_of_nothing=false); error_parent_of_nothing=false)
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
@@ -1803,13 +1695,13 @@ end
     show_zeros=false,
     show_source_number=false)
 
-    id = plot_help_id(cs1d, v)
-    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
-    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
-    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
-    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    id = recipe_id_for_help_plot(cs1d, v)
+    HelpPlots.assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
@@ -1855,12 +1747,12 @@ end
     show_zeros=false,
     show_source_number=false)
 
-    id = plot_help_id(cs1d, v)
-    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
-    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
-    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    id = recipe_id_for_help_plot(cs1d, v)
+    HelpPlots.assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
@@ -1924,17 +1816,17 @@ end
     show_source_number=false,
     ions=Symbol[])
 
-    id = plot_help_id(cs1d)
-    assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
-    assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
-    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
-    assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
-    assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
-    assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
-    assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
-    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
+    id = recipe_id_for_help_plot(cs1d)
+    HelpPlots.assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot flux"; flux)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Minimum power threshold"; min_power)
+    HelpPlots.assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
+    HelpPlots.assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
 
     paths = transport_channel_paths(cs1d.ion, ions)
     if !flux
@@ -1981,10 +1873,10 @@ end
 end
 
 @recipe function plot_core_sources(cs::IMAS.core_sources{T}; ions=[:my_ions], time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
-    id = plot_help_id(cs)
-    assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
-    assert_type_and_record_argument(id, Bool, "Aggregate radiation sources"; aggregate_radiation)
+    id = recipe_id_for_help_plot(cs)
+    HelpPlots.assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Aggregate radiation sources"; aggregate_radiation)
 
     dd = top_dd(cs)
 
@@ -2037,8 +1929,8 @@ end
 end
 
 @recipe function plot_source(source::IMAS.core_sources__source; time0=global_time(source))
-    id = plot_help_id(source)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    id = recipe_id_for_help_plot(source)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
         @series begin
@@ -2052,8 +1944,8 @@ end
 # core_profiles #
 # ============= #
 @recipe function plot_core_profiles(cp::IMAS.core_profiles; time0=global_time(cp))
-    id = plot_help_id(cp)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    id = recipe_id_for_help_plot(cp)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     @series begin
         return cp.profiles_1d[time0]
@@ -2061,10 +1953,10 @@ end
 end
 
 @recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false)
-    id = plot_help_id(cpt)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
-    assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
+    id = recipe_id_for_help_plot(cpt)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
 
     if label === nothing
         label = ""
@@ -2207,8 +2099,8 @@ function label(beam::IMAS.ec_launchers__beam)
 end
 
 @recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; time0=global_time(beam))
-    id = plot_help_id(beam)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    id = recipe_id_for_help_plot(beam)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(beam)
 
@@ -2235,9 +2127,9 @@ end
 end
 
 @recipe function plot_ec_beam_frequency(beam_freq::IMAS.ec_launchers__beam___frequency; time0::global_time(beam_freq), show_vacuum_Bt=false)
-    id = plot_help_id(beam_freq)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
-    assert_type_and_record_argument(id, Bool, "Show EC resonance assuming only vacuum Bt"; show_vacuum_Bt)
+    id = recipe_id_for_help_plot(beam_freq)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show EC resonance assuming only vacuum Bt"; show_vacuum_Bt)
 
     dd = top_dd(beam_freq)
     eqt = dd.equilibrium.time_slice[time0]
@@ -2265,8 +2157,8 @@ end
 end
 
 @recipe function plot_ec(beams::IDSvector{<:IMAS.ec_launchers__beam{T}}; time0::global_time(beams)) where {T<:Real}
-    id = plot_help_id(beams)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    id = recipe_id_for_help_plot(beams)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(beams)
     eqt = dd.equilibrium.time_slice[time0]
@@ -2321,8 +2213,8 @@ end
     };
     smooth_tau=0.0
 ) where {T<:Real}
-    id = plot_help_id(pl)
-    assert_type_and_record_argument(id, Float64, "Smooth instantaneous power assuming τ decorrelation time [s]"; smooth_tau)
+    id = recipe_id_for_help_plot(pl)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Smooth instantaneous power assuming τ decorrelation time [s]"; smooth_tau)
     hcd = parent(pl)
     data1 = pl.data
     if smooth_tau > 0.0
@@ -2349,9 +2241,9 @@ end
     show_total=true,
     smooth_tau=0.0
 ) where {T<:Real}
-    id = plot_help_id(pls)
-    assert_type_and_record_argument(id, Bool, "Show total power launched"; show_total)
-    assert_type_and_record_argument(id, Float64, "Smooth instantaneous power"; smooth_tau)
+    id = recipe_id_for_help_plot(pls)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show total power launched"; show_total)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Smooth instantaneous power"; smooth_tau)
 
     background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
@@ -2457,7 +2349,7 @@ end
 
 @recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv), top=false)
     id = plot_help_id(wv)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     aspect_ratio := :equal
     legend_position --> :outerbottomright
@@ -2637,9 +2529,9 @@ end
 # neutronics #
 # ========== #
 @recipe function plot_neutron_wall_loading_cx(nwl::IMAS.neutronics__time_slice___wall_loading; cx=true, component=:norm)
-    id = plot_help_id(nwl)
-    assert_type_and_record_argument(id, Symbol, "Component to plot (:norm, :r, :z, :power)"; component)
-    assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
+    id = recipe_id_for_help_plot(nwl)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "Component to plot (:norm, :r, :z, :power)"; component)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
@@ -2718,9 +2610,9 @@ end
 end
 
 @recipe function plot_wd2d(wd2d::IMAS.wall__description_2d; show_limiter=true, show_vessel=true)
-    id = plot_help_id(wd2d)
-    assert_type_and_record_argument(id, Bool, "Show limiter units"; show_limiter)
-    assert_type_and_record_argument(id, Bool, "Show vessel units"; show_vessel)
+    id = recipe_id_for_help_plot(wd2d)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show limiter units"; show_limiter)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Show vessel units"; show_vessel)
     if show_limiter
         @series begin
             return wd2d.limiter
@@ -2865,9 +2757,9 @@ end
 #  pulse_schedule  #
 #= ============== =#
 @recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps), simulation_start=nothing)
-    id = plot_help_id(ps)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
-    assert_type_and_record_argument(id, Union{Nothing,Float64}, "Simulation start time"; simulation_start)
+    id = recipe_id_for_help_plot(ps)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,Float64}, "Simulation start time"; simulation_start)
     plots = []
     for (loc, (ids, field)) in filled_ids_fields(ps; eval_expr=true)
         if field != :reference
@@ -3000,8 +2892,8 @@ end
 end
 
 @recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
-    id = plot_help_id(pc)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    id = recipe_id_for_help_plot(pc)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     aspect_ratio := :equal
     bnd = boundary(pc; time0)
     @series begin
@@ -3139,10 +3031,10 @@ end
 end
 
 @recipe function plot_IFF_list(IFF_list::AbstractArray{IDS_Field_Finder}; nrows=:auto, ncols=:auto, each_size=(500, 400))
-    id = plot_help_id(IFF_list)
-    assert_type_and_record_argument(id, Tuple{Integer,Integer}, "Size of each subplot. (Default=(500, 400))"; each_size)
-    assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of rows for subplots' layout (Default = :auto)"; nrows)
-    assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of columns for subplots' layout (Default = :auto)"; ncols)
+    id = recipe_id_for_help_plot(IFF_list)
+    HelpPlots.assert_type_and_record_argument(id, Tuple{Integer,Integer}, "Size of each subplot. (Default=(500, 400))"; each_size)
+    HelpPlots.assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of rows for subplots' layout (Default = :auto)"; nrows)
+    HelpPlots.assert_type_and_record_argument(id, Union{Integer,Symbol}, "Number of columns for subplots' layout (Default = :auto)"; ncols)
 
     # Keep only non-empty Vector or Matrix type data
     IFF_list = filter(IFF -> IFF.field_type <: Union{AbstractVector{<:Real},AbstractMatrix{<:Real}}, IFF_list)
@@ -3225,11 +3117,11 @@ end
         seriestype_2d = :contour
     end
 
-    id = plot_help_id(IFF)
-    assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 1D data [:path (default), :scatter, :bar ...]"; seriestype_1d)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_2d)
-    assert_type_and_record_argument(id, Bool, "Flag to use nicer title"; nicer_title)
+    id = recipe_id_for_help_plot(IFF)
+    HelpPlots.assert_type_and_record_argument(id, Dict, "Abbreviations to shorten titles of subplots"; abbreviations)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "Seriestype for 1D data [:path (default), :scatter, :bar ...]"; seriestype_1d)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype_2d)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Flag to use nicer title"; nicer_title)
 
     field_name = shorten_ids_name(IFF.field_path, abbreviations)
 
@@ -3274,12 +3166,12 @@ end
 end
 
 @recipe function plot_field_1d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_1d}; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
-    id = plot_help_id(ids, field)
+    id = recipe_id_for_help_plot(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
-    assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
-    assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Coordinate for x-axis"; coordinate)
-    assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
-    assert_type_and_record_argument(id, Bool, "Fill area under curve"; fill0)
+    HelpPlots.assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Coordinate for x-axis"; coordinate)
+    HelpPlots.assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
+    HelpPlots.assert_type_and_record_argument(id, Bool, "Fill area under curve"; fill0)
 
     coords = coordinates(ids, field; coord_leaves=[coordinate])
     coordinate_name = coords.names[1]
@@ -3340,11 +3232,11 @@ end
 end
 
 @recipe function plot_field_2d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_2d}; normalization=1.0, seriestype=:contourf)
-    id = plot_help_id(ids, field)
+    id = recipe_id_for_help_plot(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
 
-    assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
-    assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype)
+    HelpPlots.assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
+    HelpPlots.assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype)
 
     zvalue = getproperty(ids, field) .* normalization
 
