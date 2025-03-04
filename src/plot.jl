@@ -2318,25 +2318,53 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv))
-    id = recipe_id_for_help_plot(wv)
+@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam, antenna_name::String, top=false)
+    if top
+        @series begin
+            seriestype --> :scatter
+            label --> antenna_name
+            [beam.position.r[1] * cos(beam.position.phi[1])], 
+            [beam.position.r[1] * sin(beam.position.phi[1])]
+        end
+        @series begin
+            primary --> false
+            lw := 2
+            beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
+        end
+    else
+        @series begin
+            seriestype --> :scatter
+            xlim --> (0.0, Inf)
+            label --> antenna_name
+            [beam.position.r[1]], [beam.position.z[1]]
+        end
+        @series begin
+            xlim --> (0.0, Inf)
+            primary --> false
+            lw := 2
+            beam.position.r, beam.position.z
+        end
+    end
+end
+
+@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv), top=false)
+    id = plot_help_id(wv)
     HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     aspect_ratio := :equal
     legend_position --> :outerbottomright
-
-    beam = wv.beam_tracing[time0].beam[1]
-    @series begin
-        seriestype --> :scatter
-        xlim --> (0.0, Inf)
-        label --> wv.identifier.antenna_name
-        [beam.position.r[1]], [beam.position.z[1]]
-    end
-    @series begin
-        xlim --> (0.0, Inf)
-        primary := false
-        lw := 2
-        beam.position.r, beam.position.z
+    colors = palette(:auto)
+    for (ibeam, beam) in enumerate(wv.beam_tracing[time0].beam)
+        @series begin
+            if ibeam==1
+                color --> colors[ibeam]
+                beam, wv.identifier.antenna_name, top
+            else
+                primary := false
+                color --> colors[ibeam]
+                beam, "", top
+            end
+        end
     end
 end
 
