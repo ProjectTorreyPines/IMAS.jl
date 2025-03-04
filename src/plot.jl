@@ -592,6 +592,8 @@ end
         size --> (800, 500)
     end
 
+    coordinate := coordinate
+
     @series begin
         if !cx
             subplot := 1
@@ -600,8 +602,6 @@ end
     end
 
     if !cx
-        coordinate := coordinate
-
         if core_profiles_overlay
             cp = top_dd(eqt).core_profiles
             cp1d = top_dd(eqt).core_profiles.profiles_1d[argmin(abs.(cp.time .- eqt.time))]
@@ -699,6 +699,11 @@ end
                 ylabel := ""
                 normalization := 1.0
                 title := latex_support() ? L"q" : "q"
+                if eqt.profiles_1d.q[end] > 0.0
+                    ylim := (0.0, 5)
+                else
+                    ylim := (-5.0, 0.0)
+                end
                 eqt.profiles_1d, :q
             end
         end
@@ -719,16 +724,18 @@ end
 
 @recipe function plot_eqt2(
     eqt2d::IMAS.equilibrium__time_slice___profiles_2d;
-    psi_levels_in=11,
-    psi_levels_out=11,
+    levels_in=11,
+    levels_out=11,
     show_secondary_separatrix=false,
     show_x_points=true,
     show_strike_points=true,
-    show_magnetic_axis=true)
+    show_magnetic_axis=true,
+    coordinate=:psi)
 
     id = plot_help_id(eqt2d)
-    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels inside LCFS"; psi_levels_in)
-    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Psi levels outside LCFS"; psi_levels_out)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
+    assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels outside LCFS"; levels_out)
+    assert_type_and_record_argument(id, Symbol, "X coordinate for 2D contours"; coordinate)
     assert_type_and_record_argument(id, Bool, "Plot secondary separatrix"; show_secondary_separatrix)
     assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
     assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
@@ -743,31 +750,43 @@ end
 
     eqt = parent(parent(eqt2d))
 
-    # plot cx
-    # handle psi levels
-    psi__boundary_level = eqt.profiles_1d.psi[end]
-    tmp = eqt.profiles_1d.psi[end]
-    if tmp !== nothing
-        psi__boundary_level = tmp
-    end
-    if typeof(psi_levels_in) <: Int
-        if psi_levels_in == 1
-            psi_levels_in = [psi__boundary_level]
-        elseif psi_levels_in > 0
-            psi_levels_in = range(eqt.profiles_1d.psi[1], psi__boundary_level, psi_levels_in)
+    # handle levels
+    x_coord = getproperty(eqt.profiles_1d, coordinate)
+    boundary_level = x_coord[end]
+    axis_level = x_coord[1]
+    if typeof(levels_in) <: Int
+        if levels_in == 1
+            levels_in = [boundary_level]
+        elseif levels_in > 0
+            levels_in = range(axis_level, boundary_level, levels_in)
         else
-            psi_levels_in = []
+            levels_in = []
         end
     end
-    delta_psi = (psi__boundary_level - eqt.profiles_1d.psi[1])
-    if typeof(psi_levels_out) <: Int
-        if psi_levels_out > 0
-            psi_levels_out = delta_psi / length(psi_levels_in) .* collect(0:psi_levels_out) .+ psi__boundary_level
+    delta_psi = (boundary_level - axis_level)
+    if typeof(levels_out) <: Int
+        if levels_out > 0
+            levels_out = delta_psi / length(levels_in) .* collect(0:levels_out) .+ boundary_level
         else
-            psi_levels_out = []
+            levels_out = []
         end
     end
-    psi_levels = unique(vcat(psi_levels_in, psi_levels_out))
+    levels = unique(vcat(levels_in, levels_out))
+
+    if coordinate == :psi
+        psi_levels_in = levels_in
+        psi_levels_out = levels_out
+        psi_levels = levels
+        psi__boundary_level = boundary_level
+        psi__axis_level = axis_level
+    else
+        psi_interp = interp1d(x_coord, eqt.profiles_1d.psi)
+        psi_levels_in = psi_interp.(levels_in)
+        psi_levels_out = psi_interp.(levels_out)
+        psi_levels = psi_interp.(levels)
+        psi__boundary_level = psi_interp.(boundary_level)
+        psi__axis_level = psi_interp.(axis_level)
+    end
 
     fw = first_wall(top_dd(eqt).wall)
     RA = eqt.global_quantities.magnetic_axis.r
@@ -849,8 +868,9 @@ end
 end
 
 @recipe function plot_x_points(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point})
-    for x_point in x_points
+    for (k, x_point) in enumerate(x_points)
         @series begin
+            markersize --> (length(x_points) + 1 - k) * 4
             x_point
         end
     end
@@ -1025,7 +1045,7 @@ end
     end
 
     @series begin
-        dd.build.layer
+        bd.layer
     end
 
     if dd !== nothing && pf_active
@@ -1468,10 +1488,10 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(ct)
-    cp1d = dd.core_profiles.profiles_1d[]
+    cp1d = dd.core_profiles.profiles_1d[time0]
 
     if ions == [:my_ions]
-        ions = list_ions(ct, cp1d)
+        ions = list_ions(ct, dd.core_profiles; time0)
     end
 
     model_type = name_2_index(ct.model)
@@ -1480,8 +1500,10 @@ end
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
-        ct1d = model.profiles_1d[]
-        append!(rhos, ct1d.grid_flux.rho_tor_norm)
+        if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
+            ct1d = model.profiles_1d[time0]
+            append!(rhos, ct1d.grid_flux.rho_tor_norm)
+        end
     end
     rhos = unique(rhos)
 
@@ -1509,20 +1531,22 @@ end
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
         end
-        @series begin
-            ions := ions
-            label := model.identifier.name
-            if model.identifier.index == model_type[:anomalous]
-                markershape := :diamond
-                markerstrokewidth := 0.5
-                linewidth := 0
-                color := :orange
-            elseif model.identifier.index == model_type[:neoclassical]
-                markershape := :cross
-                linewidth := 0
-                color := :purple
+        if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
+            @series begin
+                ions := ions
+                label := model.identifier.name
+                if model.identifier.index == model_type[:anomalous]
+                    markershape := :diamond
+                    markerstrokewidth := 0.5
+                    linewidth := 0
+                    color := :orange
+                elseif model.identifier.index == model_type[:neoclassical]
+                    markershape := :cross
+                    linewidth := 0
+                    color := :purple
+                end
+                model.profiles_1d[time0]
             end
-            model.profiles_1d[time0]
         end
     end
 end
@@ -1799,7 +1823,7 @@ end
         color := idx
         title --> "Momentum"
         if show_condition
-            label := "$name " * @sprintf("[%.3g N m]", tot / 1E6) * label
+            label := "$name " * @sprintf("[%.3g N m]", tot) * label
             if identifier in [:ec, :ic, :lh, :nbi, :pellet]
                 fill0 --> true
             end
@@ -1965,11 +1989,10 @@ end
     dd = top_dd(cs)
 
     if ions == [:my_ions]
-        if dd !== nothing && !isempty(dd.core_profiles.profiles_1d)
-            cp1d = dd.core_profiles.profiles_1d[]
-            ions = list_ions(cs, cp1d)
+        if dd !== nothing
+            ions = list_ions(cs, dd.core_profiles; time0)
         else
-            ions = list_ions(cs, nothing)
+            ions = list_ions(cs; time0)
         end
     end
 
@@ -1989,9 +2012,7 @@ end
         end
     end
 
-    dd = top_dd(cs)
     if dd !== nothing
-
         if aggregate_radiation
             @series begin
                 rad_source = IMAS.core_sources__source{T}()
@@ -2161,6 +2182,272 @@ end
     end
 end
 
+# ============ #
+# ec_launchers #
+# ============ #
+function label(beam::IMAS.ec_launchers__beam)
+    name = beam.name
+    freq = frequency(beam.frequency)
+    if ismissing(beam, :mode)
+        mode = "?"
+    else
+        mode = beam.mode == 1 ? "O" : "X"
+    end
+    if ismissing(beam, :steering_angle_pol)
+        angle_pol = "?"
+    else
+        angle_pol = "$(@sprintf("%.1f", @ddtime(beam.steering_angle_pol) * 180 / pi))"
+    end
+    if ismissing(beam, :steering_angle_tor)
+        angle_tor = "?"
+    else
+        angle_tor = "$(@sprintf("%.1f", @ddtime(beam.steering_angle_tor) * 180 / pi))"
+    end
+    return "$name @ $(@sprintf("%.0f", freq/1E9)) GHz $mode ∠ₜ=$(angle_tor)° ∠ₚ=$(angle_pol)°"
+end
+
+@recipe function plot_ec_beam(beam::IMAS.ec_launchers__beam; time0=global_time(beam))
+    id = plot_help_id(beam)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    dd = top_dd(beam)
+
+    if !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
+        beam_index = index(beam)
+        @series begin
+            label --> label(beam)
+            time0 := time0
+            dd.waves.coherent_wave[beam_index]
+        end
+    end
+end
+
+@recipe function plot_ec_beam_frequencies(beam_freqs::AbstractVector{<:IMAS.ec_launchers__beam___frequency{T}}) where {T<:Real}
+    freqs_dict = Dict{Float64,ec_launchers__beam___frequency{T}}()
+    for beam_freq in beam_freqs
+        freqs_dict[frequency(beam_freq)] = beam_freq
+    end
+    for beam_freq in values(freqs_dict)
+        @series begin
+            beam_freq
+        end
+    end
+end
+
+@recipe function plot_ec_beam_frequency(beam_freq::IMAS.ec_launchers__beam___frequency; time0::global_time(beam_freq), show_vacuum_Bt=false)
+    id = plot_help_id(beam_freq)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Bool, "Show EC resonance assuming only vacuum Bt"; show_vacuum_Bt)
+
+    dd = top_dd(beam_freq)
+    eqt = dd.equilibrium.time_slice[time0]
+
+    freq = frequency(beam_freq)
+    resonance_layer = ech_resonance_layer(eqt, freq)
+    @series begin
+        label := "$(resonance_layer.harmonic) @ harmonic $(@sprintf("%.0f", freq/1E9)) GHz"
+        resonance_layer.r, resonance_layer.z
+    end
+    if show_vacuum_Bt
+        resonance_layer = ech_resonance_layer(eqt, freq; only_vacuum_Bt=true)
+        @series begin
+            primary := false
+            linestyle := :dash
+            resonance_layer.r, resonance_layer.z
+        end
+    end
+end
+
+@recipe function plot_ec(ec::IMAS.ec_launchers{T}) where {T<:Real}
+    @series begin
+        [beam.power_launched for beam in ec.beam]
+    end
+end
+
+@recipe function plot_ec(beams::IDSvector{<:IMAS.ec_launchers__beam{T}}; time0::global_time(beams)) where {T<:Real}
+    id = plot_help_id(beams)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    dd = top_dd(beams)
+    eqt = dd.equilibrium.time_slice[time0]
+
+    @series begin
+        cx := true
+        color := :gray
+        coordinate := :rho_tor_norm
+        eqt
+    end
+
+    @series begin
+        color := :black
+        dd.wall
+    end
+
+    @series begin
+        [beam.frequency for beam in beams]
+    end
+
+    for beam in beams
+        @series begin
+            beam
+        end
+    end
+end
+
+# === #
+# nbi #
+# === #
+function label(unit::IMAS.nbi__unit)
+    if !isempty(unit.beamlets_group) && !ismissing(unit.beamlets_group[1], :angle)
+        angle_tor = unit.beamlets_group[1].angle * 180 / pi
+        return "$(unit.name) (∠ₜ=$(@sprintf("%.1f", angle_tor))°)"
+    else
+        return unit.name
+    end
+end
+
+@recipe function plot_nb(nb::IMAS.nbi{T}) where {T<:Real}
+    @series begin
+        [unit.power_launched for unit in nb.unit]
+    end
+end
+
+@recipe function plot_power_lauched(
+    pl::Union{
+        IMAS.ec_launchers__beam___power_launched{T},
+        IMAS.nbi__unit___power_launched{T},
+        IMAS.ic_antennas__antenna___power_launched{T},
+        IMAS.lh_antennas__antenna___power_launched{T}
+    };
+    smooth_tau=0.0
+) where {T<:Real}
+    id = plot_help_id(pl)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous power assuming τ decorrelation time [s]"; smooth_tau)
+    hcd = parent(pl)
+    data1 = pl.data
+    if smooth_tau > 0.0
+        data1 = smooth_beam_power(pl.time, pl.data, smooth_tau)
+    end
+    @series begin
+        label --> label(hcd)
+        ylabel := "Power Launched [MW]"
+        xlabel := "Time [s]"
+        legend_position --> :topleft
+        pl.time, data1 ./ 1E6
+    end
+end
+
+@recipe function plot_hcd_power_lauched(
+    pls::AbstractVector{
+        <:Union{
+            IMAS.ec_launchers__beam___power_launched{T},
+            IMAS.nbi__unit___power_launched{T},
+            IMAS.ic_antennas__antenna___power_launched{T},
+            IMAS.lh_antennas__antenna___power_launched{T}
+        }
+    };
+    show_total=true,
+    smooth_tau=0.0
+) where {T<:Real}
+    id = plot_help_id(pls)
+    assert_type_and_record_argument(id, Bool, "Show total power launched"; show_total)
+    assert_type_and_record_argument(id, Float64, "Smooth instantaneous power"; smooth_tau)
+
+    background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
+
+    if show_total
+        # time basis for the total
+        time_range = T[]
+        for pl in pls
+            append!(time_range, pl.time)
+            unique!(time_range)
+        end
+
+        # accumulate total
+        total = time_range .* 0.0
+        for pl in pls
+            if time_range == pl.time
+                total += pl.data
+            else
+                total += interp1d(pl.time, pl.data).(time_range)
+            end
+        end
+        if smooth_tau > 0.0
+            total = smooth_beam_power(time_range, total, smooth_tau)
+        end
+
+        # plot total
+        @series begin
+            color := :black
+            lw := 2
+            label := "Total"
+            time_range, total / 1E6
+        end
+    end
+
+    for pl in pls
+        @series begin
+            smooth_tau := smooth_tau
+            pl
+        end
+    end
+end
+
+# ===== #
+# waves #
+# ===== #
+@recipe function plot_waves_profiles_1d(wvc1d::IMAS.waves__coherent_wave___profiles_1d)
+    layout := RecipesBase.@layout [1, 1]
+    if !ismissing(parent(parent(wvc1d)).identifier, :antenna_name)
+        name = parent(parent(wvc1d)).identifier.antenna_name
+    else
+        name = "Antenna $(index(parent(parent(wvc1d))))"
+    end
+
+    @series begin
+        subplot := 1
+        title := "Power density"
+        label := name
+        wvc1d, :power_density
+    end
+    @series begin
+        subplot := 2
+        title := "Parallel current density"
+        label := name
+        wvc1d, :current_parallel_density
+    end
+end
+
+@recipe function plot_waves_profiles_1d(wvc1ds::AbstractVector{<:IMAS.waves__coherent_wave___profiles_1d})
+    for wvc1d in wvc1ds
+        @series begin
+            wvc1d
+        end
+    end
+end
+
+@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv))
+    id = plot_help_id(wv)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    aspect_ratio := :equal
+    legend_position --> :outerbottomright
+
+    beam = wv.beam_tracing[time0].beam[1]
+    @series begin
+        seriestype --> :scatter
+        xlim --> (0.0, Inf)
+        label --> wv.identifier.antenna_name
+        [beam.position.r[1]], [beam.position.z[1]]
+    end
+    @series begin
+        xlim --> (0.0, Inf)
+        primary := false
+        lw := 2
+        beam.position.r, beam.position.z
+    end
+end
+
 # =============== #
 # solid_mechanics #
 # =============== #
@@ -2288,7 +2575,7 @@ end
 # balance_of_plant #
 # ================ #
 @recipe function plot_balance_of_plant(bop::IMAS.balance_of_plant)
-    base_linewidth = plotattributes[:linewidth]
+    base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     size --> (800, 600)
     legend_position --> :outertopright
@@ -2563,7 +2850,7 @@ end
             continue
         end
 
-        time_value = time_array_parent(ids)
+        time_value = parent_ids_with_time_array(ids).time
         data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> !isinf(x), time_value))) == 1
@@ -2584,19 +2871,30 @@ end
                 "." => " ",
                 "[" => " ",
                 "]" => " ")
+
         plt[:label] = replace(p2i(filter(x -> x ∉ remove, path[2:end])), substitute...)
+        h = ids
+        while h !== nothing
+            if hasfield(typeof(h), :name) && hasdata(h, :name)
+                plt[:label] = h.name
+                break
+            end
+            h = parent(h)
+        end
         push!(plots, plt)
     end
 
     layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1000, 1000)
 
-    @series begin
-        subplot := 1
-        label := "$(time0) [s]"
-        aspect_ratio := :equal
-        time0 := time0
-        ps.position_control
+    if !isempty(ps.position_control)
+        @series begin
+            subplot := 1
+            label := "$(time0) [s]"
+            aspect_ratio := :equal
+            time0 := time0
+            ps.position_control
+        end
     end
 
     eqt = try
@@ -2630,7 +2928,7 @@ end
         end
     end
 
-    # plotting at infinity does not work
+    # plotting at infinity does not show
     tmax = -Inf
     tmin = Inf
     for plt in plots
@@ -2640,7 +2938,7 @@ end
     end
 
     for (k, plt) in enumerate(plots)
-        x = plt[:x]
+        x = deepcopy(plt[:x])
         x[x.==Inf] .= tmax
         x[x.==-Inf] .= tmin
         y = plt[:y]
@@ -2688,7 +2986,7 @@ end
         markerstrokewidth --> 0
         primary := false
         Xs = x_points(pc.x_point; time0)
-        [x[1] for x in Xs if x[1] != 0.0], [x[2] for x in Xs if x[1] != 0.0]
+        [x[1] for x in Xs], [x[2] for x in Xs]
     end
     @series begin
         seriestype := :scatter
@@ -2696,7 +2994,7 @@ end
         markerstrokewidth --> 0
         primary := false
         Ss = strike_points(pc.strike_point; time0)
-        [x[1] for x in Ss if x[1] != 0.0], [x[2] for x in Ss if x[1] != 0.0]
+        [x[1] for x in Ss], [x[2] for x in Ss]
     end
     if !ismissing(pc.magnetic_axis.r, :reference) && !ismissing(pc.magnetic_axis.z, :reference)
         @series begin
@@ -3058,6 +3356,35 @@ end
         yerror := Measurements.uncertainty.(y)
     end
     return x, Measurements.value.(y)
+end
+
+"""
+    ylim(extrema::Dict{Int,Float64})
+
+Set y-limits for n-th subplot in a layout
+
+Negative `n`'s are interpreted as minimum value and positive `n`'s as maximum value
+
+For example:
+
+    ylim(Dict{Int,Float64}(
+        3=>3.0, 4=>1E20,
+        -6=>-.5, 6=>1.5, -7=>-.5, 7=>1.5, -8=>-2E20, 8=>2.5E20,
+        -10=>0.0, 10=>0.101, -11=>0.0, 11=>0.101, -12=>-1.2E19, 12=>1.2E19))
+"""
+function ylim(extrema::Dict{Int,Float64})
+    extrema = deepcopy(extrema)
+    for n in collect(keys(extrema))
+        if n > 0 && -n ∉ keys(extrema)
+            extrema[-n] = -Inf
+        elseif n < 0 && -n ∉ keys(extrema)
+            extrema[-n] = Inf
+        end
+    end
+    for n in unique!(abs.(collect(keys(extrema))))
+        plot!(; ylim=(extrema[-n], extrema[n]), subplot=n)
+    end
+    return plot!()
 end
 
 #= ============= =#

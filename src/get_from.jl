@@ -65,8 +65,8 @@ end
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        _, w_ped = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
-        rho_ped = 1.0 - w_ped
+        pedestal = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
+        rho_ped = 1.0 - pedestal.width
     else
         rho_ped = NaN
     end
@@ -79,6 +79,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, 
     if from_where == :summary
         return get_time_array(dd.summary.local.pedestal.n_e, :value, time0, :linear)
     elseif from_where == :core_profiles
+        @assert !isnan(rho_ped)
         cp1d = dd.core_profiles.profiles_1d[time0]
         return interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(rho_ped)
     elseif from_where == :pulse_schedule
@@ -102,8 +103,8 @@ end
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        _, w_ped = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
-        rho_ped = 1.0 - w_ped
+        pedestal = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
+        rho_ped = 1.0 - pedestal.width
     else
         rho_ped = NaN
     end
@@ -116,7 +117,9 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol
         return get_time_array(dd.summary.local.pedestal.zeff, :value, time0, :linear)
     elseif from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        return interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(rho_ped)
+        rhos_ped = range(rho_ped, 1.0, 11)
+        zeffs = interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(rhos_ped)
+        return sum(zeffs) / length(zeffs)
     elseif from_where == :pulse_schedule
         if !ismissing(dd.pulse_schedule.density_control.zeff_pedestal, :reference)
             return get_time_array(dd.pulse_schedule.density_control.zeff_pedestal, :reference, time0, :linear)

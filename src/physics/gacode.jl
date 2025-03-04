@@ -42,8 +42,8 @@ sound gyro radius in [cm]
 """
 function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
     eqt1d = eqt.profiles_1d
-    bunit = interp1d(eqt1d.rho_tor_norm, abs.(IMAS.bunit(eqt1d)) .* cgs.T_to_Gauss).(cp1d.grid.rho_tor_norm)
-    return c_s(cp1d) ./ (cgs.e .* bunit) .* (cgs.md .* cgs.c)
+    bu = interp1d(eqt1d.rho_tor_norm, abs.(bunit(eqt1d)) .* cgs.T_to_Gauss).(cp1d.grid.rho_tor_norm)
+    return c_s(cp1d) ./ (cgs.e .* bu) .* (cgs.md .* cgs.c)
 end
 
 """
@@ -96,7 +96,7 @@ Correction to account for transformation from Miller r grid in GA code equilibri
 """
 function volume_prime_miller_correction(eqt::IMAS.equilibrium__time_slice)
     a_minor = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
-    return IMAS.gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
+    return gradient(a_minor, eqt.profiles_1d.volume) ./ eqt.profiles_1d.surface
 end
 
 """
@@ -113,10 +113,9 @@ Normalizes specified transport fluxes output by GA code via gyrobohm normalizati
 function flux_gacode_to_fuse(
     flux_types::Tuple{Vararg{Symbol}},
     flux_solutions::Vector{<:IMAS.flux_solution},
-    m1d::IMAS.core_transport__model___profiles_1d,
-    eqt::IMAS.equilibrium__time_slice,
-    cp1d::core_profiles__profiles_1d
-)
+    m1d::IMAS.core_transport__model___profiles_1d{T},
+    eqt::IMAS.equilibrium__time_slice{T},
+    cp1d::core_profiles__profiles_1d{T}) where {T<:Real}
 
     rho_eq_idxs = [argmin(abs.(eqt.profiles_1d.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]
     rho_cp_idxs = [argmin(abs.(cp1d.grid.rho_tor_norm .- rho)) for rho in m1d.grid_flux.rho_tor_norm]

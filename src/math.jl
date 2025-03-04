@@ -44,30 +44,6 @@ end
 push!(document[Symbol("Math")], :meshgrid)
 
 """
-    moving_average(data::Vector{<:Real}, window_size::Int)
-
-Calculate the moving average of a data vector using a specified window size.
-The window size is always rounded up to the closest odd number to maintain symmetry around each data point.
-"""
-function moving_average(data::Vector{<:Real}, window_size::Int)
-    smoothed_data = copy(data)
-    window_size = isodd(window_size) ? window_size : window_size + 1
-    pad_size = div(window_size - 1, 2)
-    if pad_size < 1
-        return smoothed_data
-    end
-    for i in eachindex(data)
-        window_start = max(1, i - pad_size)
-        window_end = min(length(data), i + pad_size)
-        smoothed_data[i] = sum(data[window_start:window_end]) / (window_end - window_start + 1)
-    end
-    return smoothed_data
-end
-
-@compat public moving_average
-push!(document[Symbol("Math")], :moving_average)
-
-"""
     calc_z(x::AbstractVector{<:Real}, f::AbstractVector{<:Real}, method::Symbol)
 
 Returns the gradient scale lengths of vector f on x
@@ -90,17 +66,22 @@ push!(document[Symbol("Math")], :calc_z)
 Backward integration of inverse scale length vector with given edge boundary condition
 """
 function integ_z(rho::AbstractVector{<:Real}, z_profile::AbstractVector{<:Real}, bc::Real)
-    profile_new = similar(rho)
-    profile_new[end] = bc
-    for i in length(rho)-1:-1:1
+    @assert length(rho) == length(z_profile)
+
+    # logarithmic summation and then exponentiate at the end
+    log_profile = similar(rho)
+    log_profile[end] = log(bc)
+
+    @inbounds for i in length(rho)-1:-1:1
         a = rho[i]
         fa = z_profile[i]
         b = rho[i+1]
         fb = z_profile[i+1]
         trapz_integral = (b - a) * (fa + fb) / 2.0
-        profile_new[i] = profile_new[i+1] * exp(trapz_integral)
+        log_profile[i] = log_profile[i+1] + trapz_integral  # Accumulate in log space
     end
-    return profile_new
+
+    return exp.(log_profile)  # Convert back at the end
 end
 
 @compat public integ_z
@@ -141,6 +122,18 @@ end
 push!(document[Symbol("Math")], :unique_indices)
 
 """
+    index_circular(N::Int, idx::Int)
+
+If `idx` is beyond N or less than 1, it wraps around in a circular manner.
+"""
+function index_circular(N::Int, idx::Int)
+    return mod(idx - 1, N) + 1
+end
+
+@compat public index_circular
+push!(document[Symbol("Math")], :index_circular)
+
+"""
     getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
 
 Return the element of the vector `vec` at the position `idx`.
@@ -148,7 +141,7 @@ Return the element of the vector `vec` at the position `idx`.
 If `idx` is beyond the length of `vec` or less than 1, it wraps around in a circular manner.
 """
 function getindex_circular(vec::AbstractVector{T}, idx::Int)::T where {T}
-    cidx = mod(idx - 1, length(vec)) + 1
+    cidx = index_circular(length(vec), idx)
     return vec[cidx]
 end
 

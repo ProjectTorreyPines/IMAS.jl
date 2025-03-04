@@ -1,5 +1,9 @@
 document[Symbol("Physics currents")] = Symbol[]
 
+function J_tor(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
+    return @. (-(eqt1d.dpressure_dpsi + eqt1d.f_df_dpsi * eqt1d.gm1 / mks.μ_0) * (2π)) / eqt1d.gm9
+end
+
 """
     j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T, j_ohmic_shape::AbstractVector{T}=cp1d.conductivity_parallel) where {T<:Real}
 
@@ -10,8 +14,8 @@ Requires constant loop voltage: `Vl = 2π * η * <J_oh⋅B> / (F * <R⁻²>) = c
 function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T, j_ohmic_shape::AbstractVector{T}=cp1d.conductivity_parallel) where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    F = IMAS.interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
-    gm1 = IMAS.interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
+    F = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
+    gm1 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
     j_oh_par_norm = j_ohmic_shape .* F .* gm1  # arbitrary normalized Joh,par = <Joh.B> / B0 (constant)
 
     j_non_inductive = cp1d.j_non_inductive
@@ -173,8 +177,8 @@ push!(document[Symbol("Physics currents")], :Jpar_2_Jtor)
 function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}; method::Symbol=:area)::T where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    F = IMAS.interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
-    gm1 = IMAS.interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
+    F = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
+    gm1 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
     _, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     Vls = 2π .* cp1d.j_ohmic .* B0 ./ (cp1d.conductivity_parallel .* F .* gm1)
     if method === :area
@@ -195,7 +199,7 @@ end
 """
 function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
     @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
-    index = causal_time_index(eq.time, time0)
+    index = nearest_causal_time(eq.time, time0).index
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
 end
 

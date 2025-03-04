@@ -45,7 +45,11 @@ end
 push!(document[Symbol("Physics transport")], :profile_from_z_transport)
 
 """
-    total_fluxes(core_transport::IMAS.core_transport{T}, rho_total_fluxes::AbstractVector{<:Real}; time0::Float64=global_time(core_transport)) where {T<:Real}
+    total_fluxes(
+        core_transport::IMAS.core_transport{T},
+        cp1d::IMAS.core_profiles__profiles_1d,
+        rho_total_fluxes::AbstractVector{<:Real};
+        time0::Float64) where {T<:Real}
 
 Sums up all the fluxes and returns it as a core_transport.model IDS
 """
@@ -53,7 +57,7 @@ function total_fluxes(
     core_transport::IMAS.core_transport{T},
     cp1d::IMAS.core_profiles__profiles_1d,
     rho_total_fluxes::AbstractVector{<:Real};
-    time0::Float64=global_time(core_transport)) where {T<:Real}
+    time0::Float64) where {T<:Real}
 
     total_flux1d = IMAS.core_transport__model___profiles_1d{T}()
     total_flux1d.grid_flux.rho_tor_norm = rho_total_fluxes
@@ -68,12 +72,14 @@ function total_fluxes(
         push!(total_flux1d_ions, tmp)
     end
     for model in core_transport.model
-        model1d = model.profiles_1d[Float64(cp1d.time)]
-        for ion in model1d.ion
-            l = length(total_flux1d.ion)
-            tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
-            if l != length(total_flux1d.ion)
-                push!(total_flux1d_ions, tmp)
+        if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
+            model1d = model.profiles_1d[time0]
+            for ion in model1d.ion
+                l = length(total_flux1d.ion)
+                tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+                if l != length(total_flux1d.ion)
+                    push!(total_flux1d_ions, tmp)
+                end
             end
         end
     end
@@ -105,7 +111,7 @@ function total_fluxes(
 
             for path in paths
                 ids1 = try
-                    IMAS.goto(m1d, path)
+                    goto(m1d, path)
                 catch e
                     if isa(e, InterruptException)
                         retrhow(e)
@@ -115,7 +121,7 @@ function total_fluxes(
                 if ismissing(ids1, :flux)
                     continue
                 end
-                ids2 = IMAS.goto(total_flux1d, path)
+                ids2 = goto(total_flux1d, path)
                 if ismissing(ids2, :flux)
                     setproperty!(ids2, :flux, zeros(length(rho_total_fluxes)))
                 end

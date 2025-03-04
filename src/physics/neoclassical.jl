@@ -6,7 +6,7 @@ document[Symbol("Physics neoclassical")] = Symbol[]
 Calculates the Spitzer conductivity in [1/(Ω*m)]
 """
 function spitzer_conductivity(ne, Te, Zeff)
-    return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e(ne, Te))
+    return @. 1.9012e4 * Te ^ 1.5 / (Zeff * (0.58 + 0.74 / (0.76 + Zeff)) * lnLambda_e(ne, Te))
 end
 
 @compat public spitzer_conductivity
@@ -99,13 +99,13 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
 
-    nuestar = IMAS.nuestar(eqt, cp1d)
-    nuistar = IMAS.nuistar(eqt, cp1d)
+    ν_es = nuestar(eqt, cp1d)
+    ν_is = nuistar(eqt, cp1d)
 
     B0 = B0_geo(eqt)
     ip = eqt.global_quantities.ip
 
-    return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, nuestar, nuistar, ip, B0; neo_2021, same_ne_ni)
+    return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, ν_es, ν_is, ip, B0; neo_2021, same_ne_ni)
 end
 
 @compat public Sauter_neo2021_bootstrap
@@ -338,7 +338,7 @@ end
 push!(document[Symbol("Physics neoclassical")], :collisionless_bootstrap_coefficient)
 
 """
-nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculate the electron collisionality, ν_*e, as a dimensionless measure of the
 frequency of electron collisions relative to their characteristic transit frequency.
@@ -361,11 +361,9 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
     @assert all(a .> 0.0) "a=$a"
 
-    eps = a ./ R
-
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
-    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * eps^1.5)
+    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * (a / R)^1.5)
 end
 
 @compat public nuestar
@@ -386,8 +384,6 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     a = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
-    eps = a ./ R
-
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
     nis = hcat((ion.density for ion in cp1d.ion)...)
@@ -400,7 +396,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 
     Zavg = ne ./ ni
 
-    return @. 4.90e-18 * abs(q) * R * ni * Zdom^4 * lnLambda_i(ni, Ti, Zavg) / (Ti^2 * eps^1.5)
+    return @. 4.90e-18 * abs(q) * R * ni * Zdom^4 * lnLambda_i(ni, Ti, Zavg) / (Ti^2 * (a / R)^1.5)
 end
 
 @compat public nuistar
@@ -455,3 +451,19 @@ end
 
 @compat public neo_conductivity
 push!(document[Symbol("Physics neoclassical")], :neo_conductivity)
+
+"""
+    sawtooth_conductivity(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+
+Jardin's model for stationary sawteeth to raise q>1
+"""
+function sawtooth_conductivity(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+    i_q = findlast(q .< q_sawtooth)
+    if i_q !== nothing
+        conductivity[1:i_q] .= conductivity[i_q]
+    end
+    return conductivity
+end
+
+@compat public sawtooth_conductivity
+push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)

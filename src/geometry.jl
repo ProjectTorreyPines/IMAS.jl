@@ -658,9 +658,34 @@ end
 push!(document[Symbol("Geometry")], :resample_plasma_boundary)
 
 """
+    is_z_offset(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
+
+Returns true the shape is offset from z=0 (ie. does not have mxh.z0=0)
+"""
+function is_z_offset(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
+    if abs(maximum(pz) + minimum(pz)) / 2 > precision
+        return true
+    end
+    pr = deepcopy(pr)
+    pz = deepcopy(pz)
+    IMAS.reorder_flux_surface!(pr, pz)
+    return is_z_offset(MXH(pr, pz, order); precision)
+end
+
+"""
+    is_z_offset(mxh::MXH; precision::Float64=1E-3)
+"""
+function is_z_offset(mxh::MXH; precision::Float64=1E-3)
+    return abs(mxh.Z0) > precision
+end
+
+@compat public is_z_offset
+push!(document[Symbol("Geometry")], :is_z_offset)
+
+"""
     is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
 
-Returns true if boundary is updown symmetric
+Returns true if boundary is updown symmetric (independent of mxh.z0)
 """
 function is_updown_symmetric(pr::Vector{T}, pz::Vector{T}; order::Int=4, precision::Float64=1E-3) where {T<:Real}
     pr = deepcopy(pr)
@@ -980,7 +1005,7 @@ push!(document[Symbol("Geometry")], :split_long_segments)
 """
     thick_line_polygon(r1, z1, r2, z2, thickness1, thickness2)
 
-Generates polygon from a thick line. Returns points of the quadrilateral polygon
+Generates a closed polygon from a thick line. Returns points of the quadrilateral polygon
 """
 function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, thickness1::Float64, thickness2::Float64)
     direction = normalize([z2 - z1, -(r2 - r1)]) # Perpendicular direction
@@ -991,6 +1016,28 @@ function thick_line_polygon(r1::Float64, z1::Float64, r2::Float64, z2::Float64, 
     p3 = [r2, z2] - offset2
     p4 = [r1, z1] - offset1
     return [p1, p2, p3, p4, p1]
+end
+
+"""
+    thick_line_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float64}, thickness::AbstractVector{Float64})
+"""
+function thick_line_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float64}, thickness::AbstractVector{Float64})
+    PTS = [thick_line_polygon(pr[i], pz[i], pr[i+1], pz[i+1], thickness[i], thickness[i+1]) for i in 1:length(pr)-1]
+    x1 = map(x -> x[1][1], PTS)
+    y1 = map(x -> x[1][2], PTS)
+    x2 = map(x -> x[2][1], PTS)
+    y2 = map(x -> x[2][2], PTS)
+    x3 = map(x -> x[3][1], PTS)
+    y3 = map(x -> x[3][2], PTS)
+    x4 = map(x -> x[4][1], PTS)
+    y4 = map(x -> x[4][2], PTS)
+
+    r1 = [x1; x2[end]; x3[end]; reverse!(x4); x1[1]]
+    z1 = [y1; y2[end]; y3[end]; reverse!(y4); y1[1]]
+    r2 = [x1[1]; x2; reverse!(x3); x4[end]; x1[1]]
+    z2 = [y1[1]; y2; reverse!(y3); y4[end]; y1[1]]
+
+    return (r=(r1 .+ r2) / 2.0, z=(z1 .+ z2) / 2.0)
 end
 
 @compat public thick_line_polygon

@@ -56,11 +56,9 @@ end
 
 library can be one of:
 
-* `:extract` => `ExtractFunctionsLibrary`
-
-* `:moopt` => `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
-
-* `:all` => `ExtractFunctionsLibrary` + `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
+  - `:extract` => `ExtractFunctionsLibrary`
+  - `:moopt` => `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
+  - `:all` => `ExtractFunctionsLibrary` + `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
 """
 function extract(dd::IMAS.dd, library::Symbol=:extract)
     if library == :extract
@@ -101,6 +99,31 @@ function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction})
         xtract_out[xfun.name].value = xfun(dd)
     end
     return xtract_out
+end
+
+"""
+    extract(dd::IMAS.dd, filename::AbstractString, args...; kw...)
+
+Like `extract(dd)` but saves the data to HDF5 file
+"""
+function extract(dd::IMAS.dd, filename::AbstractString, args...; kw...)
+    HDF5 = IMASdd.HDF5
+    xtract = extract(dd, args...; kw...)
+    HDF5.h5open(filename, "w") do fid
+        for (k, xfun) in enumerate(values(xtract))
+            @show "[$k] (xfun.group)/$(xfun.name)"
+            if typeof(xfun.value) <: AbstractString
+                HDF5.write(fid, "$(k)/value", string(xfun.value))
+            else
+                dset = HDF5.create_dataset(fid, "$(k)/value", eltype(xfun.value), size(xfun.value))
+                HDF5.write(dset, xfun.value)
+            end
+            HDF5.write(fid, "$(k)/group", string(xfun.group))
+            HDF5.write(fid, "$(k)/name", string(xfun.name))
+            HDF5.write(fid, "$(k)/units", string(xfun.units))
+            HDF5.write(fid, "$(k)/error", string(xfun.error))
+        end
+    end
 end
 
 export extract
@@ -273,7 +296,7 @@ function update_ExtractFunctionsLibrary!()
 
     ExtractLibFunction(:densities, :ne0, "m⁻³", dd -> @ddtime(dd.summary.local.magnetic_axis.n_e.value))
     ExtractLibFunction(:densities, :ne_ped, "m⁻³", dd -> @ddtime(dd.summary.local.pedestal.n_e.value))
-    ExtractLibFunction(:densities, Symbol("ne_line"), "m⁻³", dd -> geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[]))
+    ExtractLibFunction(:densities, Symbol("ne_line"), "m⁻³", dd -> ne_line(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[]))
     ExtractLibFunction(:densities, Symbol("<ne>"), "m⁻³", dd -> @ddtime(dd.summary.volume_average.n_e.value))
     ExtractLibFunction(:densities, Symbol("ne0/<ne>"), "-", dd -> EFL[:ne0](dd) / EFL[Symbol("<ne>")](dd))
     ExtractLibFunction(:densities, Symbol("fGW"), "-", dd -> greenwald_fraction(dd))

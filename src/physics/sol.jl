@@ -60,6 +60,7 @@ function OpenFieldLine(
     RA::T,
     ZA::T
 ) where {T<:Real}
+    @assert length(wall_r) == length(wall_z)
     if isempty(wall_r)
         # SOL without wall
         rr = r
@@ -149,14 +150,14 @@ Returns vectors of hfs and lfs OpenFieldLine
 
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
-function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true) where {T<:Real}
-
+function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(wall_r)) where {T<:Real}
+    @assert length(wall_r) == length(wall_z)
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
 
-    # force use_wall = false if wall_r is empty
+    # empty wall if use_wall = false
     if use_wall == false
-        wall_r = Float64[]
-        wall_z = Float64[]
+        wall_r = T[]
+        wall_z = T[]
     end
 
     ############
@@ -169,7 +170,7 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis
 
-    psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open # find psi at LCFS
+    psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true, raise_error_on_not_closed=false).first_open # find psi at LCFS
     if psi__boundary_level === nothing
         return OFL
     end
@@ -284,7 +285,7 @@ end
 """
     sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
 """
-function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
+function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(first_wall(wall).r))
     fw = first_wall(wall)
     return sol(eqt, fw.r, fw.z; levels, use_wall)
 end
@@ -292,7 +293,7 @@ end
 """
     sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
 """
-function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
+function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(first_wall(dd.wall).r))
     return sol(dd.equilibrium.time_slice[], dd.wall; levels, use_wall)
 end
 
@@ -324,6 +325,7 @@ function find_levels_from_P(
     levels::Int
 )
     ################### Housekeeping on function q(r) ###################
+    @assert length(wall_r) == length(wall_z)
     @assert length(r) == length(q)
     @assert all(q .>= 0) # q is all positive
     @assert all(r .>= 0) # r is all positive
@@ -545,29 +547,30 @@ push!(document[Symbol("Physics sol")], :find_levels_from_P)
 Function for that computes the value of psi at the points of the wall mesh in dd
 """
 function find_levels_from_wall(
-    eqt::IMAS.equilibrium__time_slice,
+    eqt::IMAS.equilibrium__time_slice{T},
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation
-)
-    ZA = eqt.global_quantities.magnetic_axis.z # Z of magnetic axis
-    RA = eqt.global_quantities.magnetic_axis.r # R of magnetic axis
-    psi_separatrix = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open #psi on separatrix
-    if isempty(wall_r) .|| isempty(wall_z)
+) where {T<:Real}
+
+    @assert length(wall_r) == length(wall_z)
+    if isempty(wall_r)
         # no wall
-        return Float64[]
-    else
-        # there is a wall
-        crossings = intersection([RA, maximum(wall_r)], [ZA, ZA], wall_r, wall_z).crossings # (r,z) point of intersection btw outer midplane (OMP) with wall
-        r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
+        return T[]
     end
+
+    psi_separatrix = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open #psi on separatrix
     psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
 
     levels = PSI_interpolant.(wall_r, wall_z)
-    psi_tangent, _ = IMAS.find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant)
-    push!(levels, psi_tangent)
-    levels = levels[levels.>=psi_separatrix.&&levels.<=psi_wall_midplane]
-    return sort!(levels)
+    psi_tangent_in = find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant).psi_tangent_in
+    push!(levels, psi_tangent_in)
+
+    index = levels.>=psi_separatrix .&& levels.<=psi_wall_midplane
+    levels = levels[index]
+    sort!(levels)
+
+    return levels
 end
 
 """
@@ -596,6 +599,8 @@ Returns r, z coordinates of open field line contained within wall, as well as an
 RA and ZA are the coordinate of the magnetic axis
 """
 function line_wall_2_wall(r::AbstractVector{T}, z::AbstractVector{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}, RA::Real, ZA::Real) where {T<:Real}
+    @assert length(wall_r) == length(wall_z)
+
     indexes, crossings = intersection(r, z, wall_r, wall_z, 1E-6) # find where flux surface crosses wall ("strike points" of surface)
     # crossings -  Vector{Tuple{Float64, Float64}} - crossings[1] contains (r,z) of first "strike point"
     # indexes   -  Vector{Tuple{Float64, Float64}} - indexes[1] contains indexes of (r,z) and (wall_r, wall_z) of first "strike point"
@@ -807,14 +812,14 @@ end
 push!(document[Symbol("Physics sol")], :Bpol_omp)
 
 """
-    power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
+    power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; time0::Float64=global_time(cp1d))
 
 Total power coming out of the SOL [W]
 
 NOTE: This function returns 1.0 [W] if power is less than that so that SOL quantities remain finite
 """
-function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-    Psol = total_power_source(total_sources(core_sources, cp1d; fields=[:power_inside, :total_ion_power_inside]))
+function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; time0::Float64=global_time(cp1d))
+    Psol = total_power_source(total_sources(core_sources, cp1d; time0, fields=[:power_inside, :total_ion_power_inside]))
     if Psol < 1.0
         return one(Psol)
     else
@@ -823,10 +828,10 @@ function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__pr
 end
 
 """
-    power_sol(dd::IMAS.dd)
+    power_sol(dd::IMAS.dd; time0::Float64=dd.global_time)
 """
-function power_sol(dd::IMAS.dd)
-    return power_sol(dd.core_sources, dd.core_profiles.profiles_1d[])
+function power_sol(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return power_sol(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0)
 end
 
 @compat public power_sol
@@ -1057,7 +1062,8 @@ end
         psi_first_open::Union{T3,Nothing};
         strike_surfaces_r::AbstractVector{T4}=wall_r,
         strike_surfaces_z::AbstractVector{T4}=wall_z,
-        private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
+        private_flux_regions::Bool=true
+    ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
 Finds equilibrium strike points and angle of incidence between wall and strike leg
 """
@@ -1068,7 +1074,8 @@ function find_strike_points(
     psi_first_open::Union{T3,Nothing};
     strike_surfaces_r::AbstractVector{T4}=wall_r,
     strike_surfaces_z::AbstractVector{T4}=wall_z,
-    private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
+    private_flux_regions::Bool=true
+) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
     Rxx = Float64[]
     Zxx = Float64[]
@@ -1112,8 +1119,9 @@ push!(document[Symbol("Physics sol")], :find_strike_points)
         wall_z::AbstractVector{T2},
         psi_first_open::Union{T3,Nothing},
         dv::IMAS.divertors{T1};
-        private_flux_regions::Bool=false,
-        in_place::Bool=true) where {T1<:Real,T2<:Real,T3<:Real}
+        private_flux_regions::Bool=true,
+        in_place::Bool=true
+    ) where {T1<:Real,T2<:Real,T3<:Real}
 
 Adds strike points location to equilibrium IDS and the tilt_angle_pol in the divertors IDS
 """
@@ -1123,8 +1131,9 @@ function find_strike_points!(
     wall_z::AbstractVector{T2},
     psi_first_open::Union{T3,Nothing},
     dv::IMAS.divertors{T1};
-    private_flux_regions::Bool=false,
-    in_place::Bool=true) where {T1<:Real,T2<:Real,T3<:Real}
+    private_flux_regions::Bool=true,
+    in_place::Bool=true
+) where {T1<:Real,T2<:Real,T3<:Real}
 
     Rxx = Float64[]
     Zxx = Float64[]
@@ -1174,7 +1183,8 @@ end
         wall_z::AbstractVector{T2},
         psi_first_open::Union{T3,Nothing},
         dv::IMAS.divertors{T1};
-        private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real}
+        private_flux_regions::Bool=true
+    ) where {T1<:Real,T2<:Real,T3<:Real}
 
 Return strike points location in the divertors
 """
@@ -1184,7 +1194,8 @@ function find_strike_points(
     wall_z::AbstractVector{T2},
     psi_first_open::Union{T3,Nothing},
     dv::IMAS.divertors{T1};
-    private_flux_regions::Bool=false) where {T1<:Real,T2<:Real,T3<:Real}
+    private_flux_regions::Bool=true
+) where {T1<:Real,T2<:Real,T3<:Real}
 
     return find_strike_points!(eqt, wall_r, wall_z, psi_first_open, dv; private_flux_regions, in_place=false)
 end
@@ -1194,13 +1205,15 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
-        psi_first_open::T3) where {T1<:Real,T2<:Real,T3<:Real}
+        psi_first_open::T3
+    ) where {T1<:Real,T2<:Real,T3<:Real}
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
-    psi_first_open::T3) where {T1<:Real,T2<:Real,T3<:Real}
+    psi_first_open::T3
+) where {T1<:Real,T2<:Real,T3<:Real}
 
     Rxx, Zxx, θxx = find_strike_points(eqt, wall_r, wall_z, psi_first_open)
     resize!(eqt.boundary.strike_point, length(Rxx))
@@ -1217,14 +1230,15 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
-        psi_first_open::Nothing) where {T1<:Real,T2<:Real}
+        psi_first_open::Nothing
+    ) where {T1<:Real,T2<:Real}
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
-    psi_first_open::Nothing) where {T1<:Real,T2<:Real}
-
+    psi_first_open::Nothing
+) where {T1<:Real,T2<:Real}
     return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[])
 end
 

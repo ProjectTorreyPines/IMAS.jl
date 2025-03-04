@@ -176,8 +176,11 @@ push!(document[Symbol("Physics build")], :get_build_layer)
 Returns corresponding layer on the high/low field side
 """
 function opposite_side_layer(layer::IMAS.build__layer)
-    @assert layer.side in (Int(_hfs_), Int(_lfs_)) "Asking for opposite_side_layer of $(layer.name), which does not make sense"
-    return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+    if layer.side in (Int(_hfs_), Int(_lfs_))
+        return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+    else
+        return layer
+    end
 end
 
 @compat public opposite_side_layer
@@ -354,33 +357,136 @@ end
 """
     first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
 
-Returns named tuple with outline of the wall defined by the pf_active.coils
+Returns named tuple with outline of the first wall, defined by the pf_active.coils
 """
 function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
-    rce = Float64[]
-    zce = Float64[]
+    if isempty(pf_active.coil)
+        return (r=T[], z=T[])
+    end
+
+    # find center of the coils
+    min_r = Inf
+    max_r = -Inf
+    min_z = Inf
+    max_z = -Inf
     for coil in pf_active.coil
         for element in coil.element
-            r, z = IMAS.outline(element)
-            rc, zc = IMAS.centroid(r, z)
-            append!(rce, rc)
-            append!(zce, zc)
+            r, z = outline(element)
+            min_r = min(min_r, minimum(r))
+            max_r = max(max_r, maximum(r))
+            min_z = min(min_z, minimum(z))
+            max_z = max(max_z, maximum(z))
+        end
+    end
+    R0 = (min_r + max_r) / 2.0
+    Z0 = (min_z + max_z) / 2.0
+
+    # pick points closer to this center
+    rce = T[]
+    zce = T[]
+    for coil in pf_active.coil
+        re = T[]
+        ze = T[]
+        for element in coil.element
+            r, z = outline(element)
+            append!(re, r)
+            append!(ze, z)
+        end
+        index = argmin(sqrt.((re .- R0) .^ 2 .+ (ze .- Z0) .^ 2))
+        push!(rce, re[index])
+        push!(zce, ze[index])
+    end
+    index = sortperm(atan.(zce .- Z0, rce .- R0))
+    r, z = closed_polygon(rce[index], zce[index]).rz
+
+    r = T[]
+    z = T[]
+    for k in 1:length(rce)-1
+        r0 = rce[k]
+        z0 = zce[k]
+        r1 = rce[k+1]
+        z1 = zce[k+1]
+        push!(r, r0)
+        push!(z, z0)
+        if r1 >= r0 && z1 <= z0
+            push!(r, r1)
+            push!(z, z0)
+        elseif r1 <= r0 && z1 <= z0
+            push!(r, r0)
+            push!(z, z1)
+        elseif r1 <= r0 && z1 >= z0
+            push!(r, r1)
+            push!(z, z0)
+        elseif r1 >= r0 && z1 >= z0
+            push!(r, r0)
+            push!(z, z1)
+        end
+    end
+    push!(r, rce[1])
+    push!(z, zce[1])
+
+    return (r=r, z=z)
+end
+
+"""
+    first_wall(eqt::IMAS.equilibrium__time_slice; precision::Float=1E-3) where {T<:Real}
+
+Returns named tuple with outline of the first wall, defined by equilibrium computation domain
+"""
+function first_wall(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-3) where {T<:Real}
+    # equilibrium compute box
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    if eqt2d === nothing
+        return (r=T[], z=T[])
+    else
+        r_start = eqt2d.grid.dim1[1] + precision
+        r_end = eqt2d.grid.dim1[end] - precision
+        z_low = eqt2d.grid.dim2[1] + precision
+        z_high = eqt2d.grid.dim2[end] - precision
+        r = T[r_start, r_start, r_end, r_end, r_start]
+        z = T[z_low, z_high, z_high, z_low, z_low]
+        return (r=r, z=z)
+    end
+end
+
+"""
+    first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
+
+Returns named tuple with outline of the first wall, defined as the equilibrium computational domain with cutouts for the pf_active.coils that fall in it
+"""
+function first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
+    r_eq, z_eq = first_wall(eqt)
+    eq_domain = collect(zip(r_eq, z_eq))
+
+    R0 = sum(extrema(r_eq)) / 2.0
+    Z0 = sum(extrema(z_eq)) / 2.0
+
+    # pick point closes to this center
+    rce = T[]
+    zce = T[]
+    for coil in pf_active.coil
+        re = T[]
+        ze = T[]
+        for element in coil.element
+            r, z = outline(element)
+            append!(re, r)
+            append!(ze, z)
+        end
+        index = argmin(sqrt.((re .- R0) .^ 2 .+ (ze .- Z0) .^ 2))
+        if PolygonOps.inpolygon((re[index], ze[index]), eq_domain) == 1
+            push!(rce, re[index])
+            push!(zce, ze[index])
         end
     end
 
-    hull = IMAS.convex_hull(rce, zce; closed_polygon=true)
-    rhull = [r for (r, z) in hull]
-    zhull = [z for (r, z) in hull]
-    rhull, zhull = IMAS.resample_2d_path(rhull, zhull; method=:linear, n_points=100)
-    append!(rce, rhull)
-    append!(zce, zhull)
+    r_eq, z_eq = resample_2d_path(r_eq, z_eq; method=:linear, n_points=100)
+    append!(rce, r_eq)
+    append!(zce, z_eq)
 
-    R0 = sum(extrema(rce)) / 2.0
-    Z0 = sum(extrema(zce)) / 2.0
+    # reorder
     index = sortperm(atan.(zce .- Z0, rce .- R0))
-    scatter!([R0], [Z0]; aspect_ratio=:equal)
 
-    return (r=rce[index], z=zce[index])
+    return (r=rce[[index; index[1]]], z=zce[[index; index[1]]])
 end
 
 @compat public first_wall

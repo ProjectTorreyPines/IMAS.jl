@@ -103,7 +103,8 @@ function set_coils_function(coils::IDSvector{<:IMAS.pf_active__coil}, R0::Float6
                 max_radius = max(max_radius, maximum(oute.r))
             end
 
-            if (!ismissing(coil, :name) && (contains(uppercase(coil.name), "OH") || contains(uppercase(coil.name), "CS"))) || (!ismissing(coil, :identifier) && (contains(uppercase(coil.identifier), "OH") || contains(uppercase(coil.identifier), "CS"))) || min_radius == oh_min_radius
+            if (!ismissing(coil, :name) && (contains(uppercase(coil.name), "OH") || contains(uppercase(coil.name), "CS"))) ||
+               (!ismissing(coil, :identifier) && (contains(uppercase(coil.identifier), "OH") || contains(uppercase(coil.identifier), "CS"))) || min_radius == oh_min_radius
                 func = resize!(coil.function, :flux; wipe=false)
                 func.description = "OH"
 
@@ -154,8 +155,8 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
         rect = element.geometry.rectangle
         Δr = 0.5 * rect.width
         Δz = 0.5 * rect.height
-        r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ rect.r
-        z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ rect.z
+        r = StaticArrays.SVector(rect.r - Δr, rect.r + Δr, rect.r + Δr, rect.r - Δr)
+        z = StaticArrays.SVector(rect.z - Δz, rect.z - Δz, rect.z + Δz, rect.z + Δz)
 
     elseif geometry_type == :annulus
         # approximate annulus as square coil that has the same conducting area of the original coil
@@ -164,8 +165,8 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
         Ain = π * ann.radius_inner^2
         A = Aout - Ain
         Δr = Δz = sqrt(A) / 2.0
-        r = StaticArrays.SVector(-Δr, Δr, Δr, -Δr) .+ ann.r
-        z = StaticArrays.SVector(-Δz, -Δz, Δz, Δz) .+ ann.z
+        r = StaticArrays.SVector(ann.r - Δr, ann.r + Δr, ann.r + Δr, ann.r - Δr)
+        z = StaticArrays.SVector(ann.z - Δz, ann.z - Δz, ann.z + Δz, ann.z + Δz)
 
     else
         error("pf_active geometry type `$geometry_type` is not yet supported")

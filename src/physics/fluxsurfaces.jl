@@ -451,7 +451,7 @@ function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T}, fw_r::A
     if closed
         @assert length(fw_r) == length(fw_z)
         if !isempty(fw_r)
-            closed = !IMAS.intersects(pr, pz, fw_r, fw_z)
+            closed = !intersects(pr, pz, fw_r, fw_z)
         end
     end
     return closed
@@ -920,17 +920,11 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_tangent_omp)
 
 """
-    find_psi_max(
-        eqt::IMAS.equilibrium__time_slice{T},
-        wall_r::AbstractVector{T},
-        wall_z::AbstractVector{T};
-        precision::Float64=1e-2) where {T<:Real}
+    find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1e-2) where {T<:Real}
 
 Returns the max psi useful for an ofl in the SOL with no wall.
 """
-function find_psi_max(
-    eqt::IMAS.equilibrium__time_slice{T};
-    precision::Float64=1e-2) where {T<:Real}
+function find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1e-2) where {T<:Real}
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     RA = eqt.global_quantities.magnetic_axis.r
@@ -1044,19 +1038,12 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_max)
 
 """
-    find_psi_wall_omp(
-        eqt::IMAS.equilibrium__time_slice,
-        wall_r::AbstractVector{<:Real},
-        wall_z::AbstractVector{<:Real}
-    )
+    find_psi_wall_omp(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{<:Real}, wall_z::AbstractVector{<:Real})
 
 Returns the psi of the magnetic surface in the SOL which intersects the wall at the outer midplane
 """
-function find_psi_wall_omp(
-    eqt::IMAS.equilibrium__time_slice,
-    wall_r::AbstractVector{<:Real},
-    wall_z::AbstractVector{<:Real}
-)
+function find_psi_wall_omp(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{<:Real}, wall_z::AbstractVector{<:Real})
+    @assert length(wall_r) == length(wall_z)
 
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
@@ -1611,7 +1598,7 @@ end
 Update flux surface averaged and geometric quantities for all time_slices in the equilibrium IDS
 """
 function flux_surfaces(eq::equilibrium{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
-    for time_index in eachindex(eq.time_slice)
+    Threads.@threads :static for time_index in eachindex(eq.time_slice)
         eqt = eq.time_slice[time_index]
         eqt2d = findfirst(:rectangular, eqt.profiles_2d)
         if eqt2d !== nothing
@@ -1664,13 +1651,15 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     psi_axis = PSI_interpolant(RA, ZA)
 
     # accurately find the lcfs and scale psi accordingly
-    original_psi_boundary = eqt.profiles_1d.psi[end]
-    psi_boundaries =
-        find_psi_boundary(r, z, eqt2d.psi, psi_axis, original_psi_boundary, RA, ZA, wall_r, wall_z; PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+    psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt.profiles_1d.psi[end], RA, ZA, wall_r, wall_z;
+        PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+    if psi_boundaries.last_closed !== nothing
+        eqt.profiles_1d.psi =
+            (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
+    end
 
+    # find strike points
     find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.first_open)
-    eqt.profiles_1d.psi =
-        (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
 
     for item in (
         :b_field_average,
@@ -1832,7 +1821,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # phi 2D
     tmp .= eqt.profiles_1d.psi .* psi_sign
-    phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :cubic)
+    phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :linear) # must be linear
     eqt2d.phi = phi_itp.(psi_sign .* eqt2d.psi)
 
     # rho 2D in meters
@@ -1848,7 +1837,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         dPHI2_R2[1:n] .= dPHI2_interpolant.(surface.r, surface.z) ./ surface.r .^ 2.0
         @views eqt.profiles_1d.gm2[k] = flux_surface_avg(dPHI2_R2[1:n], surface)
     end
-    @views gm2_itp = interp1d(tmp[2:end], eqt.profiles_1d.gm2[2:end], :cubic)
+    @views gm2_itp = interp1d(tmp[2:5], eqt.profiles_1d.gm2[2:5], :cubic)
     eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
 
     # ip
@@ -1899,7 +1888,7 @@ end
     flux_surfaces(eqt::equilibrium__time_slice, wall::IMAS.wall)
 """
 function flux_surfaces(eqt::equilibrium__time_slice, wall::IMAS.wall)
-    fw = IMAS.first_wall(wall)
+    fw = first_wall(wall)
     return flux_surfaces(eqt, fw.r, fw.z)
 end
 
@@ -1921,8 +1910,8 @@ The `type` parameter:
 """
 function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    dim1 = IMAS.to_range(eqt2d.grid.dim1)
-    dim2 = IMAS.to_range(eqt2d.grid.dim2)
+    dim1 = to_range(eqt2d.grid.dim1)
+    dim2 = to_range(eqt2d.grid.dim2)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
     return flux_surface(dim1, dim2, eqt2d.psi, RA, ZA, wall_r, wall_z, psi_level, type)
@@ -1994,7 +1983,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # pick flux surface that closes, contains magnetic axis, and does not intersect any wall element
-            if (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw_r, fw_z))
+            if (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !intersects(pr, pz, fw_r, fw_z))
                 push!(prpz, (r=pr, z=pz))
                 break
             end
@@ -2017,7 +2006,7 @@ function flux_surface(
         for line in Contour.lines(cl)
             pr, pz = Contour.coordinates(line)
             # only lines that intersect with the wall are open
-            if IMAS.intersects(pr, pz, fw_r, fw_z)
+            if intersects(pr, pz, fw_r, fw_z)
                 reorder_flux_surface!(pr, pz, RA, ZA; force_close=false)
                 segments = intersection_split(pr, pz, fw_r, fw_z)
                 for segment in segments
@@ -2142,8 +2131,8 @@ Find the `n` X-points that are closest to the separatrix
 """
 function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     ((rlcfs, zlcfs),) = flux_surface(eqt, eqt.profiles_1d.psi[end], :closed, wall_r, wall_z)
-    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :encircling, Float64[], Float64[])
-    Z0 = sum(zlcfs) / length(zlcfs)
+    private = flux_surface(eqt, eqt.profiles_1d.psi[end], :open, wall_r, wall_z)
+    Z0 = sum(extrema(zlcfs)) / 2.0
     empty!(eqt.boundary.x_point)
 
     for (pr, pz) in private

@@ -75,7 +75,8 @@ push!(document[Symbol("Physics profiles")], :beta_tor_norm)
 Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
 """
 function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
-    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, cp1d.time, :constant)
+    dd = top_dd(eq)
+    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, dd.global_time, :constant)
     ip = Ip(cp1d)
 
     if thermal
@@ -83,6 +84,7 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     else
         pressure = cp1d.pressure
     end
+    @assert !any(isnan.(pressure))
 
     volume = cp1d.grid.volume
     pressure_avg = trapz(volume, pressure) / volume[end]
@@ -90,7 +92,7 @@ function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; n
     beta_tor = 2.0 * mks.μ_0 * pressure_avg / B0^2
 
     if norm
-        eqt = eq.time_slice[cp1d.time]
+        eqt = eq.time_slice[dd.global_time]
         out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(ip / 1e6) * 1.0e2
     else
         out = beta_tor
@@ -102,45 +104,61 @@ end
 @compat public beta_tor
 push!(document[Symbol("Physics profiles")], :beta_tor)
 
-"""
-    list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
-
-List ions in core_transport IDS,
-"""
-function list_ions(ct::IMAS.core_transport{T}, cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
-    tot = total_fluxes(ct, cp1d, T[])
-    return [Symbol(ion.label) for ion in tot.ion]
-end
-
-function list_ions(ct::IMAS.core_transport, cp1d::Nothing)
-    ions = Symbol[]
+function list_ions!(ct::IMAS.core_transport, ions::Vector{Symbol}; time0::Float64)
     for model in ct.model
-        ct1d = model.profiles_1d[]
+        if isempty(model.profiles_1d)
+            continue
+        end
+        time = [ids.time for ids in model.profiles_1d]
+        index = nearest_causal_time(time, time0; bounds_error=false).index
+        ct1d = model.profiles_1d[index]
         for ion in ct1d.ion
             push!(ions, Symbol(ion.label))
         end
     end
-    return unique(ions)
+    return ions
 end
 
-"""
-    list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-
-List ions in core_sources IDS
-"""
-function list_ions(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d)
-    tot = total_sources(cs, cp1d)
-    return [Symbol(ion.label) for ion in tot.ion]
+function list_ions!(cp::IMAS.core_profiles, ions::Vector{Symbol}; time0::Float64)
+    if isempty(cp.profiles_1d)
+        return ions
+    end
+    time = [ids.time for ids in cp.profiles_1d]
+    index = nearest_causal_time(time, time0; bounds_error=false).index
+    cp1d = cp.profiles_1d[index]
+    for ion in cp1d.ion
+        push!(ions, Symbol(ion.label))
+    end
+    return ions
 end
 
-function list_ions(cs::IMAS.core_sources, cp1d::Nothing)
-    ions = Symbol[]
+function list_ions!(cs::IMAS.core_sources, ions::Vector{Symbol}; time0::Float64)
     for source in cs.source
-        for ion in source.profiles_1d[].ion
+        if isempty(source.profiles_1d)
+            continue
+        end
+        time = [ids.time for ids in source.profiles_1d]
+        index = nearest_causal_time(time, time0; bounds_error=false).index
+        sc1d = source.profiles_1d[index]
+        for ion in sc1d.ion
             push!(ions, Symbol(ion.label))
         end
     end
-    return unique(ions)
+    return ions
+end
+
+"""
+    list_ions(ids::IDS, idss::Vararg{<:IDS}; time0::Float64)
+
+List of ions mentioned in multiple IDSs at a given time
+"""
+function list_ions(ids1::IDS, idss::Vararg{<:IDS}; time0::Float64)
+    ions = Symbol[]
+    for ids in [ids1; idss...]
+        append!(ions, list_ions!(ids, ions; time0))
+        sort!(unique!(ions))
+    end
+    return ions
 end
 
 @compat public list_ions
@@ -353,7 +371,8 @@ push!(document[Symbol("Physics profiles")], :energy_thermal_ped)
 Evaluate thermal energy confinement time
 """
 function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
+    dd = top_dd(cp1d)
+    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
@@ -382,7 +401,8 @@ NOTE: H98y2 uses aereal elongation
 See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
 function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    total_source = total_sources(cs, cp1d; fields=[:power_inside, :total_ion_power_inside])
+    dd = top_dd(cp1d)
+    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
@@ -397,14 +417,14 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
 
     κ_areal = areal_elongation(eqt)
 
-    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+    nel = ne_line(eqt, cp1d)
 
     tau98 = (
         0.0562 *
         abs(eqt.global_quantities.ip / 1e6)^0.93 *
         abs(B0)^0.15 *
         (total_power_inside / 1e6)^-0.69 *
-        (ne_line / 1e19)^0.41 *
+        (nel / 1e19)^0.41 *
         isotope_factor^0.19 *
         R0^1.97 *
         (R0 / eqt.boundary.minor_radius)^-0.58 *
@@ -434,7 +454,8 @@ Petty's 2003 confinement time scaling
 NOTE: Petty uses elongation at the separatrix and makes no distinction between volume and line-average density
 """
 function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    total_source = total_sources(cs, cp1d; fields=Symbol[:power_inside, :total_ion_power_inside])
+    dd = top_dd(cp1d)
+    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
@@ -447,7 +468,7 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
-    ne_line = geometric_midplane_line_averaged_density(eqt, cp1d)
+    nel = ne_line(eqt, cp1d)
     ne_vol = ne_vol_avg(cp1d)
 
     tauds03 = (
@@ -455,7 +476,7 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
         abs(eqt.global_quantities.ip / 1e6)^0.83 *
         abs(B0)^0.07 *
         (total_power_inside / 1e6)^-0.55 *
-        (0.5 * (ne_line + ne_vol) / 1e19)^0.49 *
+        (0.5 * (nel + ne_vol) / 1e19)^0.49 *
         isotope_factor^0.14 *
         R0^2.11 *
         (R0 / eqt.boundary.minor_radius)^-0.30 *
@@ -537,7 +558,7 @@ push!(document[Symbol("Physics profiles")], :greenwald_density)
 Greewald fraction
 """
 function greenwald_fraction(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    nel = IMAS.geometric_midplane_line_averaged_density(eqt, cp1d)
+    nel = ne_line(eqt, cp1d)
     ngw = greenwald_density(eqt)
     return nel / ngw
 end
@@ -553,38 +574,44 @@ end
 push!(document[Symbol("Physics profiles")], :greenwald_fraction)
 
 """
-    geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    ne_line(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
 
-Calculates the line averaged density from a midplane horizantal line
+Calculates the averaged density along rho_tor_norm (to be used when equilibrium information is not available)
 """
-function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    return geometric_midplane_line_averaged_density(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
+function ne_line(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
+    return trapz(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal)
 end
 
 """
-    geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+    ne_line(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculates the line averaged density from the equilibrium midplane horizantal line
 """
-function geometric_midplane_line_averaged_density(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
-    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) / 2.0).(rho_ne)
+function ne_line(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    return ne_line(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
+end
+
+"""
+    ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+"""
+function ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard).(rho_ne)
     return trapz(a_cp, ne_profile) / a_cp[end]
 end
 
 """
-    geometric_midplane_line_averaged_density(dd::IMAS.dd)
+    ne_line(dd::IMAS.dd; time0::Float64=dd.global_time)
 """
-function geometric_midplane_line_averaged_density(dd::IMAS.dd)
-    return geometric_midplane_line_averaged_density(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[])
+function ne_line(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return ne_line(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0])
 end
-
-@compat public greenwald_fraction
-push!(document[Symbol("Physics profiles")], :greenwald_fraction)
 
 """
     ne_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
 
 returns n_e_line from pulse_schedule looking first in `pulse_schedule.density_control.ne_line.reference` and then `pulse_schedule.density_control.greenwald_fraction.reference`
 """
-function ne_line(ps::IMAS.pulse_schedule; time0=global_time(ps))
+function ne_line(ps::IMAS.pulse_schedule; time0::Float64=global_time(ps))
     if !ismissing(ps.density_control.n_e_line, :reference)
         return get_time_array(ps.density_control.n_e_line, :reference, time0, :linear)
     elseif !ismissing(ps.density_control.n_e_greenwald_fraction, :reference)
@@ -646,45 +673,40 @@ end
 push!(document[Symbol("Physics profiles")], :pressure_avg_from_beta_n)
 
 """
-    Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real; offset::Real=0.0)
 
 Generate H-mode density and temperature profiles evenly spaced in the radial coordinate
 
-* `edge`: separatrix value
-
-* `ped`: pedestal value
-
-* `core`: on-axis value
-
-* `ngrid`: number of radial grid points
-
-* `expin`: inner core exponent for H-mode pedestal profile
-
-* `expout`: outer core exponent for H-mode pedestal profile
-
-* `width`: width of pedestal
+  - `edge`: separatrix value
+  - `ped`: pedestal value
+  - `core`: on-axis value
+  - `ngrid`: number of radial grid points
+  - `expin`: inner core exponent for H-mode pedestal profile
+  - `expout`: outer core exponent for H-mode pedestal profile
+  - `width`: full width of pedestal (from the separatrix to the pedestal itself)
+  - `offset`: offset of the pedestal center
 """
-function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
-    @assert edge >= 0.0
-    @assert ped >= 0.0
-    @assert core >= 0.0
-    @assert expin >= 0.0
-    @assert expout >= 0.0
-    @assert 0.0 < widthp < 1.0 "pedestal width cannot be $widthp"
+function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real; offset::Real=0.0)
+    @assert edge >= 0.0 "invalid edge = $edge"
+    @assert ped >= 0.0 "invalid ped = $ped"
+    @assert core >= 0.0 "invalid core = $core"
+    @assert expin >= 0.0 "invalid expin = $expin"
+    @assert expout >= 0.0 "invalid expout = $expout"
+    @assert 0.0 < width < 1.0 "invalid width = $width"
 
     xpsi = range(0.0, 1.0, ngrid)
 
-    w_E1 = 0.5 * widthp  # width as defined in eped
-    xphalf = 1.0 - w_E1
-    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    widthp = 0.5 * width  # width as defined in eped
+    xphalf = 1.0 - widthp - offset
+    pconst = 1.0 - tanh((1.0 - xphalf) / widthp)
     a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
-    coretanh = 0.5 * a_t * (1.0 - tanh(-xphalf / w_E1) - pconst) + edge
+    coretanh = 0.5 * a_t * (1.0 - tanh(-xphalf / widthp) - pconst) + edge
 
     # edge tanh part
-    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge + core * 0.0
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / widthp) - pconst) + edge + core * 0.0
 
     # core tanh+polynomial part
-    xped = xphalf - w_E1
+    xped = xphalf - widthp
     xtoped = xpsi ./ xped
     for i in 1:ngrid
         if xtoped[i] < 1.0
@@ -696,31 +718,31 @@ function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
 end
 
 """
-    Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
 
 NOTE: The core value is allowed to float
 """
-function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
-    @assert edge >= 0.0
-    @assert ped >= 0.0
-    @assert expin >= 0.0
-    @assert expout >= 0.0
-    @assert 0.0 < widthp < 1.0 "pedestal width cannot be $widthp"
+function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
+    @assert edge >= 0.0 "invalid edge = $edge"
+    @assert ped >= 0.0 "invalid ped = $ped"
+    @assert expin >= 0.0 "invalid expin = $expin"
+    @assert expout >= 0.0 "invalid expout = $expout"
+    @assert 0.0 < width < 1.0 "invalid width = $width"
 
     xpsi = range(0.0, 1.0, ngrid)
 
-    w_E1 = 0.5 * widthp  # width as defined in eped
-    xphalf = 1.0 - w_E1
-    pconst = 1.0 - tanh((1.0 - xphalf) / w_E1)
+    widthp = 0.5 * width  # width as defined in eped
+    xphalf = 1.0 - widthp
+    pconst = 1.0 - tanh((1.0 - xphalf) / widthp)
     a_t = 2.0 * (ped - edge) / (1.0 + tanh(1.0) - pconst)
 
     # edge tanh part
-    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / w_E1) - pconst) + edge
+    val = @. 0.5 * a_t * (1.0 - tanh((xpsi - xphalf) / widthp) - pconst) + edge
 
     # core tanh+polynomial part
-    xped = xphalf - w_E1
+    xped = xphalf - widthp
     xtoped = xpsi ./ xped
-    factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / w_E1) - pconst) + edge
+    factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / widthp) - pconst) + edge
     index = xtoped .< 1.0
     val[index] += factor .* (1.0 .- xtoped[index] .^ expin) .^ expout
 
@@ -731,25 +753,20 @@ end
 push!(document[Symbol("Physics profiles")], :Hmode_profiles)
 
 """
-    Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+    Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
 
 Generate L-mode density and temperature profiles evenly spaced in the radial coordinate
 
-* `edge`: separatrix value
-
-* `ped`: pedestal value
-
-* `ngrid`: number of radial grid points
-
-* `expin`: inner core exponent for H-mode pedestal profile
-
-* `expout`: outer core exponent for H-mode pedestal profile
-
-* `width`: width of pedestal
+  - `edge`: separatrix value
+  - `ped`: pedestal value
+  - `ngrid`: number of radial grid points
+  - `expin`: inner core exponent for H-mode pedestal profile
+  - `expout`: outer core exponent for H-mode pedestal profile
+  - `width`: width of pedestal
 """
-function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, widthp::Real)
+function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
     rho = range(0.0, 1.0, ngrid)
-    rho_ped = 1.0 - widthp
+    rho_ped = 1.0 - width
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
     f(x) = abs.(1.0 - x .^ expin) .^ expout
@@ -768,65 +785,105 @@ push!(document[Symbol("Physics profiles")], :Lmode_profiles)
 """
     A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
-A_effective towards L to H scaling see G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+A_effective towards L to H scaling see: G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 """
 function A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
-    numerator = T[]
-    denominator = T[]
+    numerator = zero(T)
+    denominator = zero(T)
     for ion in cp1d.ion
         if ion.element[1].z_n == 1
             n_int = trapz(cp1d.grid.volume, ion.density)
-            push!(numerator, n_int * ion.element[1].a)
-            push!(denominator, n_int)
+            numerator += n_int * ion.element[1].a
+            denominator += n_int
         end
     end
-    return reduce(+, numerator) / reduce(+, denominator)
+
+    return numerator / denominator
 end
 
 @compat public A_effective
 push!(document[Symbol("Physics profiles")], :A_effective)
 
 """
-    scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
+    scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; metallic_wall:Bool=true)
 
-L to H transition power scaling for metal walls and isotope effect according to : G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
+L to H transition power threshold for metal walls and isotope effect according to: G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 
-inputs in SI and returns power in W
+See also: `Reducing the L-H Transition Power Threshold in DIII-D ITER-Similar-Shape Hydrogen Plasmas, L. Schmitz IAEA FEC 2020`
+
+NOTE: This scaling does not reflect a well documented nonmonotonic density dependence.
+
+L_H_threshold doubles when ion ∇B drift is away from X-point
+
+returns Infinity if the plasma is diverted or in negative triangularity
 """
-function scaling_L_to_H_power(A_effective::Real, ne_volume::Real, B0::Real, surface_area::Real)
-    return 1e6 * 0.8 * 2.0 / A_effective * 0.049 * (ne_volume / 1e20)^0.72 * abs(B0)^0.8 * surface_area^0.94
+function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; metallic_wall::Bool=true)
+    if isempty(eqt.boundary.x_point)
+        return Inf
+    end
+    if eqt.boundary.triangularity < 0.0
+        return Inf
+    end
+
+    Bgeo = B0_geo(eqt)
+
+    if Bgeo < 0
+        # COCOS 11: Negative Bt is clockwise --> B×∇B is downward
+        # This checks out with ITER. Negative B in COCOS 11 and lower single null.
+        ∇B_drift_direction = -1
+    else
+        # COCOS 11: Positive Bt is counter clockwise --> B×∇B is upward
+        # This checks out with DIII-D shot 200204, where at 1.2 s
+        # they go from lower to upper single null to go into H-mode
+        ∇B_drift_direction = +1
+    end
+    # L_H_threshold doubles when ion ∇B drift is away from primary X-point
+    if sign(eqt.boundary.x_point[1].z) == ∇B_drift_direction
+        ∇B_drift_multiplier = 1.0
+    else
+        ∇B_drift_multiplier = 2.0
+    end
+
+    # The Martin scaling is only valid for plasma densities above the power threshold minimum
+    ne_volume = trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end] / 1E20
+    Rgeo = eqt.boundary.geometric_axis.r
+    ageo = eqt.boundary.minor_radius
+    ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * (Rgeo / ageo)^0.4
+    ne_volume = max(ne_min, ne_volume)
+
+    surface_area = eqt.profiles_1d.surface[end]
+
+    if metallic_wall
+        # PLH is at least 20% lower in a metallic wall compared to the original ITPA scaling, which was derived from carbon wall data
+        wall_factor = 0.8
+    else
+        wall_factor = 1.0
+    end
+
+    isotope_effect = 2.0 / A_effective(cp1d)
+
+    power_threshold = 1e6 * wall_factor * isotope_effect * 0.049 * ne_volume^0.72 * abs(Bgeo)^0.8 * surface_area^0.94 * ∇B_drift_multiplier
+
+    return power_threshold
 end
 
 """
-    scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
 """
-function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    B0 = B0_geo(eqt)
-    return scaling_L_to_H_power(
-        A_effective(cp1d),
-        trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end],
-        B0,
-        eqt.profiles_1d.surface[end]
-    )
-end
-
-"""
-    scaling_L_to_H_power(dd::IMAS.dd)
-"""
-function scaling_L_to_H_power(dd::IMAS.dd)
-    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
+function scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0])
 end
 
 @compat public scaling_L_to_H_power
 push!(document[Symbol("Physics profiles")], :scaling_L_to_H_power)
 
 """
-    L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time)
 
 Returns ratio of Psol to Plh
 """
-function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    Psol = power_sol(cs, cp1d)
+function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time)
+    Psol = power_sol(cs, cp1d; time0)
     Plh = scaling_L_to_H_power(cp1d, eqt)
     return Psol / Plh
 end
@@ -834,24 +891,21 @@ end
 """
     L_H_threshold(dd::IMAS.dd)
 """
-function L_H_threshold(dd::IMAS.dd)
-    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
+function L_H_threshold(dd::IMAS.dd; time0::Float64=dd.global_time)
+    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0]; time0)
 end
 
 @compat public L_H_threshold
 push!(document[Symbol("Physics profiles")], :L_H_threshold)
 
 """
-    satisfies_h_mode_conditions(dd::IMAS.dd)
+    satisfies_h_mode_conditions(dd::IMAS.dd; threshold_multiplier::Float64=1.0)
 
-Returns `true` if the plasma is diverted, has positive triangularity, and `Psol>Plh`
+Returns `true` if the plasma is diverted, has positive triangularity, and `Psol > Plh * threshold_multiplier`
 """
-function satisfies_h_mode_conditions(dd::IMAS.dd)
-    eqt = dd.equilibrium.time_slice[]
-    diverted = length(eqt.boundary.x_point) > 0
-    Psol_gt_Plh = IMAS.L_H_threshold(dd) > getproperty(dd.requirements, :lh_power_threshold_fraction, 1.0)
-    positive_triangularity = eqt.boundary.triangularity > 0.0
-    if Psol_gt_Plh && diverted && positive_triangularity
+function satisfies_h_mode_conditions(dd::IMAS.dd; threshold_multiplier::Float64=1.0)
+    Psol_gt_Plh = L_H_threshold(dd) > threshold_multiplier
+    if Psol_gt_Plh
         return true
     else
         return false
@@ -1063,7 +1117,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     resize!(bulk.element, 1)
     bulk.label = "bulk"
     bulk.element[1].z_n = 1.0
-    IMAS.setraw!(bulk, :density_thermal, n1)
+    setproperty!(bulk, :density_thermal, n1; error_on_missing_coordinates=false)
 
     # impurity ions
     push!(ions2, IMAS.core_profiles__profiles_1d___ion{T}())
@@ -1071,7 +1125,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     resize!(impu.element, 1)
     impu.label = "impurity"
     impu.element[1].z_n = Zi
-    IMAS.setraw!(impu, :density_thermal, ni)
+    setproperty!(impu, :density_thermal, ni; error_on_missing_coordinates=false)
 
     # weight different ion quantities based on their density
     for (index, ion2) in ((bulk_index, bulk), (impu_index, impu))
@@ -1081,7 +1135,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
         end
         for item in (:temperature, :rotation_frequency_tor)
             value = rho_tor_norm .* 0.0
-            IMAS.setraw!(ion2, item, value)
+            setproperty!(ion2, item, value; error_on_missing_coordinates=false)
             for ix in index
                 tmp = getproperty(ions[ix], item, T[])
                 if !isempty(tmp)
@@ -1105,18 +1159,20 @@ Returns plasma effective charge
 `temperature_dependent_ionization_state` evaluates Zeff with average ionization state of an ion at a given temperature
 """
 function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ionization_state::Bool=true)
-    num = zero(cp1d.grid.rho_tor_norm)
-    den = zero(cp1d.grid.rho_tor_norm)
+    z = zero(cp1d.grid.rho_tor_norm)
     for ion in cp1d.ion
         if temperature_dependent_ionization_state
             Zi = avgZ(ion.element[1].z_n, ion.temperature)
         else
             Zi = ion.element[1].z_n
         end
-        num .+= ion.density .* Zi .^ 2
-        den .+= ion.density .* Zi
+        z .+= ion.density .* Zi .^ 2
     end
-    return num ./ cp1d.electrons.density
+    ne = cp1d.electrons.density
+    for k in eachindex(z)
+        z[k] = max(1.0, z[k] / ne[k])
+    end
+    return z
 end
 
 @compat public zeff
@@ -1184,11 +1240,11 @@ end
 push!(document[Symbol("Physics profiles")], :t_i_average)
 
 """
-    edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
+    exponential_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
 
 Function for edge blending using exponential function
 """
-function edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
+function exponential_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, alpha::Real)
     @assert x[1] == 0.0
     @assert x[end] == 1.0
     @assert 0.0 < x0 < 1.0
@@ -1197,15 +1253,184 @@ function edge_profile(x::AbstractArray{<:Real}, x0::Real, T0::Real, T1::Real, al
     else
         sigma = 1 / alpha
     end
-    y = edge_profile0(x, x0, sigma)
-    y0 = edge_profile0(x0, x0, sigma)
-    y1 = edge_profile0(1.0, x0, sigma)
+    y = exponential_profile(x, x0, sigma)
+    y0 = exponential_profile(x0, x0, sigma)
+    y1 = exponential_profile(1.0, x0, sigma)
     return @. (y - y1) / (y0 - y1) * (T0 - T1) + T1
 end
 
-function edge_profile0(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
+function exponential_profile(x::Union{Real,AbstractArray}, x0::Real, sigma::Real)
     return exp.(.-(x .- x0) / sigma)
 end
 
 @compat public edge_profile
 push!(document[Symbol("Physics profiles")], :edge_profile)
+
+"""
+    core_edge_energy(cp1d::IMAS.core_profiles__profiles_1d, rho_ped::Real; thermal::Bool=true)
+
+Evaluate stored energy in the core (< rho_ped) or the pedestal (> rho_ped)
+"""
+function core_edge_energy(cp1d::IMAS.core_profiles__profiles_1d, rho_ped::Real; thermal::Bool=true)
+    if thermal
+        p = pressure_thermal(cp1d)
+    else
+        p = pressure(cp1d)
+    end
+    return core_edge_energy(p, cp1d.grid.rho_tor_norm, cp1d.grid.volume, rho_ped)
+end
+
+"""
+    core_edge_energy(eqt::IMAS.equilibrium__time_slice, rho_ped::Real)
+
+Evaluate stored energy in the core (< rho_ped) or the pedestal (> rho_ped)
+"""
+function core_edge_energy(eqt::IMAS.equilibrium__time_slice, rho_ped::Real)
+    eqt1d = eqt.profiles_1d
+    return core_edge_energy(eqt1d.pressure, eqt1d.rho_tor_norm, eqt1d.volume, rho_ped)
+end
+
+function core_edge_energy(pressure::AbstractVector{T}, rho::AbstractVector{T}, volume::AbstractVector{T}, rho_ped::Real) where {T<:Real}
+    rho_bound_idx = argmin(abs.(rho .- rho_ped))
+    pedge = pressure[rho_bound_idx]
+    fedge = (k, x) -> (k <= rho_bound_idx) ? pedge : pressure[k]
+    fcore = (k, x) -> (k <= rho_bound_idx) ? (pressure[k] - pedge) : 0.0
+    core_value = 1.5 * trapz(volume, fcore)
+    edge_value = 1.5 * trapz(volume, fedge)
+    return (core_value=core_value, edge_value=edge_value)
+end
+
+@compat public core_edge_energy
+push!(document[Symbol("Physics profiles")], :core_edge_energy)
+
+"""
+    scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+
+Returns scale coefficients for main ions and impurity density profiles needed to achieve a target zeff at a specific radial location
+"""
+function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+    rho_index = argmin(abs.(cp1d.grid.rho_tor_norm .- rho_scale))
+    ne = cp1d.electrons.density_thermal[rho_index]
+    Ti = cp1d.t_i_average[rho_index]
+    nh = zero(T)
+    nim_Z = zero(T)
+    nim_Z2 = zero(T)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                nh += ion.density_thermal[rho_index]
+            else
+                nimp = ion.density_thermal[rho_index]
+                Zimp = IMAS.avgZ(ion.element[1].z_n, Ti)
+                nim_Z += nimp .* Zimp
+                nim_Z2 += nimp .* Zimp^2
+            end
+        end
+    end
+
+    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
+    @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
+    original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
+    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
+    original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
+    new_quasineutrality = (ne .- manion_scale .* nh .- impurity_scale .* nim_Z) ./ ne
+
+    return (
+        impurity_scale=impurity_scale,
+        manion_scale=manion_scale,
+        original_zeff=original_zeff,
+        new_zeff=new_zeff,
+        original_quasineutrality=original_quasineutrality,
+        new_quasineutrality=new_quasineutrality
+    )
+end
+
+"""
+    scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+
+Returns scale coefficients for main ions and impurity density profiles needed to achieve a target zeff profile
+"""
+function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+    ne = cp1d.electrons.density_thermal
+    Ti = cp1d.t_i_average
+    nh = zero(ne)
+    nim_Z = zero(ne)
+    nim_Z2 = zero(ne)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                nh .+= ion.density_thermal
+            else
+                nimp = ion.density_thermal
+                Zimp = IMAS.avgZ(ion.element[1].z_n, Ti)
+                nim_Z .+= nimp .* Zimp
+                nim_Z2 .+= nimp .* Zimp .^ 2
+            end
+        end
+    end
+
+    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
+    @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
+    original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
+    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
+    original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
+    new_quasineutrality = (ne .- manion_scale .* nh .- impurity_scale .* nim_Z) ./ ne
+
+    return (
+        impurity_scale=impurity_scale,
+        manion_scale=manion_scale,
+        original_zeff=original_zeff,
+        new_zeff=new_zeff,
+        original_quasineutrality=original_quasineutrality,
+        new_quasineutrality=new_quasineutrality
+    )
+end
+
+@compat public scale_ion_densities_to_target_zeff
+push!(document[Symbol("Physics profiles")], :scale_ion_densities_to_target_zeff)
+
+"""
+    scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+
+Scale main ions and impurity density profiles in place to achieve a target zeff at a specific radial location
+"""
+function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
+    @assert 0.0 <= rho_scale <= 1.0
+    scales = scale_ion_densities_to_target_zeff(cp1d, rho_scale, target_zeff)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+            else
+                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+            end
+        end
+    end
+    return cp1d
+end
+
+"""
+    scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+
+Scale main ions and impurity density profiles in place to achieve a target zeff profile
+"""
+function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
+    scales = scale_ion_densities_to_target_zeff(cp1d, target_zeff)
+    for ion in cp1d.ion
+        if !ismissing(ion, :density_thermal)
+            if ion.element[1].z_n == 1.0
+                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+            else
+                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+            end
+        end
+    end
+    return cp1d
+end
+
+@compat public scale_ion_densities_to_target_zeff!
+push!(document[Symbol("Physics profiles")], :scale_ion_densities_to_target_zeff!)

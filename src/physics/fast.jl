@@ -188,7 +188,8 @@ function _electron_ion_drag_difference(
 
     lnΛ_fis = k -> lnΛ_fi(ne, Te, ni[k], Ti[k], mi[k], Zi[k], v_f / mks.c, mf, Zf; verbose=false)
     Γ_fi = k -> _drag_coefficient(ni[k], Zi[k], mf, Zf, lnΛ_fis(k))
-    ion_drag = 2 * m_f * sum(Γ_fi(k) / mi[k] for k in eachindex(mi)) / mks.m_u
+    valid = k -> ni[k] > 0.0 && Ti[k] > 0.0
+    ion_drag = 2 * m_f * sum(valid(k) ? Γ_fi(k) / mi[k] : 0.0 for k in eachindex(mi)) / mks.m_u
 
     return electron_drag - ion_drag
 end
@@ -227,11 +228,10 @@ function critical_energy(
     Zf::Int;
     approximate::Bool=false
 )
-    avg_cmr = sum(ni .* (Zi .^ 2) ./ mi) / ne
-    Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
+    avg_cmr = sum(ni[k] * (Zi[k] ^ 2) / mi[k] for k in eachindex(ni)) / ne
+    Ec = 14.8 * mf * Te * avg_cmr ^ (2.0 / 3.0)
     if !approximate
-        index = ni .> 0.0 .&& Ti .> 0.0
-        Ec = Roots.find_zero(Ec0 -> _electron_ion_drag_difference(ne, Te, ni[index], Ti[index], mi[index], Zi[index], Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
+        Ec = Roots.find_zero(Ec0 -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
     end
     return Ec
 end
@@ -301,6 +301,9 @@ function thermalization_time(
     return thermalization_time(v_f, v_c, tau_s)
 end
 
+@compat public thermalization_time
+push!(document[Symbol("Physics fast")], :thermalization_time)
+
 """
     α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
 
@@ -320,8 +323,29 @@ function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
         Int(α.z_n))
 end
 
-@compat public thermalization_time
-push!(document[Symbol("Physics fast")], :thermalization_time)
+@compat public α_thermalization_time
+push!(document[Symbol("Physics fast")], :α_thermalization_time)
+
+"""
+    fast_ion_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d, ion::IDSvectorIonElement, ion_energy::Real)
+
+Returns the fast ion thermalization time in seconds evaluated on axis
+"""
+function fast_ion_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d, ion::Union{IMAS.nbi__unit___species,IMAS.core_profiles__profiles_1d___ion___element}, ion_energy::Real)
+    return thermalization_time(
+        cp1d.electrons.density_thermal[1],
+        cp1d.electrons.temperature[1],
+        [ion.density_thermal[1] for ion in cp1d.ion],
+        [ion.temperature[1] for ion in cp1d.ion],
+        [ion.element[1].a for ion in cp1d.ion],
+        [Int(ion.element[1].z_n) for ion in cp1d.ion],
+        ion_energy,
+        ion.a,
+        Int(ion.z_n))
+end
+
+@compat public fast_ion_thermalization_time
+push!(document[Symbol("Physics fast")], :fast_ion_thermalization_time)
 
 """
     fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
@@ -379,8 +403,7 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     for source in cs.source
         source1d = source.profiles_1d[]
         for sion in source1d.ion
-            if !ismissing(sion, :particles) && !ismissing(sion, :fast_particles_energy)
-
+            if !ismissing(sion, :particles) && sum(sion.particles) > 0.0 && !ismissing(sion, :fast_particles_energy) && sion.fast_particles_energy > 0.0
                 particle_mass = sion.element[1].a
                 particle_charge = Int(sion.element[1].z_n)
                 particle_energy = sion.fast_particles_energy
@@ -408,11 +431,10 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                     for i in 1:Npsi
                         taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
                         taut[i] = @views thermalization_time(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
-                        i2tmp, i4tmp = estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
-                        i4[i] = i4tmp
+                        _, i4[i] = @views estrada_I_integrals(ne[i], Te[i], ni[:, i], Ti[:, i], mi, Zi, particle_energy, particle_mass, particle_charge)
                     end
 
-                    sion_particles = IMAS.interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
+                    sion_particles = interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
                     cion.pressure_fast_parallel += pressa ./ 3.0
                     cion.pressure_fast_perpendicular += pressa ./ 3.0
@@ -441,7 +463,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
     for ion in cp1d.ion
         if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
             ni = ion.density_thermal
-            @assert all(ni .>= 0.0) "$ni"
+            @assert all(ni .>= 0.0) "Ion `$(ion.label)` has negative densities\n$ni"
             Zi = avgZ(ion.element[1].z_n, ion.temperature)
             mi = ion.element[1].a
             c_a .+= (ni ./ ne) .* Zi .^ 2 ./ (mi ./ particle_mass)
@@ -471,3 +493,73 @@ end
 
 @compat public sivukhin_fraction
 push!(document[Symbol("Physics fast")], :sivukhin_fraction)
+
+"""
+    smooth_beam_power(power::Vector{Float64}, time::AbstractVector{Float64}, taus::Float64) where {T<:Real}
+
+Smooths out the beam power history based on a given thermalization constant `taus`
+
+Such smoothing mimics the delayed contribution from the instantaneous source,
+as well as the gradual decay of the previous fast ion population over time.
+"""
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Float64) where {T<:Real}
+    @assert taus >= 0.0
+    if taus == 0.0
+        return power
+    end
+
+    n = length(power)
+    smoothed_power = similar(power)
+
+    if !isempty(power)
+        smoothed_power[1] = power[1]
+        for i in 2:n
+            dt = time[i] - time[i - 1]
+
+            # Calculate the decay factor for the current time step
+            decay_factor = exp(-dt / taus)
+
+            # Calculate the source contribution
+            source_term = power[i] * (1.0 - decay_factor)
+
+            # Update the smoothed density
+            smoothed_power[i] = smoothed_power[i - 1] * decay_factor + source_term
+        end
+    end
+
+    return smoothed_power
+end
+
+"""
+    smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
+
+return smoothed beam power at time0
+"""
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
+    n = length(power)
+
+    smoothed_power = power[1]
+    if time0 > time[1]
+        for i in 2:n
+            dt = time[i] - time[i - 1]
+
+            # Calculate the decay factor for the current time step
+            decay_factor = exp(-dt / taus)
+
+            # Calculate the source contribution
+            source_term = power[i] * (1.0 - decay_factor)
+
+            # Update the smoothed density
+            smoothed_power = smoothed_power * decay_factor + source_term
+
+            if time[i] >= time0
+                break
+            end
+        end
+    end
+
+    return smoothed_power
+end
+
+@compat public smooth_beam_power
+push!(document[Symbol("Physics fast")], :smooth_beam_power)

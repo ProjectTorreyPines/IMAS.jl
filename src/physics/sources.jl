@@ -103,20 +103,20 @@ push!(document[Symbol("Physics sources")], :bootstrap_source!)
 """
     sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
 
-Calculates intrisic sources and sinks and adds them to `dd.core_sources`
+Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
 function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
     if bootstrap
-        IMAS.bootstrap_source!(dd)
+        bootstrap_source!(dd)
     end
     if ohmic
-        IMAS.ohmic_source!(dd)
+        ohmic_source!(dd)
     end
-    IMAS.collisional_exchange_source!(dd)
-    IMAS.bremsstrahlung_source!(dd)
-    IMAS.line_radiation_source!(dd)
-    IMAS.synchrotron_source!(dd)
-    IMAS.fusion_source!(dd; DD_fusion)
+    collisional_exchange_source!(dd)
+    bremsstrahlung_source!(dd)
+    line_radiation_source!(dd)
+    synchrotron_source!(dd)
+    fusion_source!(dd; DD_fusion)
     return nothing
 end
 
@@ -126,7 +126,7 @@ push!(document[Symbol("Physics sources")], :sources!)
 """
     time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
 
-Calculates the time dependent sources and sinks and adds them to `dd.core_sources`
+Calculates time dependent sources and sinks, and adds them to `dd.core_sources`
 
 These are the ∂/∂t term in the transport equations.
 """
@@ -151,7 +151,7 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
 
-    R_flux_avg = IMAS.interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
+    R_flux_avg = interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
     ddt_sources = time_derivative_source!(cp1d, cp1d_old, Δt, R_flux_avg)
 
     source = resize!(dd.core_sources.source, :time_derivative; wipe=false)
@@ -247,7 +247,14 @@ end
 push!(document[Symbol("Physics sources")], :retain_source)
 
 """
-    total_sources(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; include_indexes=missing, exclude_indexes=missing)
+    total_sources(
+        core_sources::IMAS.core_sources{T},
+        cp1d::IMAS.core_profiles__profiles_1d{T};
+        time0::Float64;
+        include_indexes::Vector{Int}=Int[],
+        exclude_indexes::Vector{Int}=Int[],
+        fields::Vector{Symbol}=Symbol[],
+        only_positive_negative::Int=0) where {T<:Real}
 
 Returns core_sources__source___profiles_1d with sources totals and possiblity to
 
@@ -257,6 +264,7 @@ Returns core_sources__source___profiles_1d with sources totals and possiblity to
 function total_sources(
     core_sources::IMAS.core_sources{T},
     cp1d::IMAS.core_profiles__profiles_1d{T};
+    time0::Float64,
     include_indexes::Vector{Int}=Int[],
     exclude_indexes::Vector{Int}=Int[],
     fields::Vector{Symbol}=Symbol[],
@@ -264,7 +272,7 @@ function total_sources(
 
     total_source1d = IMAS.core_sources__source___profiles_1d{T}()
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
-    total_source1d.time = cp1d.time
+    total_source1d.time = time0
 
     matching = Dict{Symbol,Symbol}()
     matching[:power_inside] = :energy
@@ -284,8 +292,8 @@ function total_sources(
         value = getproperty(cp1d.grid, prop, missing)
         if value === missing
             for source in core_sources.source
-                if source.profiles_1d[1].time <= Float64(cp1d.time)
-                    value = getproperty(source.profiles_1d[Float64(cp1d.time)].grid, prop, missing)
+                if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
+                    value = getproperty(source.profiles_1d[time0].grid, prop, missing)
                     if value !== missing
                         break
                     end
@@ -303,8 +311,8 @@ function total_sources(
         push!(total_source1d_ions, tmp)
     end
     for source in core_sources.source
-        if source.profiles_1d[1].time <= Float64(cp1d.time)
-            source1d = source.profiles_1d[Float64(cp1d.time)]
+        if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
+            source1d = source.profiles_1d[time0]
             for ion in source1d.ion
                 l = length(total_source1d.ion)
                 tmp = resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
@@ -331,16 +339,17 @@ function total_sources(
             continue
         end
         if isempty(source.profiles_1d)
-            continue # skip sources that have no profiles_1d
+            continue # skip sources that have no profiles_1d time slices
         end
-        if source.profiles_1d[1].time > Float64(cp1d.time)
+        if !isempty(source.profiles_1d) && source.profiles_1d[1].time > time0
             continue # skip sources that start after time of interest
         end
 
-        source_name = ismissing(source.identifier, :name) ? "?" : source.identifier.name
-        @debug "total_sources() including $source_name source with index $(source.identifier.index)"
+        source1d = source.profiles_1d[time0]
 
-        source1d = source.profiles_1d[Float64(cp1d.time)]
+        if ismissing(source1d.grid, :rho_tor_norm)
+            continue # skip sources don't have radial coordinate, since they cannot have data
+        end
 
         # ions that this source contributes to
         ion_ids1_ids2 = []
@@ -389,7 +398,7 @@ end
     total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
 """
 function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
-    return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+    return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0, kw...)
 end
 
 @compat public total_sources
@@ -398,23 +407,24 @@ push!(document[Symbol("Physics sources")], :retain_source)
 function total_radiation_sources(
     core_sources::IMAS.core_sources{T},
     cp1d::IMAS.core_profiles__profiles_1d{T};
+    time0::Float64,
     include_indexes::Vector{Int}=Int[],
     exclude_indexes::Vector{Int}=Int[]) where {T<:Real}
 
     # we need to exclude the collisional_equipartition term
-    index = IMAS.name_2_index(core_sources.source)[:collisional_equipartition]
+    index = name_2_index(core_sources.source)[:collisional_equipartition]
     push!(exclude_indexes, index)
 
     fields = [:power_inside, :energy]
     only_positive_negative = -1
-    return total_sources(core_sources, cp1d; include_indexes, exclude_indexes, fields, only_positive_negative)
+    return total_sources(core_sources, cp1d; time0, include_indexes, exclude_indexes, fields, only_positive_negative)
 end
 
 """
     total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
 """
 function total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
-    return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; kw...)
+    return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0, kw...)
 end
 
 @compat public total_radiation_sources
@@ -502,13 +512,13 @@ function new_source(
 
     if j_parallel !== missing
         cs1d.j_parallel = value = j_parallel
-        cs1d.current_parallel_inside = cumtrapz(volume, value)
+        cs1d.current_parallel_inside = cumtrapz(area, value)
     elseif current_parallel_inside !== missing
         cs1d.current_parallel_inside = value = current_parallel_inside
-        cs1d.j_parallel = gradient(volume, value)
+        cs1d.j_parallel = gradient(area, value)
     else
-        cs1d.j_parallel = zero(volume)
-        cs1d.current_parallel_inside = zero(volume)
+        cs1d.j_parallel = zero(area)
+        cs1d.current_parallel_inside = zero(area)
     end
 
     if momentum_tor !== missing
@@ -527,3 +537,30 @@ end
 
 @compat public new_source
 push!(document[Symbol("Physics sources")], :new_source)
+
+"""
+    total_power(
+        ps::Union{IMAS.pulse_schedule,IMAS.pulse_schedule__ec,IMAS.pulse_schedule__ic,IMAS.pulse_schedule__lh,IMAS.pulse_schedule__nbi},
+        times::AbstractVector{Float64};
+        time_smooth::Float64)
+
+Total injected power interpolated on a given time basis
+"""
+function total_power(
+    ps::Union{IMAS.pulse_schedule,IMAS.pulse_schedule__ec,IMAS.pulse_schedule__ic,IMAS.pulse_schedule__lh,IMAS.pulse_schedule__nbi},
+    times::AbstractVector{Float64};
+    tau_smooth::Float64
+)
+    datas = zero(times)
+    for leaf in leaves(ps)
+        if contains(location(leaf.ids), ".power") && hasdata(leaf.ids, leaf.field)
+            time = coordinates(leaf.ids, leaf.field).values[1]
+            data = getproperty(leaf.ids, leaf.field)
+            datas .+= interp1d(time, smooth_beam_power(time, data, tau_smooth)).(times)
+        end
+    end
+    return datas
+end
+
+@compat public total_power
+push!(document[Symbol("Physics sources")], :total_power)
