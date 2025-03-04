@@ -341,7 +341,7 @@ function find_levels_from_P(
     psi_mid = PSI_interpolant.(r_mid_of_interest, r_mid_of_interest .* 0.0 .+ ZA)
     psi_sign = sign(psi_mid[end] - psi_mid[1])
     if psi_sign < 0
-        r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolate=true)
+        r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolation=ExtrapolationType.Extension)
     end
 
     psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open # psi at LCFS
