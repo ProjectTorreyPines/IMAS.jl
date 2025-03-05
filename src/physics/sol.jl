@@ -1197,12 +1197,13 @@ function find_strike_points!(
     Rxx = Float64[]
     Zxx = Float64[]
     θxx = Float64[]
+    dxx = Float64[]
 
     time = eqt.time
 
     for divertor in dv.divertor
         for target in divertor.target
-            Rxx0, Zxx0, θxx0 = find_strike_points(
+            Rxx0, Zxx0, θxx0, dxx0 = find_strike_points(
                 eqt,
                 wall_r,
                 wall_z,
@@ -1218,6 +1219,7 @@ function find_strike_points!(
             push!(Rxx, Rxx0[1])
             push!(Zxx, Zxx0[1])
             push!(θxx, θxx0[1])
+            push!(dxx, dxx0[1])
             if in_place
                 set_time_array(target.tilt_angle_pol, :data, time, θxx0[1])
             end
@@ -1229,10 +1231,11 @@ function find_strike_points!(
         for (k, strike_point) in enumerate(eqt.boundary.strike_point)
             strike_point.r = Rxx[k]
             strike_point.z = Zxx[k]
+            # strike_point.d = dxx[k]
         end
     end
 
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
+    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx, dxx=dxx)
 end
 
 """
@@ -1274,14 +1277,15 @@ function find_strike_points!(
     psi_first_open::T3
 ) where {T1<:Real,T2<:Real,T3<:Real}
 
-    Rxx, Zxx, θxx = find_strike_points(eqt, wall_r, wall_z, psi_first_open)
+    Rxx, Zxx, θxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_first_open)
     resize!(eqt.boundary.strike_point, length(Rxx))
     for (k, strike_point) in enumerate(eqt.boundary.strike_point)
         strike_point.r = Rxx[k]
         strike_point.z = Zxx[k]
+        # strike_point.d = dxx[k]
     end
 
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
+    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx, dxx=dxx)
 end
 
 """
@@ -1298,7 +1302,7 @@ function find_strike_points!(
     wall_z::AbstractVector{T2},
     psi_first_open::Nothing
 ) where {T1<:Real,T2<:Real}
-    return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[])
+    return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[], dxx=Float64[])
 end
 
 @compat public find_strike_points!
