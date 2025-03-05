@@ -615,7 +615,7 @@ dyexp["pulse_schedule.lh.power.reference"] =
 #  risk  #
 #= ==== =#
 dyexp["risk.engineering.loss[:].risk"] = 
-    (; loss, _...) -> loss.probability * loss.severity 
+    (; loss, _...) -> (sum((fm.probability * fm.weight) for fm in loss.failure_mode) * loss.severity)
 
 dyexp["risk.plasma.risk"] = 
     (; dd, _...) -> isempty(dd.risk.plasma) ? 0.0 : sum(loss.risk for loss in dd.risk.plasma.loss)    
@@ -623,7 +623,7 @@ dyexp["risk.plasma.risk"] =
 dyexp["risk.engineering.risk"] = 
     (; dd, _...) -> isempty(dd.risk.engineering) ? 0.0 : sum(loss.risk for loss in dd.risk.engineering.loss)
 
-    #= ====== =#
+#= ====== =#
 #  limits  #
 #= ====== =#
 dyexp["limits.model[:].cleared"] =
