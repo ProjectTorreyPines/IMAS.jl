@@ -1,42 +1,4 @@
-"""
-    blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
-
-Blends Te, Ti, ne, and nis in core_profiles with :H_mode or :L_mode like pedestal defined in summary IDS
-"""
-function blend_core_edge(mode::Symbol, cp1d::IMAS.core_profiles__profiles_1d, summary_ped::IMAS.summary__local__pedestal, rho_nml::Real, rho_ped::Real; what::Symbol=:all)
-    if mode == :L_mode
-        blend_function = blend_core_edge_Lmode
-    elseif mode == :H_mode
-        blend_function = blend_core_edge_Hmode
-    else
-        @assert (mode ∈ (:L_mode, :H_mode)) "Mode can be either :L_mode or :H_mode"
-    end
-    rho = cp1d.grid.rho_tor_norm
-    w_ped = 1.0 - @ddtime(summary_ped.position.rho_tor_norm)
-
-    # NOTE! this does not take into account summary.local.pedestal.zeff.value
-    if what ∈ (:all, :densities)
-        old_electron_density_thermal = cp1d.electrons.density_thermal
-        new_electron_density_thermal = blend_function(cp1d.electrons.density_thermal, rho, @ddtime(summary_ped.n_e.value), w_ped, rho_nml, rho_ped)
-        fraction = new_electron_density_thermal ./ old_electron_density_thermal
-        for ion in cp1d.ion
-            if !ismissing(ion, :density_thermal)
-                ion.density_thermal = ion.density_thermal .* fraction
-            end
-        end
-        cp1d.electrons.density_thermal = new_electron_density_thermal
-    end
-
-    if what ∈ (:all, :temperatures)
-        cp1d.electrons.temperature = blend_function(cp1d.electrons.temperature, rho, @ddtime(summary_ped.t_e.value), w_ped, rho_nml, rho_ped)
-        ti_avg_new = blend_function(cp1d.t_i_average, rho, @ddtime(summary_ped.t_i_average.value), w_ped, rho_nml, rho_ped)
-        for ion in cp1d.ion
-            if !ismissing(ion, :temperature)
-                ion.temperature = ti_avg_new
-            end
-        end
-    end
-end
+document[Symbol("Physics pedestal")] = Symbol[]
 
 """
     blend_core_edge_Hmode(
@@ -45,7 +7,8 @@ end
         ped_height::Real,
         ped_width::Real,
         tr_bound0::Real,
-        tr_bound1::Real)
+        tr_bound1::Real;
+        method::Symbol=:shift)
 
 Blends the core profiles to the pedestal for H-mode profiles, making sure the Z's at tr_bound0 and tr_bound1 match the Z's from the original profile
 """
@@ -55,7 +18,8 @@ function blend_core_edge_Hmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real)
+    tr_bound1::Real;
+    method::Symbol=:shift)
 
     function cost_find_EPED_exps(
         x::AbstractVector{<:Real},
@@ -67,8 +31,9 @@ function blend_core_edge_Hmode(
         z_targets::AbstractVector{<:Real},
         rho_targets::AbstractVector{<:Real})
 
-        x = abs.(x)
-        profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), x[1], x[2], ped_width)
+        expin = abs(x[1])
+        expout = abs(x[2])
+        profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width)
         z_ped = -calc_z(rho, profile_ped, :backward)
         z_ped_values = interp1d(rho, z_ped).(rho_targets)
         p_values = interp1d(rho, profile_ped).(rho_targets)
@@ -78,27 +43,28 @@ function blend_core_edge_Hmode(
         return norm(z_targets .- z_ped_values) / sum(abs.(z_targets)) .+ norm(p_targets .- p_values) / sum(abs.(p_targets))
     end
 
+    @assert 0.0 < ped_height "invalid ped_height = $(ped_height)"
+    @assert 0.0 < ped_width < 1.0 "invalid ped_width = ($ped_width)"
+    @assert rho[end] == 1.0
+
     z_profile = -calc_z(rho, profile, :backward)
     rho_targets = [tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
     p_targets = interp1d(rho, profile).(rho_targets)
 
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
-    x_guess = [1.0, 1.0]
-    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets), x_guess, Optim.NelderMead())
+    expin = 1.0
+    expout = 1.0
+    x_guess = [expin, expout]
+    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets), x_guess, Optim.NelderMead(), Optim.Options(;g_tol=1E-6))
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
-    return blend_core_edge_EPED(
-        profile,
-        rho,
-        ped_height,
-        ped_width,
-        tr_bound0,
-        tr_bound1,
-        expin,
-        expout)
+    return blend_core_edge_EPED(profile, rho, ped_height, ped_width, tr_bound0, tr_bound1, expin, expout; method)
 end
+
+@compat public blend_core_edge_Hmode
+push!(document[Symbol("Physics pedestal")], :blend_core_edge_Hmode)
 
 """
     blend_core_edge_EPED(
@@ -109,9 +75,10 @@ end
         nml_bound::Real,
         ped_bound::Real;
         expin::Real,
-        expout::Real)
+        expout::Real;
+        method::Symbol=:shift)
 
-Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound as blending boundary
+Blends the core and pedestal for given profile to match ped_height, ped_width using nml_bound and ped_bound as blending boundaries
 """
 function blend_core_edge_EPED(
     profile::AbstractVector{<:Real},
@@ -121,19 +88,51 @@ function blend_core_edge_EPED(
     nml_bound::Real,
     ped_bound::Real,
     expin::Real,
-    expout::Real)
+    expout::Real;
+    method::Symbol=:shift
+)
+    # H-mode profile used for pedestal
+    # NOTE: Note that we do not provide a core value as this causes the pedestal solution to depend on the core solution
+    #       which breaks finding self-consistent core-pedestal solution through an optimizer
+    profile_ped = ped_height_at_09(rho, Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width), ped_height)
+    return blend_core_edge(profile, profile_ped, rho, nml_bound, ped_bound; method)
+end
 
+@compat public blend_core_edge_EPED
+push!(document[Symbol("Physics pedestal")], :blend_core_edge_EPED)
+
+"""
+    blend_core_edge(
+        profile::AbstractVector{<:Real},
+        profile_ped::AbstractVector{<:Real},
+        rho::AbstractVector{<:Real},
+        nml_bound::Real,
+        ped_bound::Real;
+        method::Symbol=:shift)
+
+Blends core and edge profiles via inverse-scale-lengths method using `nml_bound` and `ped_bound` as blending boundaries
+
+Different methods for connecting core region are:
+    * z: inverse scale length
+    * shift: add/subract constant to core region
+    * scale: multiply/divide by a constant the core region
+"""
+function blend_core_edge(
+    profile::AbstractVector{<:Real},
+    profile_ped::AbstractVector{<:Real},
+    rho::AbstractVector{<:Real},
+    nml_bound::Real,
+    ped_bound::Real;
+    method::Symbol=:shift
+)
+    @assert rho[end] == 1.0
     @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
+    @assert length(profile) == length(profile_ped) == length(rho)
     iped = argmin(abs.(rho .- ped_bound))
     inml = argmin(abs.(rho .- nml_bound))
 
     z_profile = -calc_z(rho, profile, :backward)
     z_nml = z_profile[inml]
-
-    # H-mode profile used for pedestal
-    # NOTE: Note that we do not provide a core value as this causes the pedestal solution to depend on the core solution
-    #       which breaks finding self-consistent core-pedestal solution through an optimizer
-    profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), expin, expout, ped_width)
 
     # linear z between nml and pedestal
     if nml_bound < ped_bound
@@ -144,25 +143,21 @@ function blend_core_edge_EPED(
 
     # integrate from pedestal inward
     profile_new = deepcopy(profile_ped)
-    profile_new[inml:iped] = integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+    profile_new[inml:iped] .= integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
 
-    # we avoid integ_z in the core region to avoid drift of profiles
-    # when calling blend_core_edge_EPED multiple times
-    profile_new[1:inml-1] = profile[1:inml-1] .- profile[inml] .+ profile_new[inml]
+    # different blending strategies for the core
+    @assert method in (:shift, :scale, :z)
+    if method == :shift
+        profile_new[inml:iped] .= integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+        profile_new[1:inml-1] = profile[1:inml-1] .- profile[inml] .+ profile_new[inml]
+    elseif method == :scale
+        profile_new[inml:iped] .= integ_z(rho[inml:iped], z_profile[inml:iped], profile_ped[iped])
+        profile_new[1:inml-1] .= profile[1:inml-1] ./ profile[inml] .* profile_new[inml]
+    elseif method == :z
+        profile_new[1:iped] .= integ_z(rho[1:iped], z_profile[1:iped], profile_ped[iped])
+    end
 
     return profile_new
-end
-
-function blend_core_edge_Lmode(
-    profile::AbstractVector{<:Real},
-    rho::AbstractVector{<:Real},
-    value::Real,
-    rho_bound::Real)
-
-    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
-    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
-
-    return profile
 end
 
 """
@@ -184,14 +179,35 @@ function blend_core_edge_Lmode(
     ped_height::Real,
     ped_width::Real,
     tr_bound0::Real,
-    tr_bound1::Real)
+    tr_bound1::Real
+)
+    @assert rho[end] == 1.0
     return blend_core_edge_Lmode(profile, rho, ped_height, tr_bound1)
 end
 
+function blend_core_edge_Lmode(
+    profile::AbstractVector{<:Real},
+    rho::AbstractVector{<:Real},
+    value::Real,
+    rho_bound::Real
+)
+    @assert rho[end] == 1.0
+
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
+
+    return profile
+end
+
+@compat public blend_core_edge_Lmode
+push!(document[Symbol("Physics pedestal")], :blend_core_edge_Lmode)
+
 function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value_ped::Real, rho_ped::Real)
+    @assert rho[end] == 1.0
+
     rho_ped_idx = argmin(abs.(rho .- rho_ped))
 
-    profile_ped = edge_profile(rho, rho_ped, value_ped, profile[end], α)
+    profile_ped = exponential_profile(rho, rho_ped, value_ped, profile[end], α)
     z_profile_ped = calc_z(rho, profile_ped, :backward)
 
     profile .+= (-profile[rho_ped_idx] + value_ped)
@@ -204,46 +220,84 @@ function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Re
 end
 
 """
-    pedestal_finder(profile::AbstractVector{<:Real}, psi_norm::AbstractVector{<:Real})
+    pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=false) where {T<:Real}
 
 Finds the pedetal height and width using the EPED1 definition.
 
-NOTE: The width is limited to be between 0.01 and 0.1
-      If the width is at the 0.1 boundary it is likely an indication that the profile is not a typical H-mode profile
-      The height is the value of the profile evaluated at (1.0 - width)
+NOTE: The width is limited to be between 0.01 and 0.1.
+If the width is at the 0.1 boundary it is likely an indication that the profile is not a typical H-mode profile.
+The height is the value of the profile evaluated at (1.0 - width)
 """
-function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}) where {T<:Real}
-    psi_norm_fit = range(0, 1, length(profile))
-    mask = psi_norm .> 0.5
-    expin = 1.0
-    expout = 1.0
+function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=false, guess=nothing) where {T<:Real}
+    @assert psi_norm[end] == 1.0
 
-    function cost_function(profile, params)
-        width = mirror_bound(params[1], 0.01, 0.1)
-        core = abs(params[2])
-        height = interp1d(psi_norm, profile)(1.0 - width)
+    psi_norm0 = range(0, 1, length(profile))
+    profile0 = interp1d(psi_norm, profile).(psi_norm0)
 
-        tmp = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
-        profile_fit = interp1d(psi_norm_fit, tmp).(psi_norm)
+    mask = psi_norm0
 
-        cost = sqrt(trapz(psi_norm, mask .* (profile .- profile_fit) .^ 2)) / trapz(psi_norm, mask .* abs.(profile))
-        return cost
+    function cost_function(params)
+        width0 = mirror_bound(params[1], 0.01, 0.1)
+        height0 = interp1d(psi_norm0, profile0)(1.0 - width0)
+        core0 = abs(params[2])
+        expin0 = abs(params[3]) + 1.0
+        expout0 = abs(params[4]) + 1.0
+        offset0 = mirror_bound(params[5], 0.0, width0 * 0.4)
+
+        profile_fit0 = Hmode_profiles(profile0[end], height0, core0, length(profile0), expin0, expout0, width0 - offset0; offset=offset0)
+
+        return norm(mask .* (profile_fit0 .- profile0))
     end
 
-    res = Optim.optimize(params -> cost_function(profile, params), [0.04, profile[1]], Optim.NelderMead())
+    if guess != nothing
+        width = guess.width
+        height = interp1d(psi_norm0, profile0)(1.0 - width)
+        core = profile[1]
+        expin = guess.expin
+        expout = guess.expout
+        offset = guess.offset
+    else
+        width = (1.0 - psi_norm0[argmax(psi_norm0 .* abs.(gradient(psi_norm0, profile0)))]) * 2.0
+        height = interp1d(psi_norm0, profile0)(1.0 - width)
+        core = profile[1]
+        expin = 1.0
+        expout = 1.0
+        offset = 0.0
+    end
+
+    res = Optim.optimize(params -> cost_function(params), [width, core, expin - 1.0, expout - 1.0, offset], Optim.NelderMead())
 
     width = mirror_bound(res.minimizer[1], 0.01, 0.1)
+    height = interp1d(psi_norm0, profile0)(1.0 - width)
     core = abs(res.minimizer[2])
-    height = interp1d(psi_norm, profile)(1.0 - width)
+    expin = 1.0 + abs(res.minimizer[3])
+    expout = 1.0 + abs(res.minimizer[4])
+    offset = mirror_bound(res.minimizer[1], 0.0, width * 0.4)
 
-    # profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width)
-    # p = plot(psi_norm, profile; label="profile", marker=:circle, markersize=1)
-    # plot!(p, psi_norm_fit, profile_fit; label="fit")
-    # hline!(p, [height]; ls=:dash, primary=false)
-    # vline!(p, [1.0 .- width]; ls=:dash, primary=false)
-    # vline!(p, [1.0 - 2.0 * width]; ls=:dash, primary=false)
-    # scatter!(p, [1.0 - width], [interp1d(psi_norm_fit, profile_fit)(1.0 - width)]; primary=false)
-    # display(p)
+    if do_plot
+        profile_fit = Hmode_profiles(profile[end], height, core, length(profile), expin, expout, width - offset; offset)
+        p = plot(psi_norm0, profile0; label="profile", marker=:circle, markersize=1)
+        plot!(p, psi_norm0, profile_fit; label="fit")
+        hline!(p, [height]; ls=:dash, primary=false)
+        vline!(p, [1.0 .- width]; ls=:dash, primary=false)
+        scatter!(p, [1.0 - width], [height]; primary=false)
+        display(p)
+    end
 
-    return (height=height, width=width)
+    return (height=height, width=width, expin=expin, expout=expout, offset=offset, core=core, edge=profile[end])
 end
+
+@compat public pedestal_finder
+push!(document[Symbol("Physics pedestal")], :pedestal_finder)
+
+"""
+    ped_height_at_09(rho::AbstractVector{T}, profile::AbstractVector{T}, height09::T) where {T<:Real}
+
+Scale density profile so that value at rho=0.9 is height09
+"""
+function ped_height_at_09(rho::AbstractVector{T}, profile::AbstractVector{T}, ped_height::T) where {T<:Real}
+    return profile / interp1d(rho, profile).(0.9) * ped_height
+end
+
+@compat public ped_height_at_09
+push!(document[Symbol("Physics pedestal")], :ped_height_at_09)

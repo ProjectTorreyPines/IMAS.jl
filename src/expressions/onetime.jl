@@ -1,8 +1,11 @@
+document[:Expressions] = Symbol[]
+
 function IMASdd.get_expressions(::Type{Val{:onetime}})
     return onetime_expressions
 end
 
-const onetime_expressions = otexp = Dict{String,Function}()
+const onetime_expressions = Dict{String,Function}()
+otexp = onetime_expressions
 
 # These expressions are frozen the first time they are accessed.
 # This is necessary to ensure that core_profiles, core_sources, and core_transport grids do not change after changing the equilibrium.
@@ -15,11 +18,11 @@ const onetime_expressions = otexp = Dict{String,Function}()
 #
 # For example, this will FAIL:
 #    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
-#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
+#         (; electrons, _...) -> electrons.temperature .* electrons.density_thermal * mks.e
 #
 # This is GOOD:
 #    otexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
-#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * 1.60218e-19
+#         (rho_tor_norm; electrons, _...) -> electrons.temperature .* electrons.density_thermal * mks.e
 
 #= =========== =#
 # core_profiles #
@@ -130,3 +133,48 @@ otexp["core_sources.source[:].profiles_1d[:].grid.psi"] =
         psi = eqt.profiles_1d.psi
         return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
     end
+
+#= ===== =#
+#  waves  #
+#= ===== =#
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.psi_norm"] =
+    (rho_tor_norm; grid, _...) -> norm01(grid.psi)
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.volume"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        volume = eqt.profiles_1d.volume
+        return interp1d(eqt.profiles_1d.rho_tor_norm, volume, :cubic).(rho_tor_norm)
+    end
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.area"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        area = eqt.profiles_1d.area
+        return interp1d(eqt.profiles_1d.rho_tor_norm, area, :cubic).(rho_tor_norm)
+    end
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.surface"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        surface = eqt.profiles_1d.surface
+        return interp1d(eqt.profiles_1d.rho_tor_norm, surface, :cubic).(rho_tor_norm)
+    end
+
+otexp["waves.coherent_wave[:].profiles_1d[:].grid.psi"] =
+    (rho_tor_norm; dd, profiles_1d, _...) -> begin
+        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        psi = eqt.profiles_1d.psi
+        return interp1d(eqt.profiles_1d.rho_tor_norm, psi, :cubic).(rho_tor_norm)
+    end
+
+# ============ #
+
+Base.Docs.@doc """
+    onetime_expressions = Dict{String,Function}()
+
+Expressions that are frozen after first evaluation
+* `$(join(sort!(collect(keys(onetime_expressions))),"`\n* `"))`
+""" onetime_expressions
+
+push!(document[:Expressions], :onetime_expressions)

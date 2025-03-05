@@ -1,3 +1,5 @@
+document[Symbol("get from")] = Symbol[]
+
 #===
 IMAS stores the same physical quantities in different IDSs.
 These sets of functions can used to abstract where information should come from,
@@ -63,8 +65,8 @@ end
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        _, w_ped = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
-        rho_ped = 1.0 - w_ped
+        pedestal = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
+        rho_ped = 1.0 - pedestal.width
     else
         rho_ped = NaN
     end
@@ -77,6 +79,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_ped}}, from_where::Symbol, 
     if from_where == :summary
         return get_time_array(dd.summary.local.pedestal.n_e, :value, time0, :linear)
     elseif from_where == :core_profiles
+        @assert !isnan(rho_ped)
         cp1d = dd.core_profiles.profiles_1d[time0]
         return interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(rho_ped)
     elseif from_where == :pulse_schedule
@@ -100,8 +103,8 @@ end
 function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        _, w_ped = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
-        rho_ped = 1.0 - w_ped
+        pedestal = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
+        rho_ped = 1.0 - pedestal.width
     else
         rho_ped = NaN
     end
@@ -114,7 +117,9 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol
         return get_time_array(dd.summary.local.pedestal.zeff, :value, time0, :linear)
     elseif from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        return interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(rho_ped)
+        rhos_ped = range(rho_ped, 1.0, 11)
+        zeffs = interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(rhos_ped)
+        return sum(zeffs) / length(zeffs)
     elseif from_where == :pulse_schedule
         if !ismissing(dd.pulse_schedule.density_control.zeff_pedestal, :reference)
             return get_time_array(dd.pulse_schedule.density_control.zeff_pedestal, :reference, time0, :linear)
@@ -125,3 +130,32 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol
     end
     return error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
+
+Base.Docs.@doc """
+    get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol; time0::Float64=dd.global_time)
+
+IMAS stores the same physical quantities in different IDSs, and `get_from()` abstracts away the details
+of which IDS to access, depending on the requested quantity (`what`) and the specified source (`from_where`).
+This is generally useful when coupling different codes/modules/actors.
+
+Supported quantities for `what`:
+- `:ip`          - Plasma current [A]
+    - Possible sources (`from_where`): `:equilibrium`, `:core_profiles`, `:pulse_schedule`
+- `:vacuum_r0_b0`- Vacuum magnetic field parameters (major radius `r0` [m], toroidal field `b0` [T])
+    - Possible sources (`from_where`): `:equilibrium`, `:pulse_schedule`
+- `:vloop`       - Loop voltage [V]
+    - Possible sources (`from_where`): `:equilibrium`, `:core_profiles`, `:pulse_schedule`, `:controllers__ip`
+- `:βn`          - Normalized beta [-]
+    - Possible sources (`from_where`): `:equilibrium`, `:core_profiles`
+- `:ne_ped`      - Electron density at the pedestal [m^-3]
+    - Possible sources (`from_where`): `:core_profiles`, `:summary`, `:pulse_schedule`
+- `:zeff_ped`    - Effective charge at the pedestal [-]
+    - Possible sources (`from_where`): `:core_profiles`, `:summary`, `:pulse_schedule`
+
+`time0` defines the time point at which to retrieve the value, default is `dd.global_time`.
+
+Returns the requested physical quantity from the specified location in the IMAS data structure.
+""" get_from
+
+@compat public get_from
+push!(document[Symbol("get from")], :get_from)

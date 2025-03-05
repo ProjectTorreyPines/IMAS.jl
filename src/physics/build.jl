@@ -1,23 +1,56 @@
-"""
-    build_radii(bd::IMAS.build)
+document[Symbol("Physics build")] = Symbol[]
 
-Return list of radii in the build
-"""
-function build_radii(bd::IMAS.build)
-    return _build_radii(bd.layer)
-end
+# BuildLayerType
+@enum BuildLayerType::Int _plasma_ = -1 _gap_ _oh_ _tf_ _shield_ _blanket_ _wall_ _vessel_ _cryostat_ _divertor_ _port_
+@compat public BuildLayerType
+Base.Docs.@doc """
+    Enum BuildLayerType
 
-function _build_radii(layer)
-    layers_radii = zeros(typeof(layer[1].thickness), length(layer) + 1)
-    for (k, l) in enumerate(layer)
+Used for `dd.build.layer[:].type`
+
+* $(join(["`$m` -> $(Int(m))" for m in instances(IMAS.BuildLayerType)],"\n* "))
+""" BuildLayerType
+push!(document[Symbol("Physics build")], :BuildLayerType)
+
+# BuildLayerSide
+@enum BuildLayerSide::Int _lfs_ = -1 _lhfs_ _hfs_ _in_ _out_
+@compat public BuildLayerSide
+Base.Docs.@doc """
+    Enum BuildLayerSide
+
+Used for `dd.build.layer[:].side`
+
+* $(join(["`$m` -> $(Int(m))" for m in instances(IMAS.BuildLayerSide)],"\n* "))
+""" BuildLayerSide
+push!(document[Symbol("Physics build")], :BuildLayerSide)
+
+# BuildLayerShape
+@enum BuildLayerShape::Int _offset_ _negative_offset_ _convex_hull_ _mirror_princeton_D_exact_ _princeton_D_ _mirror_princeton_D_ _princeton_D_scaled_ _mirror_princeton_D_scaled_ _rectangle_ _double_ellipse_ _mirror_double_ellipse_ _rectangle_ellipse_ _mirror_rectangle_ellipse_ _circle_ellipse_ _mirror_circle_ellipse_ _triple_arc_ _mirror_triple_arc_ _miller_ _silo_ _racetrack_ _undefined_
+@compat public BuildLayerShape
+Base.Docs.@doc """
+    Enum BuildLayerShape
+
+Used for `dd.build.layer[:].shape`
+
+* $(join(["`$m` -> $(Int(m))" for m in instances(IMAS.BuildLayerShape)],"\n* "))
+""" BuildLayerShape
+push!(document[Symbol("Physics build")], :BuildLayerShape)
+
+"""
+    build_radii(layers::IMAS.IDSvector{<:IMAS.build__layer{T}}) where {T<:Real}
+
+Convert thicknesses to absolute radii in the build layers
+"""
+function build_radii(layers::IMAS.IDSvector{<:IMAS.build__layer{T}}) where {T<:Real}
+    layers_radii = zeros(T, length(layers) + 1)
+    for (k, l) in enumerate(layers)
         @inbounds layers_radii[k+1] = layers_radii[k] + l.thickness
     end
     return layers_radii
 end
 
-function get_build(bd::IMAS.build; kw...)
-    return get_build(bd.layer; kw...)
-end
+@compat public build_radii
+push!(document[Symbol("Physics build")], :build_radii)
 
 """
     get_build_indexes(
@@ -49,6 +82,9 @@ function get_build_indexes(
     return valid_layers_indexes
 end
 
+@compat public get_build_indexes
+push!(document[Symbol("Physics build")], :get_build_indexes)
+
 """
     get_build_index(
         layers::IMAS.IDSvector{<:IMAS.build__layer};
@@ -79,6 +115,9 @@ function get_build_index(
     return valid_layers_indexes[1]
 end
 
+@compat public get_build_index
+push!(document[Symbol("Physics build")], :get_build_index)
+
 """
     get_build_layers(
         layers::IMAS.IDSvector{<:IMAS.build__layer};
@@ -100,6 +139,9 @@ function get_build_layers(
 
     return layers[valid_layers_indexes]
 end
+
+@compat public get_build_layers
+push!(document[Symbol("Physics build")], :get_build_layers)
 
 """
     get_build_layer(
@@ -125,15 +167,24 @@ function get_build_layer(
     return layers[valid_layer_index]
 end
 
+@compat public get_build_layer
+push!(document[Symbol("Physics build")], :get_build_layer)
+
 """
     opposite_side_layer(layer::IMAS.build__layer)
 
-Returns corresponding layer on the high/low field side 
+Returns corresponding layer on the high/low field side
 """
 function opposite_side_layer(layer::IMAS.build__layer)
-    @assert layer.side in (Int(_hfs_), Int(_lfs_)) "Asking for opposite_side_layer of $(layer.name), which does not make sense"
-    return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+    if layer.side in (Int(_hfs_), Int(_lfs_))
+        return get_build_layer(parent(layer); identifier=layer.identifier, fs=(layer.side == Int(_lfs_)) ? _hfs_ : _lfs_)
+    else
+        return layer
+    end
 end
+
+@compat public opposite_side_layer
+push!(document[Symbol("Physics build")], :opposite_side_layer)
 
 """
     structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1)
@@ -195,6 +246,13 @@ function structures_mask(bd::IMAS.build; ngrid::Int=257, border_fraction::Real=0
     return rmask, zmask, mask
 end
 
+"""
+    func_nested_layers(layer::IMAS.build__layer{D}, func::Function)::D where {D<:Real}
+
+Apply function `func` to a layer, then subtract `func` applied to the layer inside of it.
+
+This is used to caclulate `area`, `volume`, etc.. of each layer.
+"""
 function func_nested_layers(layer::IMAS.build__layer{D}, func::Function)::D where {D<:Real}
     i = index(layer)
     layers = parent(layer)
@@ -227,19 +285,26 @@ function func_nested_layers(layer::IMAS.build__layer{D}, func::Function)::D wher
     end
 end
 
+@compat public func_nested_layers
+push!(document[Symbol("Physics build")], :func_nested_layers)
+
+
 """
     area(layer::IMAS.build__layer)
 
-Calculate area of a build layer outline
+Calculate cross-sectional area of a build layer
 """
 function area(layer::IMAS.build__layer)
     return func_nested_layers(layer, l -> area(l.outline.r, l.outline.z))
 end
 
+@compat public area
+push!(document[Symbol("Physics build")], :area)
+
 """
     volume(layer::IMAS.build__layer)
 
-Calculate volume of a build layer outline revolved around z axis
+Calculate volume of a build layer revolved around z axis
 """
 function volume(layer::IMAS.build__layer)
     if layer.type == Int(_tf_)
@@ -264,10 +329,15 @@ function volume(structure::IMAS.build__structure)
     return area(structure.outline.r, structure.outline.z) * structure.toroidal_extent * length(toroidal_angles)
 end
 
+@compat public volume
+push!(document[Symbol("Physics build")], :volume)
+
 """
-    first_wall(wall::IMAS.wall)
+    first_wall(wall::IMAS.wall{T}) where {T<:Real}
 
 Returns named tuple with outline of the official contiguous first wall limiter contour, or an empty outline if not present
+
+NOTE: in IMAS `wall.description_2d[].limiter.type.index == 0` indicates an official contiguous limiter contour
 """
 function first_wall(wall::IMAS.wall{T}) where {T<:Real}
     for d2d in wall.description_2d
@@ -284,24 +354,176 @@ function first_wall(wall::IMAS.wall{T}) where {T<:Real}
     return (r=Float64[], z=Float64[])
 end
 
-function thick_wall(unit::wall__description_2d___vessel__unit)
-    if !isempty(unit.anular)
-        
+"""
+    first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
+
+Returns named tuple with outline of the first wall, defined by the pf_active.coils
+"""
+function first_wall(pf_active::IMAS.pf_active{T}) where {T<:Real}
+    if isempty(pf_active.coil)
+        return (r=T[], z=T[])
+    end
+
+    # find center of the coils
+    min_r = Inf
+    max_r = -Inf
+    min_z = Inf
+    max_z = -Inf
+    for coil in pf_active.coil
+        for element in coil.element
+            r, z = outline(element)
+            min_r = min(min_r, minimum(r))
+            max_r = max(max_r, maximum(r))
+            min_z = min(min_z, minimum(z))
+            max_z = max(max_z, maximum(z))
+        end
+    end
+    R0 = (min_r + max_r) / 2.0
+    Z0 = (min_z + max_z) / 2.0
+
+    # pick points closer to this center
+    rce = T[]
+    zce = T[]
+    for coil in pf_active.coil
+        re = T[]
+        ze = T[]
+        for element in coil.element
+            r, z = outline(element)
+            append!(re, r)
+            append!(ze, z)
+        end
+        index = argmin(sqrt.((re .- R0) .^ 2 .+ (ze .- Z0) .^ 2))
+        push!(rce, re[index])
+        push!(zce, ze[index])
+    end
+    index = sortperm(atan.(zce .- Z0, rce .- R0))
+    r, z = closed_polygon(rce[index], zce[index]).rz
+
+    r = T[]
+    z = T[]
+    for k in 1:length(rce)-1
+        r0 = rce[k]
+        z0 = zce[k]
+        r1 = rce[k+1]
+        z1 = zce[k+1]
+        push!(r, r0)
+        push!(z, z0)
+        if r1 >= r0 && z1 <= z0
+            push!(r, r1)
+            push!(z, z0)
+        elseif r1 <= r0 && z1 <= z0
+            push!(r, r0)
+            push!(z, z1)
+        elseif r1 <= r0 && z1 >= z0
+            push!(r, r1)
+            push!(z, z0)
+        elseif r1 >= r0 && z1 >= z0
+            push!(r, r0)
+            push!(z, z1)
+        end
+    end
+    push!(r, rce[1])
+    push!(z, zce[1])
+
+    return (r=r, z=z)
+end
+
+"""
+    first_wall(eqt::IMAS.equilibrium__time_slice; precision::Float=1E-3) where {T<:Real}
+
+Returns named tuple with outline of the first wall, defined by equilibrium computation domain
+"""
+function first_wall(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-3) where {T<:Real}
+    # equilibrium compute box
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    if eqt2d === nothing
+        return (r=T[], z=T[])
+    else
+        r_start = eqt2d.grid.dim1[1] + precision
+        r_end = eqt2d.grid.dim1[end] - precision
+        z_low = eqt2d.grid.dim2[1] + precision
+        z_high = eqt2d.grid.dim2[end] - precision
+        r = T[r_start, r_start, r_end, r_end, r_start]
+        z = T[z_low, z_high, z_high, z_low, z_low]
+        return (r=r, z=z)
     end
 end
 
 """
+    first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
+
+Returns named tuple with outline of the first wall, defined as the equilibrium computational domain with cutouts for the pf_active.coils that fall in it
+"""
+function first_wall(eqt::IMAS.equilibrium__time_slice, pf_active::IMAS.pf_active{T}) where {T<:Real}
+    r_eq, z_eq = first_wall(eqt)
+    eq_domain = collect(zip(r_eq, z_eq))
+
+    R0 = sum(extrema(r_eq)) / 2.0
+    Z0 = sum(extrema(z_eq)) / 2.0
+
+    # pick point closes to this center
+    rce = T[]
+    zce = T[]
+    for coil in pf_active.coil
+        re = T[]
+        ze = T[]
+        for element in coil.element
+            r, z = outline(element)
+            append!(re, r)
+            append!(ze, z)
+        end
+        index = argmin(sqrt.((re .- R0) .^ 2 .+ (ze .- Z0) .^ 2))
+        if PolygonOps.inpolygon((re[index], ze[index]), eq_domain) == 1
+            push!(rce, re[index])
+            push!(zce, ze[index])
+        end
+    end
+
+    r_eq, z_eq = resample_2d_path(r_eq, z_eq; method=:linear, n_points=100)
+    append!(rce, r_eq)
+    append!(zce, z_eq)
+
+    # reorder
+    index = sortperm(atan.(zce .- Z0, rce .- R0))
+
+    return (r=rce[[index; index[1]]], z=zce[[index; index[1]]])
+end
+
+@compat public first_wall
+push!(document[Symbol("Physics build")], :first_wall)
+
+"""
+    first_wall!(wall::IMAS.wall{T}, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+
+Set `wall.description_2d[?].limiter.unit[1].outline` from input `r` and `z`
+"""
+function first_wall!(wall::IMAS.wall{T}, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    d2d = resize!(wall.description_2d, "limiter.type.index" => 0)
+    resize!(d2d.limiter.unit, 1)
+    oute = open_polygon(r, z)
+    d2d.limiter.unit[1].outline.r = oute.r
+    d2d.limiter.unit[1].outline.z = oute.z
+    return wall
+end
+
+@compat public first_wall!
+push!(document[Symbol("Physics build")], :first_wall!)
+
+"""
     build_max_R0_B0(bd::IMAS.build)
 
-Returns the plasma geometric center and the maximum vacuum toroidal magnetic field at the plasma geometric center that the TF build allows
+Returns the plasma geometric center (r0) and the maximum vacuum toroidal magnetic field (b0) evaluated at (r0) that the TF build allows
 """
 function build_max_R0_B0(bd::IMAS.build)
     TFhfs = get_build_layer(bd.layer; type=_tf_, fs=_hfs_)
     plasma = get_build_layer(bd.layer; type=_plasma_)
-    R0 = (plasma.start_radius + plasma.end_radius) / 2.0
-    B0 = bd.tf.max_b_field / TFhfs.end_radius * R0
-    return R0, B0
+    r0 = (plasma.start_radius + plasma.end_radius) / 2.0
+    b0 = bd.tf.max_b_field / TFhfs.end_radius * r0
+    return (r0=r0, b0=b0)
 end
+
+@compat public build_max_R0_B0
+push!(document[Symbol("Physics build")], :build_max_R0_B0)
 
 """
     vertical_maintenance(bd::IMAS.build; tor_modularity::Int=2, pol_modularity::Int=1, gap_VV_BL::Float64=0.1)
@@ -345,12 +567,15 @@ function vertical_maintenance(bd::IMAS.build; tor_modularity::Int=2, pol_modular
     return (rVP_hfs_ib=rVP_hfs_ib, rVP_hfs_ob=rVP_hfs_ob, rVP_lfs_ib=rVP_lfs_ib, rVP_lfs_ob=rVP_lfs_ob)
 end
 
+@compat public vertical_maintenance
+push!(document[Symbol("Physics build")], :vertical_maintenance)
+
 """
-outline(layer::Union{IMAS.build__layer, IMAS.build__structure})
+    outline(layer::Union{IMAS.build__layer, IMAS.build__structure})
 
-Returns outline as named tuple with (r,z)
+    outline(out::Union{IMAS.build__layer___outline,IMAS.build__structure___outline})
 
-NOTE: returns a polygon that always closes
+Returns a closed polygon as a named tuple with (r,z) of a `dd.build.layer` or `dd.build.structure`
 """
 function outline(layer::Union{IMAS.build__layer,IMAS.build__structure})
     return outline(layer.outline)
@@ -360,3 +585,6 @@ function outline(out::Union{IMAS.build__layer___outline,IMAS.build__structure___
     tmp = closed_polygon(out.r, out.z)
     return (r=tmp.R, z=tmp.Z)
 end
+
+@compat public outline
+push!(document[Symbol("Physics build")], :outline)

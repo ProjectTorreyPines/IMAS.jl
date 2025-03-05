@@ -3,25 +3,41 @@ using Documenter, IMAS
 # Call functions
 open(joinpath(@__DIR__, "src/api.md"), "w") do f
     println(f, "# API Reference\n")
-    for page in keys(IMAS.document)
+    for page in sort!(collect(keys(IMAS.document)))
         if page == :Expressions
             continue
         end
         println(f, "## $page\n")
         println(f, "```@docs")
         for item in IMAS.document[page]
-            println(f, "$item")
+            println(f, "IMAS.$item")
         end
         println(f, "```")
     end
 end
 
+open(joinpath(@__DIR__, "src/expressions.md"), "w") do f
+    println(f, "# Expressions\n")
+    println(f, "```@docs")
+    for item in IMAS.document[:Expressions]
+        println(f, "IMAS.$item")
+    end
+    return println(f, "```")
+end
+
 makedocs(;
     modules=[IMAS],
-    format=Documenter.HTML(;analytics="G-65D8V8C8VQ"),
+    format=Documenter.HTML(;
+        analytics="G-65D8V8C8VQ",
+        size_threshold=nothing,
+        size_threshold_warn=nothing),
     sitename="IMAS",
     checkdocs=:none,
-    pages=["index.md", "api.md", "License" => "license.md", "Notice" => "notice.md"],
+    pages=[
+        "index.md",
+        "api.md",
+        "expressions.md",
+        "License" => "license.md", "Notice" => "notice.md"],
     warnonly=true
 )
 

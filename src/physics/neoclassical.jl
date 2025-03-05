@@ -1,15 +1,30 @@
+document[Symbol("Physics neoclassical")] = Symbol[]
+
+"""
+    spitzer_conductivity(ne, Te, Zeff)
+
+Calculates the Spitzer conductivity in [1/(Ω*m)]
+"""
 function spitzer_conductivity(ne, Te, Zeff)
-    return 1.9012e4 .* Te .^ 1.5 ./ (Zeff .* 0.58 .+ 0.74 ./ (0.76 .+ Zeff) .* lnLambda_e(ne, Te))
+    return @. 1.9012e4 * Te ^ 1.5 / (Zeff * (0.58 + 0.74 / (0.76 + Zeff)) * lnLambda_e(ne, Te))
 end
 
-function collision_frequencies(dd::IMAS.dd)
+@compat public spitzer_conductivity
+push!(document[Symbol("Physics neoclassical")], :spitzer_conductivity)
+
+"""
+    collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
+
+Returns named tuple with `nue`, `nui`, `nu_exch` in [1/s]
+
+NOTE: transpiled from the TGYRO `collision_rates` subroutine
+"""
+function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
     # from TGYRO `collision_rates` subroutine
-    cp1d = dd.core_profiles.profiles_1d[]
-    
-    mp = IMAS.gacode_units.mp # g
-    me = IMAS.gacode_units.me # g
-    e = gacode_units.e # statcoul
-    k = gacode_units.k # erg/eV
+    mp = cgs.mp # g
+    me = cgs.me # g
+    e = cgs.e # statcoul
+    k = cgs.k # erg/eV
 
     Te = cp1d.electrons.temperature # ev
     ne = cp1d.electrons.density_thermal / 1E6 # cm^-3
@@ -49,6 +64,9 @@ function collision_frequencies(dd::IMAS.dd)
     return (nue=nue, nui=nui, nu_exch=nu_exch)
 end
 
+@compat public collision_frequencies
+push!(document[Symbol("Physics neoclassical")], :collision_frequencies)
+
 function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool=true, same_ne_ni::Bool=false)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
@@ -57,6 +75,8 @@ end
 
 """
     Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=true, same_ne_ni::Bool=false)
+
+Calculates bootstrap current
 
   - neo_2021: A.Redl, et al., Phys. Plasma 28, 022502 (2021) instead of O Sauter, et al., Phys. Plasmas 9, 5140 (2002); doi:10.1063/1.1517052 (https://crppwww.epfl.ch/~sauter/neoclassical)
 
@@ -79,14 +99,17 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
 
-    nuestar = IMAS.nuestar(eqt, cp1d)
-    nuistar = IMAS.nuistar(eqt, cp1d)
+    ν_es = nuestar(eqt, cp1d)
+    ν_is = nuistar(eqt, cp1d)
 
     B0 = B0_geo(eqt)
     ip = eqt.global_quantities.ip
 
-    return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, nuestar, nuistar, ip, B0; neo_2021, same_ne_ni)
+    return Sauter_neo2021_bootstrap(psi, ne, Te, Ti, pe, p, Zeff, fT, I_psi, ν_es, ν_is, ip, B0; neo_2021, same_ne_ni)
 end
+
+@compat public Sauter_neo2021_bootstrap
+push!(document[Symbol("Physics neoclassical")], :Sauter_neo2021_bootstrap)
 
 function Sauter_neo2021_bootstrap(
     psi::T,
@@ -299,7 +322,9 @@ end
     collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Returns the collisional bootstrap coefficient Cbs defines as `jbootfract = Cbs * sqrt(ϵ) * βp`
+
 See: Gi et al., Fus. Eng. Design 89 2709 (2014)
+
 See: Wilson et al., Nucl. Fusion 32 257 (1992)
 """
 function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
@@ -309,6 +334,15 @@ function collisionless_bootstrap_coefficient(eqt::IMAS.equilibrium__time_slice, 
     return jbootfract / (sqrt(ϵ) * βp)
 end
 
+@compat public collisionless_bootstrap_coefficient
+push!(document[Symbol("Physics neoclassical")], :collisionless_bootstrap_coefficient)
+
+"""
+    nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculate the electron collisionality, ν_*e, as a dimensionless measure of the
+frequency of electron collisions relative to their characteristic transit frequency.
+"""
 function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
@@ -327,13 +361,21 @@ function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
     @assert all(a .> 0.0) "a=$a"
 
-    eps = a ./ R
-
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
-    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * eps^1.5)
+    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * (a / R)^1.5)
 end
 
+@compat public nuestar
+push!(document[Symbol("Physics neoclassical")], :nuestar)
+
+
+"""
+    nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+
+Calculate the ion collisionality, ν_*i, as a dimensionless measure of the
+frequency of ion collisions relative to their characteristic transit frequency.
+"""
 function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
 
@@ -341,8 +383,6 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     R = interp1d(eqt.profiles_1d.rho_tor_norm, R).(rho)
     a = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
-
-    eps = a ./ R
 
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
     ne = cp1d.electrons.density
@@ -356,13 +396,26 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
 
     Zavg = ne ./ ni
 
-    return @. 4.90e-18 * abs(q) * R * ni * Zdom^4 * lnLambda_i(ni, Ti, Zavg) / (Ti^2 * eps^1.5)
+    return @. 4.90e-18 * abs(q) * R * ni * Zdom^4 * lnLambda_i(ni, Ti, Zavg) / (Ti^2 * (a / R)^1.5)
 end
 
+@compat public nuistar
+push!(document[Symbol("Physics neoclassical")], :nuistar)
+
+"""
+    lnLambda_e(ne, Te)
+
+Compute the electron Coulomb logarithm, ln(Λ_e)
+"""
 function lnLambda_e(ne, Te)
     return @. 23.5 - log(sqrt(ne / 1e6) * Te^(-5.0 / 4.0)) - sqrt(1e-5 + (log(Te) - 2)^2 / 16.0)
 end
 
+"""
+    lnLambda_i(ni, Ti, Zavg)
+
+Compute the ion Coulomb logarithm, ln(Λ_i)
+"""
 function lnLambda_i(ni, Ti, Zavg)
     return @. 30.0 - log(Zavg^3 * sqrt(ni) / (Ti^1.5))
 end
@@ -370,9 +423,7 @@ end
 """
     neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the NEO 2021 modifcation and stores it in dd
-
-More info see omfit_classes.utils_fusion.py neo_conductivity function
+Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the NEO 2021 modifcation
 """
 function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
@@ -397,3 +448,22 @@ function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
 
     return conductivity_parallel
 end
+
+@compat public neo_conductivity
+push!(document[Symbol("Physics neoclassical")], :neo_conductivity)
+
+"""
+    sawtooth_conductivity(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+
+Jardin's model for stationary sawteeth to raise q>1
+"""
+function sawtooth_conductivity(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+    i_q = findlast(q .< q_sawtooth)
+    if i_q !== nothing
+        conductivity[1:i_q] .= conductivity[i_q]
+    end
+    return conductivity
+end
+
+@compat public sawtooth_conductivity
+push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
