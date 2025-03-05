@@ -699,16 +699,6 @@ function find_psi_last_diverted(
         find_strike_points!(eqt, wall_r, wall_z, psi_first_open)
     end
 
-    # First we treat the double null case:
-    # if we have 4 strike points, it is a double null
-    if length(eqt.boundary.strike_point) == 4
-        # LDFS is the separatrix
-        # psi_first_lfs_far is determined using the precision condition
-        psi_first_lfs_far = psi_first_open + psi_sign * precision * abs(psi_first_open)
-        return (psi_last_lfs=psi_first_open, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
-    end
-
-    # Single_null case
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:diverted)
