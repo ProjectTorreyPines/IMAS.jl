@@ -599,7 +599,19 @@ dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
 dyexp["pulse_schedule.tf.time"] =
     (time; dd, _...) -> dd.equilibrium.time
 
-#= ====== =#
+dyexp["pulse_schedule.nbi.power.reference"] = 
+    (time; nbi, _...) -> sum(unit.power.reference for unit in nbi.unit)
+
+dyexp["pulse_schedule.ec.power_launched.reference"] = 
+    (time; ec, _...) -> sum(beam.power_launched.reference for beam in ec.unit)
+
+dyexp["pulse_schedule.ic.power.reference"] = 
+    (time; ic, _...) -> sum(antenna.power.reference for antenna in ic.antenna)
+
+dyexp["pulse_schedule.lh.power.reference"] = 
+    (time; lh, _...) -> sum(antenna.power.reference for antenna in lh.antenna)
+
+    #= ====== =#
 #  limits  #
 #= ====== =#
 dyexp["limits.model[:].cleared"] =
