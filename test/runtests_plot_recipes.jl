@@ -1,7 +1,7 @@
 using IMAS
 using Test
 using IMAS.Plots
-using HelpPlots
+using IMAS.HelpPlots
 
 @testset "plot_recipes" begin
     filename = joinpath(dirname(dirname(pathof(IMAS.IMASdd))), "sample", "D3D_eq_ods.json")
