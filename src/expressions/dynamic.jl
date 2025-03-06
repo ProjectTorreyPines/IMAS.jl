@@ -611,7 +611,7 @@ dyexp["pulse_schedule.ic.power.reference"] =
 dyexp["pulse_schedule.lh.power.reference"] = 
     (time; lh, _...) -> sum(antenna.power.reference for antenna in lh.antenna)
 
-    #= ====== =#
+#= ====== =#
 #  limits  #
 #= ====== =#
 dyexp["limits.model[:].cleared"] =
@@ -785,6 +785,12 @@ dyexp["summary.volume_average.zeff.value"] =
         end
         return tmp
     end
+
+#= === =#
+#  nbi  #
+#= === =#
+dyexp["nbi.unit[:].power_launched.time"] =
+    (dummy; nbi, _...) -> nbi.time
 
 # ============ #
 
