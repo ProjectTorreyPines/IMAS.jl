@@ -563,3 +563,205 @@ end
 
 @compat public smooth_beam_power
 push!(document[Symbol("Physics fast")], :smooth_beam_power)
+
+"""
+    banana_width(T::Real, Bt::Real, Z::Real, m::Real, epsilon::Real, q::Real)
+
+Estimates the banana orbit width [m].
+
+* `T`: Temperature [eV]
+
+* `Bt`: Magnetic field [T]
+
+* `Z`: Charge
+
+* `m`: Mass [AMU]
+
+* `epsilon`: Inverse aspect ratio
+
+* `q`: safety factor
+"""
+function banana_width(T::Real, Bt::Real, Z::Real, m::Real, epsilon::Real, q::Real)
+    r_gyro = gyroradius(T, Bt, Z, m)
+
+    return 2.0 * epsilon^(-0.5) * abs(q) * r_gyro
+end
+
+"""
+    gyroradius(T::Real, Bt::Real, Z::Real, m::Real) 
+
+Calculates plasma gyroradius [m]
+
+* `T`: Ion temperature [eV]
+
+* `Bt`: Magnetic field [T]
+
+* `Z`: charge
+
+* `m`: Mass [AMU]
+
+"""
+function gyroradius(T::Real, Bt::Real, Z::Real, m::Real)
+    M = m * mks.m_p
+    vt = sqrt(T / M * mks.e)
+
+    return  M * vt / abs(mks.e * Z * Bt)
+end
+
+
+"""
+    imfp_charge_exchange(atw::Real, e::Real, zni::Real)
+
+Calculates the inverse mean free path due to charge exchange based on the
+fitted results of Freeman and Jones (1974).
+Routine pulled from freya_fsgxn.f90. 
+
+* `atw`: Beam mass [AMU]
+
+* `e`: Beam energy divided by beam mass  [eV/AMU]
+
+* `zni`: Plasma ion density [cm^-3]
+
+"""
+function imfp_charge_exchange(atw::Real, e::Real, zni::Real)
+
+    if atw > 3.01
+        return 0.0
+    else
+        aloge = log10(e)
+        sigcx = (0.6937e-14 * (1.0 - 0.155 * aloge)^2 /
+                 (1.0 + 0.1112e-14 * e^3.3))
+    end
+    return 1e2*sigcx * zni
+end
+
+
+"""
+    imfp_ion_collisions(atw::Real, eova::Real, zni::Real, zzi::Real)
+
+Calculates inverse mean free path due to proton and impurity impact ionization.
+Routine pulled from freya_fsgxn.f90. 
+
+* `atw`: beam mass [AMU]
+
+* `eova`: Beam energy divided by beam mass  [eV/AMU]
+
+* `zni`: Plasma ion density [cm^-3]
+
+* `zzi`: Plasma ion charge [AMU]
+
+"""
+function imfp_ion_collisions(atw::Real, eova::Real, zni::Real, zzi::Real)
+
+    cfionp = [-4.203309e+01, 3.557321, -1.045134, 0.3139238,
+              -0.07454475, 0.008459113, -3.495444e-04]
+    
+    if atw <= 3.01
+        aloge = log10(eova) * 2.302585093 - 6.907755279
+        if aloge <= -2.30258
+            sigi = 0.0
+        else
+            expo = (((((cfionp[7]*aloge+cfionp[6])*aloge+cfionp[5])*aloge 
+               + cfionp[4])*aloge+cfionp[3])*aloge+cfionp[2])*aloge + cfionp[1]
+            sigi = exp(expo)
+        end
+        return 1e2*sigi * zni
+    else
+        ekev = 1.0e-3 * eova
+        return 1e2*1.0e-17 * zni * 46.0 * zzi * (32.0 * zzi / ekev) * (1.0 - exp(-ekev / (32.0 * zzi)))
+    end
+end
+
+
+
+"""
+    imfp_electron_collisions(vb::Real, te::Real, zne::Real)
+
+Evaluates local inverse mean free path for electron impact ionization.
+Routine pulled from freya_fsgxn.f90. 
+
+* `vb`: Velocity of neutral beam [cm]
+
+* `te`: Electron temperature [eV]
+
+* `zne`: Electron density [cm^-3]
+
+"""
+function imfp_electron_collisions(vb::Real, te::Real, zne::Real)
+    cfione = [-3.173850e+01, 1.143818e+01, -3.833998,
+              0.7046692, -0.07431486, 0.004153749, -9.486967e-05]
+    
+    alogt = te > 1.0 ? log(te) : 0.0
+    alogt = te > 1.0e+05 ? 11.51 : alogt
+    
+    expo = (((((cfione[7]*alogt+cfione[6])*alogt+cfione[5])*alogt 
+               + cfione[4])*alogt+cfione[3])*alogt+cfione[2])*alogt + cfione[1]
+    
+    return 1e2*exp(expo) * zne / vb
+end
+
+"""
+    bkefun(y::Real, vcvo::Real, tstcx::Real, emzrat::Real)
+"""
+function bkefun(y::Real, vcvo::Real, tstcx::Real, emzrat::Real)
+    if y > 0
+        v3 = vcvo^3
+        arg = (1 + v3) / (y^3 + v3)
+        alogarg = log(arg)
+        pcxlog = -tstcx * alogarg / 3
+        alogy3v3 = log(y^3 + v3)
+        alog3y = 3 * log(y)
+        blog = (alog3y + alogarg) * emzrat / 3
+        bkeflog = alog3y + pcxlog + blog - alogy3v3
+        return bkeflog < -30 ? 0.0 : exp(bkeflog)
+    else
+        return 0.0
+    end
+end
+
+
+"""
+    ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
+"""
+function ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
+    vcvo = vpar
+    tstcx = tpar
+    emzrat = emzpar
+    y = collect(LinRange(0,1,N))
+    tmp = zeros(length(y))
+    for (i,y1) in enumerate(y)
+        tmp[i] = bkefun(y1, vcvo, tstcx, emzrat)
+    end
+    return IMAS.trapz(y,tmp)
+end
+
+"""
+    ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, E_beam::Real, z_beam::Real, mass_beam::Real)
+"""
+
+function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, E_beam::Real, z_beam::Real, mass_beam::Real)
+    rho = cp1d.grid.rho_tor_norm
+    tau_mom = similar(rho)
+    for (irho,rho) in enumerate(rho)
+        E_c = IMAS.critical_energy(
+        cp1d.electrons.density_thermal[irho],
+        cp1d.electrons.temperature[irho],
+        [ion.density_thermal[irho] for ion in cp1d.ion],
+        [ion.temperature[irho] for ion in cp1d.ion],
+        [ion.element[1].a for ion in cp1d.ion],
+        [Int(ion.element[1].z_n) for ion in cp1d.ion],
+        z_beam,
+        mass_beam)
+
+        taus = IMAS.slowing_down_time(
+        cp1d.electrons.density_thermal[irho],
+        cp1d.electrons.temperature[irho],
+        z_beam,
+        mass_beam)
+        
+        emzrat = cp1d.ion[1].element[1].a*cp1d.zeff[irho] / (mass_beam*z_beam)
+        bki = ion_momentum_fraction(sqrt(E_c/E_beam), 0.0, emzrat)
+        tau_mom[irho] =  taus * (1-bki)
+    end
+    return tau_mom
+end
