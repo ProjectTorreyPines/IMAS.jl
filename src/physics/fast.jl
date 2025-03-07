@@ -5,23 +5,15 @@ document[Symbol("Physics fast")] = Symbol[]
 
 Returns solution to `i2` and `i4` integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
 
-* `ne`: electron density [m^-3]
-
-* `Te`: electron temperature [eV]
-
-* `ni`: list of ion densities [m^-3]
-
-* `Ti`: list of ion temperatures [eV]
-
-* `mi`: list of ion masses [amu]
-
-* `Zi`: list of ion charges
-
-* `Ef`: fast ion energy [eV]
-
-* `mf`: mass of fast ion [amu]
-
-* `Zf`: fast ion charge
+  - `ne`: electron density [m^-3]
+  - `Te`: electron temperature [eV]
+  - `ni`: list of ion densities [m^-3]
+  - `Ti`: list of ion temperatures [eV]
+  - `mi`: list of ion masses [amu]
+  - `Zi`: list of ion charges
+  - `Ef`: fast ion energy [eV]
+  - `mf`: mass of fast ion [amu]
+  - `Zf`: fast ion charge
 """
 function estrada_I_integrals(
     ne::Real,
@@ -44,9 +36,8 @@ end
 
 Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 13, 112303 (2006)] Eq. 9 & 10
 
-* `Ef`: fast ion energy [eV]
-
-* `Ec`: critical energy [eV]
+  - `Ef`: fast ion energy [eV]
+  - `Ec`: critical energy [eV]
 """
 function estrada_I_integrals(Ec::Real, Ef::Real)
     a = sqrt.(Ec ./ Ef)
@@ -64,21 +55,14 @@ push!(document[Symbol("Physics fast")], :estrada_I_integrals)
 
 Returns the slowing down time `τ_s` in seconds [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
-* `ne`: electron density [m^-3]
-
-* `Te`: electron temperature [eV]
-
-* `ni`: list of ion densities [m^-3]
-
-* `Ti`: list of ion temperatures [eV]
-
-* `mi`: list of ion masses [amu]
-
-* `Zi`: list of ion charges
-
-* `mf`: mass of fast ion [amu]
-
-* `Zf`: fast ion charge
+  - `ne`: electron density [m^-3]
+  - `Te`: electron temperature [eV]
+  - `ni`: list of ion densities [m^-3]
+  - `Ti`: list of ion temperatures [eV]
+  - `mi`: list of ion masses [amu]
+  - `Zi`: list of ion charges
+  - `mf`: mass of fast ion [amu]
+  - `Zf`: fast ion charge
 """
 function slowing_down_time(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, mf::Real, Zf::Int)
     lnΛ = lnΛ_ei(ne, Te, ni, Ti, mi, Zi)
@@ -92,13 +76,10 @@ end
 
 Calculates the slowing down time `τ_s` in seconds for `Ti*me/mi < 10Zi^2 eV < Te` [Stix, Plasma Phys. 14 (1972) 367] Eq. 16
 
-* `ne`: electron density [m^-3]
-
-* `Te`: electron temperature [eV]
-
-* `mf`: mass of fast ion [amu]
-
-* `Zf`: fast ion charge
+  - `ne`: electron density [m^-3]
+  - `Te`: electron temperature [eV]
+  - `mf`: mass of fast ion [amu]
+  - `Zf`: fast ion charge
 """
 function slowing_down_time(ne::Real, Te::Real, mf::Real, Zf::Int)
     lnΛ = lnΛ_ei(ne, Te)
@@ -125,15 +106,11 @@ push!(document[Symbol("Physics fast")], :α_slowing_down_time)
 
 Returns drag coefficient `Γ` for a fast-ions interacting with a thermal species as defined Eq. 8 in [Gaffey, J. D. (1976). Energetic ion distribution resulting from neutral beam injection in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
 
-* `n`: density of the thermal species [m^-3]
-
-* `Z`: charge of the thermal species
-
-* `mf`: fast-ion mass [amu]
-
-* `Zf`: fast-ion charge
-
-* `lnΛ`: Couloumb logarithm
+  - `n`: density of the thermal species [m^-3]
+  - `Z`: charge of the thermal species
+  - `mf`: fast-ion mass [amu]
+  - `Zf`: fast-ion charge
+  - `lnΛ`: Couloumb logarithm
 """
 function _drag_coefficient(n::Real, Z::Int, mf::Real, Zf::Int, lnΛ::Real)
     n *= 1e-6 #cm^-3
@@ -147,23 +124,15 @@ end
 
 Returns `ΔD` the difference of the electron and ion drag terms in the collision operator defined in Eq. 19 in [Gaffey, J.D (1976). Energetic ion distribution resulting from neutral beam injectioin in tokamaks. Journal of Plasma Physics, 16(02), 149. doi:10.1017/s0022377800020134]
 
-* `ne`: electron density [m^-3]
-
-* `Te`: electron temperature [eV]
-
-* `ni`: list of ion densities [m^-3]
-
-* `Ti`: list of ion temperatures [eV]
-
-* `mi`: list of ion masses [amu]
-
-* `Zi`: list of ion charges
-
-* `Ef`: fast ion energy [eV]
-
-* `mf`: mass of fast ion [amu]
-
-* `Zf`: fast ion charge
+  - `ne`: electron density [m^-3]
+  - `Te`: electron temperature [eV]
+  - `ni`: list of ion densities [m^-3]
+  - `Ti`: list of ion temperatures [eV]
+  - `mi`: list of ion masses [amu]
+  - `Zi`: list of ion charges
+  - `Ef`: fast ion energy [eV]
+  - `mf`: mass of fast ion [amu]
+  - `Zf`: fast ion charge
 """
 function _electron_ion_drag_difference(
     ne::Real,
@@ -199,23 +168,15 @@ end
 
 Returns `Ec` the critical energy by finding the root of the difference between the electron and ion drag
 
-* `ne`: electron density [m^-3]
-
-* `Te`: electron temperature [eV]
-
-* `ni`: list of ion densities [m^-3]
-
-* `Ti`: list of ion temperatures [eV]
-
-* `mi`: list of ion masses [amu]
-
-* `Zi`: list of ion charges
-
-* `mf`: mass of fast ion [amu]
-
-* `Zf`: fast ion charge
-
-* `approximate`: calculate critical energy assuming `lnΛ_fe == lnΛ_fi`. For DIII-D this results in a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2.
+  - `ne`: electron density [m^-3]
+  - `Te`: electron temperature [eV]
+  - `ni`: list of ion densities [m^-3]
+  - `Ti`: list of ion temperatures [eV]
+  - `mi`: list of ion masses [amu]
+  - `Zi`: list of ion charges
+  - `mf`: mass of fast ion [amu]
+  - `Zf`: fast ion charge
+  - `approximate`: calculate critical energy assuming `lnΛ_fe == lnΛ_fi`. For DIII-D this results in a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2.
 """
 function critical_energy(
     ne::Real,
@@ -228,8 +189,8 @@ function critical_energy(
     Zf::Int;
     approximate::Bool=false
 )
-    avg_cmr = sum(ni[k] * (Zi[k] ^ 2) / mi[k] for k in eachindex(ni)) / ne
-    Ec = 14.8 * mf * Te * avg_cmr ^ (2.0 / 3.0)
+    avg_cmr = sum(ni[k] * (Zi[k]^2) / mi[k] for k in eachindex(ni)) / ne
+    Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     if !approximate
         Ec = Roots.find_zero(Ec0 -> _electron_ion_drag_difference(ne, Te, ni, Ti, mi, Zi, Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
     end
@@ -244,11 +205,9 @@ push!(document[Symbol("Physics fast")], :critical_energy)
 
 Calculate thermalization time in seconds
 
-* `v_f`: fast ion velocity
-
-* `v_c`: critical velocity
-
-* `tau_s`: slowing down time
+  - `v_f`: fast ion velocity
+  - `v_c`: critical velocity
+  - `tau_s`: slowing down time
 """
 function thermalization_time(v_f::Real, v_c::Real, tau_s::Real)
     vf3 = v_f^3
@@ -261,23 +220,15 @@ end
 
 Calculate thermalization time in seconds of a fast ion with energy Ef and `Ti*me/mi < 10Zi^2 eV < Te`
 
-* `ne`: electron density [m^-3]
-
-* `Te`: electron temperature [eV]
-
-* `ni`: list of ion densities [m^-3]
-
-* `Ti`: list of ion temperatures [eV]
-
-* `mi`: list of ion masses [amu]
-
-* `Zi`: list of ion charges
-
-* `Ef`: fast ion energy [eV]
-
-* `mf`: mass of fast ion [amu]
-
-* `Zf`: fast ion charge
+  - `ne`: electron density [m^-3]
+  - `Te`: electron temperature [eV]
+  - `ni`: list of ion densities [m^-3]
+  - `Ti`: list of ion temperatures [eV]
+  - `mi`: list of ion masses [amu]
+  - `Zi`: list of ion charges
+  - `Ef`: fast ion energy [eV]
+  - `mf`: mass of fast ion [amu]
+  - `Zf`: fast ion charge
 """
 function thermalization_time(
     ne::Real,
@@ -514,7 +465,7 @@ function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{
     if !isempty(power)
         smoothed_power[1] = power[1]
         for i in 2:n
-            dt = time[i] - time[i - 1]
+            dt = time[i] - time[i-1]
 
             # Calculate the decay factor for the current time step
             decay_factor = exp(-dt / taus)
@@ -523,7 +474,7 @@ function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{
             source_term = power[i] * (1.0 - decay_factor)
 
             # Update the smoothed density
-            smoothed_power[i] = smoothed_power[i - 1] * decay_factor + source_term
+            smoothed_power[i] = smoothed_power[i-1] * decay_factor + source_term
         end
     end
 
@@ -533,7 +484,7 @@ end
 """
     smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
 
-return smoothed beam power at time0
+Return smoothed beam power at time0
 """
 function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
     n = length(power)
@@ -541,7 +492,7 @@ function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{
     smoothed_power = power[1]
     if time0 > time[1]
         for i in 2:n
-            dt = time[i] - time[i - 1]
+            dt = time[i] - time[i-1]
 
             # Calculate the decay factor for the current time step
             decay_factor = exp(-dt / taus)
@@ -567,23 +518,17 @@ push!(document[Symbol("Physics fast")], :smooth_beam_power)
 """
     banana_width(T::Real, Bt::Real, Z::Real, m::Real, epsilon::Real, q::Real)
 
-Estimates the banana orbit width [m].
+Estimates the banana orbit width [m]
 
-* `T`: Temperature [eV]
-
-* `Bt`: Magnetic field [T]
-
-* `Z`: Charge
-
-* `m`: Mass [AMU]
-
-* `epsilon`: Inverse aspect ratio
-
-* `q`: safety factor
+  - `T`: Temperature [eV]
+  - `Bt`: Magnetic field [T]
+  - `Z`: Charge
+  - `m`: Mass [AMU]
+  - `epsilon`: Inverse aspect ratio
+  - `q`: safety factor
 """
 function banana_width(T::Real, Bt::Real, Z::Real, m::Real, epsilon::Real, q::Real)
     r_gyro = gyroradius(T, Bt, Z, m)
-
     return 2.0 * epsilon^(-0.5) * abs(q) * r_gyro
 end
 
@@ -592,112 +537,92 @@ end
 
 Calculates plasma gyroradius [m]
 
-* `T`: Ion temperature [eV]
-
-* `Bt`: Magnetic field [T]
-
-* `Z`: charge
-
-* `m`: Mass [AMU]
-
+  - `T`: Ion temperature [eV]
+  - `Bt`: Magnetic field [T]
+  - `Z`: charge
+  - `m`: Mass [AMU]
 """
 function gyroradius(T::Real, Bt::Real, Z::Real, m::Real)
     M = m * mks.m_p
     vt = sqrt(T / M * mks.e)
-
-    return  M * vt / abs(mks.e * Z * Bt)
+    return M * vt / abs(mks.e * Z * Bt)
 end
 
 
 """
     imfp_charge_exchange(atw::Real, e::Real, zni::Real)
 
-Calculates the inverse mean free path due to charge exchange based on the
-fitted results of Freeman and Jones (1974).
-Routine pulled from freya_fsgxn.f90. 
+Calculates the inverse mean free path due to charge exchange based on the fitted results of Freeman and Jones (1974).
 
-* `atw`: Beam mass [AMU]
+Routine pulled from freya_fsgxn.f90
 
-* `e`: Beam energy divided by beam mass  [eV/AMU]
-
-* `zni`: Plasma ion density [cm^-3]
-
+  - `atw`: Beam mass [AMU]
+  - `e`: Beam energy divided by beam mass  [eV/AMU]
+  - `zni`: Plasma ion density [cm^-3]
 """
 function imfp_charge_exchange(atw::Real, e::Real, zni::Real)
-
     if atw > 3.01
         return 0.0
     else
         aloge = log10(e)
-        sigcx = (0.6937e-14 * (1.0 - 0.155 * aloge)^2 /
-                 (1.0 + 0.1112e-14 * e^3.3))
+        sigcx = (0.6937e-14 * (1.0 - 0.155 * aloge)^2 / (1.0 + 0.1112e-14 * e^3.3))
     end
-    return 1e2*sigcx * zni
+    return 1e2 * sigcx * zni
 end
-
 
 """
     imfp_ion_collisions(atw::Real, eova::Real, zni::Real, zzi::Real)
 
 Calculates inverse mean free path due to proton and impurity impact ionization.
-Routine pulled from freya_fsgxn.f90. 
 
-* `atw`: beam mass [AMU]
+Routine pulled from freya_fsgxn.f90
 
-* `eova`: Beam energy divided by beam mass  [eV/AMU]
-
-* `zni`: Plasma ion density [cm^-3]
-
-* `zzi`: Plasma ion charge [AMU]
-
+  - `atw`: beam mass [AMU]
+  - `eova`: Beam energy divided by beam mass  [eV/AMU]
+  - `zni`: Plasma ion density [cm^-3]
+  - `zzi`: Plasma ion charge [AMU]
 """
 function imfp_ion_collisions(atw::Real, eova::Real, zni::Real, zzi::Real)
-
-    cfionp = [-4.203309e+01, 3.557321, -1.045134, 0.3139238,
-              -0.07454475, 0.008459113, -3.495444e-04]
-    
+    cfionp = (-4.203309e+01, 3.557321, -1.045134, 0.3139238, -0.07454475, 0.008459113, -3.495444e-04)
     if atw <= 3.01
         aloge = log10(eova) * 2.302585093 - 6.907755279
         if aloge <= -2.30258
             sigi = 0.0
         else
-            expo = (((((cfionp[7]*aloge+cfionp[6])*aloge+cfionp[5])*aloge 
-               + cfionp[4])*aloge+cfionp[3])*aloge+cfionp[2])*aloge + cfionp[1]
+            expo = (((((cfionp[7] * aloge + cfionp[6]) * aloge + cfionp[5]) * aloge
+                      +
+                      cfionp[4]) * aloge + cfionp[3]) * aloge + cfionp[2]) * aloge + cfionp[1]
             sigi = exp(expo)
         end
-        return 1e2*sigi * zni
+        return 1e2 * sigi * zni
     else
         ekev = 1.0e-3 * eova
-        return 1e2*1.0e-17 * zni * 46.0 * zzi * (32.0 * zzi / ekev) * (1.0 - exp(-ekev / (32.0 * zzi)))
+        return 1e2 * 1.0e-17 * zni * 46.0 * zzi * (32.0 * zzi / ekev) * (1.0 - exp(-ekev / (32.0 * zzi)))
     end
 end
-
-
 
 """
     imfp_electron_collisions(vb::Real, te::Real, zne::Real)
 
 Evaluates local inverse mean free path for electron impact ionization.
-Routine pulled from freya_fsgxn.f90. 
 
-* `vb`: Velocity of neutral beam [cm]
+Routine pulled from freya_fsgxn.f90
 
-* `te`: Electron temperature [eV]
-
-* `zne`: Electron density [cm^-3]
-
+  - `vb`: Velocity of neutral beam [cm]
+  - `te`: Electron temperature [eV]
+  - `zne`: Electron density [cm^-3]
 """
 function imfp_electron_collisions(vb::Real, te::Real, zne::Real)
-    cfione = [-3.173850e+01, 1.143818e+01, -3.833998,
-              0.7046692, -0.07431486, 0.004153749, -9.486967e-05]
-    
+    cfione = (-3.173850e+01, 1.143818e+01, -3.833998, 0.7046692, -0.07431486, 0.004153749, -9.486967e-05)
+
     alogt = te > 1.0 ? log(te) : 0.0
     alogt = te > 1.0e+05 ? 11.51 : alogt
-    
-    expo = (((((cfione[7]*alogt+cfione[6])*alogt+cfione[5])*alogt 
-               + cfione[4])*alogt+cfione[3])*alogt+cfione[2])*alogt + cfione[1]
-    
-    return 1e2*exp(expo) * zne / vb
+
+    expo = (((((cfione[7] * alogt + cfione[6]) * alogt + cfione[5]) * alogt
+              +
+              cfione[4]) * alogt + cfione[3]) * alogt + cfione[2]) * alogt + cfione[1]
+
+    return 1e2 * exp(expo) * zne / vb
 end
 
 """
@@ -727,41 +652,40 @@ function ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
     vcvo = vpar
     tstcx = tpar
     emzrat = emzpar
-    y = collect(LinRange(0,1,N))
+    y = collect(LinRange(0, 1, N))
     tmp = zeros(length(y))
-    for (i,y1) in enumerate(y)
+    for (i, y1) in enumerate(y)
         tmp[i] = bkefun(y1, vcvo, tstcx, emzrat)
     end
-    return IMAS.trapz(y,tmp)
+    return trapz(y, tmp)
 end
 
 """
     ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, E_beam::Real, z_beam::Real, mass_beam::Real)
 """
-
 function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, E_beam::Real, z_beam::Real, mass_beam::Real)
     rho = cp1d.grid.rho_tor_norm
     tau_mom = similar(rho)
-    for (irho,rho) in enumerate(rho)
-        E_c = IMAS.critical_energy(
-        cp1d.electrons.density_thermal[irho],
-        cp1d.electrons.temperature[irho],
-        [ion.density_thermal[irho] for ion in cp1d.ion],
-        [ion.temperature[irho] for ion in cp1d.ion],
-        [ion.element[1].a for ion in cp1d.ion],
-        [Int(ion.element[1].z_n) for ion in cp1d.ion],
-        z_beam,
-        mass_beam)
+    for (irho, rho) in enumerate(rho)
+        E_c = critical_energy(
+            cp1d.electrons.density_thermal[irho],
+            cp1d.electrons.temperature[irho],
+            [ion.density_thermal[irho] for ion in cp1d.ion],
+            [ion.temperature[irho] for ion in cp1d.ion],
+            [ion.element[1].a for ion in cp1d.ion],
+            [Int(ion.element[1].z_n) for ion in cp1d.ion],
+            z_beam,
+            mass_beam)
 
-        taus = IMAS.slowing_down_time(
-        cp1d.electrons.density_thermal[irho],
-        cp1d.electrons.temperature[irho],
-        z_beam,
-        mass_beam)
-        
-        emzrat = cp1d.ion[1].element[1].a*cp1d.zeff[irho] / (mass_beam*z_beam)
-        bki = ion_momentum_fraction(sqrt(E_c/E_beam), 0.0, emzrat)
-        tau_mom[irho] =  taus * (1-bki)
+        taus = slowing_down_time(
+            cp1d.electrons.density_thermal[irho],
+            cp1d.electrons.temperature[irho],
+            z_beam,
+            mass_beam)
+
+        emzrat = cp1d.ion[1].element[1].a * cp1d.zeff[irho] / (mass_beam * z_beam)
+        bki = ion_momentum_fraction(sqrt(E_c / E_beam), 0.0, emzrat)
+        tau_mom[irho] = taus * (1 - bki)
     end
     return tau_mom
 end
