@@ -46,53 +46,50 @@ end
 push!(document[Symbol("Physics profiles")], :pressure_thermal)
 
 """
-    beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+    beta_tor_thermal_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Normalised toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA]
+Normalized toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA]
 """
-function beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
-    return beta_tor(eq, cp1d; norm=true, thermal=true)
+function beta_tor_thermal_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    return beta_tor(eqt, cp1d; norm=true, thermal=true)
 end
 
 @compat public beta_tor_thermal_norm
 push!(document[Symbol("Physics profiles")], :beta_tor_thermal_norm)
 
 """
-    beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+    beta_tor_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Normalised toroidal beta from total pressure, defined as 100 * beta_tor * a[m] * B0 [T] / ip [MA]
+Normalized toroidal beta from total pressure, defined as 100 * beta_tor * a[m] * B0 [T] / ip [MA]
 """
-function beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
-    return beta_tor(eq, cp1d; norm=true, thermal=false)
+function beta_tor_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    return beta_tor(eqt, cp1d; norm=true, thermal=false)
 end
 
 @compat public beta_tor_norm
 push!(document[Symbol("Physics profiles")], :beta_tor_norm)
 
 """
-    beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
+    beta_tor(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
 
 Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
 """
-function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
-    dd = top_dd(eq)
-    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, dd.global_time, :constant)
-    ip = Ip(cp1d)
-
+function beta_tor(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
     if thermal
         pressure = cp1d.pressure_thermal
     else
         pressure = cp1d.pressure
     end
     @assert !any(isnan.(pressure))
-
     volume = cp1d.grid.volume
     pressure_avg = trapz(volume, pressure) / volume[end]
+
+    B0 = eqt.global_quantities.vacuum_toroidal_field.b0
+    ip = eqt.global_quantities.ip
 
     beta_tor = 2.0 * mks.μ_0 * pressure_avg / B0^2
 
     if norm
-        eqt = eq.time_slice[dd.global_time]
         out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(ip / 1e6) * 1.0e2
     else
         out = beta_tor

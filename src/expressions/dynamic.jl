@@ -151,7 +151,7 @@ dyexp["core_profiles.global_quantities.ip"] =
     (time; core_profiles, _...) -> [Ip(cp1d) for cp1d in core_profiles.profiles_1d]
 
 dyexp["core_profiles.global_quantities.beta_tor_norm"] =
-    (time; dd, core_profiles, _...) -> [beta_tor_norm(dd.equilibrium, cp1d) for cp1d in core_profiles.profiles_1d]
+    (time; dd, core_profiles, _...) -> [beta_tor_norm(dd.equilibrium.time_slice[cp1d.time], cp1d) for cp1d in core_profiles.profiles_1d]
 
 dyexp["core_profiles.global_quantities.v_loop"] =
     (time; dd, _...) -> [v_loop(cp1d) for cp1d in core_profiles.profiles_1d]
@@ -673,7 +673,7 @@ dyexp["summary.global_quantities.beta_pol_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.beta_pol for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor.value"] =
-    (time; dd, summary, _...) -> [beta_tor(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [beta_tor(dd.equilibrium.time_slice[Float64(time0)], dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.beta_tor for time0 in time]
@@ -682,10 +682,10 @@ dyexp["summary.global_quantities.beta_tor_norm_mhd.value"] =
     (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.beta_normal for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor_norm.value"] =
-    (time; dd, summary, _...) -> [beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [beta_tor_norm(dd.equilibrium.time_slice[Float64(time0)], dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor_thermal_norm.value"] =
-    (time; dd, summary, _...) -> [beta_tor_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [beta_tor_thermal_norm(dd.equilibrium.time_slice[Float64(time0)], dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
 
 dyexp["summary.global_quantities.energy_thermal.value"] =
     (time; dd, summary, _...) -> [energy_thermal(dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
