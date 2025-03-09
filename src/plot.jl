@@ -2766,7 +2766,7 @@ end
     end
 
     layout := RecipesBase.@layout [length(plots) + 1]
-    size --> (1000, 1000)
+    size --> (1200, 1200)
 
     if !isempty(ps.position_control)
         @series begin
