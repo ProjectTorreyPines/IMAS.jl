@@ -377,7 +377,7 @@ function total_sources(
                         if rho === x
                             rho_data = y
                         else
-                            rho_data = DataInterpolations.LinearInterpolation(y, x).(rho)
+                            rho_data = DataInterpolations.LinearInterpolation(y, x; extrapolation = DataInterpolations.ExtrapolationType.Constant).(rho)
                         end
                         setproperty!(ids1, field, getproperty(ids1, field) .+ rho_data)
                     end
