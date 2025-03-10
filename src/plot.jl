@@ -597,11 +597,7 @@ end
 
 @recipe function plot_eqt2dv(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
     if !isempty(eqt2dv)
-        if ismissing(eqt2dv[1], :psi)
-            @series begin
-                eqt2dv[1].boundary.outline
-            end
-        else
+        @series begin
             return eqt2dv[1]
         end
     end
@@ -2770,7 +2766,7 @@ end
     end
 
     layout := RecipesBase.@layout [length(plots) + 1]
-    size --> (1000, 1000)
+    size --> (1200, 1200)
 
     if !isempty(ps.position_control)
         @series begin

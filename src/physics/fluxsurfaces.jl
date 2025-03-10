@@ -1905,6 +1905,9 @@ The `type` parameter:
 """
 function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    if eqt2d === nothing
+        error("Equilibrium at $(eqt.time) [s] does not have a rectangular grid for tracing flux surfaces")
+    end
     dim1 = to_range(eqt2d.grid.dim1)
     dim2 = to_range(eqt2d.grid.dim2)
     RA = eqt.global_quantities.magnetic_axis.r
