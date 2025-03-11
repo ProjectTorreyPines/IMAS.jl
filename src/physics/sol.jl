@@ -1066,7 +1066,7 @@ end
     ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
 Finds equilibrium strike points, angle of incidence between wall and strike leg, and 
-the minimum distance between the surface where a strike point is located (both private and encircling) and the first open surface (encircling)
+the minimum distance between the surface where a strike point is located (both private and encircling) and the last closed flux surface (encircling)
 """
 function find_strike_points(
     eqt::IMAS.equilibrium__time_slice{T1},
@@ -1081,7 +1081,7 @@ function find_strike_points(
     Rxx = Float64[]
     Zxx = Float64[]
     θxx = Float64[]
-    dxx = Float64[] # minimum distance between the surface where a strike point is located (both private and encircling) and the first open surface (encircling)
+    dxx = Float64[] # minimum distance between the surface where a strike point is located (both private and encircling) and the last closed surface (encircling)
 
     if !isempty(wall_r)
         # find separatrix as first surface in SOL, not in private region
