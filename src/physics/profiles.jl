@@ -46,53 +46,50 @@ end
 push!(document[Symbol("Physics profiles")], :pressure_thermal)
 
 """
-    beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+    beta_tor_thermal_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Normalised toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA]
+Normalized toroidal beta from thermal pressure only, defined as 100 * beta_tor_thermal * a[m] * B0 [T] / ip [MA]
 """
-function beta_tor_thermal_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
-    return beta_tor(eq, cp1d; norm=true, thermal=true)
+function beta_tor_thermal_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    return beta_tor(eqt, cp1d; norm=true, thermal=true)
 end
 
 @compat public beta_tor_thermal_norm
 push!(document[Symbol("Physics profiles")], :beta_tor_thermal_norm)
 
 """
-    beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
+    beta_tor_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
-Normalised toroidal beta from total pressure, defined as 100 * beta_tor * a[m] * B0 [T] / ip [MA]
+Normalized toroidal beta from total pressure, defined as 100 * beta_tor * a[m] * B0 [T] / ip [MA]
 """
-function beta_tor_norm(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d)
-    return beta_tor(eq, cp1d; norm=true, thermal=false)
+function beta_tor_norm(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+    return beta_tor(eqt, cp1d; norm=true, thermal=false)
 end
 
 @compat public beta_tor_norm
 push!(document[Symbol("Physics profiles")], :beta_tor_norm)
 
 """
-    beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
+    beta_tor(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
 
 Toroidal beta, defined as the volume-averaged total perpendicular pressure divided by (B0^2/(2*mu0)), i.e. beta_toroidal = 2 mu0 int(p dV) / V / B0^2
 """
-function beta_tor(eq::IMAS.equilibrium, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
-    dd = top_dd(eq)
-    B0 = get_time_array(eq.vacuum_toroidal_field, :b0, dd.global_time, :constant)
-    ip = Ip(cp1d)
-
+function beta_tor(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; norm::Bool, thermal::Bool)
     if thermal
         pressure = cp1d.pressure_thermal
     else
         pressure = cp1d.pressure
     end
     @assert !any(isnan.(pressure))
-
     volume = cp1d.grid.volume
     pressure_avg = trapz(volume, pressure) / volume[end]
+
+    B0 = eqt.global_quantities.vacuum_toroidal_field.b0
+    ip = eqt.global_quantities.ip
 
     beta_tor = 2.0 * mks.μ_0 * pressure_avg / B0^2
 
     if norm
-        eqt = eq.time_slice[dd.global_time]
         out = beta_tor * eqt.boundary.minor_radius * abs(B0) / abs(ip / 1e6) * 1.0e2
     else
         out = beta_tor
@@ -370,29 +367,26 @@ push!(document[Symbol("Physics profiles")], :energy_thermal_ped)
 
 Evaluate thermal energy confinement time
 """
-function tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    dd = top_dd(cp1d)
-    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=[:power_inside, :total_ion_power_inside])
+function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    cp1d = dd.core_profiles.profiles_1d[time0]
+    cs = dd.core_sources
+
+    total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
     end
     total_power_inside = max(0.0, total_power_inside)
+
     return energy_thermal(cp1d) / total_power_inside
 end
 
-"""
-    tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-"""
-function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-    return tau_e_thermal(dd.core_profiles.profiles_1d[time0], dd.core_sources; subtract_radiation_losses)
-end
 
 @compat public tau_e_thermal
 push!(document[Symbol("Physics profiles")], :tau_e_thermal)
 
 """
-    tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.plot_core_sources; subtract_radiation_losses::Bool=true)
+    tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
 
 H98y2 ITER elmy H-mode confinement time scaling
 
@@ -400,9 +394,12 @@ NOTE: H98y2 uses aereal elongation
 
 See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
-function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    dd = top_dd(cp1d)
-    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=[:power_inside, :total_ion_power_inside])
+function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    eqt = dd.equilibrium.time_slice[time0]
+    cp1d = dd.core_profiles.profiles_1d[time0]
+    cs = dd.core_sources
+
+    total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
@@ -433,29 +430,22 @@ function tau_e_h98(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__
     return tau98
 end
 
-"""
-    tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-"""
-function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-    eqt = dd.equilibrium.time_slice[time0]
-    cp1d = dd.core_profiles.profiles_1d[time0]
-    cs = dd.core_sources
-    return tau_e_h98(eqt, cp1d, cs; subtract_radiation_losses)
-end
-
 @compat public tau_e_h98
 push!(document[Symbol("Physics profiles")], :tau_e_h98)
 
 """
-    tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
+    tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
 
 Petty's 2003 confinement time scaling
 
 NOTE: Petty uses elongation at the separatrix and makes no distinction between volume and line-average density
 """
-function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, cs::IMAS.core_sources; subtract_radiation_losses::Bool=true)
-    dd = top_dd(cp1d)
-    total_source = total_sources(cs, cp1d; time0=dd.global_time, fields=Symbol[:power_inside, :total_ion_power_inside])
+function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    eqt = dd.equilibrium.time_slice[time0]
+    cp1d = dd.core_profiles.profiles_1d[time0]
+    cs = dd.core_sources
+
+    total_source = total_sources(cs, cp1d; time0, fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
         total_power_inside -= radiation_losses(cs)
@@ -484,16 +474,6 @@ function tau_e_ds03(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles_
     )
 
     return tauds03
-end
-
-"""
-    tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-"""
-function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
-    eqt = dd.equilibrium.time_slice[time0]
-    cp1d = dd.core_profiles.profiles_1d[time0]
-    cs = dd.core_sources
-    return tau_e_ds03(eqt, cp1d, cs; subtract_radiation_losses)
 end
 
 @compat public tau_e_ds03
@@ -583,20 +563,20 @@ function ne_line(::Nothing, cp1d::IMAS.core_profiles__profiles_1d)
 end
 
 """
+    ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+"""
+function ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
+    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard).(rho_ne)
+    return trapz(a_cp, ne_profile) / a_cp[end]
+end
+
+"""
     ne_line(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
 
 Calculates the line averaged density from the equilibrium midplane horizantal line
 """
 function ne_line(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     return ne_line(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
-end
-
-"""
-    ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
-"""
-function ne_line(eqt::IMAS.equilibrium__time_slice, ne_profile::AbstractVector{<:Real}, rho_ne::AbstractVector{<:Real})
-    a_cp = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard).(rho_ne)
-    return trapz(a_cp, ne_profile) / a_cp[end]
 end
 
 """

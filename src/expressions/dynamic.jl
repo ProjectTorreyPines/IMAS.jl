@@ -151,7 +151,7 @@ dyexp["core_profiles.global_quantities.ip"] =
     (time; core_profiles, _...) -> [Ip(cp1d) for cp1d in core_profiles.profiles_1d]
 
 dyexp["core_profiles.global_quantities.beta_tor_norm"] =
-    (time; dd, core_profiles, _...) -> [beta_tor_norm(dd.equilibrium, cp1d) for cp1d in core_profiles.profiles_1d]
+    (time; dd, core_profiles, _...) -> [beta_tor_norm(dd.equilibrium.time_slice[cp1d.time], cp1d) for cp1d in core_profiles.profiles_1d]
 
 dyexp["core_profiles.global_quantities.v_loop"] =
     (time; dd, _...) -> [v_loop(cp1d) for cp1d in core_profiles.profiles_1d]
@@ -611,7 +611,7 @@ dyexp["pulse_schedule.ic.power.reference"] =
 dyexp["pulse_schedule.lh.power.reference"] = 
     (time; lh, _...) -> sum(antenna.power.reference for antenna in lh.antenna)
 
-    #= ====== =#
+#= ====== =#
 #  limits  #
 #= ====== =#
 dyexp["limits.model[:].cleared"] =
@@ -630,17 +630,17 @@ dyexp["limits.all_cleared"] =
 #  summary  #
 #= ======= =#
 dyexp["summary.fusion.power.value"] = # NOTE: This is the fusion power that is coupled to the plasma
-    (time; dd, summary, _...) -> [fusion_plasma_power(dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [fusion_plasma_power(dd.core_profiles.profiles_1d[time0]) for time0 in time]
 
 dyexp["summary.global_quantities.ip.value"] =
-    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.ip for time0 in time]
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[time0].global_quantities.ip for time0 in time]
 
 dyexp["summary.global_quantities.current_bootstrap.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
         for time0 in time
-            cp1d = dd.core_profiles.profiles_1d[Float64(time0)]
-            eqt = dd.equilibrium.time_slice[Float64(time0)]
+            cp1d = dd.core_profiles.profiles_1d[time0]
+            eqt = dd.equilibrium.time_slice[time0]
             push!(tmp, Ip_bootstrap(cp1d, eqt))
         end
         return tmp
@@ -650,8 +650,8 @@ dyexp["summary.global_quantities.current_non_inductive.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
         for time0 in time
-            cp1d = dd.core_profiles.profiles_1d[Float64(time0)]
-            eqt = dd.equilibrium.time_slice[Float64(time0)]
+            cp1d = dd.core_profiles.profiles_1d[time0]
+            eqt = dd.equilibrium.time_slice[time0]
             push!(tmp, Ip_non_inductive(cp1d, eqt))
         end
         return tmp
@@ -661,8 +661,8 @@ dyexp["summary.global_quantities.current_ohm.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
         for time0 in time
-            cp1d = dd.core_profiles.profiles_1d[Float64(time0)]
-            eqt = dd.equilibrium.time_slice[Float64(time0)]
+            cp1d = dd.core_profiles.profiles_1d[time0]
+            eqt = dd.equilibrium.time_slice[time0]
             push!(tmp, Ip_ohmic(cp1d, eqt))
         end
         return tmp
@@ -670,28 +670,28 @@ dyexp["summary.global_quantities.current_ohm.value"] =
 
 
 dyexp["summary.global_quantities.beta_pol_mhd.value"] =
-    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.beta_pol for time0 in time]
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[time0].global_quantities.beta_pol for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor.value"] =
-    (time; dd, summary, _...) -> [beta_tor(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [beta_tor(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0]) for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor_mhd.value"] =
-    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.beta_tor for time0 in time]
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[time0].global_quantities.beta_tor for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor_norm_mhd.value"] =
-    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[Float64(time0)].global_quantities.beta_normal for time0 in time]
+    (time; dd, summary, _...) -> [dd.equilibrium.time_slice[time0].global_quantities.beta_normal for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor_norm.value"] =
-    (time; dd, summary, _...) -> [beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [beta_tor_norm(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0]) for time0 in time]
 
 dyexp["summary.global_quantities.beta_tor_thermal_norm.value"] =
-    (time; dd, summary, _...) -> [beta_tor_thermal_norm(dd.equilibrium, dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [beta_tor_thermal_norm(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0]) for time0 in time]
 
 dyexp["summary.global_quantities.energy_thermal.value"] =
-    (time; dd, summary, _...) -> [energy_thermal(dd.core_profiles.profiles_1d[Float64(time0)]) for time0 in time]
+    (time; dd, summary, _...) -> [energy_thermal(dd.core_profiles.profiles_1d[time0]) for time0 in time]
 
 dyexp["summary.global_quantities.tau_energy.value"] =
-    (time; dd, summary, _...) -> [tau_e_thermal(dd.core_profiles.profiles_1d[Float64(time0)], dd.core_sources; subtract_radiation_losses=false) for time0 in time]
+    (time; dd, summary, _...) -> [tau_e_thermal(dd, time0; subtract_radiation_losses=false) for time0 in time]
 
 dyexp["summary.global_quantities.tau_energy_98.value"] =
     (time; dd, summary, _...) -> [tau_e_h98(dd; time0, subtract_radiation_losses=false) for time0 in time]
@@ -721,36 +721,36 @@ dyexp["summary.heating_current_drive.power_launched_total.value"] =
 
 
 dyexp["summary.local.magnetic_axis.t_e.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].electrons.temperature[1] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].electrons.temperature[1] for time0 in time]
 
 dyexp["summary.local.magnetic_axis.n_e.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].electrons.density[1] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].electrons.density[1] for time0 in time]
 
 dyexp["summary.local.magnetic_axis.t_i_average.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].t_i_average[1] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].t_i_average[1] for time0 in time]
 
 dyexp["summary.local.magnetic_axis.zeff.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].zeff[1] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].zeff[1] for time0 in time]
 
 
 dyexp["summary.local.separatrix.t_e.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].electrons.temperature[end] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].electrons.temperature[end] for time0 in time]
 
 dyexp["summary.local.separatrix.n_e.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].electrons.density[end] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].electrons.density[end] for time0 in time]
 
 dyexp["summary.local.separatrix.t_i_average.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].t_i_average[end] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].t_i_average[end] for time0 in time]
 
 dyexp["summary.local.separatrix.zeff.value"] =
-    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[Float64(time0)].zeff[end] for time0 in time]
+    (time; dd, summary, _...) -> [dd.core_profiles.profiles_1d[time0].zeff[end] for time0 in time]
 
 
 dyexp["summary.volume_average.t_e.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
         for time0 in time
-            cp1d = dd.core_profiles.profiles_1d[Float64(time0)]
+            cp1d = dd.core_profiles.profiles_1d[time0]
             push!(tmp, trapz(cp1d.grid.volume, cp1d.electrons.temperature) / cp1d.grid.volume[end])
         end
         return tmp
@@ -760,7 +760,7 @@ dyexp["summary.volume_average.n_e.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
         for time0 in time
-            cp1d = dd.core_profiles.profiles_1d[Float64(time0)]
+            cp1d = dd.core_profiles.profiles_1d[time0]
             push!(tmp, trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end])
         end
         return tmp
@@ -770,7 +770,7 @@ dyexp["summary.volume_average.t_i_average.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
         for time0 in time
-            cp1d = dd.core_profiles.profiles_1d[Float64(time0)]
+            cp1d = dd.core_profiles.profiles_1d[time0]
             push!(tmp, trapz(cp1d.grid.volume, cp1d.t_i_average) / cp1d.grid.volume[end])
         end
         return tmp
@@ -780,11 +780,17 @@ dyexp["summary.volume_average.zeff.value"] =
     (time; dd, summary, _...) -> begin
         tmp = eltype(summary)[]
         for time0 in time
-            cp1d = dd.core_profiles.profiles_1d[Float64(time0)]
+            cp1d = dd.core_profiles.profiles_1d[time0]
             push!(tmp, trapz(cp1d.grid.volume, cp1d.zeff) / cp1d.grid.volume[end])
         end
         return tmp
     end
+
+#= === =#
+#  nbi  #
+#= === =#
+dyexp["nbi.unit[:].power_launched.time"] =
+    (dummy; nbi, _...) -> nbi.time
 
 # ============ #
 
