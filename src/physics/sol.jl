@@ -1231,7 +1231,7 @@ function find_strike_points!(
         for (k, strike_point) in enumerate(eqt.boundary.strike_point)
             strike_point.r = Rxx[k]
             strike_point.z = Zxx[k]
-            # strike_point.d = dxx[k]
+            strike_point.last_closed_flux_surface_gap = dxx[k]
         end
     end
 
@@ -1282,7 +1282,7 @@ function find_strike_points!(
     for (k, strike_point) in enumerate(eqt.boundary.strike_point)
         strike_point.r = Rxx[k]
         strike_point.z = Zxx[k]
-        # strike_point.d = dxx[k]
+        strike_point.last_closed_flux_surface_gap = dxx[k]
     end
 
     return (Rxx=Rxx, Zxx=Zxx, θxx=θxx, dxx=dxx)
