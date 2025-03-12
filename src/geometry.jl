@@ -712,33 +712,28 @@ push!(document[Symbol("Geometry")], :is_updown_symmetric)
         Z_obj2::AbstractVector{<:T};
         return_index::Bool=false) where {T<:Real}
 
-Returns minimum distance between two polygons vertices
+Returns minimum distance between two polygons vertices and index of points on the two polygons
 """
 function minimum_distance_polygons_vertices(
     R_obj1::AbstractVector{<:T},
     Z_obj1::AbstractVector{<:T},
     R_obj2::AbstractVector{<:T},
-    Z_obj2::AbstractVector{<:T};
-    return_index::Bool=false) where {T<:Real}
+    Z_obj2::AbstractVector{<:T}) where {T<:Real}
 
-    distance = Inf
+    distance2 = Inf
     ik1 = 0
     ik2 = 0
     for k1 in eachindex(R_obj1)
         for k2 in eachindex(R_obj2)
             @inbounds d = (R_obj1[k1] - R_obj2[k2])^2 + (Z_obj1[k1] - Z_obj2[k2])^2
-            if distance > d
+            if distance2 > d
                 ik1 = k1
                 ik2 = k2
-                distance = d
+                distance2 = d
             end
         end
     end
-    if return_index
-        return ik1, ik2
-    else
-        return sqrt(distance)
-    end
+    return (distance=sqrt(distance2), k1=ik1, k2=ik2)
 end
 
 @compat public minimum_distance_polygons_vertices

@@ -450,11 +450,13 @@ push!(document[Symbol("Physics particles")], :toroidal_intersection)
     pol_tor_angles_2_vector(pol_angle::T, tor_angle::T) where {T<:Real}
 
 Conversion from toroidal and poloidal angles expressed in radians to unit vector
+function pol_tor_angles_2_vector(pol_angle::T, tor_angle::T) where {T<:Real}
+Uses ITER convention for EC launch angles and tor_angle
 """
 function pol_tor_angles_2_vector(pol_angle::T, tor_angle::T) where {T<:Real}
-    vx = cos(pol_angle - pi) * cos(tor_angle)
-    vy = cos(pol_angle - pi) * sin(tor_angle)
-    vz = sin(pol_angle - pi)
+    vx = -cos(pol_angle) * cos(tor_angle)
+    vy = -sin(tor_angle)
+    vz = sin(pol_angle) * cos(tor_angle)
     return (vx=vx, vy=vy, vz=vz)
 end
 

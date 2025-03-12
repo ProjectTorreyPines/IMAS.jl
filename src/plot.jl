@@ -863,7 +863,7 @@ end
 # build #
 # ===== #
 function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::AbstractVector{T}, z2::AbstractVector{T}) where {T<:Real}
-    i1, i2 = minimum_distance_polygons_vertices(r1, z1, r2, z2; return_index=true)
+    distance, i1, i2 = minimum_distance_polygons_vertices(r1, z1, r2, z2)
     r = vcat(reverse(r1[i1:end]), r2[i2:end], r2[1:i2], reverse(r1[1:i1]))
     z = vcat(reverse(z1[i1:end]), z2[i2:end], z2[1:i2], reverse(z1[1:i1]))
     return r, z
@@ -2307,25 +2307,52 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv))
-    id = recipe_dispatch(wv)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam, antenna_name::String, top=false)
+    if top
+        @series begin
+            seriestype --> :scatter
+            label --> antenna_name
+            [beam.position.r[1] * cos(beam.position.phi[1])], 
+            [beam.position.r[1] * sin(beam.position.phi[1])]
+        end
+        @series begin
+            primary --> false
+            lw := 2
+            beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
+        end
+    else
+        @series begin
+            seriestype --> :scatter
+            xlim --> (0.0, Inf)
+            label --> antenna_name
+            [beam.position.r[1]], [beam.position.z[1]]
+        end
+        @series begin
+            xlim --> (0.0, Inf)
+            primary --> false
+            lw := 2
+            beam.position.r, beam.position.z
+        end
+    end
+end
 
+@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv), top=false)
+    id =  recipe_dispatch(wv)
+    HelpPlots.assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     aspect_ratio := :equal
     legend_position --> :outerbottomright
-
-    beam = wv.beam_tracing[time0].beam[1]
-    @series begin
-        seriestype --> :scatter
-        xlim --> (0.0, Inf)
-        label --> wv.identifier.antenna_name
-        [beam.position.r[1]], [beam.position.z[1]]
-    end
-    @series begin
-        xlim --> (0.0, Inf)
-        primary := false
-        lw := 2
-        beam.position.r, beam.position.z
+    colors = palette(:auto)
+    for (ibeam, beam) in enumerate(wv.beam_tracing[time0].beam)
+        @series begin
+            if ibeam==1
+                color --> colors[ibeam]
+                beam, wv.identifier.antenna_name, top
+            else
+                primary := false
+                color --> colors[ibeam]
+                beam, "", top
+            end
+        end
     end
 end
 
