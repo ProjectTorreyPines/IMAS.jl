@@ -699,16 +699,6 @@ function find_psi_last_diverted(
         find_strike_points!(eqt, wall_r, wall_z, psi_first_open)
     end
 
-    # First we treat the double null case:
-    # if we have 4 strike points, it is a double null
-    if length(eqt.boundary.strike_point) == 4
-        # LDFS is the separatrix
-        # psi_first_lfs_far is determined using the precision condition
-        psi_first_lfs_far = psi_first_open + psi_sign * precision * abs(psi_first_open)
-        return (psi_last_lfs=psi_first_open, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
-    end
-
-    # Single_null case
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
     psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:diverted)
@@ -736,27 +726,32 @@ function find_psi_last_diverted(
             if isempty(crossings)
                 continue
             end
-            l = length(crossings)
+            l = length(crossings) # save number of intersections before filtering
 
             # r and z coordiante of intersections with wall
             r_intersect = (cr[1] for cr in crossings)
             z_intersect = (cr[2] for cr in crossings)
 
+
+            # find which intersection is the closest to each strike-point, to remove them
             closest_to_strike_points = Int64[]
             for point in eqt.boundary.strike_point
                 dist = (r_intersect .- point.r) .^ 2 .+ (z_intersect .- point.z) .^ 2
                 push!(closest_to_strike_points, argmin(dist))
             end
-            sort!(closest_to_strike_points)
+            # order closest intersections with the same oder as crossings ([1] is closest to [1] of surface; [end] is closest to [end] of surface)
+            sort!(closest_to_strike_points) 
 
+            # discard all points in crossings before/after the closest intersections, 
+            # only if they are not crossings[1] and crossings[end] which by construction are the closest to the ends of the magnetic surface
             if !isempty(closest_to_strike_points)
-                # discard crossings occuring after second strike point
+                # discard crossings occuring after second strike point (clockwise)
                 if closest_to_strike_points[end] < length(crossings)
                     for k in reverse(closest_to_strike_points[end]+1:length(crossings))
                         deleteat!(crossings, k)
                     end
                 end
-                # discard crossings occuring before first strike point
+                # discard crossings occuring before first strike point (clockwise)
                 if closest_to_strike_points[1] > 1
                     for k in reverse(1:closest_to_strike_points[1]-1)
                         deleteat!(crossings, k)
@@ -769,7 +764,7 @@ function find_psi_last_diverted(
                 psi_last_lfs = psi
             else
                 if l == 2
-                    # if orginally psi had 2 intersections, move up psi_low instead than lowering psi_up
+                    # if orginally psi had 2 intersections, move up psi_low instead of lowering psi_up
                     # needed for limited case, probably cannot be done before filtering intersections (check)
                     psi_last_lfs = psi
                 else
@@ -1910,6 +1905,9 @@ The `type` parameter:
 """
 function flux_surface(eqt::equilibrium__time_slice{T}, psi_level::Real, type::Symbol, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    if eqt2d === nothing
+        error("Equilibrium at $(eqt.time) [s] does not have a rectangular grid for tracing flux surfaces")
+    end
     dim1 = to_range(eqt2d.grid.dim1)
     dim2 = to_range(eqt2d.grid.dim2)
     RA = eqt.global_quantities.magnetic_axis.r

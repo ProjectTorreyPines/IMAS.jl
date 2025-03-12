@@ -71,7 +71,7 @@ function JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includ
         JtoR_dia = dpdpsi .* (1.0 .- fsa_invR2 .* f .^ 2 ./ fsa_B2) .* 2pi
         return fsa_B2 .* (JtoR .+ JtoR_dia) ./ (f .* fsa_invR2)
     else
-        return fsa_B2 * JtoR / (f * fsa_invR2)
+        return fsa_B2 .* JtoR ./ (f .* fsa_invR2)
     end
 end
 
