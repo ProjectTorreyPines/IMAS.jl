@@ -1653,9 +1653,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
             (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
     end
 
-    # find strike points
-    find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.first_open)
-
     for item in (
         :b_field_average,
         :b_field_max,
@@ -1875,6 +1872,9 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
             eqt.boundary_secondary_separatrix.outline.z = pts[1][2]
         end
     end
+
+    # find strike points
+    find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.last_closed, psi_boundaries.first_open)
 
     return eqt
 end
