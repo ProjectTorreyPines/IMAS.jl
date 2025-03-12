@@ -52,11 +52,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:βn}}, from_where::Symbol; tim
     if from_where == :equilibrium
         return dd.equilibrium.time_slice[time0].global_quantities.beta_normal
     elseif from_where == :core_profiles
-        if time0 >= dd.core_profiles.time[end]
-            return beta_tor_norm(dd.equilibrium, dd.core_profiles.profiles_1d[end])
-        else
-            return get_time_array(dd.core_profiles.global_quantities, :beta_tor_norm, time0, :linear)
-        end
+        return beta_tor_norm(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0])
     end
     return error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
