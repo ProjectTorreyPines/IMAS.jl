@@ -2215,6 +2215,35 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         # save up to the x_point with Z coordinate opposite to first x point
         # save up to first index where z_x.*z_x[1].<0 is 1
         eqt.boundary.x_point = eqt.boundary.x_point[1:argmax(z_x .* z_x[1] .< 0)]
+
+        #check if primary x-point consistent with strike points
+        if isempty(eqt.boundary.strike_point)
+            #case with case not already saved  - look at first open surface 
+            psi_first_open = IMAS.find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open       
+            (_,z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
+            if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)
+                # x_point are not oredered correctly
+                if length(eqt.boundary.x_point) <= 2
+                    # if just 2, it is enough to flip them
+                    reverse!(eqt.boundary.x_point)
+                else
+                    # warning for exotic divertor config (SuperX, SF,..)
+                    @warn("X-points are more than 2 and not ordered correctly following our convention - Point of contact: G. Dose")
+                end
+            end
+        else
+            # case with strike_points already saved
+            if sign(-eqt.boundary.strike_point[1].z) !== sign(eqt.boundary.x_point[end].z)
+                # x_point are not oredered correctly
+                if length(eqt.boundary.x_point) <= 2
+                    reverse!(eqt.boundary.x_point)
+                else
+                    # warning for exotic divertor config (SuperX, SF,..)
+                    @warn("X-points are more than 2 and not ordered correctly following our convention - Point of contact: G. Dose")
+                end
+            end
+        end
+        
     end
 
     return eqt.boundary.x_point
