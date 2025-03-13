@@ -182,7 +182,7 @@ function sol(
     end
 
     # find psi at second magnetic separatrix
-    psi__2nd_separatix = find_psi_2nd_separatrix(eqt; type=:not_diverted) # find psi at 2nd magnetic separatrix
+    psi__2nd_separatix = find_psi_2nd_separatrix(eqt).not_diverted # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     psi_max = find_psi_max(eqt)
 
@@ -351,7 +351,7 @@ function find_levels_from_P(
     end
 
     psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open # psi at LCFS
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:not_diverted) # psi of the second magnetic separatrix
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt).not_diverted # psi of the second magnetic separatrix
     if psi_sign > 0
         r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix
         r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
