@@ -3,6 +3,9 @@ document[Symbol("Physics flux-surfaces")] = Symbol[]
 using LinearAlgebra
 using Plots
 
+# setting global variable for precision for computing relevant surfaces (i.e. lcfs, first_open, ldfs, 1st sep, 2nd sep,..)
+const flux_surfaces_precision::Float64=1E-6
+
 """
     ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
@@ -160,7 +163,7 @@ push!(document[Symbol("Physics flux-surfaces")], :Bp)
         eqt::IMAS.equilibrium__time_slice{T},
         wall_r::AbstractVector{T},
         wall_z::AbstractVector{T};
-        precision::Float64=1e-6,
+        precision::Float64=flux_surfaces_precision,
         raise_error_on_not_open::Bool=true,
         raise_error_on_not_closed::Bool=true
     ) where {T<:Real}
@@ -173,7 +176,7 @@ function find_psi_boundary(
     eqt::IMAS.equilibrium__time_slice{T},
     wall_r::AbstractVector{T},
     wall_z::AbstractVector{T};
-    precision::Float64=1e-6,
+    precision::Float64=flux_surfaces_precision,
     raise_error_on_not_open::Bool=true,
     raise_error_on_not_closed::Bool=true) where {T<:Real}
 
@@ -204,7 +207,7 @@ end
         fw_r::AbstractVector{T4},
         fw_z::AbstractVector{T5};
         PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-        precision::Float64=1e-6,
+        precision::Float64=flux_surfaces_precision,
         raise_error_on_not_open::Bool,
         raise_error_on_not_closed::Bool,
         verbose::Bool=false
@@ -223,7 +226,7 @@ function find_psi_boundary(
     r_cache::AbstractVector{T1}=T1[],
     z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-    precision::Float64=1e-6,
+    precision::Float64=flux_surfaces_precision,
     raise_error_on_not_open::Bool,
     raise_error_on_not_closed::Bool,
     verbose::Bool=false
@@ -284,7 +287,7 @@ end
         r_cache::AbstractVector{T1}=T1[],
         z_cache::AbstractVector{T1}=T1[];
         PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-        precision::Float64=1e-6,
+        precision::Float64=flux_surfaces_precision,
         raise_error_on_not_open::Bool,
         raise_error_on_not_closed::Bool,
         verbose::Bool=false
@@ -303,7 +306,7 @@ function find_psi_boundary(
     r_cache::AbstractVector{T1}=T1[],
     z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-    precision::Float64=1e-6,
+    precision::Float64=flux_surfaces_precision,
     raise_error_on_not_open::Bool,
     raise_error_on_not_closed::Bool,
     verbose::Bool=false
@@ -353,7 +356,7 @@ end
         r_cache::AbstractVector{T1}=T1[],
         z_cache::AbstractVector{T1}=T1[];
         PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-        precision::Float64=1e-6,
+        precision::Float64=flux_surfaces_precision,
         raise_error_on_not_open::Bool,
         raise_error_on_not_closed::Bool,
         verbose::Bool=false
@@ -371,7 +374,7 @@ function find_psi_boundary(
     r_cache::AbstractVector{T1}=T1[],
     z_cache::AbstractVector{T1}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
-    precision::Float64=1e-6,
+    precision::Float64=flux_surfaces_precision,
     raise_error_on_not_open::Bool,
     raise_error_on_not_closed::Bool,
     verbose::Bool=false
@@ -458,14 +461,14 @@ function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T}, fw_r::A
 end
 
 """
-    find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-7) where {T<:Real}
+    find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=flux_surfaces_precision) where {T<:Real}
 
 Returns psi of the first magentic separatrix
 
 Note: The first separatrix is the LCFS only in diverted plasmas
 """
-function find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1E-7) where {T<:Real}
     psi_up = find_psi_2nd_separatrix(eqt; type=:diverted)
+function find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=flux_surfaces_precision) where {T<:Real}
     psi_low = eqt.profiles_1d.psi[1]
 
     psi = (psi_up + psi_low) / 2.0
@@ -500,7 +503,7 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_separatrix)
 
 """
-    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; type::Symbol=:not_diverted, precision::Float64=1E-7) where {T<:Real}
+    find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; type::Symbol=:not_diverted, precision::Float64=flux_surfaces_precision) where {T<:Real}
 
 Returns psi of the second magentic separatrix
 
@@ -590,7 +593,7 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_2nd_separatrix)
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
         PSI_interpolant::Interpolations.AbstractInterpolation;
-        precision::Float64=1e-7)
+        precision::Float64=flux_surfaces_precision)
 
 Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
 
@@ -605,7 +608,7 @@ function find_psi_last_diverted(
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation;
-    precision::Float64=1e-7)
+    precision::Float64=flux_surfaces_precision)
 
     # if no wall in dd, psi_last diverted not defined
     if isempty(wall_r) || isempty(wall_z) || isempty(eqt.boundary.x_point)
@@ -816,7 +819,7 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_last_diverted)
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
         PSI_interpolant::Interpolations.AbstractInterpolation;
-        precision::Float64=1e-7)
+        precision::Float64=flux_surfaces_precision)
 
 Returns the psi of the magnetic surface in the SOL which is tangent to the wall near the outer midplane
 """
@@ -825,7 +828,7 @@ function find_psi_tangent_omp(
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation;
-    precision::Float64=1e-7)
+    precision::Float64=flux_surfaces_precision)
 
     psi_max = find_psi_max(eqt)
 
