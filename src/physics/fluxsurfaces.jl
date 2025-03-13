@@ -525,8 +525,18 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
             continue
         end
         if (z[end] - ZA) * (z[1] - ZA) < 0
-            #if double null, all open surfaces in the SOL start and finish in opposite sides of the midplane
-            return psi_separatrix
+            # if perfect double null, all open surfaces in the SOL start and finish in opposite sides of the midplane
+            psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
+            psi_sign = sign(psi_separatrix - psi_axis) # +1 for increasing psi / -1 for decreasing psi
+            # return psi_2ndsep = psi_lcfs, using same convergence criteria as in find_psi_boundary (~ line 436): 
+            # abs(psirange[end] - psirange[1]) / (abs(psirange[end] + psirange[1]) / 2.0) < precision
+            if psi_sign > 0
+                #increasing psi
+                return (diverted = psi_separatrix, not_diverted = psi_spearatrix*(1+flux_surfaces_precision))
+            else
+                #decreasing psi
+                return (diverted = psi_separatrix, not_diverted = psi_spearatrix*(1-flux_surfaces_precision))
+            end
         end
     end
 
