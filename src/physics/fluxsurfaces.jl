@@ -430,7 +430,7 @@ function find_psi_boundary(
                 display(plot!(pr, pz; label="", color=:green))
             end
             psirange[1] = psimid
-            if (abs(psirange[end] - psirange[1]) / abs(psirange[end] + psirange[1]) / 2.0) < precision
+            if (abs(psirange[end] - psirange[1]) / (abs(psirange[end] + psirange[1]) / 2.0)) < precision
                 return (last_closed=psimid, first_open=psirange[end])
             end
             # open flux surface
