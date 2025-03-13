@@ -532,10 +532,10 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
             # abs(psirange[end] - psirange[1]) / (abs(psirange[end] + psirange[1]) / 2.0) < precision
             if psi_sign > 0
                 #increasing psi
-                return (diverted = psi_separatrix, not_diverted = psi_spearatrix*(1+flux_surfaces_precision))
+                return (diverted = psi_separatrix, not_diverted = psi_separatrix*(1+flux_surfaces_precision))
             else
                 #decreasing psi
-                return (diverted = psi_separatrix, not_diverted = psi_spearatrix*(1-flux_surfaces_precision))
+                return (diverted = psi_separatrix, not_diverted = psi_separatrix*(1-flux_surfaces_precision))
             end
         end
     end
