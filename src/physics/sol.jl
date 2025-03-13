@@ -1304,15 +1304,15 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
-        psi_last_closed::Real,
+        psi_last_closed::Union{Real,Nothing},
         psi_first_open::Nothing
-    ) where {T1<:Real,T2<:Real}
+    )
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
-    psi_last_closed::Real,
+    psi_last_closed::Union{Real,Nothing},
     psi_first_open::Nothing
 ) where {T1<:Real,T2<:Real}
     return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[], dxx=Float64[])
