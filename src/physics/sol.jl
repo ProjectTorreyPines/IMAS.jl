@@ -150,7 +150,13 @@ Returns vectors of hfs and lfs OpenFieldLine
 
 If levels is a vector, it has the values of psi from 0 to max psi_wall_midplane. The function will modify levels of psi to introduce relevant sol surfaces
 """
-function sol(eqt::IMAS.equilibrium__time_slice, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(wall_r)) where {T<:Real}
+function sol(
+    eqt::IMAS.equilibrium__time_slice,
+    wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T};
+    levels::Union{Int,AbstractVector}=20,
+    use_wall::Bool=!isempty(wall_r)
+) where {T<:Real}
     @assert length(wall_r) == length(wall_z)
     OFL = OrderedCollections.OrderedDict(:hfs => OpenFieldLine[], :lfs => OpenFieldLine[], :lfs_far => OpenFieldLine[])
 
@@ -566,7 +572,7 @@ function find_levels_from_wall(
     psi_tangent_in = find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant).psi_tangent_in
     push!(levels, psi_tangent_in)
 
-    index = levels.>=psi_separatrix .&& levels.<=psi_wall_midplane
+    index = levels .>= psi_separatrix .&& levels .<= psi_wall_midplane
     levels = levels[index]
     sort!(levels)
 
@@ -1046,7 +1052,7 @@ push!(document[Symbol("Physics sol")], :q_par_omp_eich)
 
 Finds strike points and angles of incidence between two paths
 """
-function find_strike_points(pr::AbstractVector{T1}, pz::AbstractVector{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real, T2<:Real}
+function find_strike_points(pr::AbstractVector{T1}, pz::AbstractVector{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
     indexes, crossings = intersection(wall_r, wall_z, pr, pz)
     Rxx = [cr[1] for cr in crossings]
     Zxx = [cr[2] for cr in crossings]
@@ -1059,19 +1065,21 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{2},
+        psi_last_closed::Real,
         psi_first_open::Union{T3,Nothing};
         strike_surfaces_r::AbstractVector{T4}=wall_r,
         strike_surfaces_z::AbstractVector{T4}=wall_z,
         private_flux_regions::Bool=true
     ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
 
-Finds equilibrium strike points, angle of incidence between wall and strike leg, and 
+Finds equilibrium strike points, angle of incidence between wall and strike leg, and
 the minimum distance between the surface where a strike point is located (both private and encircling) and the last closed flux surface (encircling)
 """
 function find_strike_points(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
+    psi_last_closed::Real,
     psi_first_open::Union{T3,Nothing};
     strike_surfaces_r::AbstractVector{T4}=wall_r,
     strike_surfaces_z::AbstractVector{T4}=wall_z,
@@ -1086,8 +1094,11 @@ function find_strike_points(
     if !isempty(wall_r)
         # find separatrix as first surface in SOL, not in private region
         if psi_first_open !== nothing
-            first_open = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
-            sep = flux_surface(eqt, psi_first_open, :any, Float64[], Float64[])
+            bnd = flux_surface(eqt, psi_last_closed, :closed, wall_r, wall_z)[1]
+            sep = flux_surface(eqt, psi_last_closed, :open, wall_r, wall_z)
+            if isempty(sep)
+                sep = flux_surface(eqt, psi_first_open, :open, wall_r, wall_z)
+            end
             zaxis = eqt.boundary.geometric_axis.z
             for (pr, pz) in sep
                 if isempty(pr)
@@ -1103,64 +1114,57 @@ function find_strike_points(
                 end
                 Rxx_, Zx_, θx_ = find_strike_points(pr, pz, strike_surfaces_r, strike_surfaces_z)
                 # compute dxx
-                dx_ = min_mean_distance_polygons(pr,pz,first_open.r,first_open.z).min_distance
+                dx_, k1, k2 = minimum_distance_polygons_vertices(pr, pz, bnd.r, bnd.z)
 
                 # if there are more than 2 strike points per surface, filter shadowed strike-points
                 if length(Rxx_) > 2
-                    if dx_ == 0.0
-                        # we are on the first open encircling surface (where the X-point is)
-                        # pick intersections closest to primary X-point
-                        # find primary x-point: the one with sign(Zx) equal to sign(first_open.z[1]) || sign(first_open.z[end])
-                        X = Vector{Float64}(undef,2)
-                        for point in eqt.boundary.x_point
-                            if sign(point.z) == sign(first_open.z[1])
-                                X = [point.r, point.z] # primary X-point
-                                break # x-points are ordered, we pick only the first with the same sign
-                            end
-                        end
-                    else
-                        # we are on a private surface
-                        # pick intersections closest to the "center" of flux surface
-                        X = [pr[floor(length(pr)/2)],pz[floor(length(pr)/2)] ]
-                    end
+                    X = (pr[k1], pz[k1])
+
+                    Rs = Float64[]
+                    Zs = Float64[]
+                    θs = Float64[]
 
                     # inner leg, all points with R < R point
-                    index = Rxx_ .< X[1]
-                    dist = (Rxx_[index] .- X[1]).^2 + (Zx_[index] .- X[2]).^2  #pick closest
-                    Rs = [Rxx_[index][argmin(dist)]]
-                    Zs = [ Zx_[index][argmin(dist)]]
-                    θs = [ θx_[index][argmin(dist)]]
+                    index = Rxx_ .<= X[1]
+                    dist = (Rxx_[index] .- X[1]) .^ 2 .+ (Zx_[index] .- X[2]) .^ 2  #pick closest
+                    if !isempty(dist)
+                        append!(Rs, Rxx_[index][argmin(dist)])
+                        append!(Zs, Zx_[index][argmin(dist)])
+                        append!(θs, θx_[index][argmin(dist)])
+                    end
 
                     # outer leg, all points with R > R point
-                    index = Rxx_ .> X[1]
-                    dist = (Rxx_[index] .- X[1]).^2 + (Zx_[index] .- X[2]).^2  #pick closest
-                    append!(Rs, Rxx_[index][argmin(dist)])
-                    append!(Zs,  Zx_[index][argmin(dist)])
-                    append!(θs,  θx_[index][argmin(dist)])
-                    
+                    index = Rxx_ .>= X[1]
+                    dist = (Rxx_[index] .- X[1]) .^ 2 .+ (Zx_[index] .- X[2]) .^ 2  #pick closest
+                    if !isempty(dist)
+                        append!(Rs, Rxx_[index][argmin(dist)])
+                        append!(Zs, Zx_[index][argmin(dist)])
+                        append!(θs, θx_[index][argmin(dist)])
+                    end
+
                     # update with filtered values
                     Rxx_ = Rs
-                    Zx_  = Zs
-                    θx_  = θs
+                    Zx_ = Zs
+                    θx_ = θs
                 end
 
                 # save strike-points in clockwise order. Note: from here on, length(Rxx_) = 2
                 if pz[1] > zaxis
                     # upper single null: clockwise means outer than inner
-                    Zx_  =  Zx_[reverse(sortperm(Rxx_))]
-                    θx_  =  θx_[reverse(sortperm(Rxx_))]
-                    Rxx_ = Rxx_[reverse(sortperm(Rxx_))]                    
+                    Zx_ = Zx_[reverse(sortperm(Rxx_))]
+                    θx_ = θx_[reverse(sortperm(Rxx_))]
+                    Rxx_ = Rxx_[reverse(sortperm(Rxx_))]
                 else
                     # lower single null: clockwise means inner than outer
-                    Zx_  =  Zx_[sortperm(Rxx_)]
-                    θx_  =  θx_[sortperm(Rxx_)]
+                    Zx_ = Zx_[sortperm(Rxx_)]
+                    θx_ = θx_[sortperm(Rxx_)]
                     Rxx_ = Rxx_[sortperm(Rxx_)]
                 end
 
                 append!(Rxx, Rxx_)
                 append!(Zxx, Zx_)
                 append!(θxx, θx_)
-                append!(dxx, dx_.*ones(length(Rxx_)))
+                append!(dxx, dx_ .* ones(length(Rxx_)))
             end
         end
     end
@@ -1176,6 +1180,7 @@ push!(document[Symbol("Physics sol")], :find_strike_points)
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
+        psi_last_closed::Real,
         psi_first_open::Union{T3,Nothing},
         dv::IMAS.divertors{T1};
         private_flux_regions::Bool=true,
@@ -1188,6 +1193,7 @@ function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
+    psi_last_closed::Real,
     psi_first_open::Union{T3,Nothing},
     dv::IMAS.divertors{T1};
     private_flux_regions::Bool=true,
@@ -1207,6 +1213,7 @@ function find_strike_points!(
                 eqt,
                 wall_r,
                 wall_z,
+                psi_last_closed,
                 psi_first_open;
                 private_flux_regions,
                 strike_surfaces_r=target.tile[1].surface_outline.r,
@@ -1243,6 +1250,7 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
+        psi_last_closed::Real,
         psi_first_open::Union{T3,Nothing},
         dv::IMAS.divertors{T1};
         private_flux_regions::Bool=true
@@ -1254,12 +1262,13 @@ function find_strike_points(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
+    psi_last_closed::Real,
     psi_first_open::Union{T3,Nothing},
     dv::IMAS.divertors{T1};
     private_flux_regions::Bool=true
 ) where {T1<:Real,T2<:Real,T3<:Real}
 
-    return find_strike_points!(eqt, wall_r, wall_z, psi_first_open, dv; private_flux_regions, in_place=false)
+    return find_strike_points!(eqt, wall_r, wall_z, psi_last_closed, psi_first_open, dv; private_flux_regions, in_place=false)
 end
 
 """
@@ -1267,6 +1276,7 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
+        psi_last_closed::Real,
         psi_first_open::T3
     ) where {T1<:Real,T2<:Real,T3<:Real}
 """
@@ -1274,10 +1284,11 @@ function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
+    psi_last_closed::Real,
     psi_first_open::T3
 ) where {T1<:Real,T2<:Real,T3<:Real}
 
-    Rxx, Zxx, θxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_first_open)
+    Rxx, Zxx, θxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_last_closed, psi_first_open)
     resize!(eqt.boundary.strike_point, length(Rxx))
     for (k, strike_point) in enumerate(eqt.boundary.strike_point)
         strike_point.r = Rxx[k]
@@ -1293,13 +1304,15 @@ end
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
+        psi_last_closed::Union{Real,Nothing},
         psi_first_open::Nothing
-    ) where {T1<:Real,T2<:Real}
+    )
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
+    psi_last_closed::Union{Real,Nothing},
     psi_first_open::Nothing
 ) where {T1<:Real,T2<:Real}
     return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[], dxx=Float64[])
