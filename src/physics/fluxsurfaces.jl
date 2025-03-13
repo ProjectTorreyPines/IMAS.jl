@@ -616,19 +616,19 @@ function find_psi_last_diverted(
     ZA = eqt.global_quantities.magnetic_axis.z
 
     psi_axis = eqt.profiles_1d.psi[1] # psi value on axis\
-    psi_first_open = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
-    psi_sign = sign(psi_first_open - psi_axis) # +1 incresing psi / -1 decreasing psi
+    psi_boundaries = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true)
+    psi_sign = sign(psi_boundaries.first_open - psi_axis) # +1 incresing psi / -1 decreasing psi
 
     # Case for limited plasmas
     psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
 
-    if psi_sign * psi_sep_open > psi_sign * psi_first_open
+    if psi_sign * psi_sep_open > psi_sign * psi_boundaries.first_open
         # if the LCFS is not the magnetic separatrix
         # the plasma is limited and not diverted
         limited = true
         Xpoint2 = [eqt.boundary.x_point[1].r, eqt.boundary.x_point[1].z]
         psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
-    # return (psi_last_lfs=psi_sep_closed, psi_first_open=psi_first_open,  psi_first_lfs_far=psi_sep_open, null_within_wall=true)
+    # return (psi_last_lfs=psi_sep_closed, psi_first_open=psi_boundaries.first_open,  psi_first_lfs_far=psi_sep_open, null_within_wall=true)
     else
         limited = false
         Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
@@ -696,7 +696,7 @@ function find_psi_last_diverted(
     end
 
     if isempty(eqt.boundary.strike_point)
-        find_strike_points!(eqt, wall_r, wall_z, psi_first_open)
+        find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.last_closed, psi_boundaries.first_open)
     end
 
     # find the two surfaces `psi_first_lfs_far` and `psi_last_lfs` around the last diverted flux surface
@@ -708,7 +708,7 @@ function find_psi_last_diverted(
         psi_first_lfs_far = psi_2ndseparatrix
     end
 
-    psi_last_lfs = psi_first_open
+    psi_last_lfs = psi_boundaries.first_open
     psi = (psi_first_lfs_far + psi_last_lfs) / 2
 
     counter_max = 100
@@ -804,7 +804,7 @@ function find_psi_last_diverted(
         psi_first_lfs_far = psi_sep_open
     end
 
-    return (psi_last_lfs=psi_last_lfs, psi_first_open=psi_first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
+    return (psi_last_lfs=psi_last_lfs, psi_first_open=psi_boundaries.first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
 end
 
 @compat public find_psi_last_diverted
