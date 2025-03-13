@@ -520,8 +520,12 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
 
     # First check if we are in a double null configuration
     ZA = eqt.global_quantities.magnetic_axis.z
+    # retrieve b = elongation * minor radius 
+    b = eqt.boundary.elongation * eqt.boundary.minor_radius
+   
     for (r, z) in surface
-        if isempty(r) || all(z .> ZA) || all(z .< ZA) # exclude private region and empty vectors
+        # exclude empty vectors, private region and surfaces starting and finishing in the same z range as the plasma
+        if isempty(r) || all(z .> ZA) || all(z .< ZA) || all(z .> (ZA - b) .&& z .< (ZA + b))  
             continue
         end
         if (z[end] - ZA) * (z[1] - ZA) < 0
@@ -559,7 +563,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
     while abs(err) > precision && counter < counter_max
         surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
         for (r, z) in surface
-            if isempty(r) || all(z .> ZA) || all(z .< ZA)
+            if isempty(r) || all(z .> ZA) || all(z .< ZA) || all(z .> (ZA - b) .&& z .< (ZA + b)) 
                 continue
             end
 
