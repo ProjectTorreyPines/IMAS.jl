@@ -266,12 +266,12 @@ end
 push!(document[Symbol("Physics currents")], :Ip_ohmic)
 
 """
-    Ip(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
+    Ip(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
 
 Integrated toroidal total current (based on core_profiles)
 """
-function Ip(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
-    return trapz(cp1d.grid.area, cp1d.j_tor)
+function Ip(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}) where {T<:Real}
+    return trapz(cp1d.grid.area, Jpar_2_Jtor(cp1d.grid.rho_tor_norm, cp1d.j_total, true, eqt))
 end
 
 """
@@ -301,7 +301,7 @@ function plasma_lumped_resistance(dd::IMAS.dd)
     eqt = dd.equilibrium.time_slice[]
     P_ohm = dd.core_sources.source[:ohmic].profiles_1d[].electrons.power_inside[end]
     I_ni = Ip_non_inductive(cp1d, eqt)
-    I_p = Ip(cp1d)
+    I_p = Ip(cp1d, eqt)
     I_ohm = I_p - I_ni
     R_p = P_ohm / (I_p * I_ohm)
     return R_p
