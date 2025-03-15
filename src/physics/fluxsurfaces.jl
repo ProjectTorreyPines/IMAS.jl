@@ -1687,15 +1687,23 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # then exclude points outside the first wall (i.e., likely coils)
     if !isempty(wall_r)
         pts = (psi_sign > 0.0) ? IMASutils.findall_interior_argmin(PSI) : IMASutils.findall_interior_argmax(PSI)
-        wall = collect(zip(wall_r, wall_z))
-        pts_in_wall = [PolygonOps.inpolygon((r[i], z[j]), wall) == 1 for (i, j) in pts] # 1 if in wall
-        npts_in_wall = sum(pts_in_wall)
-        if npts_in_wall == 1
-            ig, jg = pts[argmax(pts_in_wall)] # this are the indices for the only guess inside the wall
-            RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess=r[ig], zguess=z[jg])
+        min_wall_r = minimum(wall_r)
+        max_wall_r = maximum(wall_r)
+        min_wall_z = minimum(wall_z)
+        max_wall_z = maximum(wall_z)
+        pts = [pt for pt in pts if (r[pt[1]] > min_wall_r && r[pt[1]] < max_wall_r && z[pt[2]] > min_wall_z && z[pt[2]] < max_wall_z)]
+        if length(pts) == 1
+            RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess=r[pts[1][1]], zguess=z[pts[1][2]])
         else
-            # No way to exclude coils, so use default guess
-            RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+            wall = collect(zip(wall_r, wall_z))
+            pts_in_wall = [PolygonOps.inpolygon((r[i], z[j]), wall) == 1 for (i, j) in pts] # 1 if in wall
+            if length(pts_in_wall) == 1
+                ig, jg = pts[argmax(pts_in_wall)] # this are the indices for the only guess inside the wall
+                RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess=r[ig], zguess=z[jg])
+            else
+                # No way to exclude coils, so use default guess
+                RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+            end
         end
     else
         # No way to exclude coils, so use default guess
