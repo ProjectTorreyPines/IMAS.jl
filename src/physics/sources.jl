@@ -173,9 +173,16 @@ push!(document[Symbol("Physics sources")], :time_derivative_source!)
 Finds the total mass density [kg/m^-3]
 """
 function total_mass_density(cp1d::IMAS.core_profiles__profiles_1d)
-    mass_density = mks.m_e * cp1d.electrons.density
+    mass_density = mks.m_e * cp1d.electrons.density_thermal
+    if hasdata(cp1d.electrons, :density_fast)
+        mass_density .+= mks.m_e * cp1d.electrons.density_fast
+    end
     for ion in cp1d.ion
-        mass_density .+= ion.density * ion.element[1].a * mks.m_p
+        for field in (:density_thermal, :density_fast)
+            if hasdata(ion, field)
+                mass_density .+= getproperty(ion, field) * ion.element[1].a * mks.m_p
+            end
+        end
     end
     return mass_density
 end
@@ -377,7 +384,7 @@ function total_sources(
                         if rho === x
                             rho_data = y
                         else
-                            rho_data = DataInterpolations.LinearInterpolation(y, x; extrapolation = DataInterpolations.ExtrapolationType.Constant).(rho)
+                            rho_data = DataInterpolations.LinearInterpolation(y, x; extrapolation=DataInterpolations.ExtrapolationType.Constant).(rho)
                         end
                         setproperty!(ids1, field, getproperty(ids1, field) .+ rho_data)
                     end
