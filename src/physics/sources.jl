@@ -38,7 +38,7 @@ Calculates collisional exchange source and adds it to `dd.core_sources`
 """
 function collisional_exchange_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
     Ti = cp1d.t_i_average
 
@@ -128,19 +128,20 @@ push!(document[Symbol("Physics sources")], :sources!)
 
 Calculates time dependent sources and sinks, and adds them to `dd.core_sources`
 
-These are the ∂/∂t term in the transport equations.
+These are the ∂/∂t term in the transport equations
 """
 function time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
-    Sne = -(cp1d_new.electrons.density .- cp1d_old.electrons.density) / Δt
+    Sne = -(cp1d_new.electrons.density_thermal .- cp1d_old.electrons.density_thermal) / Δt
 
-    Qe = -1.5 * (cp1d_new.electrons.pressure .- cp1d_old.electrons.pressure) / Δt
+    Qe = -1.5 * (pressure_thermal(cp1d_new.electrons) .- pressure_thermal(cp1d_old.electrons)) / Δt
 
-    Qi = -1.5 * (cp1d_new.pressure_ion_total .- cp1d_old.pressure_ion_total) / Δt
+    Qi = -1.5 * (pressure_thermal(cp1d_new.ion) .- pressure_thermal(cp1d_old.ion)) / Δt
 
-    d1 = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R_flux_avg / Δt
-    d2 = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
-    PI = d2 - d1
+    d_new = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R_flux_avg / Δt
+    d_old = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
+    PI = d_new .- d_old
 
+    ##### We are still missing Sni for the different ions
     return (Sne=Sne, Qi=Qi, Qe=Qe, PI=PI)
 end
 

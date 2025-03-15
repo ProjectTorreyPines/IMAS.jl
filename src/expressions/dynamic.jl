@@ -25,10 +25,17 @@ dyexp = dynamic_expressions
 #  core_profiles.profiles_1d  #
 
 dyexp["core_profiles.profiles_1d[:].electrons.density"] =
-    (rho_tor_norm; electrons, _...) -> electrons.density_thermal .+ electrons.density_fast
-
-dyexp["core_profiles.profiles_1d[:].electrons.density_fast"] =
-    (rho_tor_norm; _...) -> zero(rho_tor_norm)
+    (rho_tor_norm; electrons, _...) -> begin
+    if !hasdata(electrons, :density_thermal) && !hasdata(electrons, :density_fast)
+        return zero(rho_tor_norm)
+    elseif !hasdata(electrons, :density_thermal) && hasdata(electrons, :density_fast)
+        return electrons.density_fast
+    elseif hasdata(electrons, :density_thermal) && !hasdata(electrons, :density_fast)
+        return electrons.density_thermal
+    else
+        return electrons.density_thermal .+ electrons.density_fast
+    end
+end
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
     (rho_tor_norm; electrons, _...) -> pressure_thermal(electrons)
@@ -57,11 +64,11 @@ dyexp["core_profiles.profiles_1d[:].t_i_average"] =
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density"] =
     (rho_tor_norm; ion, _...) -> begin
-        if ismissing(ion, :density_thermal) && ismissing(ion, :density_fast)
+        if !hasdata(ion, :density_thermal) && !hasdata(ion, :density_fast)
             return zero(rho_tor_norm)
-        elseif ismissing(ion, :density_thermal) && !ismissing(ion, :density_fast)
+        elseif !hasdata(ion, :density_thermal) && hasdata(ion, :density_fast)
             return ion.density_fast
-        elseif !ismissing(ion, :density_thermal) && ismissing(ion, :density_fast)
+        elseif hasdata(ion, :density_thermal) && !hasdata(ion, :density_fast)
             return ion.density_thermal
         else
             return ion.density_thermal .+ ion.density_fast

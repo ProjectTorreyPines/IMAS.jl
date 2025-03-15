@@ -28,7 +28,7 @@ Calculates approximate NRL Bremsstrahlung radiation source and modifies dd.core_
 """
 function bremsstrahlung_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
     powerDensityBrem = -1.690e-38 .* ne .^ 2 .* cp1d.zeff .* sqrt.(Te)
@@ -80,7 +80,7 @@ Calculates synchrotron radiation source and modifies dd.core_sources
 """
 function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
     cp1d = dd.core_profiles.profiles_1d[]
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
     eq = dd.equilibrium
@@ -108,11 +108,11 @@ Calculates line radiation sources and modifies dd.core_sources
 """
 function line_radiation_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
     sources = [for ion in cp1d.ion
-        ni = ion.density
+        ni = ion.density_thermal
         zi = ion.z_ion
         namei = string(elements[Int(floor(ion.z_ion))].symbol)
         linerad = rad_ion_adas(Te, ne, ni, zi, namei)
