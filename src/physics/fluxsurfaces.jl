@@ -740,7 +740,7 @@ function find_psi_last_diverted(
                 push!(closest_to_strike_points, argmin(dist))
             end
             # order closest intersections with the same oder as crossings ([1] is closest to [1] of surface; [end] is closest to [end] of surface)
-            sort!(closest_to_strike_points) 
+            sort!(closest_to_strike_points)
 
             # discard all points in crossings before/after the closest intersections, 
             # only if they are not crossings[1] and crossings[end] which by construction are the closest to the ends of the magnetic surface
@@ -1418,7 +1418,7 @@ function trace_surfaces(
             # trace flux surface
             tmp = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
             pr, pz = collect(tmp[1]), collect(tmp[2])
-            if !is_closed_surface(pr, pz, wall_r, wall_z)
+            if k == N && !is_closed_surface(pr, pz, wall_r, wall_z)
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
         end
@@ -1483,13 +1483,43 @@ function trace_surfaces(
             end
         end
         leftright_r, leftright_z = Contour.coordinates(lines[k])
+        index_right = leftright_r .>= RA
+        index_left = leftright_r .<= RA
 
         # extrema in R
         for k in 1:N
             #@show "R", k
-            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, RA, ZA, psi_norm, space_norm, :right)
+            cost =
+                x -> _extrema_cost(
+                    x,
+                    psi[k],
+                    PSI_interpolant,
+                    (@view leftright_r[index_right]),
+                    (@view leftright_z[index_right]),
+                    surfaces[k].max_r,
+                    surfaces[k].z_at_max_r,
+                    RA,
+                    ZA,
+                    psi_norm,
+                    space_norm,
+                    :right
+                )
             surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
-            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, RA, ZA, psi_norm, space_norm, :left)
+            cost =
+                x -> _extrema_cost(
+                    x,
+                    psi[k],
+                    PSI_interpolant,
+                    (@view leftright_r[index_left]),
+                    (@view leftright_z[index_left]),
+                    surfaces[k].min_r,
+                    surfaces[k].z_at_min_r,
+                    RA,
+                    ZA,
+                    psi_norm,
+                    space_norm,
+                    :left
+                )
             surfaces[k].min_r, surfaces[k].z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
             if k < 3
                 surfaces[k+1].z_at_max_r = ZA
@@ -1514,13 +1544,43 @@ function trace_surfaces(
             end
         end
         updown_r, updown_z = Contour.coordinates(lines[k])
+        index_up = updown_z .>= ZA
+        index_down = updown_z .<= ZA
 
         # extrema in Z
         for k in 1:N
             #@show "Z", k
-            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, RA, ZA, psi_norm, space_norm, :up)
+            cost =
+                x -> _extrema_cost(
+                    x,
+                    psi[k],
+                    PSI_interpolant,
+                    (@view updown_r[index_up]),
+                    (@view updown_z[index_up]),
+                    surfaces[k].r_at_max_z,
+                    surfaces[k].max_z,
+                    RA,
+                    ZA,
+                    psi_norm,
+                    space_norm,
+                    :up
+                )
             surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
-            cost = x -> _extrema_cost(x, psi[k], PSI_interpolant, updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, RA, ZA, psi_norm, space_norm, :down)
+            cost =
+                x -> _extrema_cost(
+                    x,
+                    psi[k],
+                    PSI_interpolant,
+                    (@view updown_r[index_down]),
+                    (@view updown_z[index_down]),
+                    surfaces[k].r_at_min_z,
+                    surfaces[k].min_z,
+                    RA,
+                    ZA,
+                    psi_norm,
+                    space_norm,
+                    :down
+                )
             surfaces[k].r_at_min_z, surfaces[k].min_z = Optim.optimize(cost, [surfaces[k].r_at_min_z, surfaces[k].min_z], algorithm; autodiff=:forward).minimizer
             if k < 3
                 surfaces[k+1].r_at_max_z = RA
