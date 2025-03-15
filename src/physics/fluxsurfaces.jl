@@ -1483,19 +1483,18 @@ function trace_surfaces(
             end
         end
         leftright_r, leftright_z = Contour.coordinates(lines[k])
-        index_right = leftright_r .>= RA
-        index_left = leftright_r .<= RA
 
         # extrema in R
         for k in 1:N
             #@show "R", k
+            index = _extrema_index(leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r)
             cost =
                 x -> _extrema_cost(
                     x,
                     psi[k],
                     PSI_interpolant,
-                    (@view leftright_r[index_right]),
-                    (@view leftright_z[index_right]),
+                    (@view leftright_r[index]),
+                    (@view leftright_z[index]),
                     surfaces[k].max_r,
                     surfaces[k].z_at_max_r,
                     RA,
@@ -1505,13 +1504,14 @@ function trace_surfaces(
                     :right
                 )
             surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
+            index = _extrema_index(leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r)
             cost =
                 x -> _extrema_cost(
                     x,
                     psi[k],
                     PSI_interpolant,
-                    (@view leftright_r[index_left]),
-                    (@view leftright_z[index_left]),
+                    (@view leftright_r[index]),
+                    (@view leftright_z[index]),
                     surfaces[k].min_r,
                     surfaces[k].z_at_min_r,
                     RA,
@@ -1520,7 +1520,8 @@ function trace_surfaces(
                     space_norm,
                     :left
                 )
-            surfaces[k].min_r, surfaces[k].z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
+            min_r, z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
+            surfaces[k].min_r, surfaces[k].z_at_min_r = min_r, z_at_min_r
             if k < 3
                 surfaces[k+1].z_at_max_r = ZA
                 surfaces[k+1].z_at_min_r = ZA
@@ -1544,19 +1545,18 @@ function trace_surfaces(
             end
         end
         updown_r, updown_z = Contour.coordinates(lines[k])
-        index_up = updown_z .>= ZA
-        index_down = updown_z .<= ZA
 
         # extrema in Z
         for k in 1:N
             #@show "Z", k
+            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z)
             cost =
                 x -> _extrema_cost(
                     x,
                     psi[k],
                     PSI_interpolant,
-                    (@view updown_r[index_up]),
-                    (@view updown_z[index_up]),
+                    (@view updown_r[index]),
+                    (@view updown_z[index]),
                     surfaces[k].r_at_max_z,
                     surfaces[k].max_z,
                     RA,
@@ -1566,13 +1566,14 @@ function trace_surfaces(
                     :up
                 )
             surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
+            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z)
             cost =
                 x -> _extrema_cost(
                     x,
                     psi[k],
                     PSI_interpolant,
-                    (@view updown_r[index_down]),
-                    (@view updown_z[index_down]),
+                    (@view updown_r[index]),
+                    (@view updown_z[index]),
                     surfaces[k].r_at_min_z,
                     surfaces[k].min_z,
                     RA,
@@ -1611,6 +1612,12 @@ end
 
 @compat public trace_surfaces
 push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
+
+function _extrema_index(r, z, r0, Z0)
+    n = 2
+    i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
+    return max(1, i - n):min(length(r), i + n)
+end
 
 # accurate geometric quantities by finding geometric extrema as optimization problem
 function _extrema_cost(
