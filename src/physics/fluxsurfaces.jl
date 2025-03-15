@@ -1683,9 +1683,16 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     end
 
     # accurately find magnetic axis
-    # If there's a wall, start by finding all interior extrema that could be near axes
-    # then exclude points outside the first wall (i.e., likely coils)
-    if !isempty(wall_r)
+    # If there's a wall, try the following:
+    # 1. guess from the previous time slice
+    # 2. guess by  finding all interior extrema that could be near axes then exclude points outside the first wall (i.e., likely coils)
+    rguess = r[Int(round(length(r) / 2))]
+    zguess = z[Int(round(length(z) / 2))]
+    eqts = parent(eqt)
+    if eqts !== nothing && index(eqts, eqt) > 1 && hasdata(eqts[index(eqts, eqt)-1].global_quantities.magnetic_axis, :r)
+        rguess = eqts[index(eqts, eqt)-1].global_quantities.magnetic_axis.r
+        zguess = eqts[index(eqts, eqt)-1].global_quantities.magnetic_axis.z
+    elseif !isempty(wall_r)
         pts = (psi_sign > 0.0) ? IMASutils.findall_interior_argmin(PSI) : IMASutils.findall_interior_argmax(PSI)
         min_wall_r = minimum(wall_r)
         max_wall_r = maximum(wall_r)
@@ -1693,22 +1700,19 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         max_wall_z = maximum(wall_z)
         pts = [pt for pt in pts if (r[pt[1]] > min_wall_r && r[pt[1]] < max_wall_r && z[pt[2]] > min_wall_z && z[pt[2]] < max_wall_z)]
         if length(pts) == 1
-            RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess=r[pts[1][1]], zguess=z[pts[1][2]])
+            rguess = r[pts[1][1]]
+            zguess = z[pts[1][2]]
         else
             wall = collect(zip(wall_r, wall_z))
             pts_in_wall = [PolygonOps.inpolygon((r[i], z[j]), wall) == 1 for (i, j) in pts] # 1 if in wall
             if length(pts_in_wall) == 1
                 ig, jg = pts[argmax(pts_in_wall)] # this are the indices for the only guess inside the wall
-                RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess=r[ig], zguess=z[jg])
-            else
-                # No way to exclude coils, so use default guess
-                RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
+                rguess = r[ig]
+                zguess = z[jg]
             end
         end
-    else
-        # No way to exclude coils, so use default guess
-        RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
     end
+    RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess, zguess)
 
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
     psi_axis = PSI_interpolant(RA, ZA)
