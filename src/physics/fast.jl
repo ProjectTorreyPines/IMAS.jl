@@ -336,15 +336,12 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
         empty!(ion, :pressure)
         empty!(ion, :density)
     end
+
     # zero out all cp1d fast-ion related quantities
     for ion in cp1d.ion
         ion.pressure_fast_parallel = zeros(Npsi)
         ion.pressure_fast_perpendicular = zeros(Npsi)
         ion.density_fast = zeros(Npsi)
-    end
-    # zero out cp1d.electrons.density_fast to "close" the expression
-    if ismissing(cp1d.electrons, :density_fast)
-        cp1d.electrons.density_fast = zeros(Npsi)
     end
 
     # go through sources and look for ones that have ion particles source at given energy

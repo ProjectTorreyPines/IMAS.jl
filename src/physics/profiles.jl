@@ -942,22 +942,22 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
     out = []
     if only_electrons_ions ∈ (:all, :electrons)
-        if only_thermal_fast ∈ (:all, :thermal) && sum(cp1d.electrons.density_thermal) > 0.0
+        if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && sum(cp1d.electrons.density_thermal) > 0.0
             push!(out, (0, :electrons))
         end
-        if only_thermal_fast ∈ (:all, :fast) && sum(cp1d.electrons.density_fast) > 0.0
+        if only_thermal_fast ∈ (:all, :fast) && hasdata(cp1d.electrons, :density_fast) && sum(cp1d.electrons.density_fast) > 0.0
             push!(out, (0, :electrons_fast))
         end
     end
     if only_electrons_ions ∈ (:all, :ions)
         if only_thermal_fast ∈ (:all, :thermal)
-            dd_thermal = ((k, Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if sum(ion.density_thermal) > 0.0)
+            dd_thermal = ((k, Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && sum(ion.density_thermal) > 0.0)
             for item in dd_thermal
                 push!(out, item)
             end
         end
         if only_thermal_fast ∈ (:all, :fast)
-            dd_fast = ((k, Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if sum(ion.density_fast) > 0.0)
+            dd_fast = ((k, Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && sum(ion.density_fast) > 0.0)
             for item in dd_fast
                 push!(out, item)
             end
@@ -1020,8 +1020,16 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         ion0 = cp1d.ion[species_indx]
 
         # evaluate the difference in number of thermal charges needed to reach quasineutrality
-        ne = cp1d.electrons.density .+ cp1d.electrons.density_fast
-        q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
+        if hasdata(cp1d.electrons, :density_fast)
+            ne = cp1d.electrons.density_thermal .+ cp1d.electrons.density_fast
+        else
+            ne = cp1d.electrons.density_thermal
+        end
+        if hasdata(ion0, :density_fast)
+            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
+        else
+            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0)
+        end
 
         # positive difference is assigned to target ion density_thermal
         index = q_density_difference .> 0.0
