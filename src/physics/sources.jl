@@ -290,8 +290,20 @@ function total_sources(
     fields::Vector{Symbol}=Symbol[],
     only_positive_negative::Int=0) where {T<:Real}
 
-    total_source = resize!(core_sources.source, :total; wipe=false)
-    total_source1d = resize!(total_source.profiles_1d, time0; wipe=false)
+    total_source1d = core_sources__source___profiles_1d{T}()
+    return total_sources!(total_source1d, core_sources, cp1d; time0, include_indexes, exclude_indexes, fields, only_positive_negative)
+end
+
+function total_sources!(
+    total_source1d::IMAS.core_sources__source___profiles_1d{T},
+    core_sources::IMAS.core_sources{T},
+    cp1d::IMAS.core_profiles__profiles_1d{T};
+    time0::Float64,
+    include_indexes::Vector{Int}=Int[],
+    exclude_indexes::Vector{Int}=Int[],
+    fields::Vector{Symbol}=Symbol[],
+    only_positive_negative::Int=0) where {T<:Real}
+
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = time0
 

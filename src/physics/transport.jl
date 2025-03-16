@@ -58,9 +58,17 @@ function total_fluxes(
     cp1d::IMAS.core_profiles__profiles_1d,
     rho_total_fluxes::AbstractVector{<:Real};
     time0::Float64) where {T<:Real}
+    total_flux1d = core_transport__model___profiles_1d{T}()
+    total_fluxes!(total_flux1d, core_transport, cp1d, rho_total_fluxes; time0)
+end
 
-    total_flux = resize!(core_transport.model, :combined; wipe=false)
-    total_flux1d = resize!(total_flux.profiles_1d, time0; wipe=false)
+function total_fluxes!(
+    total_flux1d::IMAS.core_transport__model___profiles_1d{T},
+    core_transport::IMAS.core_transport{T},
+    cp1d::IMAS.core_profiles__profiles_1d,
+    rho_total_fluxes::AbstractVector{<:Real};
+    time0::Float64) where {T<:Real}
+
     total_flux1d.grid_flux.rho_tor_norm = rho_total_fluxes
 
     skip_flux_list = [:unknown, :unspecified, :combined]
