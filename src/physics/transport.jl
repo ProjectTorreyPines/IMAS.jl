@@ -59,27 +59,22 @@ function total_fluxes(
     rho_total_fluxes::AbstractVector{<:Real};
     time0::Float64) where {T<:Real}
 
-    total_flux1d = IMAS.core_transport__model___profiles_1d{T}()
+    total_flux = resize!(core_transport.model, :combined; wipe=false)
+    total_flux1d = resize!(total_flux.profiles_1d, time0; wipe=false)
     total_flux1d.grid_flux.rho_tor_norm = rho_total_fluxes
 
     skip_flux_list = [:unknown, :unspecified, :combined]
     index_to_name = index_2_name(core_transport.model)
 
     # initialize ions
-    total_flux1d_ions = IMAS.core_transport__model___profiles_1d___ion[]
     for ion in cp1d.ion
-        tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
-        push!(total_flux1d_ions, tmp)
+        resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
     end
     for model in core_transport.model
         if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
             model1d = model.profiles_1d[time0]
             for ion in model1d.ion
-                l = length(total_flux1d.ion)
-                tmp = resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
-                if l != length(total_flux1d.ion)
-                    push!(total_flux1d_ions, tmp)
-                end
+                resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
             end
         end
     end
@@ -88,12 +83,22 @@ function total_fluxes(
     paths = []
     push!(paths, (:electrons, :energy))
     push!(paths, (:electrons, :particles))
-    for k in eachindex(total_flux1d_ions)
+    for k in eachindex(total_flux1d.ion)
         push!(paths, (:ion, k, :energy))
         push!(paths, (:ion, k, :particles))
     end
     push!(paths, (:momentum_tor,))
     push!(paths, (:total_ion_energy,))
+
+    # zero out total_flux
+    for path in paths
+        ids1 = goto(total_flux1d, path)
+        if hasdata(ids1, :flux)
+            getproperty(ids1, :flux) .*= 0.0
+        else
+            setproperty!(ids1, :flux, zeros(T, size(rho_total_fluxes)))
+        end
+    end
 
     if !isempty(rho_total_fluxes)
         for model in core_transport.model
@@ -118,16 +123,16 @@ function total_fluxes(
                     end
                     continue
                 end
-                if ismissing(ids1, :flux)
+                if !hasdata(ids1, :flux)
                     continue
                 end
                 ids2 = goto(total_flux1d, path)
-                if ismissing(ids2, :flux)
-                    setproperty!(ids2, :flux, zeros(length(rho_total_fluxes)))
-                end
                 y = getproperty(ids1, :flux)
-                old_value = getproperty(ids2, :flux)
-                old_value[x_1:x_2] .+= interp1d(x, y, :linear).(rho_total_fluxes[x_1:x_2])
+                if rho_total_fluxes == x
+                    getproperty(ids2, :flux)[x_1:x_2] .+= y
+                else
+                    getproperty(ids2, :flux)[x_1:x_2] .+= interp1d(x, y, :linear).(rho_total_fluxes[x_1:x_2])
+                end
             end
         end
     end
