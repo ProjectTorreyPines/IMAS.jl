@@ -225,11 +225,11 @@ end
 push!(document[Symbol("Physics sources")], :total_power_time)
 
 """
-    retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})::Bool
+    retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})
 
 Function that decides whether a source should be kept or ignored when totaling sources
 """
-function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})::Bool
+function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{Int}, include_indexes::Vector{Int}, exclude_indexes::Vector{Int})
     index = source.identifier.index
     if index ∈ include_indexes
         return true
@@ -253,6 +253,18 @@ end
 
 @compat public retain_source
 push!(document[Symbol("Physics sources")], :retain_source)
+
+const _core_sources_integral_value_keys = Dict{Symbol,Symbol}()
+_core_sources_integral_value_keys[:power_inside] = :energy
+_core_sources_integral_value_keys[:energy] = :power_inside
+_core_sources_integral_value_keys[:total_ion_power_inside] = :total_ion_energy
+_core_sources_integral_value_keys[:total_ion_energy] = :total_ion_power_inside
+_core_sources_integral_value_keys[:particles_inside] = :particles
+_core_sources_integral_value_keys[:particles] = :particles_inside
+_core_sources_integral_value_keys[:current_parallel_inside] = :j_parallel
+_core_sources_integral_value_keys[:j_parallel] = :current_parallel_inside
+_core_sources_integral_value_keys[:torque_tor_inside] = :momentum_tor
+_core_sources_integral_value_keys[:momentum_tor] = :torque_tor_inside
 
 """
     total_sources(
@@ -278,64 +290,44 @@ function total_sources(
     fields::Vector{Symbol}=Symbol[],
     only_positive_negative::Int=0) where {T<:Real}
 
-    total_source1d = IMAS.core_sources__source___profiles_1d{T}()
+    total_source = resize!(core_sources.source, :total; wipe=false)
+    total_source1d = resize!(total_source.profiles_1d, time0; wipe=false)
     total_source1d.grid.rho_tor_norm = rho = cp1d.grid.rho_tor_norm
     total_source1d.time = time0
 
-    matching = Dict{Symbol,Symbol}()
-    matching[:power_inside] = :energy
-    matching[:energy] = :power_inside
-    matching[:total_ion_power_inside] = :total_ion_energy
-    matching[:total_ion_energy] = :total_ion_power_inside
-    matching[:particles_inside] = :particles
-    matching[:particles] = :particles_inside
-    matching[:current_parallel_inside] = :j_parallel
-    matching[:j_parallel] = :current_parallel_inside
-    matching[:torque_tor_inside] = :momentum_tor
-    matching[:momentum_tor] = :torque_tor_inside
-
-    @assert isempty(fields) || all(field in keys(matching) for field in fields) "Supported fields are $(collect(keys(matching)))"
+    @assert isempty(fields) || all(field in keys(_core_sources_integral_value_keys) for field in fields) "Supported fields are $(collect(keys(_core_sources_integral_value_keys)))"
 
     for prop in (:volume, :area, :surface)
-        value = getproperty(cp1d.grid, prop, missing)
-        if value === missing
-            for source in core_sources.source
-                if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
-                    value = getproperty(source.profiles_1d[time0].grid, prop, missing)
-                    if value !== missing
-                        break
-                    end
-                end
-            end
+        value = getproperty(cp1d.grid, prop)
+        if hasdata(total_source1d.grid, prop)
+            getproperty(total_source1d.grid, prop) .= value
         else
             setproperty!(total_source1d.grid, prop, value)
         end
     end
 
-    # initialize ions
-    total_source1d_ions = IMAS.core_sources__source___profiles_1d___ion[]
+    # initialize ions (get list of ions by looking both under core_profiles and core_sources)
     for ion in cp1d.ion
-        tmp = resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
-        push!(total_source1d_ions, tmp)
+        resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
     end
     for source in core_sources.source
         if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
-            source1d = source.profiles_1d[time0]
+            source1d = source.profiles_1d[1]
             for ion in source1d.ion
-                l = length(total_source1d.ion)
-                tmp = resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
-                if l != length(total_source1d.ion)
-                    push!(total_source1d_ions, tmp)
-                end
+                resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
             end
         end
     end
 
     # zero out total_sources
-    for ids1 in [[total_source1d, total_source1d.electrons]; total_source1d_ions]
+    for ids1 in [[total_source1d, total_source1d.electrons]; total_source1d.ion]
         for field in keys(ids1)
-            if field in keys(matching)
-                setproperty!(ids1, field, zeros(T, size(rho)))
+            if field in keys(_core_sources_integral_value_keys)
+                if hasdata(ids1, field)
+                    getproperty(ids1, field) .*= 0.0
+                else
+                    setproperty!(ids1, field, zeros(T, size(rho)))
+                end
             end
         end
     end
@@ -361,7 +353,7 @@ function total_sources(
 
         # ions that this source contributes to
         ion_ids1_ids2 = []
-        for total_source1d_ion in total_source1d_ions
+        for total_source1d_ion in total_source1d.ion
             for source1d_ion in source1d.ion
                 if total_source1d_ion.label == source1d_ion.label
                     push!(ion_ids1_ids2, (total_source1d_ion, source1d_ion))
@@ -376,27 +368,27 @@ function total_sources(
         end
         for (ids1, ids2) in [[(total_source1d, source1d), (total_source1d.electrons, source1d.electrons)]; ion_ids1_ids2]
             for field in keys(ids1)
-                if (isempty(fields) || field ∈ fields || (field ∈ keys(matching) && matching[field] ∈ fields)) && field ∈ keys(matching)
-                    if hasdata(ids2, field) || hasdata(ids2, matching[field])
+                if (isempty(fields) || field ∈ fields || (field ∈ keys(_core_sources_integral_value_keys) && _core_sources_integral_value_keys[field] ∈ fields)) &&
+                   field ∈ keys(_core_sources_integral_value_keys)
+                    if hasdata(ids2, field) || hasdata(ids2, _core_sources_integral_value_keys[field])
                         y = getproperty(ids2, field)
                         if only_positive_negative != 0 && any((sign(yy) ∉ (0, sign(only_positive_negative)) for yy in y))
                             continue
                         end
                         if rho === x
-                            rho_data = y
+                            interpolated_data = y
                         else
-                            rho_data = DataInterpolations.LinearInterpolation(y, x; extrapolation=DataInterpolations.ExtrapolationType.Constant).(rho)
+                            interpolated_data = DataInterpolations.LinearInterpolation(y, x; extrapolation=DataInterpolations.ExtrapolationType.Constant).(rho)
                         end
-                        setproperty!(ids1, field, getproperty(ids1, field) .+ rho_data)
+                        if hasdata(ids1, field)
+                            getproperty(ids1, field) .= getproperty(ids1, field) .+ interpolated_data
+                        else
+                            setproperty!(ids1, field, getproperty(ids1, field) .+ interpolated_data)
+                        end
                     end
                 end
             end
         end
-    end
-
-    # ion.energy source is always zero
-    for total_source1d_ion in total_source1d_ions
-        empty!(total_source1d_ion, :energy)
     end
 
     return total_source1d
