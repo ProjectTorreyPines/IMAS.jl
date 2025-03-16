@@ -91,7 +91,8 @@ function ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T;
         vacuum_Bt = abs(eqt.global_quantities.vacuum_toroidal_field.b0 * eqt.global_quantities.vacuum_toroidal_field.r0) ./ RR'
         Bωce_over_Btot = fundamental_B_ec_resonance ./ vacuum_Bt
     else
-        Bωce_over_Btot = fundamental_B_ec_resonance ./ sqrt.(eqt2d.b_field_tor .^ 2 .+ eqt2d.b_field_r .^ 2 .+ eqt2d.b_field_z .^ 2)
+        Br, Bz = Br_Bz(eqt2d)
+        Bωce_over_Btot = fundamental_B_ec_resonance ./ sqrt.(eqt2d.b_field_tor .^ 2 .+ Br .^ 2 .+ Bz .^ 2)
     end
 
     RA = eqt.global_quantities.magnetic_axis.r

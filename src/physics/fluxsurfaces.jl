@@ -113,7 +113,6 @@ end
     Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
 """
 function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
-    # Check that r and z are the same size
     @assert size(r) == size(z)
     Br, Bz = similar(r), similar(r)
     for k in eachindex(r)
@@ -1367,7 +1366,8 @@ function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVe
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
-    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, eqt2d.b_field_r, eqt2d.b_field_z, PSI_interpolant, RA, ZA, wall_r, wall_z)
+    Br, Bz = Br_Bz(eqt2d)
+    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z)
 end
 
 """
@@ -1763,7 +1763,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     end
 
     # trace flux surfaces
-    surfaces = trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, eqt2d.b_field_r, eqt2d.b_field_z, PSI_interpolant, RA, ZA, wall_r, wall_z)
+    Br, Bz = Br_Bz(eqt2d)
+    surfaces = trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z)
 
     # calculate flux surface averaged and geometric quantities
     N = length(eqt.profiles_1d.psi)
