@@ -773,17 +773,17 @@ push!(document[Symbol("Physics sol")], :identify_strike_surface)
 
 Returns time dependent vectors of :field summed over all divertor targets
 """
-function divertor_totals_from_targets(divertor::IMAS.divertors__divertor, field::Symbol)
-    total = []
-    time = []
+function divertor_totals_from_targets(divertor::IMAS.divertors__divertor{T}, field::Symbol) where {T<:Real}
+    total = Vector{T}[]
+    time = Float64[]
     for target in divertor.target
         value = getproperty(target, field)
         if !ismissing(value, :data)
             push!(total, value.data)
-            push!(time, value.time)
+            time = value.time
         end
     end
-    return time[1], reduce(+, total)
+    return time, reduce(+, total)
 end
 
 @compat public divertor_totals_from_targets
