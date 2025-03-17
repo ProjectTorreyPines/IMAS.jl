@@ -7,7 +7,7 @@
 
 Structure used to store fluxes information from GA code in Gyrobohm units
 """
-struct flux_solution{T<:Real}
+struct FluxSolution{T<:Real}
     ENERGY_FLUX_e::T
     ENERGY_FLUX_i::T
     PARTICLE_FLUX_e::T
@@ -15,7 +15,7 @@ struct flux_solution{T<:Real}
     STRESS_TOR_i::T
 end
 
-function Base.show(io::IO, ::MIME"text/plain", sol::flux_solution)
+function Base.show(io::IO, ::MIME"text/plain", sol::FluxSolution)
     txt = """
     Qe =  $(sol.ENERGY_FLUX_e)
     Qi =  $(sol.ENERGY_FLUX_i)
@@ -102,7 +102,7 @@ end
 """
     flux_gacode_to_fuse(
         flux_types::Tuple{Vararg{Symbol}},
-        flux_solutions::Vector{<:IMAS.flux_solution},
+        flux_solutions::Vector{<:IMAS.FluxSolution},
         m1d::IMAS.core_transport__model___profiles_1d,
         eqt::IMAS.equilibrium__time_slice,
         cp1d::core_profiles__profiles_1d
@@ -112,7 +112,7 @@ Normalizes specified transport fluxes output by GA code via gyrobohm normalizati
 """
 function flux_gacode_to_fuse(
     flux_types::Tuple{Vararg{Symbol}},
-    flux_solutions::Vector{<:IMAS.flux_solution},
+    flux_solutions::Vector{<:IMAS.FluxSolution},
     m1d::IMAS.core_transport__model___profiles_1d{T},
     eqt::IMAS.equilibrium__time_slice{T},
     cp1d::core_profiles__profiles_1d{T}) where {T<:Real}
