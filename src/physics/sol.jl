@@ -1056,8 +1056,7 @@ function find_strike_points(pr::AbstractVector{T1}, pz::AbstractVector{T1}, wall
     indexes, crossings = intersection(wall_r, wall_z, pr, pz)
     Rxx = [cr[1] for cr in crossings]
     Zxx = [cr[2] for cr in crossings]
-    θxx = intersection_angles(wall_r, wall_z, pr, pz, indexes)
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
+    return (Rxx=Rxx, Zxx=Zxx)
 end
 
 """
@@ -1088,7 +1087,6 @@ function find_strike_points(
 
     Rxx = Float64[]
     Zxx = Float64[]
-    θxx = Float64[]
     dxx = Float64[] # minimum distance between the surface where a strike point is located (both private and encircling) and the last closed surface (encircling)
 
     if !isempty(wall_r)
@@ -1112,7 +1110,7 @@ function find_strike_points(
                 else
                     continue
                 end
-                Rxx_, Zx_, θx_ = find_strike_points(pr, pz, strike_surfaces_r, strike_surfaces_z)
+                Rxx_, Zx_ = find_strike_points(pr, pz, strike_surfaces_r, strike_surfaces_z)
                 # compute dxx
                 dx_, k1, k2 = minimum_distance_polygons_vertices(pr, pz, bnd.r, bnd.z)
 
@@ -1122,7 +1120,6 @@ function find_strike_points(
 
                     Rs = Float64[]
                     Zs = Float64[]
-                    θs = Float64[]
 
                     # inner leg, all points with R < R point
                     index = Rxx_ .<= X[1]
@@ -1130,7 +1127,6 @@ function find_strike_points(
                     if !isempty(dist)
                         append!(Rs, Rxx_[index][argmin(dist)])
                         append!(Zs, Zx_[index][argmin(dist)])
-                        append!(θs, θx_[index][argmin(dist)])
                     end
 
                     # outer leg, all points with R > R point
@@ -1139,37 +1135,32 @@ function find_strike_points(
                     if !isempty(dist)
                         append!(Rs, Rxx_[index][argmin(dist)])
                         append!(Zs, Zx_[index][argmin(dist)])
-                        append!(θs, θx_[index][argmin(dist)])
                     end
 
                     # update with filtered values
                     Rxx_ = Rs
                     Zx_ = Zs
-                    θx_ = θs
                 end
 
                 # save strike-points in clockwise order. Note: from here on, length(Rxx_) = 2
                 if pz[1] > zaxis
                     # upper single null: clockwise means outer than inner
                     Zx_ = Zx_[reverse(sortperm(Rxx_))]
-                    θx_ = θx_[reverse(sortperm(Rxx_))]
                     Rxx_ = Rxx_[reverse(sortperm(Rxx_))]
                 else
                     # lower single null: clockwise means inner than outer
                     Zx_ = Zx_[sortperm(Rxx_)]
-                    θx_ = θx_[sortperm(Rxx_)]
                     Rxx_ = Rxx_[sortperm(Rxx_)]
                 end
 
                 append!(Rxx, Rxx_)
                 append!(Zxx, Zx_)
-                append!(θxx, θx_)
                 append!(dxx, dx_ .* ones(length(Rxx_)))
             end
         end
     end
     indexx = sortperm(dxx) # save in order by dxx
-    return (Rxx=Rxx[indexx], Zxx=Zxx[indexx], θxx=θxx[indexx], dxx=dxx[indexx])
+    return (Rxx=Rxx[indexx], Zxx=Zxx[indexx], dxx=dxx[indexx])
 end
 
 @compat public find_strike_points
@@ -1202,14 +1193,13 @@ function find_strike_points!(
 
     Rxx = Float64[]
     Zxx = Float64[]
-    θxx = Float64[]
     dxx = Float64[]
 
     time = eqt.time
 
     for divertor in dv.divertor
         for target in divertor.target
-            Rxx0, Zxx0, θxx0, dxx0 = find_strike_points(
+            Rxx0, Zxx0, dxx0 = find_strike_points(
                 eqt,
                 wall_r,
                 wall_z,
@@ -1225,7 +1215,6 @@ function find_strike_points!(
             end
             push!(Rxx, Rxx0[1])
             push!(Zxx, Zxx0[1])
-            push!(θxx, θxx0[1])
             push!(dxx, dxx0[1])
             if in_place
                 set_time_array(target.tilt_angle_pol, :data, time, θxx0[1])
@@ -1242,7 +1231,7 @@ function find_strike_points!(
         end
     end
 
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx, dxx=dxx)
+    return (Rxx=Rxx, Zxx=Zxx, dxx=dxx)
 end
 
 """
@@ -1288,7 +1277,7 @@ function find_strike_points!(
     psi_first_open::T3
 ) where {T1<:Real,T2<:Real,T3<:Real}
 
-    Rxx, Zxx, θxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_last_closed, psi_first_open)
+    Rxx, Zxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_last_closed, psi_first_open)
     resize!(eqt.boundary.strike_point, length(Rxx))
     for (k, strike_point) in enumerate(eqt.boundary.strike_point)
         strike_point.r = Rxx[k]
@@ -1296,7 +1285,7 @@ function find_strike_points!(
         strike_point.last_closed_flux_surface_gap = dxx[k]
     end
 
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx, dxx=dxx)
+    return (Rxx=Rxx, Zxx=Zxx, dxx=dxx)
 end
 
 """
@@ -1315,7 +1304,7 @@ function find_strike_points!(
     psi_last_closed::Union{Real,Nothing},
     psi_first_open::Nothing
 ) where {T1<:Real,T2<:Real}
-    return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[], dxx=Float64[])
+    return (Rxx=Float64[], Zxx=Float64[], dxx=Float64[])
 end
 
 @compat public find_strike_points!
