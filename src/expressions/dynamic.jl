@@ -203,7 +203,13 @@ dyexp["equilibrium.time_slice[:].global_quantities.magnetic_axis.z"] =
 
 
 dyexp["equilibrium.time_slice[:].global_quantities.vacuum_toroidal_field.b0"] =
-    (; dd, time_slice, _...) -> get_time_array(dd.pulse_schedule.tf.b_field_tor_vacuum, :reference, time_slice.time, :linear)
+    (; dd, equilibrium, time_slice, _...) -> begin
+        if hasdata(dd.pulse_schedule)
+            return get_time_array(dd.pulse_schedule.tf.b_field_tor_vacuum, :reference, time_slice.time, :linear)
+        else
+            return get_time_array(equilibrium.vacuum_toroidal_field, :b0, time_slice.time, :constant)
+        end
+    end
 
 dyexp["equilibrium.time_slice[:].global_quantities.vacuum_toroidal_field.r0"] =
     (; dd, _...) -> dd.pulse_schedule.tf.r0
