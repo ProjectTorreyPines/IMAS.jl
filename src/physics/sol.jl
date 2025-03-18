@@ -1108,13 +1108,13 @@ function find_strike_points(
                 else
                     continue
                 end
-                Rxx_, Zx_ = find_strike_points(pr, pz, strike_surfaces_r, strike_surfaces_z)
+                Rx_, Zx_ = find_strike_points(pr, pz, strike_surfaces_r, strike_surfaces_z)
                 # compute dxx
                 dx_, k1, _ = minimum_distance_polygons_vertices(pr, pz, bnd.r, bnd.z)
 
                 # We save 2 strike points per surface
                 # if there are more than 2 strike points per surface, filter shadowed strike-points
-                if length(Rxx_) > 2
+                if length(Rx_) > 2
                     # the surface identified by (pr,pz) itersects the wall more than twice,
                     # Retrieve only the segments of (pr,pz) inside the wall
                     ps = Tuple{Float64, Float64}[] 
@@ -1133,7 +1133,7 @@ function find_strike_points(
 
                     if L == 1
                         # only one segment inside wall: strike points found.
-                        Rxx_ = [p[1] for p in ps]
+                        Rx_ = [p[1] for p in ps]
                         Zx_  = [p[2] for p in ps]
                     else
                         # pick point on (pr,pz) closest to boundary (lcfs)
@@ -1146,21 +1146,21 @@ function find_strike_points(
                         # odd positions in ps are starting points of the segment, even position are the end
                         indx = argmin(dist) # index of closest point in ps to X
                         if iseven(indx)
-                            Rxx_ = [ps[indx-1][1], ps[indx][1]]
+                            Rx_ = [ps[indx-1][1], ps[indx][1]]
                             Zx_ = [ps[indx-1][2], ps[indx][2]]
                         else
-                            Rxx_ = [ps[indx][1], ps[indx+1][1]]
+                            Rx_ = [ps[indx][1], ps[indx+1][1]]
                             Zx_ = [ps[indx][2], ps[indx+1][2]]
                         end
                     end
                 end
 
-                # save strike-points in counter-clockwise order. Note: from here on, length(Rxx_) = 2
-                angle = mod.(atan.(Zx_ .- zaxis, Rxx_ .- raxis), 2 * π) # counter-clockwise angle form geom axis
+                # save strike-points in counter-clockwise order. Note: from here on, length(Rx_) = 2
+                angle = mod.(atan.(Zx_ .- zaxis, Rx_ .- raxis), 2 * π) # counter-clockwise angle form geom axis
 
-                append!(Rxx, Rxx_[sortperm(angle)])
+                append!(Rxx, Rx_[sortperm(angle)])
                 append!(Zxx, Zx_[sortperm(angle)])
-                append!(dxx, dx_ .* ones(length(Rxx_)))
+                append!(dxx, dx_ .* ones(length(Rx_)))
             end
         end
     end
