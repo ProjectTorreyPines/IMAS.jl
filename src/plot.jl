@@ -2731,7 +2731,7 @@ end
             continue
         end
 
-        time_value = parent_ids_with_time_array(ids).time
+        time_value = coordinates(ids, :reference).values[1]
         data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> !isinf(x), time_value))) == 1
