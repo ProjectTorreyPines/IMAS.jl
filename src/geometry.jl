@@ -331,8 +331,12 @@ function intersection_split(
                 z[j+1] = getindex_circular(l1_y, ind)
             end
             r[end], z[end] = crossings[kk]
-
-            segments[k] = (r=r, z=z)
+            # if segment is made only of intersections, put a point in the middle of the segment
+            if length(r) == 2
+                segments[k] = (r=[r[1],(r[1] + r[end])/2, r[end]], z=[z[1],(z[1] + z[end])/2, z[end]])
+            else
+                segments[k] = (r=r, z=z)
+            end
         end
     end
 
