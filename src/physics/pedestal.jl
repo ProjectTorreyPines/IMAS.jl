@@ -193,7 +193,7 @@ function blend_core_edge_Lmode(
 )
     @assert rho[end] == 1.0
 
-    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.Brent(); rel_tol=1E-3)
     cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
 
     return profile

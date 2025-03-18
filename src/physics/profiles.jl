@@ -755,7 +755,7 @@ function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
     profile = f.(rho ./ rho_ped) .* (core - ped) .+ ped
     profile[rho_ped_idx:end] .= range(ped, edge, ngrid - rho_ped_idx + 1)
 
-    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, ped, rho_ped), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, ped, rho_ped), -500, 500, Optim.Brent(); rel_tol=1E-3)
     cost_WPED_α!(rho, profile, res.minimizer, ped, rho_ped)
 
     return profile
