@@ -1357,17 +1357,17 @@ push!(document[Symbol("Physics flux-surfaces")], :trace_simple_surfaces!)
 
 
 """
-    trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+    trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; refine_extrema::Bool=true) where {T<:Real}
 
 Trace flux surfaces and returns vector of FluxSurface structures
 """
-function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; refine_extrema::Bool=true) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
     Br, Bz = Br_Bz(eqt2d)
-    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z)
+    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema)
 end
 
 """
@@ -1383,7 +1383,8 @@ end
         RA::T,
         ZA::T,
         wall_r::AbstractVector{T},
-        wall_z::AbstractVector{T}
+        wall_z::AbstractVector{T};
+        refine_extrema::Bool=true
     ) where {T<:Real}
 """
 function trace_surfaces(
@@ -1398,7 +1399,8 @@ function trace_surfaces(
     RA::T,
     ZA::T,
     wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T}
+    wall_z::AbstractVector{T};
+    refine_extrema::Bool=true
 ) where {T<:Real}
 
     N = length(psi)
@@ -1463,7 +1465,7 @@ function trace_surfaces(
             int_fluxexpansion_dl)
     end
 
-    begin
+    if refine_extrema
         N2 = Int(ceil(N / 2))
         algorithm = Optim.NelderMead()
         psi_norm = abs(psi[end] - psi[1]) / N
@@ -1485,16 +1487,17 @@ function trace_surfaces(
         leftright_r, leftright_z = Contour.coordinates(lines[k])
 
         # extrema in R
+        interp_r = interp1d(1:length(leftright_r), leftright_r)
+        interp_z = interp1d(1:length(leftright_z), leftright_z)
         for k in 1:N
             #@show "R", k
             index = _extrema_index(leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r)
             cost =
                 x -> _extrema_cost(
-                    x,
+                    interp_r(x),
+                    interp_z(x),
                     psi[k],
                     PSI_interpolant,
-                    (@view leftright_r[index]),
-                    (@view leftright_z[index]),
                     surfaces[k].max_r,
                     surfaces[k].z_at_max_r,
                     RA,
@@ -1503,15 +1506,15 @@ function trace_surfaces(
                     space_norm,
                     :right
                 )
-            surfaces[k].max_r, surfaces[k].z_at_max_r = Optim.optimize(cost, [surfaces[k].max_r, surfaces[k].z_at_max_r], algorithm; autodiff=:forward).minimizer
+            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
+            surfaces[k].max_r, surfaces[k].z_at_max_r = interp_r(x), interp_z(x)
             index = _extrema_index(leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r)
             cost =
                 x -> _extrema_cost(
-                    x,
+                    interp_r(x),
+                    interp_z(x),
                     psi[k],
                     PSI_interpolant,
-                    (@view leftright_r[index]),
-                    (@view leftright_z[index]),
                     surfaces[k].min_r,
                     surfaces[k].z_at_min_r,
                     RA,
@@ -1520,14 +1523,16 @@ function trace_surfaces(
                     space_norm,
                     :left
                 )
-            min_r, z_at_min_r = Optim.optimize(cost, [surfaces[k].min_r, surfaces[k].z_at_min_r], algorithm; autodiff=:forward).minimizer
+            #plot!(leftright_r[index], leftright_z[index]; label="")
+            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
+            min_r, z_at_min_r = interp_r(x), interp_z(x)
             surfaces[k].min_r, surfaces[k].z_at_min_r = min_r, z_at_min_r
             if k < 3
                 surfaces[k+1].z_at_max_r = ZA
                 surfaces[k+1].z_at_min_r = ZA
             elseif k < N
-                surfaces[k+1].z_at_max_r = surfaces[k].z_at_max_r
-                surfaces[k+1].z_at_min_r = surfaces[k].z_at_min_r
+                surfaces[k+1].z_at_max_r = (surfaces[k+1].z_at_max_r + surfaces[k].z_at_max_r) / 2.0
+                surfaces[k+1].z_at_min_r = (surfaces[k].z_at_min_r + surfaces[k+1].z_at_min_r) / 2.0
             end
         end
 
@@ -1547,16 +1552,17 @@ function trace_surfaces(
         updown_r, updown_z = Contour.coordinates(lines[k])
 
         # extrema in Z
+        interp_r = interp1d(1:length(updown_r), updown_r)
+        interp_z = interp1d(1:length(updown_z), updown_z)
         for k in 1:N
             #@show "Z", k
             index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z)
             cost =
                 x -> _extrema_cost(
-                    x,
+                    interp_r(x),
+                    interp_z(x),
                     psi[k],
                     PSI_interpolant,
-                    (@view updown_r[index]),
-                    (@view updown_z[index]),
                     surfaces[k].r_at_max_z,
                     surfaces[k].max_z,
                     RA,
@@ -1565,15 +1571,15 @@ function trace_surfaces(
                     space_norm,
                     :up
                 )
-            surfaces[k].r_at_max_z, surfaces[k].max_z = Optim.optimize(cost, [surfaces[k].r_at_max_z, surfaces[k].max_z], algorithm; autodiff=:forward).minimizer
+            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
+            surfaces[k].r_at_max_z, surfaces[k].max_z = interp_r(x), interp_z(x)
             index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z)
             cost =
                 x -> _extrema_cost(
-                    x,
+                    interp_r(x),
+                    interp_z(x),
                     psi[k],
                     PSI_interpolant,
-                    (@view updown_r[index]),
-                    (@view updown_z[index]),
                     surfaces[k].r_at_min_z,
                     surfaces[k].min_z,
                     RA,
@@ -1582,13 +1588,15 @@ function trace_surfaces(
                     space_norm,
                     :down
                 )
-            surfaces[k].r_at_min_z, surfaces[k].min_z = Optim.optimize(cost, [surfaces[k].r_at_min_z, surfaces[k].min_z], algorithm; autodiff=:forward).minimizer
+            # plot!(updown_r[index], updown_z[index]; label="")
+            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
+            surfaces[k].r_at_min_z, surfaces[k].min_z = interp_r(x), interp_z(x)
             if k < 3
                 surfaces[k+1].r_at_max_z = RA
                 surfaces[k+1].r_at_min_z = RA
             elseif k < N
-                surfaces[k+1].r_at_max_z = surfaces[k].r_at_max_z
-                surfaces[k+1].r_at_min_z = surfaces[k].r_at_min_z
+                surfaces[k+1].r_at_max_z = (surfaces[k+1].r_at_max_z + surfaces[k].r_at_max_z) / 2.0
+                surfaces[k+1].r_at_min_z = (surfaces[k+1].r_at_min_z + surfaces[k].r_at_min_z) / 2.0
             end
         end
 
@@ -1602,9 +1610,6 @@ function trace_surfaces(
         surfaces[1].max_r = (surfaces[2].max_r - RA) * frac + RA
         surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r .- ZA) .* frac .+ ZA
         surfaces[1].min_r = (surfaces[2].min_r - RA) * frac + RA
-
-        # plot!(leftright_r, leftright_z)
-        # plot!(updown_r, updown_z)
     end
 
     return FluxSurface[surfaces[k] for k in 1:N]
@@ -1614,18 +1619,17 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
 
 function _extrema_index(r, z, r0, Z0)
-    n = 2
+    n = 3
     i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
     return max(1, i - n):min(length(r), i + n)
 end
 
 # accurate geometric quantities by finding geometric extrema as optimization problem
 function _extrema_cost(
-    x::AbstractVector{<:Real},
+    r::T,
+    z::T,
     psi_level::T,
     PSI_interpolant,
-    r_rail::AbstractVector{T},
-    z_rail::AbstractVector{T},
     r_orig::T,
     z_orig::T,
     RA::T,
@@ -1634,23 +1638,21 @@ function _extrema_cost(
     space_norm::T,
     direction::Symbol
 ) where {T<:Real}
-    cost_psi = (PSI_interpolant(x[1], x[2]) - psi_level) / psi_norm * space_norm # convert psi cost into spatial units
-    cost_line = point_to_path_distance(x[1], x[2], r_rail, z_rail)
+    cost_psi = (PSI_interpolant(r, z) - psi_level) / psi_norm * space_norm # convert psi cost into spatial units
     if direction == :right
-        cost_dir = abs(x[1] - r_orig) * (x[1] > r_orig)
-        cost_dir += abs(x[1] - RA) * (x[1] < RA) # extra penalty needed for flux surfaces near axis
+        cost_dir = abs(r - r_orig) * (r > r_orig)
+        cost_dir += abs(r - RA) * (r < RA) # extra penalty needed for flux surfaces near axis
     elseif direction == :left
-        cost_dir = abs(x[1] - r_orig) * (x[1] < r_orig)
-        cost_dir += abs(x[1] - RA) * (x[1] > RA)
+        cost_dir = abs(r - r_orig) * (r < r_orig)
+        cost_dir += abs(r - RA) * (r > RA)
     elseif direction == :up
-        cost_dir = abs(x[2] - z_orig) * (x[2] > z_orig)
-        cost_dir += abs(x[2] - ZA) * (x[2] < ZA)
+        cost_dir = abs(z - z_orig) * (z > z_orig)
+        cost_dir += abs(z - ZA) * (z < ZA)
     elseif direction == :down
-        cost_dir = abs(x[2] - z_orig) * (x[2] < z_orig)
-        cost_dir += abs(x[2] - ZA) * (x[2] > ZA)
+        cost_dir = abs(z - z_orig) * (z < z_orig)
+        cost_dir += abs(z - ZA) * (z > ZA)
     end
-    #@show x, cost_line, cost_psi, cost_dir
-    cost = norm((cost_psi, cost_line^2, cost_dir^2)) # linear in psi since it already varies quadratically in space
+    cost = norm((cost_psi, cost_dir^2)) # linear in psi since it already varies quadratically in space
     return cost
 end
 
