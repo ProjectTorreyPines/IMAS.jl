@@ -808,8 +808,8 @@ Poloidal magnetic field magnitude evaluated at the outer midplane
 """
 function Bpol_omp(eqt::IMAS.equilibrium__time_slice)
     _, _, PSI_interpolant = ψ_interpolant(eqt.profiles_2d)
-    eq1d = eqt.profiles_1d
-    R_omp = eq1d.r_outboard[end]
+    eqt1d = eqt.profiles_1d
+    R_omp = eqt1d.r_outboard[end]
     Z_omp = eqt.global_quantities.magnetic_axis.z
     return Bp(PSI_interpolant, R_omp, Z_omp)
 end
@@ -908,9 +908,9 @@ end
     widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
 """
 function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
-    eq1d = eqt.profiles_1d
-    R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
-    a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
+    eqt1d = eqt.profiles_1d
+    R0 = (eqt1d.r_outboard[end] .+ eqt1d.r_inboard[end]) / 2.0
+    a = (eqt1d.r_outboard[end] .- eqt1d.r_inboard[end])
     Psol = power_sol(core_sources, cp1d)
     ne_ped = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
     return widthSOL_sieglin(R0, a, Bpol_omp(eqt), Psol, ne_ped)
@@ -944,9 +944,9 @@ end
     widthSOL_eich(eqt::IMAS.equilibrium__time_slice, Psol::Real)
 """
 function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, Psol::Real)
-    eq1d = eqt.profiles_1d
-    R0 = (eq1d.r_outboard[end] .+ eq1d.r_inboard[end]) / 2.0
-    a = (eq1d.r_outboard[end] .- eq1d.r_inboard[end])
+    eqt1d = eqt.profiles_1d
+    R0 = (eqt1d.r_outboard[end] .+ eqt1d.r_inboard[end]) / 2.0
+    a = (eqt1d.r_outboard[end] .- eqt1d.r_inboard[end])
     return widthSOL_eich(R0, a, Bpol_omp(eqt), Psol)
 end
 
@@ -974,8 +974,8 @@ push!(document[Symbol("Physics sol")], :widthSOL_eich)
 Poloidal heat flux [W/m²] at the outer midplane based on Eich λ_q
 """
 function q_pol_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
-    eq1d = eqt.profiles_1d
-    R_omp = eq1d.r_outboard[end]
+    eqt1d = eqt.profiles_1d
+    R_omp = eqt1d.r_outboard[end]
     Psol = power_sol(core_sources, cp1d)
     channel_area = 2π * R_omp * widthSOL_eich(eqt, cp1d, core_sources)
     return Psol / channel_area
@@ -997,9 +997,9 @@ push!(document[Symbol("Physics sol")], :q_pol_omp_eich)
 Parallel heat flux [W/m²] at the outer midplane based on Eich λ_q
 """
 function q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
-    eq1d = eqt.profiles_1d
+    eqt1d = eqt.profiles_1d
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
-    R_omp = eq1d.r_outboard[end]
+    R_omp = eqt1d.r_outboard[end]
     Bt_omp = B0 * R0 / R_omp
     return q_pol_omp_eich(eqt, cp1d, core_sources) / sin(atan(Bpol_omp(eqt) / Bt_omp))
 end
