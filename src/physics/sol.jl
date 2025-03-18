@@ -1178,7 +1178,7 @@ push!(document[Symbol("Physics sol")], :find_strike_points)
         in_place::Bool=true
     ) where {T1<:Real,T2<:Real,T3<:Real}
 
-Adds strike points location to equilibrium IDS and the tilt_angle_pol in the divertors IDS
+Adds strike points location to equilibrium IDS 
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
@@ -1194,8 +1194,6 @@ function find_strike_points!(
     Rxx = Float64[]
     Zxx = Float64[]
     dxx = Float64[]
-
-    time = eqt.time
 
     for divertor in dv.divertor
         for target in divertor.target
@@ -1216,9 +1214,6 @@ function find_strike_points!(
             push!(Rxx, Rxx0[1])
             push!(Zxx, Zxx0[1])
             push!(dxx, dxx0[1])
-            if in_place
-                set_time_array(target.tilt_angle_pol, :data, time, θxx0[1])
-            end
         end
     end
 
