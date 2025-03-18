@@ -1876,7 +1876,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # secondary separatrix
     if length(eqt.boundary.x_point) > 1
-        psi2nd = find_psi_2nd_separatrix(eqt).not_diverted
+        psi2nd = find_psi_2nd_separatrix(eqt).diverted
         pts = flux_surface(r, z, eqt2d.psi, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
         if !isempty(pts)
             eqt.boundary_secondary_separatrix.outline.r = pts[1][1]
