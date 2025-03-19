@@ -830,7 +830,8 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
     ne_volume = trapz(cp1d.grid.volume, cp1d.electrons.density_thermal) / cp1d.grid.volume[end] / 1E20
     Rgeo = eqt.boundary.geometric_axis.r
     ageo = eqt.boundary.minor_radius
-    ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * ageo ^-0.95 * (Rgeo / ageo)^0.4
+    ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * ageo ^-0.95 * (Rgeo / ageo)^0.4 # in 1e19 m^-3
+    ne_min *= 0.1 # [10^20 m⁻³]
     ne_volume = max(ne_min, ne_volume)
 
     surface_area = eqt.profiles_1d.surface[end]
