@@ -521,68 +521,67 @@ dyexp["balance_of_plant.power_electric_plant_operation.total_power"] =
 #= ========= =#
 #  divertors  #
 #= ========= =#
+dyexp["divertors.divertor[:].power_black_body.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_black_body)[1]
+
 dyexp["divertors.divertor[:].power_black_body.data"] =
-    (time; divertor, power_black_body, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_black_body)
-        power_black_body.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_black_body)[2]
+
+
+dyexp["divertors.divertor[:].power_conducted.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_conducted)[1]
 
 dyexp["divertors.divertor[:].power_conducted.data"] =
-    (time; divertor, power_conducted, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_conducted)
-        power_conducted.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_conducted)[2]
+
+
+dyexp["divertors.divertor[:].power_convected.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_convected)[1]
 
 dyexp["divertors.divertor[:].power_convected.data"] =
-    (time; divertor, power_convected, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_convected)
-        power_convected.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_convected)[2]
+
+
+dyexp["divertors.divertor[:].power_currents.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_currents)[1]
 
 dyexp["divertors.divertor[:].power_currents.data"] =
-    (time; divertor, power_currents, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_currents)
-        power_currents.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_currents)[2]
+
+
+dyexp["divertors.divertor[:].power_incident.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_incident)[1]
 
 dyexp["divertors.divertor[:].power_incident.data"] =
-    (time; divertor, power_incident, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_incident)
-        power_incident.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_incident)[2]
+
 
 dyexp["divertors.divertor[:].power_neutrals.data"] =
-    (time; divertor, power_neutrals, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_neutrals)
-        power_neutrals.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_neutrals)[1]
+
+dyexp["divertors.divertor[:].power_neutrals.data"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_neutrals)[2]
+
+
+dyexp["divertors.divertor[:].power_radiated.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_radiated)[1]
 
 dyexp["divertors.divertor[:].power_radiated.data"] =
-    (time; divertor, power_radiated, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_radiated)
-        power_radiated.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_radiated)[2]
+
+
+dyexp["divertors.divertor[:].power_recombination_neutrals.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_neutrals)[1]
 
 dyexp["divertors.divertor[:].power_recombination_neutrals.data"] =
-    (time; divertor, power_recombination_neutrals, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_recombination_neutrals)
-        power_recombination_neutrals.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_neutrals)[2]
+
+
+dyexp["divertors.divertor[:].power_recombination_plasma.time"] =
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_plasma)[1]
 
 dyexp["divertors.divertor[:].power_recombination_plasma.data"] =
-    (time; divertor, power_recombination_plasma, _...) -> begin
-        tmp = divertor_totals_from_targets(divertor, :power_recombination_plasma)
-        power_recombination_plasma.time = tmp[1]
-        return tmp[2]
-    end
+    (time; divertor, _...) -> divertor_totals_from_targets(divertor, :power_recombination_plasma)[2]
 
 #= ============== =#
 #  pulse_schedule  #
@@ -608,10 +607,10 @@ dyexp["pulse_schedule.tf.r0"] =
     (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
 
 dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
-    (time; dd, pulse_schedule, _...) -> begin
-        pulse_schedule.tf.time = dd.equilibrium.time
-        dd.equilibrium.vacuum_toroidal_field.b0
-end
+    (time; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.b0
+
+dyexp["pulse_schedule.tf.time"] =
+    (time; dd, _...) -> dd.equilibrium.time
 
 dyexp["pulse_schedule.nbi.power.reference"] = 
     (time; nbi, _...) -> sum(unit.power.reference for unit in nbi.unit)
