@@ -47,13 +47,12 @@ function rho_s(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__tim
 end
 
 """
-    r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
+    r_min_core_profiles(eqt::IMAS.equilibrium__time_slice, rho_tor_norm::AbstractVector)
 
 Geometric minor radius in [cm] evaluated
 """
-function r_min_core_profiles(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice)
-    eq1d = eqt.profiles_1d
-    return interp1d(eq1d.rho_tor_norm, cgs.m_to_cm * 0.5 * (eq1d.r_outboard - eq1d.r_inboard)).(cp1d.grid.rho_tor_norm)
+function r_min_core_profiles(eqt1d::IMAS.equilibrium__time_slice___profiles_1d, rho_tor_norm::AbstractVector)
+    return interp1d(eqt1d.rho_tor_norm, cgs.m_to_cm * 0.5 * (eqt1d.r_outboard - eqt1d.r_inboard)).(rho_tor_norm)
 end
 
 ##### Gyrobohm normalizations from gacode
