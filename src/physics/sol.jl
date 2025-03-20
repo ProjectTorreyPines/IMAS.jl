@@ -182,7 +182,7 @@ function sol(
     end
 
     # find psi at second magnetic separatrix
-    psi__2nd_separatix = find_psi_2nd_separatrix(eqt; type=:not_diverted) # find psi at 2nd magnetic separatrix
+    psi__2nd_separatix = find_psi_2nd_separatrix(eqt).not_diverted # find psi at 2nd magnetic separatrix
     psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     psi_max = find_psi_max(eqt)
 
@@ -351,7 +351,7 @@ function find_levels_from_P(
     end
 
     psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open # psi at LCFS
-    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt; type=:not_diverted) # psi of the second magnetic separatrix
+    psi_2ndseparatrix = find_psi_2nd_separatrix(eqt).not_diverted # psi of the second magnetic separatrix
     if psi_sign > 0
         r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix
         r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
@@ -1056,8 +1056,7 @@ function find_strike_points(pr::AbstractVector{T1}, pz::AbstractVector{T1}, wall
     indexes, crossings = intersection(wall_r, wall_z, pr, pz)
     Rxx = [cr[1] for cr in crossings]
     Zxx = [cr[2] for cr in crossings]
-    θxx = intersection_angles(wall_r, wall_z, pr, pz, indexes)
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx)
+    return (Rxx=Rxx, Zxx=Zxx)
 end
 
 """
@@ -1088,17 +1087,14 @@ function find_strike_points(
 
     Rxx = Float64[]
     Zxx = Float64[]
-    θxx = Float64[]
     dxx = Float64[] # minimum distance between the surface where a strike point is located (both private and encircling) and the last closed surface (encircling)
 
     if !isempty(wall_r)
         # find separatrix as first surface in SOL, not in private region
         if psi_first_open !== nothing
             bnd = flux_surface(eqt, psi_last_closed, :closed, wall_r, wall_z)[1]
-            sep = flux_surface(eqt, psi_last_closed, :open, wall_r, wall_z)
-            if isempty(sep)
-                sep = flux_surface(eqt, psi_first_open, :open, wall_r, wall_z)
-            end
+            sep = flux_surface(eqt, psi_first_open, :any, Float64[], Float64[])
+            raxis = eqt.boundary.geometric_axis.r
             zaxis = eqt.boundary.geometric_axis.z
             for (pr, pz) in sep
                 if isempty(pr)
@@ -1112,64 +1108,64 @@ function find_strike_points(
                 else
                     continue
                 end
-                Rxx_, Zx_, θx_ = find_strike_points(pr, pz, strike_surfaces_r, strike_surfaces_z)
+                Rx_, Zx_ = find_strike_points(pr, pz, strike_surfaces_r, strike_surfaces_z)
                 # compute dxx
-                dx_, k1, k2 = minimum_distance_polygons_vertices(pr, pz, bnd.r, bnd.z)
+                dx_, k1, _ = minimum_distance_polygons_vertices(pr, pz, bnd.r, bnd.z)
 
+                # We save 2 strike points per surface
                 # if there are more than 2 strike points per surface, filter shadowed strike-points
-                if length(Rxx_) > 2
-                    X = (pr[k1], pz[k1])
-
-                    Rs = Float64[]
-                    Zs = Float64[]
-                    θs = Float64[]
-
-                    # inner leg, all points with R < R point
-                    index = Rxx_ .<= X[1]
-                    dist = (Rxx_[index] .- X[1]) .^ 2 .+ (Zx_[index] .- X[2]) .^ 2  #pick closest
-                    if !isempty(dist)
-                        append!(Rs, Rxx_[index][argmin(dist)])
-                        append!(Zs, Zx_[index][argmin(dist)])
-                        append!(θs, θx_[index][argmin(dist)])
+                if length(Rx_) > 2
+                    # the surface identified by (pr,pz) itersects the wall more than twice,
+                    # Retrieve only the segments of (pr,pz) inside the wall
+                    ps = Tuple{Float64, Float64}[] 
+                    fw = collect(zip(wall_r, wall_z))      
+                    segments = intersection_split(pr, pz, wall_r, wall_z)
+                    for segment in segments
+                        # we retain only segments that are within the wall (disregard the extrema)
+                        if length(segment.r) > 2 && PolygonOps.inpolygon((segment.r[2], segment.z[2]), fw) == 1
+                            # save intersections of each segment
+                            push!(ps, (segment.r[1]  ,segment.z[1]))
+                            push!(ps, (segment.r[end],segment.z[end]))
+                        end
                     end
+                    # how many segments inside the wall are found?
+                    L = length(ps)/2
 
-                    # outer leg, all points with R > R point
-                    index = Rxx_ .>= X[1]
-                    dist = (Rxx_[index] .- X[1]) .^ 2 .+ (Zx_[index] .- X[2]) .^ 2  #pick closest
-                    if !isempty(dist)
-                        append!(Rs, Rxx_[index][argmin(dist)])
-                        append!(Zs, Zx_[index][argmin(dist)])
-                        append!(θs, θx_[index][argmin(dist)])
+                    if L == 1
+                        # only one segment inside wall: strike points found.
+                        Rx_ = [p[1] for p in ps]
+                        Zx_  = [p[2] for p in ps]
+                    else
+                        # pick point on (pr,pz) closest to boundary (lcfs)
+                        X = [pr[k1], pz[k1]]
+                        # pick segment with intersections closest to X
+                        dist = Vector{Float64}(undef,Int(2*L))
+                        for (k,point) in enumerate(ps)
+                            dist[k] = sqrt((point[1]-X[1])^2 + (point[2]-X[2])^2)
+                        end
+                        # odd positions in ps are starting points of the segment, even position are the end
+                        indx = argmin(dist) # index of closest point in ps to X
+                        if iseven(indx)
+                            Rx_ = [ps[indx-1][1], ps[indx][1]]
+                            Zx_ = [ps[indx-1][2], ps[indx][2]]
+                        else
+                            Rx_ = [ps[indx][1], ps[indx+1][1]]
+                            Zx_ = [ps[indx][2], ps[indx+1][2]]
+                        end
                     end
-
-                    # update with filtered values
-                    Rxx_ = Rs
-                    Zx_ = Zs
-                    θx_ = θs
                 end
 
-                # save strike-points in clockwise order. Note: from here on, length(Rxx_) = 2
-                if pz[1] > zaxis
-                    # upper single null: clockwise means outer than inner
-                    Zx_ = Zx_[reverse(sortperm(Rxx_))]
-                    θx_ = θx_[reverse(sortperm(Rxx_))]
-                    Rxx_ = Rxx_[reverse(sortperm(Rxx_))]
-                else
-                    # lower single null: clockwise means inner than outer
-                    Zx_ = Zx_[sortperm(Rxx_)]
-                    θx_ = θx_[sortperm(Rxx_)]
-                    Rxx_ = Rxx_[sortperm(Rxx_)]
-                end
+                # save strike-points in counter-clockwise order. Note: from here on, length(Rx_) = 2
+                angle = mod.(atan.(Zx_ .- zaxis, Rx_ .- raxis), 2 * π) # counter-clockwise angle form geom axis
 
-                append!(Rxx, Rxx_)
-                append!(Zxx, Zx_)
-                append!(θxx, θx_)
-                append!(dxx, dx_ .* ones(length(Rxx_)))
+                append!(Rxx, Rx_[sortperm(angle)])
+                append!(Zxx, Zx_[sortperm(angle)])
+                append!(dxx, dx_ .* ones(length(Rx_)))
             end
         end
     end
     indexx = sortperm(dxx) # save in order by dxx
-    return (Rxx=Rxx[indexx], Zxx=Zxx[indexx], θxx=θxx[indexx], dxx=dxx[indexx])
+    return (Rxx=Rxx[indexx], Zxx=Zxx[indexx], dxx=dxx[indexx])
 end
 
 @compat public find_strike_points
@@ -1187,7 +1183,7 @@ push!(document[Symbol("Physics sol")], :find_strike_points)
         in_place::Bool=true
     ) where {T1<:Real,T2<:Real,T3<:Real}
 
-Adds strike points location to equilibrium IDS and the tilt_angle_pol in the divertors IDS
+Adds strike points location to equilibrium IDS 
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
@@ -1202,14 +1198,11 @@ function find_strike_points!(
 
     Rxx = Float64[]
     Zxx = Float64[]
-    θxx = Float64[]
     dxx = Float64[]
-
-    time = eqt.time
 
     for divertor in dv.divertor
         for target in divertor.target
-            Rxx0, Zxx0, θxx0, dxx0 = find_strike_points(
+            Rxx0, Zxx0, dxx0 = find_strike_points(
                 eqt,
                 wall_r,
                 wall_z,
@@ -1225,11 +1218,7 @@ function find_strike_points!(
             end
             push!(Rxx, Rxx0[1])
             push!(Zxx, Zxx0[1])
-            push!(θxx, θxx0[1])
             push!(dxx, dxx0[1])
-            if in_place
-                set_time_array(target.tilt_angle_pol, :data, time, θxx0[1])
-            end
         end
     end
 
@@ -1242,7 +1231,7 @@ function find_strike_points!(
         end
     end
 
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx, dxx=dxx)
+    return (Rxx=Rxx, Zxx=Zxx, dxx=dxx)
 end
 
 """
@@ -1288,7 +1277,7 @@ function find_strike_points!(
     psi_first_open::T3
 ) where {T1<:Real,T2<:Real,T3<:Real}
 
-    Rxx, Zxx, θxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_last_closed, psi_first_open)
+    Rxx, Zxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_last_closed, psi_first_open)
     resize!(eqt.boundary.strike_point, length(Rxx))
     for (k, strike_point) in enumerate(eqt.boundary.strike_point)
         strike_point.r = Rxx[k]
@@ -1296,7 +1285,7 @@ function find_strike_points!(
         strike_point.last_closed_flux_surface_gap = dxx[k]
     end
 
-    return (Rxx=Rxx, Zxx=Zxx, θxx=θxx, dxx=dxx)
+    return (Rxx=Rxx, Zxx=Zxx, dxx=dxx)
 end
 
 """
@@ -1315,7 +1304,7 @@ function find_strike_points!(
     psi_last_closed::Union{Real,Nothing},
     psi_first_open::Nothing
 ) where {T1<:Real,T2<:Real}
-    return (Rxx=Float64[], Zxx=Float64[], θxx=Float64[], dxx=Float64[])
+    return (Rxx=Float64[], Zxx=Float64[], dxx=Float64[])
 end
 
 @compat public find_strike_points!

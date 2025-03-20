@@ -82,7 +82,9 @@ function particle_heat_flux(
 
     q_interp = interp1d(r, q, :cubic)
 
-    if eqt.boundary.x_point[1].z < ZA
+    # to determine if upper or lower single null, check if Z(strike_point) < Z(axis)
+    # SOL[:lfs][1] = LCFS
+    if SOL[:lfs][1].z[1]< ZA
         case = :lower
     else
         case = :upper
@@ -504,7 +506,9 @@ function mesher_heat_flux(dd::IMAS.dd;
     Zwall = Float64[]
     indexes = Int64[]
 
-    if eqt.boundary.x_point[1].z < Z0
+    # to determine if upper or lower single null, check if Z(strike_point) < Z(axis)
+    # SOL[:lfs][1] = LCFS
+    if SOL[:lfs][1].z[1]< Z0 
         case = :lower
     else
         case = :upper
