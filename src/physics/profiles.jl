@@ -482,24 +482,6 @@ end
 push!(document[Symbol("Physics profiles")], :tau_e_ds03)
 
 """
-    bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
-
-Calculate bunit from equilibrium
-"""
-function bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
-    rmin = 0.5 .* (eqt1d.r_outboard .- eqt1d.r_inboard)
-    phi = eqt1d.phi
-    return gradient(2π * rmin, phi) ./ rmin
-end
-
-function bunit(eqt::IMAS.equilibrium__time_slice)
-    return bunit(eqt.profiles_1d)
-end
-
-@compat public bunit
-push!(document[Symbol("Physics profiles")], :bunit)
-
-"""
     greenwald_density(eqt::IMAS.equilibrium__time_slice)
 
 Simple greenwald line-averaged density limit
