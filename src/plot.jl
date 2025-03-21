@@ -2717,7 +2717,8 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps), simulation_start=nothing)
+const UnionPulseScheduleSubIDSs = Union{IMAS.pulse_schedule,fieldtypes(IMAS.pulse_schedule)...}
+@recipe function plot_ps(ps::UnionPulseScheduleSubIDSs; time0=global_time(ps), simulation_start=nothing)
     id = recipe_dispatch(ps)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Union{Nothing,Float64}, "Simulation start time"; simulation_start)
@@ -2765,48 +2766,25 @@ end
         push!(plots, plt)
     end
 
-    layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1200, 1200)
 
-    if !isempty(ps.position_control)
+    if typeof(ps) <: IMAS.pulse_schedule && !isempty(ps.position_control) || typeof(ps) <: IMAS.pulse_schedule__position_control
+        plot_offset = 1
+        layout := RecipesBase.@layout [length(plots) + plot_offset]
         @series begin
             subplot := 1
             label := "$(time0) [s]"
             aspect_ratio := :equal
             time0 := time0
-            ps.position_control
+            if typeof(ps) <: IMAS.pulse_schedule
+                ps.position_control, nothing
+            else
+                ps, nothing
+            end
         end
-    end
-
-    eqt = try
-        top_dd(ps).equilibrium.time_slice[time0]
-    catch
-        nothing
-    end
-    if eqt !== nothing
-        @series begin
-            subplot := 1
-            legend := false
-            cx := true
-            alpha := 0.2
-            color := :gray
-            eqt
-        end
-    end
-
-    wall = try
-        top_dd(ps).wall
-    catch
-        nothing
-    end
-    if wall !== nothing
-        @series begin
-            show_limiter := true
-            show_vessel := false
-            subplot := 1
-            legend := false
-            wall
-        end
+    else
+        plot_offset = 0
+        layout := RecipesBase.@layout [length(plots)]
     end
 
     # plotting at infinity does not show
@@ -2825,13 +2803,13 @@ end
         y = plt[:y]
         n = min(length(x), length(y))
         @series begin
-            subplot := k + 1
+            subplot := k + plot_offset
             label := ""
             x[1:n], y[1:n]
         end
         if simulation_start !== nothing
             @series begin
-                subplot := k + 1
+                subplot := k + plot_offset
                 primary := false
                 seriestype := :vline
                 linestyle := :dash
@@ -2839,7 +2817,7 @@ end
             end
         end
         @series begin
-            subplot := k + 1
+            subplot := k + plot_offset
             seriestype := :scatter
             primary := false
             marker := :circle
@@ -2852,7 +2830,7 @@ end
     end
 end
 
-@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control, ::Nothing; time0=global_time(pc))
     id = recipe_dispatch(pc)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     aspect_ratio := :equal
@@ -2888,6 +2866,36 @@ end
             [RA], [ZA]
         end
     end
+
+    eqt = try
+        top_dd(pc).equilibrium.time_slice[time0]
+    catch
+        nothing
+    end
+    if eqt !== nothing
+        @series begin
+            legend := false
+            cx := true
+            alpha := 0.2
+            color := :gray
+            eqt
+        end
+    end
+
+    wall = try
+        top_dd(pc).wall
+    catch
+        nothing
+    end
+    if wall !== nothing
+        @series begin
+            show_limiter := true
+            show_vessel := false
+            legend := false
+            wall
+        end
+    end
+
 end
 
 #= =========== =#
