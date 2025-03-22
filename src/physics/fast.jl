@@ -555,7 +555,7 @@ Routine pulled from freya_fsgxn.f90
 
   - `atw`: Beam mass [AMU]
   - `e`: Beam energy divided by beam mass  [eV/AMU]
-  - `zni`: Plasma ion density [cm^-3]
+  - `zni`: Plasma ion density [m^-3]
 """
 function imfp_charge_exchange(atw::Real, e::Real, zni::Real)
     if atw > 3.01
@@ -564,7 +564,7 @@ function imfp_charge_exchange(atw::Real, e::Real, zni::Real)
         aloge = log10(e)
         sigcx = (0.6937e-14 * (1.0 - 0.155 * aloge)^2 / (1.0 + 0.1112e-14 * e^3.3))
     end
-    return 1e2 * sigcx * zni
+    return 1e2 * sigcx * (zni * 1e-6)
 end
 
 """
@@ -576,7 +576,7 @@ Routine pulled from freya_fsgxn.f90
 
   - `atw`: beam mass [AMU]
   - `eova`: Beam energy divided by beam mass  [eV/AMU]
-  - `zni`: Plasma ion density [cm^-3]
+  - `zni`: Plasma ion density [m^-3]
   - `zzi`: Plasma ion charge [AMU]
 """
 function imfp_ion_collisions(atw::Real, eova::Real, zni::Real, zzi::Real)
@@ -591,10 +591,10 @@ function imfp_ion_collisions(atw::Real, eova::Real, zni::Real, zzi::Real)
                       cfionp[4]) * aloge + cfionp[3]) * aloge + cfionp[2]) * aloge + cfionp[1]
             sigi = exp(expo)
         end
-        return 1e2 * sigi * zni
+        return 1e2 * sigi * (zni * 1e-6)
     else
         ekev = 1.0e-3 * eova
-        return 1e2 * 1.0e-17 * zni * 46.0 * zzi * (32.0 * zzi / ekev) * (1.0 - exp(-ekev / (32.0 * zzi)))
+        return 1e2 * 1.0e-17 * (zni * 1e-6) * 46.0 * zzi * (32.0 * zzi / ekev) * (1.0 - exp(-ekev / (32.0 * zzi)))
     end
 end
 
@@ -605,9 +605,9 @@ Evaluates local inverse mean free path for electron impact ionization.
 
 Routine pulled from freya_fsgxn.f90
 
-  - `vb`: Velocity of neutral beam [cm]
+  - `vb`: Velocity of neutral beam [m/s]
   - `te`: Electron temperature [eV]
-  - `zne`: Electron density [cm^-3]
+  - `zne`: Electron density [m^-3]
 """
 function imfp_electron_collisions(vb::Real, te::Real, zne::Real)
     cfione = (-3.173850e+01, 1.143818e+01, -3.833998, 0.7046692, -0.07431486, 0.004153749, -9.486967e-05)
@@ -619,7 +619,7 @@ function imfp_electron_collisions(vb::Real, te::Real, zne::Real)
               +
               cfione[4]) * alogt + cfione[3]) * alogt + cfione[2]) * alogt + cfione[1]
 
-    return 1e2 * exp(expo) * zne / vb
+    return 1e2 * exp(expo) * (zne * 1e-6) / (vb * 1E2)
 end
 
 """
