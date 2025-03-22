@@ -144,11 +144,11 @@ function find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector
 
     # advance particles until they hit the wall
     for p in particles
-        ti = toroidal_intersection(rwall, zwall, p.x, p.y, p.z, p.δvx, p.δvy, p.δvz)
+        ti = toroidal_intersections(rwall, zwall, p.x, p.y, p.z, p.δvx, p.δvy, p.δvz).t1
 
-        if ti == Inf
+        if ti == NaN
             @show p
-            error("Infinity while moving particles")
+            error("No intersection found while moving particles")
         end
 
         p.x += p.δvx * ti
@@ -288,7 +288,7 @@ push!(document[Symbol("Physics particles")], :find_flux)
 
 Compute the time of intersection between a moving particle and a toroidal surface defined by two points `(r1, z1)` and `(r2, z2)`.
 
-Returns the smallest positive time at which the particle intersects the surface segment. Returns `Inf` if no valid intersection occurs.
+Returns the smallest positive time at which the particle intersects the surface segment. Returns `NaN` if no valid intersection occurs.
 
   - `r1`, `z1`: Coordinates of the first endpoint of the toroidal surface segment.
   - `r2`, `z2`: Coordinates of the second endpoint of the toroidal surface segment.
@@ -362,22 +362,28 @@ function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, px::Real,
         end
     end
 
+    if t == Inf
+        t = NaN
+    end
     return t
 end
 
+@compat public toroidal_intersection
+push!(document[Symbol("Physics particles")], :toroidal_intersection)
+
 """
-    toroidal_intersection(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
+    toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
 
 Compute the time of intersection between a moving particle and a wall
 
-Returns the smallest positive time at which the particle intersects the surface segment. Returns `Inf` if no valid intersection occurs.
+Returns the smallest and largest positive times at which the particle intersects the surface segment.
 
   - `wallr`: Vector with r coordinates of the wall (must be closed)
   - `wallz`: Vector with z coordinates of the wall (must be closed)
   - `px`, `py`, `pz`: Current position of the particle in Cartesian coordinates.
   - `vx`, `vy`, `vz`: Velocity components of the particle
 """
-function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
+function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real, n_intersect::Int=1) where {T<:Real}
     Nw = length(wallr)
 
     v2 = vx^2 + vy^2
@@ -394,7 +400,8 @@ function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py:
         rmin = sqrt(rmin2)
     end
 
-    ti = Inf
+    t_first = Inf
+    t_last = -Inf
     @inbounds for k in eachindex(wallr)
         rw1 = wallr[k]
         zw1 = wallz[k]
@@ -418,33 +425,38 @@ function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py:
         (rw1 < rmin && rw2 < rmin) && continue
 
         t = toroidal_intersection(rw1, zw1, rw2, zw2, px, py, pz, vx, vy, vz, v2, vz2)
-        if t < ti
-            ti = t
+        if t == NaN
+            continue
+        end
+        if t < t_first
+            t_first = t
+        end
+        if t > t_last
+            t_last = t
         end
     end
-
-    return ti
+    return (t_first = t_first, t_last=t_last)
 end
 
 """
-    toroidal_intersection(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
+    toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
 
 Compute the time of intersection between a moving particle and a wall
 
-Returns the smallest positive time at which the particle intersects the surface segment. Returns `Inf` if no valid intersection occurs.
+Returns the smallest and largest positive times at which the particle intersects the surface segment.
 
   - `wallr`: Vector with r coordinates of the wall (must be closed)
   - `wallz`: Vector with z coordinates of the wall (must be closed)
   - `px`, `py`, `pz`: Current position of the particle in Cartesian coordinates.
   - `pol_angle`, `tor_angle`: poloidal and toroidal angles of injection
 """
-function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, pol_angle::Real, tor_angle::Real) where {T<:Real}
+function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, pol_angle::Real, tor_angle::Real) where {T<:Real}
     vx, vy, vz = pol_tor_angles_2_vector(pol_angle, tor_angle)
-    return toroidal_intersection(wallr, wallz, px, py, pz, vx, vy, vz)
+    return toroidal_intersections(wallr, wallz, px, py, pz, vx, vy, vz)
 end
 
-@compat public toroidal_intersection
-push!(document[Symbol("Physics particles")], :toroidal_intersection)
+@compat public toroidal_intersections
+push!(document[Symbol("Physics particles")], :toroidal_intersections)
 
 """
     pol_tor_angles_2_vector(pol_angle::T, tor_angle::T) where {T<:Real}
