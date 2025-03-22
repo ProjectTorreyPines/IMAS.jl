@@ -2717,8 +2717,8 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-const UnionPulseScheduleSubIDSs = Union{IMAS.pulse_schedule,fieldtypes(IMAS.pulse_schedule)...}
-@recipe function plot_ps(ps::UnionPulseScheduleSubIDSs; time0=global_time(ps), simulation_start=nothing)
+const UnionPulseScheduleSubIDS = Union{IMAS.pulse_schedule,(tp for tp in fieldtypes(IMAS.pulse_schedule) if tp <: IDS)...}
+@recipe function plot_ps(ps::UnionPulseScheduleSubIDS; time0=global_time(ps), simulation_start=nothing)
     id = recipe_dispatch(ps)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Union{Nothing,Float64}, "Simulation start time"; simulation_start)
