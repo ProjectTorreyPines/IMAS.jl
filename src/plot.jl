@@ -2782,6 +2782,34 @@ const UnionPulseScheduleSubIDS = Union{IMAS.pulse_schedule,(tp for tp in fieldty
                 ps, nothing
             end
         end
+        eqt = try
+            top_dd(pc).equilibrium.time_slice[time0]
+        catch
+            nothing
+        end
+        if eqt !== nothing
+            @series begin
+                legend := false
+                cx := true
+                alpha := 0.2
+                color := :gray
+                eqt
+            end
+        end
+    
+        wall = try
+            top_dd(pc).wall
+        catch
+            nothing
+        end
+        if wall !== nothing
+            @series begin
+                show_limiter := true
+                show_vessel := false
+                legend := false
+                wall
+            end
+        end
     else
         plot_offset = 0
         layout := RecipesBase.@layout [length(plots)]
@@ -2866,36 +2894,6 @@ end
             [RA], [ZA]
         end
     end
-
-    eqt = try
-        top_dd(pc).equilibrium.time_slice[time0]
-    catch
-        nothing
-    end
-    if eqt !== nothing
-        @series begin
-            legend := false
-            cx := true
-            alpha := 0.2
-            color := :gray
-            eqt
-        end
-    end
-
-    wall = try
-        top_dd(pc).wall
-    catch
-        nothing
-    end
-    if wall !== nothing
-        @series begin
-            show_limiter := true
-            show_vessel := false
-            legend := false
-            wall
-        end
-    end
-
 end
 
 #= =========== =#
