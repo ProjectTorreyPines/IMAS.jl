@@ -18,7 +18,6 @@ function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion
         D_D_to_He3_source!(cs, cp)
         D_D_to_T_source!(cs, cp)
     end
-    return fast_particles!(cs, cp.profiles_1d[])
 end
 
 """
@@ -117,6 +116,7 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion
     line_radiation_source!(dd)
     synchrotron_source!(dd)
     fusion_source!(dd; DD_fusion)
+    fast_particles!(dd)
     return nothing
 end
 
