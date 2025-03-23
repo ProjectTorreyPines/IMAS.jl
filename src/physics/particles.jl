@@ -144,7 +144,7 @@ function find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector
 
     # advance particles until they hit the wall
     for p in particles
-        ti = toroidal_intersections(rwall, zwall, p.x, p.y, p.z, p.δvx, p.δvy, p.δvz).t1
+        ti = toroidal_intersections(rwall, zwall, p.x, p.y, p.z, p.δvx, p.δvy, p.δvz).t_first
 
         if ti == NaN
             @show p
