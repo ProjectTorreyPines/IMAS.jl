@@ -2189,7 +2189,7 @@ end
 
 @recipe function plot_nb(nb::IMAS.nbi{T}) where {T<:Real}
     @series begin
-        [unit.power_launched for unit in nb.unit]
+        [unit.power_launched for unit in nb.unit if sum(unit.power_launched.data)> 0.0]
     end
 end
 
