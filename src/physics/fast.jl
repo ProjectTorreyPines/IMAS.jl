@@ -21,6 +21,11 @@ function estrada_I_integrals(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, E
     return (i2=i2, i4=i4)
 end
 
+function estrada_I_integrals(cp1d::IMAS.core_profiles__profiles_1d, Ef::Real, mf::Real, Zf::Real)
+    Ec = critical_energy(cp1d, mf, Zf)
+    return estrada_I_integrals(Ec, Ef)
+end
+
 """
     estrada_I_integrals(ne::Real, Te::Real, ni::AbstractVector{<:Real}, Ti::AbstractVector{<:Real}, mi::AbstractVector{<:Real}, Zi::AbstractVector{Int}, Ef::Real,  mf::Real, Zf::Real)
 
@@ -29,7 +34,7 @@ Returns solution to i2 and i4 integrals from  [Estrada et al.,  Phys of Plasm. 1
   - `Ef`: fast ion energy [eV]
   - `Ec`: critical energy [eV]
 """
-function estrada_I_integrals(Ec::Real, Ef::Real)
+function estrada_I_integrals(Ec::Union{Real,Vector{<:Real}}, Ef::Real)
     a = sqrt.(Ec ./ Ef)
     i2 = (1 / 3.0) .* log.((1 .+ a .^ 3) ./ (a .^ 3))
     i4 = 0.5 .- a .^ 2 .* ((1 / 6.0) .* log.((1 .- a .+ a .^ 2) ./ (1 .+ a) .^ 2) .+
@@ -150,7 +155,7 @@ function electron_ion_drag_difference(cp1d::IMAS.core_profiles__profiles_1d, irh
 end
 
 """
-    critical_energy(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, mf::Float64, Zf::Real; approximate::Bool=true)
+    critical_energy(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, mf::Real, Zf::Real; approximate::Bool=true)
 
 Returns `Ec` the critical energy by finding the root of the difference between the electron and ion drag
 
@@ -158,7 +163,7 @@ Returns `Ec` the critical energy by finding the root of the difference between t
   - `Zf`: fast ion charge
   - `approximate`: calculate critical energy assuming `lnΛ_fe == lnΛ_fi`. For DIII-D this results in a correction factor of (lnΛ_fi/lnΛ_fe)^(2/3) ≈ 1.2.
 """
-function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, mf::Float64, Zf::Real; approximate::Bool=true)
+function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, mf::Real, Zf::Real; approximate::Bool=true)
     ne = cp1d.electrons.density_thermal[irho]
     Te = cp1d.electrons.temperature[irho]
 
@@ -166,6 +171,19 @@ function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, mf::F
     Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     if !approximate
         Ec = Roots.find_zero(Ec0 -> electron_ion_drag_difference(cp1d, irho, Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
+    end
+    return Ec
+end
+
+function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, mf::Real, Zf::Real; approximate::Bool=true)
+    ne = cp1d.electrons.density_thermal
+    Te = cp1d.electrons.temperature
+
+    avg_cmr = sum(ion.density_thermal .* (ion.element[1].z_n^2) / ion.element[1].a for ion in cp1d.ion) ./ ne
+    Ec = 14.8 .* mf .* Te .* avg_cmr .^ 1.5
+    if !approximate
+        Ec1 = critical_energy(cp1d, 1, mf, Zf; approximate)
+        Ec = Ec .* (Ec1 ./ Ec[1])
     end
     return Ec
 end
@@ -209,6 +227,18 @@ function thermalization_time(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, E
     return thermalization_time(v_f, v_c, tau_s)
 end
 
+function thermalization_time(cp1d::IMAS.core_profiles__profiles_1d, Ef::Real, mf::Real, Zf::Real)
+    m_f = mf * mks.m_u
+
+    tau_s = slowing_down_time.(cp1d.electrons.density_thermal, cp1d.electrons.temperature, mf, Zf)
+    Ec = critical_energy(cp1d, mf, Zf)
+
+    v_f = sqrt(2 * mks.e * Ef / m_f)
+    v_c = sqrt.(2 .* mks.e .* Ec ./ m_f)
+
+    return thermalization_time.(v_f, v_c, tau_s)
+end
+
 @compat public thermalization_time
 push!(document[Symbol("Physics fast")], :thermalization_time)
 
@@ -220,6 +250,11 @@ Returns the thermalization time in seconds of α particles evaluated on axis
 function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d, irho::Int)
     α = ion_properties(:α)
     return thermalization_time(cp1d, irho, mks.E_α, α.a, Int(α.z_n))
+end
+
+function α_thermalization_time(cp1d::IMAS.core_profiles__profiles_1d)
+    α = ion_properties(:α)
+    return thermalization_time(cp1d, mks.E_α, α.a, Int(α.z_n))
 end
 
 @compat public α_thermalization_time
@@ -237,6 +272,14 @@ function fast_ion_thermalization_time(
     ion_energy::Real
 )
     return thermalization_time(cp1d, irho, ion_energy, ion.a, ion.z_n)
+end
+
+function fast_ion_thermalization_time(
+    cp1d::IMAS.core_profiles__profiles_1d,
+    ion::Union{IMAS.nbi__unit___species,IMAS.core_profiles__profiles_1d___ion___element},
+    ion_energy::Real
+)
+    return thermalization_time(cp1d, ion_energy, ion.a, ion.z_n)
 end
 
 @compat public fast_ion_thermalization_time
@@ -274,9 +317,6 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     end
 
     # go through sources and look for ones that have ion particles source at given energy
-    taus = zeros(Npsi)
-    taut = zeros(Npsi)
-    i4 = zeros(Npsi)
     for source in cs.source
         source1d = source.profiles_1d[]
         for sion in source1d.ion
@@ -303,13 +343,9 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
                         println("$(sion.label) --> $(cion.label) @ $(sion.fast_particles_energy)")
                     end
 
-                    taus .*= 0.0
-                    taut .*= 0.0
-                    for i in 1:Npsi
-                        taus[i] = slowing_down_time(ne[i], Te[i], particle_mass, particle_charge)
-                        taut[i] = @views thermalization_time(cp1d, i, particle_energy, particle_mass, particle_charge)
-                        _, i4[i] = @views estrada_I_integrals(cp1d, i, particle_energy, particle_mass, particle_charge)
-                    end
+                    taus = slowing_down_time.(ne, Te, particle_mass, particle_charge)
+                    taut = thermalization_time(cp1d, particle_energy, particle_mass, particle_charge)
+                    _, i4 = estrada_I_integrals(cp1d, particle_energy, particle_mass, particle_charge)
 
                     sion_particles = interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
@@ -376,7 +412,7 @@ end
 push!(document[Symbol("Physics fast")], :sivukhin_fraction)
 
 """
-    smooth_beam_power(power::Vector{Float64}, time::AbstractVector{Float64}, taus::Float64) where {T<:Real}
+    smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Float64) where {T<:Real}
 
 Smooths out the beam power history based on a given thermalization constant `taus`
 
@@ -594,13 +630,19 @@ end
     ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, Ef::Real, mf::Real, Zf::Real)
 """
 function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, Ef::Real, mf::Real, Zf::Real)
-    emzrat = cp1d.ion[1].element[1].a * cp1d.zeff[irho] / (mf * Zf)
-    tau_mom = similar(cp1d.grid.rho_tor_norm)
-    for irho in eachindex(cp1d.grid.rho_tor_norm)
-        E_c = critical_energy(cp1d, irho, mf, Zf)
-        taus = slowing_down_time(cp1d.electrons.density_thermal[irho], cp1d.electrons.temperature[irho], mf, Zf)
-        bki = ion_momentum_fraction(sqrt(E_c / Ef), 0.0, emzrat)
-        tau_mom[irho] = taus * (1 - bki)
-    end
+    E_c = critical_energy(cp1d, mf, Zf)
+    taus = slowing_down_time.(cp1d.electrons.density_thermal, cp1d.electrons.temperature, mf, Zf)
+    emzrat = cp1d.ion[1].element[1].a .* cp1d.zeff ./ (mf * Zf)
+    bki = ion_momentum_fraction.(sqrt.(E_c / Ef), 0.0, emzrat)
+    tau_mom = taus .* (1.0 .- bki)
+    return tau_mom
+end
+
+function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, Ef::Real, mf::Real, Zf::Real)
+    E_c = critical_energy(cp1d, irho, mf, Zf)
+    taus = slowing_down_time.(cp1d.electrons.density_thermal[irho], cp1d.electrons.temperature[irho], mf, Zf)
+    emzrat = cp1d.ion[1].element[1].a .* cp1d.zeff[irho] ./ (mf * Zf)
+    bki = ion_momentum_fraction(sqrt(E_c / Ef), 0.0, emzrat)
+    tau_mom = taus * (1.0 - bki)
     return tau_mom
 end
