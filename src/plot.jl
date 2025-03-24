@@ -2180,8 +2180,9 @@ end
 # === #
 function label(unit::IMAS.nbi__unit)
     if !isempty(unit.beamlets_group) && !ismissing(unit.beamlets_group[1], :angle)
-        angle_tor = unit.beamlets_group[1].angle * 180 / pi
-        return "$(unit.name) (∠ₜ=$(@sprintf("%.1f", angle_tor))°)"
+        angle_tor = unit.beamlets_group[1].direction * asin(unit.beamlets_group[1].tangency_radius / unit.beamlets_group[1].position.r) * 180 / pi
+        angle_pol = unit.beamlets_group[1].angle
+        return "$(unit.name) (∠ₜ=$(@sprintf("%.0f", angle_tor))°, ∠ₚ=$(@sprintf("%.0f", angle_pol))°)"
     else
         return unit.name
     end
