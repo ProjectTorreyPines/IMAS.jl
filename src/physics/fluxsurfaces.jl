@@ -1817,24 +1817,13 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     phi_itp = interp1d(tmp, eqt1d.phi, :linear) # must be linear
     eqt2d.phi = phi_itp.(psi_sign .* eqt2d.psi)
 
-    # rho 2D in meters
-    RHO = sqrt.(abs.(eqt2d.phi ./ (π * B0)))
-
-    # gm2: <∇ρ²/R²>
-    dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
-    dPHI2_interpolant = Interpolations.cubic_spline_interpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
-    dPHI2_R2 = Vector{T1}(undef, Np)
-    for k in eachindex(surfaces)
-        surface = surfaces[k]
-        n = length(surface.r)
-        dPHI2_R2[1:n] .= dPHI2_interpolant.(surface.r, surface.z) ./ surface.r .^ 2.0
-        @views eqt.profiles_1d.gm2[k] = flux_surface_avg(dPHI2_R2[1:n], surface)
-    end
-    @views gm2_itp = interp1d(tmp[2:5], eqt.profiles_1d.gm2[2:5], :cubic)
-    eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
-
     # ip
     eqt.global_quantities.ip = Ip(eqt)
+
+    # gm2: <∇ρ²/R²>
+    cumtrapz!(tmp, eqt1d.area, eqt1d.j_tor) # It(psi)
+    eqt1d.gm2 = (mks.μ_0 * (2π) ^ 2)  .* tmp ./ (eqt1d.dvolume_dpsi .*  (eqt1d.dpsi_drho_tor .^ 2))
+
 
     # Geometric major and minor radii
     Rgeo = (eqt1d.r_outboard[end] + eqt1d.r_inboard[end]) / 2.0
