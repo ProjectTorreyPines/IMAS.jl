@@ -28,8 +28,6 @@ push!(document[Symbol("Control")], :controller)
 Initializes SISO PID controller
 """
 function pid_controller(controller::IMAS.controllers__linear_controller, kP::T, kI::T, kD::T) where {T<:Real}
-    controller.input_names = ["error"]
-    controller.output_names = ["control"]
     controller.pid.p.time = [-Inf]
     controller.pid.p.data = [kP;;;]
     controller.pid.i.time = [-Inf]
@@ -86,11 +84,17 @@ end
 push!(document[Symbol("Control")], :controllers__linear_controller)
 
 function fxp_request_service(controller::controllers__linear_controller)::Bool
-    controller.description = "fxp_serviced"
     if controller.name in keys(FXP_CONTROLLERS)
-        return true
+        fxp_serviced = true
+    else
+        fxp_serviced = fxp_request_service(top_dd(controller), "$(controller.name)_control")
     end
-    return fxp_request_service(top_dd(controller), "$(controller.name)_control")
+    if fxp_serviced
+        controller.description = "fxp_serviced"
+    else
+        controller.description = "local_controller"
+    end
+    return fxp_serviced
 end
 
 function fxp_controller(controller::controllers__linear_controller, timeout::Float64; kw...)

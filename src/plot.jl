@@ -2908,7 +2908,7 @@ end
     derivative = [0.0, diff(data) ./ diff(controller.inputs.time)]
 
     @series begin
-        label := "Output"
+        label := controller.output_names[k]
         color := :black
         lw := 2
         controller.outputs.time, controller.outputs.data[1, :]
@@ -2950,7 +2950,7 @@ end
 @recipe function plot_controllers(controller_inputs::controllers__linear_controller___inputs, k::Int)
     controller = IMAS.parent(controller_inputs)
     @series begin
-        label := "Input $(controller.input_names[k])"
+        label := controller.input_names[k]
         controller_inputs.time, controller_inputs.data[k, :]
     end
 end
