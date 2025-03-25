@@ -630,7 +630,8 @@ end
     primary --> false
 
     eqt = parent(parent(eqt2d))
-
+    xlabel --> latex_support() ? L"R~~[\mathrm{m}]" : "R [m]"
+    ylabel --> latex_support() ? L"z~~[\mathrm{m}]" : "z [m]"
     # handle levels
     x_coord = getproperty(eqt.profiles_1d, coordinate)
     boundary_level = x_coord[end]
@@ -2308,27 +2309,78 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves__coherent_wave; time0=global_time(wv))
-    id = recipe_dispatch(wv)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
-
-    aspect_ratio := :equal
-    legend_position --> :outerbottomright
-
-    beam = wv.beam_tracing[time0].beam[1]
-    @series begin
-        seriestype --> :scatter
-        xlim --> (0.0, Inf)
-        label --> wv.identifier.antenna_name
-        [beam.position.r[1]], [beam.position.z[1]]
-    end
-    @series begin
-        xlim --> (0.0, Inf)
-        primary := false
-        lw := 2
-        beam.position.r, beam.position.z
+@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false)
+    if top
+        @series begin
+            seriestype --> :scatter
+            [beam.position.r[1] * cos(beam.position.phi[1])], 
+            [beam.position.r[1] * sin(beam.position.phi[1])]
+        end
+        @series begin
+            primary := false
+            beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
+        end
+    else
+        @series begin
+            beam.position.r, beam.position.z
+        end
+        @series begin
+            primary := false
+            label := ""
+            seriestype --> :scatter
+            [beam.position.r[1]], [beam.position.z[1]]
+        end
     end
 end
+
+@recipe function beam_tracing(bt::IMAS.waves__coherent_wave___beam_tracing; max_beam=3)
+    aspect_ratio := :equal
+    legend_position --> :outerbottomright
+    for (ibeam, beam) in enumerate(bt.beam)
+        if ibeam > max_beam
+            break
+        end
+        @series begin
+            if ibeam == 1
+                primary := true
+                label := parent(parent(bt)).identifier.antenna_name
+                lw := 3.0
+            else
+                primary := false
+                label := ""
+                lw := 1.0
+            end
+            beam
+        end
+    end
+end
+
+@recipe function plot_wave(bts::IDSvector{<:IMAS.waves__coherent_wave___beam_tracing}; time0=global_time(bts))
+    @series begin
+        bts[time0]
+    end
+end
+
+@recipe function plot_wave(bts::AbstractVector{<:IMAS.waves__coherent_wave___beam_tracing})
+    for bt in bts
+        @series begin
+            bt
+        end
+    end
+end
+
+@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave))
+    dd = top_dd(wv)
+    @series begin
+        cx := true
+        dd.equilibrium
+    end
+    @series begin
+        alpha --> 0.75
+        [beam.beam_tracing[] for beam in wv.coherent_wave[1:max_beam]]
+    end
+end
+
 
 # =============== #
 # solid_mechanics #

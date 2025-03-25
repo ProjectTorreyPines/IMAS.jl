@@ -752,7 +752,7 @@ function find_psi_last_diverted(
             # order closest intersections with the same oder as crossings ([1] is closest to [1] of surface; [end] is closest to [end] of surface)
             sort!(closest_to_strike_points)
 
-            # discard all points in crossings before/after the closest intersections, 
+            # discard all points in crossings before/after the closest intersections,
             # only if they are not crossings[1] and crossings[end] which by construction are the closest to the ends of the magnetic surface
             if !isempty(closest_to_strike_points)
                 # discard crossings occuring after second strike point (clockwise)
@@ -1689,11 +1689,12 @@ end
 Update flux surface averaged and geometric quantities for a given equilibrum IDS time slice.
 """
 function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
+    eqt1d = eqt.profiles_1d
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     PSI = eqt2d.psi
 
-    psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
+    psi_sign = sign(eqt1d.psi[end] - eqt1d.psi[1])
     R0 = eqt.global_quantities.vacuum_toroidal_field.r0
     B0 = eqt.global_quantities.vacuum_toroidal_field.b0
 
@@ -1738,11 +1739,11 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     psi_axis = PSI_interpolant(RA, ZA)
 
     # accurately find the lcfs and scale psi accordingly
-    psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt.profiles_1d.psi[end], RA, ZA, wall_r, wall_z;
+    psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, wall_r, wall_z;
         PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
     if psi_boundaries.last_closed !== nothing
-        eqt.profiles_1d.psi =
-            (eqt.profiles_1d.psi .- eqt.profiles_1d.psi[1]) ./ (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
+        eqt1d.psi =
+            (eqt1d.psi .- eqt1d.psi[1]) ./ (eqt1d.psi[end] - eqt1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
     end
 
     for item in (
@@ -1772,15 +1773,15 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         :fsa_bp,
         :trapped_fraction
     )
-        setproperty!(eqt.profiles_1d, item, zeros(eltype(eqt.profiles_1d.psi), size(eqt.profiles_1d.psi)))
+        setproperty!(eqt1d, item, zeros(eltype(eqt1d.psi), size(eqt1d.psi)))
     end
 
     # trace flux surfaces
     Br, Bz = Br_Bz(eqt2d)
-    surfaces = trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z)
+    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z)
 
     # calculate flux surface averaged and geometric quantities
-    N = length(eqt.profiles_1d.psi)
+    N = length(eqt1d.psi)
 
     Np = maximum(length(surface.r) for surface in surfaces)
     shared_tmp = Vector{T1}(undef, Np)
@@ -1793,19 +1794,19 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
         tmp = @views shared_tmp[1:length(pr)]
 
-        eqt.profiles_1d.r_outboard[k] = surface.max_r
-        eqt.profiles_1d.r_inboard[k] = surface.min_r
+        eqt1d.r_outboard[k] = surface.max_r
+        eqt1d.r_inboard[k] = surface.min_r
 
         # miller geometric coefficients
         _, _, κ, δu, δl, ζou, ζol, ζil, ζiu =
             miller_R_a_κ_δ_ζ(pr, pz, surface.r_at_max_z, surface.max_z, surface.r_at_min_z, surface.min_z, surface.z_at_max_r, surface.max_r, surface.z_at_min_r, surface.min_r)
-        eqt.profiles_1d.elongation[k] = κ
-        eqt.profiles_1d.triangularity_upper[k] = δu
-        eqt.profiles_1d.triangularity_lower[k] = δl
-        eqt.profiles_1d.squareness_lower_outer[k] = ζol
-        eqt.profiles_1d.squareness_upper_outer[k] = ζou
-        eqt.profiles_1d.squareness_lower_inner[k] = ζil
-        eqt.profiles_1d.squareness_upper_inner[k] = ζiu
+        eqt1d.elongation[k] = κ
+        eqt1d.triangularity_upper[k] = δu
+        eqt1d.triangularity_lower[k] = δl
+        eqt1d.squareness_lower_outer[k] = ζol
+        eqt1d.squareness_upper_outer[k] = ζou
+        eqt1d.squareness_lower_inner[k] = ζil
+        eqt1d.squareness_upper_inner[k] = ζiu
 
         # trapped fraction
         Bmin = minimum(Btot)
@@ -1820,57 +1821,57 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         h2 = avg_Btot2 / Bmax^2
         ftu = 1.0 - h2 / (h^2) * (1.0 - sqrt(1.0 - h) * (1.0 + 0.5 * h))
         ftl = 1.0 - h2 * hf
-        eqt.profiles_1d.trapped_fraction[k] = 0.75 * ftu + 0.25 * ftl
+        eqt1d.trapped_fraction[k] = 0.75 * ftu + 0.25 * ftl
 
         # Bavg
-        eqt.profiles_1d.b_field_average[k] = avg_Btot
+        eqt1d.b_field_average[k] = avg_Btot
 
         # Bmax
-        eqt.profiles_1d.b_field_max[k] = Bmax
+        eqt1d.b_field_max[k] = Bmax
 
         # Bmin
-        eqt.profiles_1d.b_field_min[k] = Bmin
+        eqt1d.b_field_min[k] = Bmin
 
         # gm1 = <1/R^2>
         tmp .= 1.0 ./ pr .^ 2
-        eqt.profiles_1d.gm1[k] = flux_surface_avg(tmp, surface)
+        eqt1d.gm1[k] = flux_surface_avg(tmp, surface)
 
         # gm4 = <1/B^2>
         tmp .= 1.0 ./ Btot .^ 2
-        eqt.profiles_1d.gm4[k] = flux_surface_avg(tmp, surface)
+        eqt1d.gm4[k] = flux_surface_avg(tmp, surface)
 
         # gm5 = <B^2>
-        eqt.profiles_1d.gm5[k] = avg_Btot2
+        eqt1d.gm5[k] = avg_Btot2
 
         # gm8 = <R>
-        eqt.profiles_1d.gm8[k] = flux_surface_avg(pr, surface)
+        eqt1d.gm8[k] = flux_surface_avg(pr, surface)
 
         # gm9 = <1/R>
         tmp .= 1.0 ./ pr
-        eqt.profiles_1d.gm9[k] = flux_surface_avg(tmp, surface)
+        eqt1d.gm9[k] = flux_surface_avg(tmp, surface)
 
         # gm10 = <R^2>
         tmp .= pr .^ 2
-        eqt.profiles_1d.gm10[k] = flux_surface_avg(tmp, surface)
+        eqt1d.gm10[k] = flux_surface_avg(tmp, surface)
 
         # fsa_bp = <Bp>
-        eqt.profiles_1d.fsa_bp[k] = flux_surface_avg(Bp, surface)
+        eqt1d.fsa_bp[k] = flux_surface_avg(Bp, surface)
 
         # j_tor = <j_tor/R> / <1/R> [A/m²]
-        eqt.profiles_1d.j_tor[k] =
+        eqt1d.j_tor[k] =
             (
-                -(eqt.profiles_1d.dpressure_dpsi[k] + eqt.profiles_1d.f_df_dpsi[k] * eqt.profiles_1d.gm1[k] / mks.μ_0) *
+                -(eqt1d.dpressure_dpsi[k] + eqt1d.f_df_dpsi[k] * eqt1d.gm1[k] / mks.μ_0) *
                 (2π)
-            ) / eqt.profiles_1d.gm9[k]
+            ) / eqt1d.gm9[k]
 
         # dvolume_dpsi
-        eqt.profiles_1d.dvolume_dpsi[k] = sign(eqt.profiles_1d.fsa_bp[k]) * surface.int_fluxexpansion_dl
+        eqt1d.dvolume_dpsi[k] = sign(eqt1d.fsa_bp[k]) * surface.int_fluxexpansion_dl
 
         # surface area
-        eqt.profiles_1d.surface[k] = 2π * trapz(surface.ll, pr)
+        eqt1d.surface[k] = 2π * trapz(surface.ll, pr)
 
         # q
-        eqt.profiles_1d.q[k] = eqt.profiles_1d.dvolume_dpsi[k] * eqt.profiles_1d.f[k] * eqt.profiles_1d.gm1[k] / (2π)
+        eqt1d.q[k] = eqt1d.dvolume_dpsi[k] * eqt1d.f[k] * eqt1d.gm1[k] / (2π)
 
         # quantities calculated on the last closed flux surface
         if k == N
@@ -1883,54 +1884,45 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         end
     end
 
-    tmp = similar(eqt.profiles_1d.psi)
+    tmp = similar(eqt1d.psi)
 
     # area
-    tmp .= eqt.profiles_1d.dvolume_dpsi .* eqt.profiles_1d.gm9 ./ 2π
-    eqt.profiles_1d.area = cumtrapz(eqt.profiles_1d.psi, tmp)
-    eqt.global_quantities.area = eqt.profiles_1d.area[end]
+    tmp .= eqt1d.dvolume_dpsi .* eqt1d.gm9 ./ 2π
+    eqt1d.area = cumtrapz(eqt1d.psi, tmp)
+    eqt.global_quantities.area = eqt1d.area[end]
 
     # volume
-    eqt.profiles_1d.volume = cumtrapz(eqt.profiles_1d.psi, eqt.profiles_1d.dvolume_dpsi)
-    eqt.global_quantities.volume = eqt.profiles_1d.volume[end]
+    eqt1d.volume = cumtrapz(eqt1d.psi, eqt1d.dvolume_dpsi)
+    eqt.global_quantities.volume = eqt1d.volume[end]
 
     # phi
-    tmp .= eqt.profiles_1d.f .* eqt.profiles_1d.gm1 / (2π)
-    eqt.profiles_1d.phi = cumtrapz(eqt.profiles_1d.volume, tmp)
+    tmp .= eqt1d.f .* eqt1d.gm1 / (2π)
+    eqt1d.phi = cumtrapz(eqt1d.volume, tmp)
 
     # rho_tor_norm
-    rho = sqrt.(abs.(eqt.profiles_1d.phi ./ (π * B0)))
+    rho = sqrt.(abs.(eqt1d.phi ./ (π * B0)))
     rho_meters = rho[end]
-    eqt.profiles_1d.rho_tor = rho
-    eqt.profiles_1d.rho_tor_norm = rho ./ rho_meters
+    eqt1d.rho_tor = rho
+    eqt1d.rho_tor_norm = rho ./ rho_meters
 
     # phi 2D
-    tmp .= eqt.profiles_1d.psi .* psi_sign
-    phi_itp = interp1d(tmp, eqt.profiles_1d.phi, :linear) # must be linear
+    tmp .= eqt1d.psi .* psi_sign
+    phi_itp = interp1d(tmp, eqt1d.phi, :linear) # must be linear
     eqt2d.phi = phi_itp.(psi_sign .* eqt2d.psi)
-
-    # rho 2D in meters
-    RHO = sqrt.(abs.(eqt2d.phi ./ (π * B0)))
-
-    # gm2: <∇ρ²/R²>
-    dRHOdR, dRHOdZ = gradient(collect(r), collect(z), RHO)
-    dPHI2_interpolant = Interpolations.cubic_spline_interpolation((r, z), dRHOdR .^ 2.0 .+ dRHOdZ .^ 2.0)
-    dPHI2_R2 = Vector{T1}(undef, Np)
-    for k in eachindex(surfaces)
-        surface = surfaces[k]
-        n = length(surface.r)
-        dPHI2_R2[1:n] .= dPHI2_interpolant.(surface.r, surface.z) ./ surface.r .^ 2.0
-        @views eqt.profiles_1d.gm2[k] = flux_surface_avg(dPHI2_R2[1:n], surface)
-    end
-    @views gm2_itp = interp1d(tmp[2:5], eqt.profiles_1d.gm2[2:5], :cubic)
-    eqt.profiles_1d.gm2[1] = gm2_itp(tmp[1])
 
     # ip
     eqt.global_quantities.ip = Ip(eqt)
 
+    # gm2: <∇ρ²/R²>
+    cumtrapz!(tmp, eqt1d.area, eqt1d.j_tor) # It(psi)
+    eqt1d.gm2 = (mks.μ_0 * (2π) ^ 2)  .* tmp ./ (eqt1d.dvolume_dpsi .*  (eqt1d.dpsi_drho_tor .^ 2))
+    @views gm2_itp = interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5], :cubic)
+    eqt.profiles_1d.gm2[1] = gm2_itp(0.0) # extrapolate to axis due to zero / zero division
+
+
     # Geometric major and minor radii
-    Rgeo = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
-    a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
+    Rgeo = (eqt1d.r_outboard[end] + eqt1d.r_inboard[end]) / 2.0
+    a = (eqt1d.r_outboard[end] - eqt1d.r_inboard[end]) / 2.0
 
     # vacuum magnetic field at the geometric center
     Btvac = B0 * R0 / Rgeo
@@ -1939,11 +1931,11 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     Bpave = eqt.global_quantities.ip * mks.μ_0 / eqt.global_quantities.length_pol
 
     # li
-    Bp2v = trapz(eqt.profiles_1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
+    Bp2v = trapz(eqt1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
     eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * mks.μ_0)^2
 
     # beta_tor
-    avg_press = volume_integrate(eqt, eqt.profiles_1d.pressure) / eqt.profiles_1d.volume[end]
+    avg_press = volume_integrate(eqt, eqt1d.pressure) / eqt1d.volume[end]
     eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / mks.μ_0))
 
     # beta_pol
@@ -2469,9 +2461,10 @@ A measure of the plasma elongation based on the averaged cross-sectional area of
 See: https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf
 """
 function areal_elongation(eqt::IMAS.equilibrium__time_slice)
-    a = 0.5 * (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end])
-    R = 0.5 * (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end])
-    return eqt.profiles_1d.volume[end] / (2π * R) / (π * a^2)
+    eqt1d = eqt.profiles_1d
+    a = 0.5 * (eqt1d.r_outboard[end] - eqt1d.r_inboard[end])
+    R = 0.5 * (eqt1d.r_outboard[end] + eqt1d.r_inboard[end])
+    return eqt1d.volume[end] / (2π * R) / (π * a^2)
 end
 
 @compat public areal_elongation
