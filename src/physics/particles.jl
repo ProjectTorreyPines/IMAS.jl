@@ -432,7 +432,6 @@ function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py
         end
     end
     sort!(t_intersects)
-    @show t_intersects
     return t_intersects
 end
 
