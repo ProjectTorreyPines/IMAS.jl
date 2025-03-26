@@ -395,6 +395,7 @@ function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py:
         rmin = sqrt(rmin2)
     end
 
+    t_min = NaN
     @inbounds for k in eachindex(wallr)
         rw1 = wallr[k]
         zw1 = wallz[k]
@@ -421,11 +422,27 @@ function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py:
         if isnan(t)
             continue
         end
-
-        return t
+        if isnan(t_min) || t < t_min
+            t_min = t
+        end
     end
 
-    return NaN
+    return t_min
+end
+
+"""
+    toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
+
+Returns first time of intersection between a moving particle and a wall in toroidal geometry
+
+  - `wallr`: Vector with r coordinates of the wall (must be closed)
+  - `wallz`: Vector with z coordinates of the wall (must be closed)
+  - `px`, `py`, `pz`: Current position of the particle in Cartesian coordinates.
+  - `pol_angle`, `tor_angle`: poloidal and toroidal angles of injection
+"""
+function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, pol_angle::Real, tor_angle::Real) where {T<:Real}
+    vx, vy, vz = pol_tor_angles_2_vector(pol_angle, tor_angle)
+    return toroidal_intersection(wallr, wallz, px, py, pz, vx, vy, vz)
 end
 
 @compat public toroidal_intersection
@@ -441,23 +458,24 @@ Returns all times of intersection between a moving particle and a wall in toroid
   - `px`, `py`, `pz`: Current position of the particle in Cartesian coordinates.
   - `vx`, `vy`, `vz`: Velocity components of the particle
 """
-function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
+function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real; max_intersections::Int=4) where {T<:Real}
     t0 = 0.0
     t_intersects = Float64[]
-    for n in 1:10
+    for n in 1:max_intersections
         t = toroidal_intersection(wallr, wallz, px, py, pz, vx, vy, vz)
         if isnan(t)
             break
         end
-        if !any(map(t0 -> t0 ≈ t, t_intersects))
+        if !any(map(tt -> tt ≈ t0 + t, t_intersects))
             push!(t_intersects, t0 + t)
-            t += (t * 1E-12)
+            t += (t * 1E-6)
             t0 += t
             px += vx * t
             py += vy * t
             pz += vz * t
         end
     end
+    sort!(t_intersects)
     return t_intersects
 end
 
