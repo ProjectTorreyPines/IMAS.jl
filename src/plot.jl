@@ -500,7 +500,7 @@ end
                 subplot := 2
                 normalization := 1E-6
                 ylabel := ""
-                title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
+                title := "P [MPa]"
                 eqt.profiles_1d, :pressure
             end
         end
@@ -515,7 +515,7 @@ end
                     subplot := 2
                     normalization := 1E-6
                     ylabel := ""
-                    title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
+                    title := "P [MPa]"
                     cp1d, :pressure
                 end
             end
@@ -529,7 +529,7 @@ end
                 subplot := 3
                 normalization := 1E-6
                 ylabel := ""
-                title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
+                title := "Jtor [MA/m²]"
                 eqt.profiles_1d, :j_tor
             end
         end
@@ -544,7 +544,7 @@ end
                     subplot := 3
                     normalization := 1E-6
                     ylabel := ""
-                    title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
+                    title := "Jtor [MA/m²]"
                     cp1d, :j_tor
                 end
             end
@@ -558,10 +558,10 @@ end
                 ylabel := ""
                 normalization := 1.0
                 if contains(string(coordinate), "psi")
-                    title := latex_support() ? L"\rho" : "ρ"
+                    title := "ρ"
                     eqt.profiles_1d, :rho_tor_norm
                 else
-                    title := latex_support() ? L"\psi~~[\mathrm{Wb}]" : "Ψ [Wb]"
+                    title := "Ψ [Wb]"
                     eqt.profiles_1d, :psi
                 end
             end
@@ -583,7 +583,7 @@ end
                 subplot := 5
                 ylabel := ""
                 normalization := 1.0
-                title := latex_support() ? L"q" : "q"
+                title := "q"
                 if eqt.profiles_1d.q[end] > 0.0
                     ylim := (0.0, 5)
                 else
@@ -630,8 +630,8 @@ end
     primary --> false
 
     eqt = parent(parent(eqt2d))
-    xlabel --> latex_support() ? L"R~~[\mathrm{m}]" : "R [m]"
-    ylabel --> latex_support() ? L"z~~[\mathrm{m}]" : "z [m]"
+    xlabel --> "R [m]"
+    ylabel --> "Z [m]"
     # handle levels
     x_coord = getproperty(eqt.profiles_1d, coordinate)
     boundary_level = x_coord[end]
