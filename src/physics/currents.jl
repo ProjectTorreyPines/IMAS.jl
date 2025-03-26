@@ -11,7 +11,12 @@ Sets `j_ohmic` parallel current density to what it would be at steady-state, bas
 
 Requires constant loop voltage: `Vl = 2π * η * <J_oh⋅B> / (F * <R⁻²>) = constant`
 """
-function j_ohmic_steady_state(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T}, ip::T, j_ohmic_shape::AbstractVector{T}=cp1d.conductivity_parallel) where {T<:Real}
+function j_ohmic_steady_state(
+    eqt::IMAS.equilibrium__time_slice{T},
+    cp1d::IMAS.core_profiles__profiles_1d{T},
+    ip::T,
+    j_ohmic_shape::AbstractVector{T}=cp1d.conductivity_parallel
+) where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
     F = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
@@ -170,45 +175,44 @@ end
 push!(document[Symbol("Physics currents")], :Jpar_2_Jtor)
 
 """
-    vloop(cp1d::IMAS.core_profiles__profiles_1d{T})::T where {T<:Real}
+    vloop(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
 `Vloop = 2π * η * <J_oh⋅B> / (F * <R⁻²>)`: method emphasizes the resistive nature of the plasma
 """
-function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}; method::Symbol=:area)::T where {T<:Real}
+function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__time_slice{T}; method::Symbol=:area) where {T<:Real}
+    @assert method in (:area, :edge, :mean)
     rho_tor_norm = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
     F = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
     gm1 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
     _, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     Vls = 2π .* cp1d.j_ohmic .* B0 ./ (cp1d.conductivity_parallel .* F .* gm1)
-    if method === :area
+    if method == :area
         return trapz(cp1d.grid.area, Vls) / cp1d.grid.area[end]
-    elseif method === :edge
+    elseif method == :edge
         return Vls[end]
-    elseif method === :mean
+    elseif method == :mean
         return sum(Vls) / length(Vls)
-    else
-        throw(ArgumentError("method should be :area, :mean, or :edge"))
     end
 end
 
 """
-    vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
+    vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq)) where {T<:Real}
 
 `Vloop = dψ/dt`: method emphasizes the inductive nature of the loop voltage. Assumes COCOS 11.
 """
-function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq))::T where {T<:Real}
+function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq)) where {T<:Real}
     @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
     index = nearest_causal_time(eq.time, time0).index
     return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
 end
 
 """
-    vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
+    vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct)) where {T<:Real}
 
 Returns `vloop` at `time0` from controller named `ip`
 """
-function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct))::T where {T<:Real}
+function vloop(ct::IMAS.controllers{T}; time0::Float64=global_time(ct)) where {T<:Real}
     vl = vloop_time(ct)
     return get_time_array(vl.time, vl.data, [time0], :linear)[1]
 end
@@ -224,6 +228,28 @@ Returns named tuple with `time` and `data` with `vloop` from controller named `i
 function vloop_time(ct::IMAS.controllers{T}) where {T<:Real}
     ctrl = controller(ct, "ip")
     return (time=ctrl.outputs.time, data=ctrl.outputs.data[1, :])
+end
+
+"""
+    vloop_time(eq::IMAS.equilibrium{T}) where {T<:Real}
+
+Returns named tuple with `time` and `data` with `vloop` from equilibrium
+"""
+function vloop_time(eq::IMAS.equilibrium{T}) where {T<:Real}
+    time = eq.time[2:end]
+    data = [vloop(eq; time0) for time0 in time]
+    return (time=time, data=data)
+end
+
+"""
+    vloop_time(cp::IMAS.core_profiles{T}, eq::IMAS.equilibrium) where {T<:Real}
+
+Returns named tuple with `time` and `data` with `vloop` from core_profiles
+"""
+function vloop_time(cp::IMAS.core_profiles{T}, eq::IMAS.equilibrium; method::Symbol=:area) where {T<:Real}
+    time = cp.time
+    data = [vloop(cp.profiles_1d[time0], eq.time_slice[time0]; method) for time0 in time]
+    return (time=time, data=data)
 end
 
 @compat public vloop_time
