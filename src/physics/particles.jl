@@ -400,8 +400,7 @@ function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py
         rmin = sqrt(rmin2)
     end
 
-    t_first = Inf
-    t_last = -Inf
+    t_intersects = Float64[]
     @inbounds for k in eachindex(wallr)
         rw1 = wallr[k]
         zw1 = wallz[k]
@@ -425,17 +424,16 @@ function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py
         (rw1 < rmin && rw2 < rmin) && continue
 
         t = toroidal_intersection(rw1, zw1, rw2, zw2, px, py, pz, vx, vy, vz, v2, vz2)
-        if t == NaN
+        if isnan(t)
             continue
         end
-        if t < t_first
-            t_first = t
-        end
-        if t > t_last
-            t_last = t
+        if !any(map(t0 -> t0≈t, t_intersects))
+            push!(t_intersects, t)
         end
     end
-    return (t_first = t_first, t_last=t_last)
+    sort!(t_intersects)
+    @show t_intersects
+    return t_intersects
 end
 
 """
