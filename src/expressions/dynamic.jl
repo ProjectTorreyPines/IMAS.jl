@@ -805,6 +805,15 @@ dyexp["summary.volume_average.zeff.value"] =
 dyexp["nbi.unit[:].power_launched.time"] =
     (dummy; nbi, _...) -> nbi.time
 
+dyexp["nbi.unit[:].energy.time"] =
+    (dummy; nbi, _...) -> nbi.time
+
+dyexp["nbi.unit[:].beam_power_fraction.time"] =
+    (dummy; nbi, _...) -> nbi.time
+
+dyexp["nbi.unit[:].beam_current_fraction.time"] =
+    (dummy; nbi, _...) -> nbi.time
+
 # ============ #
 
 Base.Docs.@doc """
