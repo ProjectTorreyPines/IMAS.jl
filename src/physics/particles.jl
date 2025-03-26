@@ -368,9 +368,16 @@ function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, px::Real,
     return t
 end
 
-@compat public toroidal_intersection
-push!(document[Symbol("Physics particles")], :toroidal_intersection)
+"""
+    toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
 
+Returns the first time of intersection between a moving particle and a wall in toroidal geometry
+
+  - `wallr`: Vector with r coordinates of the wall (must be closed)
+  - `wallz`: Vector with z coordinates of the wall (must be closed)
+  - `px`, `py`, `pz`: Current position of the particle in Cartesian coordinates.
+  - `vx`, `vy`, `vz`: Velocity components of the particle
+"""
 function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
     Nw = length(wallr)
 
@@ -421,12 +428,13 @@ function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, px::Real, py:
     return NaN
 end
 
+@compat public toroidal_intersection
+push!(document[Symbol("Physics particles")], :toroidal_intersection)
+
 """
     toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
 
-Compute the time of intersections between a moving particle and a wall
-
-Returns all the times at which the particle intersects a surface segment
+Returns all times of intersection between a moving particle and a wall in toroidal geometry
 
   - `wallr`: Vector with r coordinates of the wall (must be closed)
   - `wallz`: Vector with z coordinates of the wall (must be closed)
@@ -456,9 +464,7 @@ end
 """
     toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
 
-Compute the time of intersection between a moving particle and a wall
-
-Returns the smallest and largest positive times at which the particle intersects the surface segment.
+Returns all times of intersection between a moving particle and a wall in toroidal geometry
 
   - `wallr`: Vector with r coordinates of the wall (must be closed)
   - `wallz`: Vector with z coordinates of the wall (must be closed)
