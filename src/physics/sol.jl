@@ -769,25 +769,48 @@ end
 push!(document[Symbol("Physics sol")], :identify_strike_surface)
 
 """
-    divertor_totals_from_targets(divertor::IMAS.divertors__divertor, field::Symbol)
+    divertor_totals_from_targets!(divertor::IMAS.divertors__divertor)
 
-Returns time dependent vectors of :field summed over all divertor targets
+Sets total values of properties by summing over the corresponding value on the targets
+
+  - power_black_body
+  - power_conducted
+  - power_convected
+  - power_currents
+  - power_incident
+  - power_neutrals
+  - power_radiated
+  - power_recombination_neutrals
+  - power_recombination_plasma
 """
-function divertor_totals_from_targets(divertor::IMAS.divertors__divertor{T}, field::Symbol) where {T<:Real}
-    total = Vector{T}[]
-    time = Float64[]
-    for target in divertor.target
-        value = getproperty(target, field)
-        if !ismissing(value, :data)
-            push!(total, value.data)
-            time = value.time
+function divertor_totals_from_targets!(divertor::IMAS.divertors__divertor{T}) where {T<:Real}
+    time0 = global_time(divertor)
+    for field in (
+        :power_black_body,
+        :power_conducted,
+        :power_convected,
+        :power_currents,
+        :power_incident,
+        :power_neutrals,
+        :power_radiated,
+        :power_recombination_neutrals,
+        :power_recombination_plasma
+    )
+        total = zero(T)
+        for target in divertor.target
+            property = getproperty(target, field)
+            if !ismissing(property, :data)
+                value = get_time_array(property, :data, time0)
+                total += value
+            end
         end
+        total_property = getproperty(divertor, field)
+        @ddtime(total_property.data = total)
     end
-    return time, reduce(+, total)
 end
 
-@compat public divertor_totals_from_targets
-push!(document[Symbol("Physics sol")], :divertor_totals_from_targets)
+@compat public divertor_totals_from_targets!
+push!(document[Symbol("Physics sol")], :divertor_totals_from_targets!)
 
 """
     Bpol(a::T, κ::T, Ip::T) where {T<:Real}
@@ -1117,31 +1140,31 @@ function find_strike_points(
                 if length(Rx_) > 2
                     # the surface identified by (pr,pz) itersects the wall more than twice,
                     # Retrieve only the segments of (pr,pz) inside the wall
-                    ps = Tuple{Float64, Float64}[] 
-                    fw = collect(zip(wall_r, wall_z))      
+                    ps = Tuple{Float64,Float64}[]
+                    fw = collect(zip(wall_r, wall_z))
                     segments = intersection_split(pr, pz, wall_r, wall_z)
                     for segment in segments
                         # we retain only segments that are within the wall (disregard the extrema)
                         if length(segment.r) > 2 && PolygonOps.inpolygon((segment.r[2], segment.z[2]), fw) == 1
                             # save intersections of each segment
-                            push!(ps, (segment.r[1]  ,segment.z[1]))
-                            push!(ps, (segment.r[end],segment.z[end]))
+                            push!(ps, (segment.r[1], segment.z[1]))
+                            push!(ps, (segment.r[end], segment.z[end]))
                         end
                     end
                     # how many segments inside the wall are found?
-                    L = length(ps)/2
+                    L = length(ps) / 2
 
                     if L == 1
                         # only one segment inside wall: strike points found.
                         Rx_ = [p[1] for p in ps]
-                        Zx_  = [p[2] for p in ps]
+                        Zx_ = [p[2] for p in ps]
                     else
                         # pick point on (pr,pz) closest to boundary (lcfs)
                         X = [pr[k1], pz[k1]]
                         # pick segment with intersections closest to X
-                        dist = Vector{Float64}(undef,Int(2*L))
-                        for (k,point) in enumerate(ps)
-                            dist[k] = sqrt((point[1]-X[1])^2 + (point[2]-X[2])^2)
+                        dist = Vector{Float64}(undef, Int(2 * L))
+                        for (k, point) in enumerate(ps)
+                            dist[k] = sqrt((point[1] - X[1])^2 + (point[2] - X[2])^2)
                         end
                         # odd positions in ps are starting points of the segment, even position are the end
                         indx = argmin(dist) # index of closest point in ps to X
@@ -1183,7 +1206,7 @@ push!(document[Symbol("Physics sol")], :find_strike_points)
         in_place::Bool=true
     ) where {T1<:Real,T2<:Real,T3<:Real}
 
-Adds strike points location to equilibrium IDS 
+Adds strike points location to equilibrium IDS
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
