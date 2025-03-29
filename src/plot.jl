@@ -916,8 +916,10 @@ end
     aspect_ratio := :equal
     grid --> :none
 
-    rmax = maximum(bd.layer[end].outline.r)
-    xlim --> [0, rmax]
+    if !isempty(bd.layer)
+        rmax = maximum(bd.layer[end].outline.r)
+        xlim --> [0, rmax]
+    end
 
     if dd !== nothing && equilibrium
         @series begin
@@ -962,7 +964,7 @@ end
     grid --> :none
 
     # cx
-    if cx
+    if cx && !isempty(layers)
         rmax = maximum(layers[end].outline.r)
 
         # everything after first vacuum in _out_
