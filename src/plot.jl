@@ -500,7 +500,7 @@ end
                 subplot := 2
                 normalization := 1E-6
                 ylabel := ""
-                title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
+                title := "P [MPa]"
                 eqt.profiles_1d, :pressure
             end
         end
@@ -515,7 +515,7 @@ end
                     subplot := 2
                     normalization := 1E-6
                     ylabel := ""
-                    title := latex_support() ? L"P~~\mathrm{[MPa]}" : "P [MPa]"
+                    title := "P [MPa]"
                     cp1d, :pressure
                 end
             end
@@ -529,7 +529,7 @@ end
                 subplot := 3
                 normalization := 1E-6
                 ylabel := ""
-                title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
+                title := "Jtor [MA/m²]"
                 eqt.profiles_1d, :j_tor
             end
         end
@@ -544,7 +544,7 @@ end
                     subplot := 3
                     normalization := 1E-6
                     ylabel := ""
-                    title := latex_support() ? L"J_\mathrm{tor}~[\mathrm{MA/m^2}]" : "Jtor [MA/m²]"
+                    title := "Jtor [MA/m²]"
                     cp1d, :j_tor
                 end
             end
@@ -558,10 +558,10 @@ end
                 ylabel := ""
                 normalization := 1.0
                 if contains(string(coordinate), "psi")
-                    title := latex_support() ? L"\rho" : "ρ"
+                    title := "ρ"
                     eqt.profiles_1d, :rho_tor_norm
                 else
-                    title := latex_support() ? L"\psi~~[\mathrm{Wb}]" : "Ψ [Wb]"
+                    title := "Ψ [Wb]"
                     eqt.profiles_1d, :psi
                 end
             end
@@ -583,7 +583,7 @@ end
                 subplot := 5
                 ylabel := ""
                 normalization := 1.0
-                title := latex_support() ? L"q" : "q"
+                title := "q"
                 if eqt.profiles_1d.q[end] > 0.0
                     ylim := (0.0, 5)
                 else
@@ -630,8 +630,8 @@ end
     primary --> false
 
     eqt = parent(parent(eqt2d))
-    xlabel --> latex_support() ? L"R~~[\mathrm{m}]" : "R [m]"
-    ylabel --> latex_support() ? L"z~~[\mathrm{m}]" : "z [m]"
+    xlabel --> "R [m]"
+    ylabel --> "Z [m]"
     # handle levels
     x_coord = getproperty(eqt.profiles_1d, coordinate)
     boundary_level = x_coord[end]
@@ -2181,8 +2181,9 @@ end
 # === #
 function label(unit::IMAS.nbi__unit)
     if !isempty(unit.beamlets_group) && !ismissing(unit.beamlets_group[1], :angle)
-        angle_tor = unit.beamlets_group[1].angle * 180 / pi
-        return "$(unit.name) (∠ₜ=$(@sprintf("%.1f", angle_tor))°)"
+        angle_tor = unit.beamlets_group[1].direction * asin(unit.beamlets_group[1].tangency_radius / unit.beamlets_group[1].position.r) * 180 / pi
+        angle_pol = unit.beamlets_group[1].angle
+        return "$(unit.name) (∠ₜ=$(@sprintf("%.0f", angle_tor))°, ∠ₚ=$(@sprintf("%.0f", angle_pol))°)"
     else
         return unit.name
     end
@@ -2190,7 +2191,7 @@ end
 
 @recipe function plot_nb(nb::IMAS.nbi{T}) where {T<:Real}
     @series begin
-        [unit.power_launched for unit in nb.unit]
+        [unit.power_launched for unit in nb.unit if sum(unit.power_launched.data) > 0.0]
     end
 end
 
@@ -2769,7 +2770,8 @@ end
 #= ============== =#
 #  pulse_schedule  #
 #= ============== =#
-@recipe function plot_ps(ps::IMAS.pulse_schedule; time0=global_time(ps), simulation_start=nothing)
+const UnionPulseScheduleSubIDS = Union{IMAS.pulse_schedule,(tp for tp in fieldtypes(IMAS.pulse_schedule) if tp <: IDS)...}
+@recipe function plot_ps(ps::UnionPulseScheduleSubIDS; time0=global_time(ps), simulation_start=nothing)
     id = recipe_dispatch(ps)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Union{Nothing,Float64}, "Simulation start time"; simulation_start)
@@ -2783,7 +2785,7 @@ end
             continue
         end
 
-        time_value = parent_ids_with_time_array(ids).time
+        time_value = coordinates(ids, :reference).values[1]
         data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> !isinf(x), time_value))) == 1
@@ -2817,48 +2819,53 @@ end
         push!(plots, plt)
     end
 
-    layout := RecipesBase.@layout [length(plots) + 1]
     size --> (1200, 1200)
 
-    if !isempty(ps.position_control)
+    if typeof(ps) <: IMAS.pulse_schedule && !isempty(ps.position_control) || typeof(ps) <: IMAS.pulse_schedule__position_control
+        plot_offset = 1
+        layout := RecipesBase.@layout [length(plots) + plot_offset]
         @series begin
             subplot := 1
             label := "$(time0) [s]"
             aspect_ratio := :equal
             time0 := time0
-            ps.position_control
+            if typeof(ps) <: IMAS.pulse_schedule
+                ps.position_control, nothing
+            else
+                ps, nothing
+            end
         end
-    end
+        eqt = try
+            top_dd(pc).equilibrium.time_slice[time0]
+        catch
+            nothing
+        end
+        if eqt !== nothing
+            @series begin
+                legend := false
+                cx := true
+                alpha := 0.2
+                color := :gray
+                eqt
+            end
+        end
 
-    eqt = try
-        top_dd(ps).equilibrium.time_slice[time0]
-    catch
-        nothing
-    end
-    if eqt !== nothing
-        @series begin
-            subplot := 1
-            legend := false
-            cx := true
-            alpha := 0.2
-            color := :gray
-            eqt
+        wall = try
+            top_dd(pc).wall
+        catch
+            nothing
         end
-    end
-
-    wall = try
-        top_dd(ps).wall
-    catch
-        nothing
-    end
-    if wall !== nothing
-        @series begin
-            show_limiter := true
-            show_vessel := false
-            subplot := 1
-            legend := false
-            wall
+        if wall !== nothing
+            @series begin
+                show_limiter := true
+                show_vessel := false
+                legend := false
+                wall
+            end
         end
+    else
+        plot_offset = 0
+        layout := RecipesBase.@layout [length(plots)]
     end
 
     # plotting at infinity does not show
@@ -2877,13 +2884,13 @@ end
         y = plt[:y]
         n = min(length(x), length(y))
         @series begin
-            subplot := k + 1
+            subplot := k + plot_offset
             label := ""
             x[1:n], y[1:n]
         end
         if simulation_start !== nothing
             @series begin
-                subplot := k + 1
+                subplot := k + plot_offset
                 primary := false
                 seriestype := :vline
                 linestyle := :dash
@@ -2891,7 +2898,7 @@ end
             end
         end
         @series begin
-            subplot := k + 1
+            subplot := k + plot_offset
             seriestype := :scatter
             primary := false
             marker := :circle
@@ -2904,7 +2911,7 @@ end
     end
 end
 
-@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control; time0=global_time(pc))
+@recipe function plot_pc_time(pc::IMAS.pulse_schedule__position_control, ::Nothing; time0=global_time(pc))
     id = recipe_dispatch(pc)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     aspect_ratio := :equal
@@ -2945,67 +2952,77 @@ end
 #= =========== =#
 #  controllers  #
 #= =========== =#
-@recipe function plot_controllers(controller_outputs::controllers__linear_controller___outputs)
+@recipe function plot_controllers(controller_outputs::controllers__linear_controller___outputs, k::Int)
     controller = IMAS.parent(controller_outputs)
 
     data = controller.inputs.data[1, :]
-    integral = cumsum((data[k+1] + data[k]) / 2.0 * (controller.inputs.time[k+1] - controller.inputs.time[k]) for k in eachindex(controller.inputs.time) - 1)
-    derivative = diff(data) ./ diff(controller.inputs.time)
+    integral = cumtrapz(controller.inputs.time, data)
+    derivative = [0.0, diff(data) ./ diff(controller.inputs.time)]
 
     @series begin
-        label := "PID"
+        label := controller.output_names[k]
         color := :black
         lw := 2
         controller.outputs.time, controller.outputs.data[1, :]
     end
 
     @series begin
-        label := "P=$(controller.pid.p.data[1])"
-        controller.outputs.time, data .* controller.pid.p.data[1]
+        label := "P=$(join(map(x->@sprintf("%.3e", x), @ddtime(controller.pid.p.data)),", "))"
+        controller.outputs.time, data .* controller.pid.p.data[k]
     end
 
     @series begin
-        label := "I=$(controller.pid.i.data[1])"
-        controller.outputs.time[2:end], integral .* controller.pid.i.data[1]
+        label := "I=$(join(map(x->@sprintf("%.3e", x), @ddtime(controller.pid.i.data)),", "))"
+        controller.outputs.time, integral .* controller.pid.i.data[k]
     end
 
-    @series begin
-        label := "D=$(controller.pid.d.data[1])"
-        controller.outputs.time[2:end], derivative .* controller.pid.d.data[1]
+    if any(controller.pid.d.data[k] .!= 0.0)
+        @series begin
+            label := "D=$(join(map(x->@sprintf("%.3e", x), @ddtime(controller.pid.d.data)),", "))"
+            controller.outputs.time, derivative .* controller.pid.d.data[k]
+        end
     end
 
-    @series begin
-        label := "PI"
-        controller.outputs.time[2:end], data[2:end] .* controller.pid.p.data[1] .+ integral .* controller.pid.i.data[1]
+    if any(controller.pid.i.data[k] .!= 0.0)
+        @series begin
+            label := "PI"
+            controller.outputs.time, data .* controller.pid.p.data[k] .+ integral .* controller.pid.i.data[k]
+        end
     end
 
-    @series begin
-        label := "PID"
-        controller.outputs.time[2:end], data[2:end] .* controller.pid.p.data[1] .+ integral .* controller.pid.i.data[1] .+ derivative .* controller.pid.d.data[1]
+    if any(controller.pid.d.data[k] .!= 0.0) && any(controller.pid.i.data[k] .!= 0.0)
+        @series begin
+            label := "PID"
+            controller.outputs.time, data .* controller.pid.p.data[k] .+ integral .* controller.pid.i.data[k] .+ derivative .* controller.pid.d.data[k]
+        end
     end
 
 end
 
-@recipe function plot_controllers(controller_inputs::controllers__linear_controller___inputs)
+@recipe function plot_controllers(controller_inputs::controllers__linear_controller___inputs, k::Int)
     controller = IMAS.parent(controller_inputs)
-    label = "P=$(controller.pid.p.data[1]), I=$(controller.pid.i.data[1]), D=$(controller.pid.d.data[1])"
     @series begin
-        label := "$(controller.input_names[1]) ($label)"
-        controller.inputs.time, controller.inputs.data[1, :]
+        label := controller.input_names[k]
+        controller_inputs.time, controller_inputs.data[k, :]
     end
 end
 
 @recipe function plot_controllers(controller::controllers__linear_controller)
-    layout := (2, 1)
-    size --> (800, 600)
+    n = size(controller.inputs.data)[1] + size(controller.outputs.data)[1]
+    layout := (n, 1)
+    size --> (800, n * 300)
     margin --> 5 * Measures.mm
-    @series begin
-        subplot := 1
-        controller.inputs
+    for k in 1:size(controller.inputs.data)[1]
+        @series begin
+            subplot := 1
+            controller.inputs, k
+        end
     end
-    @series begin
-        subplot := 2
-        controller.outputs
+    for k in 1:size(controller.outputs.data)[1]
+        @series begin
+            subplot := 2
+            controller.outputs, k
+        end
     end
 end
 

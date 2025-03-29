@@ -37,7 +37,9 @@ thermal pressure for all ions
 function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
     p = cp1di[1].temperature .* 0.0
     for ion in cp1di
-        p .+= ion.temperature .* ion.density_thermal
+        if hasdata(ion, :density_thermal)
+            p .+= ion.temperature .* ion.density_thermal
+        end
     end
     return p .* mks.e
 end
@@ -407,8 +409,8 @@ function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiatio
     total_power_inside = max(0.0, total_power_inside)
 
     isotope_factor =
-        trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
-        trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
+        trapz(cp1d.grid.volume, sum(ion.density_thermal .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
+        trapz(cp1d.grid.volume, sum(ion.density_thermal for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
@@ -453,8 +455,8 @@ function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiati
     total_power_inside = max(0.0, total_power_inside)
 
     isotope_factor =
-        trapz(cp1d.grid.volume, sum(ion.density .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
-        trapz(cp1d.grid.volume, sum(ion.density for ion in cp1d.ion if ion.element[1].z_n == 1.0))
+        trapz(cp1d.grid.volume, sum(ion.density_thermal .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
+        trapz(cp1d.grid.volume, sum(ion.density_thermal for ion in cp1d.ion if ion.element[1].z_n == 1.0))
 
     R0, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
 
@@ -478,24 +480,6 @@ end
 
 @compat public tau_e_ds03
 push!(document[Symbol("Physics profiles")], :tau_e_ds03)
-
-"""
-    bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
-
-Calculate bunit from equilibrium
-"""
-function bunit(eqt1d::IMAS.equilibrium__time_slice___profiles_1d)
-    rmin = 0.5 .* (eqt1d.r_outboard .- eqt1d.r_inboard)
-    phi = eqt1d.phi
-    return gradient(2π * rmin, phi) ./ rmin
-end
-
-function bunit(eqt::IMAS.equilibrium__time_slice)
-    return bunit(eqt.profiles_1d)
-end
-
-@compat public bunit
-push!(document[Symbol("Physics profiles")], :bunit)
 
 """
     greenwald_density(eqt::IMAS.equilibrium__time_slice)
@@ -576,7 +560,7 @@ end
 Calculates the line averaged density from the equilibrium midplane horizantal line
 """
 function ne_line(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
-    return ne_line(eqt, cp1d.electrons.density, cp1d.grid.rho_tor_norm)
+    return ne_line(eqt, cp1d.electrons.density_thermal, cp1d.grid.rho_tor_norm)
 end
 
 """
@@ -610,7 +594,7 @@ push!(document[Symbol("Physics profiles")], :ne_line)
 Volume averaged electron density
 """
 function ne_vol_avg(cp1d::IMAS.core_profiles__profiles_1d)
-    return trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end]
+    return trapz(cp1d.grid.volume, cp1d.electrons.density_thermal) / cp1d.grid.volume[end]
 end
 
 @compat public ne_vol_avg
@@ -753,7 +737,7 @@ function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
     profile = f.(rho ./ rho_ped) .* (core - ped) .+ ped
     profile[rho_ped_idx:end] .= range(ped, edge, ngrid - rho_ped_idx + 1)
 
-    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, ped, rho_ped), -500, 500, Optim.GoldenSection(); rel_tol=1E-3)
+    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, ped, rho_ped), -500, 500, Optim.Brent(); rel_tol=1E-3)
     cost_WPED_α!(rho, profile, res.minimizer, ped, rho_ped)
 
     return profile
@@ -772,7 +756,7 @@ function A_effective(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     denominator = zero(T)
     for ion in cp1d.ion
         if ion.element[1].z_n == 1
-            n_int = trapz(cp1d.grid.volume, ion.density)
+            n_int = trapz(cp1d.grid.volume, ion.density_thermal)
             numerator += n_int * ion.element[1].a
             denominator += n_int
         end
@@ -825,7 +809,7 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
     end
 
     # The Martin scaling is only valid for plasma densities above the power threshold minimum
-    ne_volume = trapz(cp1d.grid.volume, cp1d.electrons.density) / cp1d.grid.volume[end] / 1E20
+    ne_volume = trapz(cp1d.grid.volume, cp1d.electrons.density_thermal) / cp1d.grid.volume[end] / 1E20
     Rgeo = eqt.boundary.geometric_axis.r
     ageo = eqt.boundary.minor_radius
     ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * ageo ^-0.95 * (Rgeo / ageo)^0.4 # in 1e19 m^-3
@@ -941,22 +925,22 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
     out = []
     if only_electrons_ions ∈ (:all, :electrons)
-        if only_thermal_fast ∈ (:all, :thermal) && sum(cp1d.electrons.density_thermal) > 0.0
+        if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && sum(cp1d.electrons.density_thermal) > 0.0
             push!(out, (0, :electrons))
         end
-        if only_thermal_fast ∈ (:all, :fast) && sum(cp1d.electrons.density_fast) > 0.0
+        if only_thermal_fast ∈ (:all, :fast) && hasdata(cp1d.electrons, :density_fast) && sum(cp1d.electrons.density_fast) > 0.0
             push!(out, (0, :electrons_fast))
         end
     end
     if only_electrons_ions ∈ (:all, :ions)
         if only_thermal_fast ∈ (:all, :thermal)
-            dd_thermal = ((k, Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if sum(ion.density_thermal) > 0.0)
+            dd_thermal = ((k, Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && sum(ion.density_thermal) > 0.0)
             for item in dd_thermal
                 push!(out, item)
             end
         end
         if only_thermal_fast ∈ (:all, :fast)
-            dd_fast = ((k, Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if sum(ion.density_fast) > 0.0)
+            dd_fast = ((k, Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && sum(ion.density_fast) > 0.0)
             for item in dd_fast
                 push!(out, item)
             end
@@ -1019,8 +1003,16 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         ion0 = cp1d.ion[species_indx]
 
         # evaluate the difference in number of thermal charges needed to reach quasineutrality
-        ne = cp1d.electrons.density .+ cp1d.electrons.density_fast
-        q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
+        if hasdata(cp1d.electrons, :density_fast)
+            ne = cp1d.electrons.density_thermal .+ cp1d.electrons.density_fast
+        else
+            ne = cp1d.electrons.density_thermal
+        end
+        if hasdata(ion0, :density_fast)
+            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
+        else
+            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0)
+        end
 
         # positive difference is assigned to target ion density_thermal
         index = q_density_difference .> 0.0
@@ -1147,9 +1139,9 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ioniz
         else
             Zi = ion.element[1].z_n
         end
-        z .+= ion.density .* Zi .^ 2
+        z .+= ion.density_thermal .* Zi .^ 2
     end
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     for k in eachindex(z)
         z[k] = max(1.0, z[k] / ne[k])
     end

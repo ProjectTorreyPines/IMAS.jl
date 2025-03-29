@@ -106,20 +106,20 @@ Calculates the number of D-T thermal fusion reactions to He4 in [reactions/m³/s
 """
 function D_T_to_He4_reactions(cp1d::IMAS.core_profiles__profiles_1d; polarized_fuel_fraction::Real=0.0)
     ion_list = (ion.label for ion in cp1d.ion)
-    result = zero(cp1d.electrons.density)
+    result = zero(cp1d.electrons.density_thermal)
 
     if "D" in ion_list && "T" in ion_list
         D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
-        n_deuterium = cp1d.ion[D_index].density
+        n_deuterium = cp1d.ion[D_index].density_thermal
         T_index = findfirst(ion -> isequal(ion, "T"), ion_list)
-        n_tritium = cp1d.ion[T_index].density
+        n_tritium = cp1d.ion[T_index].density_thermal
         Ti = (cp1d.ion[D_index].temperature .+ cp1d.ion[T_index].temperature) ./ 2.0
         sigv = reactivity(Ti, "D+T→He4"; polarized_fuel_fraction)
         result .= n_deuterium .* n_tritium .* sigv  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
-        n_deuterium = n_tritium = cp1d.ion[DT_index].density ./ 2.0
+        n_deuterium = n_tritium = cp1d.ion[DT_index].density_thermal ./ 2.0
         Ti = cp1d.ion[DT_index].temperature
         sigv = reactivity(Ti, "D+T→He4"; polarized_fuel_fraction)
         result .= n_deuterium .* n_tritium .* sigv  #  reactions/m³/s
@@ -138,18 +138,18 @@ Calculates the number of D-D thermal fusion reactions to He3 in [reactions/m³/s
 """
 function D_D_to_He3_reactions(cp1d::IMAS.core_profiles__profiles_1d)
     ion_list = (ion.label for ion in cp1d.ion)
-    result = zero(cp1d.electrons.density)
+    result = zero(cp1d.electrons.density_thermal)
 
     if "D" in ion_list
         D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
-        n_deuterium = cp1d.ion[D_index].density
+        n_deuterium = cp1d.ion[D_index].density_thermal
         Ti = cp1d.ion[D_index].temperature
         sigv = reactivity(Ti, "D+D→He3")
         result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
-        n_deuterium = cp1d.ion[DT_index].density ./ 2.0
+        n_deuterium = cp1d.ion[DT_index].density_thermal ./ 2.0
         Ti = cp1d.ion[DT_index].temperature
         sigv = reactivity(Ti, "D+D→He3")
         result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
@@ -168,18 +168,18 @@ Calculates the number of D-D thermal fusion reactions to T in [reactions/m³/s]
 """
 function D_D_to_T_reactions(cp1d::IMAS.core_profiles__profiles_1d)
     ion_list = (ion.label for ion in cp1d.ion)
-    result = zero(cp1d.electrons.density)
+    result = zero(cp1d.electrons.density_thermal)
 
     if "D" in ion_list
         D_index = findfirst(ion -> isequal(ion, "D"), ion_list)
-        n_deuterium = cp1d.ion[D_index].density
+        n_deuterium = cp1d.ion[D_index].density_thermal
         Ti = cp1d.ion[D_index].temperature
         sigv = reactivity(Ti, "D+D→T")
         result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
-        n_deuterium = cp1d.ion[DT_index].density ./ 2.0
+        n_deuterium = cp1d.ion[DT_index].density_thermal ./ 2.0
         Ti = cp1d.ion[DT_index].temperature
         sigv = reactivity(Ti, "D+D→T")
         result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s

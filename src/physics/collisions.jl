@@ -75,7 +75,7 @@ end
 push!(document[Symbol("Physics collisions")], :lnΛ_ei)
 
 """
-    lnΛ_ii(ne::Real, Te::Real, ni1::Real, Ti1::Real, mi1::Real, Zi1::Int, ni2::Real, Ti2::Real, mi2::Real, Zi2::Int; beta_D::Real=0.0)
+    lnΛ_ii(ne::Real, Te::Real, ni1::Real, Ti1::Real, mi1::Real, Zi1::Real, ni2::Real, Ti2::Real, mi2::Real, Zi2::Real; beta_D::Real=0.0)
 
 Calculate Couloumb logarithm (lnΛ) for mixed thermal ion1-ion2 collisions [NRL Plasma Formulary]
 
@@ -101,7 +101,7 @@ Calculate Couloumb logarithm (lnΛ) for mixed thermal ion1-ion2 collisions [NRL 
 
 * `beta_D`: relative drift velocities between ion species `v_D = beta_D*c`
 """
-function lnΛ_ii(ne::Real, Te::Real, ni1::Real, Ti1::Real, mi1::Real, Zi1::Int, ni2::Real, Ti2::Real, mi2::Real, Zi2::Int; beta_D::Real=0.0)
+function lnΛ_ii(ne::Real, Te::Real, ni1::Real, Ti1::Real, mi1::Real, Zi1::Real, ni2::Real, Ti2::Real, mi2::Real, Zi2::Real; beta_D::Real=0.0)
     ni1 *= 1e-6 #cm^-3
     ni2 *= 1e-6 #cm^-3
     ne *= 1e-6 #cm^-3
@@ -129,7 +129,7 @@ end
 push!(document[Symbol("Physics collisions")], :lnΛ_ii)
 
 """
-    lnΛ_fi(ne::Real, Te::Real, n_i::Real, T_i::Real, m_i::Real, Z_i::Int, beta_f::Real, mf::Real, Zf::Int; verbose=true)
+    lnΛ_fi(ne::Real, Te::Real, n_i::Real, T_i::Real, m_i::Real, Z_i::Real, beta_f::Real, mf::Real, Zf::Real; verbose=true)
 
 Calculate Couloumb logarithm (lnΛ) for beam/fast ion in the presence of warm electrons/ions [NRL Plasma Formulary]
 
@@ -151,7 +151,7 @@ Calculate Couloumb logarithm (lnΛ) for beam/fast ion in the presence of warm el
 
 * `Zf`: charge of fast ion
 """
-function lnΛ_fi(ne::Real, Te::Real, n_i::Real, T_i::Real, m_i::Real, Z_i::Int, beta_f::Real, mf::Real, Zf::Int; verbose=true)
+function lnΛ_fi(ne::Real, Te::Real, n_i::Real, T_i::Real, m_i::Real, Z_i::Real, beta_f::Real, mf::Real, Zf::Real; verbose::Bool=false)
     ne *= 1e-6 #cm^-3
 
     c = mks.c

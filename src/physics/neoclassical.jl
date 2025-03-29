@@ -39,7 +39,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
     for ion in cp1d.ion
         if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
             Ti = ion.temperature
-            ni = ion.density / 1E6
+            ni = ion.density_thermal / 1E6
             Zi = avgZ(ion.element[1].z_n, Ti)
             mi = ion.element[1].a * mp
             nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
@@ -54,7 +54,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
     for ion in cp1d.ion
         if !ismissing(ion, :temperature)
             Ti = ion.temperature
-            ni = ion.density / 1E6
+            ni = ion.density_thermal / 1E6
             Zi = avgZ(ion.element[1].z_n, Ti)
             mi = ion.element[1].a * mp
             nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
@@ -85,7 +85,7 @@ Calculates bootstrap current
 function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=false, same_ne_ni::Bool=false)
     psi = cp1d.grid.psi
 
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
     Ti = cp1d.t_i_average
 
@@ -346,7 +346,7 @@ frequency of electron collisions relative to their characteristic transit freque
 function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     Zeff = cp1d.zeff
 
     R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
@@ -385,8 +385,8 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a).(rho)
 
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
-    ne = cp1d.electrons.density
-    nis = hcat((ion.density for ion in cp1d.ion)...)
+    ne = cp1d.electrons.density_thermal
+    nis = hcat((ion.density_thermal for ion in cp1d.ion)...)
     ni = sum(nis; dims=2)[:, 1]
     Ti = cp1d.t_i_average
 
@@ -428,7 +428,7 @@ Calculates the neo-classical conductivity in 1/(Ohm*meter) based on the NEO 2021
 function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
-    ne = cp1d.electrons.density
+    ne = cp1d.electrons.density_thermal
     Zeff = cp1d.zeff
 
     trapped_fraction = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
