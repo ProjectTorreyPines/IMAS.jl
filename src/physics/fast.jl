@@ -84,13 +84,13 @@ function slowing_down_time(ne::Real, Te::Real, mf::Real, Zf::Real)
 end
 
 """
-    α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d)
+    α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d, irho::Int=1)
 
-Returns the slowing down time in seconds of α particles evaluated on axis
+Returns the slowing down time in seconds of α particles evaluated at irho (by default on axis)
 """
-function α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d)
+function α_slowing_down_time(cp1d::IMAS.core_profiles__profiles_1d, irho::Int=1)
     α = ion_properties(:α)
-    return slowing_down_time(cp1d.electrons.density_thermal[1], cp1d.electrons.temperature[1], α.a, α.z_n)
+    return slowing_down_time(cp1d.electrons.density_thermal[irho], cp1d.electrons.temperature[irho], α.a, α.z_n)
 end
 
 @compat public α_slowing_down_time

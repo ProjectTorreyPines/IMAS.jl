@@ -317,7 +317,7 @@ function update_ExtractFunctionsLibrary!()
     ExtractLibFunction(:transport, :H98y2_exp, "-", dd -> EFL[:τe_exp](dd) / tau_e_h98(dd; subtract_radiation_losses=false))
     ExtractLibFunction(:transport, :Hds03, "-", dd -> EFL[:τe](dd) / tau_e_ds03(dd))
     ExtractLibFunction(:transport, :Hds03_exp, "-", dd -> EFL[:τe_exp](dd) / tau_e_ds03(dd; subtract_radiation_losses=false))
-    ExtractLibFunction(:transport, :τα_thermalization, "s", dd -> α_thermalization_time(dd.core_profiles.profiles_1d[]))
+    ExtractLibFunction(:transport, :τα_thermalization, "s", dd -> α_thermalization_time(dd.core_profiles.profiles_1d[], 1))
     ExtractLibFunction(:transport, :τα_slowing_down, "s", dd -> α_slowing_down_time(dd.core_profiles.profiles_1d[]))
 
     ExtractLibFunction(:sources, :Pec, "MW", dd -> @ddtime(dd.summary.heating_current_drive.power_launched_ec.value) / 1E6)
