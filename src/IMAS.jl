@@ -5,16 +5,18 @@ using Compat:@compat
 import OrderedCollections
 const document = OrderedCollections.OrderedDict()
 
+macro import_all(mod)
+    syms = names(eval(mod); all=true)
+    syms = filter(n -> Base.isidentifier(n) && n ∉ (mod, :eval, :include, :document), syms)
+    imports = [:(import $mod: $(s)) for s in syms]
+    return Expr(:toplevel, imports...)
+end
+
 #= ====== =#
 #= IMASdd =#
 #= ====== =#
 import IMASdd
-# import all IMASdd.jl as if it was defined in IMAS.jl
-for n in names(IMASdd; all=true)
-    if Base.isidentifier(n) && n ∉ (Symbol(IMASdd), :eval, :include, :document)
-        @eval import IMASdd: $n
-    end
-end
+@import_all IMASdd
 import IMASdd: @ddtime, @findall
 
 #= ===== =#
