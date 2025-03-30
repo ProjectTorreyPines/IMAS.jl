@@ -4,7 +4,7 @@ using LinearAlgebra
 using Plots
 
 # setting global variable for precision for computing relevant surfaces (i.e. lcfs, first_open, ldfs, 1st sep, 2nd sep,..)
-const flux_surfaces_precision::Float64=1E-6
+const flux_surfaces_precision::Float64 = 1E-6
 
 """
     ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
@@ -521,10 +521,10 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
     ZA = eqt.global_quantities.magnetic_axis.z
     # retrieve b = elongation * minor radius 
     b = eqt.boundary.elongation * eqt.boundary.minor_radius
-   
+
     for (r, z) in surface
         # exclude empty vectors, private region and surfaces starting and finishing in the same z range as the plasma
-        if isempty(r) || all(z .> ZA) || all(z .< ZA) || all(z .> (ZA - b) .&& z .< (ZA + b))  
+        if isempty(r) || all(z .> ZA) || all(z .< ZA) || all(z .> (ZA - b) .&& z .< (ZA + b))
             continue
         end
         if (z[end] - ZA) * (z[1] - ZA) < 0
@@ -535,10 +535,10 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
             # abs(psirange[end] - psirange[1]) / (abs(psirange[end] + psirange[1]) / 2.0) < precision
             if psi_sign > 0
                 #increasing psi
-                return (diverted = psi_separatrix, not_diverted = psi_separatrix*(1+flux_surfaces_precision))
+                return (diverted=psi_separatrix, not_diverted=psi_separatrix * (1 + flux_surfaces_precision))
             else
                 #decreasing psi
-                return (diverted = psi_separatrix, not_diverted = psi_separatrix*(1-flux_surfaces_precision))
+                return (diverted=psi_separatrix, not_diverted=psi_separatrix * (1 - flux_surfaces_precision))
             end
         end
     end
@@ -562,7 +562,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
     while abs(err) > precision && counter < counter_max
         surface = flux_surface(eqt, psi, :open, Float64[], Float64[])
         for (r, z) in surface
-            if isempty(r) || all(z .> ZA) || all(z .< ZA) || all(z .> (ZA - b) .&& z .< (ZA + b)) 
+            if isempty(r) || all(z .> ZA) || all(z .< ZA) || all(z .> (ZA - b) .&& z .< (ZA + b))
                 continue
             end
 
@@ -588,7 +588,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
         counter = counter + 1
     end
 
-    return (diverted = psi_low, not_diverted = psi_up)
+    return (diverted=psi_low, not_diverted=psi_up)
 end
 
 @compat public find_psi_2nd_separatrix
@@ -1442,10 +1442,10 @@ function trace_surfaces(
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
-        tmp = Br .^ 2.0 .+ Bz .^ 2.0 #Bp2
-        Bp_abs = sqrt.(tmp)
+        Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
+        Bp_abs = sqrt.(Bp2)
         Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
-        Btot = sqrt.(tmp .+ (f[k] ./ pr) .^ 2)
+        Btot = sqrt.(Bp2 .+ (f[k] ./ pr) .^ 2)
 
         # flux expansion
         fluxexpansion = 1.0 ./ Bp_abs
@@ -1478,7 +1478,6 @@ function trace_surfaces(
 
     if refine_extrema
         N2 = Int(ceil(N / 2))
-        algorithm = Optim.NelderMead()
         psi_norm = abs(psi[end] - psi[1]) / N
         space_norm = (surfaces[N].max_r - surfaces[N].min_r) / 2 / N
 
@@ -1502,7 +1501,7 @@ function trace_surfaces(
         interp_z = interp1d(1:length(leftright_z), leftright_z)
         for k in 1:N
             #@show "R", k
-            index = _extrema_index(leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r)
+            index = _extrema_index(leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, :right)
             cost =
                 x -> _extrema_cost(
                     interp_r(x),
@@ -1519,7 +1518,7 @@ function trace_surfaces(
                 )
             x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
             surfaces[k].max_r, surfaces[k].z_at_max_r = interp_r(x), interp_z(x)
-            index = _extrema_index(leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r)
+            index = _extrema_index(leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, :left)
             cost =
                 x -> _extrema_cost(
                     interp_r(x),
@@ -1538,6 +1537,7 @@ function trace_surfaces(
             x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
             min_r, z_at_min_r = interp_r(x), interp_z(x)
             surfaces[k].min_r, surfaces[k].z_at_min_r = min_r, z_at_min_r
+            @assert surfaces[k].min_r < surfaces[k].max_r
             if k < 3
                 surfaces[k+1].z_at_max_r = ZA
                 surfaces[k+1].z_at_min_r = ZA
@@ -1567,7 +1567,7 @@ function trace_surfaces(
         interp_z = interp1d(1:length(updown_z), updown_z)
         for k in 1:N
             #@show "Z", k
-            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z)
+            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, :up)
             cost =
                 x -> _extrema_cost(
                     interp_r(x),
@@ -1584,7 +1584,7 @@ function trace_surfaces(
                 )
             x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
             surfaces[k].r_at_max_z, surfaces[k].max_z = interp_r(x), interp_z(x)
-            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z)
+            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, :down)
             cost =
                 x -> _extrema_cost(
                     interp_r(x),
@@ -1602,6 +1602,7 @@ function trace_surfaces(
             # plot!(updown_r[index], updown_z[index]; label="")
             x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
             surfaces[k].r_at_min_z, surfaces[k].min_z = interp_r(x), interp_z(x)
+            @assert surfaces[k].min_z < surfaces[k].max_z
             if k < 3
                 surfaces[k+1].r_at_max_z = RA
                 surfaces[k+1].r_at_min_z = RA
@@ -1629,10 +1630,36 @@ end
 @compat public trace_surfaces
 push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
 
-function _extrema_index(r, z, r0, Z0)
-    n = 3
+function _extrema_index(r::Vector{T}, z::Vector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
     i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
-    return max(1, i - n):min(length(r), i + n)
+    n = 3
+    if direction == :right
+        if (r[i] - r[i-1]) > 0 # oriented right
+            return i:min(length(r), i + n)
+        else # opposite orientation
+            return max(1, i - n):i
+        end
+    elseif direction == :left
+        if (r[i] - r[i-1]) < 0 # oriented left
+            return i:min(length(r), i + n)
+        else
+            return max(1, i - n):i
+        end
+    elseif direction == :up
+        if (z[i] - z[i-1]) > 0 # oriented up
+            return i:min(length(z), i + n)
+        else
+            return max(1, i - n):i
+        end
+    elseif direction == :down
+        if (z[i] - z[i-1]) < 0 # oriented down
+            return i:min(length(z), i + n)
+        else
+            return max(1, i - n):i
+        end
+    else
+        error("_extrema_index(..., direction::Symbol) can only be (:left, :right, :up, :down)")
+    end
 end
 
 # accurate geometric quantities by finding geometric extrema as optimization problem
@@ -1652,16 +1679,18 @@ function _extrema_cost(
     cost_psi = (PSI_interpolant(r, z) - psi_level) / psi_norm * space_norm # convert psi cost into spatial units
     if direction == :right
         cost_dir = abs(r - r_orig) * (r > r_orig)
-        cost_dir += abs(r - RA) * (r < RA) # extra penalty needed for flux surfaces near axis
+        cost_dir += abs(r - RA) * (r < RA) + (r < RA) # extra penalty needed for flux surfaces near axis
     elseif direction == :left
         cost_dir = abs(r - r_orig) * (r < r_orig)
-        cost_dir += abs(r - RA) * (r > RA)
+        cost_dir += abs(r - RA) * (r > RA) + (r > RA)
     elseif direction == :up
         cost_dir = abs(z - z_orig) * (z > z_orig)
-        cost_dir += abs(z - ZA) * (z < ZA)
+        cost_dir += abs(z - ZA) * (z < ZA) + (z < ZA)
     elseif direction == :down
         cost_dir = abs(z - z_orig) * (z < z_orig)
-        cost_dir += abs(z - ZA) * (z > ZA)
+        cost_dir += abs(z - ZA) * (z > ZA) + (z > ZA)
+    else
+        error("_extrema_cost(..., direction::Symbol) can only be (:left, :right, :up, :down)")
     end
     cost = norm((cost_psi, cost_dir^2)) # linear in psi since it already varies quadratically in space
     return cost
@@ -1915,10 +1944,9 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # gm2: <∇ρ²/R²>
     cumtrapz!(tmp, eqt1d.area, eqt1d.j_tor) # It(psi)
-    eqt1d.gm2 = (mks.μ_0 * (2π) ^ 2)  .* tmp ./ (eqt1d.dvolume_dpsi .*  (eqt1d.dpsi_drho_tor .^ 2))
+    eqt1d.gm2 = (mks.μ_0 * (2π)^2) .* tmp ./ (eqt1d.dvolume_dpsi .* (eqt1d.dpsi_drho_tor .^ 2))
     @views gm2_itp = interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5], :cubic)
     eqt.profiles_1d.gm2[1] = gm2_itp(0.0) # extrapolate to axis due to zero / zero division
-
 
     # Geometric major and minor radii
     Rgeo = (eqt1d.r_outboard[end] + eqt1d.r_inboard[end]) / 2.0
@@ -2304,8 +2332,8 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         #check if primary x-point consistent with strike points
         if isempty(eqt.boundary.strike_point)
             #case with case not already saved  - look at first open surface 
-            psi_first_open = IMAS.find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open       
-            (_,z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
+            psi_first_open = IMAS.find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
+            (_, z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
             if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)
                 # x_point are not oredered correctly
                 if length(eqt.boundary.x_point) <= 2
@@ -2328,7 +2356,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
                 end
             end
         end
-        
+
     end
 
     return eqt.boundary.x_point
