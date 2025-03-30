@@ -1635,27 +1635,27 @@ function _extrema_index(r::Vector{T}, z::Vector{T}, r0::T, Z0::T, direction::Sym
     n = 3
     if direction == :right
         if (r[i] - r[i-1]) > 0 # oriented right
-            return i:min(length(r), i + n)
+            return max(1, i - 1):min(length(z), i + n)
         else # opposite orientation
-            return max(1, i - n):i
+            return max(1, i - n):min(length(z), i + 1)
         end
     elseif direction == :left
         if (r[i] - r[i-1]) < 0 # oriented left
-            return i:min(length(r), i + n)
+            return max(1, i - 1):min(length(z), i + n)
         else
-            return max(1, i - n):i
+            return max(1, i - n):min(length(z), i + 1)
         end
     elseif direction == :up
         if (z[i] - z[i-1]) > 0 # oriented up
-            return i:min(length(z), i + n)
+            return max(1, i - 1):min(length(z), i + n)
         else
-            return max(1, i - n):i
+            return max(1, i - n):min(length(z), i + 1)
         end
     elseif direction == :down
         if (z[i] - z[i-1]) < 0 # oriented down
-            return i:min(length(z), i + n)
+            return max(1, i - 1):min(length(z), i + n)
         else
-            return max(1, i - n):i
+            return max(1, i - n):min(length(z), i + 1)
         end
     else
         error("_extrema_index(..., direction::Symbol) can only be (:left, :right, :up, :down)")
