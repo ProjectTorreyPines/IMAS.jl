@@ -100,23 +100,37 @@ end
 push!(document[Symbol("Physics sources")], :bootstrap_source!)
 
 """
-    sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
+    sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, time_derivative::Bool=true)
 
 Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
-function sources!(dd::IMAS.dd; bootstrap::Bool=true, ohmic::Bool=true, DD_fusion::Bool=false)
+function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, time_derivative::Bool=true)
     if bootstrap
-        bootstrap_source!(dd)
+        bootstrap_source!(dd) # current
     end
-    if ohmic
-        ohmic_source!(dd)
+
+    ohmic_source!(dd) # electron energy, current
+
+    collisional_exchange_source!(dd) # electron and ion energy
+
+    bremsstrahlung_source!(dd) # electron energy
+
+    line_radiation_source!(dd) # electron energy
+
+    synchrotron_source!(dd) # electron energy (ion synchrotron not calculated)
+
+    fusion_source!(dd; DD_fusion) # electron and ion energy, particles
+
+    fast_particles!(dd) # particles
+
+    if time_derivative # electron and ion energy, particles, momentum
+        cp_time = dd.core_profiles.time
+        i = nearest_causal_time(cp_time, dd.global_time).index
+        if i > 1 && !isinf(cp_time[i-1])
+            IMAS.time_derivative_source!(dd, dd.core_profiles.profiles_1d[i-1], cp_time[i] - cp_time[i-1])
+        end
     end
-    collisional_exchange_source!(dd)
-    bremsstrahlung_source!(dd)
-    line_radiation_source!(dd)
-    synchrotron_source!(dd)
-    fusion_source!(dd; DD_fusion)
-    fast_particles!(dd)
+
     return nothing
 end
 
