@@ -9,6 +9,14 @@ using GraphRecipes
 import HelpPlots
 using HelpPlots
 
+struct PlotExtrema
+    ylims::Vector{Float64}
+end
+
+function PlotExtrema()
+    return PlotExtrema([Inf, -Inf])
+end
+
 function HelpPlots.recipe_dispatch(arg::IDS)
     return ulocation(arg)
 end
@@ -1354,7 +1362,7 @@ end
 
     for (k, path) in enumerate(paths)
         if k == only || only === nothing
-            if path[end] !== nothing && !ismissing(ct1d, [path; :flux])
+            if path[end] !== nothing && !ismissing(ct1d, [path; :flux]) && sum(abs.(getproperty(goto(ct1d, path), :flux))) > 0.0
                 @series begin
                     if only === nothing
                         subplot := k
@@ -1366,7 +1374,7 @@ end
     end
 end
 
-@recipe function plot_core_transport(ct::IMAS.core_transport{D}; ions=Symbol[:my_ions], time0=global_time(ct)) where {D<:Real}
+@recipe function plot_core_transport(ct::IMAS.core_transport{T}; ions=Symbol[:my_ions], time0=global_time(ct)) where {T<:Real}
     id = recipe_dispatch(ct)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
@@ -1379,7 +1387,7 @@ end
     end
 
     model_type = name_2_index(ct.model)
-    rhos = D[]
+    rhos = T[]
     for model in ct.model
         if model.identifier.index ∈ (model_type[k] for k in (:combined, :unspecified, :transport_solver, :unknown))
             continue
@@ -1392,14 +1400,18 @@ end
     rhos = unique(rhos)
 
     if dd !== nothing
+        tot_source = IMAS.core_sources__source{T}()
+        resize!(tot_source.profiles_1d, 1)
+        merge!(tot_source.profiles_1d[1], total_sources(dd; time0))
+        tot_source.identifier.index = 1
+        tot_source.identifier.name = "Total source"
         @series begin
             linewidth := 2
             color := :blue
-            name := "Total source"
             flux := true
             show_zeros := true
             ions := ions
-            total_sources(dd; time0)
+            tot_source, PlotExtrema[]
         end
     end
 
@@ -1438,11 +1450,11 @@ end
 # ============ #
 # core_sources #
 # ============ #
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy})
-    return cs1d.electrons, Val(:energy)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema)
+    return cs1d.electrons, Val(:energy), plot_extrema
 end
 
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy};
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy}, plot_extrema::PlotExtrema;
     name="",
     label="",
     integrated=false,
@@ -1505,7 +1517,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy}, plot_extrema::PlotExtrema;
     name="",
     label="",
     integrated=false,
@@ -1567,11 +1579,11 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles})
-    return cs1d.electrons, Val(:particles)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles}, plot_extrema::PlotExtrema)
+    return cs1d.electrons, Val(:particles), plot_extrema
 end
 
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles};
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles}, plot_extrema::PlotExtrema;
     name="",
     label="",
     integrated=false,
@@ -1604,15 +1616,25 @@ end
             if identifier in [:ec, :ic, :lh, :nbi, :pellet]
                 fill0 --> true
             end
+            index = cs1d.grid.rho_tor_norm .<= 0.9
             if !ismissing(cs1de, :particles_inside) && flux
+                plot_extrema.ylims[1] = min(plot_extrema.ylims[1], minimum((cs1de.particles_inside./cs1d.grid.surface)[index]))
+                plot_extrema.ylims[2] = max(plot_extrema.ylims[2], maximum((cs1de.particles_inside./cs1d.grid.surface)[index]))
+                ylim --> buffer_limit(plot_extrema.ylims)
                 ylabel := "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
                 cs1de, :particles_inside
             elseif !integrated && !ismissing(cs1de, :particles)
+                plot_extrema.ylims[1] = min(plot_extrema.ylims[1], minimum(cs1de.particles[index]))
+                plot_extrema.ylims[2] = max(plot_extrema.ylims[2], maximum(cs1de.particles[index]))
+                ylim --> buffer_limit(plot_extrema.ylims)
                 cs1de, :particles
             elseif integrated && !ismissing(cs1de, :particles_inside)
+                plot_extrema.ylims[1] = min(plot_extrema.ylims[1], minimum(cs1de.particles_inside[index]))
+                plot_extrema.ylims[2] = max(plot_extrema.ylims[2], maximum(cs1de.particles_inside[index]))
+                ylim --> buffer_limit(plot_extrema.ylims)
                 cs1de, :particles_inside
             else
                 label := ""
@@ -1625,7 +1647,25 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles};
+function buffer_limit(limit)
+    out = [-Inf, Inf]
+    if limit[1] < Inf
+        out[1] = limit[1]
+    end
+    if limit[2] > -Inf
+        out[2] = limit[2]
+    end
+    if any(map(isinf, out))
+        return out
+    else
+        delta = out[2] - out[1]
+        out[1] -= delta / 30
+        out[2] += delta / 30
+    end
+    return out
+end
+
+@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema;
     name="",
     label="",
     integrated=false,
@@ -1679,7 +1719,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor}, plot_extrema::PlotExtrema;
     name="",
     label="",
     integrated=false,
@@ -1732,7 +1772,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel};
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel}, plot_extrema::PlotExtrema;
     name="",
     label="",
     integrated=false,
@@ -1794,8 +1834,7 @@ function source_name_identifier(source::Union{IMAS.core_sources__source,Nothing}
     return name, identifier, idx
 end
 
-@recipe function plot_source1d(
-    cs1d::IMAS.core_sources__source___profiles_1d;
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, plots_extrema::Vector{PlotExtrema}=PlotExtrema[];
     name="",
     label="",
     integrated=false,
@@ -1836,6 +1875,10 @@ end
     end
 
     for (k, path) in enumerate(paths)
+        if length(plots_extrema) < k
+            resize!(plots_extrema, k)
+            plots_extrema[k] = PlotExtrema()
+        end
         if k == only || only === nothing
             @series begin
                 if only === nothing
@@ -1851,14 +1894,26 @@ end
                     min_power := min_power
                     only_positive_negative := only_positive_negative
                     if path[1] == :ion
-                        goto(cs1d, path[1:end-1]), Val(path[end])
+                        goto(cs1d, path[1:end-1]), Val(path[end]), plots_extrema[k]
                     else
-                        cs1d, Val(Symbol(join(filter(x -> !(typeof(x) <: Int), path), "__")))
+                        cs1d, Val(Symbol(join(filter(x -> !(typeof(x) <: Int), path), "__"))), plots_extrema[k]
                     end
                 else
                     [NaN], [NaN]
                 end
             end
+        end
+    end
+end
+
+@recipe function plot_source(source::IMAS.core_sources__source, plots_extrema::Vector{PlotExtrema}=PlotExtrema[]; time0=global_time(source))
+    id = recipe_dispatch(source)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
+        @series begin
+            name := source.identifier.name
+            source.profiles_1d[time0], plots_extrema
         end
     end
 end
@@ -1879,6 +1934,7 @@ end
         end
     end
 
+    plots_extrema = PlotExtrema[]
     all_indexes = [source.identifier.index for source in cs.source]
     for source in cs.source
         if !retain_source(source, all_indexes, Int[], Int[])
@@ -1891,7 +1947,7 @@ end
             nozeros := true
             time0 := time0
             ions := ions
-            source
+            source, plots_extrema
         end
     end
 
@@ -1904,7 +1960,7 @@ end
             rad_source.identifier.name = "radiation"
             @series begin
                 ions := ions
-                rad_source
+                rad_source, plots_extrema
             end
         end
 
@@ -1918,21 +1974,10 @@ end
             color := :black
             min_power := 0.0
             ions := ions
-            tot_source
+            tot_source, plots_extrema
         end
     end
-end
 
-@recipe function plot_source(source::IMAS.core_sources__source; time0=global_time(source))
-    id = recipe_dispatch(source)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
-
-    if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
-        @series begin
-            name := source.identifier.name
-            source.profiles_1d[time0]
-        end
-    end
 end
 
 # ============= #
