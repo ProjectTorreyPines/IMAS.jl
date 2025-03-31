@@ -1784,7 +1784,6 @@ function source_name_identifier(source::Union{IMAS.core_sources__source,Nothing}
             name = "[$idx] $name"
         end
     else
-        source = nothing
         idx = 1
     end
     if source !== nothing
@@ -1898,24 +1897,28 @@ end
 
     if dd !== nothing
         if aggregate_radiation
+            rad_source = IMAS.core_sources__source{T}()
+            resize!(rad_source.profiles_1d, 1)
+            merge!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
+            rad_source.identifier.index = 200
+            rad_source.identifier.name = "radiation"
             @series begin
-                rad_source = IMAS.core_sources__source{T}()
-                resize!(rad_source.profiles_1d, 1)
-                merge!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
-                rad_source.identifier.index = 200
-                rad_source.identifier.name = "radiation"
                 ions := ions
                 rad_source
             end
         end
 
+        tot_source = IMAS.core_sources__source{T}()
+        resize!(tot_source.profiles_1d, 1)
+        merge!(tot_source.profiles_1d[1], total_sources(dd; time0))
+        tot_source.identifier.index = 1
+        tot_source.identifier.name = "total"
         @series begin
-            name := "total"
             linewidth := 2
             color := :black
             min_power := 0.0
             ions := ions
-            total_sources(dd; time0)
+            tot_source
         end
     end
 end
@@ -2315,7 +2318,7 @@ end
     if top
         @series begin
             seriestype --> :scatter
-            [beam.position.r[1] * cos(beam.position.phi[1])], 
+            [beam.position.r[1] * cos(beam.position.phi[1])],
             [beam.position.r[1] * sin(beam.position.phi[1])]
         end
         @series begin
