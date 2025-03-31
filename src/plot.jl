@@ -9,6 +9,13 @@ using GraphRecipes
 import HelpPlots
 using HelpPlots
 
+function HelpPlots.recipe_dispatch(arg::IDS)
+    return ulocation(arg)
+end
+
+#= =========== =#
+#  PlotExtrema  #
+#= =========== =#
 mutable struct PlotExtrema
     yext::Vector{Float64} # the extrema of y that are observed
     ylim::Vector{Float64} # the y limits of the plot
@@ -19,8 +26,37 @@ function PlotExtrema()
     return PlotExtrema([Inf, -Inf], [-Inf, Inf], false)
 end
 
-function HelpPlots.recipe_dispatch(arg::IDS)
-    return ulocation(arg)
+"""
+    update_limits!(plot_extrema::PlotExtrema, y::Vector{T}, x::Vector{T}) where {T<:Real}
+
+Update plot limits based on y value
+"""
+function update_limits!(plot_extrema::PlotExtrema, y::Vector{T}, x::Vector{T}) where {T<:Real}
+    irho = argmin(abs.(x .- 0.8))
+
+    plot_extrema.yext[1] = min(plot_extrema.yext[1], minimum(y[1:irho]))
+    plot_extrema.yext[2] = max(plot_extrema.yext[2], maximum(y[1:irho]))
+
+    if maximum(abs.(y[irho:end])) / (1 + maximum(abs.(y[1:irho]))) > 3
+        plot_extrema.active = true
+    end
+
+    if plot_extrema.yext[1] < Inf
+        plot_extrema.ylim[1] = plot_extrema.yext[1]
+    end
+    if plot_extrema.yext[2] > -Inf
+        plot_extrema.ylim[2] = plot_extrema.yext[2]
+    end
+
+    if any(map(isinf, plot_extrema.ylim))
+        plot_extrema.active = false
+    else
+        delta = plot_extrema.ylim[2] - plot_extrema.ylim[1]
+        plot_extrema.ylim[1] -= delta / 30
+        plot_extrema.ylim[2] += delta / 30
+    end
+
+    return nothing
 end
 
 # ========= #
@@ -1619,7 +1655,7 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1de, :particles_inside) && flux
-                plot_limits!(plot_extrema, cs1de.particles_inside ./ cs1d.grid.surface, cs1d.grid.rho_tor_norm)
+                update_limits!(plot_extrema, cs1de.particles_inside ./ cs1d.grid.surface, cs1d.grid.rho_tor_norm)
                 if plot_extrema.active
                     ylim --> plot_extrema.ylim
                 end
@@ -1629,13 +1665,13 @@ end
                 normalization := normalization
                 cs1de, :particles_inside
             elseif !integrated && !ismissing(cs1de, :particles)
-                plot_limits!(plot_extrema, cs1de.particles, cs1d.grid.rho_tor_norm)
+                update_limits!(plot_extrema, cs1de.particles, cs1d.grid.rho_tor_norm)
                 if plot_extrema.active
                     ylim --> plot_extrema.ylim
                 end
                 cs1de, :particles
             elseif integrated && !ismissing(cs1de, :particles_inside)
-                plot_limits!(plot_extrema, cs1de.particles_inside, cs1d.grid.rho_tor_norm)
+                update_limits!(plot_extrema, cs1de.particles_inside, cs1d.grid.rho_tor_norm)
                 if plot_extrema.active
                     ylim --> plot_extrema.ylim
                 end
@@ -1649,33 +1685,6 @@ end
             [NaN], [NaN]
         end
     end
-end
-
-function plot_limits!(plot_extrema, y, x)
-    irho09 = argmin(abs.(x .- 0.9))
-
-    plot_extrema.yext[1] = min(plot_extrema.yext[1], minimum(y[1:irho09]))
-    plot_extrema.yext[2] = max(plot_extrema.yext[2], maximum(y[1:irho09]))
-
-    if maximum(abs.(y[irho09:end])) / (1 + maximum(abs.(y[1:irho09]))) > 3
-        plot_extrema.active = true
-    end
-
-    if plot_extrema.yext[1] < Inf
-        plot_extrema.ylim[1] = plot_extrema.yext[1]
-    end
-    if plot_extrema.yext[2] > -Inf
-        plot_extrema.ylim[2] = plot_extrema.yext[2]
-    end
-
-    if any(map(isinf, plot_extrema.ylim))
-        plot_extrema.active = false
-    else
-        delta = plot_extrema.ylim[2] - plot_extrema.ylim[1]
-        plot_extrema.ylim[1] -= delta / 30
-        plot_extrema.ylim[2] += delta / 30
-    end
-    return nothing
 end
 
 @recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema;
