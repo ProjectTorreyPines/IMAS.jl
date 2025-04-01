@@ -848,12 +848,9 @@ Total power coming out of the SOL [W]
 NOTE: This function returns 1.0 [W] if power is less than that so that SOL quantities remain finite
 """
 function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; time0::Float64=global_time(cp1d))
-    Psol = total_power_source(total_sources(core_sources, cp1d; time0, fields=[:power_inside, :total_ion_power_inside]))
-    if Psol < 1.0
-        return one(Psol)
-    else
-        return Psol
-    end
+    tot_pow_in = total_power_inside(core_sources, cp1d; time0, ignore_radiation=false)
+    tot_pow_in = max(1.0, tot_pow_in)
+    return tot_pow_in
 end
 
 """

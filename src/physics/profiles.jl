@@ -368,20 +368,14 @@ push!(document[Symbol("Physics profiles")], :energy_thermal_ped)
     tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources; ignore_radiation::Bool=false)
 
 Evaluate thermal energy confinement time
+
+NOTE: This can go to infinity if there's more power coming out of the plasma than there is going in
 """
 function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
     cp1d = dd.core_profiles.profiles_1d[time0]
-    cs = dd.core_sources
-
-    total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    if ignore_radiation
-        # NOTE: this adds radiation back, since radiation_losses are < 0.0
-        total_power_inside -= radiation_losses(cs; time0)
-    end
-    total_power_inside = max(0.0, total_power_inside)
-
-    return energy_thermal(cp1d) / total_power_inside
+    tot_pow_in = total_power_inside(dd.core_sources, cp1d; time0, ignore_radiation)
+    tot_pow_in = max(0.0, tot_pow_in)
+    return energy_thermal(cp1d) / tot_pow_in
 end
 
 
@@ -407,13 +401,8 @@ function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation:
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
 
-    total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    if ignore_radiation
-        # NOTE: this adds radiation back, since radiation_losses are < 0.0
-        total_power_inside -= radiation_losses(cs; time0)
-    end
-    total_power_inside = max(0.0, total_power_inside)
+    tot_pow_in = total_power_inside(cs, cp1d; time0, ignore_radiation)
+    tot_pow_in = max(0.0, tot_pow_in)
 
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density_thermal .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
@@ -429,7 +418,7 @@ function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation:
         0.0562 *
         abs(eqt.global_quantities.ip / 1e6)^0.93 *
         abs(B0)^0.15 *
-        (total_power_inside / 1e6)^-0.69 *
+        (tot_pow_in / 1e6)^-0.69 *
         (nel / 1e19)^0.41 *
         isotope_factor^0.19 *
         R0^1.97 *
@@ -454,13 +443,8 @@ function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
 
-    total_source = total_sources(cs, cp1d; time0, fields=Symbol[:power_inside, :total_ion_power_inside])
-    total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    if ignore_radiation
-        # NOTE: this adds radiation back, since radiation_losses are < 0.0
-        total_power_inside -= radiation_losses(cs; time0)
-    end
-    total_power_inside = max(0.0, total_power_inside)
+    tot_pow_in = total_power_inside(cs, cp1d; time0, ignore_radiation)
+    tot_pow_in = max(0.0, tot_pow_in)
 
     isotope_factor =
         trapz(cp1d.grid.volume, sum(ion.density_thermal .* ion.element[1].a for ion in cp1d.ion if ion.element[1].z_n == 1.0)) /
@@ -475,7 +459,7 @@ function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation
         0.028 *
         abs(eqt.global_quantities.ip / 1e6)^0.83 *
         abs(B0)^0.07 *
-        (total_power_inside / 1e6)^-0.55 *
+        (tot_pow_in / 1e6)^-0.55 *
         (0.5 * (nel + ne_vol) / 1e19)^0.49 *
         isotope_factor^0.14 *
         R0^2.11 *
@@ -820,7 +804,7 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
     ne_volume = trapz(cp1d.grid.volume, cp1d.electrons.density_thermal) / cp1d.grid.volume[end] / 1E20
     Rgeo = eqt.boundary.geometric_axis.r
     ageo = eqt.boundary.minor_radius
-    ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * ageo ^-0.95 * (Rgeo / ageo)^0.4 # in 1e19 m^-3
+    ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * ageo^-0.95 * (Rgeo / ageo)^0.4 # in 1e19 m^-3
     ne_min *= 0.1 # [10^20 m⁻³]
     ne_volume = max(ne_min, ne_volume)
 
