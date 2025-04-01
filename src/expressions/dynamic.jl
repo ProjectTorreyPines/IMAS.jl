@@ -602,10 +602,10 @@ dyexp["summary.global_quantities.energy_thermal.value"] =
     (time; dd, summary, _...) -> [energy_thermal(dd.core_profiles.profiles_1d[time0]) for time0 in time]
 
 dyexp["summary.global_quantities.tau_energy.value"] =
-    (time; dd, summary, _...) -> [tau_e_thermal(dd; time0, subtract_radiation_losses=false) for time0 in time]
+    (time; dd, summary, _...) -> [tau_e_thermal(dd; time0, ignore_radiation=false) for time0 in time]
 
 dyexp["summary.global_quantities.tau_energy_98.value"] =
-    (time; dd, summary, _...) -> [tau_e_h98(dd; time0, subtract_radiation_losses=false) for time0 in time]
+    (time; dd, summary, _...) -> [tau_e_h98(dd; time0, ignore_radiation=false) for time0 in time]
 
 dyexp["summary.global_quantities.h_98.value"] =
     (time; dd, summary, _...) -> summary.global_quantities.tau_energy.value ./ summary.global_quantities.tau_energy_98.value

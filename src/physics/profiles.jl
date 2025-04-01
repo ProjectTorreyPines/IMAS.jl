@@ -365,18 +365,18 @@ end
 push!(document[Symbol("Physics profiles")], :energy_thermal_ped)
 
 """
-    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources; subtract_radiation_losses::Bool=true)
+    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources; ignore_radiation::Bool=false)
 
 Evaluate thermal energy confinement time
 """
-function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
 
     total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    if subtract_radiation_losses
-        # NOTE: radiation_losses are negative
+    if ignore_radiation
+        # NOTE: this adds radiation back, since radiation_losses are < 0.0
         total_power_inside -= radiation_losses(cs; time0)
     end
     total_power_inside = max(0.0, total_power_inside)
@@ -389,23 +389,28 @@ end
 push!(document[Symbol("Physics profiles")], :tau_e_thermal)
 
 """
-    tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
 
 H98y2 ITER elmy H-mode confinement time scaling
 
 NOTE: H98y2 uses aereal elongation
 
+NOTE: (IPB_Chap_2.pdf, pg. 72) ...for practical reasons, the power lost by radiation inside
+the separatrix of the existing devices has been neglected when deriving the scalings.
+However, for ITER, such radiation is subtracted from the loss power when calculating the
+projected energy confinement time.
+
 See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
-function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
     eqt = dd.equilibrium.time_slice[time0]
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
 
     total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    if subtract_radiation_losses
-        # NOTE: radiation_losses are negative
+    if ignore_radiation
+        # NOTE: this adds radiation back, since radiation_losses are < 0.0
         total_power_inside -= radiation_losses(cs; time0)
     end
     total_power_inside = max(0.0, total_power_inside)
@@ -438,21 +443,21 @@ end
 push!(document[Symbol("Physics profiles")], :tau_e_h98)
 
 """
-    tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+    tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
 
 Petty's 2003 confinement time scaling
 
 NOTE: Petty uses elongation at the separatrix and makes no distinction between volume and line-average density
 """
-function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiation_losses::Bool=true)
+function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
     eqt = dd.equilibrium.time_slice[time0]
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
 
     total_source = total_sources(cs, cp1d; time0, fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    if subtract_radiation_losses
-        # NOTE: radiation_losses are negative
+    if ignore_radiation
+        # NOTE: this adds radiation back, since radiation_losses are < 0.0
         total_power_inside -= radiation_losses(cs; time0)
     end
     total_power_inside = max(0.0, total_power_inside)
