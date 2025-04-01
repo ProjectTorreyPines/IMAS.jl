@@ -236,34 +236,38 @@ end
 
 Calculate the moving average of a data vector on a new time basis
 """
+function moving_average!(result::Ref{Float64}, w::Vector{Float64}, time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width::Float64, interp, causal::Bool) where {T<:Real}
+    if causal
+        @. w = pulse(-time, -t0 - width, width)
+    else
+        @. w = pulse(-time, -t0 - width / 2, width)
+    end
+    norm = sum(w)
+    if norm == 0.0
+        result[] = interp(t0)
+    else
+        acc = 0.0
+        for i in eachindex(w)
+            acc += data[i] * (w[i] / norm)
+        end
+        result[] = acc
+    end
+end
+
 function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, new_time::AbstractVector{Float64}; causal::Bool=false) where {T<:Real}
-    new_data = similar(new_time, T)
+    new_data = similar(new_time, Float64)
     width = new_time[2] - new_time[1]
-    for k in 1:length(new_time)
-        new_data[k] = moving_average(time, data, new_time[k], width; causal)
+    w = zeros(Float64, length(time))
+    result = Ref{Float64}()
+    interp = interp1d(time, data)
+
+    for k in eachindex(new_time)
+        moving_average!(result, w, time, data, new_time[k], width, interp, causal)
+        new_data[k] = result[]
     end
     return new_data
 end
 
-"""
-    moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width; causal::Bool=false) where {T<:Real}
-
-Calculate the moving average of a data vector at given time with given average width
-"""
-function moving_average(time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width; causal::Bool=false) where {T<:Real}
-    width = Float64(width)
-    if causal
-        w = pulse.(-time, -t0 - width, width)
-    else
-        w = pulse.(-time, -t0 - width / 2, width)
-    end
-    norm = sum(w)
-    if norm == 0.0
-        return interp1d(time, data).(t0)
-    else
-        return sum(data .* w ./ norm)
-    end
-end
 
 @compat public moving_average
 push!(document[Symbol("Signal")], :moving_average)
