@@ -211,8 +211,8 @@ push!(document[Symbol("Physics sources")], :total_mass_density)
         core_sources::IMAS.core_sources,
         cp1d::IMAS.core_profiles__profiles_1d;
         time0::Float64=global_time(cp1d),
-        ignore_radiation::Bool=false,
-        ignore_time_derivative::Bool=false
+        include_radiation::Bool=true,
+        include_time_derivative::Bool=true
     )
 
 Returns total power inside of the separatrix
@@ -221,19 +221,19 @@ function total_power_inside(
     core_sources::IMAS.core_sources,
     cp1d::IMAS.core_profiles__profiles_1d;
     time0::Float64=global_time(cp1d),
-    ignore_radiation::Bool=false,
-    ignore_time_derivative::Bool=false
+    include_radiation::Bool=true,
+    include_time_derivative::Bool=true
 )
     exclude_indexes = Int[]
-    if ignore_time_derivative
+    if !include_time_derivative
         exclude_indexes = [11]
     else
         exclude_indexes = Int[]
     end
     total_source = total_sources(core_sources, cp1d; time0, fields=[:power_inside, :total_ion_power_inside], exclude_indexes)
     tot_pow_in = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
-    if ignore_radiation
-        # NOTE: this adds radiation back, since radiation_losses are < 0.0
+    if !include_radiation
+        # NOTE: this ignore radiation, since add back the radiation losses that were already subtracted
         tot_pow_in -= radiation_losses(core_sources; time0)
     end
     return tot_pow_in
