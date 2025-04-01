@@ -286,13 +286,13 @@ end
 push!(document[Symbol("Physics fast")], :fast_ion_thermalization_time)
 
 """
-    fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
+    fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
 
 Fills the core_profiles fast ion densities and pressures that result from fast ion sources (eg. fusion and nbi)
 
 This calculation is done based on the `slowing_down_time` and `thermalization_time` of the fast ion species.
 """
-function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
+function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
@@ -358,12 +358,12 @@ function fast_particles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profil
     end
 end
 
-function fast_particles!(dd::IMAS.dd; verbose::Bool=false)
-    return fast_particles!(dd.core_sources, dd.core_profiles.profiles_1d[]; verbose)
+function fast_particles_profiles!(dd::IMAS.dd; verbose::Bool=false)
+    return fast_particles_profiles!(dd.core_sources, dd.core_profiles.profiles_1d[]; verbose)
 end
 
-@compat public fast_particles!
-push!(document[Symbol("Physics fast")], :fast_particles!)
+@compat public fast_particles_profiles!
+push!(document[Symbol("Physics fast")], :fast_particles_profiles!)
 
 """
     sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energy::Real, particle_mass::Real)

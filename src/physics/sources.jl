@@ -121,7 +121,7 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    fast_particles!(dd) # particles
+    fast_particles_profiles!(dd) # fill fast particles cp1d from sources
 
     return nothing
 end
