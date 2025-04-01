@@ -848,7 +848,7 @@ Total power coming out of the SOL [W]
 NOTE: This function returns 1.0 [W] if power is less than that so that SOL quantities remain finite
 """
 function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; time0::Float64=global_time(cp1d))
-    tot_pow_in = total_power_inside(core_sources, cp1d; time0, ignore_radiation=false)
+    tot_pow_in = total_power_inside(core_sources, cp1d; time0, ignore_radiation=false, ignore_time_derivative=false)
     tot_pow_in = max(1.0, tot_pow_in)
     return tot_pow_in
 end

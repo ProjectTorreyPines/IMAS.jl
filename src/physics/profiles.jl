@@ -365,15 +365,15 @@ end
 push!(document[Symbol("Physics profiles")], :energy_thermal_ped)
 
 """
-    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources; ignore_radiation::Bool=false)
+    tau_e_thermal(cp1d::IMAS.core_profiles__profiles_1d, sources::IMAS.core_sources; , ignore_radiation::Bool=false, ignore_time_derivative::Bool=false
 
 Evaluate thermal energy confinement time
 
 NOTE: This can go to infinity if there's more power coming out of the plasma than there is going in
 """
-function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
+function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false, ignore_time_derivative::Bool=false)
     cp1d = dd.core_profiles.profiles_1d[time0]
-    tot_pow_in = total_power_inside(dd.core_sources, cp1d; time0, ignore_radiation)
+    tot_pow_in = total_power_inside(dd.core_sources, cp1d; time0, ignore_radiation, ignore_time_derivative)
     tot_pow_in = max(0.0, tot_pow_in)
     return energy_thermal(cp1d) / tot_pow_in
 end
@@ -383,7 +383,7 @@ end
 push!(document[Symbol("Physics profiles")], :tau_e_thermal)
 
 """
-    tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
+    tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false, ignore_time_derivative::Bool=false)
 
 H98y2 ITER elmy H-mode confinement time scaling
 
@@ -396,12 +396,12 @@ projected energy confinement time.
 
 See Table 5 in https://iopscience.iop.org/article/10.1088/0029-5515/39/12/302/pdf and https://iopscience.iop.org/article/10.1088/0029-5515/48/9/099801/pdf for additional correction with plasma_volume
 """
-function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
+function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false, ignore_time_derivative::Bool=false)
     eqt = dd.equilibrium.time_slice[time0]
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
 
-    tot_pow_in = total_power_inside(cs, cp1d; time0, ignore_radiation)
+    tot_pow_in = total_power_inside(cs, cp1d; time0, ignore_radiation, ignore_time_derivative)
     tot_pow_in = max(0.0, tot_pow_in)
 
     isotope_factor =
@@ -432,18 +432,18 @@ end
 push!(document[Symbol("Physics profiles")], :tau_e_h98)
 
 """
-    tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
+    tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false, ignore_time_derivative::Bool=false)
 
 Petty's 2003 confinement time scaling
 
 NOTE: Petty uses elongation at the separatrix and makes no distinction between volume and line-average density
 """
-function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false)
+function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, ignore_radiation::Bool=false, ignore_time_derivative::Bool=false)
     eqt = dd.equilibrium.time_slice[time0]
     cp1d = dd.core_profiles.profiles_1d[time0]
     cs = dd.core_sources
 
-    tot_pow_in = total_power_inside(cs, cp1d; time0, ignore_radiation)
+    tot_pow_in = total_power_inside(cs, cp1d; time0, ignore_radiation, ignore_time_derivative)
     tot_pow_in = max(0.0, tot_pow_in)
 
     isotope_factor =
