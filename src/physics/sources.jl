@@ -100,11 +100,11 @@ end
 push!(document[Symbol("Physics sources")], :bootstrap_source!)
 
 """
-    sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, time_derivative::Bool=true)
+    sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
 Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
-function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, time_derivative::Bool=true)
+function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
     if bootstrap
         bootstrap_source!(dd) # current
     end
@@ -123,14 +123,6 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, time
 
     fast_particles!(dd) # particles
 
-    if time_derivative # electron and ion energy, particles, momentum
-        cp_time = dd.core_profiles.time
-        i = nearest_causal_time(cp_time, dd.global_time).index
-        if i > 1 && !isinf(cp_time[i-1])
-            IMAS.time_derivative_source!(dd, dd.core_profiles.profiles_1d[i-1], cp_time[i] - cp_time[i-1])
-        end
-    end
-
     return nothing
 end
 
@@ -138,45 +130,54 @@ end
 push!(document[Symbol("Physics sources")], :sources!)
 
 """
-    time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
+    time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; zero_out::Bool)
 
 Calculates time dependent sources and sinks, and adds them to `dd.core_sources`
 
 These are the ∂/∂t term in the transport equations
 """
-function time_derivative_source!(cp1d_new::IMAS.core_profiles__profiles_1d, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64, R_flux_avg::Vector)
-    Sne = -(cp1d_new.electrons.density_thermal .- cp1d_old.electrons.density_thermal) / Δt
-
-    Qe = -1.5 * (pressure_thermal(cp1d_new.electrons) .- pressure_thermal(cp1d_old.electrons)) / Δt
-
-    Qi = -1.5 * (pressure_thermal(cp1d_new.ion) .- pressure_thermal(cp1d_old.ion)) / Δt
-
-    d_new = cp1d_new.rotation_frequency_tor_sonic .* total_mass_density(cp1d_new) .* R_flux_avg / Δt
-    d_old = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
-    PI = d_new .- d_old
-
-    ##### We are still missing Sni for the different ions
-    return (Sne=Sne, Qi=Qi, Qe=Qe, PI=PI)
-end
-
-"""
-    time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
-"""
 function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
-
     R_flux_avg = interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
-    ddt_sources = time_derivative_source!(cp1d, cp1d_old, Δt, R_flux_avg)
+
+    if Δt == 0.0
+        electrons_particles = zero(cp1d.grid.rho_tor_norm)
+        electrons_energy = zero(cp1d.grid.rho_tor_norm)
+        total_ion_energy = zero(cp1d.grid.rho_tor_norm)
+        momentum_tor = zero(cp1d.grid.rho_tor_norm)
+    else
+        electrons_particles = -(cp1d.electrons.density_thermal .- cp1d_old.electrons.density_thermal) / Δt
+
+        electrons_energy = -1.5 * (pressure_thermal(cp1d.electrons) .- pressure_thermal(cp1d_old.electrons)) / Δt
+
+        total_ion_energy = -1.5 * (pressure_thermal(cp1d.ion) .- pressure_thermal(cp1d_old.ion)) / Δt
+
+        d_new = cp1d.rotation_frequency_tor_sonic .* total_mass_density(cp1d) .* R_flux_avg / Δt
+        d_old = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
+        momentum_tor = d_new .- d_old
+    end
 
     source = resize!(dd.core_sources.source, :time_derivative; wipe=false)
     new_source(source, source.identifier.index, "∂/∂t term", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
-        electrons_energy=ddt_sources.Qe,
-        total_ion_energy=ddt_sources.Qi,
-        electrons_particles=ddt_sources.Sne,
-        momentum_tor=ddt_sources.PI)
+        electrons_energy, total_ion_energy, electrons_particles, momentum_tor)
 
     return source
+end
+
+"""
+    time_derivative_source!(dd::IMAS.dd; zero_out::Bool=false)
+"""
+function time_derivative_source!(dd::IMAS.dd; zero_out::Bool=false)
+    if zero_out
+        time_derivative_source!(dd, dd.core_profiles.profiles_1d[], 0.0)
+    else
+        cp_time = dd.core_profiles.time
+        i = nearest_causal_time(cp_time, dd.global_time).index
+        if i > 1 && !isinf(cp_time[i-1])
+            time_derivative_source!(dd, dd.core_profiles.profiles_1d[i-1], cp_time[i] - cp_time[i-1])
+        end
+    end
 end
 
 @compat public time_derivative_source!
