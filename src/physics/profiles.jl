@@ -376,7 +376,8 @@ function tau_e_thermal(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radi
     total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
-        total_power_inside -= radiation_losses(cs)
+        # NOTE: radiation_losses are negative
+        total_power_inside -= radiation_losses(cs; time0)
     end
     total_power_inside = max(0.0, total_power_inside)
 
@@ -404,7 +405,8 @@ function tau_e_h98(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiatio
     total_source = total_sources(cs, cp1d; time0, fields=[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
-        total_power_inside -= radiation_losses(cs)
+        # NOTE: radiation_losses are negative
+        total_power_inside -= radiation_losses(cs; time0)
     end
     total_power_inside = max(0.0, total_power_inside)
 
@@ -450,7 +452,8 @@ function tau_e_ds03(dd::IMAS.dd; time0::Float64=dd.global_time, subtract_radiati
     total_source = total_sources(cs, cp1d; time0, fields=Symbol[:power_inside, :total_ion_power_inside])
     total_power_inside = total_source.electrons.power_inside[end] + total_source.total_ion_power_inside[end]
     if subtract_radiation_losses
-        total_power_inside -= radiation_losses(cs)
+        # NOTE: radiation_losses are negative
+        total_power_inside -= radiation_losses(cs; time0)
     end
     total_power_inside = max(0.0, total_power_inside)
 

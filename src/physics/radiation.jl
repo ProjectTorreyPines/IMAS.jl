@@ -4,15 +4,17 @@ document[Symbol("Physics radiation")] = Symbol[]
     radiation_losses(sources::IMAS.core_sources)
 
 Evaluate total plasma radiation losses [W] due to bremsstrahlung, synchrotron, and line radiation
+
+These are energy losses, so they have a negative sign.
 """
-function radiation_losses(sources::IMAS.core_sources)
+function radiation_losses(sources::IMAS.core_sources; time0::Float64=global_time(sources))
     n2i = name_2_index(sources.source)
     radiation_indices =
         [n2i[name] for name in (:bremsstrahlung, :synchrotron_radiation, :line_radiation, :radiation, :cyclotron_radiation, :cyclotron_synchrotron_radiation, :impurity_radiation)]
     radiation_energy = 0.0
     for source in sources.source
         if source.identifier.index ∈ radiation_indices
-            radiation_energy += source.profiles_1d[].electrons.power_inside[end]
+            radiation_energy += source.profiles_1d[time0].electrons.power_inside[end]
         end
     end
     return radiation_energy
