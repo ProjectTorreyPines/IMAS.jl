@@ -158,9 +158,25 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
         momentum_tor = d_new .- d_old
     end
 
+    # fill in time derivative sources for electrons_particles, electrons_energy, total_ion_energy, momentum_tor
     source = resize!(dd.core_sources.source, :time_derivative, "identifier.name" => name; wipe=false)
     new_source(source, source.identifier.index, name, cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
         electrons_energy, total_ion_energy, electrons_particles, momentum_tor)
+
+    # fill in time derivative sources for ion_particles
+    cs1d = source.profiles_1d[]
+    resize!(cs1d.ion, length(cp1d.ion); wipe=false)
+    for (k, (ion, ion_old)) in enumerate(zip(cp1d.ion, cp1d_old.ion))
+        cs1d.ion[k].label = ion.label
+        fill!(cs1d.ion[k].element, ion.element)
+        if Δt == 0.0 || ismissing(ion, :density_thermal)
+            cs1d.ion[k].particles_inside = cs1d.ion[k].particles = zero(cp1d.grid.volume)
+        else
+            particles = -(ion.density_thermal .- ion_old.density_thermal) / Δt
+            cs1d.ion[k].particles = particles
+            cs1d.ion[k].particles_inside = cumtrapz(cp1d.grid.volume, particles)
+        end
+    end
 
     return source
 end
