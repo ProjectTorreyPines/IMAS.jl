@@ -136,7 +136,7 @@ Calculates time dependent sources and sinks, and adds them to `dd.core_sources`
 
 These are the ∂/∂t term in the transport equations
 """
-function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64)
+function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; name::String="∂/∂t")
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
     R_flux_avg = interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
@@ -158,8 +158,8 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
         momentum_tor = d_new .- d_old
     end
 
-    source = resize!(dd.core_sources.source, :time_derivative; wipe=false)
-    new_source(source, source.identifier.index, "∂/∂t term", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+    source = resize!(dd.core_sources.source, :time_derivative, "identifier.name" => name; wipe=false)
+    new_source(source, source.identifier.index, name, cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
         electrons_energy, total_ion_energy, electrons_particles, momentum_tor)
 
     return source
@@ -168,14 +168,14 @@ end
 """
     time_derivative_source!(dd::IMAS.dd; zero_out::Bool=false)
 """
-function time_derivative_source!(dd::IMAS.dd; zero_out::Bool=false)
+function time_derivative_source!(dd::IMAS.dd; name::String="∂/∂t", zero_out::Bool=false)
     if zero_out
-        time_derivative_source!(dd, dd.core_profiles.profiles_1d[], 0.0)
+        time_derivative_source!(dd, dd.core_profiles.profiles_1d[], 0.0; name)
     else
         cp_time = dd.core_profiles.time
         i = nearest_causal_time(cp_time, dd.global_time).index
         if i > 1 && !isinf(cp_time[i-1])
-            time_derivative_source!(dd, dd.core_profiles.profiles_1d[i-1], cp_time[i] - cp_time[i-1])
+            time_derivative_source!(dd, dd.core_profiles.profiles_1d[i-1], cp_time[i] - cp_time[i-1]; name)
         end
     end
 end
