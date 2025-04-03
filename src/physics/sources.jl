@@ -489,18 +489,11 @@ function total_radiation_sources(
     core_sources::IMAS.core_sources{T},
     cp1d::IMAS.core_profiles__profiles_1d{T};
     time0::Float64,
-    include_indexes::Vector{Int}=Int[],
+    include_indexes::Vector{Int}=index_radiation_sources,
     exclude_indexes::Vector{Int}=Int[]) where {T<:Real}
 
-    # we need to exclude :total, :collisional_equipartition, and :time_derivative terms
-    n2i = name_2_index(core_sources.source)
-    push!(exclude_indexes, n2i[:collisional_equipartition])
-    push!(exclude_indexes, n2i[:time_derivative])
-    push!(exclude_indexes, n2i[:total])
-
     fields = [:power_inside, :energy]
-    only_positive_negative = -1
-    return total_sources(core_sources, cp1d; time0, include_indexes, exclude_indexes, fields, only_positive_negative)
+    return total_sources(core_sources, cp1d; time0, include_indexes, exclude_indexes, fields)
 end
 
 """
