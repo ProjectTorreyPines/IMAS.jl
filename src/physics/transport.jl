@@ -116,6 +116,10 @@ function total_fluxes!(
                 continue
             end
             push!(skip_flux_list, index_to_name[model.identifier.index])
+            # ignore models that start after time0
+            if nearest_causal_time(model.profiles_1d, time0; bounds_error=false).out_of_bounds
+                continue
+            end
 
             m1d = model.profiles_1d[time0]
             x = m1d.grid_flux.rho_tor_norm
