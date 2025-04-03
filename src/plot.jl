@@ -1562,7 +1562,7 @@ end
         title --> "Electron Energy"
         if show_condition
             label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+            if identifier in (:ec, :ic, :lh, :nbi, :pellet)
                 fill0 --> true
             end
             if !ismissing(cs1de, :power_inside) && flux
@@ -1626,7 +1626,7 @@ end
         title --> "Total Ion Energy"
         if show_condition
             label := "$name " * @sprintf("[%.3g MW]", tot / 1E6) * label
-            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+            if identifier in (:ec, :ic, :lh, :nbi, :pellet)
                 fill0 --> true
             end
             if !ismissing(cs1d, :total_ion_power_inside) && flux
@@ -1687,7 +1687,7 @@ end
         title --> "Electron Particles"
         if show_condition
             label := "$name " * @sprintf("[%.3g s⁻¹]", tot) * label
-            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+            if identifier in (:ec, :ic, :lh, :nbi, :pellet)
                 fill0 --> true
             end
             if !ismissing(cs1de, :particles_inside) && flux
@@ -1756,7 +1756,7 @@ end
         title --> "$(cs1di.label) Particles"
         if show_condition
             label := "$name $(cs1di.label) " * @sprintf("[%.3g s⁻¹]", tot) * label
-            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+            if identifier in (:ec, :ic, :lh, :nbi, :pellet)
                 fill0 --> true
             end
             if !ismissing(cs1di, :particles_inside) && flux
@@ -1824,7 +1824,7 @@ end
         title --> "Momentum"
         if show_condition
             label := "$name " * @sprintf("[%.3g N m]", tot) * label
-            if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+            if identifier in (:ec, :ic, :lh, :nbi, :pellet)
                 fill0 --> true
             end
             if !ismissing(cs1d, :torque_tor_inside) && flux
@@ -1879,7 +1879,7 @@ end
         if show_condition
             label := "$name " * @sprintf("[%.3g MA]", tot / 1E6) * label
             if !integrated && !ismissing(cs1d, :j_parallel)
-                if identifier in [:ec, :ic, :lh, :nbi, :pellet]
+                if identifier in (:ec, :ic, :lh, :nbi, :pellet)
                     fill0 --> true
                 end
                 cs1d, :j_parallel
@@ -1997,11 +1997,12 @@ end
     end
 end
 
-@recipe function plot_core_sources(cs::IMAS.core_sources{T}; ions=[:my_ions], time0=global_time(cs), aggregate_radiation=false) where {T<:Real}
+@recipe function plot_core_sources(cs::IMAS.core_sources{T}; ions=[:my_ions], time0=global_time(cs), aggregate_radiation=false, aggregate_hcd=false) where {T<:Real}
     id = recipe_dispatch(cs)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Bool, "Aggregate radiation sources"; aggregate_radiation)
+    assert_type_and_record_argument(id, Bool, "Aggregate heating and current drive sources"; aggregate_hcd)
 
     dd = top_dd(cs)
 
@@ -2015,14 +2016,18 @@ end
 
     plots_extrema = PlotExtrema[]
     all_indexes = [source.identifier.index for source in cs.source]
+    exclude_indexes = Int[]
+    if aggregate_radiation
+        append!(exclude_indexes, index_radiation_sources)
+    end
+    if aggregate_hcd
+        append!(exclude_indexes, index_hcd_sources)
+    end
     for source in cs.source
-        if !retain_source(source, all_indexes, Int[], Int[])
+        if !retain_source(source, all_indexes, Int[], exclude_indexes)
             continue
         end
         @series begin
-            if aggregate_radiation
-                only_positive_negative := 1
-            end
             nozeros := true
             time0 := time0
             ions := ions
@@ -2040,6 +2045,21 @@ end
             @series begin
                 ions := ions
                 rad_source, plots_extrema
+            end
+        end
+
+        if aggregate_hcd
+            for source_type in (:ec, :ic, :lh, :nbi, :pellet)
+                hcd_source = IMAS.core_sources__source{T}()
+                idx = name_2_index(hcd_source)[source_type]
+                resize!(hcd_source.profiles_1d, 1)
+                merge!(hcd_source.profiles_1d[1], total_sources(dd; time0, include_indexes=[idx]))
+                hcd_source.identifier.index = idx
+                hcd_source.identifier.name = "$source_type"
+                @series begin
+                    ions := ions
+                    hcd_source, plots_extrema
+                end
             end
         end
 
@@ -3157,7 +3177,7 @@ end
 #= ======= =#
 #  summary  #
 #= ======= =#
-@recipe function plot(summary::IMASdd.summary)
+@recipe function plot(summary::IMAS.summary)
     valid_leaves = [leaf for leaf in IMASdd.AbstractTrees.Leaves(summary) if typeof(leaf.value) <: Vector && leaf.field != :time]
     layout := length(valid_leaves)
     N = Int(ceil(sqrt(length(valid_leaves))))
