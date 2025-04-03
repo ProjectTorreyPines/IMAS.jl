@@ -300,6 +300,8 @@ function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{In
     index = source.identifier.index
     if index ∈ include_indexes
         return true
+    elseif !isempty(include_indexes)
+        return false
     elseif index == 0
         @debug "total_sources() skipping unspecified source with index $index"
         return false
