@@ -1374,8 +1374,9 @@ function transport_channel_paths(ions::AbstractVector{<:IDS}, ions_list::Abstrac
         [:electrons, :particles],
         [:momentum_tor]]
     available_ions = [Symbol(ion.label) for ion in ions]
-    for (kion, ion) in enumerate(ions_list)
+    for ion in ions_list
         if ion in available_ions
+            kion = findfirst(x -> x == ion, available_ions)
             push!(paths, [:ion, kion, :particles])
         else
             push!(paths, [nothing])
