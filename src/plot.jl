@@ -1722,14 +1722,26 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1di, :particles_inside) && flux
+                update_limits!(plot_extrema, cs1di.particles_inside ./ cs1d.grid.surface, cs1d.grid.rho_tor_norm)
+                if plot_extrema.active
+                    ylim --> plot_extrema.ylim
+                end
                 ylabel := "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
                 cs1di, :particles_inside
             elseif !integrated && !ismissing(cs1di, :particles)
+                update_limits!(plot_extrema, cs1di.particles, cs1d.grid.rho_tor_norm)
+                if plot_extrema.active
+                    ylim --> plot_extrema.ylim
+                end
                 cs1di, :particles
             elseif integrated && !ismissing(cs1di, :particles_inside)
+                update_limits!(plot_extrema, cs1di.particles_inside, cs1d.grid.rho_tor_norm)
+                if plot_extrema.active
+                    ylim --> plot_extrema.ylim
+                end
                 cs1di, :particles_inside
             else
                 label := ""
