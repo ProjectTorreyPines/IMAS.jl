@@ -103,9 +103,15 @@ end
 @compat public beta_tor
 push!(document[Symbol("Physics profiles")], :beta_tor)
 
-const sorted_elements = [
-    "H", "D", "T",
-    "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne",
+"""
+    ions_sort_map::Dict
+
+Dictionary that returns an integer number, used to sort ions by their Z
+with fast-ion species listed at the end
+"""
+const ions_sort_map = Dict(sym => z for (z, sym) in enumerate([
+    "H", "D", "DT", "T", "He", "α ",
+    "Li", "Be", "B", "C", "N", "O", "F", "Ne",
     "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
     "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
     "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y", "Zr",
@@ -117,17 +123,9 @@ const sorted_elements = [
     "Pa", "U", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm",
     "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds",
     "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"
-]
-
-"""
-    elements_sort_map::Dict
-
-Dictionary that returns an integer number, used to sort ions by their Z
-with fast-ion species listed at the end
-"""
-const elements_sort_map = Dict(sym => z for (z, sym) in enumerate(sorted_elements))
-for element in collect(keys(elements_sort_map))
-    elements_sort_map["$(element)_fast"] = 1000 + elements_sort_map[element]
+]))
+for element in collect(keys(ions_sort_map))
+    ions_sort_map["$(element)_fast"] = 1000 + ions_sort_map[element]
 end
 
 function list_ions!(ct::IMAS.core_transport, ions::Set{Symbol}; time0::Float64)
@@ -183,7 +181,7 @@ function list_ions(ids1::IDS, idss::Vararg{<:IDS}; time0::Float64)
     for ids in (ids1, idss...)
         list_ions!(ids, ion_set; time0)
     end
-    ions_sorted = sort(collect(ion_set); by=x -> elements_sort_map[String(x)])
+    ions_sorted = sort(collect(ion_set); by=x -> ions_sort_map[String(x)])
     return ions_sorted
 end
 
