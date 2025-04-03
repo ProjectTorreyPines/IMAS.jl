@@ -1429,6 +1429,27 @@ end
     end
 end
 
+@recipe function plot_core_transport_model(model::IMAS.core_transport__model{T}, plots_extrema::Vector{PlotExtrema}=PlotExtrema[]; ions=Symbol[:my_ions], time0=global_time(model)) where {T<:Real}
+    if nearest_causal_time(time_array_from_parent_ids(model.profiles_1d, :get), time0; bounds_error=false).index > 0
+        model_type = name_2_index(model)
+        @series begin
+            ions := ions
+            label := model.identifier.name
+            if model.identifier.index == model_type[:anomalous]
+                markershape := :diamond
+                markerstrokewidth := 0.5
+                linewidth := 0
+                color := :orange
+            elseif model.identifier.index == model_type[:neoclassical]
+                markershape := :cross
+                linewidth := 0
+                color := :purple
+            end
+            model.profiles_1d[time0], plots_extrema
+        end
+    end
+end
+
 @recipe function plot_core_transport(ct::IMAS.core_transport{T}; ions=Symbol[:my_ions], time0=global_time(ct)) where {T<:Real}
     id = recipe_dispatch(ct)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
@@ -1487,18 +1508,7 @@ end
         if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
             @series begin
                 ions := ions
-                label := model.identifier.name
-                if model.identifier.index == model_type[:anomalous]
-                    markershape := :diamond
-                    markerstrokewidth := 0.5
-                    linewidth := 0
-                    color := :orange
-                elseif model.identifier.index == model_type[:neoclassical]
-                    markershape := :cross
-                    linewidth := 0
-                    color := :purple
-                end
-                model.profiles_1d[time0], plots_extrema
+                model, plots_extrema
             end
         end
     end
