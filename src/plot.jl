@@ -32,14 +32,18 @@ end
 Update plot limits based on y value
 """
 function update_limits!(plot_extrema::PlotExtrema, y::Vector{T}, x::Vector{T}) where {T<:Real}
-    irho = argmin(abs.(x .- 0.8))
+    irho = argmin(abs.(x .- 0.85))
 
-    plot_extrema.yext[1] = min(plot_extrema.yext[1], minimum(y[1:irho]))
-    plot_extrema.yext[2] = max(plot_extrema.yext[2], maximum(y[1:irho]))
-
-    if maximum(abs.(y[irho:end])) / (1 + maximum(abs.(y[1:irho]))) > 3
+    if maximum(abs.(@views y[irho:end])) / (1 + maximum(abs.(@views y[1:irho]))) > 3
         plot_extrema.active = true
     end
+
+    return update_limits!(plot_extrema, @views y[1:irho])
+end
+
+function update_limits!(plot_extrema::PlotExtrema, y::AbstractVector{T}) where {T<:Real}
+    plot_extrema.yext[1] = min(plot_extrema.yext[1], minimum(y))
+    plot_extrema.yext[2] = max(plot_extrema.yext[2], maximum(y))
 
     if plot_extrema.yext[1] < Inf
         plot_extrema.ylim[1] = plot_extrema.yext[1]
@@ -1314,7 +1318,7 @@ end
 # ========= #
 # transport #
 # ========= #
-@recipe function plot_ct1d(ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy, ::Val{:flux})
+@recipe function plot_ct1d(ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
     @series begin
         markershape --> :none
         title := "Electron energy flux"
@@ -1325,7 +1329,7 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__total_ion_energy::IMAS.core_transport__model___profiles_1d___total_ion_energy, ::Val{:flux})
+@recipe function plot_ct1d(ct1d__total_ion_energy::IMAS.core_transport__model___profiles_1d___total_ion_energy, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
     @series begin
         markershape --> :none
         title := "Total ion energy flux"
@@ -1336,8 +1340,12 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__electrons__particles::IMAS.core_transport__model___profiles_1d___electrons__particles, ::Val{:flux})
+@recipe function plot_ct1d(ct1d__electrons__particles::IMAS.core_transport__model___profiles_1d___electrons__particles, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
     @series begin
+        update_limits!(plot_extrema, ct1d__electrons__particles.flux)
+        if plot_extrema.active
+            ylim --> plot_extrema.ylim
+        end
         markershape --> :none
         title := "Electron particle flux"
         label --> ""
@@ -1346,9 +1354,13 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__ion___particles::IMAS.core_transport__model___profiles_1d___ion___particles, ::Val{:flux})
+@recipe function plot_ct1d(ct1d__ion___particles::IMAS.core_transport__model___profiles_1d___ion___particles, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
     ion = parent(ct1d__ion___particles)
     @series begin
+        update_limits!(plot_extrema, ct1d__ion___particles.flux)
+        if plot_extrema.active
+            ylim --> plot_extrema.ylim
+        end
         markershape --> :none
         title := "$(ion.label) particle flux"
         label --> ""
@@ -1357,7 +1369,7 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__momentum_tor::IMAS.core_transport__model___profiles_1d___momentum_tor, ::Val{:flux})
+@recipe function plot_ct1d(ct1d__momentum_tor::IMAS.core_transport__model___profiles_1d___momentum_tor, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
     @series begin
         markershape --> :none
         title := "Momentum flux"
@@ -1385,7 +1397,7 @@ function transport_channel_paths(ions::AbstractVector{<:IDS}, ions_list::Abstrac
     return paths
 end
 
-@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d; only=nothing, ions=Symbol[])
+@recipe function plot_ct1d(ct1d::IMAS.core_transport__model___profiles_1d, plots_extrema::Vector{PlotExtrema}=PlotExtrema[]; only=nothing, ions=Symbol[])
     id = recipe_dispatch(ct1d)
     assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
     assert_type_and_record_argument(id, AbstractVector{Symbol}, "List of ions"; ions)
@@ -1400,13 +1412,17 @@ end
     end
 
     for (k, path) in enumerate(paths)
+        if length(plots_extrema) < k
+            resize!(plots_extrema, k)
+            plots_extrema[k] = PlotExtrema()
+        end
         if k == only || only === nothing
             if path[end] !== nothing && !ismissing(ct1d, [path; :flux]) && sum(abs.(getproperty(goto(ct1d, path), :flux))) > 0.0
                 @series begin
                     if only === nothing
                         subplot := k
                     end
-                    goto(ct1d, path), Val(:flux)
+                    goto(ct1d, path), Val(:flux), plots_extrema[k]
                 end
             end
         end
@@ -1438,6 +1454,8 @@ end
     end
     rhos = unique(rhos)
 
+    plots_extrema = PlotExtrema[]
+
     if dd !== nothing
         tot_source = IMAS.core_sources__source{T}()
         resize!(tot_source.profiles_1d, 1)
@@ -1450,7 +1468,7 @@ end
             flux := true
             show_zeros := true
             ions := ions
-            tot_source, PlotExtrema[]
+            tot_source, plots_extrema
         end
     end
 
@@ -1459,7 +1477,7 @@ end
         color := :red
         label := "Total transport"
         ions := ions
-        total_fluxes(ct, cp1d, rhos; time0)
+        total_fluxes(ct, cp1d, rhos; time0), plots_extrema
     end
 
     for model in ct.model
@@ -1480,7 +1498,7 @@ end
                     linewidth := 0
                     color := :purple
                 end
-                model.profiles_1d[time0]
+                model.profiles_1d[time0], plots_extrema
             end
         end
     end
@@ -1489,11 +1507,11 @@ end
 # ============ #
 # core_sources #
 # ============ #
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema())
     return cs1d.electrons, Val(:energy), plot_extrema
 end
 
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy}, plot_extrema::PlotExtrema;
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy}, plot_extrema::PlotExtrema=PlotExtrema();
     name="",
     label="",
     integrated=false,
@@ -1527,6 +1545,8 @@ end
     @series begin
         if identifier == :collisional_equipartition
             linestyle --> :dash
+        elseif identifier == :time_derivative
+            linestyle --> :dashdot
         end
         color := idx
         title --> "Electron Energy"
@@ -1556,7 +1576,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy}, plot_extrema::PlotExtrema;
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy}, plot_extrema::PlotExtrema=PlotExtrema();
     name="",
     label="",
     integrated=false,
@@ -1589,6 +1609,8 @@ end
     @series begin
         if identifier == :collisional_equipartition
             linestyle --> :dash
+        elseif identifier == :time_derivative
+            linestyle --> :dashdot
         end
         color := idx
         title --> "Total Ion Energy"
@@ -1618,11 +1640,11 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles}, plot_extrema::PlotExtrema)
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles}, plot_extrema::PlotExtrema=PlotExtrema())
     return cs1d.electrons, Val(:particles), plot_extrema
 end
 
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles}, plot_extrema::PlotExtrema;
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema();
     name="",
     label="",
     integrated=false,
@@ -1648,6 +1670,9 @@ end
     end
     show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
     @series begin
+        if identifier == :time_derivative
+            linestyle --> :dashdot
+        end
         color := idx
         title --> "Electron Particles"
         if show_condition
@@ -1688,7 +1713,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema;
+@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema();
     name="",
     label="",
     integrated=false,
@@ -1714,6 +1739,9 @@ end
     end
     show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
     @series begin
+        if identifier == :time_derivative
+            linestyle --> :dashdot
+        end
         color := idx
         title --> "$(cs1di.label) Particles"
         if show_condition
@@ -1754,7 +1782,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor}, plot_extrema::PlotExtrema;
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor}, plot_extrema::PlotExtrema=PlotExtrema();
     name="",
     label="",
     integrated=false,
@@ -1779,6 +1807,9 @@ end
     end
     show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
     @series begin
+        if identifier == :time_derivative
+            linestyle --> :dashdot
+        end
         color := idx
         title --> "Momentum"
         if show_condition
@@ -1807,7 +1838,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel}, plot_extrema::PlotExtrema;
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel}, plot_extrema::PlotExtrema=PlotExtrema();
     name="",
     label="",
     integrated=false,
@@ -1830,6 +1861,9 @@ end
     end
     show_condition = show_zeros || identifier in [:total, :time_derivative] || abs(tot) > 0.0
     @series begin
+        if identifier == :time_derivative
+            linestyle --> :dashdot
+        end
         color := idx
         title --> "Parallel Current"
         if show_condition
@@ -2465,7 +2499,6 @@ end
         [beam.beam_tracing[] for beam in wv.coherent_wave[1:max_beam]]
     end
 end
-
 
 # =============== #
 # solid_mechanics #
