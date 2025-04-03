@@ -490,9 +490,11 @@ function total_radiation_sources(
     include_indexes::Vector{Int}=Int[],
     exclude_indexes::Vector{Int}=Int[]) where {T<:Real}
 
-    # we need to exclude the collisional_equipartition term
-    index = name_2_index(core_sources.source)[:collisional_equipartition]
-    push!(exclude_indexes, index)
+    # we need to exclude :total, :collisional_equipartition, and :time_derivative terms
+    n2i = name_2_index(core_sources.source)
+    push!(exclude_indexes, n2i[:collisional_equipartition])
+    push!(exclude_indexes, n2i[:time_derivative])
+    push!(exclude_indexes, n2i[:total])
 
     fields = [:power_inside, :energy]
     only_positive_negative = -1
