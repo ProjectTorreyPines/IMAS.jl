@@ -1426,3 +1426,24 @@ end
 
 @compat public scale_ion_densities_to_target_zeff!
 push!(document[Symbol("Physics profiles")], :scale_ion_densities_to_target_zeff!)
+
+"""
+    flatten_profile!(prof::AbstractVector{T}, rho::AbstractVector{T}, volume_or_area::AbstractVector{T}, rho0::T, width::T) where {T<:Real}
+
+Flatten input profile inside of rho0 with given width, while keeping integral (over volume or area) unchanged
+"""
+function flatten_profile!(prof::AbstractVector{T}, rho::AbstractVector{T}, volume_or_area::AbstractVector{T}, rho0::T, width::T) where {T<:Real}
+    i_inversion = argmin_abs(rho, rho0)
+    if i_inversion > 2
+        prof_tanh = 0.5 .* tanh.(-(rho .- rho[i_inversion]) ./ width) .+ 0.5
+
+        en = trapz(volume_or_area, prof)
+        en_tanh = trapz(volume_or_area, prof_tanh)
+        prof[1:i_inversion] .= prof[i_inversion]
+
+        en_cut = trapz(volume_or_area, prof)
+        prof .+= (en .- en_cut) ./ en_tanh .* prof_tanh
+    end
+
+    return prof
+end
