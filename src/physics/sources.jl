@@ -532,7 +532,7 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.1)
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
 
     # fill in sawteeth
-    source = resize!(dd.core_sources.source, :killer_gas_puff, "identifier.name" => "sawteeth"; wipe=false)
+    source = resize!(dd.core_sources.source, :sawteeth, "identifier.name" => "sawteeth"; wipe=false)
     source1d = resize!(source.profiles_1d)
 
     # identify sawteeth inversion radius
