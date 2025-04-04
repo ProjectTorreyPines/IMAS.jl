@@ -5,7 +5,7 @@ import StaticArrays
 import PolygonOps
 import Optim
 import DataInterpolations: DataInterpolations, ExtrapolationType
-import IMASutils: IMASutils, trapz, cumtrapz, cumtrapz!, mirror_bound
+import IMASutils: IMASutils, trapz, cumtrapz, cumtrapz!, mirror_bound, argmin_abs
 import PeriodicTable: elements
 import MillerExtendedHarmonic: MXH, MXH!, flat_coeffs, reorder_flux_surface!
 import Memoize

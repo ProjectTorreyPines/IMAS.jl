@@ -109,21 +109,23 @@ push!(document[Symbol("Physics profiles")], :beta_tor)
 Dictionary that returns an integer number, used to sort ions by their Z
 with fast-ion species listed at the end
 """
-const ions_sort_map = Dict(sym => z for (z, sym) in enumerate([
-    "H", "D", "DT", "T", "He", "α ",
-    "Li", "Be", "B", "C", "N", "O", "F", "Ne",
-    "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
-    "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
-    "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y", "Zr",
-    "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn",
-    "Sb", "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd",
-    "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb",
-    "Lu", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg",
-    "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th",
-    "Pa", "U", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm",
-    "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds",
-    "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"
-]))
+const ions_sort_map = Dict(
+    sym => z for (z, sym) in enumerate([
+        "H", "D", "DT", "T", "He", "α ",
+        "Li", "Be", "B", "C", "N", "O", "F", "Ne",
+        "Na", "Mg", "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca",
+        "Sc", "Ti", "V", "Cr", "Mn", "Fe", "Co", "Ni", "Cu", "Zn",
+        "Ga", "Ge", "As", "Se", "Br", "Kr", "Rb", "Sr", "Y", "Zr",
+        "Nb", "Mo", "Tc", "Ru", "Rh", "Pd", "Ag", "Cd", "In", "Sn",
+        "Sb", "Te", "I", "Xe", "Cs", "Ba", "La", "Ce", "Pr", "Nd",
+        "Pm", "Sm", "Eu", "Gd", "Tb", "Dy", "Ho", "Er", "Tm", "Yb",
+        "Lu", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg",
+        "Tl", "Pb", "Bi", "Po", "At", "Rn", "Fr", "Ra", "Ac", "Th",
+        "Pa", "U", "Np", "Pu", "Am", "Cm", "Bk", "Cf", "Es", "Fm",
+        "Md", "No", "Lr", "Rf", "Db", "Sg", "Bh", "Hs", "Mt", "Ds",
+        "Rg", "Cn", "Nh", "Fl", "Mc", "Lv", "Ts", "Og"
+    ])
+)
 for element in collect(keys(ions_sort_map))
     ions_sort_map["$(element)_fast"] = 1000 + ions_sort_map[element]
 end
@@ -380,7 +382,7 @@ push!(document[Symbol("Physics profiles")], :energy_thermal)
 Calculates the pedestal contribution to the thermal stored energy by integrating over entire domain but with pedestal pressure in the core
 """
 function energy_thermal_ped(cp1d::IMAS.core_profiles__profiles_1d, su::IMAS.summary)
-    rho_index = argmin(abs.(cp1d.grid.rho_tor_norm .- su.local.pedestal.position.rho_tor_norm))
+    rho_index = argmin_abs(cp1d.grid.rho_tor_norm, su.local.pedestal.position.rho_tor_norm)
     pressure = cp1d.pressure_thermal
     pressure[1:rho_index] .= cp1d.pressure_thermal[rho_index]
     return 3.0 / 2.0 * trapz(cp1d.grid.volume, pressure)
@@ -748,7 +750,7 @@ Generate L-mode density and temperature profiles evenly spaced in the radial coo
 function Lmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
     rho = range(0.0, 1.0, ngrid)
     rho_ped = 1.0 - width
-    rho_ped_idx = argmin(abs.(rho .- rho_ped))
+    rho_ped_idx = argmin_abs(rho, rho_ped)
 
     f(x) = abs.(1.0 - x .^ expin) .^ expout
     profile = f.(rho ./ rho_ped) .* (core - ped) .+ ped
@@ -1281,7 +1283,7 @@ function core_edge_energy(eqt::IMAS.equilibrium__time_slice, rho_ped::Real)
 end
 
 function core_edge_energy(pressure::AbstractVector{T}, rho::AbstractVector{T}, volume::AbstractVector{T}, rho_ped::Real) where {T<:Real}
-    rho_bound_idx = argmin(abs.(rho .- rho_ped))
+    rho_bound_idx = argmin_abs(rho, rho_ped)
     pedge = pressure[rho_bound_idx]
     fedge = (k, x) -> (k <= rho_bound_idx) ? pedge : pressure[k]
     fcore = (k, x) -> (k <= rho_bound_idx) ? (pressure[k] - pedge) : 0.0
@@ -1299,7 +1301,7 @@ push!(document[Symbol("Physics profiles")], :core_edge_energy)
 Returns scale coefficients for main ions and impurity density profiles needed to achieve a target zeff at a specific radial location
 """
 function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
-    rho_index = argmin(abs.(cp1d.grid.rho_tor_norm .- rho_scale))
+    rho_index = argmin_abs(cp1d.grid.rho_tor_norm, rho_scale)
     ne = cp1d.electrons.density_thermal[rho_index]
     Ti = cp1d.t_i_average[rho_index]
     nh = zero(T)

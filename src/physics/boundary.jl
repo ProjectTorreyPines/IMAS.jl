@@ -175,7 +175,7 @@ function boundary_shape(;
             mindiffq2 = minimum(y1q2sol .- y2q2sol)
 
             if maxdiffq1 / mindiffq1 < 0.0
-                imin = argmin(abs.(y1q1sol .- y2q1sol))
+                imin = argmin_abs(y1q1sol, y2q1sol)
                 fsolq1 = f[imin]
                 nsolq1 = y1q1sol[imin]
                 gsolq1 = @. (1.0 - fsolq1^nsolq1)^(1.0 / nsolq1)
@@ -209,7 +209,7 @@ function boundary_shape(;
             z1 .= @. y1 + zoffset
 
             if maxdiffq2 / mindiffq2 < 0.0
-                imin = argmin(abs.(y1q2sol .- y2q2sol))
+                imin = argmin_abs(y1q2sol, y2q2sol)
                 fsolq2 = f[imin]
                 nsolq2 = y1q2sol[imin]
                 gsolq2 = @. (1.0 - fsolq2^nsolq2)^(1.0 / nsolq2)

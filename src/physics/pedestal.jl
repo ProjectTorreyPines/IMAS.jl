@@ -128,8 +128,8 @@ function blend_core_edge(
     @assert rho[end] == 1.0
     @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
     @assert length(profile) == length(profile_ped) == length(rho)
-    iped = argmin(abs.(rho .- ped_bound))
-    inml = argmin(abs.(rho .- nml_bound))
+    iped = argmin_abs(rho, ped_bound)
+    inml = argmin_abs(rho, nml_bound)
 
     z_profile = -calc_z(rho, profile, :backward)
     z_nml = z_profile[inml]
@@ -205,7 +205,7 @@ push!(document[Symbol("Physics pedestal")], :blend_core_edge_Lmode)
 function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value_ped::Real, rho_ped::Real)
     @assert rho[end] == 1.0
 
-    rho_ped_idx = argmin(abs.(rho .- rho_ped))
+    rho_ped_idx = argmin_abs(rho, rho_ped)
 
     profile_ped = exponential_profile(rho, rho_ped, value_ped, profile[end], α)
     z_profile_ped = calc_z(rho, profile_ped, :backward)

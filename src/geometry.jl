@@ -613,7 +613,7 @@ function resample_2d_path(
     if retain_extrema
         ti = collect(ti)
         for k in (argmax(x), argmax(y), argmin(x), argmin(y))
-            index = argmin(abs.(ti .- t[k]))
+            index = argmin_abs(ti, t[k])
             ti[index] = t[k]
             xi[index] = x[k]
             yi[index] = y[k]

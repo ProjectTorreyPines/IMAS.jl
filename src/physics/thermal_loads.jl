@@ -10,13 +10,13 @@ document[Symbol("Physics thermal loads")] = Symbol[]
     s::Vector{Float64}                  # wall curvilinear abscissa
 """
 Base.@kwdef mutable struct WallHeatFlux{T}
-    r::Vector{Float64}=Float64[]
-    z::Vector{Float64}=Float64[]
-    q_wall::Vector{T}=T[]
-    q_part::Vector{T}=T[]
-    q_core_rad::Vector{T}=T[]
-    q_parallel::Vector{T}=T[]
-    s::Vector{Float64}=Float64[]
+    r::Vector{Float64} = Float64[]
+    z::Vector{Float64} = Float64[]
+    q_wall::Vector{T} = T[]
+    q_part::Vector{T} = T[]
+    q_core_rad::Vector{T} = T[]
+    q_parallel::Vector{T} = T[]
+    s::Vector{Float64} = Float64[]
 end
 
 """
@@ -84,7 +84,7 @@ function particle_heat_flux(
 
     # to determine if upper or lower single null, check if Z(strike_point) < Z(axis)
     # SOL[:lfs][1] = LCFS
-    if SOL[:lfs][1].z[1]< ZA
+    if SOL[:lfs][1].z[1] < ZA
         case = :lower
     else
         case = :upper
@@ -156,21 +156,21 @@ function particle_heat_flux(
             end
 
             # insert hfs
-            Rwall = vcat(Rwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+            Rwall = vcat(Rwall[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Rwall_hfs,
-                Rwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
-            Zwall = vcat(Zwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Rwall[argmin_abs(indexes, maximum(indexes_hfs)):end])
+            Zwall = vcat(Zwall[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Zwall_hfs,
-                Zwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
-            Qwall = vcat(Qwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Zwall[argmin_abs(indexes, maximum(indexes_hfs)):end])
+            Qwall = vcat(Qwall[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Qwall_hfs,
-                Qwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
-            Qpara = vcat(Qpara[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Qwall[argmin_abs(indexes, maximum(indexes_hfs)):end])
+            Qpara = vcat(Qpara[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Qpara_hfs,
-                Qpara[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
-            indexes = vcat(indexes[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Qpara[argmin_abs(indexes, maximum(indexes_hfs)):end])
+            indexes = vcat(indexes[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 indexes_hfs,
-                indexes[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
+                indexes[argmin_abs(indexes, maximum(indexes_hfs)):end])
         end
     end
 
@@ -442,7 +442,7 @@ function mesher_heat_flux(dd::IMAS.dd;
 
     R0 = eqt.global_quantities.magnetic_axis.r # R magentic axis 
     Z0 = eqt.global_quantities.magnetic_axis.z # Z magnetic axis
-    psi_separatrix = find_psi_boundary(eqt, fw.r,fw.z; raise_error_on_not_open=true).first_open # psi at LCFS
+    psi_separatrix = find_psi_boundary(eqt, fw.r, fw.z; raise_error_on_not_open=true).first_open # psi at LCFS
 
     if isempty(r) || isempty(q)
         ##########################################################################
@@ -508,7 +508,7 @@ function mesher_heat_flux(dd::IMAS.dd;
 
     # to determine if upper or lower single null, check if Z(strike_point) < Z(axis)
     # SOL[:lfs][1] = LCFS
-    if SOL[:lfs][1].z[1]< Z0 
+    if SOL[:lfs][1].z[1] < Z0
         case = :lower
     else
         case = :upper
@@ -563,17 +563,17 @@ function mesher_heat_flux(dd::IMAS.dd;
 
             # insert hfs
             Rwall = vcat(
-                Rwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Rwall[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Rwall_hfs,
-                Rwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
+                Rwall[argmin_abs(indexes, maximum(indexes_hfs)):end])
             Zwall = vcat(
-                Zwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Zwall[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Zwall_hfs,
-                Zwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
+                Zwall[argmin_abs(indexes, maximum(indexes_hfs)):end])
             indexes = vcat(
-                indexes[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                indexes[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 indexes_hfs,
-                indexes[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
+                indexes[argmin_abs(indexes, maximum(indexes_hfs)):end])
         end
     end
 
@@ -693,12 +693,12 @@ function mesher_heat_flux(dd::IMAS.dd;
                 add_z = zwall[rwall.>(minimum([Rwall[ind],Rwall[ind+1]])-dr) .&& rwall .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
                               zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz)   ]
                 #! format: on
-                
+
                 # check that (add_r,add_z) are unique points
-                add_rz = unique!(collect(zip(add_r,add_z)))
+                add_rz = unique!(collect(zip(add_r, add_z)))
                 if length(add_r) > length(add_rz)
-                    add_r  = [rz[1] for rz in add_rz]
-                    add_z  = [rz[2] for rz in add_rz]
+                    add_r = [rz[1] for rz in add_rz]
+                    add_z = [rz[2] for rz in add_rz]
                 end
 
                 Rwall = append!(Rwall[1:ind], add_r, Rwall[ind+1:end])
@@ -745,6 +745,7 @@ end
 #= ============= =#
 """
 Recipe for plot of heat flux
+
   - which_plot = :twoD, :oneD
   - plot_type  = :path, :scatter (only for 2D)
   - q          =

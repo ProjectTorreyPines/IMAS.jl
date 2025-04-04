@@ -32,7 +32,7 @@ end
 Update plot limits based on y value
 """
 function update_limits!(plot_extrema::PlotExtrema, y::Vector{T}, x::Vector{T}) where {T<:Real}
-    irho = argmin(abs.(x .- 0.85))
+    irho = argmin_abs(x, 0.85)
 
     if maximum(abs.(@views y[irho:end])) / (1 + maximum(abs.(@views y[1:irho]))) > 3
         plot_extrema.active = true
@@ -539,7 +539,7 @@ end
     if !cx
         if core_profiles_overlay
             cp = top_dd(eqt).core_profiles
-            cp1d = top_dd(eqt).core_profiles.profiles_1d[argmin(abs.(cp.time .- eqt.time))]
+            cp1d = top_dd(eqt).core_profiles.profiles_1d[argmin_abs(cp.time, eqt.time)]
         end
 
         # pressure
