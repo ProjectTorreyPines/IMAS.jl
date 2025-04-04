@@ -1507,6 +1507,7 @@ end
         end
         if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
             @series begin
+                time0 := time0
                 ions := ions
                 model, plots_extrema
             end
@@ -3200,7 +3201,6 @@ end
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
-
 @recipe function plot_multiple_fields(ids::Union{IDS,IDSvector}, target_fields::Union{AbstractArray{Symbol},Regex})
     @series begin
         # calls "plot_IFF_list" recipe
