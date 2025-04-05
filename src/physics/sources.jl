@@ -84,16 +84,18 @@ push!(document[Symbol("Physics sources")], :ohmic_source!)
 """
     bootstrap_source!(dd::IMAS.dd)
 
-Calculates the bootsrap current source from data in `dd.core_profiles` and adds it to `dd.core_sources`
+Calculates the bootsrap current from profiles in `dd.core_profiles`
+and adds it both as source in `dd.core_sources` and `cp1d.j_bootstrap`
 """
 function bootstrap_source!(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
-    if !ismissing(cp1d, :j_bootstrap)
-        source = resize!(dd.core_sources.source, :bootstrap_current; wipe=false)
-        new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
-            j_parallel=cp1d.j_bootstrap)
-        return source
-    end
+    j_bootstrap = Sauter_neo2021_bootstrap(eqt, cp1d)
+    source = resize!(dd.core_sources.source, :bootstrap_current; wipe=false)
+    new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+        j_parallel=j_bootstrap)
+    cp1d.j_bootstrap = j_bootstrap
+    return source
 end
 
 @compat public bootstrap_source!
