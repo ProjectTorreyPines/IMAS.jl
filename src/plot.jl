@@ -2738,10 +2738,7 @@ end
         wall_r = wall_r[index]
         wall_z = wall_z[index]
 
-        d = sqrt.(IMAS.gradient(neutronics.first_wall.r) .^ 2.0 .+ IMAS.gradient(neutronics.first_wall.z) .^ 2.0)
-        d = sqrt.(diff(neutronics.first_wall.r) .^ 2.0 .+ diff(neutronics.first_wall.z) .^ 2.0)
-        l = cumsum(d)
-        l .-= l[1]
+        l = arc_length(neutronics.first_wall.r, neutronics.first_wall.z; include_zero=false)
 
         xlabel --> "Clockwise distance along wall [m]"
         ylabel --> "$title $units"

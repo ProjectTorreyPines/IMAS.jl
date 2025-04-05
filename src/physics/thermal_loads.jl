@@ -245,7 +245,7 @@ function particle_heat_flux(
         L = length(add_indexes)
         #! format: on
 
-        average_step = sum(sqrt.(diff(wall_r) .^ 2 + diff(wall_z) .^ 2)) ./ (length(wall_r) - 1)
+        average_step = perimeter(wall_r, wall_z) / (length(wall_r) - 1)
         #filter out point that are for some reason already inside Rwall,Zwall
         for (k, ind) in enumerate(reverse(add_indexes))
             #check if these points have been already saved in Rwall, Zwall
@@ -285,15 +285,13 @@ function particle_heat_flux(
                 if abs.(diff([Rwall[ind], Rwall[ind+1]]))[1] > 0.01
                     dr = 0.0
                 else
-                    # dr = 1.0*maximum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))
-                    dr = sqrt(2) * sum(sqrt.(diff(wall_r) .^ 2 + diff(wall_z) .^ 2)) / length(dist)
+                    dr = sqrt(2) * perimeter(wall_r, wall_z) / length(dist)
                 end
                 #if horizontal lines
                 if abs.(diff([Zwall[ind], Zwall[ind+1]]))[1] > 0.01
                     dz = 0.0
                 else
-                    # dz = 1.0*maximum(sqrt.(diff(wall_r).^2 + diff(wall_z).^2))
-                    dz = sqrt(2) * sum(sqrt.(diff(wall_r) .^ 2 + diff(wall_z) .^ 2)) / length(dist)
+                    dz = sqrt(2) * perimeter(wall_r, wall_z) / length(dist)
                 end
 
                 #search points in rectangle between two points
@@ -474,7 +472,7 @@ function mesher_heat_flux(dd::IMAS.dd;
             power_sol(dd) * frac / 2 / NN / π / (R0 + a) / l2 / sin(atan(Bpol_omp(dd.equilibrium.time_slice[]) / abs(Bt_omp))) * exp.(-r ./ l2)
     end
 
-    step = minimum([step, sum(sqrt.(diff(fw.r) .^ 2 + diff(fw.z) .^ 2)) / 250]) # ensure decent resolution of the wall
+    step = minimum([step, perimeter(fw.r, fw.z) / 250]) # ensure decent resolution of the wall
     # resample wall and make sure it's clockwise (for COCOS = 11)
     rwall, zwall = resample_2d_path(fw.r, fw.z; step, method=:linear, retain_original_xy=true)
     reorder_flux_surface!(rwall, zwall, R0, Z0; force_close=true)
@@ -638,7 +636,7 @@ function mesher_heat_flux(dd::IMAS.dd;
         #! format: on
 
         L = length(add_indexes)
-        average_step = sum(sqrt.(diff(rwall) .^ 2 + diff(zwall) .^ 2)) ./ (length(rwall) - 1)
+        average_step = perimeter(rwall, zwall) / (length(rwall) - 1)
         #filter out point that are for some reason already inside Rwall,Zwall
         for (k, ind) in enumerate(reverse(add_indexes))
             #check if these points have been already saved in Rwall, Zwall
@@ -675,15 +673,13 @@ function mesher_heat_flux(dd::IMAS.dd;
                 if abs.(diff([Rwall[ind], Rwall[ind+1]]))[1] > 0.01
                     dr = 0.0
                 else
-                    # dr = 1.0*maximum(sqrt.(diff(rwall).^2 + diff(zwall).^2))
-                    dr = sqrt(2) * sum(sqrt.(diff(rwall) .^ 2 + diff(zwall) .^ 2)) / length(dist)
+                    dr = sqrt(2) * perimeter(rwall, zwall) / length(dist)
                 end
                 #if horizontal lines
                 if abs.(diff([Zwall[ind], Zwall[ind+1]]))[1] > 0.01
                     dz = 0.0
                 else
-                    # dz = 1.0*maximum(sqrt.(diff(rwall).^2 + diff(zwall).^2))
-                    dz = sqrt(2) * sum(sqrt.(diff(rwall) .^ 2 + diff(zwall) .^ 2)) / length(dist)
+                    dz = sqrt(2) * perimeter(rwall, zwall) / length(dist)
                 end
 
                 #search points in rectangle between two points

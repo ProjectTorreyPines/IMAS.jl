@@ -618,9 +618,8 @@ function ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
     vcvo = vpar
     tstcx = tpar
     emzrat = emzpar
-    y = range(0.0, 1.0, N)
     out = 0.0
-    for y1 in y
+    for y1 in range(0.0, 1.0, N)
         out += bkefun(y1, vcvo, tstcx, emzrat)
     end
     return out / N
