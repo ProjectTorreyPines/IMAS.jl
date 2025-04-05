@@ -523,11 +523,11 @@ end
 push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
 """
-    sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.1)
+    sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
 
 Model sawteeth by flattening all sources (besides time_derivative term) within the q inversion radius
 """
-function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.1)
+function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
 
