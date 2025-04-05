@@ -1542,7 +1542,7 @@ end
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de; error_parent_of_nothing=false)
+    cs1d = parent(cs1de; error_parent_of_nothing=true)
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
@@ -1671,7 +1671,7 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de; error_parent_of_nothing=false)
+    cs1d = parent(cs1de; error_parent_of_nothing=true)
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
@@ -1740,7 +1740,7 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(parent(cs1di; error_parent_of_nothing=false); error_parent_of_nothing=false)
+    cs1d = parent(parent(cs1di; error_parent_of_nothing=false); error_parent_of_nothing=true)
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
