@@ -361,9 +361,9 @@ function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; incl
             dx = pr[i] - pr[i-1]
             dz = pz[i] - pz[i-1]
             if i == 2
-                ll[i] = sqrt(dx*dx + dz*dz)
+                ll[i-1] = sqrt(dx*dx + dz*dz)
             else
-                ll[i] = ll[i-1] + sqrt(dx*dx + dz*dz)
+                ll[i-1] = ll[i-2] + sqrt(dx*dx + dz*dz)
             end
         end
     end
