@@ -2926,7 +2926,7 @@ const UnionPulseScheduleSubIDS = Union{IMAS.pulse_schedule,(tp for tp in fieldty
         if field != :reference
             continue
         end
-        path = collect(f2p(ids))
+        path = f2p(ids)
         if "boundary_outline" in path
             continue
         end
