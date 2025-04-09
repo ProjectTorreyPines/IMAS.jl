@@ -595,21 +595,23 @@ end
     bkefun(y::Real, vcvo::Real, tstcx::Real, emzrat::Real)
 """
 function bkefun(y::Real, vcvo::Real, tstcx::Real, emzrat::Real)
-    if y > 0
-        v3 = vcvo^3
-        arg = (1 + v3) / (y^3 + v3)
-        alogarg = log(arg)
-        pcxlog = -tstcx * alogarg / 3
-        alogy3v3 = log(y^3 + v3)
-        alog3y = 3 * log(y)
-        blog = (alog3y + alogarg) * emzrat / 3
-        bkeflog = alog3y + pcxlog + blog - alogy3v3
-        return bkeflog < -30 ? 0.0 : exp(bkeflog)
-    else
+    if y <= 0
         return 0.0
     end
+    y3 = y^3
+    v3 = vcvo^3
+    y3v3 = y3 + v3
+    inv_y3v3 = 1 / y3v3
+    arg = (1 + v3) * inv_y3v3
+    alogarg = log(arg)
+    pcxlog = -tstcx * alogarg / 3
+    log_y = log(y)
+    alog3y = 3 * log_y
+    alogy3v3 = log(y3v3)
+    blog = (alog3y + alogarg) * emzrat / 3
+    bkeflog = alog3y + pcxlog + blog - alogy3v3
+    return bkeflog < -30 ? 0.0 : exp(bkeflog)
 end
-
 
 """
     ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
@@ -619,7 +621,7 @@ function ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
     tstcx = tpar
     emzrat = emzpar
     out = 0.0
-    for y1 in range(0.0, 1.0, N)
+    @inbounds @simd for y1 in range(0.0, 1.0, N)
         out += bkefun(y1, vcvo, tstcx, emzrat)
     end
     return out / N
