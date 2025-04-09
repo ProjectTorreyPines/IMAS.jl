@@ -183,7 +183,7 @@ function list_ions(ids1::IDS, idss::Vararg{<:IDS}; time0::Float64)
     for ids in (ids1, idss...)
         list_ions!(ids, ion_set; time0)
     end
-    ions_sorted = sort(collect(ion_set); by=x -> ions_sort_map[String(x)])
+    ions_sorted = sort!(collect(ion_set); by=x -> ions_sort_map[replace(string(x), r"[0-9]+" => "")])
     return ions_sorted
 end
 
