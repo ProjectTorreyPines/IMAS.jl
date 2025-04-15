@@ -545,14 +545,15 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
         fill!(source1d, total_source1d)
         return source
     else
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[409])
+        # exlude :time_dependent and :sawteeth sources
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[409, 701])
         fill!(source1d, total_source1d)
     end
 
     rho0 = eqt1d.rho_tor_norm[argmin_abs(q, qmin_desired)]
     width = rho0 / 4.0
 
-    # flatten profiles
+    # sawteeth source as difference between flattened profiles and original profile
     for leaf in IMASdd.AbstractTrees.Leaves(source1d)
         if leaf.field in keys(_core_sources_value_keys)
             if leaf.field == :j_parallel
