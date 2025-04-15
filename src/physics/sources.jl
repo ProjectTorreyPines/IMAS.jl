@@ -553,7 +553,7 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     rho0 = eqt1d.rho_tor_norm[argmin_abs(q, qmin_desired)]
     width = rho0 / 4.0
 
-    # sawteeth source as difference between flattened profiles and original profile
+    # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
     for leaf in IMASdd.AbstractTrees.Leaves(source1d)
         if leaf.field in keys(_core_sources_value_keys)
             if leaf.field == :j_parallel
