@@ -10,13 +10,13 @@ document[Symbol("Physics thermal loads")] = Symbol[]
     s::Vector{Float64}                  # wall curvilinear abscissa
 """
 Base.@kwdef mutable struct WallHeatFlux{T}
-    r::Vector{Float64}=Float64[]
-    z::Vector{Float64}=Float64[]
-    q_wall::Vector{T}=T[]
-    q_part::Vector{T}=T[]
-    q_core_rad::Vector{T}=T[]
-    q_parallel::Vector{T}=T[]
-    s::Vector{Float64}=Float64[]
+    r::Vector{Float64} = Float64[]
+    z::Vector{Float64} = Float64[]
+    q_wall::Vector{T} = T[]
+    q_part::Vector{T} = T[]
+    q_core_rad::Vector{T} = T[]
+    q_parallel::Vector{T} = T[]
+    s::Vector{Float64} = Float64[]
 end
 
 """
@@ -181,7 +181,7 @@ function mesher_heat_flux(dd::IMAS.dd;
 
     R0 = eqt.global_quantities.magnetic_axis.r # R magentic axis 
     Z0 = eqt.global_quantities.magnetic_axis.z # Z magnetic axis
-    psi_separatrix = find_psi_boundary(eqt, fw.r,fw.z; raise_error_on_not_open=true).first_open # psi at LCFS
+    psi_separatrix = find_psi_boundary(eqt, fw.r, fw.z; raise_error_on_not_open=true).first_open # psi at LCFS
 
     if isempty(r) || isempty(q)
         ##########################################################################
@@ -213,7 +213,7 @@ function mesher_heat_flux(dd::IMAS.dd;
             power_sol(dd) * frac / 2 / NN / π / (R0 + a) / l2 / sin(atan(Bpol_omp(dd.equilibrium.time_slice[]) / abs(Bt_omp))) * exp.(-r ./ l2)
     end
 
-    step = minimum([step, sum(sqrt.(diff(fw.r) .^ 2 + diff(fw.z) .^ 2)) / 250]) # ensure decent resolution of the wall
+    step = minimum([step, perimeter(fw.r, fw.z) / 250]) # ensure decent resolution of the wall
     # resample wall and make sure it's clockwise (for COCOS = 11)
     rwall, zwall = resample_2d_path(fw.r, fw.z; step, method=:linear, retain_original_xy=true)
     reorder_flux_surface!(rwall, zwall, R0, Z0; force_close=true)
@@ -247,7 +247,7 @@ function mesher_heat_flux(dd::IMAS.dd;
 
     # to determine if upper or lower single null, check if Z(strike_point) < Z(axis)
     # SOL[:lfs][1] = LCFS
-    if SOL[:lfs][1].z[1]< Z0 
+    if SOL[:lfs][1].z[1] < Z0
         case = :lower
     else
         case = :upper
@@ -302,17 +302,17 @@ function mesher_heat_flux(dd::IMAS.dd;
 
             # insert hfs
             Rwall = vcat(
-                Rwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Rwall[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Rwall_hfs,
-                Rwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
+                Rwall[argmin_abs(indexes, maximum(indexes_hfs)):end])
             Zwall = vcat(
-                Zwall[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                Zwall[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 Zwall_hfs,
-                Zwall[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
+                Zwall[argmin_abs(indexes, maximum(indexes_hfs)):end])
             indexes = vcat(
-                indexes[1:argmin(abs.(indexes .- maximum(indexes_hfs)))-1],
+                indexes[1:argmin_abs(indexes, maximum(indexes_hfs))-1],
                 indexes_hfs,
-                indexes[argmin(abs.(indexes .- maximum(indexes_hfs))):end])
+                indexes[argmin_abs(indexes, maximum(indexes_hfs)):end])
         end
     end
 
@@ -377,7 +377,7 @@ function mesher_heat_flux(dd::IMAS.dd;
         #! format: on
 
         L = length(add_indexes)
-        average_step = sum(sqrt.(diff(rwall) .^ 2 + diff(zwall) .^ 2)) ./ (length(rwall) - 1)
+        average_step = perimeter(rwall, zwall) / (length(rwall) - 1)
         #filter out point that are for some reason already inside Rwall,Zwall
         for (k, ind) in enumerate(reverse(add_indexes))
             #check if these points have been already saved in Rwall, Zwall
@@ -414,15 +414,13 @@ function mesher_heat_flux(dd::IMAS.dd;
                 if abs.(diff([Rwall[ind], Rwall[ind+1]]))[1] > 0.01
                     dr = 0.0
                 else
-                    # dr = 1.0*maximum(sqrt.(diff(rwall).^2 + diff(zwall).^2))
-                    dr = sqrt(2) * sum(sqrt.(diff(rwall) .^ 2 + diff(zwall) .^ 2)) / length(dist)
+                    dr = sqrt(2) * perimeter(rwall, zwall) / length(dist)
                 end
                 #if horizontal lines
                 if abs.(diff([Zwall[ind], Zwall[ind+1]]))[1] > 0.01
                     dz = 0.0
                 else
-                    # dz = 1.0*maximum(sqrt.(diff(rwall).^2 + diff(zwall).^2))
-                    dz = sqrt(2) * sum(sqrt.(diff(rwall) .^ 2 + diff(zwall) .^ 2)) / length(dist)
+                    dz = sqrt(2) * perimeter(rwall, zwall) / length(dist)
                 end
 
                 #search points in rectangle between two points
@@ -432,12 +430,12 @@ function mesher_heat_flux(dd::IMAS.dd;
                 add_z = zwall[rwall.>(minimum([Rwall[ind],Rwall[ind+1]])-dr) .&& rwall .< (maximum([Rwall[ind],Rwall[ind+1]])+dr ).&&
                               zwall.>(minimum([Zwall[ind],Zwall[ind+1]])-dz) .&& zwall .< (maximum([Zwall[ind],Zwall[ind+1]])+dz)   ]
                 #! format: on
-                
+
                 # check that (add_r,add_z) are unique points
-                add_rz = unique!(collect(zip(add_r,add_z)))
+                add_rz = unique!(collect(zip(add_r, add_z)))
                 if length(add_r) > length(add_rz)
-                    add_r  = [rz[1] for rz in add_rz]
-                    add_z  = [rz[2] for rz in add_rz]
+                    add_r = [rz[1] for rz in add_rz]
+                    add_z = [rz[2] for rz in add_rz]
                 end
 
                 Rwall = append!(Rwall[1:ind], add_r, Rwall[ind+1:end])
@@ -484,6 +482,7 @@ end
 #= ============= =#
 """
 Recipe for plot of heat flux
+
   - which_plot = :twoD, :oneD
   - plot_type  = :path, :scatter (only for 2D)
   - q          =

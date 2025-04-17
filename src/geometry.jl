@@ -613,7 +613,7 @@ function resample_2d_path(
     if retain_extrema
         ti = collect(ti)
         for k in (argmax(x), argmax(y), argmin(x), argmin(y))
-            index = argmin(abs.(ti .- t[k]))
+            index = argmin_abs(ti, t[k])
             ti[index] = t[k]
             xi[index] = x[k]
             yi[index] = y[k]
@@ -993,7 +993,7 @@ end
 Split long segments of a polygon so that there are at least n_points in it
 """
 function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, n_points::Int) where {T<:Real}
-    L = sum(sqrt.(diff(R) .^ 2.0 + diff(Z) .^ 2.0))
+    L = perimeter(R, Z)
     max_length = L / n_points
     return split_long_segments(R, Z, max_length)
 end

@@ -56,7 +56,12 @@ function blend_core_edge_Hmode(
     expin = 1.0
     expout = 1.0
     x_guess = [expin, expout]
-    res = Optim.optimize(x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets), x_guess, Optim.NelderMead(), Optim.Options(;g_tol=1E-6))
+    res = Optim.optimize(
+        x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets),
+        x_guess,
+        Optim.NelderMead(),
+        Optim.Options(; g_tol=1E-6)
+    )
     expin = abs(res.minimizer[1])
     expout = abs(res.minimizer[2])
 
@@ -113,9 +118,10 @@ push!(document[Symbol("Physics pedestal")], :blend_core_edge_EPED)
 Blends core and edge profiles via inverse-scale-lengths method using `nml_bound` and `ped_bound` as blending boundaries
 
 Different methods for connecting core region are:
-    * z: inverse scale length
-    * shift: add/subract constant to core region
-    * scale: multiply/divide by a constant the core region
+
+  - z: inverse scale length
+  - shift: add/subract constant to core region
+  - scale: multiply/divide by a constant the core region
 """
 function blend_core_edge(
     profile::AbstractVector{<:Real},
@@ -128,8 +134,8 @@ function blend_core_edge(
     @assert rho[end] == 1.0
     @assert nml_bound <= ped_bound "Unable to blend the core-pedestal because the nml_bound $nml_bound > ped_bound top $ped_bound"
     @assert length(profile) == length(profile_ped) == length(rho)
-    iped = argmin(abs.(rho .- ped_bound))
-    inml = argmin(abs.(rho .- nml_bound))
+    iped = argmin_abs(rho, ped_bound)
+    inml = argmin_abs(rho, nml_bound)
 
     z_profile = -calc_z(rho, profile, :backward)
     z_nml = z_profile[inml]
@@ -205,7 +211,7 @@ push!(document[Symbol("Physics pedestal")], :blend_core_edge_Lmode)
 function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value_ped::Real, rho_ped::Real)
     @assert rho[end] == 1.0
 
-    rho_ped_idx = argmin(abs.(rho .- rho_ped))
+    rho_ped_idx = argmin_abs(rho, rho_ped)
 
     profile_ped = exponential_profile(rho, rho_ped, value_ped, profile[end], α)
     z_profile_ped = calc_z(rho, profile_ped, :backward)
@@ -301,3 +307,23 @@ end
 
 @compat public ped_height_at_09
 push!(document[Symbol("Physics pedestal")], :ped_height_at_09)
+
+"""
+    pedestal_tanh_width_half_maximum(rho::AbstractVector{T}, profile::AbstractVector{T}; rho_pedestal_full_height::Float64=0.9, tanh_width_to_09_factor::Float64=0.85)
+
+Estimates the tanh-width at half-maximum of a pedestal profile, based on a hyperbolic tangent fit
+
+  - `rho_pedestal_full_height`: The normalized flux coordinate at which the pedestal is considered to reach full height.
+  - `tanh_width_to_09_factor`: Factor to convert the pedestal width at full height (ρ = 0.9) to a hyperbolic tangent profile width.
+"""
+function pedestal_tanh_width_half_maximum(rho::AbstractVector{T}, profile::AbstractVector{T}; rho_pedestal_full_height::Float64=0.9, tanh_width_to_09_factor::Float64=0.85) where {T<:Real}
+    index = rho .>= rho_pedestal_full_height
+    profile09 = (IMAS.interp1d(rho, profile)(rho_pedestal_full_height) - profile[end]) * tanh_width_to_09_factor + profile[end]
+    profile10 = profile[end]
+    profilex = (profile10 + profile09) / 2
+    tanh_width = (1.0 - IMAS.intersection(rho[index], profile[index], [0.0, 1.0], [profilex, profilex]).crossings[end][1]) * 2
+    return tanh_width
+end
+
+@compat public pedestal_tanh_width_half_maximum
+push!(document[Symbol("Physics pedestal")], :pedestal_tanh_width_half_maximum)

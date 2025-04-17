@@ -175,7 +175,7 @@ function boundary_shape(;
             mindiffq2 = minimum(y1q2sol .- y2q2sol)
 
             if maxdiffq1 / mindiffq1 < 0.0
-                imin = argmin(abs.(y1q1sol .- y2q1sol))
+                imin = argmin_abs(y1q1sol, y2q1sol)
                 fsolq1 = f[imin]
                 nsolq1 = y1q1sol[imin]
                 gsolq1 = @. (1.0 - fsolq1^nsolq1)^(1.0 / nsolq1)
@@ -209,7 +209,7 @@ function boundary_shape(;
             z1 .= @. y1 + zoffset
 
             if maxdiffq2 / mindiffq2 < 0.0
-                imin = argmin(abs.(y1q2sol .- y2q2sol))
+                imin = argmin_abs(y1q2sol, y2q2sol)
                 fsolq2 = f[imin]
                 nsolq2 = y1q2sol[imin]
                 gsolq2 = @. (1.0 - fsolq2^nsolq2)^(1.0 / nsolq2)
@@ -339,3 +339,46 @@ end
 
 @compat public strike_points
 push!(document[Symbol("Physics boundary")], :strike_points)
+
+"""
+    arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
+
+Compute the cumulative arc length of a 2D curve defined by the coordinate vectors `pr` and `pz`.
+"""
+function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
+    n = length(pr)
+    if include_zero
+        ll = Vector{Float64}(undef, n)
+        ll[1] = 0.0
+        @inbounds for i in 2:n
+            dx = pr[i] - pr[i-1]
+            dz = pz[i] - pz[i-1]
+            ll[i] = ll[i-1] + sqrt(dx*dx + dz*dz)
+        end
+    else
+        ll = Vector{Float64}(undef, n-1)
+        @inbounds for i in 2:n
+            dx = pr[i] - pr[i-1]
+            dz = pz[i] - pz[i-1]
+            if i == 2
+                ll[i-1] = sqrt(dx*dx + dz*dz)
+            else
+                ll[i-1] = ll[i-2] + sqrt(dx*dx + dz*dz)
+            end
+        end
+    end
+    return ll
+end
+
+function arc_length(Xs::AbstractVector{<:Real}, Ys::AbstractVector{<:Real}, Zs::AbstractVector{<:Real})
+    n = length(Xs)
+    dist = Vector{Float64}(undef, n)
+    dist[1] = 0.0
+    @inbounds for i in 2:n
+        dx = Xs[i] - Xs[i-1]
+        dy = Ys[i] - Ys[i-1]
+        dz = Zs[i] - Zs[i-1]
+        dist[i] = dist[i-1] + sqrt(dx*dx + dy*dy + dz*dz)
+    end
+    return dist
+end

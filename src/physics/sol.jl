@@ -216,7 +216,7 @@ function sol(
     elseif typeof(levels) <: Int
         levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi__boundary_level)), levels)
 
-        indexx = argmin(abs.(levels .- psi_last_lfs))
+        indexx = argmin_abs(levels, psi_last_lfs)
         levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
         # add 2nd sep, sort in increasing order and remove doubles (it could happen that psi__boundary_level = psi_last_lfs = psi_2ndseparatrix in DN)
         levels = unique!(sort(vcat(levels, psi__2nd_separatix)))
@@ -409,7 +409,7 @@ function find_levels_from_P(
     # if r[1] == r_separatrix_midplane do nothing
     if r[1] < r_separatrix_midplane
         # r starts from inside the separatrix, q(r) must be cut
-        index = argmin(abs.(r .- r_separatrix_midplane)) # closest point
+        index = argmin_abs(r, r_separatrix_midplane) # closest point
         # index2 is the position in r, such that r_separatrix_midplane is between r[index2] and r[index]
         if r[index] > r_separatrix_midplane
             index2 = index - 1
@@ -435,7 +435,7 @@ function find_levels_from_P(
     # if r[end]==r_wall_midplane do nothing
     if r[end] > r_wall_midplane
         # r ends inside the wall, q(r) must be cut
-        index = argmin(abs.(r .- r_wall_midplane)) # closest point
+        index = argmin_abs(r, r_wall_midplane) # closest point
         if r[index] > r_wall_midplane
             index2 = index - 1
             #interp linearly value at r_wall_midplane between r[index2] and r[index]

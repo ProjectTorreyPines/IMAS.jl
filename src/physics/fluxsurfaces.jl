@@ -1437,8 +1437,7 @@ function trace_surfaces(
         end
 
         # surface length
-        dl = vcat(0.0, sqrt.(diff(pr) .^ 2 + diff(pz) .^ 2))
-        ll = cumsum(dl)
+        ll = arc_length(pr, pz)
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz(PSI_interpolant, pr, pz)

@@ -84,16 +84,18 @@ push!(document[Symbol("Physics sources")], :ohmic_source!)
 """
     bootstrap_source!(dd::IMAS.dd)
 
-Calculates the bootsrap current source from data in `dd.core_profiles` and adds it to `dd.core_sources`
+Calculates the bootsrap current from profiles in `dd.core_profiles`
+and adds it both as source in `dd.core_sources` and `cp1d.j_bootstrap`
 """
 function bootstrap_source!(dd::IMAS.dd)
+    eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
-    if !ismissing(cp1d, :j_bootstrap)
-        source = resize!(dd.core_sources.source, :bootstrap_current; wipe=false)
-        new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
-            j_parallel=cp1d.j_bootstrap)
-        return source
-    end
+    j_bootstrap = Sauter_neo2021_bootstrap(eqt, cp1d)
+    source = resize!(dd.core_sources.source, :bootstrap_current; wipe=false)
+    new_source(source, source.identifier.index, "bootstrap", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+        j_parallel=j_bootstrap)
+    cp1d.j_bootstrap = j_bootstrap
+    return source
 end
 
 @compat public bootstrap_source!
@@ -120,6 +122,8 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
     synchrotron_source!(dd) # electron energy (ion synchrotron not calculated)
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
+
+    sawteeth_source!(dd) # sawteeth
 
     fast_particles_profiles!(dd) # fill fast particles cp1d from sources
 
@@ -158,9 +162,25 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
         momentum_tor = d_new .- d_old
     end
 
+    # fill in time derivative sources for electrons_particles, electrons_energy, total_ion_energy, momentum_tor
     source = resize!(dd.core_sources.source, :time_derivative, "identifier.name" => name; wipe=false)
     new_source(source, source.identifier.index, name, cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
         electrons_energy, total_ion_energy, electrons_particles, momentum_tor)
+
+    # fill in time derivative sources for ion_particles
+    cs1d = source.profiles_1d[]
+    resize!(cs1d.ion, length(cp1d.ion); wipe=false)
+    for (k, (ion, ion_old)) in enumerate(zip(cp1d.ion, cp1d_old.ion))
+        cs1d.ion[k].label = ion.label
+        fill!(cs1d.ion[k].element, ion.element)
+        if Δt == 0.0 || ismissing(ion, :density_thermal)
+            cs1d.ion[k].particles_inside = cs1d.ion[k].particles = zero(cp1d.grid.volume)
+        else
+            particles = -(ion.density_thermal .- ion_old.density_thermal) / Δt
+            cs1d.ion[k].particles = particles
+            cs1d.ion[k].particles_inside = cumtrapz(cp1d.grid.volume, particles)
+        end
+    end
 
     return source
 end
@@ -284,6 +304,8 @@ function retain_source(source::IMAS.core_sources__source, all_indexes::Vector{In
     index = source.identifier.index
     if index ∈ include_indexes
         return true
+    elseif !isempty(include_indexes)
+        return false
     elseif index == 0
         @debug "total_sources() skipping unspecified source with index $index"
         return false
@@ -316,6 +338,20 @@ _core_sources_integral_value_keys[:current_parallel_inside] = :j_parallel
 _core_sources_integral_value_keys[:j_parallel] = :current_parallel_inside
 _core_sources_integral_value_keys[:torque_tor_inside] = :momentum_tor
 _core_sources_integral_value_keys[:momentum_tor] = :torque_tor_inside
+
+const _core_sources_value_keys = Dict{Symbol,Symbol}()
+_core_sources_value_keys[:energy] = :power_inside
+_core_sources_value_keys[:total_ion_energy] = :total_ion_power_inside
+_core_sources_value_keys[:particles] = :particles_inside
+_core_sources_value_keys[:j_parallel] = :current_parallel_inside
+_core_sources_value_keys[:momentum_tor] = :torque_tor_inside
+
+const _core_sources_integral_keys = Dict{Symbol,Symbol}()
+_core_sources_integral_keys[:power_inside] = :energy
+_core_sources_integral_keys[:total_ion_power_inside] = :total_ion_energy
+_core_sources_integral_keys[:particles_inside] = :particles
+_core_sources_integral_keys[:current_parallel_inside] = :j_parallel
+_core_sources_integral_keys[:torque_tor_inside] = :momentum_tor
 
 """
     total_sources(
@@ -471,16 +507,11 @@ function total_radiation_sources(
     core_sources::IMAS.core_sources{T},
     cp1d::IMAS.core_profiles__profiles_1d{T};
     time0::Float64,
-    include_indexes::Vector{Int}=Int[],
+    include_indexes::Vector{Int}=index_radiation_sources,
     exclude_indexes::Vector{Int}=Int[]) where {T<:Real}
 
-    # we need to exclude the collisional_equipartition term
-    index = name_2_index(core_sources.source)[:collisional_equipartition]
-    push!(exclude_indexes, index)
-
     fields = [:power_inside, :energy]
-    only_positive_negative = -1
-    return total_sources(core_sources, cp1d; time0, include_indexes, exclude_indexes, fields, only_positive_negative)
+    return total_sources(core_sources, cp1d; time0, include_indexes, exclude_indexes, fields)
 end
 
 """
@@ -492,6 +523,64 @@ end
 
 @compat public total_radiation_sources
 push!(document[Symbol("Physics sources")], :total_radiation_sources)
+
+"""
+    sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
+
+Model sawteeth by flattening all sources (besides time_derivative term) within the q inversion radius
+"""
+function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
+    cp1d = dd.core_profiles.profiles_1d[]
+    eqt1d = dd.equilibrium.time_slice[].profiles_1d
+
+    # fill in sawteeth
+    source = resize!(dd.core_sources.source, :sawteeth, "identifier.name" => "sawteeth"; wipe=false)
+    source1d = resize!(source.profiles_1d)
+
+    # identify sawteeth inversion radius
+    q = abs.(eqt1d.q)
+    if !any(x -> x < qmin_desired, q)
+        # this will return an empty source
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
+        fill!(source1d, total_source1d)
+        return source
+    else
+        # exlude :time_dependent and :sawteeth sources
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[409, 701])
+        fill!(source1d, total_source1d)
+    end
+
+    rho0 = eqt1d.rho_tor_norm[argmin_abs(q, qmin_desired)]
+    width = rho0 / 4.0
+
+    # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
+    for leaf in IMASdd.AbstractTrees.Leaves(source1d)
+        if leaf.field in keys(_core_sources_value_keys)
+            if leaf.field == :j_parallel
+                leaf.value .= flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value
+            else
+                leaf.value .= flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.volume, rho0, width) .- leaf.value
+            end
+        end
+    end
+
+    # calculate integrated quantities
+    for leaf in IMASdd.AbstractTrees.Leaves(source1d)
+        if leaf.field in keys(_core_sources_value_keys)
+            if leaf.field == :j_parallel
+                value = cumtrapz(source1d.grid.area, leaf.value)
+            else
+                value = cumtrapz(source1d.grid.volume, leaf.value)
+            end
+            setproperty!(leaf.ids, _core_sources_value_keys[leaf.field], value)
+        end
+    end
+
+    return source
+end
+
+@compat public sawteeth_source!
+push!(document[Symbol("Physics sources")], :sawteeth_source!)
 
 """
     new_source(

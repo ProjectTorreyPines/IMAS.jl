@@ -109,9 +109,7 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:zeff_ped}}, from_where::Symbol
         return get_time_array(dd.summary.local.pedestal.zeff, :value, time0, :linear)
     elseif from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        rhos_ped = range(rho_ped, 1.0, 11)
-        zeffs = interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(rhos_ped)
-        return sum(zeffs) / length(zeffs)
+        return interp1d(cp1d.grid.rho_tor_norm, cp1d.zeff).(0.9)
     elseif from_where == :pulse_schedule
         if !ismissing(dd.pulse_schedule.density_control.zeff_pedestal, :reference)
             return get_time_array(dd.pulse_schedule.density_control.zeff_pedestal, :reference, time0, :linear)

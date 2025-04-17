@@ -20,8 +20,8 @@ function profile_from_z_transport(
     z_transport_grid::AbstractVector{<:Real},
     rho_ped::Real=0.0)
 
-    transport_indices = [argmin(abs.(rho .- rho_x)) for rho_x in transport_grid]
-    index_ped = argmin(abs.(rho .- rho_ped))
+    transport_indices = [argmin_abs(rho, rho_x) for rho_x in transport_grid]
+    index_ped = argmin_abs(rho, rho_ped)
     index_last = transport_indices[end]
     if index_ped > index_last
         z_old = calc_z(rho, profile_old, :backward)
@@ -116,11 +116,15 @@ function total_fluxes!(
                 continue
             end
             push!(skip_flux_list, index_to_name[model.identifier.index])
+            # ignore models that start after time0
+            if nearest_causal_time(model.profiles_1d, time0; bounds_error=false).out_of_bounds
+                continue
+            end
 
             m1d = model.profiles_1d[time0]
             x = m1d.grid_flux.rho_tor_norm
-            x_1 = argmin(abs.(rho_total_fluxes .- x[1]))
-            x_2 = argmin(abs.(rho_total_fluxes .- x[end]))
+            x_1 = argmin_abs(rho_total_fluxes, x[1])
+            x_2 = argmin_abs(rho_total_fluxes, x[end])
 
             for path in paths
                 ids1 = try
