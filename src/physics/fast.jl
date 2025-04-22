@@ -635,7 +635,7 @@ function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, Ef
     taus = slowing_down_time.(cp1d.electrons.density_thermal, cp1d.electrons.temperature, mf, Zf)
     emzrat = cp1d.ion[1].element[1].a .* cp1d.zeff ./ (mf * Zf)
     bki = ion_momentum_fraction.(sqrt.(E_c / Ef), 0.0, emzrat)
-    tau_mom = taus .* (1.0 .- bki)
+    tau_mom = taus .*  bke
     return tau_mom
 end
 
@@ -643,7 +643,7 @@ function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, ir
     E_c = critical_energy(cp1d, irho, mf, Zf)
     taus = slowing_down_time.(cp1d.electrons.density_thermal[irho], cp1d.electrons.temperature[irho], mf, Zf)
     emzrat = cp1d.ion[1].element[1].a .* cp1d.zeff[irho] ./ (mf * Zf)
-    bki = ion_momentum_fraction(sqrt(E_c / Ef), 0.0, emzrat)
-    tau_mom = taus * (1.0 - bki)
+    bke = ion_momentum_fraction(sqrt(E_c / Ef), 0.0, emzrat)
+    tau_mom = taus * bke
     return tau_mom
 end
