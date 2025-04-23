@@ -1429,7 +1429,12 @@ end
     end
 end
 
-@recipe function plot_core_transport_model(model::IMAS.core_transport__model{T}, plots_extrema::Vector{PlotExtrema}=PlotExtrema[]; ions=Symbol[:my_ions], time0=global_time(model)) where {T<:Real}
+@recipe function plot_core_transport_model(
+    model::IMAS.core_transport__model{T},
+    plots_extrema::Vector{PlotExtrema}=PlotExtrema[];
+    ions=Symbol[:my_ions],
+    time0=global_time(model)
+) where {T<:Real}
     if nearest_causal_time(time_array_from_parent_ids(model.profiles_1d, :get), time0; bounds_error=false).index > 0
         model_type = name_2_index(model)
         @series begin
@@ -2044,13 +2049,14 @@ end
             rad_source.identifier.index = 200
             rad_source.identifier.name = "radiation"
             @series begin
+                color := :orange
                 ions := ions
                 rad_source, plots_extrema
             end
         end
 
         if aggregate_hcd
-            for source_type in (:ec, :ic, :lh, :nbi, :pellet)
+            for (source_type, color) in ((:ec, :blue), (:ic, :green), (:lh, :magenta), (:nbi, :red), (:pellet, :purple))
                 hcd_source = IMAS.core_sources__source{T}()
                 idx = name_2_index(hcd_source)[source_type]
                 resize!(hcd_source.profiles_1d, 1)
@@ -2058,6 +2064,7 @@ end
                 hcd_source.identifier.index = idx
                 hcd_source.identifier.name = "$source_type"
                 @series begin
+                    color := color
                     ions := ions
                     hcd_source, plots_extrema
                 end
