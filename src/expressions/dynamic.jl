@@ -116,13 +116,13 @@ dyexp["core_profiles.profiles_1d[:].conductivity_parallel"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> neo_conductivity(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)
 
 dyexp["core_profiles.profiles_1d[:].j_bootstrap"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> Sauter_neo2021_bootstrap(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)
+    (rho_tor_norm; dd, profiles_1d, _...) -> findfirst(:bootstrap_current, dd.core_sources.source).profiles_1d[profiles_1d.time].j_parallel
 
 dyexp["core_profiles.profiles_1d[:].j_ohmic"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
 dyexp["core_profiles.profiles_1d[:].j_non_inductive"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=dd.global_time, exclude_indexes=[7, 13], fields=[:j_parallel]).j_parallel .+ profiles_1d.j_bootstrap
+    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=dd.global_time, exclude_indexes=[7, 701], fields=[:j_parallel]).j_parallel # no ohmic or sawteeth
 
 dyexp["core_profiles.profiles_1d[:].j_total"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
