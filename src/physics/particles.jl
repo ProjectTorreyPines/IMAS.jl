@@ -292,7 +292,7 @@ Returns the smallest positive time at which the particle intersects the surface 
 
   - `r1`, `z1`: Coordinates of the first endpoint of the toroidal surface segment.
   - `r2`, `z2`: Coordinates of the second endpoint of the toroidal surface segment.
-  - `x`, `py`, `pz`: Current position of the particle in Cartesian coordinates.
+  - `px`, `py`, `pz`: Current position of the particle in Cartesian coordinates.
   - `vx`, `vy`, `vz`: Velocity components of the particle.
   - `v2`: Squared radial velocity component, `vx^2 + vy^2`.
   - `vz2`: Squared z-velocity component, `vz^2`.
@@ -507,7 +507,7 @@ Uses ITER convention for EC launch angles and tor_angle
 function pol_tor_angles_2_vector(pol_angle::T, tor_angle::T) where {T<:Real}
     vx = -cos(pol_angle) * cos(tor_angle)
     vy = -sin(tor_angle)
-    vz = sin(pol_angle) * cos(tor_angle)
+    vz = -sin(pol_angle) * cos(tor_angle)
     return (vx=vx, vy=vy, vz=vz)
 end
 

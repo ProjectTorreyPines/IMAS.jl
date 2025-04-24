@@ -550,7 +550,7 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
         fill!(source1d, total_source1d)
     end
 
-    rho0 = eqt1d.rho_tor_norm[argmin_abs(q, qmin_desired)]
+    rho0 = eqt1d.rho_tor_norm[findlast(abs.(q) .< qmin_desired)]
     width = rho0 / 4.0
 
     # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
