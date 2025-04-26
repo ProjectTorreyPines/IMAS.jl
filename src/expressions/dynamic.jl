@@ -122,7 +122,7 @@ dyexp["core_profiles.profiles_1d[:].j_ohmic"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
 dyexp["core_profiles.profiles_1d[:].j_non_inductive"] =
-    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=dd.global_time, exclude_indexes=[7, 701], fields=[:j_parallel]).j_parallel # no ohmic or sawteeth
+    (rho_tor_norm; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=dd.global_time, exclude_indexes=[7, 409, 701], fields=[:j_parallel]).j_parallel # no ohmic, sawteeth, or time_depedent
 
 dyexp["core_profiles.profiles_1d[:].j_total"] =
     (rho_tor_norm; dd, profiles_1d, _...) -> begin
