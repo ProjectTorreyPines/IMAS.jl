@@ -390,7 +390,7 @@ function find_psi_boundary(
     end
 
     if isempty(r_cache)
-        r_cache, z_cache = IMASutils.contour_cache(PSI)
+        r_cache, z_cache = IMASutils.contour_cache(dimR, dimZ)
     end
 
     # innermost tentative flux surface (which should be closed!)
@@ -1277,7 +1277,7 @@ function trace_simple_surfaces(
     wall_z::AbstractVector{T}) where {T<:Real}
 
     surfaces = Vector{SimpleSurface{T}}(undef, length(psi))
-    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    r_cache, z_cache = IMASutils.contour_cache(r, z)
     return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z, r_cache, z_cache)
 end
 
@@ -1320,7 +1320,7 @@ function trace_simple_surfaces!(
     N = length(psi)
 
     if isempty(r_cache) || isempty(z_cache)
-        r_cache, z_cache = IMASutils.contour_cache(PSI)
+        r_cache, z_cache = IMASutils.contour_cache(r, z)
     end
     PSIA = PSI_interpolant(RA, ZA)
 
@@ -1416,7 +1416,7 @@ function trace_surfaces(
 
     N = length(psi)
     surfaces = Vector{FluxSurface{T}}(undef, N)
-    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    r_cache, z_cache = IMASutils.contour_cache(r, z)
     PSIA = PSI_interpolant(RA, ZA)
     for k in N:-1:1
         psi_level = psi[k]
