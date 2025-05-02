@@ -97,14 +97,14 @@ push!(document[Symbol("Physics thermal loads")], :particle_heat_flux)
 """
 function core_radiation_heat_flux(
     eqt::IMAS.equilibrium__time_slice,
-    psi::Vector{<:Real},
+    psi_norm::Vector{<:Real},
     source_1d::Vector{<:Real},
     N::Int,
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
     Prad_core::Float64)
 
-    photons, W_per_trace, dr, dz = define_particles(eqt, psi, source_1d, N)
+    photons, W_per_trace, dr, dz = define_particles(eqt, psi_norm, source_1d, N)
 
     qflux_r, qflux_z, wall_s = find_flux(photons, W_per_trace, wall_r, wall_z, dr, dz)
 

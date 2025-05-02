@@ -70,13 +70,13 @@ end
 push!(document[Symbol("Physics particles")], :Particle)
 
 """
-    define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+    define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
 
-Creates a vector of particles from a 1D source (psi, source_1d) launching N particles.
+Creates a vector of particles from a 1D source (psi_norm, source_1d) launching N particles.
 
 Returns also a scalar (I_per_trace) which is the intensity per trace.
 """
-function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
 
     # in-plasma mask
@@ -84,6 +84,8 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     z = eqt2d.grid.dim2
     dr = (maximum(diff(r))) # save grid dimension and carry the info to find_flux
     dz = (maximum(diff(z)))
+
+    psi = psi_norm .* (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .+ eqt.profiles_1d.psi[1]
 
     # mask
     mask = Matrix{Bool}(undef, length(r), length(z))
