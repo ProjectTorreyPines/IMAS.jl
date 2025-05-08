@@ -654,7 +654,7 @@ function resample_plasma_boundary(
     retain_extrema::Bool=true,
     retain_original_xy::Bool=false,
     method::Symbol=:linear) where {T<:Real}
-    x, y = resample_2d_path(x, y; step, n_points, curvature_weight, retain_extrema, retain_original_xy, method)
+    x, y = resample_2d_path(closed_polygon(x, y).rz...; step, n_points, curvature_weight, retain_extrema, retain_original_xy, method)
     return x, y
 end
 

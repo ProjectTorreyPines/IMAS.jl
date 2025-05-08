@@ -23,17 +23,17 @@ end
 push!(document[Symbol("Control")], :controller)
 
 """
-    pid_controller(controller::IMAS.controllers__linear_controller, kP::T, kI::T, kD::T) where {T<:Real}
+    pid_controller(controller::IMAS.controllers__linear_controller, P::T, I::T, D::T) where {T<:Real}
 
-Initializes SISO PID controller
+Initializes PID controllers
 """
-function pid_controller(controller::IMAS.controllers__linear_controller, kP::T, kI::T, kD::T) where {T<:Real}
+function pid_controller(controller::IMAS.controllers__linear_controller, P::T, I::T, D::T) where {T<:Real}
     controller.pid.p.time = [-Inf]
-    controller.pid.p.data = [kP;;;]
+    controller.pid.p.data = [P;;;]
     controller.pid.i.time = [-Inf]
-    controller.pid.i.data = [kI;;;]
+    controller.pid.i.data = [I;;;]
     controller.pid.d.time = [-Inf]
-    controller.pid.d.data = [kD;;;]
+    controller.pid.d.data = [D;;;]
     controller.inputs.time = T[]
     controller.inputs.data = zeros(T, (1, 0))
     controller.outputs.time = T[]
@@ -41,15 +41,12 @@ function pid_controller(controller::IMAS.controllers__linear_controller, kP::T, 
     return controller
 end
 
-@compat public pid_controller
-push!(document[Symbol("Control")], :pid_controller)
-
 """
-    (controller::controllers__linear_controller{T})(setpoint::T, value::T, time0::Float64) where {T<:Real}
+    (controller::controllers__linear_controller{T})(control_name::Any, control_algorithm::Val{:PID}, setpoint::T, value::T, time0::Float64) where {T<:Real}
 
-Operates the linear controller
+Operates PID controllers
 """
-function (controller::controllers__linear_controller{T})(setpoint::T, value::T, time0::Float64) where {T<:Real}
+function (controller::controllers__linear_controller{T})(control_name::Any, control_algorithm::Val{:PID}, setpoint::T, value::T, time0::Float64) where {T<:Real}
     P = controller.pid.p.data[1]
     I = controller.pid.i.data[1]
     D = controller.pid.d.data[1]

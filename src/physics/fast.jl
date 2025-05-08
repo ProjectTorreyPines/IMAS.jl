@@ -495,7 +495,7 @@ Estimates the banana orbit width [m]
 """
 function banana_width(T::Real, Bt::Real, Z::Real, m::Real, epsilon::Real, q::Real)
     r_gyro = gyroradius(T, Bt, Z, m)
-    return 2.0 * epsilon^(-0.5) * abs(q) * r_gyro
+    return 2.0 * max(0.0, epsilon)^(-0.5) * abs(q) * r_gyro
 end
 
 """

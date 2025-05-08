@@ -246,7 +246,7 @@ function find_psi_boundary(
         psi_edge1 = minimum(psi_edge)
         psi_edge_guess = max(psi_edge1, psi_edge0)
     end
-    psirange_init = StaticArrays.@MVector[psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
+    psirange_init = [psi_axis + (original_psi_boundary - psi_axis) / 100.0, psi_edge_guess]
 
     if verbose
         @show psi_axis
@@ -321,7 +321,7 @@ function find_psi_boundary(
     else
         @views psi_edge0 = f_ext((f_ext(PSI[1, :]), f_ext(PSI[end, :]), f_ext(PSI[:, 1]), f_ext(PSI[:, end])))
     end
-    psirange_init = StaticArrays.@MVector[psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
+    psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
     return find_psi_boundary(
         dimR,
@@ -390,7 +390,7 @@ function find_psi_boundary(
     end
 
     if isempty(r_cache)
-        r_cache, z_cache = IMASutils.contour_cache(PSI)
+        r_cache, z_cache = IMASutils.contour_cache(dimR, dimZ)
     end
 
     # innermost tentative flux surface (which should be closed!)
@@ -422,22 +422,23 @@ function find_psi_boundary(
         display(plot!())
     end
 
-    psirange = deepcopy(psirange_init)
+    psibeg = psirange_init[1]
+    psiend = psirange_init[end]
     for k in 1:100
-        psimid = (psirange[1] + psirange[end]) / 2.0
+        psimid = (psibeg + psiend) / 2.0
         pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psimid, RA, ZA, psi_axis)
         # closed flux surface
         if is_closed_surface(pr, pz, fw_r, fw_z)
             if verbose
                 display(plot!(pr, pz; label="", color=:green))
             end
-            psirange[1] = psimid
-            if (abs(psirange[end] - psirange[1]) / (abs(psirange[end] + psirange[1]) / 2.0)) < precision
-                return (last_closed=psimid, first_open=psirange[end])
+            psibeg = psimid
+            if (abs(psiend - psibeg) / (abs(psiend + psibeg) / 2.0)) < precision
+                return (last_closed=psimid, first_open=psiend)
             end
             # open flux surface
         else
-            psirange[end] = psimid
+            psiend = psimid
         end
     end
 
@@ -531,8 +532,6 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
             # if perfect double null, all open surfaces in the SOL start and finish in opposite sides of the midplane
             psi_axis = eqt.profiles_1d.psi[1] # psi value on axis
             psi_sign = sign(psi_separatrix - psi_axis) # +1 for increasing psi / -1 for decreasing psi
-            # return psi_2ndsep = psi_lcfs, using same convergence criteria as in find_psi_boundary (~ line 436): 
-            # abs(psirange[end] - psirange[1]) / (abs(psirange[end] + psirange[1]) / 2.0) < precision
             if psi_sign > 0
                 #increasing psi
                 return (diverted=psi_separatrix, not_diverted=psi_separatrix * (1 + flux_surfaces_precision))
@@ -1277,7 +1276,7 @@ function trace_simple_surfaces(
     wall_z::AbstractVector{T}) where {T<:Real}
 
     surfaces = Vector{SimpleSurface{T}}(undef, length(psi))
-    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    r_cache, z_cache = IMASutils.contour_cache(r, z)
     return trace_simple_surfaces!(surfaces, psi, r, z, PSI, PSI_interpolant, RA, ZA, wall_r, wall_z, r_cache, z_cache)
 end
 
@@ -1320,7 +1319,7 @@ function trace_simple_surfaces!(
     N = length(psi)
 
     if isempty(r_cache) || isempty(z_cache)
-        r_cache, z_cache = IMASutils.contour_cache(PSI)
+        r_cache, z_cache = IMASutils.contour_cache(r, z)
     end
     PSIA = PSI_interpolant(RA, ZA)
 
@@ -1365,7 +1364,6 @@ end
 
 @compat public trace_simple_surfaces!
 push!(document[Symbol("Physics flux-surfaces")], :trace_simple_surfaces!)
-
 
 """
     trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}; refine_extrema::Bool=true) where {T<:Real}
@@ -1416,7 +1414,7 @@ function trace_surfaces(
 
     N = length(psi)
     surfaces = Vector{FluxSurface{T}}(undef, N)
-    r_cache, z_cache = IMASutils.contour_cache(PSI)
+    r_cache, z_cache = IMASutils.contour_cache(r, z)
     PSIA = PSI_interpolant(RA, ZA)
     for k in N:-1:1
         psi_level = psi[k]
