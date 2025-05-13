@@ -1007,9 +1007,9 @@ Also, sets `density` to the original expression
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
     # Make sure expressions are used for total densities
-    empty!(cp1d.electrons, :density)
+    IMAS.unfreeze!(cp1d.electrons, :density)
     for ion in cp1d.ion
-        empty!(ion, :density)
+        IMAS.unfreeze!(ion, :density)
     end
 
     if species == :electrons

@@ -70,13 +70,13 @@ end
 push!(document[Symbol("Physics particles")], :Particle)
 
 """
-    define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+    define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
 
-Creates a vector of particles from a 1D source (psi, source_1d) launching N particles.
+Creates a vector of particles from a 1D source (psi_norm, source_1d) launching N particles.
 
 Returns also a scalar (I_per_trace) which is the intensity per trace.
 """
-function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
 
     # in-plasma mask
@@ -85,22 +85,32 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi::Vector{T}, sou
     dr = (maximum(diff(r))) # save grid dimension and carry the info to find_flux
     dz = (maximum(diff(z)))
 
-    R = [rr for rr in r, zz in z] # 2D
-    Z = [zz for rr in r, zz in z] # 2D
+    psi = psi_norm .* (eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1]) .+ eqt.profiles_1d.psi[1]
+
+    # mask
+    mask = Matrix{Bool}(undef, length(r), length(z))
     rz_lcfs = collect(zip(eqt.boundary.outline.r, eqt.boundary.outline.z))
-    mask = [PolygonOps.inpolygon((rr, zz), rz_lcfs) for rr in r, zz in z]
+    source_itp = interp1d(psi, source_1d)
+    for (j, zz) in enumerate(z)
+        for (i, rr) in enumerate(r)
+            mask[i, j] = (PolygonOps.inpolygon((rr, zz), rz_lcfs) == 1 &&
+                          source_itp(eqt2d.psi[i, j]) > 0.0)
+        end
+    end
+    ci_mask = CartesianIndices(mask)
+
+    R = [r[I[1]] for I in ci_mask if mask[I]]
+    Z = [z[I[2]] for I in ci_mask if mask[I]]
 
     # 2D source
-    tmp = eqt2d.psi .* (mask .== 1) .+ eqt2d.psi[end] .* .*(mask .== 0) # to avoid extrapolation
-    source_2d = interp1d(psi, source_1d).(tmp) # intensity/m^3
-    source_2d .*= mask .== 1 # set things to zero outsize of lcfs
-    source_2d .*= R .* (2π * (r[2] - r[1]) * (z[2] - z[1])) # unit of intensity = volume integral of source_2d
+    source_2d = [source_itp(eqt2d.psi[I]) for I in ci_mask if mask[I]]
+    source_2d .*= R .* (2π * (r[2] - r[1]) * (z[2] - z[1]))
 
     # cumulative distribution function
-    CDF = cumsum(source_2d[:])
+    CDF = cumsum(source_2d)
     I_per_trace = CDF[end] / N
     CDF .= (CDF .- CDF[1]) ./ (CDF[end] - CDF[1])
-    ICDF = interp1d(CDF, Float64.(1:length(CDF)), :linear)
+    ICDF = interp1d(CDF, range(1.0, length(CDF)), :linear)
 
     # particles structures
     particles = Vector{Particle{Float64}}(undef, N)

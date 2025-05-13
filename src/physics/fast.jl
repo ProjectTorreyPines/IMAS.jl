@@ -299,14 +299,14 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     Npsi = length(ne)
 
     # empty cp1d pressures (expressions)
-    empty!(cp1d, :pressure)
-    empty!(cp1d, :pressure_parallel)
-    empty!(cp1d, :pressure_perpendicular)
-    empty!(cp1d, :pressure_ion_total)
+    IMAS.unfreeze!(cp1d, :pressure)
+    IMAS.unfreeze!(cp1d, :pressure_parallel)
+    IMAS.unfreeze!(cp1d, :pressure_perpendicular)
+    IMAS.unfreeze!(cp1d, :pressure_ion_total)
     # empty all cp1d fast-ion related quantities (expressions)
     for ion in cp1d.ion
-        empty!(ion, :pressure)
-        empty!(ion, :density)
+        IMAS.unfreeze!(ion, :pressure)
+        IMAS.unfreeze!(ion, :density)
     end
 
     # zero out all cp1d fast-ion related quantities
@@ -495,7 +495,7 @@ Estimates the banana orbit width [m]
 """
 function banana_width(T::Real, Bt::Real, Z::Real, m::Real, epsilon::Real, q::Real)
     r_gyro = gyroradius(T, Bt, Z, m)
-    return 2.0 * epsilon^(-0.5) * abs(q) * r_gyro
+    return 2.0 * max(0.0, epsilon)^(-0.5) * abs(q) * r_gyro
 end
 
 """
