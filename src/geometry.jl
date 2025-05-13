@@ -3,6 +3,7 @@ document[Symbol("Geometry")] = Symbol[]
 import StaticArrays
 import MillerExtendedHarmonic: MXH
 import LinearAlgebra
+import Roots
 
 """
     centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
@@ -81,6 +82,109 @@ end
 
 @compat public revolution_volume
 push!(document[Symbol("Geometry")], :revolution_volume)
+
+"""
+    ray_rect_intersection(O, D, rect_min, rect_max)
+
+Compute the closest intersection point between the ray
+
+    P(t) = O + t*D,   t ≥ 0
+
+and the axis-aligned rectangle with corners `rect_min = (x_min,y_min)` and
+`rect_max = (x_max,y_max)`.  Returns `(x,y)` of the hit point, or `nothing`
+if there is no intersection.
+"""
+function ray_rect_intersection(
+    O::NTuple{2,Float64},
+    D::NTuple{2,Float64},
+    rect_min::NTuple{2,Float64},
+    rect_max::NTuple{2,Float64},
+)
+    x0, y0 = O
+    dx, dy = D
+    x_min, y_min = rect_min
+    x_max, y_max = rect_max
+
+    # Compute slab intersections for x
+    if dx != 0.0
+        tx1, tx2 = (x_min - x0)/dx, (x_max - x0)/dx
+        t_x_min, t_x_max = min(tx1,tx2), max(tx1,tx2)
+    else
+        # Ray parallel to x-planes: must lie within the slab
+        if x0 < x_min || x0 > x_max
+            return nothing
+        end
+        t_x_min, t_x_max = -Inf, Inf
+    end
+
+    # Compute slab intersections for y
+    if dy != 0.0
+        ty1, ty2 = (y_min - y0)/dy, (y_max - y0)/dy
+        t_y_min, t_y_max = min(ty1,ty2), max(ty1,ty2)
+    else
+        if y0 < y_min || y0 > y_max
+            return nothing
+        end
+        t_y_min, t_y_max = -Inf, Inf
+    end
+
+    # Find overlap of the two t-intervals
+    t_enter = max(t_x_min, t_y_min)
+    t_exit  = min(t_x_max, t_y_max)
+
+    # No intersection if empty interval or entirely behind the ray
+    if t_enter > t_exit || t_exit < 0.0
+        return nothing
+    end
+
+    # Use the entry point if in front of origin, else the exit point
+    t_hit = t_enter ≥ 0.0 ? t_enter : t_exit
+
+    return (x0 + t_hit*dx, y0 + t_hit*dy)
+end
+
+"""
+    ray_rect_torus_intersect(origin, direction, ρ_bounds, z_bounds)
+
+Finds intersection of a ray with a rectangular torus defined in cylindrical coordinates.
+
+- `origin`: (x, y, z) vector
+- `direction`: normalized (dx, dy, dz)
+- `ρ_bounds`: (ρ_min, ρ_max)
+- `z_bounds`: (z_min, z_max)
+
+Returns (t, point) or `nothing` if no intersection.
+"""
+function ray_rect_torus_intersect(origin, direction, ρ_bounds, z_bounds)
+    x0, y0, z0 = origin
+    dx, dy, dz = direction
+    ρ_min, ρ_max = ρ_bounds
+    z_min, z_max = z_bounds
+
+    # Parametrize ρ(t) and z(t)
+    ρ(t) = hypot(x0 + dx * t, y0 + dy * t)
+    z(t) = z0 + dz * t
+
+    # Solve for t where z(t) in [z_min, z_max]
+    t_z1 = dz != 0 ? (z_min - z0) / dz : -Inf
+    t_z2 = dz != 0 ? (z_max - z0) / dz :  Inf
+    tmin, tmax = sort([t_z1, t_z2])
+
+    # Search for a t in [tmin, tmax] such that ρ(t) ∈ [ρ_min, ρ_max]
+    ts = range(tmin, tmax; length=1000)
+
+    for t in ts
+        ρt = ρ(t)
+        zt = z(t)
+        if ρt ≥ ρ_min && ρt ≤ ρ_max && zt ≥ z_min && zt ≤ z_max
+            point = origin .+ t .* direction
+            return t, point
+        end
+    end
+
+    return nothing
+end
+
 
 """
     intersection_angles(
