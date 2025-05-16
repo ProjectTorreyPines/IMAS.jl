@@ -2267,8 +2267,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
     end
 
     psi_separatrix = eqt.profiles_1d.psi[end] # psi value at LCFS
-    psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis
-    psi_sign = sign(psi_separatrix - psi_axis_level) # +1 if psi increases / -1 if psi decreases
 
     if !isempty(eqt.boundary.x_point)
         # refine x-points location and re-sort
@@ -2312,7 +2310,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         index = sortperm(d_x)
         d_x = d_x[index[1:2:end]]
         i_x = i_x[index[1:2:end]]
-        for k in reverse!(sort(i_x))
+        for k in sort(collect(Set(i_x)), rev=true)
             deleteat!(eqt.boundary.x_point, k)
             deleteat!(psidist_lcfs_xpoints, k)
             deleteat!(z_x, k)
