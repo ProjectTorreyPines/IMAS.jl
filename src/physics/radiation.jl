@@ -162,14 +162,14 @@ NOTE: Te in [keV] and output is in `[erg / cm^3 / s]`
 
     ln[ Lz(x) ] = sum c_n T_n(x)
 
-where 
+where
 
     Lz = cooling rate in erg/cm^3/s
 
     T_n(x) = cos[n*arccos(x)] (Chebyshev polynomials)
 
     T = electron temperature
- 
+
                  ln(T/T_min)
     x = -1 + 2 --------------- 
                ln(T_max/T_min)
@@ -177,21 +177,24 @@ where
     c_n = tabulated polynomial coefficients for each ion
 
 Acknowledgements:
- - F. Sciortino for providing access to ADAS data via Aurora 
- - T. Pütterich for up-to-data ADAS data
- - T. Odstrčil for help/checking of 2025 updates
+
+  - F. Sciortino for providing access to ADAS data via Aurora
+  - T. Pütterich for up-to-data ADAS data
+  - T. Odstrčil for help/checking of 2025 updates
 
 References:
- - Open ADAS: https://open.adas.ac.uk
- - T. Pütterich et al 2019 Nucl. Fusion 59 056013
 
- Notes:
-- Lz = Lz_line + Lz_continuum 
-- Aurora follows the radiation nomenclature of ADAS (as described here), separating
-  "line" and "continuum" radiation. Line radiation basically comes from ADF11 PLT
-  files and continuum radiation comes from ADF11 PRB files. Bremsstrahlung is
-  included in the continuum term.
-- For generation of fit coefficients, see tgyro/tools/radiation
+  - Open ADAS: https://open.adas.ac.uk
+  - T. Pütterich et al 2019 Nucl. Fusion 59 056013
+
+Notes:
+
+  - Lz = Lz_line + Lz_continuum
+  - Aurora follows the radiation nomenclature of ADAS (as described here), separating
+    "line" and "continuum" radiation. Line radiation basically comes from ADF11 PLT
+    files and continuum radiation comes from ADF11 PRB files. Bremsstrahlung is
+    included in the continuum term.
+  - For generation of fit coefficients, see tgyro/tools/radiation    # Min and max values of Te
 """
 function adas21(Te, name)
     # Min and max values of Te

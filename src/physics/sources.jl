@@ -643,7 +643,7 @@ function new_source(
     source.identifier.name = name
     source.identifier.index = index
     cs1d = resize!(source.profiles_1d)
-    csglbl  = resize!(source.global_quantities)
+    csglbl = resize!(source.global_quantities)
     cs1d.grid.rho_tor_norm = rho
     cs1d.grid.volume = volume
     cs1d.grid.area = area
@@ -653,7 +653,6 @@ function new_source(
         cs1d.electrons.power_inside = cumtrapz(volume, value)
     elseif electrons_power_inside !== missing
         cs1d.electrons.power_inside = value = electrons_power_inside
-        
         cs1d.electrons.energy = gradient(volume, value)
     else
         cs1d.electrons.energy = zero(volume)
