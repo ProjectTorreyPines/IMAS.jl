@@ -1144,6 +1144,90 @@ end
 push!(document[Symbol("Physics profiles")], :lump_ions_as_bulk_and_impurity)
 
 """
+    new_impurity_fraction!(cp1d::IMAS.core_profiles__profiles_1d, impurity_name::Symbol, impurity_ne_fraction::Real)
+
+Add thermal impurity to core_profiles given impurity fraction.
+
+The new impurity will have the same density profile shape as the electron density profile and the same ion temperature as the main ion specie.
+
+The main ion specie will be adjusted to have quasineutrality.
+"""
+function new_impurity_fraction!(cp1d::IMAS.core_profiles__profiles_1d, impurity_name::Symbol, impurity_ne_fraction::Real)
+    impurity_label = ion_properties(impurity_name).label
+    species_indx = findfirst(ion.label == impurity_label for ion in cp1d.ion)
+    if species_indx === nothing
+        resize!(cp1d.ion, length(cp1d.ion) + 1)
+        new_ion = cp1d.ion[end]
+    else
+        new_ion = cp1d.ion[species_indx]
+        empty!(new_ion)
+    end
+    IMAS.ion_element!(new_ion, impurity_name)
+
+    new_ion.density_thermal = cp1d.electrons.density_thermal .* impurity_ne_fraction
+    new_ion.density_fast = zeros(length(cp1d.electrons.density_thermal))
+    new_ion.temperature = cp1d.ion[1].temperature
+
+    main_ion = cp1d.ion[1]
+    IMAS.enforce_quasi_neutrality!(cp1d, Symbol(main_ion.label))
+
+    return cp1d
+end
+
+@compat public new_impurity_fraction!
+push!(document[Symbol("Physics profiles")], :new_impurity_fraction!)
+
+"""
+    new_impurity_radiation!(dd::IMAS.dd, impurity_name::Symbol, total_radiated_power::Real)
+
+Add thermal impurity to core_profiles to match a total radiated power.
+
+The new impurity will have the same density profile shape as the electron density profile and the same ion temperature as the main ion specie.
+
+The main ion specie will be adjusted to have quasineutrality.
+"""
+function new_impurity_radiation!(dd::IMAS.dd, impurity_name::Symbol, total_radiated_power::Real)
+    @assert total_radiated_power <= 0.0 "Radiated power must be <= 0.0"
+    cp1d = dd.core_profiles.profiles_1d[]
+
+    function cost(impurity_ne_fraction)
+        new_impurity_fraction!(cp1d, impurity_name, impurity_ne_fraction)
+        radiation_source!(dd)
+        c = ((total_radiation_sources(dd).electrons.power_inside[end] - total_radiated_power) / total_radiated_power) .^ 2
+        return c
+    end
+
+    impurity_ne_fraction = Optim.optimize(cost, 0.0, 1 / ion_properties(impurity_name).z_n, Optim.Brent()).minimizer
+    cost(impurity_ne_fraction)
+
+    return dd
+end
+
+"""
+    new_impurity_radiation!(dd::IMAS.dd, impurity_name::Symbol, time_total_radiated_power::AbstractVector{Float64}, value_total_radiated_power::AbstractVector{<:Real})
+"""
+function new_impurity_radiation!(dd::IMAS.dd, impurity_name::Symbol, time_total_radiated_power::AbstractVector{Float64}, value_total_radiated_power::AbstractVector{<:Real})
+    total_radiated_power_itp = IMAS.interp1d(time_total_radiated_power, value_total_radiated_power)
+
+    global_time_bkp = dd.global_time
+    for time0 in dd.core_profiles.time
+        dd.global_time = time0
+        try
+            IMAS.new_impurity_radiation!(dd, impurity_name, total_radiated_power_itp(time0))
+        catch e
+            @warn("$(typeof(e)): Could not new_impurity_radiation!(dd, $(impurity_name), $(total_radiated_power_itp(time0))) at time $(dd.global_time)")
+        end
+    end
+
+    dd.global_time = global_time_bkp
+    return dd
+end
+
+@compat public new_impurity_radiation!
+push!(document[Symbol("Physics profiles")], :new_impurity_radiation!)
+
+
+"""
     zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ionization_state::Bool=true)
 
 Returns plasma effective charge
