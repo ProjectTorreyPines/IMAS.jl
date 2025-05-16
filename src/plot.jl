@@ -802,7 +802,7 @@ end
 @recipe function plot_x_points(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point})
     for (k, x_point) in enumerate(x_points)
         @series begin
-            markersize --> (length(x_points) + 1 - k) * 4
+            markersize --> ((length(x_points) + 1 - k) / length(x_points)) * 4
             x_point
         end
     end
