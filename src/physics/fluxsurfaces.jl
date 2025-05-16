@@ -520,7 +520,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
 
     # First check if we are in a double null configuration
     ZA = eqt.global_quantities.magnetic_axis.z
-    # retrieve b = elongation * minor radius
+    # retrieve b = elongation * minor radius 
     b = eqt.boundary.elongation * eqt.boundary.minor_radius
 
     for (r, z) in surface
@@ -1113,42 +1113,6 @@ end
 @compat public interp_rmid_at_psi
 push!(document[Symbol("Physics flux-surfaces")], :interp_rmid_at_psi)
 
-function f_fma(x, PSI_interpolant, psi_sign)
-    try
-        return PSI_interpolant(x[1], x[2]) * psi_sign
-    catch e
-        if typeof(e) <: BoundsError
-            return T2(Inf)
-        else
-            rethrow(e)
-        end
-    end
-end
-
-function g_fma!(G, x, PSI_interpolant, psi_sign)
-    try
-        G .= psi_sign .* Interpolations.gradient(PSI_interpolant, x[1], x[2])
-    catch e
-        if typeof(e) <: BoundsError
-            G .= T2(Inf)
-        else
-            rethrow(e)
-        end
-    end
-end
-
-function h_fma!(H, x, PSI_interpolant, psi_sign)
-    try
-        H .= psi_sign .* Interpolations.hessian(PSI_interpolant, x[1], x[2])
-    catch e
-        if typeof(e) <: BoundsError
-            H .= T2(Inf)
-        else
-            rethrow(e)
-        end
-    end
-end
-
 function find_magnetic_axis(
     r::AbstractVector{<:T1},
     z::AbstractVector{<:T1},
@@ -1157,11 +1121,22 @@ function find_magnetic_axis(
     rguess::T1=r[Int(round(length(r) / 2))],
     zguess::T1=z[Int(round(length(z) / 2))]) where {T1<:Real,T2<:Real}
 
-    f = x -> f_fma(x, PSI_interpolant, psi_sign)
-    g! = (G, x) -> g_fma!(G, x, PSI_interpolant, psi_sign)
-    h! = (H, x) -> h_fma!(H, x, PSI_interpolant, psi_sign)
-
-    res = Optim.optimize(f, g!, h!, [rguess, zguess], Optim.Newton())
+    res = Optim.optimize(
+        x -> begin
+            try
+                PSI_interpolant(x[1], x[2]) * psi_sign
+            catch e
+                if typeof(e) <: BoundsError
+                    return T2(Inf)
+                else
+                    rethrow(e)
+                end
+            end
+        end,
+        [rguess, zguess],
+        Optim.Newton();
+        autodiff=:forward
+    )
 
     return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
@@ -2353,7 +2328,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
 
         #check if primary x-point consistent with strike points
         if isempty(eqt.boundary.strike_point)
-            #case with case not already saved  - look at first open surface
+            #case with case not already saved  - look at first open surface 
             psi_first_open = IMAS.find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
             (_, z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
             if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)
