@@ -102,6 +102,28 @@ end
 push!(document[Symbol("Physics sources")], :bootstrap_source!)
 
 """
+    radiation_source!(dd::IMAS.dd)
+
+Calculates the total radiation by calling:
+
+  - bremsstrahlung_source!()
+  - line_radiation_source!()
+  - synchrotron_source!()
+"""
+function radiation_source!(dd::IMAS.dd)
+    bremsstrahlung_source!(dd) # electron energy
+
+    line_radiation_source!(dd) # electron energy
+
+    synchrotron_source!(dd) # electron energy (ion synchrotron not calculated)
+
+    return dd
+end
+
+@compat public radiation_source!
+push!(document[Symbol("Physics sources")], :radiation_source!)
+
+"""
     sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
 Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
@@ -115,11 +137,7 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
     collisional_exchange_source!(dd) # electron and ion energy
 
-    bremsstrahlung_source!(dd) # electron energy
-
-    line_radiation_source!(dd) # electron energy
-
-    synchrotron_source!(dd) # electron energy (ion synchrotron not calculated)
+    radiation_source!(dd) # calls bremsstrahlung_source!() line_radiation_source!() synchrotron_source!()
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
