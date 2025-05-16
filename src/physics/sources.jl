@@ -643,6 +643,7 @@ function new_source(
     source.identifier.name = name
     source.identifier.index = index
     cs1d = resize!(source.profiles_1d)
+    csglbl  = resize!(source.global_quantities)
     cs1d.grid.rho_tor_norm = rho
     cs1d.grid.volume = volume
     cs1d.grid.area = area
@@ -652,11 +653,13 @@ function new_source(
         cs1d.electrons.power_inside = cumtrapz(volume, value)
     elseif electrons_power_inside !== missing
         cs1d.electrons.power_inside = value = electrons_power_inside
+        
         cs1d.electrons.energy = gradient(volume, value)
     else
         cs1d.electrons.energy = zero(volume)
         cs1d.electrons.power_inside = zero(volume)
     end
+    csglbl.electrons.power = cs1d.electrons.power_inside[end]
 
     if total_ion_energy !== missing
         cs1d.total_ion_energy = value = total_ion_energy
@@ -668,6 +671,8 @@ function new_source(
         cs1d.total_ion_energy = zero(volume)
         cs1d.total_ion_power_inside = zero(volume)
     end
+    csglbl.total_ion_power = cs1d.total_ion_power_inside[end]
+    csglbl.power = csglbl.total_ion_power + csglbl.electrons.power
 
     if electrons_particles !== missing
         cs1d.electrons.particles = value = electrons_particles
@@ -679,6 +684,7 @@ function new_source(
         cs1d.electrons.particles = zero(volume)
         cs1d.electrons.particles_inside = zero(volume)
     end
+    csglbl.electrons.particles = cs1d.electrons.particles_inside[end]
 
     if j_parallel !== missing
         cs1d.j_parallel = value = j_parallel
@@ -690,6 +696,7 @@ function new_source(
         cs1d.j_parallel = zero(area)
         cs1d.current_parallel_inside = zero(area)
     end
+    csglbl.current_parallel = cs1d.current_parallel_inside[end]
 
     if momentum_tor !== missing
         cs1d.momentum_tor = value = momentum_tor
@@ -701,6 +708,7 @@ function new_source(
         cs1d.momentum_tor = zero(volume)
         cs1d.torque_tor_inside = zero(volume)
     end
+    csglbl.torque_tor = cs1d.torque_tor_inside[end]
 
     return source
 end
