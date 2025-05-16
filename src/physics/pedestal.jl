@@ -1,5 +1,10 @@
 document[Symbol("Physics pedestal")] = Symbol[]
 
+function diffnorm(A::AbstractVector{<:Real}, B::AbstractVector{<:Real})
+    @assert length(A) == length(B)
+    return @inbounds norm(A[k] - B[k] for k in eachindex(A))
+end
+
 """
     blend_core_edge_Hmode(
         profile::AbstractVector{<:Real},
@@ -40,7 +45,7 @@ function blend_core_edge_Hmode(
 
         # Z's can be matched both by varying the value as well as the gradients
         # Here we want to keep the values as fixed as possible, while varying the gradients
-        return norm(z_targets .- z_ped_values) / sum(abs.(z_targets)) .+ norm(p_targets .- p_values) / sum(abs.(p_targets))
+        return diffnorm(z_targets, z_ped_values) / sum(abs, z_targets) + diffnorm(p_targets, p_values) / sum(abs, p_targets)
     end
 
     @assert 0.0 < ped_height "invalid ped_height = $(ped_height)"
@@ -48,14 +53,14 @@ function blend_core_edge_Hmode(
     @assert rho[end] == 1.0
 
     z_profile = -calc_z(rho, profile, :backward)
-    rho_targets = [tr_bound0, tr_bound1]
+    rho_targets = StaticArrays.@SVector[tr_bound0, tr_bound1]
     z_targets = interp1d(rho, z_profile).(rho_targets)
     p_targets = interp1d(rho, profile).(rho_targets)
 
     # figure out expin and expout such that the Z's of Hmode_profiles match the z_targets from transport
     expin = 1.0
     expout = 1.0
-    x_guess = [expin, expout]
+    x_guess = StaticArrays.@MVector[expin, expout]
     res = Optim.optimize(
         x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets),
         x_guess,
