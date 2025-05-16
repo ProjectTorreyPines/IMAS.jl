@@ -3,25 +3,25 @@ using DSP
 document[Symbol("Signal")] = Symbol[]
 
 """
-    step(t::Float64)
+    heaviside(t::Float64)
 
-Unitary step triggered at t=0
+Heaviside step triggered at t=0
 """
-function step(t::Float64)
+function heaviside(t::Float64)
     return Float64(t >= 0.0)
 end
 
 """
-    step(t::Float64, t_start::Float64)
+    heaviside(t::Float64, t_start::Float64)
 
-Unitary step triggered at t=t_start
+Heaviside step triggered at t=t_start
 """
-function step(t::Float64, t_start::Float64)
-    return step(t - t_start)
+function heaviside(t::Float64, t_start::Float64)
+    return heaviside(t - t_start)
 end
 
-@compat public step
-push!(document[Symbol("Signal")], :step)
+@compat public heaviside
+push!(document[Symbol("Signal")], :heaviside)
 
 """
     pulse(t::Float64)
@@ -29,8 +29,8 @@ push!(document[Symbol("Signal")], :step)
 Unitary pulse with width of 1, starting at t=0
 """
 function pulse(t::Float64)
-    a = step(t)
-    b = step(-t + 1)
+    a = heaviside(t)
+    b = heaviside(-t + 1)
     return a * b
 end
 
