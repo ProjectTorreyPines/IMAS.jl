@@ -3267,6 +3267,27 @@ end
     end
 end
 
+@recipe function plot(hcd::IMAS.summary__heating_current_drive)
+    @series begin
+        color := :black
+        linewidth := 2
+        label := "total"
+        normalization := 1E-6
+        ylabel := "[MW]"
+        getproperty(hcd, :power_launched_total), :value
+    end
+    for (field, label) in ((:power_launched_ec, "ec"), (:power_launched_ic, "ic"), (:power_launched_lh, "lh"), (:power_launched_nbi, "nbi"))
+        if !ismissing(getproperty(hcd, field), :value)
+            @series begin
+                label := label
+                normalization := 1E-6
+                ylabel := "[MW]"
+                getproperty(hcd, field), :value
+            end
+        end
+    end
+end
+
 #= ================ =#
 #  generic plotting  #
 #= ================ =#
