@@ -2250,8 +2250,7 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(beam)
-
-    if !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
+    if dd !== nothing && !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
         beam_index = index(beam)
         @series begin
             label --> label(beam)
@@ -2467,7 +2466,10 @@ end
 end
 
 @recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false)
+    id = recipe_dispatch(beam)
+    assert_type_and_record_argument(id, Bool, "Top view plot"; top)
     if top
+        # top view
         @series begin
             seriestype --> :scatter
             [beam.position.r[1] * cos(beam.position.phi[1])],
@@ -2478,6 +2480,7 @@ end
             beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
         end
     else
+        # cross-sectional view
         @series begin
             beam.position.r, beam.position.z
         end
@@ -2490,29 +2493,34 @@ end
     end
 end
 
-@recipe function beam_tracing(bt::IMAS.waves__coherent_wave___beam_tracing; max_beam=3)
+@recipe function beam_tracing(bt::IMAS.waves__coherent_wave___beam_tracing; max_beam=length(bt.beam))
+    id = recipe_dispatch(bt)
+    assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
+
     aspect_ratio := :equal
     legend_position --> :outerbottomright
-    for (ibeam, beam) in enumerate(bt.beam)
-        if ibeam > max_beam
-            break
-        end
-        @series begin
-            if ibeam == 1
-                primary := true
-                label := parent(parent(bt)).identifier.antenna_name
-                lw := 3.0
-            else
-                primary := false
-                label := ""
-                lw := 1.0
+    for (ibeam, beam) in enumerate(bt.beam[1:max_beam])
+        if ismissing(beam, :power_initial) || beam.power_initial > 0
+            @series begin
+                if ibeam == 1
+                    primary := true
+                    label := parent(parent(bt)).identifier.antenna_name
+                    lw := 3.0
+                else
+                    primary := false
+                    label := ""
+                    lw := 1.0
+                end
+                beam
             end
-            beam
         end
     end
 end
 
 @recipe function plot_wave(bts::IDSvector{<:IMAS.waves__coherent_wave___beam_tracing}; time0=global_time(bts))
+    id = recipe_dispatch(bts)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
     @series begin
         bts[time0]
     end
@@ -2527,6 +2535,9 @@ end
 end
 
 @recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave))
+    id = recipe_dispatch(wv)
+    assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
+
     dd = top_dd(wv)
     @series begin
         cx := true
