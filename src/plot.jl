@@ -686,8 +686,7 @@ end
     primary --> false
 
     eqt = parent(parent(eqt2d))
-    xlabel --> "R [m]"
-    ylabel --> "Z [m]"
+
     # handle levels
     x_coord = getproperty(eqt.profiles_1d, coordinate)
     boundary_level = x_coord[end]
@@ -733,6 +732,8 @@ end
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
     if top
+        xlabel --> "X [m]"
+        ylabel --> "Y [m]"
         @series begin
             ls := :dash
             _circle(RA)
@@ -759,6 +760,8 @@ end
             end
         end
     else
+        xlabel --> "R [m]"
+        ylabel --> "Z [m]"
         for psi_level in psi_levels
             for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
                 @series begin
@@ -1357,7 +1360,7 @@ end
         title := "Electron energy flux"
         label --> ""
         normalization := 1E-6
-        ylabel := "[MW/m²]"
+        ylabel --> "[MW/m²]"
         ct1d__electrons__energy, :flux
     end
 end
@@ -1368,7 +1371,7 @@ end
         title := "Total ion energy flux"
         label --> ""
         normalization := 1E-6
-        ylabel := "[MW/m²]"
+        ylabel --> "[MW/m²]"
         ct1d__total_ion_energy, :flux
     end
 end
@@ -1382,7 +1385,7 @@ end
         markershape --> :none
         title := "Electron particle flux"
         label --> ""
-        ylabel := "[s⁻¹/m²]"
+        ylabel --> "[s⁻¹/m²]"
         ct1d__electrons__particles, :flux
     end
 end
@@ -1397,7 +1400,7 @@ end
         markershape --> :none
         title := "$(ion.label) particle flux"
         label --> ""
-        ylabel := "[s⁻¹/m²]"
+        ylabel --> "[s⁻¹/m²]"
         ct1d__ion___particles, :flux
     end
 end
@@ -1407,7 +1410,7 @@ end
         markershape --> :none
         title := "Momentum flux"
         label --> ""
-        ylabel := "[Nm/m²]"
+        ylabel --> "[Nm/m²]"
         ct1d__momentum_tor, :flux
     end
 end
@@ -1605,7 +1608,7 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1de, :power_inside) && flux
-                ylabel := "[MW/m²]"
+                ylabel --> "[MW/m²]"
                 normalization = 1E-6 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1669,7 +1672,7 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1d, :total_ion_power_inside) && flux
-                ylabel := "[MW/m²]"
+                ylabel --> "[MW/m²]"
                 normalization = 1E-6 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1734,7 +1737,7 @@ end
                 if plot_extrema.active
                     ylim --> plot_extrema.ylim
                 end
-                ylabel := "[s⁻¹/m²]"
+                ylabel --> "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1803,7 +1806,7 @@ end
                 if plot_extrema.active
                     ylim --> plot_extrema.ylim
                 end
-                ylabel := "[s⁻¹/m²]"
+                ylabel --> "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1867,7 +1870,7 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1d, :torque_tor_inside) && flux
-                ylabel := "[Nm/m²]"
+                ylabel --> "[Nm/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -2154,7 +2157,7 @@ end
             if only === nothing
                 subplot := 1
             end
-            title := "Temperatures"
+            title --> "Temperatures"
             label := "e" * label
             ylim --> (0, Inf)
             cpt.electrons, :temperature
@@ -2168,7 +2171,7 @@ end
                     if only === nothing
                         subplot := 1
                     end
-                    title := "Temperatures"
+                    title --> "Temperatures"
                     label := "Ions" * label
                     linestyle --> :dash
                     ylim --> (0, Inf)
@@ -2184,7 +2187,7 @@ end
                         if only === nothing
                             subplot := 1
                         end
-                        title := "Temperatures"
+                        title --> "Temperatures"
                         label := ion.label * label
                         linestyle --> :dash
                         ylim --> (0, Inf)
@@ -2201,7 +2204,7 @@ end
             if only === nothing
                 subplot := 2
             end
-            title := "Densities"
+            title --> "Densities"
             label := "e" * label
             ylim --> (0.0, Inf)
             cpt.electrons, :density
@@ -2223,7 +2226,7 @@ end
                 if only === nothing
                     subplot := 2
                 end
-                title := "Densities"
+                title --> "Densities"
                 if Z == 1.0
                     label := ion.label * label
                 else
@@ -2243,7 +2246,7 @@ end
             if only === nothing
                 subplot := 3
             end
-            title := "Rotation"
+            title --> "Rotation"
             label := "" * label
             if !ismissing(cpt, :rotation_frequency_tor_sonic)
                 cpt, :rotation_frequency_tor_sonic
@@ -3312,7 +3315,7 @@ end
         linewidth := 2
         label := "total"
         normalization := 1E-6
-        ylabel := "[MW]"
+        ylabel --> "[MW]"
         getproperty(hcd, :power_launched_total), :value
     end
     for (field, label) in ((:power_launched_ec, "ec"), (:power_launched_ic, "ic"), (:power_launched_lh, "lh"), (:power_launched_nbi, "nbi"))
@@ -3320,7 +3323,7 @@ end
             @series begin
                 label := label
                 normalization := 1E-6
-                ylabel := "[MW]"
+                ylabel --> "[MW]"
                 getproperty(hcd, field), :value
             end
         end
