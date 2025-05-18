@@ -396,4 +396,33 @@ function arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::
     end
     return ll
 end
+
+function arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<:Real}, z::AbstractVector{<:Real}; include_zero::Bool=true)
+    n = length(r)
+    if include_zero
+        ll = Vector{Float64}(undef, n)
+        ll[1] = 0.0
+        @inbounds for i in 2:n
+            dr = r[i] - r[i-1]
+            dphi = phi[i] - phi[i-1]
+            dz = z[i] - z[i-1]
+            r_avg = 0.5 * (r[i] + r[i-1])
+            ll[i] = ll[i-1] + sqrt(dr^2 + (r_avg^2 * dphi^2) + dz^2)
+        end
+    else
+        ll = Vector{Float64}(undef, n - 1)
+        @inbounds for i in 2:n
+            dr = r[i] - r[i-1]
+            dphi = phi[i] - phi[i-1]
+            dz = z[i] - z[i-1]
+            r_avg = 0.5 * (r[i] + r[i-1])
+            arc = sqrt(dr^2 + (r_avg^2 * dphi^2) + dz^2)
+            if i == 2
+                ll[i-1] = arc
+            else
+                ll[i-1] = ll[i-2] + arc
+            end
+        end
+    end
+    return ll
 end
