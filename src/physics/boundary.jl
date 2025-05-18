@@ -353,32 +353,47 @@ function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; incl
         @inbounds for i in 2:n
             dx = pr[i] - pr[i-1]
             dz = pz[i] - pz[i-1]
-            ll[i] = ll[i-1] + sqrt(dx*dx + dz*dz)
+            ll[i] = ll[i-1] + sqrt(dx * dx + dz * dz)
         end
     else
-        ll = Vector{Float64}(undef, n-1)
+        ll = Vector{Float64}(undef, n - 1)
         @inbounds for i in 2:n
             dx = pr[i] - pr[i-1]
             dz = pz[i] - pz[i-1]
             if i == 2
-                ll[i-1] = sqrt(dx*dx + dz*dz)
+                ll[i-1] = sqrt(dx * dx + dz * dz)
             else
-                ll[i-1] = ll[i-2] + sqrt(dx*dx + dz*dz)
+                ll[i-1] = ll[i-2] + sqrt(dx * dx + dz * dz)
             end
         end
     end
     return ll
 end
 
-function arc_length(Xs::AbstractVector{<:Real}, Ys::AbstractVector{<:Real}, Zs::AbstractVector{<:Real})
-    n = length(Xs)
-    dist = Vector{Float64}(undef, n)
-    dist[1] = 0.0
-    @inbounds for i in 2:n
-        dx = Xs[i] - Xs[i-1]
-        dy = Ys[i] - Ys[i-1]
-        dz = Zs[i] - Zs[i-1]
-        dist[i] = dist[i-1] + sqrt(dx*dx + dy*dy + dz*dz)
+function arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
+    n = length(px)
+    if include_zero
+        ll = Vector{Float64}(undef, n)
+        ll[1] = 0.0
+        @inbounds for i in 2:n
+            dx = px[i] - px[i-1]
+            dy = py[i] - py[i-1]
+            dz = pz[i] - pz[i-1]
+            ll[i] = ll[i-1] + sqrt(dx * dx + dy * dy + dz * dz)
+        end
+    else
+        ll = Vector{Float64}(undef, n - 1)
+        @inbounds for i in 2:n
+            dx = px[i] - px[i-1]
+            dy = py[i] - py[i-1]
+            dz = pz[i] - pz[i-1]
+            if i == 2
+                ll[i-1] = sqrt(dx * dx + dy * dy + dz * dz)
+            else
+                ll[i-1] = ll[i-2] + sqrt(dx * dx + dy * dy + dz * dz)
+            end
+        end
     end
-    return dist
+    return ll
+end
 end
