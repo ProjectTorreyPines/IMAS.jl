@@ -343,7 +343,7 @@ push!(document[Symbol("Physics boundary")], :strike_points)
 """
     arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
 
-Compute the cumulative arc length of a 2D curve defined by the coordinate vectors `pr` and `pz`.
+Compute the cumulative arc length of a 2D curve defined from the coordinate vectors `pr` and `pz`
 """
 function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(pr)
@@ -370,6 +370,11 @@ function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; incl
     return ll
 end
 
+"""
+    arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
+
+Compute the cumulative arc length of a 3D curve from the Cartesian coordinate vectors `px`, `py`, and `pz`.
+"""
 function arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(px)
     if include_zero
@@ -397,6 +402,15 @@ function arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::
     return ll
 end
 
+"""
+    arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<:Real}, z::AbstractVector{<:Real}; include_zero::Bool=true)
+
+Compute the cumulative arc length of a 3D curve in cylindrical coordinates using  radial (`r`), angular (`phi`, in radians), and axial (`z`) vectors.
+
+The arc length is calculated as:
+
+    Δs = sqrt((Δr)^2 + (r_avg * Δphi)^2 + (Δz)^2)
+"""
 function arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<:Real}, z::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(r)
     if include_zero
@@ -407,7 +421,8 @@ function arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<
             dphi = phi[i] - phi[i-1]
             dz = z[i] - z[i-1]
             r_avg = 0.5 * (r[i] + r[i-1])
-            ll[i] = ll[i-1] + sqrt(dr^2 + (r_avg^2 * dphi^2) + dz^2)
+            arc = sqrt(dr^2 + (r_avg^2 * dphi^2) + dz^2)
+            ll[i] = ll[i-1] + arc
         end
     else
         ll = Vector{Float64}(undef, n - 1)
