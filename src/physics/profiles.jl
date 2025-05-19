@@ -1293,9 +1293,9 @@ end
 
 Returns average ionization state of an ion at a given temperature
 """
-function avgZ(Z::Float64, Ti::T)::T where {T}
+function avgZ(Z::Float64, Ti::T) where {T}
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
-    return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
+    return @. 10.0 ^ (func(log10(Ti / 1E3), Z)) - 1.0
 end
 
 @compat public avgZ
