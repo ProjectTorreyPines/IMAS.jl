@@ -726,13 +726,11 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     xped = xphalf - widthp
     xtoped = xpsi ./ xped
     factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / widthp) - pconst) + edge
-    #index = xtoped .< 1.0
     for k in eachindex(xtoped)
         if xtoped[k] < 1.0
             @inbounds val[k] += factor * (1.0 - xtoped[k] ^ expin) ^ expout
         end
     end
-    #@views val[index] .+= factor .* (1.0 .- xtoped[index] .^ expin) .^ expout
 
     return val
 end
