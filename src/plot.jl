@@ -653,6 +653,10 @@ end
     end
 end
 
+function _circle(a)
+    return [a * cos(t) for t in range(0, 2π, 101)], [a * sin(t) for t in range(0, 2π, 101)]
+end
+
 @recipe function plot_eqt2(
     eqt2d::IMAS.equilibrium__time_slice___profiles_2d;
     levels_in=11,
@@ -661,7 +665,8 @@ end
     show_x_points=true,
     show_strike_points=true,
     show_magnetic_axis=true,
-    coordinate=:psi)
+    coordinate=:psi,
+    top=false)
 
     id = recipe_dispatch(eqt2d)
     assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
@@ -671,6 +676,7 @@ end
     assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
     assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
     assert_type_and_record_argument(id, Bool, "Show magnetic axis"; show_magnetic_axis)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
 
     label --> ""
     aspect_ratio := :equal
@@ -726,55 +732,82 @@ end
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
-    for psi_level in psi_levels
-        for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
-            @series begin
-                seriestype --> :path
-                if psi_level == psi__boundary_level
-                    linewidth := base_linewidth * 1.5
-                else
-                    linewidth := base_linewidth * 0.5
-                    if psi_level in psi_levels_in &&
-                       (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
-                        linestyle --> :solid
-                    else
-                        linestyle --> :dash
+    if top
+        @series begin
+            ls := :dash
+            _circle(RA)
+        end
+        for psi_level in psi_levels_in
+            for (pr, pz) in flux_surface(eqt, psi_level, :closed, fw.r, fw.z)
+                for f in (minimum, maximum)
+                    @series begin
+                        seriestype --> :path
+                        if psi_level == psi__boundary_level
+                            linewidth := base_linewidth * 1.5
+                        else
+                            linewidth := base_linewidth * 0.5
+                            if psi_level in psi_levels_in &&
+                               (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
+                                linestyle --> :solid
+                            else
+                                linestyle --> :dash
+                            end
+                        end
+                        _circle(f(pr))
                     end
                 end
-                pr, pz
+            end
+        end
+    else
+        for psi_level in psi_levels
+            for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
+                @series begin
+                    seriestype --> :path
+                    if psi_level == psi__boundary_level
+                        linewidth := base_linewidth * 1.5
+                    else
+                        linewidth := base_linewidth * 0.5
+                        if psi_level in psi_levels_in &&
+                           (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
+                            linestyle --> :solid
+                        else
+                            linestyle --> :dash
+                        end
+                    end
+                    pr, pz
+                end
+            end
+        end
+
+        if show_secondary_separatrix
+            @series begin
+                primary --> false
+                linewidth := base_linewidth * 1.0
+                eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
+            end
+        end
+
+        if show_magnetic_axis
+            @series begin
+                primary --> false
+                eqt.global_quantities.magnetic_axis
+            end
+        end
+
+        if show_x_points
+            @series begin
+                primary --> false
+                eqt.boundary.x_point
+            end
+        end
+
+        if show_strike_points
+            @series begin
+                primary --> false
+                eqt.boundary.strike_point
             end
         end
     end
-
-    if show_secondary_separatrix
-        @series begin
-            primary --> false
-            linewidth := base_linewidth * 1.0
-            eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
-        end
-    end
-
-    if show_magnetic_axis
-        @series begin
-            primary --> false
-            eqt.global_quantities.magnetic_axis
-        end
-    end
-
-    if show_x_points
-        @series begin
-            primary --> false
-            eqt.boundary.x_point
-        end
-    end
-
-    if show_strike_points
-        @series begin
-            primary --> false
-            eqt.boundary.strike_point
-        end
-    end
-
 end
 
 @recipe function plot_eqtb(eqtb::IMAS.equilibrium__time_slice___boundary)
@@ -802,7 +835,7 @@ end
 @recipe function plot_x_points(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point})
     for (k, x_point) in enumerate(x_points)
         @series begin
-            markersize --> (length(x_points) + 1 - k) * 4
+            markersize --> ((length(x_points) + 1 - k) / length(x_points)) * 4
             x_point
         end
     end
@@ -2250,8 +2283,7 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(beam)
-
-    if !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
+    if dd !== nothing && !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
         beam_index = index(beam)
         @series begin
             label --> label(beam)
@@ -2467,7 +2499,10 @@ end
 end
 
 @recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false)
+    id = recipe_dispatch(beam)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
     if top
+        # top view
         @series begin
             seriestype --> :scatter
             [beam.position.r[1] * cos(beam.position.phi[1])],
@@ -2478,6 +2513,7 @@ end
             beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
         end
     else
+        # cross-sectional view
         @series begin
             beam.position.r, beam.position.z
         end
@@ -2490,31 +2526,38 @@ end
     end
 end
 
-@recipe function beam_tracing(bt::IMAS.waves__coherent_wave___beam_tracing; max_beam=3)
+@recipe function beam_tracing(bt::IMAS.waves__coherent_wave___beam_tracing; max_beam=length(bt.beam))
+    id = recipe_dispatch(bt)
+    assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
+
     aspect_ratio := :equal
     legend_position --> :outerbottomright
-    for (ibeam, beam) in enumerate(bt.beam)
-        if ibeam > max_beam
-            break
-        end
-        @series begin
-            if ibeam == 1
-                primary := true
-                label := parent(parent(bt)).identifier.antenna_name
-                lw := 3.0
-            else
-                primary := false
-                label := ""
-                lw := 1.0
+    for (ibeam, beam) in enumerate(bt.beam[1:max_beam])
+        if !ismissing(beam, :power_initial) || beam.power_initial > 0
+            @series begin
+                if ibeam == 1
+                    primary := true
+                    label := parent(parent(bt)).identifier.antenna_name
+                    lw := 3.0
+                else
+                    primary := false
+                    label := ""
+                    lw := 1.0
+                end
+                beam
             end
-            beam
         end
     end
 end
 
 @recipe function plot_wave(bts::IDSvector{<:IMAS.waves__coherent_wave___beam_tracing}; time0=global_time(bts))
-    @series begin
-        bts[time0]
+    id = recipe_dispatch(bts)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    if !isempty(bts) && bts[1].time >= time0
+        @series begin
+            bts[time0]
+        end
     end
 end
 
@@ -2526,7 +2569,11 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave))
+@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave), time0=global_time(bts))
+    id = recipe_dispatch(wv)
+    assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
     dd = top_dd(wv)
     @series begin
         cx := true
@@ -2534,7 +2581,7 @@ end
     end
     @series begin
         alpha --> 0.75
-        [beam.beam_tracing[] for beam in wv.coherent_wave[1:max_beam]]
+        [beam.beam_tracing[time0] for beam in wv.coherent_wave[1:max_beam]]
     end
 end
 
@@ -2761,10 +2808,28 @@ end
 # ==== #
 # wall #
 # ==== #
-@recipe function plot_wall(wall::IMAS.wall)
+@recipe function plot_wall(wall::IMAS.wall; top=false)
+    id = recipe_dispatch(wall)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
+
     aspect_ratio := :equal
-    @series begin
-        return wall.description_2d
+    if top
+        fw = first_wall(wall)
+        z0 = (maximum(fw.z) + minimum(fw.z)) / 2
+        _, crossings = intersection(fw.r, fw.z, [0.0, 1000.0], [z0, z0])
+        color := :black
+        label := ""
+        @series begin
+            _circle(crossings[1][1])
+        end
+        @series begin
+            primary := false
+            _circle(crossings[2][1])
+        end
+    else
+        @series begin
+            wall.description_2d
+        end
     end
 end
 
@@ -3198,6 +3263,27 @@ end
             label := ""
             xlabel := ""
             leaf.ids, leaf.field
+        end
+    end
+end
+
+@recipe function plot(hcd::IMAS.summary__heating_current_drive)
+    @series begin
+        color := :black
+        linewidth := 2
+        label := "total"
+        normalization := 1E-6
+        ylabel := "[MW]"
+        getproperty(hcd, :power_launched_total), :value
+    end
+    for (field, label) in ((:power_launched_ec, "ec"), (:power_launched_ic, "ic"), (:power_launched_lh, "lh"), (:power_launched_nbi, "nbi"))
+        if !ismissing(getproperty(hcd, field), :value)
+            @series begin
+                label := label
+                normalization := 1E-6
+                ylabel := "[MW]"
+                getproperty(hcd, field), :value
+            end
         end
     end
 end
