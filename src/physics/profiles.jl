@@ -1250,9 +1250,7 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ioniz
         z .+= ion.density_thermal .* Zi .^ 2
     end
     ne = cp1d.electrons.density_thermal
-    for k in eachindex(z)
-        z[k] = max(1.0, z[k] / ne[k])
-    end
+    @. z = max(one(eltype(z)), z / ne)
     return z
 end
 
