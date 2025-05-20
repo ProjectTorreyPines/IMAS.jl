@@ -945,7 +945,7 @@ Returns species index and names (followed by "_fast" if density_fast is present)
 function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Symbol=:all, only_thermal_fast::Symbol=:all)
     @assert only_electrons_ions ∈ (:all, :electrons, :ions) "only_electrons_ions can be one of (:all, :electrons, :ions)"
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
-    out = []
+    out = Tuple{Int, Symbol}[]
     if only_electrons_ions ∈ (:all, :electrons)
         if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && sum(cp1d.electrons.density_thermal) > 0.0
             push!(out, (0, :electrons))

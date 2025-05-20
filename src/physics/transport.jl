@@ -88,7 +88,7 @@ function total_fluxes!(
     end
 
     # defines paths to fill
-    paths = []
+    paths = Union{Tuple{Symbol, Symbol}, Tuple{Symbol, Int64, Symbol}, Tuple{Symbol}}[]
     push!(paths, (:electrons, :energy))
     push!(paths, (:electrons, :particles))
     for k in eachindex(total_flux1d.ion)
