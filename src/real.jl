@@ -44,7 +44,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
             efield = Symbol("$(field)_σ")
             if !ismissing(ids, efield)
                 error = getfield(ids, efield)
-                uncer = value ± error
+                uncer = value .± error
             else
                 uncer = value .± 0.0
             end
