@@ -349,9 +349,9 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
 
                     sion_particles = interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
-                    cion.pressure_fast_parallel += pressa ./ 3.0
-                    cion.pressure_fast_perpendicular += pressa ./ 3.0
-                    cion.density_fast += sion_particles .* taut
+                    cion.pressure_fast_parallel .+= pressa ./ 3.0
+                    cion.pressure_fast_perpendicular .+= pressa ./ 3.0
+                    cion.density_fast .+= sion_particles .* taut
                 end
             end
         end
@@ -499,7 +499,7 @@ function banana_width(T::Real, Bt::Real, Z::Real, m::Real, epsilon::Real, q::Rea
 end
 
 """
-    gyroradius(T::Real, Bt::Real, Z::Real, m::Real) 
+    gyroradius(T::Real, Bt::Real, Z::Real, m::Real)
 
 Calculates plasma gyroradius [m]
 

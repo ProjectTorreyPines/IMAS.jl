@@ -469,11 +469,11 @@ function total_sources!(
         end
 
         # ions that this source contributes to
-        ion_ids1_ids2 = []
+        ids1_ids2 = [(total_source1d, source1d), (total_source1d.electrons, source1d.electrons)]
         for total_source1d_ion in total_source1d.ion
             for source1d_ion in source1d.ion
                 if total_source1d_ion.label == source1d_ion.label
-                    push!(ion_ids1_ids2, (total_source1d_ion, source1d_ion))
+                    push!(ids1_ids2, (total_source1d_ion, source1d_ion))
                 end
             end
         end
@@ -483,7 +483,7 @@ function total_sources!(
         if rho == x
             rho = x
         end
-        for (ids1, ids2) in [[(total_source1d, source1d), (total_source1d.electrons, source1d.electrons)]; ion_ids1_ids2]
+        for (ids1, ids2) in ids1_ids2
             for field in keys(ids1)
                 if (isempty(fields) || field ∈ fields || (field ∈ keys(_core_sources_integral_value_keys) && _core_sources_integral_value_keys[field] ∈ fields)) &&
                    field ∈ keys(_core_sources_integral_value_keys)
@@ -547,6 +547,8 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
 Model sawteeth by flattening all sources (besides time_derivative term) within the q inversion radius
 """
+const st_include_indexes = [-10000]
+const st_exclude_indexes = [409, 701]
 function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
@@ -559,16 +561,16 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     q = abs.(eqt1d.q)
     if !any(x -> x < qmin_desired, q)
         # this will return an empty source
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=st_include_indexes)
         fill!(source1d, total_source1d)
         return source
     else
         # exlude :time_dependent and :sawteeth sources
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[409, 701])
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=st_exclude_indexes)
         fill!(source1d, total_source1d)
     end
 
-    rho0 = eqt1d.rho_tor_norm[findlast(abs.(q) .< qmin_desired)]
+    rho0 = eqt1d.rho_tor_norm[findlast(qq -> abs(qq) < qmin_desired, q)]
     width = min(rho0 / 4, 0.05)
 
     # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
@@ -733,7 +735,8 @@ function total_power(
         if contains(location(leaf.ids), ".power") && hasdata(leaf.ids, leaf.field)
             time = coordinates(leaf.ids, leaf.field).values[1]
             data = getproperty(leaf.ids, leaf.field)
-            datas .+= interp1d(time, smooth_beam_power(time, data, tau_smooth)).(times)
+            sbp_itp = interp1d(time, smooth_beam_power(time, data, tau_smooth))
+            @. datas += sbp_itp(times)
         end
     end
     return datas

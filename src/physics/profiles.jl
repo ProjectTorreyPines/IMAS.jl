@@ -726,8 +726,11 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     xped = xphalf - widthp
     xtoped = xpsi ./ xped
     factor = 0.5 * a_t * (1.0 - tanh((xped - xphalf) / widthp) - pconst) + edge
-    index = xtoped .< 1.0
-    val[index] += factor .* (1.0 .- xtoped[index] .^ expin) .^ expout
+    for k in eachindex(xtoped)
+        if xtoped[k] < 1.0
+            @inbounds val[k] += factor * (1.0 - xtoped[k] ^ expin) ^ expout
+        end
+    end
 
     return val
 end
@@ -942,7 +945,7 @@ Returns species index and names (followed by "_fast" if density_fast is present)
 function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Symbol=:all, only_thermal_fast::Symbol=:all)
     @assert only_electrons_ions ∈ (:all, :electrons, :ions) "only_electrons_ions can be one of (:all, :electrons, :ions)"
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
-    out = []
+    out = Tuple{Int, Symbol}[]
     if only_electrons_ions ∈ (:all, :electrons)
         if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && sum(cp1d.electrons.density_thermal) > 0.0
             push!(out, (0, :electrons))
@@ -1245,9 +1248,7 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ioniz
         z .+= ion.density_thermal .* Zi .^ 2
     end
     ne = cp1d.electrons.density_thermal
-    for k in eachindex(z)
-        z[k] = max(1.0, z[k] / ne[k])
-    end
+    @. z = max(one(eltype(z)), z / ne)
     return z
 end
 
@@ -1288,9 +1289,9 @@ end
 
 Returns average ionization state of an ion at a given temperature
 """
-function avgZ(Z::Real, Ti::T)::T where {T}
+function avgZ(Z::Real, Ti::T) where {T}
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
-    return 10.0 .^ (func.(log10.(Ti ./ 1E3), Z)) .- 1.0
+    return @. 10.0 ^ (func(log10(Ti / 1E3), Z)) - 1.0
 end
 
 @compat public avgZ

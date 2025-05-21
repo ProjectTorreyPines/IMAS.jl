@@ -99,7 +99,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
 
-    ν_es = nuestar(eqt, cp1d)
+    ν_es = nuestar(eqt, cp1d; Zeff)
     ν_is = nuistar(eqt, cp1d)
 
     B0 = B0_geo(eqt)
@@ -343,23 +343,23 @@ push!(document[Symbol("Physics neoclassical")], :collisionless_bootstrap_coeffic
 Calculate the electron collisionality, ν_*e, as a dimensionless measure of the
 frequency of electron collisions relative to their characteristic transit frequency.
 """
-function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+function nuestar(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T};
+                 Zeff::Vector{T}=cp1d.zeff) where {T<:Real}
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density_thermal
-    Zeff = cp1d.zeff
 
     R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
-    @assert all(R_eq .> 0.0) "R_eq .> 0.0 but $R_eq"
+    @assert all(x -> x > 0.0, R_eq) "R_eq .> 0.0 but $R_eq"
 
     R = interp1d(eqt.profiles_1d.rho_tor_norm, R_eq).(rho)
-    @assert all(R .> 0.0) "R .> 0.0 but $R"
+    @assert all(x -> x > 0.0, R) "R .> 0.0 but $R"
 
     a_eq = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
-    @assert all(a_eq .> 0.0) "a_eq .> 0.0 but $a_eq"
+    @assert all(x -> x > 0.0, a_eq) "a_eq .> 0.0 but $a_eq"
 
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
-    @assert all(a .> 0.0) "a .> 0.0 but $a"
+    @assert all(x -> x > 0.0, a) "a .> 0.0 but $a"
 
     q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
 
@@ -433,7 +433,7 @@ function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
 
     trapped_fraction = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
 
-    nue = nuestar(eqt, cp1d)
+    nue = nuestar(eqt, cp1d; Zeff)
 
     # neo 2021
     f33teff =
