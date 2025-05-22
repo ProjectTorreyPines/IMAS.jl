@@ -143,8 +143,6 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
     sawteeth_source!(dd) # sawteeth
 
-    fast_particles_profiles!(dd) # fill fast particles cp1d from sources
-
     return nothing
 end
 
