@@ -1218,7 +1218,7 @@ function new_impurity_radiation!(dd::IMAS.dd, impurity_name::Symbol, time_total_
         try
             IMAS.new_impurity_radiation!(dd, impurity_name, total_radiated_power_itp(time0))
         catch e
-            @warn("$(typeof(e)): Could not new_impurity_radiation!(dd, $(impurity_name), $(total_radiated_power_itp(time0))) at time $(dd.global_time)")
+            @warn("$(typeof(e)): Could not set new_impurity_radiation!(dd, $(impurity_name), $(total_radiated_power_itp(time0))) at time $(dd.global_time)")
         end
     end
 
