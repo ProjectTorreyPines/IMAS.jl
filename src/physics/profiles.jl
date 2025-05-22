@@ -1004,7 +1004,7 @@ push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 
 If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi neutrality condtion.
 
-If `species` is a ion species, it evaluates the difference in number of charges needed to reach quasineutrality, and assigns positive difference to target ion density_thermal species and negative difference to electrons density_thermal
+If `species` is a ion species, it evaluates the difference in number of charges needed to reach quasi-neutrality, and assigns positive difference to target ion density_thermal species and negative difference to electrons density_thermal
 
 Also, sets `density` to the original expression
 """
@@ -1016,7 +1016,10 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
     end
 
     if species == :electrons
-        cp1d.electrons.density_thermal = sum(ion.density .* ion.z_ion for ion in cp1d.ion) .- cp1d.electrons.density_fast
+        cp1d.electrons.density_thermal = sum(ion.density .* ion.z_ion for ion in cp1d.ion)
+        if hasdata(cp1d.electrons, :density_fast)
+            cp1d.electrons.density_thermal .-= cp1d.electrons.density_fast
+        end
 
     else
         # identify ion species
@@ -1024,16 +1027,15 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         @assert species_indx !== nothing
         ion0 = cp1d.ion[species_indx]
 
-        # evaluate the difference in number of thermal charges needed to reach quasineutrality
+        # evaluate the difference in number of thermal charges needed to reach quasi-neutrality
         if hasdata(cp1d.electrons, :density_fast)
             ne = cp1d.electrons.density_thermal .+ cp1d.electrons.density_fast
         else
             ne = cp1d.electrons.density_thermal
         end
+        q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0)
         if hasdata(ion0, :density_fast)
-            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
-        else
-            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0)
+            q_density_difference .-= .- ion0.density_fast .* ion0.z_ion
         end
 
         # positive difference is assigned to target ion density_thermal
