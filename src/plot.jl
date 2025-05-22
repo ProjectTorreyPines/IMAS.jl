@@ -2137,11 +2137,12 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false, what_density=:density)
     id = recipe_dispatch(cpt)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
     assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
+    assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
 
     if label === nothing
         label = ""
@@ -2209,7 +2210,7 @@ end
             title --> "Densities"
             label := "e" * label
             ylim --> (0.0, Inf)
-            cpt.electrons, :density
+            cpt.electrons, what_density
         end
         if greenwald
             @series begin
@@ -2237,7 +2238,7 @@ end
                 linestyle --> :dash
                 ylim --> (0.0, Inf)
                 normalization --> Z
-                ion, :density
+                ion, what_density
             end
         end
     end
