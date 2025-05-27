@@ -204,7 +204,7 @@ returns interpolated data given a sequence (tuple) of time/value points
 function sequence(t::Float64, t_y_sequence::Vector{Tuple{Float64,Float64}}; scheme::Symbol=:linear)
     tt = [t0 for (t0, y0) in t_y_sequence]
     yy = [y0 for (t0, y0) in t_y_sequence]
-    return IMAS.extrap1d(IMAS.interp1d_itp(tt, yy, scheme); first=:flat, last=:flat)(t)
+    return IMAS.extrap1d(IMAS.interp1d_itp(tt, yy, scheme); first=:constant, last=:constant)(t)
 end
 
 @compat public sequence
