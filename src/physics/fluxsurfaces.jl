@@ -89,8 +89,7 @@ Returns Br and Bz named tuple evaluated at r and z starting from ψ interpolant
 """
 function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
-    Z, R = meshgrid(z, r)
-    return Br_Bz(PSI_interpolant, R, Z)
+    return Br_Bz_meshgrid(PSI_interpolant, r, z)
 end
 
 """
@@ -128,14 +127,27 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :Br_Bz)
 
 """
+    Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+"""
+function Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    Br = Matrix{T}(undef, length(r), length(z))
+    Bz = Matrix{T}(undef, length(r), length(z))
+    for kr in eachindex(r)
+        for kz in eachindex(z)
+            Br[kr, kz], Bz[kr, kz] = Br_Bz(PSI_interpolant, r[kr], z[kz])
+        end
+    end
+    return (Br=Br, Bz=Bz)
+end
+
+"""
     Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
 Returns Bp evaluated at r and z starting from ψ interpolant
 """
 function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
-    Z, R = meshgrid(z, r)
-    return Bp.(Ref(PSI_interpolant), R, Z)
+    return Bp_meshgrid(PSI_interpolant, r, z)
 end
 
 """
@@ -143,7 +155,20 @@ end
 """
 function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
     Br, Bz = Br_Bz(PSI_interpolant, r, z)
-    return sqrt(Br^2.0 + Bz^2.0)
+    return sqrt(Br^2 + Bz^2)
+end
+
+"""
+    Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+"""
+function Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    Bp = Matrix{T}(undef, length(r), length(z))
+    for kr in eachindex(r)
+        for kz in eachindex(z)
+            Bp[kr, kz] = Bp(PSI_interpolant, r[kr], z[kz])
+        end
+    end
+    return Bp
 end
 
 """
@@ -2310,7 +2335,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         index = sortperm(d_x)
         d_x = d_x[index[1:2:end]]
         i_x = i_x[index[1:2:end]]
-        for k in sort(collect(Set(i_x)), rev=true)
+        for k in sort(collect(Set(i_x)); rev=true)
             deleteat!(eqt.boundary.x_point, k)
             deleteat!(psidist_lcfs_xpoints, k)
             deleteat!(z_x, k)
