@@ -1237,18 +1237,22 @@ Returns plasma effective charge
 
 `temperature_dependent_ionization_state` evaluates Zeff with average ionization state of an ion at a given temperature
 """
-function zeff(cp1d::IMAS.core_profiles__profiles_1d; temperature_dependent_ionization_state::Bool=true)
+function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}; temperature_dependent_ionization_state::Bool=true) where {T<:Real}
     z = zero(cp1d.grid.rho_tor_norm)
+    if temperature_dependent_ionization_state
+        func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
+        _avgZ = (zn, Ti) -> avgZ(func, zn, Ti)::T
+    end
     for ion in cp1d.ion
         if temperature_dependent_ionization_state
-            Zi = avgZ(ion.element[1].z_n, ion.temperature)
+            @. z += ion.density_thermal * _avgZ(ion.element[1].z_n, ion.temperature) ^ 2
         else
-            Zi = ion.element[1].z_n
+            @. z += ion.density_thermal * (ion.element[1].z_n ^ 2)
         end
-        z .+= ion.density_thermal .* Zi .^ 2
+
     end
-    ne = cp1d.electrons.density_thermal
-    @. z = max(one(eltype(z)), z / ne)
+    @. z /= cp1d.electrons.density_thermal
+    clamp!(z, 1.0, Inf) # Zeff must be at least 1.0
     return z
 end
 
@@ -1289,9 +1293,18 @@ end
 
 Returns average ionization state of an ion at a given temperature
 """
-function avgZ(Z::Real, Ti::T) where {T}
+function avgZ(Z::Real, Ti::Real) where {T}
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return @. 10.0 ^ (func(log10(Ti / 1E3), Z)) - 1.0
+end
+
+function avgZ(Z::Real, Ti::AbstractVector{<:Real})
+    func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
+    return avgZ.(Ref(func), Z, Ti)
+end
+
+function avgZ(func::F, Z::Real, Ti::Real) where {F}
+    return 10.0 ^ (func(log10(Ti / 1E3), Z)) - 1.0
 end
 
 @compat public avgZ

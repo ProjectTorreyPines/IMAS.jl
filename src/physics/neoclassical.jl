@@ -349,13 +349,13 @@ function nuestar(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles_
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density_thermal
 
-    R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
+    R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) .* 0.5
     @assert all(x -> x > 0.0, R_eq) "R_eq .> 0.0 but $R_eq"
 
     R = interp1d(eqt.profiles_1d.rho_tor_norm, R_eq).(rho)
     @assert all(x -> x > 0.0, R) "R .> 0.0 but $R"
 
-    a_eq = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
+    a_eq = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) .* 0.5
     @assert all(x -> x > 0.0, a_eq) "a_eq .> 0.0 but $a_eq"
 
     a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
@@ -437,12 +437,12 @@ function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
 
     # neo 2021
     f33teff =
-        trapped_fraction ./ (
-            1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nue) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+
-            0.61 .* (1 .- 0.41 .* trapped_fraction) .* nue ./ Zeff .^ 0.5
+        @. trapped_fraction / (
+            1 + 0.25 * (1 - 0.7 * trapped_fraction) * sqrt(nue) * (1 + 0.45 * (Zeff - 1) ^ 0.5) +
+            0.61 * (1 - 0.41 * trapped_fraction) * nue / Zeff ^ 0.5
         )
 
-    F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
+    F33 = @. 1 - (1 + 0.21 / Zeff) * f33teff + 0.54 / Zeff * f33teff ^ 2 - 0.33 / Zeff * f33teff ^ 3
 
     conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
 
