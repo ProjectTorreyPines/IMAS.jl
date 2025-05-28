@@ -4,6 +4,7 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
+import Statistics
 import DataInterpolations: DataInterpolations, ExtrapolationType
 import IMASutils: IMASutils, trapz, cumtrapz, cumtrapz!, mirror_bound, argmin_abs
 import PeriodicTable: elements
@@ -35,3 +36,4 @@ include(joinpath("physics", "particles.jl"))
 include(joinpath("physics", "pf_active.jl"))
 include(joinpath("physics", "technology.jl"))
 include(joinpath("physics", "thermal_loads.jl"))
+include(joinpath("physics", "outliers.jl"))

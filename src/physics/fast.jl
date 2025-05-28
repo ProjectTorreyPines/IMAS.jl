@@ -626,9 +626,9 @@ function bkefun(y::T1, vcvo::T2, tstcx::T3, emzrat::T4) where {T1<:Real, T2<:Rea
 end
 
 """
-    ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N=100) where {T1<:Real, T2<:Real, T3<:Real}
+    ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N::Int=100) where {T1<:Real, T2<:Real, T3<:Real}
 """
-function ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N=100) where {T1<:Real, T2<:Real, T3<:Real}
+function ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N::Int=100) where {T1<:Real, T2<:Real, T3<:Real}
     T = promote_type(T1, T2, T3)
     out = zero(T)
     @inbounds @simd for y1 in range(0.0, 1.0, N)
