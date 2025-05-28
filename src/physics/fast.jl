@@ -596,37 +596,43 @@ function imfp_electron_collisions(vb::Real, te::Real, zne::Real)
 end
 
 """
-    bkefun(y::Real, vcvo::Real, tstcx::Real, emzrat::Real)
+    bkefun(y::T1, vcvo::T2, tstcx::T3, emzrat::T4) where {T1<:Real, T2<:Real, T3<:Real, T4<:Real}
 """
-function bkefun(y::Real, vcvo::Real, tstcx::Real, emzrat::Real)
-    if y <= 0
-        return 0.0
-    end
-    y3 = y^3
-    v3 = vcvo^3
+function bkefun(y::T1, vcvo::T2, tstcx::T3, emzrat::T4) where {T1<:Real, T2<:Real, T3<:Real, T4<:Real}
+    T = promote_type(T1, T2, T3, T4)
+    y <= 0 && return zero(T)
+    y2  = y*y
+    y3  = y2*y
+    v2  = vcvo*vcvo
+    v3  = v2*vcvo
     y3v3 = y3 + v3
-    inv_y3v3 = 1 / y3v3
-    arg = (1 + v3) * inv_y3v3
-    alogarg = log(arg)
-    pcxlog = -tstcx * alogarg / 3
-    log_y = log(y)
-    alog3y = 3 * log_y
-    alogy3v3 = log(y3v3)
-    blog = (alog3y + alogarg) * emzrat / 3
-    bkeflog = alog3y + pcxlog + blog - alogy3v3
-    return bkeflog < -30 ? 0.0 : exp(bkeflog)
+
+    inv_y3v3 = inv(y3v3)
+    arg      = (1 + v3)*inv_y3v3             # (1+v³)/(y³+v³)
+
+    # log(arg), but with a cheap accuracy win when arg ≈ 1
+    alogarg  = log(arg)
+
+    logy  = log(y)
+    logy3v3 = log(y3v3)
+
+    # algebraic simplification of the original expression:
+    # bkeflog = logy*(3 + emzrat) +
+    #           alogarg*(emzrat - tstcx)/3 -
+    #           logy3v3
+    bkeflog = muladd(logy, 3 + emzrat,
+                    muladd(alogarg, (emzrat - tstcx)/3, -logy3v3))
+    return bkeflog < -30 ? zero(T) : exp(bkeflog)
 end
 
 """
-    ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
+    ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N=100) where {T1<:Real, T2<:Real, T3<:Real}
 """
-function ion_momentum_fraction(vpar::Real, tpar::Real, emzpar::Real; N=100)
-    vcvo = vpar
-    tstcx = tpar
-    emzrat = emzpar
-    out = 0.0
+function ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N=100) where {T1<:Real, T2<:Real, T3<:Real}
+    T = promote_type(T1, T2, T3)
+    out = zero(T)
     @inbounds @simd for y1 in range(0.0, 1.0, N)
-        out += bkefun(y1, vcvo, tstcx, emzrat)
+        out += bkefun(y1, vpar, tpar, emzpar)
     end
     return out / N
 end
@@ -636,10 +642,11 @@ end
 """
 function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, Ef::Real, mf::Real, Zf::Real)
     E_c = critical_energy(cp1d, mf, Zf)
-    taus = slowing_down_time.(cp1d.electrons.density_thermal, cp1d.electrons.temperature, mf, Zf)
-    emzrat = cp1d.ion[1].element[1].a .* cp1d.zeff ./ (mf * Zf)
-    bke = ion_momentum_fraction.(sqrt.(E_c / Ef), 0.0, emzrat)
-    tau_mom = taus .*  bke
+    ne = cp1d.electrons.density_thermal
+    Te = cp1d.electrons.temperature
+    a = cp1d.ion[1].element[1].a
+    Zeff = cp1d.zeff
+    tau_mom = @. slowing_down_time(ne, Te, mf, Zf) * ion_momentum_fraction(sqrt(E_c / Ef), 0.0, a *  Zeff / (mf * Zf))
     return tau_mom
 end
 
