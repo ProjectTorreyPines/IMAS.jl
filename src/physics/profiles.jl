@@ -945,24 +945,24 @@ Returns species index and names (followed by "_fast" if density_fast is present)
 function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Symbol=:all, only_thermal_fast::Symbol=:all)
     @assert only_electrons_ions ∈ (:all, :electrons, :ions) "only_electrons_ions can be one of (:all, :electrons, :ions)"
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
-    out = Tuple{Int, Symbol}[]
+    out = @NamedTuple{index::Int64, name::Symbol}[]
     if only_electrons_ions ∈ (:all, :electrons)
         if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && sum(cp1d.electrons.density_thermal) > 0.0
-            push!(out, (0, :electrons))
+            push!(out, (index=0, name=:electrons))
         end
         if only_thermal_fast ∈ (:all, :fast) && hasdata(cp1d.electrons, :density_fast) && sum(cp1d.electrons.density_fast) > 0.0
-            push!(out, (0, :electrons_fast))
+            push!(out, (index=0, name=:electrons_fast))
         end
     end
     if only_electrons_ions ∈ (:all, :ions)
         if only_thermal_fast ∈ (:all, :thermal)
-            dd_thermal = ((k, Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && sum(ion.density_thermal) > 0.0)
+            dd_thermal = ((index=k, name=Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && sum(ion.density_thermal) > 0.0)
             for item in dd_thermal
                 push!(out, item)
             end
         end
         if only_thermal_fast ∈ (:all, :fast)
-            dd_fast = ((k, Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && sum(ion.density_fast) > 0.0)
+            dd_fast = ((index=k, name=Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && sum(ion.density_fast) > 0.0)
             for item in dd_fast
                 push!(out, item)
             end
@@ -1004,7 +1004,7 @@ push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 
 If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi neutrality condtion.
 
-If `species` is a ion species, it evaluates the difference in number of charges needed to reach quasineutrality, and assigns positive difference to target ion density_thermal species and negative difference to electrons density_thermal
+If `species` is a ion species, it evaluates the difference in number of charges needed to reach quasi-neutrality, and assigns positive difference to target ion density_thermal species and negative difference to electrons density_thermal
 
 Also, sets `density` to the original expression
 """
@@ -1016,7 +1016,10 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
     end
 
     if species == :electrons
-        cp1d.electrons.density_thermal = sum(ion.density .* ion.z_ion for ion in cp1d.ion) .- cp1d.electrons.density_fast
+        cp1d.electrons.density_thermal = sum(ion.density .* ion.z_ion for ion in cp1d.ion)
+        if hasdata(cp1d.electrons, :density_fast)
+            cp1d.electrons.density_thermal .-= cp1d.electrons.density_fast
+        end
 
     else
         # identify ion species
@@ -1024,16 +1027,15 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         @assert species_indx !== nothing
         ion0 = cp1d.ion[species_indx]
 
-        # evaluate the difference in number of thermal charges needed to reach quasineutrality
+        # evaluate the difference in number of thermal charges needed to reach quasi-neutrality
         if hasdata(cp1d.electrons, :density_fast)
             ne = cp1d.electrons.density_thermal .+ cp1d.electrons.density_fast
         else
             ne = cp1d.electrons.density_thermal
         end
+        q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0)
         if hasdata(ion0, :density_fast)
-            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0) .- ion0.density_fast .* ion0.z_ion
-        else
-            q_density_difference = ne .- sum(ion.density .* ion.z_ion for ion in cp1d.ion if ion !== ion0)
+            q_density_difference .-= .- ion0.density_fast .* ion0.z_ion
         end
 
         # positive difference is assigned to target ion density_thermal
@@ -1218,7 +1220,7 @@ function new_impurity_radiation!(dd::IMAS.dd, impurity_name::Symbol, time_total_
         try
             IMAS.new_impurity_radiation!(dd, impurity_name, total_radiated_power_itp(time0))
         catch e
-            @warn("$(typeof(e)): Could not new_impurity_radiation!(dd, $(impurity_name), $(total_radiated_power_itp(time0))) at time $(dd.global_time)")
+            @warn("$(typeof(e)): Could not set new_impurity_radiation!(dd, $(impurity_name), $(total_radiated_power_itp(time0))) at time $(dd.global_time)")
         end
     end
 
@@ -1249,7 +1251,6 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}; temperature_dependent_io
         else
             @. z += ion.density_thermal * (ion.element[1].z_n ^ 2)
         end
-
     end
     @. z /= cp1d.electrons.density_thermal
     clamp!(z, 1.0, Inf) # Zeff must be at least 1.0

@@ -76,16 +76,18 @@ end
         currents = [0.0 for c in pfa.coil]
         c_unit = "A"
     else
-        if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
-            index = 1
-        elseif pfa.coil[1].current.time[1] == -Inf
-            index = 2:length(pfa.coil[1].current.time)
-        else
-            index = 1:length(pfa.coil[1].current.time)
-        end
-
         currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
-        CURRENT = maximum((maximum(abs, c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)) for c in pfa.coil))
+        CURRENT = 0.0
+        for c in pfa.coil
+            if time0 == -Inf && c.current.time[1] == -Inf
+                index = 1
+            elseif c.current.time[1] == -Inf
+                index = 2:length(c.current.time)
+            else
+                index = 1:length(c.current.time)
+            end
+            CURRENT = max(CURRENT, maximum(abs, @views c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)))
+        end
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
@@ -2135,11 +2137,12 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false, what_density=:density)
     id = recipe_dispatch(cpt)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
     assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
+    assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
 
     if label === nothing
         label = ""
@@ -2207,7 +2210,7 @@ end
             title --> "Densities"
             label := "e" * label
             ylim --> (0.0, Inf)
-            cpt.electrons, :density
+            cpt.electrons, what_density
         end
         if greenwald
             @series begin
@@ -2235,7 +2238,7 @@ end
                 linestyle --> :dash
                 ylim --> (0.0, Inf)
                 normalization --> Z
-                ion, :density
+                ion, what_density
             end
         end
     end
