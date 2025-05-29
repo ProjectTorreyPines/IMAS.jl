@@ -1450,8 +1450,6 @@ function trace_surfaces(
             pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
 
         else  # other flux surfaces
-
-            # trace flux surface
             tmp = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
             pr, pz = collect(tmp[1]), collect(tmp[2])
             if k == N && !is_closed_surface(pr, pz, wall_r, wall_z)
@@ -1510,13 +1508,16 @@ function trace_surfaces(
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
             # plot!(pr, pz)
-            dd = minimum(sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2))
+            dd = minimum(filter(!isnan,sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)))
             if dd < d
                 d = dd
                 k = kk
             end
         end
         leftright_r, leftright_z = Contour.coordinates(lines[k])
+        index = .!(isnan.(leftright_r) .|| isnan.(leftright_z))
+        leftright_r=@view leftright_r[index]
+        leftright_z=@view leftright_z[index]
 
         # extrema in R
         interp_r = interp1d(1:length(leftright_r), leftright_r)
@@ -1576,13 +1577,16 @@ function trace_surfaces(
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
             # plot!(pr, pz)
-            dd = minimum(sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2))
+            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2)))
             if dd < d
                 d = dd
                 k = kk
             end
         end
         updown_r, updown_z = Contour.coordinates(lines[k])
+        index = .!(isnan.(updown_r) .|| isnan.(updown_z))
+        updown_r=@view updown_r[index]
+        updown_z=@view updown_z[index]
 
         # extrema in Z
         interp_r = interp1d(1:length(updown_r), updown_r)
@@ -1652,7 +1656,7 @@ end
 @compat public trace_surfaces
 push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
 
-function _extrema_index(r::Vector{T}, z::Vector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
+function _extrema_index(r::AbstractVector{T}, z::AbstractVector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
     i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
     n = 3
     if direction == :right
