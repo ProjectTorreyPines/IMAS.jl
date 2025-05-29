@@ -141,7 +141,7 @@ function electron_ion_drag_difference(cp1d::IMAS.core_profiles__profiles_1d, irh
     for ion in cp1d.ion
         ni = ion.density_thermal[irho]
         Ti = ion.temperature[irho]
-        Zi = ion.element[1].z_n
+        Zi = avgZ(ion.element[1].z_n, Ti)
         mi = ion.element[1].a
         if ni > 0.0 && Ti > 0.0
             lnΛ_fis = lnΛ_fi(ne, Te, ni, Ti, mi, Zi, v_f / mks.c, mf, Zf)
@@ -167,7 +167,7 @@ function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, irho::Int, mf::R
     ne = cp1d.electrons.density_thermal[irho]
     Te = cp1d.electrons.temperature[irho]
 
-    avg_cmr = sum(ion.density_thermal[irho] * (ion.element[1].z_n^2) / ion.element[1].a for ion in cp1d.ion) / ne
+    avg_cmr = sum(ion.density_thermal[irho] * (avgZ(ion.element[1].z_n, ion.temperature[irho])^2) / ion.element[1].a for ion in cp1d.ion) / ne
     Ec = 14.8 * mf * Te * avg_cmr^(2.0 / 3.0)
     if !approximate
         Ec = Roots.find_zero(Ec0 -> electron_ion_drag_difference(cp1d, irho, Ec0, mf, Zf), (0.5 * Ec, 2 * Ec))
@@ -179,7 +179,7 @@ function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, mf::Real, Zf::Re
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
-    avg_cmr = sum(ion.density_thermal .* (ion.element[1].z_n^2) / ion.element[1].a for ion in cp1d.ion) ./ ne
+    avg_cmr = sum(ion.density_thermal .* (avgZ(ion.element[1].z_n, sum(ion.temperature)/length(ion.temperature))^2) / ion.element[1].a for ion in cp1d.ion) ./ ne
     Ec = 14.8 .* mf .* Te .* avg_cmr .^ 1.5
     if !approximate
         Ec1 = critical_energy(cp1d, 1, mf, Zf; approximate)
@@ -385,7 +385,7 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
         if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
             ni = ion.density_thermal
             @assert all(ni .>= 0.0) "Ion `$(ion.label)` has negative densities\n$ni"
-            Zi = avgZ(ion.element[1].z_n, ion.temperature)
+            Zi = avgZ(ion)
             mi = ion.element[1].a
             c_a .+= (ni ./ ne) .* Zi .^ 2 ./ (mi ./ particle_mass)
         end

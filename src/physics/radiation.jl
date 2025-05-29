@@ -115,8 +115,8 @@ function line_radiation_source!(dd::IMAS.dd)
 
     sources = [for ion in cp1d.ion
         ni = ion.density_thermal
-        zi = ion.z_ion
-        namei = string(elements[Int(floor(ion.z_ion))].symbol)
+        zi = ion.element[1].z_n
+        namei = string(elements[Int(floor(ion.element[1].z_n))].symbol)
         linerad = rad_ion_adas(Te, ne, ni, zi, namei)
 
         name = "line $namei"
