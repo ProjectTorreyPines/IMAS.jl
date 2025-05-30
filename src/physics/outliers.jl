@@ -1,5 +1,5 @@
 """
-    robust_outlier_removal(data::Matrix{T}; 
+    robust_outlier_removal(data::AbstractMatrix{T}; 
         spatial_window::Tuple{Int,Int}=(3,3),
         threshold::Float64=3.0,
         method::Symbol=:mad,
@@ -25,7 +25,7 @@ Advanced outlier removal with flexible stencil sizes and robust statistics.
   - Cleaned 2D matrix with outliers replaced
   - Mask indicating which points were modified (optional second return)
 """
-function robust_outlier_removal(data::Matrix{T};
+function robust_outlier_removal(data::AbstractMatrix{T};
     spatial_window::Tuple{Int,Int}=(3, 3),
     threshold::Float64=3.0,
     method::Symbol=:mad,
@@ -91,11 +91,11 @@ function robust_outlier_removal(data::Matrix{T};
 end
 
 """
-    extract_neighborhood(data::Matrix{T}, i::Int, j::Int, h_half::Int, w_half::Int, boundary_mode::Symbol) where T<:Real
+    extract_neighborhood(data::AbstractMatrix{T}, i::Int, j::Int, h_half::Int, w_half::Int, boundary_mode::Symbol) where T<:Real
 
 Extract neighborhood around point (i,j) with specified boundary handling.
 """
-function extract_neighborhood(data::Matrix{T}, i::Int, j::Int, h_half::Int, w_half::Int, boundary_mode::Symbol) where {T<:Real}
+function extract_neighborhood(data::AbstractMatrix{T}, i::Int, j::Int, h_half::Int, w_half::Int, boundary_mode::Symbol) where {T<:Real}
     m, n = size(data)
 
     # # Define neighborhood indices
@@ -155,13 +155,13 @@ function symmetric_index(idx::Int, max_idx::Int)
 end
 
 """
-    compute_robust_statistics(neighborhood::Matrix{Float64}, method::Symbol)
+    compute_robust_statistics(neighborhood::AbstractMatrix{Float64}, method::Symbol)
 
 Compute robust center and scale estimates for outlier detection.
 
 Method can be :mad, :iqr, :huber, or :trimmed_mean
 """
-function compute_robust_statistics(neighborhood::Matrix{Float64}, method::Symbol)
+function compute_robust_statistics(neighborhood::AbstractMatrix{Float64}, method::Symbol)
     # Remove NaN values
     valid_vals = neighborhood[.!isnan.(neighborhood)]
 
@@ -223,7 +223,7 @@ function huber_weights(x::Float64, k::Float64=1.345)
 end
 
 """
-    adaptive_outlier_removal(data::Matrix{T};
+    adaptive_outlier_removal!(data::AbstractMatrix{T};
         min_window::Tuple{Int,Int}=(3, 3),
         max_window::Tuple{Int,Int}=(7, 7),
         base_window::Tuple{Int,Int}=min_window,
@@ -232,7 +232,7 @@ end
 
 Adaptive outlier removal that adjusts window size based on local data characteristics.
 """
-function adaptive_outlier_removal(data::Matrix{T};
+function adaptive_outlier_removal!(data::AbstractMatrix{T};
     min_window::Tuple{Int,Int}=(3, 3),
     max_window::Tuple{Int,Int}=(7, 7),
     base_window::Tuple{Int,Int}=min_window,
@@ -240,7 +240,7 @@ function adaptive_outlier_removal(data::Matrix{T};
     adaptivity::Symbol=:gradient) where {T<:Real}
 
     m, n = size(data)
-    cleaned = copy(data)
+    cleaned=Dict{Tuple{Int,Int},T}()
 
     for i in 1:m, j in 1:n
         # Determine local window size based on adaptivity criterion
@@ -281,10 +281,14 @@ function adaptive_outlier_removal(data::Matrix{T};
         end
     end
 
-    return cleaned
+    for ((i,j), value) in cleaned
+        data[i,j] = value
+    end
+
+    return data
 end
 
-function compute_local_gradient(data::Matrix{T}, i::Int, j::Int) where {T<:Real}
+function compute_local_gradient(data::AbstractMatrix{T}, i::Int, j::Int) where {T<:Real}
     m, n = size(data)
 
     # Compute finite differences
@@ -301,7 +305,7 @@ function compute_local_gradient(data::Matrix{T}, i::Int, j::Int) where {T<:Real}
     return sqrt(grad_i^2 + grad_j^2)
 end
 
-function compute_local_variance(data::Matrix{T}, i::Int, j::Int, window::Tuple{Int,Int}) where {T<:Real}
+function compute_local_variance(data::AbstractMatrix{T}, i::Int, j::Int, window::Tuple{Int,Int}) where {T<:Real}
     h_half = window[1] ÷ 2
     w_half = window[2] ÷ 2
 
