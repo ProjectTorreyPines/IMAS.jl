@@ -333,7 +333,7 @@ function intersection_split(
             r[end], z[end] = crossings[kk]
             # if segment is made only of intersections, put a point in the middle of the segment
             if length(r) == 2
-                segments[k] = (r=[r[1],(r[1] + r[end])/2, r[end]], z=[z[1],(z[1] + z[end])/2, z[end]])
+                segments[k] = (r=[r[1], (r[1] + r[end]) / 2, r[end]], z=[z[1], (z[1] + z[end]) / 2, z[end]])
             else
                 segments[k] = (r=r, z=z)
             end
@@ -1058,6 +1058,51 @@ end
     return (q[1] - p[1]) * (r[2] - p[2]) - (q[2] - p[2]) * (r[1] - p[1]) < 0.0
 end
 
+function halfhull_indices(points::AbstractVector, sorted_indices::AbstractVector{Int})
+    hull_indices = Vector{Int}(undef, length(sorted_indices))
+    n = 0
+    for idx in sorted_indices
+        while n > 1 && !isrightturn(points[hull_indices[n-1]], points[hull_indices[n]], points[idx])
+            n -= 1
+        end
+        n += 1
+        hull_indices[n] = idx
+    end
+    return view(hull_indices, 1:n)
+end
+
+function grahamscan_indices(points::AbstractVector)
+    # Create array of indices and sort them based on point comparison
+    indices = collect(1:length(points))
+    sort!(indices; lt=(i, j) -> points_isless(points[i], points[j]))
+
+    # Compute upper hull
+    upperhull_indices = halfhull_indices(points, indices)
+
+    # Reverse indices for lower hull
+    reverse!(indices)
+    lowerhull_indices = halfhull_indices(points, indices)
+
+    # Combine hulls (excluding duplicate endpoints)
+    return [upperhull_indices; lowerhull_indices[2:end-1]]
+end
+
+"""
+    convex_hull_indices(xy_points::AbstractVector)
+
+Compute the indices of points that form the convex hull of a set of 2D points.
+Returns the indices in counter-clockwise order.
+
+This is the internal function that works with indices only.
+"""
+function convex_hull_indices(xy_points::AbstractVector)
+    if length(xy_points) <= 1
+        return collect(1:length(xy_points))
+    end
+    return grahamscan_indices(xy_points)
+end
+
+# Original halfhull function (kept for compatibility)
 function halfhull(points::AbstractVector)
     halfhull = similar(points)
     n = 0
@@ -1071,12 +1116,10 @@ function halfhull(points::AbstractVector)
     return view(halfhull, 1:n)
 end
 
+# Modified grahamscan! to use index-based approach internally
 function grahamscan!(points::AbstractVector)
-    sort!(points; lt=points_isless)
-    upperhull = halfhull(points)
-    reverse!(points)
-    lowerhull = halfhull(points)
-    return [upperhull; lowerhull[2:end-1]]
+    hull_indices = grahamscan_indices(points)
+    return points[hull_indices]
 end
 
 """
@@ -1085,14 +1128,16 @@ end
 Compute the convex hull of a set of 2D points, sorted in counter-clockwise order.
 The resulting convex hull forms a closed polygon by appending the first point at the end.
 
-NOTE: The input vector is sorted and modified in-place
+NOTE: The input vector is not modified anymore (uses index-based approach internally)
 """
-function convex_hull!(xy_points::AbstractVector; closed_polygon::Bool)
-    hull = grahamscan!(xy_points)
-    if closed_polygon && !isempty(hull)
-        return push!(hull, hull[1])
+function convex_hull!(xy_points::AbstractVector; closed_polygon::Bool=false)
+    hull_indices = convex_hull_indices(xy_points)
+    hull_points = view(xy_points, hull_indices)
+
+    if closed_polygon && !isempty(hull_points)
+        return [hull_points; hull_points[1:1]]  # Use view for first element too
     else
-        return hull
+        return collect(hull_points)  # Convert view to array for return
     end
 end
 
@@ -1102,17 +1147,27 @@ end
 Compute the convex hull of a set of 2D points, sorted in counter-clockwise order.
 The resulting convex hull forms a closed polygon by appending the first point at the end.
 """
-function convex_hull(xy_points::AbstractVector; closed_polygon::Bool)
-    return convex_hull!(deepcopy(xy_points); closed_polygon)
+function convex_hull(xy_points::AbstractVector; closed_polygon::Bool=false)
+    hull_indices = convex_hull_indices(xy_points)
+    hull_points = xy_points[hull_indices]
+
+    if closed_polygon && !isempty(hull_points)
+        return push!(hull_points, hull_points[1])
+    else
+        return hull_points
+    end
 end
 
 """
     convex_hull(x::AbstractVector{T}, y::AbstractVector{T}; closed_polygon::Bool) where {T}
 """
-function convex_hull(x::AbstractVector{T}, y::AbstractVector{T}; closed_polygon::Bool) where {T}
+function convex_hull(x::AbstractVector{T}, y::AbstractVector{T}; closed_polygon::Bool=false) where {T}
     xy_points = [(xx, yy) for (xx, yy) in zip(x, y)]
-    return convex_hull!(xy_points; closed_polygon)
+    return convex_hull(xy_points; closed_polygon)
 end
 
-@compat public convex_hull
+# Export both the regular function and the index-based function
+@compat public convex_hull, convex_hull_indices
 push!(document[Symbol("Geometry")], :convex_hull)
+push!(document[Symbol("Geometry")], :convex_hull_indices)
+
