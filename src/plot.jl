@@ -3048,7 +3048,7 @@ const UnionPulseScheduleSubIDS = Union{IMAS.pulse_schedule,(tp for tp in fieldty
             continue
         end
 
-        time_value = coordinates(ids, :reference).values[1]
+        time_value = getproperty(coordinates(ids, :reference)[1])
         data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> !isinf(x), time_value))) == 1
@@ -3557,9 +3557,9 @@ end
     assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
     assert_type_and_record_argument(id, Bool, "Fill area under curve"; fill0)
 
-    coords = coordinates(ids, field; coord_leaves=[coordinate])
-    coordinate_name = coords.names[1]
-    coordinate_value = coords.values[1]
+    coords = coordinates(ids, field; override_coord_leaves=[coordinate])
+    coordinate_name = string(coords[1].field)
+    coordinate_value = getproperty(coords[1])
 
     # If the field is the reference coordinate of the given IDS,
     # set the coordinate_value as its index
@@ -3579,9 +3579,9 @@ end
 
         # multiply y by things like `:area` or `:volume`
         if weighted !== nothing
-            weight = coordinates(ids, field; coord_leaves=[weighted])
-            yvalue .*= weight.values[1]
-            ylabel = nice_units(units(ids, field) * "*" * units(weight.names[1]))
+            weight = coordinates(ids, field; override_coord_leaves=[weighted])[1]
+            yvalue .*= getproperty(weight)
+            ylabel = nice_units(units(ids, field) * "*" * units(weight.field))
             label = nice_field("$field*$weighted")
         else
             ylabel = nice_units(units(ids, field))
@@ -3591,7 +3591,7 @@ end
         if coordinate_name == "1...N"
             xlabel --> "index"
         else
-            xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+            xlabel --> nice_field(coordinate_name) * nice_units(units(coords[1].ids, coords[1].field))
         end
         ylabel --> ylabel
         label --> label
@@ -3628,12 +3628,14 @@ end
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
         coord = coordinates(ids, field)
-        if ~isempty(coord.values) && issorted(coord.values[1]) && issorted(coord.values[2])
+        dim1 = getproperty(coord[1])
+        dim2 = getproperty(coord[2])
+        if dim1 in (nothing, missing) || dim2 in (nothing, missing)
             # Plot zvalue with the coordinates
-            xvalue = coord.values[1]
-            yvalue = coord.values[2]
-            xlabel --> split(coord.names[1], '.')[end] # dim1
-            ylabel --> split(coord.names[2], '.')[end] # dim2
+            xvalue = dim1
+            yvalue = dim2
+            xlabel --> coord[1].field
+            ylabel --> coord[2].field
 
             xlim --> (minimum(xvalue), maximum(xvalue))
             ylim --> (minimum(yvalue), maximum(yvalue))
