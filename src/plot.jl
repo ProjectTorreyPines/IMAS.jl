@@ -3568,7 +3568,13 @@ end
     end
 
     xvalue = coordinate_value
-    yvalue = getproperty(ids, field) .* normalization
+    yvalue = getproperty(ids, field)
+
+    if hasdata(ids, Symbol("$(field)_σ"))
+        yvalue = Measurements.measurement.(yvalue, getproperty(ids, Symbol("$(field)_σ")))
+    end
+
+    yvalue = yvalue .* normalization
 
     @series begin
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
