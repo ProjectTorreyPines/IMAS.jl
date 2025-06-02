@@ -142,46 +142,127 @@ function ray_rect_intersection(
 
     return (x0 + t_hit*dx, y0 + t_hit*dy)
 end
+"""
+    r_intersect_interval(x0::T, y0::T, dx::T, dy::T, r_min::T, r_max::T) where {T<:Real}
+
+Finds intersection of ray starting at x0 and y0 with direction (dx,dy) 
+    with reference major radius value r_ref
+
+- `x0``, `y0``: Origin
+- `dx``, `dy``: Normalized direction in x-y plane
+- `r_min`, `r_max`: Edges of r_range
+
+Returns interval [t1, t2] for which r_min <= r(t) <= r_max with r(t)^2 = (x+dx*t)^2 + (y+dy*t)^2
 
 """
-    ray_rect_torus_intersect(origin, direction, ρ_bounds, z_bounds)
+
+function solve_r_intersect(x0::T, y0::T, dx::T, dy::T, r_min::T, r_max::T) where {T<:Real}
+    r0 = sqrt(x0^2 + y0^2)
+    t_crossings = zeros(Float64, 4)
+    crossing = zeros(Float64, 4) # +1 -> into domain
+                                 # -1 -> out of 
+                                 # 0 -> no crossing
+    into_domain = [1.0, -1.0]
+    if dx == 0 && dy == 0
+        # Handle vertical ray
+        if (r0 > r_min && r0 < r_max)
+            return [[0.0 Inf];]
+        else
+            return zeros(Float64, 0)
+        end
+    end
+    for (i_ref, r_ref) in enumerate([r_min, r_max])
+        Δ = r_ref^2 * (dx^2 + dy^2) - x0^2 * dy^2 - y0^2 * dx^2 + 2 * x0 * y0* dx*dy
+        if Δ < 0
+            # println("No intersection for ", r_ref)
+            t_crossings[2*(i_ref-1) + 1] = Inf
+            t_crossings[2*(i_ref-1) + 2] = Inf
+            crossing[2*(i_ref-1) + 1] = 0.0
+            crossing[2*(i_ref-1) + 2] = 0.0
+            continue
+        end
+        t1 = -(x0*dx + y0 * dy) - sqrt(Δ)
+        t2 = -(x0*dx + y0 * dy) + sqrt(Δ)
+        t_crossings[2*(i_ref-1) + 1] = t1 >= 0 ? t1/ (dx^2 + dy^2) : Inf
+        t_crossings[2*(i_ref-1) + 2] = t2 >= 0 ? t2/ (dx^2 + dy^2) : Inf
+        crossing[2*(i_ref-1) + 1] = t1 >= 0 ? into_domain[i_ref]*sign(x0*dx + dx^2*t1 + y0 * dy + dy^2*t1) : 0.0
+        crossing[2*(i_ref-1) + 2] = t2 >= 0 ? into_domain[i_ref]*sign(x0*dx + dx^2*t2 + y0 * dy + dy^2*t2) : 0.0
+    end
+    last = 0 # 1 in, 0 out
+    # If the first point is in we add it to the crossings
+    if (r0 > r_min && r0 < r_max)
+        append!(t_crossings, 0.0)
+        append!(crossing, 1.0)
+    end
+    i_sort = sortperm(t_crossings)
+    intervals = zeros(Float64, 0)
+    for i in i_sort
+        if t_crossings[i] == Inf
+            continue
+        end
+        if last == 0 && crossing[i] > 0.0 # looking for a crossing into the rectangle
+            append!(intervals, t_crossings[i])
+            last = 1
+        elseif last == 1 && crossing[i] < 0.0 # looking for a crossing leaving the rectangle
+            append!(intervals, t_crossings[i])
+            last = 0
+        end
+    end
+    if length(intervals) % 2 != 0
+        throw(ErrorException("Somehow only found odd number of intersections which is impossible."))
+    end
+    if length(intervals) > 2  # Return as shape (2,2). Need to transpose because column-major...
+        return permutedims(reshape(intervals, :, 2))
+    elseif length(intervals) > 0
+        return reshape(intervals, :, 2)  # Return as shape (1,2)
+    else
+        return intervals # Return empty
+    end
+end
+
+
+"""
+    ray_torus_intersect(origin, direction, ρ_bounds, z_bounds)
 
 Finds intersection of a ray with a rectangular torus defined in cylindrical coordinates.
 
 - `origin`: (x, y, z) vector
 - `direction`: normalized (dx, dy, dz)
-- `ρ_bounds`: (ρ_min, ρ_max)
+- `r_bounds`: (r_min, r_max)
 - `z_bounds`: (z_min, z_max)
 
-Returns (t, point) or `nothing` if no intersection.
+Returns intersection point between ray closest to the origin or `nothing` if no intersection.
 """
-function ray_rect_torus_intersect(origin, direction, ρ_bounds, z_bounds)
+function ray_torus_intersect(origin, direction, r_bounds, z_bounds)
     x0, y0, z0 = origin
-    dx, dy, dz = direction
-    ρ_min, ρ_max = ρ_bounds
+    if norm(direction) == 0
+        throw(ArgumentError("Direction most not have norm zero"))
+    end
+    dx, dy, dz = direction/norm(direction)
+    r_min, r_max = r_bounds
     z_min, z_max = z_bounds
+    # Intervals in between the ray passes throught the r limits of the box
+    t_intervals_R = solve_r_intersect(x0, y0, dx, dy, r_min, r_max)
+    if dz == 0
+        if z0 < z_min || z0 > z_max
+            return nothing, nothing
+        else
+            t_interval_z = [0.0 Inf]
+        end
+    else
+        t_interval_z = sort![(z_min - z0) / dz, (z_max - z0) / dz]
+    end
+    t_interval_z[1] = t_interval_z[1] > 0.0 ? t_interval_z[1] : 0.0 # Remove intersection at negative values
+    
 
     # Parametrize ρ(t) and z(t)
-    ρ(t) = hypot(x0 + dx * t, y0 + dy * t)
-    z(t) = z0 + dz * t
-
-    # Solve for t where z(t) in [z_min, z_max]
-    t_z1 = dz != 0 ? (z_min - z0) / dz : -Inf
-    t_z2 = dz != 0 ? (z_max - z0) / dz :  Inf
-    tmin, tmax = sort([t_z1, t_z2])
-
-    # Search for a t in [tmin, tmax] such that ρ(t) ∈ [ρ_min, ρ_max]
-    ts = range(tmin, tmax; length=1000)
-
-    for t in ts
-        ρt = ρ(t)
-        zt = z(t)
-        if ρt ≥ ρ_min && ρt ≤ ρ_max && zt ≥ z_min && zt ≤ z_max
-            point = origin .+ t .* direction
-            return t, point
+    for t_interval_R in eachrow(t_intervals_R)
+        t_min = max(t_interval_R[1], t_interval_z[1])
+        t_max = min(t_interval_R[2], t_interval_z[2])
+        if t_min < t_max
+            return [x0 y0 z0] + [dx dy dz] * t_min
         end
     end
-
     return nothing
 end
 
