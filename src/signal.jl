@@ -236,7 +236,16 @@ end
 
 Calculate the moving average of a data vector on a new time basis
 """
-function moving_average!(result::Ref{Float64}, w::Vector{Float64}, time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width::Float64, interp, causal::Bool) where {T<:Real}
+function moving_average!(
+    result::Ref{Float64},
+    w::Vector{Float64},
+    time::AbstractVector{Float64},
+    data::AbstractVector{T},
+    t0::Float64,
+    width::Float64,
+    interp,
+    causal::Bool
+) where {T<:Real}
     if causal
         @. w = pulse(-time, -t0 - width, width)
     else
@@ -316,92 +325,105 @@ The gaussian window is infinite in extent, and thus returns values for all xo.
 :param xo: Output grid points of convolution array (default xi)
 
 :param window_size: float.
-    Width of passed to window function (default maximum xi step).
-    For the Gaussian, sigma=window_size/4. and the convolution is integrated across +/-4.*sigma.
+Width of passed to window function (default maximum xi step).
+For the Gaussian, sigma=window_size/4. and the convolution is integrated across +/-4.*sigma.
 
-:param window_function: str/function.
-    Accepted strings are 'hanning','bartlett','blackman','gaussian', or 'boxcar'.
-    Function should accept x and window_size as arguments and return a corresponding weight.
+:param window_function: Symbol/function.
+Accepted strings are :hanning, :bartlett, :blackman, :gaussian, or :boxcar.
+Function should accept x and window_size as arguments and return a corresponding weight.
 
 :param axis: int. Axis of y along which convolution is performed
 
-:param causal: int. Forces f(x>0) = 0.
+:param causal: int. Forces fw(x>0) = 0.
 
 :param interpolate: False or integer number > 0
-    Paramter indicating to interpolate data so that there are`interpolate`
-    number of data points within a time window. This is useful in presence of sparse
-    data, which would result in stair-case output if not interpolated.
-    The integer value sets the # of points per window size.
-
-:param std_dev: str/int
-    Accepted strings are 'none', 'propagate', 'population', 'expand', 'deviation', 'variance'.
-    Only 'population' and 'none' are valid if yi is not an uncertainties array (i.e. std_devs(yi) is all zeros).
-    Setting to an integer will convolve the error uncertainties to the std_dev power before taking the std_dev root.
-    std_dev = 'propagate' is true propagation of errors (slow if not interpolating)
-    std_dev = 'population' is the weighted "standard deviation" of the points themselves (strictly correct for the boxcar window)
-    std_dev = 'expand' is propagation of errors weighted by w~1/window_function
-    std_dev = 'deviation' is equivalent to std_dev=1
-    std_dev = 'variance' is equivalent to std_dev=2
+Paramter indicating to interpolate data so that there are`interpolate`
+number of data points within a time window. This is useful in presence of sparse
+data, which would result in stair-case output if not interpolated.
+The integer value sets the # of points per window size.
 
 :return: convolved array on xo
 """
-function smooth_by_convolution(yi::AbstractVector; xi=nothing, xo=nothing, window_size=nothing, window_function="gaussian", causal=false, interpolate=false, std_dev=2)
+function smooth_by_convolution(
+    yi::AbstractVector{T};
+    xi=nothing,
+    xo=nothing,
+    window_size=nothing,
+    window_function=:gaussian,
+    causal::Bool=false,
+    interpolate::Int=0,
+    no_nan::Bool=false
+) where {T<:Real}
 
     xi = xi === nothing ? collect(1:length(yi)) : xi
     xo = xo === nothing ? xi : xo
 
-    function get_window_function(name::String)
-        if name == "gaussian"
-            return (x, a) -> exp.(-0.5 * (4.0 * x / a).^2) ./ (a / 4.0) ./ sqrt(2π), 2.0
-        elseif name == "hanning"
-            return (x, a) -> (abs.(x) .<= a / 2.0) .* (1 .- cos.(2π * (x .- a / 2.0) ./ a)) ./ a, 1.0
-        elseif name == "bartlett"
-            return (x, a) -> (abs.(x) .<= a / 2.0) .* (1 .- abs.(x) * 2.0 / a), 1.0
-        elseif name == "blackman"
-            return (x, a) -> (abs.(x) .<= a / 2.0) .* (0.42 .- 0.5 * cos.(2π * (x .+ a / 2.0) ./ a) .+ 0.08 * cos.(4π * (x .+ a / 2.0) ./ a)), 1.0
-        elseif name == "boxcar"
-            return (x, a) -> (abs.(x) .<= a / 2.0) ./ a, 1.0
-        elseif name == "triangle"
-            return (x, a) -> (abs.(x) .<= a) .* (1 .- abs.(x) ./ a), 2.0
-        else
-            error("Unknown window function: $name")
-        end
+    if length(xi) < 2
+        return zeros(T, length(xo)) .* NaN
     end
 
-    f, win_mult = typeof(window_function) == String ? get_window_function(window_function) : (window_function, 1.0)
+    # remove any NaN
+    if any(isnan, yi) || any(isnan, xi)
+        index = .!isnan.(yi) .&& .!isnan.(xi)
+        yi = yi[index]
+        xi = xi[index]
+    end
+
+    @assert window_function in (:gaussian, :hanning, :bartlett, :blackman, :boxcar, :triangle)
+    if window_function == :gaussian
+        fw = (x, a) -> exp.(-0.5 * (4.0 * x / a) .^ 2) ./ (a / 4.0) ./ sqrt(2π)
+        win_mult = 2
+    elseif window_function == :hanning
+        fw = (x, a) -> (abs.(x) .<= a / 2.0) .* (1 .- cos.(2π * (x .- a / 2.0) ./ a)) ./ a
+        win_mult = 1.0
+    elseif window_function == :bartlett
+        fw = (x, a) -> (abs.(x) .<= a / 2.0) .* (1 .- abs.(x) * 2.0 / a)
+        win_mult = 1.0
+    elseif window_function == :blackman
+        fw = (x, a) -> (abs.(x) .<= a / 2.0) .* (0.42 .- 0.5 * cos.(2π * (x .+ a / 2.0) ./ a) .+ 0.08 * cos.(4π * (x .+ a / 2.0) ./ a))
+        win_mult = 1.0
+    elseif window_function == :boxcar
+        fw = (x, a) -> (abs.(x) .<= a / 2.0) ./ a
+        win_mult = 1.0
+    elseif window_function == :triangle
+        fw = (x, a) -> (abs.(x) .<= a) .* (1 .- abs.(x) ./ a)
+        win_mult = 2.0
+    else
+        fw = (x, a) -> window_function(x, a)
+        win_mult = 1.0
+    end
 
     if window_size === nothing
         dx = diff(sort(xi))
-        window_size = maximum(dx)
+        window_size = maximum(filter(x -> x > 0.0, dx))
     end
 
     win_extent = window_size * win_mult
     half_extent = win_extent / 2.0
 
-    if interpolate != false && length(xi) > 1
-        interp_points = interpolate === true ? 10 : interpolate
-        n_interp = ceil(Int, (maximum(xi) - minimum(xi)) / win_extent * interp_points)
-        xi_new = range(minimum(xi), stop=maximum(xi), length=n_interp)
-        interp_y = DataInterpolations.LinearInterpolation(xi, yi)
-        yi = [interp_y(x) for x in xi_new]
-        xi = xi_new
+    if interpolate > 1 && length(xi) > 1
+        n_interp = Int(ceil((maximum(xi) - minimum(xi)) / window_size * interpolate))
+        interp_y = DataInterpolations.LinearInterpolation(yi, xi)
+        xi = range(minimum(xi); stop=maximum(xi), length=n_interp)
+        yi = interp_y.(xi)
     end
 
     N = length(xo)
     yo = Vector{eltype(yi)}(undef, N)
 
+    mask = xi .< -Inf
     for k in 1:N
         xdiff = xo[k] .- xi
-        mask = causal ? ((xdiff .>= 0) .& (xdiff .<= win_extent)) : (abs.(xdiff) .<= half_extent)
+        mask .= causal ? ((xdiff .>= 0) .& (xdiff .<= win_extent)) : (abs.(xdiff) .<= half_extent)
 
         if !any(mask)
             yo[k] = NaN
             continue
         end
 
-        x_sel = xdiff[mask]
-        y_sel = yi[mask]
-        w = f(x_sel, window_size)
+        x_sel = @views xdiff[mask]
+        y_sel = @views yi[mask]
+        w = fw(x_sel, window_size)
         if causal
             w .= w .* (x_sel .>= 0)
         end
@@ -414,31 +436,25 @@ function smooth_by_convolution(yi::AbstractVector; xi=nothing, xo=nothing, windo
 
         w ./= norm
 
-        # === Handle std_dev cases ===
-        if std_dev == "none"
-            # Suppress uncertainty, treat values as plain reals
-            yo[k] = sum(w .* y_sel)  # works for Measurement and Float64
-        elseif std_dev == "population"
-            μ = sum(w .* y_sel)
-            w2 = sum(w .^ 2)
-            denom = 1 - w2
-            variance = denom > 0 ? sum(w .* (y_sel .- μ).^2) / denom : 0.0
-            yo[k] = μ + sqrt(variance) * zero(eltype(yi))  # adds zero uncertainty if `yi` is Float64
-        elseif std_dev == "propagate"
-            yo[k] = sum(w .* y_sel)  # Measurement will propagate automatically
-        elseif std_dev == "expand"
-            max_w = maximum(w)
-            # expand uncertainty (works if y_sel has it, otherwise does nothing)
-            yo[k] = sum(w .* (max_w .* y_sel))
-        elseif std_dev == "deviation" || std_dev == "variance" || isa(std_dev, Int)
-            p = std_dev == "deviation" ? 1 :
-                std_dev == "variance" ? 2 : std_dev
-            err = (sum(abs.(w .* y_sel).^p)) ^ (1 / p)
-            yo[k] = err  # not necessarily a measurement unless input was
-        else
-            error("Invalid std_dev: $std_dev")
-        end
+        yo[k] = sum(w .* y_sel)
+    end
+
+    # remove any NaN
+    if no_nan && any(isnan, yo)
+        index = .!isnan.(yo)
+        yo = DataInterpolations.LinearInterpolation(yo[index], xo[index]; extrapolation = DataInterpolations.ExtrapolationType.Constant).(xo)
     end
 
     return yo
+end
+
+function smooth_by_convolution(ids::IDS, field::Symbol, time0::Vector{Float64}; window_size=0.1, window_function=:gaussian, causal=false, interpolate=20, no_nan::Bool=false)
+    @assert IMAS.time_coordinate_index(ids, field; error_if_not_time_dependent=true) == 1
+    data = getproperty(ids, field)
+    field_σ = Symbol("$(field)_σ")
+    if hasdata(ids, field_σ)
+        data = Measurements.measurement.(data, getproperty(ids, field_σ))
+    end
+    time = getproperty(IMAS.coordinates(ids, field)[1])
+    return smooth_by_convolution(data; xi=time, xo=time0, window_size, window_function, causal, interpolate, no_nan)
 end
