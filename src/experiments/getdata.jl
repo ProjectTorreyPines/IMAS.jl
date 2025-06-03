@@ -53,10 +53,11 @@ function getdata(
             append!(chr, ch.position.r.data[selection.idx_range])
             append!(chz, ch.position.z.data[selection.idx_range])
         else
+            _data = getproperty(ch_data, :data)
             if hasdata(ch_data, :data_σ)
                 _data = Measurements.measurement.(_data, getproperty(ch_data, :data_σ))
             else
-                _data = Measurements.measurement.(selection.data, _data .* 0.0)
+                _data = Measurements.measurement.(_data, _data .* 0.0)
             end
             append!(data, _data)
             append!(time, getproperty(ch_data, :time))
@@ -125,7 +126,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
             if hasdata(ch_data, :data_σ)
                 _data = Measurements.measurement.(_data, getproperty(ch_data, :data_σ))
             else
-                _data = Measurements.measurement.(selection.data, _data .* 0.0)
+                _data = Measurements.measurement.(_data, _data .* 0.0)
             end
             append!(data, _data)
             append!(time, getproperty(ch_data, :time))
