@@ -357,6 +357,8 @@ function smooth_by_convolution(
     xi = xi === nothing ? collect(1:length(yi)) : xi
     xo = xo === nothing ? xi : xo
 
+    @assert issorted(xi)
+
     if length(xi) < 2
         return zeros(T, length(xo)) .* NaN
     end
@@ -410,18 +412,20 @@ function smooth_by_convolution(
     N = length(xo)
     yo = Vector{eltype(yi)}(undef, N)
 
-    mask = xi .< -Inf
     for k in 1:N
-        xdiff = xo[k] .- xi
-        mask .= causal ? ((xdiff .>= 0) .& (xdiff .<= win_extent)) : (abs.(xdiff) .<= half_extent)
-
-        if !any(mask)
+        if causal
+            idx_range = searchsortedfirst(xi, xo[k]):searchsortedlast(xi, xo[k] + win_extent)
+        else
+            idx_range = searchsortedfirst(xi, xo[k] - half_extent):searchsortedlast(xi, xo[k] + half_extent)
+        end
+        
+        if isempty(idx_range)
             yo[k] = NaN
             continue
         end
-
-        x_sel = @views xdiff[mask]
-        y_sel = @views yi[mask]
+        
+        x_sel = xi[idx_range] .- xo[k]
+        y_sel = yi[idx_range]
         w = fw(x_sel, window_size)
         if causal
             w .= w .* (x_sel .>= 0)
