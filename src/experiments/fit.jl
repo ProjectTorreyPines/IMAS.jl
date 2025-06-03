@@ -15,6 +15,8 @@ function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<
     # get data
     time, rho, data = getdata(what, dd)
 
+    @assert eltype(data) <: Measurements.Measurement
+
     # remove any NaN
     index = .!isnan.(rho) .&& .!isnan.(data)
     if sum(.!index) != length(data)

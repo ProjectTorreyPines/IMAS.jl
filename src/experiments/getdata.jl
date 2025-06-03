@@ -1,7 +1,12 @@
 """
-    getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_average_window::Float64=0.0) where {T<:Real}
+    getdata(
+        what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
+        dd::IMAS.dd{T},
+        time0::Union{Nothing,Float64}=nothing,
+        time_average_window::Float64=0.0
+    ) where {T<:Real}
 
-Extract charge exchange spectroscopy data for ion temperature, density ratio, or Zeff
+Extract charge exchange spectroscopy data for ion temperature, impurity to electron density ratio, Zeff or impurity density
 
   - time0: optional specific time for extraction
 
@@ -9,14 +14,25 @@ Extract charge exchange spectroscopy data for ion temperature, density ratio, or
 
 Returns NamedTuple with (:time, :rho, :data)
 """
-function getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_average_window::Float64=0.0) where {T<:Real}
+function getdata(
+    what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
+    dd::IMAS.dd{T},
+    time0::Union{Nothing,Float64}=nothing,
+    time_average_window::Float64=0.0
+) where {T<:Real}
+
     what = typeof(what_val).parameters[1]
     cer = dd.charge_exchange
 
-    data = []
+    if time0 !== nothing
+        @assert time_average_window > 0.0
+    end
+
+    data = Measurements.Measurement[]
+    weights = Float64[]
     time = Float64[]
-    chr = []
-    chz = []
+    chr = T[]
+    chz = T[]
     for ch in cer.channel
         if what == :n_imp
             ch_data = getproperty(ch.ion[1], :n_i_over_n_e)
@@ -26,16 +42,21 @@ function getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_
             ch_data = getproperty(ch.ion[1], what)
         end
         if time0 !== nothing
-            @assert time_average_window > 0.0
-            _data = smooth_by_convolution(ch_data, :data, [time0]; window_size=time_average_window)
-            append!(data, _data)
-            append!(time, time0)
-            append!(chr, smooth_by_convolution(ch.position.r, :data, [time0]; window_size=time_average_window))
-            append!(chz, smooth_by_convolution(ch.position.z, :data, [time0]; window_size=time_average_window))
+            selection = select_time_window(ch_data, :data, time0; window_size=time_average_window)
+            if hasdata(ch_data, :data_σ)
+                append!(data, Measurements.measurement.(selection.data, getproperty(ch_data, :data_σ)[selection.idx_range]))
+            else
+                append!(data, Measurements.measurement.(selection.data, selection.data .* 0.0))
+            end
+            append!(time, selection.time)
+            append!(weights, selection.weights)
+            append!(chr, ch.position.r.data[selection.idx_range])
+            append!(chz, ch.position.z.data[selection.idx_range])
         else
-            _data = getproperty(ch_data, :data)
             if hasdata(ch_data, :data_σ)
                 _data = Measurements.measurement.(_data, getproperty(ch_data, :data_σ))
+            else
+                _data = Measurements.measurement.(selection.data, _data .* 0.0)
             end
             append!(data, _data)
             append!(time, getproperty(ch_data, :time))
@@ -59,7 +80,7 @@ function getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_
         data = data .* n_e
     end
 
-    return (time=time, rho=[r for r in rho], data=[d for d in data])
+    return (time=time, rho=rho, data=data, weights=weights)
 end
 
 """
@@ -71,7 +92,7 @@ Extract Thomson scattering data for electron temperature or density.
 
   - time_average_window: time averaging window size (required if time0 is specified)
 
-Returns NamedTuple with time, rho coordinates, and data arrays
+Returns NamedTuple with time, rho coordinates, and data arrays. Data is always of type Measurements.Measurement
 """
 function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_average_window::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
@@ -81,23 +102,30 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
         @assert time_average_window > 0.0
     end
 
-    data = T[]
-    time = T[]
+    data = Measurements.Measurement[]
+    weights = Float64[]
+    time = Float64[]
     chr = T[]
     chz = T[]
     for ch in ts.channel
         ch_data = getproperty(ch, what)
         if time0 !== nothing
-            @assert time_average_window > 0.0
-            _data = smooth_by_convolution(ch_data, :data, [time0]; window_size=time_average_window)
-            append!(data, _data)
-            append!(time, time0)
-            append!(chr, ch.position.r)
-            append!(chz, ch.position.z)
+            selection = select_time_window(ch_data, :data, time0; window_size=time_average_window)
+            if hasdata(ch_data, :data_σ)
+                append!(data, Measurements.measurement.(selection.data, getproperty(ch_data, :data_σ)[selection.idx_range]))
+            else
+                append!(data, Measurements.measurement.(selection.data, selection.data .* 0.0))
+            end
+            append!(time, selection.time)
+            append!(weights, selection.weights)
+            append!(chr, fill(ch.position.r, length(selection.time)))
+            append!(chz, fill(ch.position.z, length(selection.time)))
         else
             _data = getproperty(ch_data, :data)
             if hasdata(ch_data, :data_σ)
                 _data = Measurements.measurement.(_data, getproperty(ch_data, :data_σ))
+            else
+                _data = Measurements.measurement.(selection.data, _data .* 0.0)
             end
             append!(data, _data)
             append!(time, getproperty(ch_data, :time))
@@ -115,5 +143,5 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
         rho[index] = RHO_interpolant.(chr[index], chz[index])
     end
 
-    return (time=time, rho=[r for r in rho], data=[d for d in data])
+    return (time=time, rho=rho, data=data, weights=weights)
 end

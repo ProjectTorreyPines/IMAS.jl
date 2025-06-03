@@ -3297,24 +3297,27 @@ end
 
     id = recipe_dispatch(ts)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Float64, "Time averaging window"; time_average_window)
     assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
 
-    time, rho, data = getdata(Val(what), top_dd(ts), time0, time_average_window)
+    time, rho, data, weights = getdata(Val(what), top_dd(ts), time0, time_average_window)
     data = data .* normalization
-    if eltype(data) <: Measurements.Measurement
+    if typeof(data[1]) <: Measurements.Measurement
         data_σ = [v.err for v in data]
         data = [v.val for v in data]
     else
         data_σ = []
     end
 
+    index = .!isnan.(data) .&& .!isnan.(weights) .&& .!isnan.(rho) .&& .!isnan.(time)
+
     @series begin
-        label := string(what)
+        label --> string(what)
         color := :transparent
         seriestype := :scatter
-        #series_annotations := [ch.identifier for ch in ts.channel][index]
-        yerror := isempty(data_σ) ? nothing : data_σ
-        rho, data
+        seriesalpha := weights[index]
+        #yerror := isempty(data_σ) ? nothing : data_σ[index]
+        rho[index], data[index]
     end
 end
 
@@ -3323,31 +3326,35 @@ end
 #= =============== =#
 @recipe function plot_charge_exchange(cer::charge_exchange{T}, what::Symbol; time0=global_time(cer), time_average_window=0.05, normalization=1.0) where {T<:Real}
     @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
+
+    id = recipe_dispatch(cer)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Float64, "Time averaging window"; time_average_window)
+    assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
+
     what_internal = what
     if what == :n_imp
         what_internal = :n_i_over_n_e
     end
 
-    id = recipe_dispatch(cer)
-    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
-    assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
-
-    time, rho, data = getdata(Val(what), top_dd(cer), time0, time_average_window)
+    time, rho, data, weights = getdata(Val(what), top_dd(cer), time0, time_average_window)
     data = data .* normalization
-    if eltype(data) <: Measurements.Measurement
+    if typeof(data[1]) <: Measurements.Measurement
         data_σ = [v.err for v in data]
         data = [v.val for v in data]
     else
         data_σ = []
     end
 
+    index = .!isnan.(data) .&& .!isnan.(weights) .&& .!isnan.(rho) .&& .!isnan.(time)
+
     @series begin
-        label := string(what)
+        label --> string(what)
         color := :transparent
         seriestype := :scatter
-        #series_annotations := [ch.identifier for ch in cer.channel][index]
-        yerror := isempty(data_σ) ? nothing : data_σ
-        rho, data
+        seriesalpha := weights[index]
+        #yerror := isempty(data_σ) ? nothing : data_σ[index]
+        rho[index], data[index]
     end
 end
 
