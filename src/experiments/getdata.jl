@@ -9,7 +9,7 @@ Extract charge exchange spectroscopy data for ion temperature, density ratio, or
 
 Returns NamedTuple with (:time, :rho, :data)
 """
-function getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_average_window::Float64=0.0) where {T<:Real}
+function getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_average_window::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
     cer = dd.charge_exchange
 
@@ -18,7 +18,9 @@ function getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff}}, dd::I
     chr = []
     chz = []
     for ch in cer.channel
-        if what == :zeff
+        if what == :n_imp
+            ch_data = getproperty(ch.ion[1], :n_i_over_n_e)
+        elseif what == :zeff
             ch_data = getproperty(ch, what)
         else
             ch_data = getproperty(ch.ion[1], what)
@@ -49,6 +51,12 @@ function getdata(what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff}}, dd::I
         r, z, RHO_interpolant = ρ_interpolant(eqt)
         index = time .== time0
         rho[index] = RHO_interpolant.(chr[index], chz[index])
+    end
+
+    if what == :n_imp
+        cp1d = top_dd(cer).core_profiles.profiles_1d[time0]
+        n_e = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(rho)
+        data = data .* n_e
     end
 
     return (time=time, rho=[r for r in rho], data=[d for d in data])
