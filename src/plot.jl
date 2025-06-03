@@ -3311,6 +3311,7 @@ end
     index = .!isnan.(data) .&& (data .> 0)
 
     @series begin
+        label := string(what)
         color := :transparent
         seriestype := :scatter
         #series_annotations := [ch.identifier for ch in ts.channel][index]
@@ -3323,7 +3324,11 @@ end
 #  charge_exchange  #
 #= =============== =#
 @recipe function plot_charge_exchange(ce::charge_exchange{T}, what::Symbol; time0=global_time(ce), normalization=1.0) where {T<:Real}
-    @assert what in (:t_i, :n_i_over_n_e, :zeff)
+    @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
+    what_internal = what
+    if what == :n_imp
+        what_internal = :n_i_over_n_e
+    end
 
     id = recipe_dispatch(ce)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
@@ -3335,14 +3340,14 @@ end
     first = :nan
     last = :nan
 
-    if what == :zeff
-        data = T[get_time_array(getproperty(ch, what), :data, time0, :linear; first, last) * normalization for ch in ce.channel]
-        data_σ = T[get_time_array(getproperty(ch, what), :data_σ, time0, :linear; first, last) * normalization for ch in ce.channel if hasdata(getproperty(ch, what), :data_σ)]
+    if what_internal == :zeff
+        data = T[get_time_array(getproperty(ch, what_internal), :data, time0, :linear; first, last) * normalization for ch in ce.channel]
+        data_σ = T[get_time_array(getproperty(ch, what_internal), :data_σ, time0, :linear; first, last) * normalization for ch in ce.channel if hasdata(getproperty(ch, what_internal), :data_σ)]
     else
-        data = T[get_time_array(getproperty(ch.ion[1], what), :data, time0, :linear; first, last) * normalization for ch in ce.channel]
+        data = T[get_time_array(getproperty(ch.ion[1], what_internal), :data, time0, :linear; first, last) * normalization for ch in ce.channel]
         data_σ = T[
-            get_time_array(getproperty(ch.ion[1], what), :data_σ, time0, :linear; first, last) * normalization for
-            ch in ce.channel if hasdata(getproperty(ch.ion[1], what), :data_σ)
+            get_time_array(getproperty(ch.ion[1], what_internal), :data_σ, time0, :linear; first, last) * normalization for
+            ch in ce.channel if hasdata(getproperty(ch.ion[1], what_internal), :data_σ)
         ]
     end
 
@@ -3351,7 +3356,14 @@ end
 
     index = .!isnan.(data) .&& (data .> 0)
 
+    if what == :n_imp
+        cp1d = top_dd(ce).core_profiles.profiles_1d[time0]
+        n_e = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(rho)
+        data = data .* n_e
+    end
+
     @series begin
+        label := string(what)
         color := :transparent
         seriestype := :scatter
         #series_annotations := [ch.identifier for ch in ce.channel][index]
