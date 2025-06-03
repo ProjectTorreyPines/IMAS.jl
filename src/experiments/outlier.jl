@@ -319,64 +319,19 @@ function compute_local_variance(data::AbstractMatrix{T}, i::Int, j::Int, window:
     return length(valid_vals) > 1 ? Statistics.var(valid_vals) : 0.0
 end
 
-function time_groups(ids::IDS{T}; min_channels::Int) where {T<:Real}
-    tg = Dict{String,Vector{IMASnodeRepr{T}}}()
-    for leaf in IMASdd.AbstractTrees.Leaves(ids)
-        if leaf.field == :time
-            t = getproperty(leaf.ids, :time)
-            id = "$(ulocation(leaf.ids))_$(hash(t))"
-            if id ∉ keys(tg)
-                # println(id)
-                # @show(length(t), minimum(t), maximum(t))
-                # println()
-                tg[id] = Vector{IMASnodeRepr{T}}()
-            end
-            push!(tg[id], leaf)
-        end
-    end
-
-    for id in collect(keys(tg))
-        if length(tg[id]) < min_channels
-            delete!(tg, id)
-        end
-    end
-
-    # println(length(tg))
-    return collect(values(tg))
-end
-
 function adaptive_outlier_removal!(tg::Vector{Vector{IMASdd.IMASnodeRepr{T}}}) where {T<:Real}
     for time_group in tg
         leaf1 = first(time_group)
         for field in keys(leaf1.ids)
             if field != :time && hasdata(leaf1.ids, field) && typeof(getproperty(leaf1.ids, field)) <: Vector
                 data = hcat((getproperty(leaf.ids, field) for leaf in time_group if hasdata(leaf.ids, field))...)
-                clean_data = IMAS.adaptive_outlier_removal!(data; adaptivity=:gradient)
-                #@show(IMAS.location(leaf1.ids, field), size(data))
+                clean_data = adaptive_outlier_removal!(data; adaptivity=:gradient)
                 for (k, leaf) in enumerate(time_group)
                     if hasdata(leaf.ids, field)
                         setproperty!(leaf.ids, field, clean_data[:, k])
                     end
                 end
-                # display(contour(clean_data))
             end
-        end
-    end
-    return tg
-end
-
-function time_dependent_data(ids::IDS{T}) where {T<:Real}
-    tg = Dict{String,Vector{IMASnodeRepr{T}}}()
-    for leaf in IMASdd.AbstractTrees.Leaves(ids)
-        if leaf.field != :time && !endswith(string(leaf.field), "_σ") && IMAS.time_coordinate_index(leaf.ids, leaf.field; error_if_not_time_dependent=false) != 0
-            id = ulocation(leaf.ids, leaf.field)
-            if id ∉ keys(tg)
-                # println(id)
-                # # @show(length(t), minimum(t), maximum(t))
-                # # println()
-                tg[id] = Vector{IMASnodeRepr{T}}()
-            end
-            push!(tg[id], leaf)
         end
     end
     return tg

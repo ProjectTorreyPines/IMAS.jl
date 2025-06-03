@@ -351,8 +351,7 @@ function smooth_by_convolution(
     window_size=nothing,
     window_function=:gaussian,
     causal::Bool=false,
-    interpolate::Int=0,
-    no_nan::Bool=false
+    interpolate::Int=0
 ) where {T<:Real}
 
     xi = xi === nothing ? collect(1:length(yi)) : xi
@@ -439,16 +438,10 @@ function smooth_by_convolution(
         yo[k] = sum(w .* y_sel)
     end
 
-    # remove any NaN
-    if no_nan && any(isnan, yo)
-        index = .!isnan.(yo)
-        yo = DataInterpolations.LinearInterpolation(yo[index], xo[index]; extrapolation = DataInterpolations.ExtrapolationType.Constant).(xo)
-    end
-
     return yo
 end
 
-function smooth_by_convolution(ids::IDS, field::Symbol, time0::Vector{Float64}; window_size=0.1, window_function=:gaussian, causal=false, interpolate=20, no_nan::Bool=false)
+function smooth_by_convolution(ids::IDS, field::Symbol, time0::Vector{Float64}; window_size=0.1, window_function=:gaussian, causal=false, interpolate=20)
     @assert IMAS.time_coordinate_index(ids, field; error_if_not_time_dependent=true) == 1
     data = getproperty(ids, field)
     field_σ = Symbol("$(field)_σ")
@@ -456,5 +449,5 @@ function smooth_by_convolution(ids::IDS, field::Symbol, time0::Vector{Float64}; 
         data = Measurements.measurement.(data, getproperty(ids, field_σ))
     end
     time = getproperty(IMAS.coordinates(ids, field)[1])
-    return smooth_by_convolution(data; xi=time, xo=time0, window_size, window_function, causal, interpolate, no_nan)
+    return smooth_by_convolution(data; xi=time, xo=time0, window_size, window_function, causal, interpolate)
 end
