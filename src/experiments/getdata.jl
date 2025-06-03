@@ -3,14 +3,14 @@
         what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
         dd::IMAS.dd{T},
         time0::Union{Nothing,Float64}=nothing,
-        time_average_window::Float64=0.0
+        time_averaging::Float64=0.0
     ) where {T<:Real}
 
 Extract charge exchange spectroscopy data for ion temperature, impurity to electron density ratio, Zeff or impurity density
 
   - time0: optional specific time for extraction
 
-  - time_average_window: time averaging window size (required if time0 is specified)
+  - time_averaging: time averaging window size (required if time0 is specified)
 
 Returns NamedTuple with (:time, :rho, :data)
 """
@@ -18,14 +18,14 @@ function getdata(
     what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
     dd::IMAS.dd{T},
     time0::Union{Nothing,Float64}=nothing,
-    time_average_window::Float64=0.0
+    time_averaging::Float64=0.0
 ) where {T<:Real}
 
     what = typeof(what_val).parameters[1]
     cer = dd.charge_exchange
 
     if time0 !== nothing
-        @assert time_average_window > 0.0
+        @assert time_averaging > 0.0
     end
 
     data = Measurements.Measurement[]
@@ -42,7 +42,7 @@ function getdata(
             ch_data = getproperty(ch.ion[1], what)
         end
         if time0 !== nothing
-            selection = select_time_window(ch_data, :data, time0; window_size=time_average_window)
+            selection = select_time_window(ch_data, :data, time0; window_size=time_averaging)
             if hasdata(ch_data, :data_σ)
                 append!(data, Measurements.measurement.(selection.data, getproperty(ch_data, :data_σ)[selection.idx_range]))
             else
@@ -85,22 +85,22 @@ function getdata(
 end
 
 """
-    getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_average_window::Float64=0.0) where {T<:Real}
+    getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
 
 Extract Thomson scattering data for electron temperature or density.
 
   - time0: optional specific time for extraction
 
-  - time_average_window: time averaging window size (required if time0 is specified)
+  - time_averaging: time averaging window size (required if time0 is specified)
 
 Returns NamedTuple with time, rho coordinates, and data arrays. Data is always of type Measurements.Measurement
 """
-function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_average_window::Float64=0.0) where {T<:Real}
+function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
     ts = dd.thomson_scattering
 
     if time0 !== nothing
-        @assert time_average_window > 0.0
+        @assert time_averaging > 0.0
     end
 
     data = Measurements.Measurement[]
@@ -111,7 +111,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
     for ch in ts.channel
         ch_data = getproperty(ch, what)
         if time0 !== nothing
-            selection = select_time_window(ch_data, :data, time0; window_size=time_average_window)
+            selection = select_time_window(ch_data, :data, time0; window_size=time_averaging)
             if hasdata(ch_data, :data_σ)
                 append!(data, Measurements.measurement.(selection.data, getproperty(ch_data, :data_σ)[selection.idx_range]))
             else
