@@ -3292,83 +3292,62 @@ end
 #= ================== =#
 #  thomson_scattering  #
 #= ================== =#
-@recipe function plot_thomson(ts::thomson_scattering, what::Symbol; time0=global_time(ts), normalization=1.0)
+@recipe function plot_thomson(ts::thomson_scattering, what::Symbol; time0=global_time(ts), time_average_window=0.05, normalization=1.0)
     @assert what in (:n_e, :t_e)
 
     id = recipe_dispatch(ts)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
 
-    eqt = top_dd(ts).equilibrium.time_slice[time0]
-
-    r, z, RHO_interpolant = ρ_interpolant(eqt)
-    first = :nan
-    last = :nan
-    data = [get_time_array(getproperty(ch, what), :data, time0, :linear; first, last) * normalization for ch in ts.channel]
-    data_σ = [get_time_array(getproperty(ch, what), :data_σ, time0, :linear; first, last) * normalization for ch in ts.channel if hasdata(getproperty(ch, what), :data_σ)]
-    rho = [RHO_interpolant(ch.position.r, ch.position.z) for ch in ts.channel]
-
-    index = .!isnan.(data) .&& (data .> 0)
+    time, rho, data = getdata(Val(what), top_dd(ts), time0, time_average_window)
+    data = data .* normalization
+    if eltype(data) <: Measurements.Measurement
+        data_σ = [v.err for v in data]
+        data = [v.val for v in data]
+    else
+        data_σ = []
+    end
 
     @series begin
         label := string(what)
         color := :transparent
         seriestype := :scatter
         #series_annotations := [ch.identifier for ch in ts.channel][index]
-        yerror := isempty(data_σ) ? nothing : data_σ[index]
-        rho[index], data[index]
+        yerror := isempty(data_σ) ? nothing : data_σ
+        rho, data
     end
 end
 
 #= =============== =#
 #  charge_exchange  #
 #= =============== =#
-@recipe function plot_charge_exchange(ce::charge_exchange{T}, what::Symbol; time0=global_time(ce), normalization=1.0) where {T<:Real}
+@recipe function plot_charge_exchange(cer::charge_exchange{T}, what::Symbol; time0=global_time(cer), time_average_window=0.05, normalization=1.0) where {T<:Real}
     @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
     what_internal = what
     if what == :n_imp
         what_internal = :n_i_over_n_e
     end
 
-    id = recipe_dispatch(ce)
+    id = recipe_dispatch(cer)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
 
-    eqt = top_dd(ce).equilibrium.time_slice[time0]
-
-    r, z, RHO_interpolant = ρ_interpolant(eqt)
-    first = :nan
-    last = :nan
-
-    if what_internal == :zeff
-        data = T[get_time_array(getproperty(ch, what_internal), :data, time0, :linear; first, last) * normalization for ch in ce.channel]
-        data_σ = T[get_time_array(getproperty(ch, what_internal), :data_σ, time0, :linear; first, last) * normalization for ch in ce.channel if hasdata(getproperty(ch, what_internal), :data_σ)]
+    time, rho, data = getdata(Val(what), top_dd(cer), time0, time_average_window)
+    data = data .* normalization
+    if eltype(data) <: Measurements.Measurement
+        data_σ = [v.err for v in data]
+        data = [v.val for v in data]
     else
-        data = T[get_time_array(getproperty(ch.ion[1], what_internal), :data, time0, :linear; first, last) * normalization for ch in ce.channel]
-        data_σ = T[
-            get_time_array(getproperty(ch.ion[1], what_internal), :data_σ, time0, :linear; first, last) * normalization for
-            ch in ce.channel if hasdata(getproperty(ch.ion[1], what_internal), :data_σ)
-        ]
-    end
-
-    rho =
-        [RHO_interpolant(get_time_array(ch.position.r, :data, time0, :linear; first, last), get_time_array(ch.position.z, :data, time0, :linear; first, last)) for ch in ce.channel]
-
-    index = .!isnan.(data) .&& (data .> 0)
-
-    if what == :n_imp
-        cp1d = top_dd(ce).core_profiles.profiles_1d[time0]
-        n_e = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(rho)
-        data = data .* n_e
+        data_σ = []
     end
 
     @series begin
         label := string(what)
         color := :transparent
         seriestype := :scatter
-        #series_annotations := [ch.identifier for ch in ce.channel][index]
-        yerror := isempty(data_σ) ? nothing : data_σ[index]
-        rho[index], data[index]
+        #series_annotations := [ch.identifier for ch in cer.channel][index]
+        yerror := isempty(data_σ) ? nothing : data_σ
+        rho, data
     end
 end
 
