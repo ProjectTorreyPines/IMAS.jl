@@ -321,7 +321,7 @@ function compute_local_variance(data::AbstractMatrix{T}, i::Int, j::Int, window:
     return length(valid_vals) > 1 ? Statistics.var(valid_vals) : 0.0
 end
 
-function adaptive_outlier_removal!(tg::Vector{Vector{IMASdd.IMASnodeRepr{T}}}) where {T<:Real}
+function adaptive_outlier_removal!(tg::Vector{Vector{IMASnodeRepr{T}}}) where {T<:Real}
     for time_group in tg
         leaf1 = first(time_group)
         for field in keys(leaf1.ids)
