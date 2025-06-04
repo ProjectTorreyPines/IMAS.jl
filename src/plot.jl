@@ -80,13 +80,10 @@ end
         CURRENT = 0.0
         for c in pfa.coil
             if time0 == -Inf && c.current.time[1] == -Inf
-                index = 1
-            elseif c.current.time[1] == -Inf
-                index = 2:length(c.current.time)
+                CURRENT = max(CURRENT, maximum(abs, c.current.data[1] * getproperty(c.element[1], :turns_with_sign, 1.0)))
             else
-                index = 1:length(c.current.time)
+                CURRENT = max(CURRENT, maximum(abs, c.current.data * getproperty(c.element[1], :turns_with_sign, 1.0)))
             end
-            CURRENT = max(CURRENT, maximum(abs, @views c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)))
         end
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
@@ -3048,7 +3045,7 @@ const UnionPulseScheduleSubIDS = Union{IMAS.pulse_schedule,(tp for tp in fieldty
             continue
         end
 
-        time_value = coordinates(ids, :reference).values[1]
+        time_value = getproperty(coordinates(ids, :reference)[1])
         data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> !isinf(x), time_value))) == 1
@@ -3290,6 +3287,80 @@ end
 end
 
 #= ======= =#
+#  getdata  #
+#= ======= =#
+@recipe function plot_getdata(ids::IDS, what::Val, ; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
+    id = recipe_dispatch(ids)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
+    assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
+
+    time, rho, data, weights = getdata(what, top_dd(ids), time0, time_averaging)
+    data = data .* normalization
+    if eltype(data) <: Measurements.Measurement
+        data_σ = [d.err for d in data]
+        data = [d.val for d in data]
+        if all(data_σ .== 0.0)
+            data_σ = []
+        end
+    else
+        data_σ = []
+    end
+
+    if isempty(data_σ)
+        @series begin
+            label --> string(what)
+            color := :transparent
+            seriestype := :scatter
+            seriesalpha := weights
+            rho, data
+        end
+    else
+        k = 1
+        for w in unique(weights)
+            index = findall(==(w), weights)
+            primary := (k == 1)
+            k += 1
+            @series begin
+                label --> string(what)
+                color := :transparent
+                seriestype := :scatter
+                alpha := w
+                yerror := isempty(data_σ) ? nothing : data_σ[index]
+                rho[index], data[index]
+            end
+        end
+    end
+end
+
+#= ================== =#
+#  thomson_scattering  #
+#= ================== =#
+@recipe function plot_thomson(ts::thomson_scattering, what::Symbol; time0=global_time(ts), time_averaging=0.05, normalization=1.0)
+    @assert what in (:n_e, :t_e)
+    @series begin
+        time0 := time0
+        time_averaging := time_averaging
+        normalization := normalization
+        ts, Val(what)
+    end
+end
+
+#= =============== =#
+#  charge_exchange  #
+#= =============== =#
+@recipe function plot_charge_exchange(cer::charge_exchange{T}, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0) where {T<:Real}
+    @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
+
+    @series begin
+        time0 := time0
+        time_averaging := time_averaging
+        normalization := normalization
+        cer, Val(what)
+    end
+end
+
+#= ======= =#
 #  summary  #
 #= ======= =#
 @recipe function plot(summary::IMAS.summary)
@@ -3486,9 +3557,9 @@ end
     assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
     assert_type_and_record_argument(id, Bool, "Fill area under curve"; fill0)
 
-    coords = coordinates(ids, field; coord_leaves=[coordinate])
-    coordinate_name = coords.names[1]
-    coordinate_value = coords.values[1]
+    coords = coordinates(ids, field; override_coord_leaves=[coordinate])
+    coordinate_name = string(coords[1].field)
+    coordinate_value = getproperty(coords[1])
 
     # If the field is the reference coordinate of the given IDS,
     # set the coordinate_value as its index
@@ -3497,7 +3568,13 @@ end
     end
 
     xvalue = coordinate_value
-    yvalue = getproperty(ids, field) .* normalization
+    yvalue = getproperty(ids, field)
+
+    if hasdata(ids, Symbol("$(field)_σ"))
+        yvalue = Measurements.measurement.(yvalue, getproperty(ids, Symbol("$(field)_σ")))
+    end
+
+    yvalue = yvalue .* normalization
 
     @series begin
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
@@ -3508,9 +3585,9 @@ end
 
         # multiply y by things like `:area` or `:volume`
         if weighted !== nothing
-            weight = coordinates(ids, field; coord_leaves=[weighted])
-            yvalue .*= weight.values[1]
-            ylabel = nice_units(units(ids, field) * "*" * units(weight.names[1]))
+            weight = coordinates(ids, field; override_coord_leaves=[weighted])[1]
+            yvalue .*= getproperty(weight)
+            ylabel = nice_units(units(ids, field) * "*" * units(weight.field))
             label = nice_field("$field*$weighted")
         else
             ylabel = nice_units(units(ids, field))
@@ -3520,7 +3597,7 @@ end
         if coordinate_name == "1...N"
             xlabel --> "index"
         else
-            xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+            xlabel --> nice_field(coordinate_name) * nice_units(units(coords[1].ids, coords[1].field))
         end
         ylabel --> ylabel
         label --> label
@@ -3557,18 +3634,9 @@ end
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
         coord = coordinates(ids, field)
-        if ~isempty(coord.values) && issorted(coord.values[1]) && issorted(coord.values[2])
-            # Plot zvalue with the coordinates
-            xvalue = coord.values[1]
-            yvalue = coord.values[2]
-            xlabel --> split(coord.names[1], '.')[end] # dim1
-            ylabel --> split(coord.names[2], '.')[end] # dim2
-
-            xlim --> (minimum(xvalue), maximum(xvalue))
-            ylim --> (minimum(yvalue), maximum(yvalue))
-            aspect_ratio --> :equal
-            xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
-        else
+        dim1 = getproperty(coord[1])
+        dim2 = getproperty(coord[2])
+        if dim1 === nothing || dim1 === missing || dim2 === nothing || dim2 === missing
             # Plot zvalue as "matrix"
             xlabel --> "column"
             ylabel --> "row"
@@ -3578,6 +3646,17 @@ end
 
             yflip --> true # To make 'row' counting starts from the top
             zvalue
+        else
+            # Plot zvalue with the coordinates
+            xvalue = dim1
+            yvalue = dim2
+            xlabel --> coord[1].field
+            ylabel --> coord[2].field
+
+            xlim --> (minimum(xvalue), maximum(xvalue))
+            ylim --> (minimum(yvalue), maximum(yvalue))
+            aspect_ratio --> :equal
+            xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
         end
     end
 end

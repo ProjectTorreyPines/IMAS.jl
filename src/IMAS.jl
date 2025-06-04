@@ -45,6 +45,7 @@ include(joinpath("control", "fxp.jl"))
 #= PHYSICS =#
 #= ======= =#
 include("physics.jl")
+include("experiments.jl")
 
 #= =========== =#
 #= EXPRESSIONS =#

@@ -40,7 +40,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
         if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
             Ti = ion.temperature
             ni = ion.density_thermal / 1E6
-            Zi = avgZ(ion.element[1].z_n, Ti)
+            Zi = avgZ(ion)
             mi = ion.element[1].a * mp
             nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
         end
@@ -55,7 +55,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
         if !ismissing(ion, :temperature)
             Ti = ion.temperature
             ni = ion.density_thermal / 1E6
-            Zi = avgZ(ion.element[1].z_n, Ti)
+            Zi = avgZ(ion)
             mi = ion.element[1].a * mp
             nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
         end
@@ -391,7 +391,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     Ti = cp1d.t_i_average
 
     # dominant ion (the one with the most particles)
-    Zs = [ion.z_ion for ion in cp1d.ion]
+    Zs = [ion.element[1].z_n for ion in cp1d.ion]
     Zdom = [Zs[dom[2]] for dom in argmax(nis; dims=2)[:, 1]]
 
     Zavg = ne ./ ni

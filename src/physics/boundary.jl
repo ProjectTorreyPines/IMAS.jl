@@ -270,8 +270,8 @@ push!(document[Symbol("Physics boundary")], :boundary_shape)
 return boundary from pulse_schedule.position_control at a given time0
 """
 function boundary(pc::IMAS.pulse_schedule__position_control{T}, time0::Float64) where {T<:Real}
-    r = T[extrap1d(interp1d_itp(pc.time, pcb.r.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline]
-    z = T[extrap1d(interp1d_itp(pc.time, pcb.z.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline]
+    r = T[extrap1d(interp1d_itp(pc.time, pcb.r.reference); first=:constant, last=:constant).(time0) for pcb in pc.boundary_outline]
+    z = T[extrap1d(interp1d_itp(pc.time, pcb.z.reference); first=:constant, last=:constant).(time0) for pcb in pc.boundary_outline]
     reorder_flux_surface!(r, z)
     return (r=r, z=z)
 end

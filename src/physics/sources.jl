@@ -731,7 +731,7 @@ function total_power(
     datas = zero(times)
     for leaf in leaves(ps)
         if contains(location(leaf.ids), ".power") && hasdata(leaf.ids, leaf.field)
-            time = coordinates(leaf.ids, leaf.field).values[1]
+            time = getproperty(coordinates(leaf.ids, leaf.field)[1])
             data = getproperty(leaf.ids, leaf.field)
             sbp_itp = interp1d(time, smooth_beam_power(time, data, tau_smooth))
             @. datas += sbp_itp(times)
