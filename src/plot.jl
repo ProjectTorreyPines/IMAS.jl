@@ -3639,7 +3639,17 @@ end
         coord = coordinates(ids, field)
         dim1 = getproperty(coord[1])
         dim2 = getproperty(coord[2])
-        if dim1 in (nothing, missing) || dim2 in (nothing, missing)
+        if dim1 === nothing || dim1 === missing || dim2 === nothing || dim2 === missing
+            # Plot zvalue as "matrix"
+            xlabel --> "column"
+            ylabel --> "row"
+
+            xlim --> (1, size(zvalue, 2))
+            ylim --> (1, size(zvalue, 1))
+
+            yflip --> true # To make 'row' counting starts from the top
+            zvalue
+        else
             # Plot zvalue with the coordinates
             xvalue = dim1
             yvalue = dim2
@@ -3650,16 +3660,6 @@ end
             ylim --> (minimum(yvalue), maximum(yvalue))
             aspect_ratio --> :equal
             xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
-        else
-            # Plot zvalue as "matrix"
-            xlabel --> "column"
-            ylabel --> "row"
-
-            xlim --> (1, size(zvalue, 2))
-            ylim --> (1, size(zvalue, 1))
-
-            yflip --> true # To make 'row' counting starts from the top
-            zvalue
         end
     end
 end
