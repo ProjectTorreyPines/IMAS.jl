@@ -80,13 +80,10 @@ end
         CURRENT = 0.0
         for c in pfa.coil
             if time0 == -Inf && c.current.time[1] == -Inf
-                index = 1
-            elseif c.current.time[1] == -Inf
-                index = 2:length(c.current.time)
+                CURRENT = max(CURRENT, maximum(abs, c.current.data[1] * getproperty(c.element[1], :turns_with_sign, 1.0)))
             else
-                index = 1:length(c.current.time)
+                CURRENT = max(CURRENT, maximum(abs, c.current.data * getproperty(c.element[1], :turns_with_sign, 1.0)))
             end
-            CURRENT = max(CURRENT, maximum(abs, @views c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)))
         end
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
