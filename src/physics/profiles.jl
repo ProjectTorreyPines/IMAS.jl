@@ -174,11 +174,11 @@ function list_ions!(cs::IMAS.core_sources, ions::Set{Symbol}; time0::Float64)
 end
 
 """
-    list_ions(ids::IDS, idss::Vararg{<:IDS}; time0::Float64)
+    list_ions(ids1::IDS, idss::Vararg{T}; time0::Float64) where {T<:IDS}
 
 List of ions mentioned in multiple IDSs at a given time
 """
-function list_ions(ids1::IDS, idss::Vararg{<:IDS}; time0::Float64)
+function list_ions(ids1::IDS, idss::Vararg{T}; time0::Float64) where {T<:IDS}
     ion_set = Set{Symbol}()
     for ids in (ids1, idss...)
         list_ions!(ids, ion_set; time0)
