@@ -280,7 +280,9 @@ function adaptive_outlier_removal!(data::AbstractMatrix{T};
         center, scale = compute_robust_statistics(neighborhood, :mad)
 
         current_val = data[i, j]
-        if !isnan(current_val) && abs(current_val - center) > threshold * scale
+        if Float64(current_val) == 0.0 # we assume exact zero is a NaN
+            cleaned[i, j] = NaN
+        elseif !isnan(current_val) && abs(current_val - center) > threshold * scale
             cleaned[i, j] = center
         end
     end
