@@ -1080,9 +1080,9 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
 
     rho_tor_norm = cp1d.grid.rho_tor_norm
     ratios = zeros(length(rho_tor_norm), length(ions))
-    ntot = zeros(length(rho_tor_norm))
+    ntot = zero(rho_tor_norm)
     for index in (bulk_index, impu_index)
-        ntot .*= 0.0
+        fill!(ntot, 0.0)
         for ix in index
             tmp = ions[ix].density_thermal
             ratios[:, ix] = tmp
@@ -1091,7 +1091,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
         for ix in index
             ratios[:, ix] ./= ntot
         end
-        @assert all(ntot .> 0.0) "Species $([ions[ix].label for ix in index]) have zero density: $(ntot)"
+        @assert all(n -> n > 0.0, ntot)# "Species $([ions[ix].label for ix in index]) have zero density: $(ntot)"
     end
 
     ne = cp1d.electrons.density_thermal
@@ -1127,15 +1127,15 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     for (index, ion2) in ((bulk_index, bulk), (impu_index, impu))
         ion2.element[1].a = 0.0
         for ix in index
-            ion2.element[1].a += as[ix] * sum(ratios[:, ix]) / length(ratios[:, ix])
+            @views ion2.element[1].a += as[ix] * sum(ratios[:, ix]) / length(ratios[:, ix])
         end
         for item in (:temperature, :rotation_frequency_tor)
-            value = rho_tor_norm .* 0.0
+            value = zero(rho_tor_norm)
             setproperty!(ion2, item, value; error_on_missing_coordinates=false)
             for ix in index
                 tmp = getproperty(ions[ix], item, T[])
                 if !isempty(tmp)
-                    value .+= tmp .* ratios[:, ix]
+                    @views @. value .+= tmp .* ratios[:, ix]
                 end
             end
         end
@@ -1257,22 +1257,22 @@ Memoize.@memoize function avgZinterpolator(filename::String)
 
     iion = Vector{Int}()
     Ti = Vector{Float64}()
-    for (k, line) in enumerate(split(txt, "\n"))
+    for (k, line) in enumerate(eachsplit(txt, "\n"))
         if k == 1
             continue
         elseif k == 2
             continue
         elseif k == 3
-            append!(iion, collect(map(x -> parse(Int, x), split(line))))
+            append!(iion, collect(map(x -> parse(Int, x), eachsplit(line))))
         elseif k == 4
-            append!(Ti, collect(map(x -> parse(Float64, x), split(line))))
+            append!(Ti, collect(map(x -> parse(Float64, x), eachsplit(line))))
         end
     end
 
     data = zeros(length(Ti), length(iion))
-    for (k, line) in enumerate(split(txt, "\n"))
+    for (k, line) in enumerate(eachsplit(txt, "\n"))
         if k > 4
-            data[k-4, :] = map(x -> parse(Float64, x), split(line))
+            data[k-4, :] = map(x -> parse(Float64, x), eachsplit(line))
         end
     end
 
