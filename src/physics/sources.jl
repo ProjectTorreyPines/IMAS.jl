@@ -61,19 +61,21 @@ Calculates the ohmic source from data in `dd.core_profiles` and adds it to `dd.c
 """
 function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    if !ismissing(cp1d, :j_ohmic)
+    j_ohmic = getproperty(cp1d, :j_ohmic, missing)
+    if !ismissing(j_ohmic)
         eqt = dd.equilibrium.time_slice[]
         eqt1d = eqt.profiles_1d
-        rho_tor_norm = cp1d.grid.rho_tor_norm
+        x = cp1d.grid.rho_tor_norm
         rho_eq = eqt1d.rho_tor_norm
-        gm1 = interp1d(rho_eq, eqt1d.gm1, :cubic).(rho_tor_norm)
-        gm9 = interp1d(rho_eq, eqt1d.gm9, :cubic).(rho_tor_norm)
-        f = interp1d(rho_eq, eqt1d.f, :cubic).(rho_tor_norm)
-        powerDensityOhm = (cp1d.j_tor .* gm9) .* (cp1d.j_ohmic .* eqt.global_quantities.vacuum_toroidal_field.b0) ./ (f .* gm1 .* cp1d.conductivity_parallel)
+        gm1_itp = cubic_interp1d(rho_eq, eqt1d.gm1)
+        gm9_itp = cubic_interp1d(rho_eq, eqt1d.gm9)
+        f_itp = cubic_interp1d(rho_eq, eqt1d.f)
+        b0 = eqt.global_quantities.vacuum_toroidal_field.b0
+        powerDensityOhm = @. (cp1d.j_tor * gm9_itp(x)) * (j_ohmic * b0) / (f_itp(x) * gm1_itp(x) * cp1d.conductivity_parallel)
         source = resize!(dd.core_sources.source, :ohmic; wipe=false)
-        new_source(source, source.identifier.index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+        new_source(source, source.identifier.index, "ohmic", x, cp1d.grid.volume, cp1d.grid.area;
             electrons_energy=powerDensityOhm,
-            j_parallel=cp1d.j_ohmic)
+            j_parallel=j_ohmic)
         return source
     end
 end

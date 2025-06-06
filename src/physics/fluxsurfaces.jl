@@ -545,7 +545,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
 
     # First check if we are in a double null configuration
     ZA = eqt.global_quantities.magnetic_axis.z
-    # retrieve b = elongation * minor radius 
+    # retrieve b = elongation * minor radius
     b = eqt.boundary.elongation * eqt.boundary.minor_radius
 
     for (r, z) in surface
@@ -1132,7 +1132,7 @@ Returns the interpolant r_mid(ψ) to compute the r at the midplane of the flux s
 The vector `R` defines the sampling of interest for thie interpolation
 """
 function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{T}, ZA::T) where {T<:Real}
-    return interp1d(PSI_interpolant.(R, R .* 0.0 .+ ZA), R, :cubic)
+    return cubic_interp1d(PSI_interpolant.(R, R .* 0.0 .+ ZA), R)
 end
 
 @compat public interp_rmid_at_psi
@@ -1971,7 +1971,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # gm2: <∇ρ²/R²>
     cumtrapz!(tmp, eqt1d.area, eqt1d.j_tor) # It(psi)
     eqt1d.gm2 = (mks.μ_0 * (2π)^2) .* tmp ./ (eqt1d.dvolume_dpsi .* (eqt1d.dpsi_drho_tor .^ 2))
-    @views gm2_itp = interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5], :cubic)
+    @views gm2_itp = cubic_interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5])
     eqt.profiles_1d.gm2[1] = gm2_itp(0.0) # extrapolate to axis due to zero / zero division
 
     # Geometric major and minor radii
@@ -2355,7 +2355,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
 
         #check if primary x-point consistent with strike points
         if isempty(eqt.boundary.strike_point)
-            #case with case not already saved  - look at first open surface 
+            #case with case not already saved  - look at first open surface
             psi_first_open = IMAS.find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
             (_, z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
             if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)

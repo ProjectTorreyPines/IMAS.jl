@@ -211,8 +211,8 @@ function optimal_kappa_delta(li::T1, βp::T1, ϵ::T1, γτw::T2, ∆o::T2) where
     δ_opt = 2.30 * li^1.27 * βp^-0.01 * ϵ^(1.21 − 0.76 * li - 1.22 * βp - 0.001 * γτw + 1.21 * (1.0 + ∆o))
     δ_opt = max(min(δ_opt, maximum(δδ_)), minimum(δδ_))
 
-    k0 = interp1d(δδ_, k0_, :cubic).(δ_opt)
-    k1 = interp1d(δδ_, k1_, :cubic).(δ_opt)
+    k0 = cubic_interp1d(δδ_, k0_).(δ_opt)
+    k1 = cubic_interp1d(δδ_, k1_).(δ_opt)
     κ_opt = k0 + k1 * ((2.0 * ϵ) / (1.0 + ϵ^2))^2
 
     return (κ_opt=κ_opt, δ_opt=δ_opt)

@@ -462,7 +462,7 @@ function find_levels_from_P(
     # being 2πr q(r) positive-definite, P(r) is strictly monotonic, therefore also injective (one-to-one)
     # P(r) is always invertible for every q(r)>0
     r = Interpolations.deduplicate_knots!(r)
-    interp_P = interp1d(r, P, :cubic) # interpolant of P(r)
+    interp_P = cubic_interp1d(r, P) # interpolant of P(r)
 
     p_levels = collect(LinRange(0, maximum(P), levels))   # levels to interpolate P
     # add flux surfaces of interest: last diverted surface and 2nd magnetic separatrix
@@ -495,7 +495,7 @@ function find_levels_from_P(
 
     p_levels = sort!(p_levels)
     P = Interpolations.deduplicate_knots!(P)
-    interp_inverseP = interp1d(P, r, :cubic) # interpolant of inverse function of r(P)
+    interp_inverseP = cubic_interp1d(P, r) # interpolant of inverse function of r(P)
     R = interp_inverseP.(p_levels)
 
     # using ψ(R), go from discretization in R to discretization in ψ
