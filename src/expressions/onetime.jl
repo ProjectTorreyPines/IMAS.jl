@@ -61,7 +61,7 @@ otexp["core_profiles.profiles_1d[:].grid.psi"] =
         psi = eqt.profiles_1d.psi
         sign_psi = sign(psi[end] - psi[1])
         pitp = cubic_interp1d(eqt.profiles_1d.rho_tor_norm, sqrt.(abs.(psi .- psi[1])))
-        return @. sign_psi * (ptip(rho_tor_norm) ^ 2) + psi[1]
+        return @. sign_psi * (pitp(rho_tor_norm) ^ 2) + psi[1]
     end
 
 #= ============ =#
