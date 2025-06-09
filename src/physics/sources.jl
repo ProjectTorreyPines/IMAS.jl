@@ -545,10 +545,8 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 """
     sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
 
-Model sawteeth by flattening all sources (besides time_derivative term) within the q inversion radius
+Model sawteeth by flattening all sources within the q inversion radius
 """
-const st_include_indexes = [-10000]
-const st_exclude_indexes = [409, 701]
 function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
@@ -561,12 +559,12 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     q = abs.(eqt1d.q)
     if !any(x -> x < qmin_desired, q)
         # this will return an empty source
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=st_include_indexes)
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
         fill!(source1d, total_source1d)
         return source
     else
-        # exlude :time_dependent and :sawteeth sources
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=st_exclude_indexes)
+        # exlude :sawteeth source itself
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[701])
         fill!(source1d, total_source1d)
     end
 
