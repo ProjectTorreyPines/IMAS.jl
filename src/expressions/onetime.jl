@@ -123,7 +123,7 @@ otexp["core_sources.source[:].profiles_1d[:].grid.area"] =
     (; dd, profiles_1d, grid, _...) -> begin
         eqt = dd.equilibrium.time_slice[profiles_1d.time]
         area = eqt.profiles_1d.area
-        return cubic_interp1d(eqt.profiles_1d.rho_tor_norm, area).(grid. rho_tor_norm)
+        return cubic_interp1d(eqt.profiles_1d.rho_tor_norm, area).(grid.rho_tor_norm)
     end
 
 otexp["core_sources.source[:].profiles_1d[:].grid.surface"] =
