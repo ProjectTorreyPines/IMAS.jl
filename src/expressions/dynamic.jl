@@ -14,9 +14,9 @@ dyexp = dynamic_expressions
 #  core_profiles.profiles_1d  #
 
 dyexp["core_profiles.profiles_1d[:].electrons.density"] =
-    (; electrons, _...) -> begin
+    (; profiles_1d, electrons, _...) -> begin
     if !hasdata(electrons, :density_thermal) && !hasdata(electrons, :density_fast)
-        rho_tor_norm = parent(electrons).grid.rho_tor_norm
+        rho_tor_norm = profiles_1d.grid.rho_tor_norm
         return zero(rho_tor_norm)
     elseif !hasdata(electrons, :density_thermal) && hasdata(electrons, :density_fast)
         return electrons.density_fast
@@ -47,9 +47,9 @@ dyexp["core_profiles.profiles_1d[:].t_i_average"] =
     (; profiles_1d, _...) -> t_i_average(profiles_1d)
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density"] =
-    (; ion, _...) -> begin
+    (; profiles_1d, ion, _...) -> begin
         if !hasdata(ion, :density_thermal) && !hasdata(ion, :density_fast)
-            rho_tor_norm = parent(parent(ion)).grid.rho_tor_norm
+            rho_tor_norm = profiles_1d.grid.rho_tor_norm
             return zero(rho_tor_norm)
         elseif !hasdata(ion, :density_thermal) && hasdata(ion, :density_fast)
             return ion.density_fast
