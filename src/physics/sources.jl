@@ -61,19 +61,21 @@ Calculates the ohmic source from data in `dd.core_profiles` and adds it to `dd.c
 """
 function ohmic_source!(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
-    if !ismissing(cp1d, :j_ohmic)
+    j_ohmic = getproperty(cp1d, :j_ohmic, missing)
+    if !ismissing(j_ohmic)
         eqt = dd.equilibrium.time_slice[]
         eqt1d = eqt.profiles_1d
-        rho_tor_norm = cp1d.grid.rho_tor_norm
+        x = cp1d.grid.rho_tor_norm
         rho_eq = eqt1d.rho_tor_norm
-        gm1 = interp1d(rho_eq, eqt1d.gm1, :cubic).(rho_tor_norm)
-        gm9 = interp1d(rho_eq, eqt1d.gm9, :cubic).(rho_tor_norm)
-        f = interp1d(rho_eq, eqt1d.f, :cubic).(rho_tor_norm)
-        powerDensityOhm = (cp1d.j_tor .* gm9) .* (cp1d.j_ohmic .* eqt.global_quantities.vacuum_toroidal_field.b0) ./ (f .* gm1 .* cp1d.conductivity_parallel)
+        gm1_itp = cubic_interp1d(rho_eq, eqt1d.gm1)
+        gm9_itp = cubic_interp1d(rho_eq, eqt1d.gm9)
+        f_itp = cubic_interp1d(rho_eq, eqt1d.f)
+        b0 = eqt.global_quantities.vacuum_toroidal_field.b0
+        powerDensityOhm = @. (cp1d.j_tor * gm9_itp(x)) * (j_ohmic * b0) / (f_itp(x) * gm1_itp(x) * cp1d.conductivity_parallel)
         source = resize!(dd.core_sources.source, :ohmic; wipe=false)
-        new_source(source, source.identifier.index, "ohmic", cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+        new_source(source, source.identifier.index, "ohmic", x, cp1d.grid.volume, cp1d.grid.area;
             electrons_energy=powerDensityOhm,
-            j_parallel=cp1d.j_ohmic)
+            j_parallel=j_ohmic)
         return source
     end
 end
@@ -439,9 +441,10 @@ function total_sources!(
         for field in keys(ids1)
             if field in keys(_core_sources_integral_value_keys)
                 if hasdata(ids1, field)
-                    getproperty(ids1, field) .*= 0.0
+                    fill!(getproperty(ids1, field), 0.0)
                 else
-                    setproperty!(ids1, field, zeros(T, size(rho)))
+                    # assume coordinates have been set
+                    setproperty!(ids1, field, zeros(T, size(rho)); error_on_missing_coordinates=false)
                 end
             end
         end
@@ -543,10 +546,8 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 """
     sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
 
-Model sawteeth by flattening all sources (besides time_derivative term) within the q inversion radius
+Model sawteeth by flattening all sources within the q inversion radius
 """
-const st_include_indexes = [-10000]
-const st_exclude_indexes = [409, 701]
 function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
@@ -559,12 +560,12 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     q = abs.(eqt1d.q)
     if !any(x -> x < qmin_desired, q)
         # this will return an empty source
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=st_include_indexes)
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
         fill!(source1d, total_source1d)
         return source
     else
-        # exlude :time_dependent and :sawteeth sources
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=st_exclude_indexes)
+        # exlude :sawteeth source itself
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[701])
         fill!(source1d, total_source1d)
     end
 
@@ -648,64 +649,76 @@ function new_source(
     cs1d.grid.volume = volume
     cs1d.grid.area = area
 
+    electrons = cs1d.electrons
+
     if electrons_energy !== missing
-        cs1d.electrons.energy = value = electrons_energy
-        cs1d.electrons.power_inside = cumtrapz(volume, value)
+        value = electrons_energy
+        setproperty!(electrons, :energy, value; error_on_missing_coordinates = false)
+        setproperty!(electrons, :power_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
     elseif electrons_power_inside !== missing
-        cs1d.electrons.power_inside = value = electrons_power_inside
-        cs1d.electrons.energy = gradient(volume, value)
+        value = electrons_power_inside
+        setproperty!(electrons, :power_inside, value; error_on_missing_coordinates = false)
+        setproperty!(electrons, :energy, gradient(volume, value); error_on_missing_coordinates = false)
     else
-        cs1d.electrons.energy = zero(volume)
-        cs1d.electrons.power_inside = zero(volume)
+        setproperty!(electrons, :energy, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(electrons, :power_inside, zero(volume); error_on_missing_coordinates = false)
     end
-    csglbl.electrons.power = cs1d.electrons.power_inside[end]
+    csglbl.electrons.power = electrons.power_inside[end]
 
     if total_ion_energy !== missing
-        cs1d.total_ion_energy = value = total_ion_energy
-        cs1d.total_ion_power_inside = cumtrapz(volume, value)
+        value = total_ion_energy
+        setproperty!(cs1d, :total_ion_energy, value; error_on_missing_coordinates = false)
+        setproperty!(cs1d, :total_ion_power_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
     elseif total_ion_power_inside !== missing
-        cs1d.total_ion_power_inside = value = total_ion_power_inside
-        cs1d.total_ion_energy = gradient(volume, value)
+        value = total_ion_power_inside
+        setproperty!(cs1d, :total_ion_power_inside, value; error_on_missing_coordinates = false)
+        setproperty!(cs1d, :total_ion_energy, gradient(volume, value); error_on_missing_coordinates = false)
     else
-        cs1d.total_ion_energy = zero(volume)
-        cs1d.total_ion_power_inside = zero(volume)
+        setproperty!(cs1d, :total_ion_energy, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :total_ion_power_inside, zero(volume); error_on_missing_coordinates = false)
     end
     csglbl.total_ion_power = cs1d.total_ion_power_inside[end]
     csglbl.power = csglbl.total_ion_power + csglbl.electrons.power
 
     if electrons_particles !== missing
-        cs1d.electrons.particles = value = electrons_particles
-        cs1d.electrons.particles_inside = cumtrapz(volume, value)
+        value = electrons_particles
+        setproperty!(electrons, :particles, value; error_on_missing_coordinates = false)
+        setproperty!(electrons, :particles_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
     elseif electrons_particles_inside !== missing
-        cs1d.electrons.particles_inside = value = electrons_particles_inside
-        cs1d.electrons.particles = gradient(volume, value)
+        value = electrons_particles_inside
+        setproperty!(electrons, :particles_inside, value; error_on_missing_coordinates = false)
+        setproperty!(electrons, :particles, gradient(volume, value); error_on_missing_coordinates = false)
     else
-        cs1d.electrons.particles = zero(volume)
-        cs1d.electrons.particles_inside = zero(volume)
+        setproperty!(electrons, :particles, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(electrons, :particles_inside, zero(volume); error_on_missing_coordinates = false)
     end
-    csglbl.electrons.particles = cs1d.electrons.particles_inside[end]
+    csglbl.electrons.particles = electrons.particles_inside[end]
 
     if j_parallel !== missing
-        cs1d.j_parallel = value = j_parallel
-        cs1d.current_parallel_inside = cumtrapz(area, value)
+        value = j_parallel
+        setproperty!(cs1d, :j_parallel, value; error_on_missing_coordinates = false)
+        setproperty!(cs1d, :current_parallel_inside, cumtrapz(area, value); error_on_missing_coordinates = false)
     elseif current_parallel_inside !== missing
-        cs1d.current_parallel_inside = value = current_parallel_inside
-        cs1d.j_parallel = gradient(area, value)
+        value = current_parallel_inside
+        setproperty!(cs1d, :current_parallel_inside, value; error_on_missing_coordinates = false)
+        setproperty!(cs1d, :j_parallel, gradient(area, value); error_on_missing_coordinates = false)
     else
-        cs1d.j_parallel = zero(area)
-        cs1d.current_parallel_inside = zero(area)
+        setproperty!(cs1d, :j_parallel, zero(area); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :current_parallel_inside, zero(area); error_on_missing_coordinates = false)
     end
     csglbl.current_parallel = cs1d.current_parallel_inside[end]
 
     if momentum_tor !== missing
-        cs1d.momentum_tor = value = momentum_tor
-        cs1d.torque_tor_inside = cumtrapz(volume, value)
+        value = momentum_tor
+        setproperty!(cs1d, :momentum_tor, value; error_on_missing_coordinates = false)
+        setproperty!(cs1d, :torque_tor_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
     elseif torque_tor_inside !== missing
-        cs1d.torque_tor_inside = value = torque_tor_inside
-        cs1d.momentum_tor = gradient(volume, value)
+        value = torque_tor_inside
+        setproperty!(cs1d, :torque_tor_inside, value; error_on_missing_coordinates = false)
+        setproperty!(cs1d, :momentum_tor, gradient(volume, value); error_on_missing_coordinates = false)
     else
-        cs1d.momentum_tor = zero(volume)
-        cs1d.torque_tor_inside = zero(volume)
+        setproperty!(cs1d, :momentum_tor, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :torque_tor_inside, zero(volume); error_on_missing_coordinates = false)
     end
     csglbl.torque_tor = cs1d.torque_tor_inside[end]
 

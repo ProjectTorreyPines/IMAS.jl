@@ -1470,7 +1470,7 @@ end
     ions=Symbol[:my_ions],
     time0=global_time(model)
 ) where {T<:Real}
-    if nearest_causal_time(time_array_from_parent_ids(model.profiles_1d, :get), time0; bounds_error=false).index > 0
+    if nearest_causal_time(time_array_from_parent_ids(model.profiles_1d, Val(:get)), time0; bounds_error=false).index > 0
         model_type = name_2_index(model)
         @series begin
             ions := ions

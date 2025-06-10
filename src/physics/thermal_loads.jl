@@ -41,10 +41,10 @@ function particle_heat_flux(
 
         @assert length(r) == length(q)
         @assert all(q .>= 0) # q is all positive
-        @assert all(r .>= 0) # r is all positive  
+        @assert all(r .>= 0) # r is all positive
         @assert r[1] == 0
 
-        # initialize outputs and set default value to zero. 
+        # initialize outputs and set default value to zero.
         # Heat flux is not zero only in the points where field lines in SOL intersect
         Qpara = zeros(length(rmesh))
         Qwall = zeros(length(rmesh))
@@ -54,17 +54,17 @@ function particle_heat_flux(
 
         # Set interpolant of q(r)
         r_separatrix = SOL[:lfs][1].r[SOL[:lfs][1].midplane_index] # Romp of LCFS
-        r = r .+ r_separatrix 
+        r = r .+ r_separatrix
         @assert maximum(r) > maximum(Romp_wall) "Vector r in q(r) is too short for interpolation. [Point of contact: G.Dose]"
 
-        q_interp = interp1d(r, q, :cubic)
+        q_interp = cubic_interp1d(r, q)
 
         # Only SOL[:lfs] and SOL[:lfs_far] have power flowing inside
         for sol in [SOL[:lfs]; SOL[:lfs_far]]
             rmid = sol.r[sol.midplane_index] # Romp of surface sol
             qmid = q_interp(rmid)
 
-            @assert qmid > 0 "qmid less than zero. Check q(r) interpolator. [Point of contact: G.Dose]" 
+            @assert qmid > 0 "qmid less than zero. Check q(r) interpolator. [Point of contact: G.Dose]"
 
             strike_point1 =  (rmesh .== sol.r[1])   .&&  (zmesh .== sol.z[1])   # index in mesh of first strike point of sol
             strike_point2 =  (rmesh .== sol.r[end]) .&&  (zmesh .== sol.z[end]) # index in mesh of second strike point of sol
@@ -78,7 +78,7 @@ function particle_heat_flux(
             Qwall[strike_point2] .= qmid / (sol.total_flux_expansion[end]) * sin(sol.grazing_angles[end])
         end
 
-        
+
     return (Qwall=Qwall, Qpara=Qpara)
 end
 
@@ -87,11 +87,11 @@ push!(document[Symbol("Physics thermal loads")], :particle_heat_flux)
 
 """
     core_radiation_heat_flux(
-        eqt::IMAS.equilibrium__time_slice, 
-        psi::Vector{<:Real}, 
-        source_1d::Vector{<:Real}, 
+        eqt::IMAS.equilibrium__time_slice,
+        psi::Vector{<:Real},
+        source_1d::Vector{<:Real},
         N::Int,
-        wall_r::AbstractVector{<:Real}, 
+        wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
         Prad_core::Float64)
 """
@@ -139,7 +139,7 @@ function core_radiation_heat_flux(
         ss = vcat(0.0, ss)
         qq = vcat((qq[1] + qq[end]) / 2, qq)
 
-        interp = interp1d(vcat(ss .- s[end], ss, ss .+ s[end]), vcat(qq, qq, qq), :cubic)
+        interp = cubic_interp1d(vcat(ss .- s[end], ss, ss .+ s[end]), vcat(qq, qq, qq))
         Qrad = interp.(s)
 
     else
@@ -151,11 +151,11 @@ function core_radiation_heat_flux(
 end
 
 """
-    mesher_heat_flux(dd::IMAS.dd; 
-        r::AbstractVector{T}=Float64[], 
-        q::AbstractVector{T}=Float64[], 
-        merge_wall::Bool = true, 
-        levels::Union{Int,AbstractVector} = 20, 
+    mesher_heat_flux(dd::IMAS.dd;
+        r::AbstractVector{T}=Float64[],
+        q::AbstractVector{T}=Float64[],
+        merge_wall::Bool = true,
+        levels::Union{Int,AbstractVector} = 20,
         step::T = 0.1) where {T<:Real}
 
 Computes the wall mesh for the heat flux deposited on the wall. Returns:
@@ -179,7 +179,7 @@ function mesher_heat_flux(dd::IMAS.dd;
         error("Impossible to map the heat flux onto the wall because dd.wall is empty")
     end
 
-    R0 = eqt.global_quantities.magnetic_axis.r # R magentic axis 
+    R0 = eqt.global_quantities.magnetic_axis.r # R magentic axis
     Z0 = eqt.global_quantities.magnetic_axis.z # Z magnetic axis
     psi_separatrix = find_psi_boundary(eqt, fw.r, fw.z; raise_error_on_not_open=true).first_open # psi at LCFS
 
@@ -192,7 +192,7 @@ function mesher_heat_flux(dd::IMAS.dd;
         a = dd.equilibrium.time_slice[].boundary.minor_radius      # minor radius
         l = widthSOL_eich(dd) # decay length of first exponential
         l2 = 0.1  # decay length of second exponential - NOTE put scaling second lambda q - Loarte 2008
-        frac = 0.2 # fraction of power flowing in the second esponential 
+        frac = 0.2 # fraction of power flowing in the second esponential
         NN = 2 # imbalance factor (in/out)  1 < N < 2
         Bt_omp = dd.equilibrium.time_slice[].global_quantities.vacuum_toroidal_field.b0 * R0 / (R0 + a)
 
@@ -346,8 +346,8 @@ function mesher_heat_flux(dd::IMAS.dd;
         _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
 
         #! format: off
-        if zwall[1] > Z0 # correction if first point is above midplane 
-            indexes[indexes .== 1 .&& Zwall.>Z0] .= length(rwall) # put it after index = end  
+        if zwall[1] > Z0 # correction if first point is above midplane
+            indexes[indexes .== 1 .&& Zwall.>Z0] .= length(rwall) # put it after index = end
             indexes[indexes .== 1 .&& Zwall.>zwall[2] .&& Zwall.<=Z0] .= 0   # put before index = 1
         end
         #! format: on
@@ -371,7 +371,7 @@ function mesher_heat_flux(dd::IMAS.dd;
         add_indexes = add_indexes[(psi_wall .< psi_separatrix .|| psi_wall .> psi_wall_midplane) .|| # add private flux region  around first null (psi<psi_sep) + add everyhting above psi midplane
                                 (psi_wall .>= psi_separatrix .&& psi_wall .<= psi_first_lfs_far .&&  # add also points inside the private region around second null (only if null is within wall)
                                 sign(eqt.boundary.x_point[end].z).*zwall.>abs(eqt.boundary.x_point[end].z)) .&& null_within_wall .||
-                                psi_wall .> psi_first_lfs_far .&& (rwall.<eqt.boundary.x_point[end].r) .|| # add point in :hfs 
+                                psi_wall .> psi_first_lfs_far .&& (rwall.<eqt.boundary.x_point[end].r) .|| # add point in :hfs
                                 (psi_wall .< psi_wall_midplane .&& (zwall.<=tollZ) .&& (zwall .>= -tollZ) .&& (rwall.>eqt.boundary.x_point[end].r) .&& add_omp) # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
                                 ]
         #! format: on

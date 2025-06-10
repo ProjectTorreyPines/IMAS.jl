@@ -101,12 +101,22 @@ dyexp["core_profiles.profiles_1d[:].pressure_thermal"] =
     (rho_tor_norm; profiles_1d, _...) -> pressure_thermal(profiles_1d)
 
 dyexp["core_profiles.profiles_1d[:].pressure_parallel"] =
-    (rho_tor_norm; profiles_1d, _...) ->
-        profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_parallel .+ sum(ion.pressure_fast_parallel for ion in profiles_1d.ion)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+        ppar = profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_parallel
+        for ion in profiles_1d.ion
+            ppar .+= ion.pressure_fast_parallel
+        end
+        return ppar
+    end
 
 dyexp["core_profiles.profiles_1d[:].pressure_perpendicular"] =
-    (rho_tor_norm; profiles_1d, _...) ->
-        profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_perpendicular .+ sum(ion.pressure_fast_perpendicular for ion in profiles_1d.ion)
+    (rho_tor_norm; profiles_1d, _...) -> begin
+        pperp = profiles_1d.pressure_thermal ./ 3.0 .+ profiles_1d.electrons.pressure_fast_perpendicular
+        for ion in profiles_1d.ion
+            pperp .+= ion.pressure_fast_perpendicular
+        end
+        return pperp
+    end
 
 dyexp["core_profiles.profiles_1d[:].pressure"] =
     (rho_tor_norm; profiles_1d, _...) -> profiles_1d.pressure_perpendicular .* 2.0 .+ profiles_1d.pressure_parallel
@@ -510,16 +520,16 @@ dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
 dyexp["pulse_schedule.tf.time"] =
     (time; dd, _...) -> dd.equilibrium.time
 
-dyexp["pulse_schedule.nbi.power.reference"] = 
+dyexp["pulse_schedule.nbi.power.reference"] =
     (time; nbi, _...) -> sum(unit.power.reference for unit in nbi.unit)
 
-dyexp["pulse_schedule.ec.power_launched.reference"] = 
+dyexp["pulse_schedule.ec.power_launched.reference"] =
     (time; ec, _...) -> sum(beam.power_launched.reference for beam in ec.unit)
 
-dyexp["pulse_schedule.ic.power.reference"] = 
+dyexp["pulse_schedule.ic.power.reference"] =
     (time; ic, _...) -> sum(antenna.power.reference for antenna in ic.antenna)
 
-dyexp["pulse_schedule.lh.power.reference"] = 
+dyexp["pulse_schedule.lh.power.reference"] =
     (time; lh, _...) -> sum(antenna.power.reference for antenna in lh.antenna)
 
 #= ====== =#
