@@ -441,7 +441,7 @@ function total_sources!(
         for field in keys(ids1)
             if field in keys(_core_sources_integral_value_keys)
                 if hasdata(ids1, field)
-                    getproperty(ids1, field) .*= 0.0
+                    fill!(getproperty(ids1, field), 0.0)
                 else
                     # assume coordinates have been set
                     setproperty!(ids1, field, zeros(T, size(rho)); error_on_missing_coordinates=false)
