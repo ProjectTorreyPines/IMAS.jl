@@ -35,13 +35,14 @@ end
 thermal pressure for all ions
 """
 function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
-    p = cp1di[1].temperature .* 0.0
+    p = zero(cp1di[1].temperature)
     for ion in cp1di
         if hasdata(ion, :density_thermal)
             p .+= ion.temperature .* ion.density_thermal
         end
     end
-    return p .* mks.e
+    p .*= mks.e
+    return p
 end
 
 @compat public pressure_thermal
