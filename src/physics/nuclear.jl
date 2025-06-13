@@ -82,7 +82,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
         # r0 > 1.0 is undefined, cutoff at r0 of 0.95
         r0 .= ifelse.(r0 .> 0.95, 0.95, r0)
         if any(r0 .== 0.95)
-            @warn "r0 in D+D→He3 is incorrect. This is likely a symptom of very high Ti: $Ti [keV]"
+            @warn "r0 in D+D→He3 is incorrect. This is likely a symptom of very high Ti [keV]: $Ti"
         end
     end
     theta = Ti ./ (1.0 .- r0)
