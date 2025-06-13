@@ -690,7 +690,7 @@ function find_psi_last_diverted(
     z_intersect = Float64[zz for (rr, zz) in rz_intersects]
 
     # r_mid(ψ) interpolator for region of interest
-    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
+    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max * 1.1), 1000)
     r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
     if length(r_intersect) > 2
@@ -1508,7 +1508,7 @@ function trace_surfaces(
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
             # plot!(pr, pz)
-            dd = minimum(filter(!isnan,sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)))
+            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)))
             if dd < d
                 d = dd
                 k = kk
@@ -1516,8 +1516,8 @@ function trace_surfaces(
         end
         leftright_r, leftright_z = Contour.coordinates(lines[k])
         index = .!(isnan.(leftright_r) .|| isnan.(leftright_z))
-        leftright_r=@view leftright_r[index]
-        leftright_z=@view leftright_z[index]
+        leftright_r = @view leftright_r[index]
+        leftright_z = @view leftright_z[index]
 
         # extrema in R
         interp_r = interp1d(1:length(leftright_r), leftright_r)
@@ -1585,8 +1585,8 @@ function trace_surfaces(
         end
         updown_r, updown_z = Contour.coordinates(lines[k])
         index = .!(isnan.(updown_r) .|| isnan.(updown_z))
-        updown_r=@view updown_r[index]
-        updown_z=@view updown_z[index]
+        updown_r = @view updown_r[index]
+        updown_z = @view updown_z[index]
 
         # extrema in Z
         interp_r = interp1d(1:length(updown_r), updown_r)
