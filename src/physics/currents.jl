@@ -81,7 +81,7 @@ function Jtor_2_JparB(rho_tor_norm::Real, JtoR::Real, includes_bootstrap::Bool, 
     dpdpsi = dpdpsi_itp(rho_tor_norm)
     if includes_bootstrap
         # add diamagnetic term to get included with bootstrap currrent
-        JtoR += dpdpsi * (1.0 - fsa_invR2 * f ^ 2 / fsa_B2) * 2pi
+        JtoR += dpdpsi * (1.0 - fsa_invR2 * f^2 / fsa_B2) * 2pi
     end
     return fsa_B2 * JtoR / (f * fsa_invR2)
 end
@@ -123,7 +123,7 @@ function JparB_2_JtoR(rho_tor_norm::Real, JparB::Real, includes_bootstrap::Bool,
     JtoR = f * fsa_invR2 * JparB / fsa_B2
     if includes_bootstrap
         # subtract diamagnetic term to get included with bootstrap currrent
-        JtoR -= dpdpsi * (1.0 - fsa_invR2 * f ^ 2 / fsa_B2) * 2pi
+        JtoR -= dpdpsi * (1.0 - fsa_invR2 * f^2 / fsa_B2) * 2pi
     end
     return JtoR
 end
@@ -210,14 +210,31 @@ function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__
 end
 
 """
-    vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq)) where {T<:Real}
+    vloop(eq::IMAS.equilibrium{T}, n::Int=1; time0::Float64=global_time(eq)) where {T<:Real}
 
 `Vloop = dψ/dt`: method emphasizes the inductive nature of the loop voltage. Assumes COCOS 11.
+
+n is the number of time_slices priors use to take the difference in psi_boundary
 """
-function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq)) where {T<:Real}
-    @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
+function vloop(eq::IMAS.equilibrium{T}, n::Int=1; time0::Float64=global_time(eq)) where {T<:Real}
+    @assert length(eq.time) > n "vloop from equilibrium can only be calculated in presence of at least two time slices"
     index = nearest_causal_time(eq.time, time0).index
-    return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
+    return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-n].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-n])
+end
+
+"""
+    vloop(eq::IMAS.equilibrium{T}, n::Int; time0::Float64=global_time(eq)) where {T<:Real}
+
+`Vloop = dψ/dt`: method emphasizes the inductive nature of the loop voltage. Assumes COCOS 11.
+
+δt is the time difference used to take the difference in psi_boundary
+"""
+function vloop(eq::IMAS.equilibrium{T}, δt::Float64; time0::Float64=global_time(eq)) where {T<:Real}
+    @assert δt > 0
+    index0 = nearest_causal_time(eq.time, time0).index
+    index1 = nearest_causal_time(eq.time, time0 - δt).index
+    @assert index0 != index1 "error calculating vloop: use a larger δt"
+    return (eq.time_slice[index0].global_quantities.psi_boundary - eq.time_slice[index1].global_quantities.psi_boundary) / (eq.time[index0] - eq.time[index1])
 end
 
 """
@@ -248,9 +265,16 @@ end
 
 Returns named tuple with `time` and `data` with `vloop` from equilibrium
 """
-function vloop_time(eq::IMAS.equilibrium{T}) where {T<:Real}
-    time = eq.time[2:end]
-    data = [vloop(eq; time0) for time0 in time]
+function vloop_time(eq::IMAS.equilibrium{T}, n::Int) where {T<:Real}
+    time = eq.time[n+1:end]
+    data = [vloop(eq, n; time0) for time0 in time]
+    return (time=time, data=data)
+end
+
+function vloop_time(eq::IMAS.equilibrium{T}, δt::Float64) where {T<:Real}
+    n = findfirst(>(δt), eq.time .- eq.time[1])
+    time = eq.time[n:end]
+    data = [vloop(eq, δt; time0) for time0 in time]
     return (time=time, data=data)
 end
 
