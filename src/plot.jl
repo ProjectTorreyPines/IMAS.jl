@@ -72,17 +72,18 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Symbol, "Colormap name"; cname)
 
+    currents = [ismissing(c.current, :data) ? 0.0 : get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
     if isempty(pfa.coil) || ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
-        currents = [0.0 for c in pfa.coil]
         c_unit = "A"
     else
-        currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
         CURRENT = 0.0
         for c in pfa.coil
-            if time0 == -Inf && c.current.time[1] == -Inf
-                CURRENT = max(CURRENT, maximum(abs, c.current.data[1] * getproperty(c.element[1], :turns_with_sign, 1.0)))
-            else
-                CURRENT = max(CURRENT, maximum(abs, c.current.data * getproperty(c.element[1], :turns_with_sign, 1.0)))
+            if !ismissing(c.current, :data)
+                if time0 == -Inf && c.current.time[1] == -Inf
+                    CURRENT = max(CURRENT, maximum(abs, c.current.data[1] * getproperty(c.element[1], :turns_with_sign, 1.0)))
+                else
+                    CURRENT = max(CURRENT, maximum(abs, c.current.data * getproperty(c.element[1], :turns_with_sign, 1.0)))
+                end
             end
         end
         if maximum(currents) > 1e6
