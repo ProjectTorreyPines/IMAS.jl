@@ -513,6 +513,18 @@ dyexp["pulse_schedule.ic.power.reference"] =
 dyexp["pulse_schedule.lh.power.reference"] =
     (; lh, _...) -> sum(antenna.power.reference for antenna in lh.antenna)
 
+#= ==== =#
+#  risk  #
+#= ==== =#
+dyexp["risk.engineering.loss[:].risk"] = 
+    (; loss, _...) -> (sum((fm.probability * fm.weight) for fm in loss.failure_mode) * loss.severity)
+
+dyexp["risk.plasma.risk"] = 
+    (; dd, _...) -> isempty(dd.risk.plasma) ? 0.0 : sum(loss.risk for loss in dd.risk.plasma.loss)    
+
+dyexp["risk.engineering.risk"] = 
+    (; dd, _...) -> isempty(dd.risk.engineering) ? 0.0 : sum(loss.risk for loss in dd.risk.engineering.loss)
+
 #= ====== =#
 #  limits  #
 #= ====== =#

@@ -501,6 +501,103 @@ end
     end
 end
 
+# ==== #
+# risk #
+# ==== #
+
+@recipe function plot_risk(rsk::IMAS.risk)
+    eng_loss = rsk.engineering.loss
+    eng_names = ["$(sys_loss.description)" for sys_loss in reverse(eng_loss)]
+    eng_risks = [sys_loss.risk for sys_loss in reverse(eng_loss)]
+    eng_perc = ["$(round(sys_loss.risk/sum(eng_risks)*100))%" for sys_loss in reverse(eng_loss)]
+
+    plasma_loss = rsk.plasma.loss
+    plasma_names = ["$(sys_loss.description)" for sys_loss in reverse(plasma_loss)]
+    plasma_risks = [sys_loss.risk for sys_loss in reverse(plasma_loss)]
+    plasma_perc = ["$(round(sys_loss.risk/sum(plasma_risks)*100))%" for sys_loss in reverse(plasma_loss)]
+
+    dd = parent(rsk)
+    direct_capital_cost = dd.costing.cost_direct_capital.cost 
+    levelized_cost = dd.costing.levelized_CoE
+
+    size --> (800, 800)
+    layout := RecipesBase.@layout (2, 2)
+
+    @series begin 
+        subplot := 1
+        seriestype := :bar
+        orientation := :horizontal
+        title := "Engineering risk" * "   " * @sprintf("[Total = %.3g \$M]", sum(eng_risks))
+        titlefontsize := 10
+        ylim := (0, length(eng_risks))
+        label := ""
+        annotation := [(0.0, kk - 0.5, ("  $x  $(titlecase(n,strict=false))", :left, 8)) for (kk, (c, x, n)) in enumerate((collect(zip(eng_risks, eng_perc, eng_names))))]
+        annotationvalign := :center
+        label := ""
+        xticks := 0:round(maximum(eng_risks) / 4, digits = 1):round(maximum(eng_risks), digits = 1)
+        xlim := (0, maximum(eng_risks))
+        xlabel := "[\$M]"
+        showaxis := :x
+        yaxis := nothing
+        alpha := 0.5
+        linecolor := :match
+        color := PlotUtils.palette(:tab10)[1]
+        eng_names, eng_risks
+    end
+
+    @series begin 
+        subplot := 2
+        seriestype := :bar
+        orientation := :horizontal
+        title := "Plasma risk" * "    " * @sprintf("[Total = %.3g \$/kWh]", sum(plasma_risks))
+        titlefontsize := 10
+        ylim := (0, length(plasma_risks))
+        label := ""
+        annotation := [(0.0, kk - 0.5, ("  $x  $(titlecase(n,strict=false))", :left, 8)) for (kk, (c, x, n)) in enumerate((collect(zip(plasma_risks, plasma_perc, plasma_names))))]
+        annotationvalign := :center
+        label := ""
+        xticks := 0:round(maximum(plasma_risks) / 4, digits = 1):round(maximum(plasma_risks), digits = 1)
+        xlim := (0, maximum(plasma_risks))
+        xlabel := "[\$/kWh]"
+        showaxis := :x
+        yaxis := nothing
+        alpha := 0.5
+        linecolor := :match
+        color := PlotUtils.palette(:tab10)[2]
+        plasma_names, plasma_risks
+    end
+
+    @series begin 
+        subplot := 3
+        seriestype := :bar 
+        label := "Direct capital cost with error"
+        ylabel := "Direct capital cost (\$M)"
+        orientation := :vertical 
+        legend := :bottomleft
+        title := "Error on direct capital cost"
+        alpha := 0.5
+        yerror := [rsk.engineering.risk]
+        color := PlotUtils.palette(:tab10)[1]
+        [""], [direct_capital_cost]
+    end
+    
+    @series begin
+        subplot := 4
+        seriestype := :bar
+        label := "Levelized cost with error"
+        ylabel := "Levelized cost of electricity (\$/kWh)"
+        orientation := :vertical
+        legend := :bottomleft
+        title := "Error on levelized cost"
+        right_ylabel := "Levelized cost of electricity with error"
+        alpha := 0.5
+        yerror := [rsk.plasma.risk]
+        color := PlotUtils.palette(:tab10)[2]
+        [""], [levelized_cost]
+    end
+
+end
+
 # =========== #
 # equilibrium #
 # =========== #
