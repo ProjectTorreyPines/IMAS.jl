@@ -241,7 +241,7 @@ function find_psi_boundary(
         @show original_psi_boundary
     end
 
-    return find_psi_boundary(
+    psi_boundaries = find_psi_boundary(
         dimR,
         dimZ,
         PSI,
@@ -258,6 +258,8 @@ function find_psi_boundary(
         raise_error_on_not_closed,
         verbose
     )
+
+    return psi_boundaries
 end
 
 """
@@ -311,7 +313,7 @@ function find_psi_boundary(
     end
     psirange_init = [psi_axis + (psi_edge0 - psi_axis) / 100.0, psi_edge0]
 
-    return find_psi_boundary(
+    psi_boundaries = find_psi_boundary(
         dimR,
         dimZ,
         PSI,
@@ -328,6 +330,8 @@ function find_psi_boundary(
         raise_error_on_not_closed,
         verbose
     )
+
+    return psi_boundaries
 end
 
 """
@@ -399,7 +403,7 @@ function find_psi_boundary(
     # outermost tentative flux surface (which should be open!)
     pr, pz = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, dimR, dimZ, psirange_init[end], RA, ZA, psi_axis)
     if is_closed_surface(pr, pz, fw_r, fw_z)
-        if raise_error_on_not_closed
+        if raise_error_on_not_open
             error("Flux surface at ψ=$(psirange_init[end]) is not open; ψ=[$(psirange_init[1])...$(psirange_init[end])]")
         else
             return (last_closed=nothing, first_open=nothing)
