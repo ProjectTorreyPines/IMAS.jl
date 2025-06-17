@@ -82,66 +82,6 @@ end
 
 @compat public revolution_volume
 push!(document[Symbol("Geometry")], :revolution_volume)
-
-"""
-    ray_rect_intersection(O, D, rect_min, rect_max)
-
-Compute the closest intersection point between the ray
-
-    P(t) = O + t*D,   t ≥ 0
-
-and the axis-aligned rectangle with corners `rect_min = (x_min,y_min)` and
-`rect_max = (x_max,y_max)`.  Returns `(x,y)` of the hit point, or `nothing`
-if there is no intersection.
-"""
-function ray_rect_intersection(
-    O::NTuple{2,Float64},
-    D::NTuple{2,Float64},
-    rect_min::NTuple{2,Float64},
-    rect_max::NTuple{2,Float64},
-)
-    x0, y0 = O
-    dx, dy = D
-    x_min, y_min = rect_min
-    x_max, y_max = rect_max
-
-    # Compute slab intersections for x
-    if dx != 0.0
-        tx1, tx2 = (x_min - x0)/dx, (x_max - x0)/dx
-        t_x_min, t_x_max = min(tx1,tx2), max(tx1,tx2)
-    else
-        # Ray parallel to x-planes: must lie within the slab
-        if x0 < x_min || x0 > x_max
-            return nothing
-        end
-        t_x_min, t_x_max = -Inf, Inf
-    end
-
-    # Compute slab intersections for y
-    if dy != 0.0
-        ty1, ty2 = (y_min - y0)/dy, (y_max - y0)/dy
-        t_y_min, t_y_max = min(ty1,ty2), max(ty1,ty2)
-    else
-        if y0 < y_min || y0 > y_max
-            return nothing
-        end
-        t_y_min, t_y_max = -Inf, Inf
-    end
-
-    # Find overlap of the two t-intervals
-    t_enter = max(t_x_min, t_y_min)
-    t_exit  = min(t_x_max, t_y_max)
-
-    # No intersection if empty interval or entirely behind the ray
-    if t_enter > t_exit || t_exit < 0.0
-        return nothing
-    end
-
-    # Use the entry point if in front of origin, else the exit point
-    t_hit = t_enter ≥ 0.0 ? t_enter : t_exit
-
-    return (x0 + t_hit*dx, y0 + t_hit*dy)
-end
 """
     r_intersect_interval(x0::T, y0::T, dx::T, dy::T, r_min::T, r_max::T) where {T<:Real}
 
