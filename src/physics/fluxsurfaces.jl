@@ -725,7 +725,6 @@ function find_psi_last_diverted(
             r_intersect = (cr[1] for cr in crossings)
             z_intersect = (cr[2] for cr in crossings)
 
-
             # find which intersection is the closest to each strike-point, to remove them
             closest_to_strike_points = Int64[]
             for point in eqt.boundary.strike_point
@@ -1754,7 +1753,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     psi_axis = PSI_interpolant(RA, ZA)
 
     # accurately find the lcfs and scale psi accordingly
-    if !isempty(wall_r) || (!ismissing(eqt.global_quantities, :free_boundary) && eqt.global_quantities.free_boundary == 1) || !isempty(eqt.boundary.x_point)
+    if !isempty(wall_r) || eqt.global_quantities.free_boundary == 1
         psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, wall_r, wall_z;
             PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
     else
