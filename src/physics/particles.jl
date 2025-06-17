@@ -379,6 +379,20 @@ function toroidal_intersection(r1::Real, z1::Real, r2::Real, z2::Real, px::Real,
 end
 
 """
+    toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, p::vector{T}, v:vector{T}) where {T<:Real}
+
+Returns the first time of intersection between a moving particle and a wall in toroidal geometry
+
+  - `wallr`: Vector with r coordinates of the wall (must be closed)
+  - `wallz`: Vector with z coordinates of the wall (must be closed)
+  - `p`: Vector with current position (3D) of the particle in Cartesian coordinates.
+  - `v`: Vector with current velocity components of the particle
+"""
+function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, p::Vector{T}, v::Vector{T}) where {T<:Real}
+    return toroidal_intersection(wallr, wallz, p[1], p[2], p[3], v[1], v[2], v[3])
+end
+
+"""
     toroidal_intersections(wallr::Vector{T}, wallz::vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real) where {T<:Real}
 
 Returns the first time of intersection between a moving particle and a wall in toroidal geometry
