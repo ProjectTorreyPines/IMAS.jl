@@ -1658,30 +1658,32 @@ push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
 
 function _extrema_index(r::AbstractVector{T}, z::AbstractVector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
     i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
+    N = length(z)
+    j = Int(ceil(N / 2))
     n = 3
     if direction == :right
-        if (r[i] - r[i-1]) > 0 # oriented right
-            return max(1, i - 1):min(length(z), i + n)
+        if (r[j] - r[j-1]) > 0 # oriented right
+            return max(1, i - 1):min(N, i + n)
         else # opposite orientation
-            return max(1, i - n):min(length(z), i + 1)
+            return max(1, i - n):min(N, i + 1)
         end
     elseif direction == :left
-        if (r[i] - r[i-1]) < 0 # oriented left
-            return max(1, i - 1):min(length(z), i + n)
+        if (r[j] - r[j-1]) < 0 # oriented left
+            return max(1, i - 1):min(N, i + n)
         else
-            return max(1, i - n):min(length(z), i + 1)
+            return max(1, i - n):min(N, i + 1)
         end
     elseif direction == :up
-        if (z[i] - z[i-1]) > 0 # oriented up
-            return max(1, i - 1):min(length(z), i + n)
+        if (z[j] - z[j-1]) > 0 # oriented up
+            return max(1, i - 1):min(N, i + n)
         else
-            return max(1, i - n):min(length(z), i + 1)
+            return max(1, i - n):min(N, i + 1)
         end
     elseif direction == :down
-        if (z[i] - z[i-1]) < 0 # oriented down
-            return max(1, i - 1):min(length(z), i + n)
+        if (z[j] - z[j-1]) < 0 # oriented down
+            return max(1, i - 1):min(N, i + n)
         else
-            return max(1, i - n):min(length(z), i + 1)
+            return max(1, i - n):min(N, i + 1)
         end
     else
         error("_extrema_index(..., direction::Symbol) can only be (:left, :right, :up, :down)")
