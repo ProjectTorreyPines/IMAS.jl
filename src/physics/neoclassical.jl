@@ -40,7 +40,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
         if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
             Ti = ion.temperature
             ni = ion.density_thermal / 1E6
-            Zi = avgZ(ion.element[1].z_n, Ti)
+            Zi = avgZ(ion)
             mi = ion.element[1].a * mp
             nui += @. sqrt(2) * pi * ni * Zi * e^4.0 * loglam / (sqrt(mi) * (k * Ti)^1.5)
         end
@@ -55,7 +55,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
         if !ismissing(ion, :temperature)
             Ti = ion.temperature
             ni = ion.density_thermal / 1E6
-            Zi = avgZ(ion.element[1].z_n, Ti)
+            Zi = avgZ(ion)
             mi = ion.element[1].a * mp
             nu_exch .+= @. c_exch * sqrt(me * mi) * Zi^2 * ni * loglam / (me * Ti + mi * Te)^1.5
         end
@@ -99,7 +99,7 @@ function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.
     fT = interp1d(rho_eq, eqt.profiles_1d.trapped_fraction).(rho)
     I_psi = interp1d(rho_eq, eqt.profiles_1d.f).(rho)
 
-    ν_es = nuestar(eqt, cp1d)
+    ν_es = nuestar(eqt, cp1d; Zeff)
     ν_is = nuistar(eqt, cp1d)
 
     B0 = B0_geo(eqt)
@@ -343,27 +343,25 @@ push!(document[Symbol("Physics neoclassical")], :collisionless_bootstrap_coeffic
 Calculate the electron collisionality, ν_*e, as a dimensionless measure of the
 frequency of electron collisions relative to their characteristic transit frequency.
 """
-function nuestar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d)
+function nuestar(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T};
+                 Zeff::Vector{T}=cp1d.zeff) where {T<:Real}
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density_thermal
-    Zeff = cp1d.zeff
 
-    R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) ./ 2.0
-    @assert all(R_eq .> 0.0) "R_eq .> 0.0 but $R_eq"
+    R_eq = (eqt.profiles_1d.r_outboard .+ eqt.profiles_1d.r_inboard) .* 0.5
+    @assert all(x -> x > 0.0, R_eq) "R_eq .> 0.0 but $R_eq"
 
-    R = interp1d(eqt.profiles_1d.rho_tor_norm, R_eq).(rho)
-    @assert all(R .> 0.0) "R .> 0.0 but $R"
+    R_itp = linear_interp1d(eqt.profiles_1d.rho_tor_norm, R_eq)
 
-    a_eq = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) ./ 2.0
-    @assert all(a_eq .> 0.0) "a_eq .> 0.0 but $a_eq"
+    a_eq = (eqt.profiles_1d.r_outboard .- eqt.profiles_1d.r_inboard) .* 0.5
+    @assert all(x -> x > 0.0, a_eq) "a_eq .> 0.0 but $a_eq"
 
-    a = interp1d(eqt.profiles_1d.rho_tor_norm, a_eq).(rho)
-    @assert all(a .> 0.0) "a .> 0.0 but $a"
+    a_itp = linear_interp1d(eqt.profiles_1d.rho_tor_norm, a_eq)
 
-    q = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q).(rho)
+    q_itp = linear_interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.q)
 
-    return @. 6.921e-18 * abs(q) * R * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * (a / R)^1.5)
+    return @. 6.921e-18 * abs(q_itp(rho)) * R_itp(rho) * ne * Zeff * lnLambda_e(ne, Te) / (Te^2 * (a_itp(rho) / R_itp(rho))^1.5)
 end
 
 @compat public nuestar
@@ -391,7 +389,7 @@ function nuistar(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__pr
     Ti = cp1d.t_i_average
 
     # dominant ion (the one with the most particles)
-    Zs = [ion.z_ion for ion in cp1d.ion]
+    Zs = [ion.element[1].z_n for ion in cp1d.ion]
     Zdom = [Zs[dom[2]] for dom in argmax(nis; dims=2)[:, 1]]
 
     Zavg = ne ./ ni
@@ -407,8 +405,8 @@ push!(document[Symbol("Physics neoclassical")], :nuistar)
 
 Compute the electron Coulomb logarithm, ln(Λ_e)
 """
-function lnLambda_e(ne, Te)
-    return @. 23.5 - log(sqrt(ne / 1e6) * Te^(-5.0 / 4.0)) - sqrt(1e-5 + (log(Te) - 2)^2 / 16.0)
+function lnLambda_e(ne::Real, Te::Real)
+    return 23.5 - log(sqrt(ne / 1e6) * Te^(-5.0 / 4.0)) - sqrt(1e-5 + (log(Te) - 2)^2 / 16.0)
 end
 
 """
@@ -416,8 +414,8 @@ end
 
 Compute the ion Coulomb logarithm, ln(Λ_i)
 """
-function lnLambda_i(ni, Ti, Zavg)
-    return @. 30.0 - log(Zavg^3 * sqrt(ni) / (Ti^1.5))
+function lnLambda_i(ni::Real, Ti::Real, Zavg::Real)
+    return 30.0 - log(Zavg^3 * sqrt(ni) / (Ti^1.5))
 end
 
 """
@@ -431,18 +429,18 @@ function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
     ne = cp1d.electrons.density_thermal
     Zeff = cp1d.zeff
 
-    trapped_fraction = interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction).(rho)
+    tf_itp = linear_interp1d(eqt.profiles_1d.rho_tor_norm, eqt.profiles_1d.trapped_fraction)
 
-    nue = nuestar(eqt, cp1d)
+    nue = nuestar(eqt, cp1d; Zeff)
 
     # neo 2021
     f33teff =
-        trapped_fraction ./ (
-            1 .+ 0.25 .* (1 .- 0.7 .* trapped_fraction) .* sqrt.(nue) .* (1 .+ 0.45 .* (Zeff .- 1) .^ 0.5) .+
-            0.61 .* (1 .- 0.41 .* trapped_fraction) .* nue ./ Zeff .^ 0.5
+        @. tf_itp(rho) / (
+            1 + 0.25 * (1 - 0.7 * tf_itp(rho)) * sqrt(nue) * (1 + 0.45 * (Zeff - 1) ^ 0.5) +
+            0.61 * (1 - 0.41 * tf_itp(rho)) * nue / Zeff ^ 0.5
         )
 
-    F33 = 1 .- (1 .+ 0.21 ./ Zeff) .* f33teff .+ 0.54 ./ Zeff .* f33teff .^ 2 .- 0.33 ./ Zeff .* f33teff .^ 3
+    F33 = @. 1 - (1 + 0.21 / Zeff) * f33teff + 0.54 / Zeff * f33teff ^ 2 - 0.33 / Zeff * f33teff ^ 3
 
     conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
 

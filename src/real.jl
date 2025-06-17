@@ -44,7 +44,7 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
             efield = Symbol("$(field)_σ")
             if !ismissing(ids, efield)
                 error = getfield(ids, efield)
-                uncer = value ± error
+                uncer = value .± error
             else
                 uncer = value .± 0.0
             end
@@ -76,3 +76,15 @@ end
 
 @compat public fill!
 push!(document[:Real], :fill!)
+
+function Base.setproperty!(ids::IDS{T}, field::Symbol, value::AbstractVector{<:Measurements.Measurement}) where {T<:Float64}
+    setproperty!(ids, field, [v.val for v in value])
+    setproperty!(ids, Symbol("$(field)_σ"), [v.err for v in value])
+    return value
+end
+
+function Base.setproperty!(ids::IDS{T}, field::Symbol, value::Measurements.Measurement) where {T<:Float64}
+    setproperty!(ids, field, value.val)
+    setproperty!(ids, Symbol("$(field)_σ"), value.err)
+    return value
+end

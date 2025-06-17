@@ -45,6 +45,7 @@ include(joinpath("control", "fxp.jl"))
 #= PHYSICS =#
 #= ======= =#
 include("physics.jl")
+include("experiments.jl")
 
 #= =========== =#
 #= EXPRESSIONS =#
@@ -60,7 +61,7 @@ include("plot.jl")
 #= ====== =#
 #= EXPORT =#
 #= ====== =#
-export @ddtime, @findall
+export @ddtime, @findall, help
 
 import HelpPlots: help_plot, help_plot!
 export help_plot, help_plot!

@@ -72,20 +72,20 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Symbol, "Colormap name"; cname)
 
+    currents = [ismissing(c.current, :data) ? 0.0 : get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
     if isempty(pfa.coil) || ismissing(pfa.coil[1].current, :time) || isempty(pfa.coil[1].current.time) || time0 < pfa.coil[1].current.time[1]
-        currents = [0.0 for c in pfa.coil]
         c_unit = "A"
     else
-        if time0 == -Inf && pfa.coil[1].current.time[1] == -Inf
-            index = 1
-        elseif pfa.coil[1].current.time[1] == -Inf
-            index = 2:length(pfa.coil[1].current.time)
-        else
-            index = 1:length(pfa.coil[1].current.time)
+        CURRENT = 0.0
+        for c in pfa.coil
+            if !ismissing(c.current, :data)
+                if time0 == -Inf && c.current.time[1] == -Inf
+                    CURRENT = max(CURRENT, maximum(abs, c.current.data[1] * getproperty(c.element[1], :turns_with_sign, 1.0)))
+                else
+                    CURRENT = max(CURRENT, maximum(abs, c.current.data * getproperty(c.element[1], :turns_with_sign, 1.0)))
+                end
+            end
         end
-
-        currents = [get_time_array(c.current, :data, time0) * getproperty(c.element[1], :turns_with_sign, 1.0) for c in pfa.coil]
-        CURRENT = maximum((maximum(abs, c.current.data[index] * getproperty(c.element[1], :turns_with_sign, 1.0)) for c in pfa.coil))
         if maximum(currents) > 1e6
             currents = currents ./ 1e6
             CURRENT = CURRENT ./ 1e6
@@ -653,6 +653,10 @@ end
     end
 end
 
+function _circle(a)
+    return [a * cos(t) for t in range(0, 2π, 101)], [a * sin(t) for t in range(0, 2π, 101)]
+end
+
 @recipe function plot_eqt2(
     eqt2d::IMAS.equilibrium__time_slice___profiles_2d;
     levels_in=11,
@@ -661,7 +665,8 @@ end
     show_x_points=true,
     show_strike_points=true,
     show_magnetic_axis=true,
-    coordinate=:psi)
+    coordinate=:psi,
+    top=false)
 
     id = recipe_dispatch(eqt2d)
     assert_type_and_record_argument(id, Union{Int,AbstractVector{<:Real}}, "Levels inside LCFS"; levels_in)
@@ -671,6 +676,7 @@ end
     assert_type_and_record_argument(id, Bool, "Show X points"; show_x_points)
     assert_type_and_record_argument(id, Bool, "Show strike points"; show_strike_points)
     assert_type_and_record_argument(id, Bool, "Show magnetic axis"; show_magnetic_axis)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
 
     label --> ""
     aspect_ratio := :equal
@@ -680,8 +686,7 @@ end
     primary --> false
 
     eqt = parent(parent(eqt2d))
-    xlabel --> "R [m]"
-    ylabel --> "Z [m]"
+
     # handle levels
     x_coord = getproperty(eqt.profiles_1d, coordinate)
     boundary_level = x_coord[end]
@@ -726,55 +731,86 @@ end
 
     base_linewidth = get(plotattributes, :linewidth, 1.0)
 
-    for psi_level in psi_levels
-        for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
-            @series begin
-                seriestype --> :path
-                if psi_level == psi__boundary_level
-                    linewidth := base_linewidth * 1.5
-                else
-                    linewidth := base_linewidth * 0.5
-                    if psi_level in psi_levels_in &&
-                       (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
-                        linestyle --> :solid
-                    else
-                        linestyle --> :dash
+    if top
+        xlabel --> "X [m]"
+        ylabel --> "Y [m]"
+        @series begin
+            ls := :dash
+            _circle(RA)
+        end
+        for psi_level in psi_levels_in
+            for (pr, pz) in flux_surface(eqt, psi_level, :closed, fw.r, fw.z)
+                for f in (minimum, maximum)
+                    @series begin
+                        seriestype --> :path
+                        if psi_level == psi__boundary_level
+                            linewidth := base_linewidth * 1.5
+                        else
+                            linewidth := base_linewidth * 0.5
+                            if psi_level in psi_levels_in &&
+                               (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
+                                linestyle --> :solid
+                            else
+                                linestyle --> :dash
+                            end
+                        end
+                        _circle(f(pr))
                     end
                 end
-                pr, pz
+            end
+        end
+    else
+        xlabel --> "R [m]"
+        ylabel --> "Z [m]"
+        for psi_level in psi_levels
+            for (pr, pz) in flux_surface(eqt, psi_level, :any, fw.r, fw.z)
+                @series begin
+                    seriestype --> :path
+                    if psi_level == psi__boundary_level
+                        linewidth := base_linewidth * 1.5
+                    else
+                        linewidth := base_linewidth * 0.5
+                        if psi_level in psi_levels_in &&
+                           (is_closed_polygon(pr, pz) && (PolygonOps.inpolygon((RA, ZA), collect(zip(pr, pz))) == 1) && !IMAS.intersects(pr, pz, fw.r, fw.z))
+                            linestyle --> :solid
+                        else
+                            linestyle --> :dash
+                        end
+                    end
+                    pr, pz
+                end
+            end
+        end
+
+        if show_secondary_separatrix
+            @series begin
+                primary --> false
+                linewidth := base_linewidth * 1.0
+                eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
+            end
+        end
+
+        if show_magnetic_axis
+            @series begin
+                primary --> false
+                eqt.global_quantities.magnetic_axis
+            end
+        end
+
+        if show_x_points
+            @series begin
+                primary --> false
+                eqt.boundary.x_point
+            end
+        end
+
+        if show_strike_points
+            @series begin
+                primary --> false
+                eqt.boundary.strike_point
             end
         end
     end
-
-    if show_secondary_separatrix
-        @series begin
-            primary --> false
-            linewidth := base_linewidth * 1.0
-            eqt.boundary_secondary_separatrix.outline.r, eqt.boundary_secondary_separatrix.outline.z
-        end
-    end
-
-    if show_magnetic_axis
-        @series begin
-            primary --> false
-            eqt.global_quantities.magnetic_axis
-        end
-    end
-
-    if show_x_points
-        @series begin
-            primary --> false
-            eqt.boundary.x_point
-        end
-    end
-
-    if show_strike_points
-        @series begin
-            primary --> false
-            eqt.boundary.strike_point
-        end
-    end
-
 end
 
 @recipe function plot_eqtb(eqtb::IMAS.equilibrium__time_slice___boundary)
@@ -802,7 +838,7 @@ end
 @recipe function plot_x_points(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point})
     for (k, x_point) in enumerate(x_points)
         @series begin
-            markersize --> (length(x_points) + 1 - k) * 4
+            markersize --> ((length(x_points) + 1 - k) / length(x_points)) * 4
             x_point
         end
     end
@@ -1324,7 +1360,7 @@ end
         title := "Electron energy flux"
         label --> ""
         normalization := 1E-6
-        ylabel := "[MW/m²]"
+        ylabel --> "[MW/m²]"
         ct1d__electrons__energy, :flux
     end
 end
@@ -1335,7 +1371,7 @@ end
         title := "Total ion energy flux"
         label --> ""
         normalization := 1E-6
-        ylabel := "[MW/m²]"
+        ylabel --> "[MW/m²]"
         ct1d__total_ion_energy, :flux
     end
 end
@@ -1349,7 +1385,7 @@ end
         markershape --> :none
         title := "Electron particle flux"
         label --> ""
-        ylabel := "[s⁻¹/m²]"
+        ylabel --> "[s⁻¹/m²]"
         ct1d__electrons__particles, :flux
     end
 end
@@ -1364,7 +1400,7 @@ end
         markershape --> :none
         title := "$(ion.label) particle flux"
         label --> ""
-        ylabel := "[s⁻¹/m²]"
+        ylabel --> "[s⁻¹/m²]"
         ct1d__ion___particles, :flux
     end
 end
@@ -1374,7 +1410,7 @@ end
         markershape --> :none
         title := "Momentum flux"
         label --> ""
-        ylabel := "[Nm/m²]"
+        ylabel --> "[Nm/m²]"
         ct1d__momentum_tor, :flux
     end
 end
@@ -1435,7 +1471,7 @@ end
     ions=Symbol[:my_ions],
     time0=global_time(model)
 ) where {T<:Real}
-    if nearest_causal_time(time_array_from_parent_ids(model.profiles_1d, :get), time0; bounds_error=false).index > 0
+    if nearest_causal_time(time_array_from_parent_ids(model.profiles_1d, Val(:get)), time0; bounds_error=false).index > 0
         model_type = name_2_index(model)
         @series begin
             ions := ions
@@ -1572,7 +1608,7 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1de, :power_inside) && flux
-                ylabel := "[MW/m²]"
+                ylabel --> "[MW/m²]"
                 normalization = 1E-6 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1636,7 +1672,7 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1d, :total_ion_power_inside) && flux
-                ylabel := "[MW/m²]"
+                ylabel --> "[MW/m²]"
                 normalization = 1E-6 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1701,7 +1737,7 @@ end
                 if plot_extrema.active
                     ylim --> plot_extrema.ylim
                 end
-                ylabel := "[s⁻¹/m²]"
+                ylabel --> "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1770,7 +1806,7 @@ end
                 if plot_extrema.active
                     ylim --> plot_extrema.ylim
                 end
-                ylabel := "[s⁻¹/m²]"
+                ylabel --> "[s⁻¹/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -1834,7 +1870,7 @@ end
                 fill0 --> true
             end
             if !ismissing(cs1d, :torque_tor_inside) && flux
-                ylabel := "[Nm/m²]"
+                ylabel --> "[Nm/m²]"
                 normalization = 1.0 ./ cs1d.grid.surface
                 normalization[1] = NaN
                 normalization := normalization
@@ -2099,11 +2135,12 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false, what_density=:density)
     id = recipe_dispatch(cpt)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
     assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
+    assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
 
     if label === nothing
         label = ""
@@ -2121,7 +2158,7 @@ end
             if only === nothing
                 subplot := 1
             end
-            title := "Temperatures"
+            title --> "Temperatures"
             label := "e" * label
             ylim --> (0, Inf)
             cpt.electrons, :temperature
@@ -2135,7 +2172,7 @@ end
                     if only === nothing
                         subplot := 1
                     end
-                    title := "Temperatures"
+                    title --> "Temperatures"
                     label := "Ions" * label
                     linestyle --> :dash
                     ylim --> (0, Inf)
@@ -2151,7 +2188,7 @@ end
                         if only === nothing
                             subplot := 1
                         end
-                        title := "Temperatures"
+                        title --> "Temperatures"
                         label := ion.label * label
                         linestyle --> :dash
                         ylim --> (0, Inf)
@@ -2168,10 +2205,10 @@ end
             if only === nothing
                 subplot := 2
             end
-            title := "Densities"
+            title --> "Densities"
             label := "e" * label
             ylim --> (0.0, Inf)
-            cpt.electrons, :density
+            cpt.electrons, what_density
         end
         if greenwald
             @series begin
@@ -2190,7 +2227,7 @@ end
                 if only === nothing
                     subplot := 2
                 end
-                title := "Densities"
+                title --> "Densities"
                 if Z == 1.0
                     label := ion.label * label
                 else
@@ -2199,7 +2236,7 @@ end
                 linestyle --> :dash
                 ylim --> (0.0, Inf)
                 normalization --> Z
-                ion, :density
+                ion, what_density
             end
         end
     end
@@ -2210,7 +2247,7 @@ end
             if only === nothing
                 subplot := 3
             end
-            title := "Rotation"
+            title --> "Rotation"
             label := "" * label
             if !ismissing(cpt, :rotation_frequency_tor_sonic)
                 cpt, :rotation_frequency_tor_sonic
@@ -2250,8 +2287,7 @@ end
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
     dd = top_dd(beam)
-
-    if !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
+    if dd !== nothing && !isempty(dd.waves.time) && time0 >= dd.waves.time[1]
         beam_index = index(beam)
         @series begin
             label --> label(beam)
@@ -2284,7 +2320,7 @@ end
     freq = frequency(beam_freq)
     resonance_layer = ech_resonance_layer(eqt, freq)
     @series begin
-        label := "$(resonance_layer.harmonic) @ harmonic $(@sprintf("%.0f", freq/1E9)) GHz"
+        label --> "$(resonance_layer.harmonic) @ harmonic $(@sprintf("%.0f", freq/1E9)) GHz"
         resonance_layer.r, resonance_layer.z
     end
     if show_vacuum_Bt
@@ -2466,41 +2502,82 @@ end
     end
 end
 
-@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false)
+@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false, min_power=1e3)
+    id = recipe_dispatch(beam)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
+    assert_type_and_record_argument(id, Float64, "Minimum power above which to show the beam"; min_power)
+
+    active = min_power < 0.0 || ismissing(beam, :power_initial) || beam.power_initial > min_power
+    name = parent(parent(parent(parent(beam)))).identifier.antenna_name
+    color = hash_to_color(name; seed=4)
     if top
-        @series begin
-            seriestype --> :scatter
-            [beam.position.r[1] * cos(beam.position.phi[1])],
-            [beam.position.r[1] * sin(beam.position.phi[1])]
-        end
-        @series begin
-            primary := false
-            beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
+        # top view
+        if active
+            color --> color
+            @series begin
+                seriestype --> :scatter
+                markerstrokewidth := 0.0
+                [beam.position.r[1] * cos(beam.position.phi[1])], [beam.position.r[1] * sin(beam.position.phi[1])]
+            end
+            @series begin
+                primary := false
+                beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
+            end
+            @series begin
+                primary := false
+                linewidth := 0.5
+                color := :black
+                beam.position.r .* cos.(beam.position.phi), beam.position.r .* sin.(beam.position.phi)
+            end
+        else
+            @series begin
+                color := :gray
+                seriestype --> :scatter
+                markerstrokewidth := 0.0
+                [beam.position.r[1] * cos(beam.position.phi[1])], [beam.position.r[1] * sin(beam.position.phi[1])]
+            end
         end
     else
-        @series begin
-            beam.position.r, beam.position.z
-        end
-        @series begin
-            primary := false
-            label := ""
-            seriestype --> :scatter
-            [beam.position.r[1]], [beam.position.z[1]]
+        # cross-sectional view
+        if active
+            color --> color
+            @series begin
+                seriestype --> :scatter
+                markerstrokewidth := 0.0
+                [beam.position.r[1]], [beam.position.z[1]]
+            end
+            @series begin
+                primary := false
+                beam.position.r, beam.position.z
+            end
+            @series begin
+                primary := false
+                linewidth := 0.5
+                color := :black
+                beam.position.r, beam.position.z
+            end
+        else
+            @series begin
+                color := :gray
+                seriestype --> :scatter
+                markerstrokewidth := 0.0
+                [beam.position.r[1]], [beam.position.z[1]]
+            end
         end
     end
 end
 
-@recipe function beam_tracing(bt::IMAS.waves__coherent_wave___beam_tracing; max_beam=3)
+@recipe function beam_tracing(bt::IMAS.waves__coherent_wave___beam_tracing; max_beam=length(bt.beam))
+    id = recipe_dispatch(bt)
+    assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
+
     aspect_ratio := :equal
     legend_position --> :outerbottomright
-    for (ibeam, beam) in enumerate(bt.beam)
-        if ibeam > max_beam
-            break
-        end
+    for (ibeam, beam) in enumerate(bt.beam[1:max_beam])
         @series begin
             if ibeam == 1
                 primary := true
-                label := parent(parent(bt)).identifier.antenna_name
+                label --> parent(parent(bt)).identifier.antenna_name
                 lw := 3.0
             else
                 primary := false
@@ -2513,8 +2590,13 @@ end
 end
 
 @recipe function plot_wave(bts::IDSvector{<:IMAS.waves__coherent_wave___beam_tracing}; time0=global_time(bts))
-    @series begin
-        bts[time0]
+    id = recipe_dispatch(bts)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
+    if !isempty(bts) && bts[1].time >= time0
+        @series begin
+            bts[time0]
+        end
     end
 end
 
@@ -2526,7 +2608,11 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave))
+@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave), time0=global_time(bts))
+    id = recipe_dispatch(wv)
+    assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+
     dd = top_dd(wv)
     @series begin
         cx := true
@@ -2534,7 +2620,7 @@ end
     end
     @series begin
         alpha --> 0.75
-        [beam.beam_tracing[] for beam in wv.coherent_wave[1:max_beam]]
+        [beam.beam_tracing[time0] for beam in wv.coherent_wave[1:max_beam]]
     end
 end
 
@@ -2761,10 +2847,32 @@ end
 # ==== #
 # wall #
 # ==== #
-@recipe function plot_wall(wall::IMAS.wall)
+@recipe function plot_wall(wall::IMAS.wall; top=false)
+    id = recipe_dispatch(wall)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
+
     aspect_ratio := :equal
-    @series begin
-        return wall.description_2d
+    if top
+        fw = first_wall(wall)
+        z0 = (maximum(fw.z) + minimum(fw.z)) / 2
+        _, crossings = intersection(fw.r, fw.z, [0.0, 1000.0], [z0, z0])
+        color := :black
+        label := ""
+        r1 = min(crossings[1][1], crossings[2][1])
+        r2 = max(crossings[1][1], crossings[2][1])
+        @series begin
+            _circle(r1)
+        end
+        @series begin
+            xlim --> (-r2 * 1.1, r2 * 1.1)
+            ylim --> (-r2 * 1.1, r2 * 1.1)
+            primary := false
+            _circle(r2)
+        end
+    else
+        @series begin
+            wall.description_2d
+        end
     end
 end
 
@@ -2938,7 +3046,7 @@ const UnionPulseScheduleSubIDS = Union{IMAS.pulse_schedule,(tp for tp in fieldty
             continue
         end
 
-        time_value = coordinates(ids, :reference).values[1]
+        time_value = getproperty(coordinates(ids, :reference)[1])
         data_value = getproperty(ids, :reference)
 
         if length(collect(filter(x -> !isinf(x), time_value))) == 1
@@ -3180,6 +3288,80 @@ end
 end
 
 #= ======= =#
+#  getdata  #
+#= ======= =#
+@recipe function plot_getdata(ids::IDS, what::Val, ; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
+    id = recipe_dispatch(ids)
+    assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
+    assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
+    assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
+
+    time, rho, data, weights = getdata(what, top_dd(ids), time0, time_averaging)
+    data = data .* normalization
+    if eltype(data) <: Measurements.Measurement
+        data_σ = [d.err for d in data]
+        data = [d.val for d in data]
+        if all(data_σ .== 0.0)
+            data_σ = []
+        end
+    else
+        data_σ = []
+    end
+
+    if isempty(data_σ)
+        @series begin
+            label --> string(what)
+            color := :transparent
+            seriestype := :scatter
+            seriesalpha := weights
+            rho, data
+        end
+    else
+        k = 1
+        for w in unique(weights)
+            index = findall(==(w), weights)
+            primary := (k == 1)
+            k += 1
+            @series begin
+                label --> string(what)
+                color := :transparent
+                seriestype := :scatter
+                alpha := w
+                yerror := isempty(data_σ) ? nothing : data_σ[index]
+                rho[index], data[index]
+            end
+        end
+    end
+end
+
+#= ================== =#
+#  thomson_scattering  #
+#= ================== =#
+@recipe function plot_thomson(ts::thomson_scattering, what::Symbol; time0=global_time(ts), time_averaging=0.05, normalization=1.0)
+    @assert what in (:n_e, :t_e)
+    @series begin
+        time0 := time0
+        time_averaging := time_averaging
+        normalization := normalization
+        ts, Val(what)
+    end
+end
+
+#= =============== =#
+#  charge_exchange  #
+#= =============== =#
+@recipe function plot_charge_exchange(cer::charge_exchange{T}, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0) where {T<:Real}
+    @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
+
+    @series begin
+        time0 := time0
+        time_averaging := time_averaging
+        normalization := normalization
+        cer, Val(what)
+    end
+end
+
+#= ======= =#
 #  summary  #
 #= ======= =#
 @recipe function plot(summary::IMAS.summary)
@@ -3198,6 +3380,27 @@ end
             label := ""
             xlabel := ""
             leaf.ids, leaf.field
+        end
+    end
+end
+
+@recipe function plot(hcd::IMAS.summary__heating_current_drive)
+    @series begin
+        color := :black
+        linewidth := 2
+        label := "total"
+        normalization := 1E-6
+        ylabel --> "[MW]"
+        getproperty(hcd, :power_launched_total), :value
+    end
+    for (field, label) in ((:power_launched_ec, "ec"), (:power_launched_ic, "ic"), (:power_launched_lh, "lh"), (:power_launched_nbi, "nbi"))
+        if !ismissing(getproperty(hcd, field), :value)
+            @series begin
+                label := label
+                normalization := 1E-6
+                ylabel --> "[MW]"
+                getproperty(hcd, field), :value
+            end
         end
     end
 end
@@ -3355,9 +3558,9 @@ end
     assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
     assert_type_and_record_argument(id, Bool, "Fill area under curve"; fill0)
 
-    coords = coordinates(ids, field; coord_leaves=[coordinate])
-    coordinate_name = coords.names[1]
-    coordinate_value = coords.values[1]
+    coords = coordinates(ids, field; override_coord_leaves=[coordinate])
+    coordinate_name = string(coords[1].field)
+    coordinate_value = getproperty(coords[1])
 
     # If the field is the reference coordinate of the given IDS,
     # set the coordinate_value as its index
@@ -3366,7 +3569,13 @@ end
     end
 
     xvalue = coordinate_value
-    yvalue = getproperty(ids, field) .* normalization
+    yvalue = getproperty(ids, field)
+
+    if hasdata(ids, Symbol("$(field)_σ"))
+        yvalue = Measurements.measurement.(yvalue, getproperty(ids, Symbol("$(field)_σ")))
+    end
+
+    yvalue = yvalue .* normalization
 
     @series begin
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
@@ -3377,9 +3586,9 @@ end
 
         # multiply y by things like `:area` or `:volume`
         if weighted !== nothing
-            weight = coordinates(ids, field; coord_leaves=[weighted])
-            yvalue .*= weight.values[1]
-            ylabel = nice_units(units(ids, field) * "*" * units(weight.names[1]))
+            weight = coordinates(ids, field; override_coord_leaves=[weighted])[1]
+            yvalue .*= getproperty(weight)
+            ylabel = nice_units(units(ids, field) * "*" * units(weight.field))
             label = nice_field("$field*$weighted")
         else
             ylabel = nice_units(units(ids, field))
@@ -3389,7 +3598,7 @@ end
         if coordinate_name == "1...N"
             xlabel --> "index"
         else
-            xlabel --> nice_field(i2p(coordinate_name)[end]) * nice_units(units(coordinate_name))
+            xlabel --> nice_field(coordinate_name) * nice_units(units(coords[1].ids, coords[1].field))
         end
         ylabel --> ylabel
         label --> label
@@ -3426,18 +3635,9 @@ end
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
         coord = coordinates(ids, field)
-        if ~isempty(coord.values) && issorted(coord.values[1]) && issorted(coord.values[2])
-            # Plot zvalue with the coordinates
-            xvalue = coord.values[1]
-            yvalue = coord.values[2]
-            xlabel --> split(coord.names[1], '.')[end] # dim1
-            ylabel --> split(coord.names[2], '.')[end] # dim2
-
-            xlim --> (minimum(xvalue), maximum(xvalue))
-            ylim --> (minimum(yvalue), maximum(yvalue))
-            aspect_ratio --> :equal
-            xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
-        else
+        dim1 = getproperty(coord[1])
+        dim2 = getproperty(coord[2])
+        if dim1 === nothing || dim1 === missing || dim2 === nothing || dim2 === missing
             # Plot zvalue as "matrix"
             xlabel --> "column"
             ylabel --> "row"
@@ -3447,6 +3647,17 @@ end
 
             yflip --> true # To make 'row' counting starts from the top
             zvalue
+        else
+            # Plot zvalue with the coordinates
+            xvalue = dim1
+            yvalue = dim2
+            xlabel --> coord[1].field
+            ylabel --> coord[2].field
+
+            xlim --> (minimum(xvalue), maximum(xvalue))
+            ylim --> (minimum(yvalue), maximum(yvalue))
+            aspect_ratio --> :equal
+            xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
         end
     end
 end

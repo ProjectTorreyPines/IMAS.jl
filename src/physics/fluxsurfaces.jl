@@ -89,8 +89,7 @@ Returns Br and Bz named tuple evaluated at r and z starting from ψ interpolant
 """
 function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
-    Z, R = meshgrid(z, r)
-    return Br_Bz(PSI_interpolant, R, Z)
+    return Br_Bz_meshgrid(PSI_interpolant, r, z)
 end
 
 """
@@ -128,14 +127,27 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :Br_Bz)
 
 """
+    Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+"""
+function Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    Br = Matrix{T}(undef, length(r), length(z))
+    Bz = Matrix{T}(undef, length(r), length(z))
+    for kr in eachindex(r)
+        for kz in eachindex(z)
+            Br[kr, kz], Bz[kr, kz] = Br_Bz(PSI_interpolant, r[kr], z[kz])
+        end
+    end
+    return (Br=Br, Bz=Bz)
+end
+
+"""
     Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 
 Returns Bp evaluated at r and z starting from ψ interpolant
 """
 function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
-    Z, R = meshgrid(z, r)
-    return Bp.(Ref(PSI_interpolant), R, Z)
+    return Bp_meshgrid(PSI_interpolant, r, z)
 end
 
 """
@@ -143,7 +155,20 @@ end
 """
 function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
     Br, Bz = Br_Bz(PSI_interpolant, r, z)
-    return sqrt(Br^2.0 + Bz^2.0)
+    return sqrt(Br^2 + Bz^2)
+end
+
+"""
+    Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+"""
+function Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    Bp = Matrix{T}(undef, length(r), length(z))
+    for kr in eachindex(r)
+        for kz in eachindex(z)
+            Bp[kr, kz] = Bp(PSI_interpolant, r[kr], z[kz])
+        end
+    end
+    return Bp
 end
 
 """
@@ -520,7 +545,7 @@ function find_psi_2nd_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision
 
     # First check if we are in a double null configuration
     ZA = eqt.global_quantities.magnetic_axis.z
-    # retrieve b = elongation * minor radius 
+    # retrieve b = elongation * minor radius
     b = eqt.boundary.elongation * eqt.boundary.minor_radius
 
     for (r, z) in surface
@@ -665,7 +690,7 @@ function find_psi_last_diverted(
     z_intersect = Float64[zz for (rr, zz) in rz_intersects]
 
     # r_mid(ψ) interpolator for region of interest
-    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max), 1000)
+    r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(r_max * 1.1), 1000)
     r_mid_itp = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
 
     if length(r_intersect) > 2
@@ -1107,7 +1132,7 @@ Returns the interpolant r_mid(ψ) to compute the r at the midplane of the flux s
 The vector `R` defines the sampling of interest for thie interpolation
 """
 function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{T}, ZA::T) where {T<:Real}
-    return interp1d(PSI_interpolant.(R, R .* 0.0 .+ ZA), R, :cubic)
+    return cubic_interp1d(PSI_interpolant.(R, R .* 0.0 .+ ZA), R)
 end
 
 @compat public interp_rmid_at_psi
@@ -1425,8 +1450,6 @@ function trace_surfaces(
             pz = (surfaces[2].z .- ZA) ./ 100.0 .+ ZA
 
         else  # other flux surfaces
-
-            # trace flux surface
             tmp = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
             pr, pz = collect(tmp[1]), collect(tmp[2])
             if k == N && !is_closed_surface(pr, pz, wall_r, wall_z)
@@ -1485,13 +1508,16 @@ function trace_surfaces(
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
             # plot!(pr, pz)
-            dd = minimum(sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2))
+            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)))
             if dd < d
                 d = dd
                 k = kk
             end
         end
         leftright_r, leftright_z = Contour.coordinates(lines[k])
+        index = .!(isnan.(leftright_r) .|| isnan.(leftright_z))
+        leftright_r = @view leftright_r[index]
+        leftright_z = @view leftright_z[index]
 
         # extrema in R
         interp_r = interp1d(1:length(leftright_r), leftright_r)
@@ -1551,13 +1577,16 @@ function trace_surfaces(
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
             # plot!(pr, pz)
-            dd = minimum(sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2))
+            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2)))
             if dd < d
                 d = dd
                 k = kk
             end
         end
         updown_r, updown_z = Contour.coordinates(lines[k])
+        index = .!(isnan.(updown_r) .|| isnan.(updown_z))
+        updown_r = @view updown_r[index]
+        updown_z = @view updown_z[index]
 
         # extrema in Z
         interp_r = interp1d(1:length(updown_r), updown_r)
@@ -1627,7 +1656,7 @@ end
 @compat public trace_surfaces
 push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
 
-function _extrema_index(r::Vector{T}, z::Vector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
+function _extrema_index(r::AbstractVector{T}, z::AbstractVector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
     i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
     n = 3
     if direction == :right
@@ -1942,7 +1971,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # gm2: <∇ρ²/R²>
     cumtrapz!(tmp, eqt1d.area, eqt1d.j_tor) # It(psi)
     eqt1d.gm2 = (mks.μ_0 * (2π)^2) .* tmp ./ (eqt1d.dvolume_dpsi .* (eqt1d.dpsi_drho_tor .^ 2))
-    @views gm2_itp = interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5], :cubic)
+    @views gm2_itp = cubic_interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5])
     eqt.profiles_1d.gm2[1] = gm2_itp(0.0) # extrapolate to axis due to zero / zero division
 
     # Geometric major and minor radii
@@ -2267,8 +2296,6 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
     end
 
     psi_separatrix = eqt.profiles_1d.psi[end] # psi value at LCFS
-    psi_axis_level = eqt.profiles_1d.psi[1] # psi value on axis
-    psi_sign = sign(psi_separatrix - psi_axis_level) # +1 if psi increases / -1 if psi decreases
 
     if !isempty(eqt.boundary.x_point)
         # refine x-points location and re-sort
@@ -2312,7 +2339,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         index = sortperm(d_x)
         d_x = d_x[index[1:2:end]]
         i_x = i_x[index[1:2:end]]
-        for k in reverse!(sort(i_x))
+        for k in sort(collect(Set(i_x)); rev=true)
             deleteat!(eqt.boundary.x_point, k)
             deleteat!(psidist_lcfs_xpoints, k)
             deleteat!(z_x, k)
@@ -2328,7 +2355,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
 
         #check if primary x-point consistent with strike points
         if isempty(eqt.boundary.strike_point)
-            #case with case not already saved  - look at first open surface 
+            #case with case not already saved  - look at first open surface
             psi_first_open = IMAS.find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
             (_, z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
             if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)

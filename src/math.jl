@@ -190,3 +190,13 @@ end
 
 @compat public chunk_indices
 push!(document[Symbol("Math")], :chunk_indices)
+
+# A firm, type-stable cubic interpolation function
+function cubic_interp1d(x, y)
+    DataInterpolations.CubicSpline(y, x; extrapolation=ExtrapolationType.Extension)
+end
+
+# A firm, type-stable linear interpolation function
+function linear_interp1d(x, y)
+    DataInterpolations.LinearInterpolation(y, x; extrapolation=ExtrapolationType.Extension)
+end

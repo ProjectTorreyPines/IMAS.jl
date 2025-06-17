@@ -153,10 +153,12 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
 
     elseif geometry_type == :rectangle
         rect = element.geometry.rectangle
+        rr = rect.r
+        zz = rect.z
         Δr = 0.5 * rect.width
         Δz = 0.5 * rect.height
-        r = StaticArrays.SVector(rect.r - Δr, rect.r + Δr, rect.r + Δr, rect.r - Δr)
-        z = StaticArrays.SVector(rect.z - Δz, rect.z - Δz, rect.z + Δz, rect.z + Δz)
+        r = StaticArrays.SVector(rr - Δr, rr + Δr, rr + Δr, rr - Δr)
+        z = StaticArrays.SVector(zz - Δz, zz - Δz, zz + Δz, zz + Δz)
 
     elseif geometry_type == :annulus
         # approximate annulus as square coil that has the same conducting area of the original coil
@@ -165,8 +167,10 @@ function outline(element::Union{IMAS.pf_active__coil___element{T},IMAS.pf_passiv
         Ain = π * ann.radius_inner^2
         A = Aout - Ain
         Δr = Δz = sqrt(A) / 2.0
-        r = StaticArrays.SVector(ann.r - Δr, ann.r + Δr, ann.r + Δr, ann.r - Δr)
-        z = StaticArrays.SVector(ann.z - Δz, ann.z - Δz, ann.z + Δz, ann.z + Δz)
+        ar = ann.r
+        az = ann.z
+        r = StaticArrays.SVector(ar - Δr, ar + Δr, ar + Δr, ar - Δr)
+        z = StaticArrays.SVector(az - Δz, az - Δz, az + Δz, az + Δz)
 
     else
         error("pf_active geometry type `$geometry_type` is not yet supported")

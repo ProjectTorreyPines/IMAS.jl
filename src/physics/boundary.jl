@@ -270,8 +270,8 @@ push!(document[Symbol("Physics boundary")], :boundary_shape)
 return boundary from pulse_schedule.position_control at a given time0
 """
 function boundary(pc::IMAS.pulse_schedule__position_control{T}, time0::Float64) where {T<:Real}
-    r = T[extrap1d(interp1d_itp(pc.time, pcb.r.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline]
-    z = T[extrap1d(interp1d_itp(pc.time, pcb.z.reference); first=:flat, last=:flat).(time0) for pcb in pc.boundary_outline]
+    r = T[extrap1d(interp1d_itp(pc.time, pcb.r.reference); first=:constant, last=:constant).(time0) for pcb in pc.boundary_outline]
+    z = T[extrap1d(interp1d_itp(pc.time, pcb.z.reference); first=:constant, last=:constant).(time0) for pcb in pc.boundary_outline]
     reorder_flux_surface!(r, z)
     return (r=r, z=z)
 end
@@ -343,7 +343,7 @@ push!(document[Symbol("Physics boundary")], :strike_points)
 """
     arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
 
-Compute the cumulative arc length of a 2D curve defined by the coordinate vectors `pr` and `pz`.
+Compute the cumulative arc length of a 2D curve defined from the coordinate vectors `pr` and `pz`
 """
 function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(pr)
@@ -353,32 +353,91 @@ function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; incl
         @inbounds for i in 2:n
             dx = pr[i] - pr[i-1]
             dz = pz[i] - pz[i-1]
-            ll[i] = ll[i-1] + sqrt(dx*dx + dz*dz)
+            ll[i] = ll[i-1] + sqrt(dx * dx + dz * dz)
         end
     else
-        ll = Vector{Float64}(undef, n-1)
+        ll = Vector{Float64}(undef, n - 1)
         @inbounds for i in 2:n
             dx = pr[i] - pr[i-1]
             dz = pz[i] - pz[i-1]
             if i == 2
-                ll[i-1] = sqrt(dx*dx + dz*dz)
+                ll[i-1] = sqrt(dx * dx + dz * dz)
             else
-                ll[i-1] = ll[i-2] + sqrt(dx*dx + dz*dz)
+                ll[i-1] = ll[i-2] + sqrt(dx * dx + dz * dz)
             end
         end
     end
     return ll
 end
 
-function arc_length(Xs::AbstractVector{<:Real}, Ys::AbstractVector{<:Real}, Zs::AbstractVector{<:Real})
-    n = length(Xs)
-    dist = Vector{Float64}(undef, n)
-    dist[1] = 0.0
-    @inbounds for i in 2:n
-        dx = Xs[i] - Xs[i-1]
-        dy = Ys[i] - Ys[i-1]
-        dz = Zs[i] - Zs[i-1]
-        dist[i] = dist[i-1] + sqrt(dx*dx + dy*dy + dz*dz)
+"""
+    arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
+
+Compute the cumulative arc length of a 3D curve from the Cartesian coordinate vectors `px`, `py`, and `pz`.
+"""
+function arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
+    n = length(px)
+    if include_zero
+        ll = Vector{Float64}(undef, n)
+        ll[1] = 0.0
+        @inbounds for i in 2:n
+            dx = px[i] - px[i-1]
+            dy = py[i] - py[i-1]
+            dz = pz[i] - pz[i-1]
+            ll[i] = ll[i-1] + sqrt(dx * dx + dy * dy + dz * dz)
+        end
+    else
+        ll = Vector{Float64}(undef, n - 1)
+        @inbounds for i in 2:n
+            dx = px[i] - px[i-1]
+            dy = py[i] - py[i-1]
+            dz = pz[i] - pz[i-1]
+            if i == 2
+                ll[i-1] = sqrt(dx * dx + dy * dy + dz * dz)
+            else
+                ll[i-1] = ll[i-2] + sqrt(dx * dx + dy * dy + dz * dz)
+            end
+        end
     end
-    return dist
+    return ll
+end
+
+"""
+    arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<:Real}, z::AbstractVector{<:Real}; include_zero::Bool=true)
+
+Compute the cumulative arc length of a 3D curve in cylindrical coordinates using  radial (`r`), angular (`phi`, in radians), and axial (`z`) vectors.
+
+The arc length is calculated as:
+
+    Δs = sqrt((Δr)^2 + (r_avg * Δphi)^2 + (Δz)^2)
+"""
+function arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<:Real}, z::AbstractVector{<:Real}; include_zero::Bool=true)
+    n = length(r)
+    if include_zero
+        ll = Vector{Float64}(undef, n)
+        ll[1] = 0.0
+        @inbounds for i in 2:n
+            dr = r[i] - r[i-1]
+            dphi = phi[i] - phi[i-1]
+            dz = z[i] - z[i-1]
+            r_avg = 0.5 * (r[i] + r[i-1])
+            arc = sqrt(dr^2 + (r_avg^2 * dphi^2) + dz^2)
+            ll[i] = ll[i-1] + arc
+        end
+    else
+        ll = Vector{Float64}(undef, n - 1)
+        @inbounds for i in 2:n
+            dr = r[i] - r[i-1]
+            dphi = phi[i] - phi[i-1]
+            dz = z[i] - z[i-1]
+            r_avg = 0.5 * (r[i] + r[i-1])
+            arc = sqrt(dr^2 + (r_avg^2 * dphi^2) + dz^2)
+            if i == 2
+                ll[i-1] = arc
+            else
+                ll[i-1] = ll[i-2] + arc
+            end
+        end
+    end
+    return ll
 end

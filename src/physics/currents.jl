@@ -19,8 +19,8 @@ function j_ohmic_steady_state(
 ) where {T<:Real}
     rho_tor_norm = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    F = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
-    gm1 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
+    F = cubic_interp1d(rho_eq, eqt.profiles_1d.f).(rho_tor_norm)
+    gm1 = cubic_interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm) # <R⁻²>
     j_oh_par_norm = j_ohmic_shape .* F .* gm1  # arbitrary normalized Joh,par = <Joh.B> / B0 (constant)
 
     j_non_inductive = cp1d.j_non_inductive
@@ -67,17 +67,23 @@ NOTE: `Jpar ≂̸ JparB`
 """
 function JtoR_2_JparB(rho_tor_norm::Vector{<:Real}, JtoR::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5, :cubic).(rho_tor_norm)
-    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm)
-    f = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
-    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi, :cubic).(rho_tor_norm)
+    itp_B2 = cubic_interp1d(rho_eq, eqt.profiles_1d.gm5)
+    itp_invR2 = cubic_interp1d(rho_eq, eqt.profiles_1d.gm1)
+    itp_f = cubic_interp1d(rho_eq, eqt.profiles_1d.f)
+    itp_dpdpsi = cubic_interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi)
+    return Jtor_2_JparB.(rho_tor_norm, JtoR, includes_bootstrap, Ref(itp_B2), Ref(itp_invR2), Ref(itp_f), Ref(itp_dpdpsi))
+end
+
+function Jtor_2_JparB(rho_tor_norm::Real, JtoR::Real, includes_bootstrap::Bool, B2_itp, invR2_itp, f_itp, dpdpsi_itp)
+    fsa_B2 = B2_itp(rho_tor_norm)
+    fsa_invR2 = invR2_itp(rho_tor_norm)
+    f = f_itp(rho_tor_norm)
+    dpdpsi = dpdpsi_itp(rho_tor_norm)
     if includes_bootstrap
-        # diamagnetic term to get included with bootstrap currrent
-        JtoR_dia = dpdpsi .* (1.0 .- fsa_invR2 .* f .^ 2 ./ fsa_B2) .* 2pi
-        return fsa_B2 .* (JtoR .+ JtoR_dia) ./ (f .* fsa_invR2)
-    else
-        return fsa_B2 .* JtoR ./ (f .* fsa_invR2)
+        # add diamagnetic term to get included with bootstrap currrent
+        JtoR += dpdpsi * (1.0 - fsa_invR2 * f^2 / fsa_B2) * 2pi
     end
+    return fsa_B2 * JtoR / (f * fsa_invR2)
 end
 
 @compat public JtoR_2_JparB
@@ -102,17 +108,24 @@ NOTE: `Jpar ≂̸ JparB`
 """
 function JparB_2_JtoR(rho_tor_norm::Vector{<:Real}, JparB::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    fsa_B2 = interp1d(rho_eq, eqt.profiles_1d.gm5, :cubic).(rho_tor_norm)
-    fsa_invR2 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm)
-    f = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
-    dpdpsi = interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi, :cubic).(rho_tor_norm)
+    B2_itp = cubic_interp1d(rho_eq, eqt.profiles_1d.gm5)
+    invR2_itp = cubic_interp1d(rho_eq, eqt.profiles_1d.gm1)
+    f_itp = cubic_interp1d(rho_eq, eqt.profiles_1d.f)
+    dpdpsi_itp = cubic_interp1d(rho_eq, eqt.profiles_1d.dpressure_dpsi)
+    return JparB_2_JtoR.(rho_tor_norm, JparB, includes_bootstrap, Ref(B2_itp), Ref(invR2_itp), Ref(f_itp), Ref(dpdpsi_itp))
+end
+
+function JparB_2_JtoR(rho_tor_norm::Real, JparB::Real, includes_bootstrap::Bool, B2_itp, invR2_itp, f_itp, dpdpsi_itp)
+    fsa_B2 = B2_itp(rho_tor_norm)
+    fsa_invR2 = invR2_itp(rho_tor_norm)
+    f = f_itp(rho_tor_norm)
+    dpdpsi = dpdpsi_itp(rho_tor_norm)
+    JtoR = f * fsa_invR2 * JparB / fsa_B2
     if includes_bootstrap
-        # diamagnetic term to get included with bootstrap currrent
-        JtoR_dia = dpdpsi .* (1.0 .- fsa_invR2 .* f .^ 2 ./ fsa_B2) .* 2pi
-        return f .* fsa_invR2 .* JparB ./ fsa_B2 .- JtoR_dia
-    else
-        return f .* fsa_invR2 .* JparB ./ fsa_B2
+        # subtract diamagnetic term to get included with bootstrap currrent
+        JtoR -= dpdpsi * (1.0 - fsa_invR2 * f^2 / fsa_B2) * 2pi
     end
+    return JtoR
 end
 
 @compat public JparB_2_JtoR
@@ -135,7 +148,7 @@ NOTE: `Jpar ≂̸ JparB`
 """
 function Jtor_2_Jpar(rho_tor_norm::Vector{<:Real}, Jtor::Vector{<:Real}, includes_bootstrap::Bool, eqt::IMAS.equilibrium__time_slice)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    JtoR = Jtor .* interp1d(rho_eq, eqt.profiles_1d.gm9, :cubic).(rho_tor_norm)
+    JtoR = Jtor .* cubic_interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
     JparB = JtoR_2_JparB(rho_tor_norm, JtoR, includes_bootstrap, eqt)
     eq = top_ids(eqt)
     B0 = get_time_array(eq.vacuum_toroidal_field, :b0, eqt.time)
@@ -167,7 +180,7 @@ function Jpar_2_Jtor(rho_tor_norm::Vector{<:Real}, Jpar::Vector{<:Real}, include
     JparB = Jpar .* B0
     JtoR = JparB_2_JtoR(rho_tor_norm, JparB, includes_bootstrap, eqt)
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    Jtor = JtoR ./ interp1d(rho_eq, eqt.profiles_1d.gm9, :cubic).(rho_tor_norm)
+    Jtor = JtoR ./ cubic_interp1d(rho_eq, eqt.profiles_1d.gm9).(rho_tor_norm)
     return Jtor
 end
 
@@ -183,8 +196,8 @@ function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__
     @assert method in (:area, :edge, :mean)
     rho_tor_norm = cp1d.grid.rho_tor_norm
     rho_eq = eqt.profiles_1d.rho_tor_norm
-    F = interp1d(rho_eq, eqt.profiles_1d.f, :cubic).(rho_tor_norm)
-    gm1 = interp1d(rho_eq, eqt.profiles_1d.gm1, :cubic).(rho_tor_norm) # <R⁻²>
+    F = cubic_interp1d(rho_eq, eqt.profiles_1d.f).(rho_tor_norm)
+    gm1 = cubic_interp1d(rho_eq, eqt.profiles_1d.gm1).(rho_tor_norm) # <R⁻²>
     _, B0 = eqt.global_quantities.vacuum_toroidal_field.r0, eqt.global_quantities.vacuum_toroidal_field.b0
     Vls = 2π .* cp1d.j_ohmic .* B0 ./ (cp1d.conductivity_parallel .* F .* gm1)
     if method == :area
@@ -197,14 +210,31 @@ function vloop(cp1d::IMAS.core_profiles__profiles_1d{T}, eqt::IMAS.equilibrium__
 end
 
 """
-    vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq)) where {T<:Real}
+    vloop(eq::IMAS.equilibrium{T}, n::Int=1; time0::Float64=global_time(eq)) where {T<:Real}
 
 `Vloop = dψ/dt`: method emphasizes the inductive nature of the loop voltage. Assumes COCOS 11.
+
+n is the number of time_slices priors use to take the difference in psi_boundary
 """
-function vloop(eq::IMAS.equilibrium{T}; time0::Float64=global_time(eq)) where {T<:Real}
-    @assert length(eq.time) > 2 "vloop from equilibrium can only be calculated in presence of at least two time slices"
+function vloop(eq::IMAS.equilibrium{T}, n::Int=1; time0::Float64=global_time(eq)) where {T<:Real}
+    @assert length(eq.time) > n "vloop from equilibrium can only be calculated in presence of at least two time slices"
     index = nearest_causal_time(eq.time, time0).index
-    return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-1].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-1])
+    return (eq.time_slice[index].global_quantities.psi_boundary - eq.time_slice[index-n].global_quantities.psi_boundary) / (eq.time[index] - eq.time[index-n])
+end
+
+"""
+    vloop(eq::IMAS.equilibrium{T}, n::Int; time0::Float64=global_time(eq)) where {T<:Real}
+
+`Vloop = dψ/dt`: method emphasizes the inductive nature of the loop voltage. Assumes COCOS 11.
+
+δt is the time difference used to take the difference in psi_boundary
+"""
+function vloop(eq::IMAS.equilibrium{T}, δt::Float64; time0::Float64=global_time(eq)) where {T<:Real}
+    @assert δt > 0
+    index0 = nearest_causal_time(eq.time, time0).index
+    index1 = nearest_causal_time(eq.time, time0 - δt).index
+    @assert index0 != index1 "error calculating vloop: use a larger δt"
+    return (eq.time_slice[index0].global_quantities.psi_boundary - eq.time_slice[index1].global_quantities.psi_boundary) / (eq.time[index0] - eq.time[index1])
 end
 
 """
@@ -235,9 +265,16 @@ end
 
 Returns named tuple with `time` and `data` with `vloop` from equilibrium
 """
-function vloop_time(eq::IMAS.equilibrium{T}) where {T<:Real}
-    time = eq.time[2:end]
-    data = [vloop(eq; time0) for time0 in time]
+function vloop_time(eq::IMAS.equilibrium{T}, n::Int) where {T<:Real}
+    time = eq.time[n+1:end]
+    data = [vloop(eq, n; time0) for time0 in time]
+    return (time=time, data=data)
+end
+
+function vloop_time(eq::IMAS.equilibrium{T}, δt::Float64) where {T<:Real}
+    n = findfirst(>(δt), eq.time .- eq.time[1])
+    time = eq.time[n:end]
+    data = [vloop(eq, δt; time0) for time0 in time]
     return (time=time, data=data)
 end
 

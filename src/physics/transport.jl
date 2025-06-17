@@ -35,8 +35,8 @@ function profile_from_z_transport(
     z = interp1d(transport_indices, z_transport_grid).(1:index_last)
 
     profile_new = similar(profile_old)
-    profile_new[index_last:end] = @views profile_old[index_last:end]
-    profile_new[1:index_last] = @views integ_z(rho[1:index_last], -z, profile_new[index_last])
+    profile_new[index_last:end] .= @views profile_old[index_last:end]
+    profile_new[1:index_last] .= @views integ_z(rho[1:index_last], -z, profile_new[index_last])
 
     return profile_new
 end
@@ -88,7 +88,7 @@ function total_fluxes!(
     end
 
     # defines paths to fill
-    paths = []
+    paths = Union{Tuple{Symbol, Symbol}, Tuple{Symbol, Int64, Symbol}, Tuple{Symbol}}[]
     push!(paths, (:electrons, :energy))
     push!(paths, (:electrons, :particles))
     for k in eachindex(total_flux1d.ion)
