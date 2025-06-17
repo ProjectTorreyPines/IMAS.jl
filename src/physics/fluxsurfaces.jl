@@ -184,43 +184,6 @@ push!(document[Symbol("Physics flux-surfaces")], :Bp)
 
 """
     find_psi_boundary(
-        eqt::IMAS.equilibrium__time_slice{T},
-        wall_r::AbstractVector{T},
-        wall_z::AbstractVector{T};
-        precision::Float64=flux_surfaces_precision,
-        raise_error_on_not_open::Bool=true,
-        raise_error_on_not_closed::Bool=true
-    ) where {T<:Real}
-
-Find psi value of the last-closed and first-open flux surface
-
-Results are returned as a named tuple `(last_closed=..., first_open=...)`
-"""
-function find_psi_boundary(
-    eqt::IMAS.equilibrium__time_slice{T},
-    wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T};
-    precision::Float64=flux_surfaces_precision,
-    raise_error_on_not_open::Bool=true,
-    raise_error_on_not_closed::Bool=true) where {T<:Real}
-
-    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-    original_psi_boundary = eqt.profiles_1d.psi[end]
-    if eqt2d !== nothing
-        dimR = IMAS.to_range(eqt2d.grid.dim1)
-        dimZ = IMAS.to_range(eqt2d.grid.dim2)
-        psi_axis = eqt.profiles_1d.psi[1]
-        RA = eqt.global_quantities.magnetic_axis.r
-        ZA = eqt.global_quantities.magnetic_axis.z
-        return find_psi_boundary(dimR, dimZ, eqt2d.psi, psi_axis, original_psi_boundary, RA, ZA, wall_r, wall_z; precision, raise_error_on_not_open, raise_error_on_not_closed)
-    else
-        # closed boundary equilibrium should end up here
-        return (last_closed=original_psi_boundary, first_open=nothing)
-    end
-end
-
-"""
-    find_psi_boundary(
         dimR::Union{AbstractVector{T1},AbstractRange{T1}},
         dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
         PSI::Matrix{T2},
@@ -257,10 +220,10 @@ function find_psi_boundary(
 ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real,T5<:Real}
 
     # here we figure out the range of psi to use to find the psi boundary
-    if !isempty(fw_r)
-        psi_edge = PSI_interpolant.(fw_r, fw_z)
-    else
+    if isempty(fw_r)
         @views psi_edge = [PSI[1, :]; PSI[end, :]; PSI[:, 1]; PSI[:, end]]
+    else
+        psi_edge = PSI_interpolant.(fw_r, fw_z)
     end
     psi_edge0 = original_psi_boundary + (original_psi_boundary - psi_axis)
     # BCL 11/22/24: Need to handle local extrema (coils) inside domain
@@ -649,20 +612,12 @@ function find_psi_last_diverted(
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
 
-    psi_axis = eqt.profiles_1d.psi[1] # psi value on axis\
-    psi_boundaries = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true)
-    psi_sign = sign(psi_boundaries.first_open - psi_axis) # +1 incresing psi / -1 decreasing psi
-
-    # Case for limited plasmas
-    psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
-
-    if psi_sign * psi_sep_open > psi_sign * psi_boundaries.first_open
-        # if the LCFS is not the magnetic separatrix
+    psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
+    if psi_boundaries.last_closed == psi_boundaries.first_open
         # the plasma is limited and not diverted
         limited = true
         Xpoint2 = [eqt.boundary.x_point[1].r, eqt.boundary.x_point[1].z]
         psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
-    # return (psi_last_lfs=psi_sep_closed, psi_first_open=psi_boundaries.first_open,  psi_first_lfs_far=psi_sep_open, null_within_wall=true)
     else
         limited = false
         Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
@@ -737,7 +692,7 @@ function find_psi_last_diverted(
     psi_2ndseparatrix_notdiverted = psi_2ndseparatrix
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt).diverted
     if limited
-        psi_first_lfs_far = psi_sep_closed
+        psi_first_lfs_far = psi_boundaries.last_closed
     else
         psi_first_lfs_far = psi_2ndseparatrix
     end
@@ -833,9 +788,9 @@ function find_psi_last_diverted(
     end
 
     # if LDFS is the 1st separatrix, be consistent with the find_psi_separatrix function
-    if psi_first_lfs_far == psi_sep_closed
-        psi_last_lfs = psi_sep_closed
-        psi_first_lfs_far = psi_sep_open
+    if psi_first_lfs_far == psi_boundaries.last_closed
+        psi_last_lfs = psi_boundaries.last_closed
+        psi_first_lfs_far = psi_boundaries.first_open
     end
 
     return (psi_last_lfs=psi_last_lfs, psi_first_open=psi_boundaries.first_open, psi_first_lfs_far=psi_first_lfs_far, null_within_wall=null_within_wall)
@@ -1159,8 +1114,8 @@ function find_magnetic_axis(
             end
         end,
         [rguess, zguess],
-        Optim.Newton();
-        autodiff=:forward
+        Optim.Newton()#;
+        #autodiff=:forward
     )
 
     return (RA=res.minimizer[1], ZA=res.minimizer[2])
@@ -1791,17 +1746,22 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         end
     end
     RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign; rguess, zguess)
-
     eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z = RA, ZA
     psi_axis = PSI_interpolant(RA, ZA)
 
     # accurately find the lcfs and scale psi accordingly
-    psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, wall_r, wall_z;
-        PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
-    if psi_boundaries.last_closed !== nothing
+    if eqt.global_quantities.free_boundary == 0
+        psi_boundaries = (first_open=eqt1d.psi[end], last_closed=eqt1d.psi[end])
+    else
+        psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, wall_r, wall_z;
+            PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+    end
+    if psi_boundaries.first_open !== psi_boundaries.last_closed
         eqt1d.psi =
             (eqt1d.psi .- eqt1d.psi[1]) ./ (eqt1d.psi[end] - eqt1d.psi[1]) .* (psi_boundaries.last_closed - psi_axis) .+ psi_axis
     end
+    eqt.boundary.psi = psi_boundaries.last_closed
+    eqt.boundary_separatrix.psi = psi_boundaries.first_open
 
     for item in (
         :b_field_average,
@@ -2358,7 +2318,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         #check if primary x-point consistent with strike points
         if isempty(eqt.boundary.strike_point)
             #case with case not already saved  - look at first open surface
-            psi_first_open = IMAS.find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open
+            psi_first_open = eqt.boundary_separatrix.psi
             (_, z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
             if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)
                 # x_point are not oredered correctly

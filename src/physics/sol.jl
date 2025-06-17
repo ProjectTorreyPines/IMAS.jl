@@ -110,7 +110,24 @@ function OpenFieldLine(
     total_flux_expansion = B[midplane_index] ./ B # total flux expansion(r,z) =  Bomp / B(r,z) [magentic flux conservation]
     poloidal_flux_expansion = total_flux_expansion .* rr[midplane_index] ./ rr .* sin(pitch_angles[midplane_index]) ./ sin.(pitch_angles) # poloidal flux expansion
 
-    return OpenFieldLine(rr, zz, Br, Bz, Bp, Bt, pitch, s, midplane_index, strike_angles, pitch_angles, grazing_angles, total_flux_expansion, poloidal_flux_expansion, wall_index, level)
+    return OpenFieldLine(
+        rr,
+        zz,
+        Br,
+        Bz,
+        Bp,
+        Bt,
+        pitch,
+        s,
+        midplane_index,
+        strike_angles,
+        pitch_angles,
+        grazing_angles,
+        total_flux_expansion,
+        poloidal_flux_expansion,
+        wall_index,
+        level
+    )
 end
 
 @compat public OpenFieldLine
@@ -179,14 +196,14 @@ function sol(
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     psi__axis_level = eqt.profiles_1d.psi[1] # psi value on axis
 
-    psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true, raise_error_on_not_closed=false).first_open # find psi at LCFS
-    if psi__boundary_level === nothing
+    psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
+    if psi_boundaries.last_closed == psi_boundaries.first_open
         return OFL
     end
 
     # find psi at second magnetic separatrix
     psi__2nd_separatix = find_psi_2nd_separatrix(eqt).not_diverted # find psi at 2nd magnetic separatrix
-    psi_sign = sign(psi__boundary_level - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
+    psi_sign = sign(psi_boundaries.first_open - psi__axis_level) # sign of the poloidal flux taking psi_axis = 0
     psi_max = find_psi_max(eqt)
 
     if !isempty(wall_r)
@@ -200,31 +217,31 @@ function sol(
     else
         # SOL without wall
         psi_wall_midplane = psi_max
-        psi_last_lfs = psi__boundary_level
-        psi_first_lfs_far = psi__boundary_level .+ 1E-5
+        psi_last_lfs = psi_boundaries.first_open
+        psi_first_lfs_far = psi_boundaries.first_open .+ 1E-5
         threshold = psi__2nd_separatix
     end
     ############
 
     # smart picking of psi levels
     if levels == 1
-        levels = [psi__boundary_level]
+        levels = [psi_boundaries.first_open]
 
     elseif levels == 2
-        levels = [psi__boundary_level, psi__2nd_separatix]
+        levels = [psi_boundaries.first_open, psi__2nd_separatix]
 
     elseif typeof(levels) <: Int
-        levels = psi__boundary_level .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi__boundary_level)), levels)
+        levels = psi_boundaries.first_open .+ psi_sign .* 10.0 .^ LinRange(-9, log10(abs(psi_wall_midplane - psi_boundaries.first_open)), levels)
 
         indexx = argmin_abs(levels, psi_last_lfs)
         levels = vcat(levels[1:indexx-1], psi_last_lfs, psi_first_lfs_far, levels[indexx+1:end]) # remove closest point + add last_lfs and first_lfs_far
-        # add 2nd sep, sort in increasing order and remove doubles (it could happen that psi__boundary_level = psi_last_lfs = psi_2ndseparatrix in DN)
+        # add 2nd sep, sort in increasing order and remove doubles (it could happen that psi_boundaries.first_open = psi_last_lfs = psi_2ndseparatrix in DN)
         levels = unique!(sort(vcat(levels, psi__2nd_separatix)))
 
         # Case of limited plasma - Also add first magnetic separatrix
         psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
 
-        if psi_sign * psi_sep_open > psi_sign * psi__boundary_level
+        if psi_sign * psi_sep_open > psi_sign * psi_boundaries.first_open
             # if psi_boundary is inside separatrix -> limited case
             levels = unique!(sort(vcat(levels, psi_sep_closed, psi_sep_open)))
         end
@@ -236,12 +253,12 @@ function sol(
 
     else
         #levels is a vector of psi_levels for the discretization of the SOL
-        @assert psi_sign * levels[1] >= psi_sign * psi__boundary_level "psi__boundary_level = $psi__boundary_level , psi_levels[1] = $(levels[1]) "
+        @assert psi_sign * levels[1] >= psi_sign * psi_boundaries.first_open "psi_boundaries.first_open = $(psi_boundaries.first_open) , psi_levels[1] = $(levels[1]) "
         @assert psi_sign * levels[end] <= psi_sign * psi_wall_midplane "psi_wall_midplane = $psi_wall_midplane , psi_levels[end] = $(levels[end]) "
         levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
         @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
-        levels[1] = psi__boundary_level
+        levels[1] = psi_boundaries.first_open
         # push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))
         levels = unique!(sort!(levels))
 
@@ -353,13 +370,13 @@ function find_levels_from_P(
         r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolation=ExtrapolationType.Extension)
     end
 
-    psi__boundary_level = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open # psi at LCFS
+    psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt).not_diverted # psi of the second magnetic separatrix
     if psi_sign > 0
-        r_separatrix_midplane = r_mid(psi__boundary_level)      # R OMP at separatrix
+        r_separatrix_midplane = r_mid(psi_boundaries.first_open) # R OMP at separatrix
         r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
     else
-        r_separatrix_midplane = r_mid(-psi__boundary_level)      # R OMP at separatrix
+        r_separatrix_midplane = r_mid(-psi_boundaries.first_open) # R OMP at separatrix
         r_2ndseparatrix_midplane = r_mid(-psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
     end
 
@@ -502,13 +519,13 @@ function find_levels_from_P(
     psi_levels = PSI_interpolant.(R, R .* 0.0 .+ ZA) # ψ(R)
 
     #force psi_sep and psi_wall_midplane
-    psi_levels[1] = psi__boundary_level
+    psi_levels[1] = psi_boundaries.first_open
     psi_levels[end] = psi_wall_midplane
     # filter possible errors
     if psi_sign > 0
-        psi_levels = psi_levels[psi_levels.>=psi__boundary_level]
+        psi_levels = psi_levels[psi_levels.>=psi_boundaries.first_open]
     else
-        psi_levels = psi_levels[psi_levels.<=psi__boundary_level]
+        psi_levels = psi_levels[psi_levels.<=psi_boundaries.first_open]
     end
     return psi_levels, R, p_levels
 end
@@ -568,14 +585,14 @@ function find_levels_from_wall(
         return T[]
     end
 
-    psi_separatrix = find_psi_boundary(eqt, wall_r, wall_z; raise_error_on_not_open=true).first_open #psi on separatrix
+    psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
     psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
 
     levels = PSI_interpolant.(wall_r, wall_z)
     psi_tangent_in = find_psi_tangent_omp(eqt, wall_r, wall_z, PSI_interpolant).psi_tangent_in
     push!(levels, psi_tangent_in)
 
-    index = levels .>= psi_separatrix .&& levels .<= psi_wall_midplane
+    index = levels .>= psi_boundaries.first_open .&& levels .<= psi_wall_midplane
     levels = levels[index]
     sort!(levels)
 
@@ -1086,13 +1103,13 @@ end
     find_strike_points(
         eqt::IMAS.equilibrium__time_slice{T1},
         wall_r::AbstractVector{T2},
-        wall_z::AbstractVector{2},
+        wall_z::AbstractVector{T2},
         psi_last_closed::Real,
-        psi_first_open::Union{T3,Nothing};
-        strike_surfaces_r::AbstractVector{T4}=wall_r,
-        strike_surfaces_z::AbstractVector{T4}=wall_z,
+        psi_first_open::Real;
+        strike_surfaces_r::AbstractVector{T3}=wall_r,
+        strike_surfaces_z::AbstractVector{T3}=wall_z,
         private_flux_regions::Bool=true
-    ) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
+    ) where {T1<:Real,T2<:Real,T3<:Real}
 
 Finds equilibrium strike points, angle of incidence between wall and strike leg, and
 the minimum distance between the surface where a strike point is located (both private and encircling) and the last closed flux surface (encircling)
@@ -1102,11 +1119,11 @@ function find_strike_points(
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
     psi_last_closed::Real,
-    psi_first_open::Union{T3,Nothing};
-    strike_surfaces_r::AbstractVector{T4}=wall_r,
-    strike_surfaces_z::AbstractVector{T4}=wall_z,
+    psi_first_open::Real;
+    strike_surfaces_r::AbstractVector{T3}=wall_r,
+    strike_surfaces_z::AbstractVector{T3}=wall_z,
     private_flux_regions::Bool=true
-) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
+) where {T1<:Real,T2<:Real,T3<:Real}
 
     Rxx = Float64[]
     Zxx = Float64[]
@@ -1200,11 +1217,11 @@ push!(document[Symbol("Physics sol")], :find_strike_points)
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
         psi_last_closed::Real,
-        psi_first_open::Union{T3,Nothing},
+        psi_first_open::Real,
         dv::IMAS.divertors{T1};
         private_flux_regions::Bool=true,
         in_place::Bool=true
-    ) where {T1<:Real,T2<:Real,T3<:Real}
+    ) where {T1<:Real,T2<:Real}
 
 Adds strike points location to equilibrium IDS
 """
@@ -1213,11 +1230,11 @@ function find_strike_points!(
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
     psi_last_closed::Real,
-    psi_first_open::Union{T3,Nothing},
+    psi_first_open::Real,
     dv::IMAS.divertors{T1};
     private_flux_regions::Bool=true,
     in_place::Bool=true
-) where {T1<:Real,T2<:Real,T3<:Real}
+) where {T1<:Real,T2<:Real}
 
     Rxx = Float64[]
     Zxx = Float64[]
@@ -1263,10 +1280,10 @@ end
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
         psi_last_closed::Real,
-        psi_first_open::Union{T3,Nothing},
+        psi_first_open::Real,
         dv::IMAS.divertors{T1};
         private_flux_regions::Bool=true
-    ) where {T1<:Real,T2<:Real,T3<:Real}
+    ) where {T1<:Real,T2<:Real}
 
 Return strike points location in the divertors
 """
@@ -1275,10 +1292,10 @@ function find_strike_points(
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
     psi_last_closed::Real,
-    psi_first_open::Union{T3,Nothing},
+    psi_first_open::Real,
     dv::IMAS.divertors{T1};
     private_flux_regions::Bool=true
-) where {T1<:Real,T2<:Real,T3<:Real}
+) where {T1<:Real,T2<:Real}
 
     return find_strike_points!(eqt, wall_r, wall_z, psi_last_closed, psi_first_open, dv; private_flux_regions, in_place=false)
 end
@@ -1289,45 +1306,33 @@ end
         wall_r::AbstractVector{T2},
         wall_z::AbstractVector{T2},
         psi_last_closed::Real,
-        psi_first_open::T3
-    ) where {T1<:Real,T2<:Real,T3<:Real}
+        psi_first_open::Real
+    ) where {T1<:Real,T2<:Real}
 """
 function find_strike_points!(
     eqt::IMAS.equilibrium__time_slice{T1},
     wall_r::AbstractVector{T2},
     wall_z::AbstractVector{T2},
     psi_last_closed::Real,
-    psi_first_open::T3
-) where {T1<:Real,T2<:Real,T3<:Real}
+    psi_first_open::Real
+) where {T1<:Real,T2<:Real}
 
-    Rxx, Zxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_last_closed, psi_first_open)
-    resize!(eqt.boundary.strike_point, length(Rxx))
-    for (k, strike_point) in enumerate(eqt.boundary.strike_point)
-        strike_point.r = Rxx[k]
-        strike_point.z = Zxx[k]
-        strike_point.last_closed_flux_surface_gap = dxx[k]
+    if psi_last_closed == psi_first_open
+        Rxx=Float64[]
+        Zxx=Float64[]
+        dxx=Float64[]
+
+    else
+        Rxx, Zxx, dxx = find_strike_points(eqt, wall_r, wall_z, psi_last_closed, psi_first_open)
+        resize!(eqt.boundary.strike_point, length(Rxx))
+        for (k, strike_point) in enumerate(eqt.boundary.strike_point)
+            strike_point.r = Rxx[k]
+            strike_point.z = Zxx[k]
+            strike_point.last_closed_flux_surface_gap = dxx[k]
+        end
     end
 
     return (Rxx=Rxx, Zxx=Zxx, dxx=dxx)
-end
-
-"""
-    find_strike_points!(
-        eqt::IMAS.equilibrium__time_slice{T1},
-        wall_r::AbstractVector{T2},
-        wall_z::AbstractVector{T2},
-        psi_last_closed::Union{Real,Nothing},
-        psi_first_open::Nothing
-    )
-"""
-function find_strike_points!(
-    eqt::IMAS.equilibrium__time_slice{T1},
-    wall_r::AbstractVector{T2},
-    wall_z::AbstractVector{T2},
-    psi_last_closed::Union{Real,Nothing},
-    psi_first_open::Nothing
-) where {T1<:Real,T2<:Real}
-    return (Rxx=Float64[], Zxx=Float64[], dxx=Float64[])
 end
 
 @compat public find_strike_points!
