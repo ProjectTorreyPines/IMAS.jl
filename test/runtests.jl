@@ -11,4 +11,8 @@ else
     include("runtests_extract.jl")
 
     include("runtests_plot_recipes.jl")
+    
+    include("geometry/test_ray_torus_intersect.jl")
+    
+    include("geometry/test_solve_r_intersect.jl")
 end
