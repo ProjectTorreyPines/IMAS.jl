@@ -3,7 +3,6 @@ document[Symbol("Geometry")] = Symbol[]
 import StaticArrays
 import MillerExtendedHarmonic: MXH
 import LinearAlgebra
-import Roots
 
 """
     centroid(x::AbstractVector{<:T}, y::AbstractVector{<:T}) where {T<:Real}
