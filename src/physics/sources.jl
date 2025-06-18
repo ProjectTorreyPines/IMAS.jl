@@ -656,6 +656,7 @@ function new_source(
         setproperty!(electrons, :energy, value; error_on_missing_coordinates = false)
         setproperty!(electrons, :power_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
     elseif electrons_power_inside !== missing
+        value = electrons_power_inside
         setproperty!(electrons, :power_inside, value; error_on_missing_coordinates = false)
         setproperty!(electrons, :energy, gradient(volume, value); error_on_missing_coordinates = false)
     else
@@ -673,7 +674,6 @@ function new_source(
         setproperty!(cs1d, :total_ion_power_inside, value; error_on_missing_coordinates = false)
         setproperty!(cs1d, :total_ion_energy, gradient(volume, value); error_on_missing_coordinates = false)
     else
-        value = electrons_power_inside
         setproperty!(cs1d, :total_ion_energy, zero(volume); error_on_missing_coordinates = false)
         setproperty!(cs1d, :total_ion_power_inside, zero(volume); error_on_missing_coordinates = false)
     end
