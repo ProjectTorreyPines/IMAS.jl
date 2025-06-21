@@ -10,7 +10,7 @@ function (nnmi::NaturalNeighboursMeasurementInterpolator)(rho::Real, time::Real)
 end
 
 function (nnmi::NaturalNeighboursMeasurementInterpolator)(rho::AbstractVector{<:Real}, time::AbstractVector{<:Real})
-    return [Measurements.measurement(v,e) for (v,e) in zip(nnmi.itp(rho, time), nnmi.itp_σ(rho, time))]
+    return [Measurements.measurement(v, e) for (v, e) in zip(nnmi.itp(rho, time), nnmi.itp_σ(rho, time))]
 end
 
 """
@@ -66,6 +66,8 @@ function fit1d(rho::AbstractVector{T1}, data::AbstractVector{T2}, rho_tor_norm::
     result = smooth_by_convolution(Measurements.value.(data); xi=rho, xo=rho_tor_norm, window_size=smooth1)
     g = abs.(gradient(rho_tor_norm, result) ./ result)
     g .= cumtrapz(rho_tor_norm, g)
+    g ./= maximum(g)
+    g .= g .+ rho_tor_norm
     rho_inverse = @. (g - g[1]) / (g[end] - g[1]) * (rho_tor_norm[end] - rho_tor_norm[1]) + rho_tor_norm[1]
     rho_linearized = interp1d(rho_tor_norm, rho_inverse).(rho)
 
