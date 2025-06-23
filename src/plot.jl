@@ -3551,8 +3551,9 @@ end
 end
 
 @recipe function plot_field_1d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_1d}; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
-    id = recipe_dispatch(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
+
+    id = recipe_dispatch(ids, field)
     assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
     assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Coordinate for x-axis"; coordinate)
     assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
@@ -3622,10 +3623,47 @@ end
     end
 end
 
+@recipe function plot_field_1d_manyDDs(ids::IMAS.IDS, field::Symbol, DDs::AbstractVector{<:IMAS.dd})
+    @series begin
+        [IMAS.goto(dd, IMAS.location(ids)) for dd in DDs], field
+    end
+end
+
+@recipe function plot_field_1d_manyIDSs(IDSs::Vector{<:IMAS.IDS}, field::Symbol; alpha_of_individual_lines=0.1, normalization=1.0, coordinate=nothing)
+    id = recipe_dispatch(IDSs, field)
+    assert_type_and_record_argument(id, Real, "Alpha  individual lines"; alpha_of_individual_lines)
+    assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
+    assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Coordinate for x-axis"; coordinate)
+
+    ids = IDSs[1]
+    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
+    coords = coordinates(ids, field; override_coord_leaves=[coordinate])
+
+    coords = hcat((getproperty(coordinates(ids, field; override_coord_leaves=[coordinate])[1]) for ids in IDSs)...)
+
+    values = hcat((getproperty(ids, field) for ids in IDSs)...) .* normalization
+    mv = Statistics.mean(values; dims=2)[:, 1]
+    σv = Statistics.std(values; dims=2)[:, 1]
+    mc = Statistics.mean(coords; dims=2)[:, 1]
+    σc = Statistics.std(coords; dims=2)[:, 1]
+    @series begin
+        lw := 2
+        ribbon := σv
+        mc, mv
+    end
+    if alpha_of_individual_lines > 0.0
+        @series begin
+            primary := false
+            alpha := alpha_of_individual_lines
+            coords, values
+        end
+    end
+end
+
 @recipe function plot_field_2d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_2d}; normalization=1.0, seriestype=:contourf)
-    id = recipe_dispatch(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
 
+    id = recipe_dispatch(ids, field)
     assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
     assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype)
 
@@ -3660,15 +3698,6 @@ end
             xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
         end
     end
-end
-
-@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurement}, err::Symbol=:ribbon)
-    if err == :ribbon
-        ribbon := Measurements.uncertainty.(y)
-    elseif err == :bar
-        yerror := Measurements.uncertainty.(y)
-    end
-    return x, Measurements.value.(y)
 end
 
 """
