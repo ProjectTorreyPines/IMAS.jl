@@ -143,8 +143,6 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    sawteeth_source!(dd) # sawteeth
-
     return nothing
 end
 
