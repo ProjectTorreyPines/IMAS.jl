@@ -1569,7 +1569,7 @@ end
     integrated=false,
     flux=false,
     show_zeros=false,
-    min_power=1e3,
+    min_power=0.0,
     only_positive_negative=0,
     show_source_number=false)
 
@@ -1634,7 +1634,7 @@ end
     integrated=false,
     flux=false,
     show_zeros=false,
-    min_power=1e3,
+    min_power=0.0,
     only_positive_negative=0,
     show_source_number=false)
 
@@ -1962,7 +1962,7 @@ end
     flux=false,
     only=nothing,
     show_zeros=false,
-    min_power=1e3,
+    min_power=0.0,
     only_positive_negative=0,
     show_source_number=false,
     ions=Symbol[])
@@ -2502,7 +2502,7 @@ end
     end
 end
 
-@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false, min_power=1e3)
+@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false, min_power=0.0)
     id = recipe_dispatch(beam)
     assert_type_and_record_argument(id, Bool, "Top view"; top)
     assert_type_and_record_argument(id, Float64, "Minimum power above which to show the beam"; min_power)
