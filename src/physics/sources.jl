@@ -559,6 +559,15 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
     return sawteeth_source!(dd, rho0)
 end
 
+function sawteeth_source!(dd::IMAS.dd{T}, ::Nothing) where {T<:Real}
+    return sawteeth_source!(dd, 0.0)
+end
+
+function sawteeth_source!(dd::IMAS.dd{T}, i_qdes::Int) where {T<:Real}
+    cp1d = dd.core_profiles.profiles_1d[]
+    return sawteeth_source!(dd, cp1d.grid.rho_tor_norm[i_qdes])
+end
+
 """
     sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
 
@@ -569,29 +578,42 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
 
     # fill in sawteeth
     source = resize!(dd.core_sources.source, :sawteeth, "identifier.name" => "sawteeth"; wipe=false)
+
+    if isempty(source.profiles_1d)
+        old_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
+    else
+        itime = IMAS.index(source.profiles_1d[])
+        if itime == 1
+            old_source1d = deepcopy(source.profiles_1d[itime])
+        else
+            old_source1d = source.profiles_1d[itime-1]
+        end
+    end
+
     source1d = resize!(source.profiles_1d)
 
     # identify sawteeth inversion radius
     if rho0 > 0.0
-        # exlude :sawteeth source itself
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[701])
+        # exlude :time_dependent source (701)
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=Int[701])
         fill!(source1d, total_source1d)
     else
         # this will return an empty source
         total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
         fill!(source1d, total_source1d)
-        return source
     end
 
     width = min(rho0 / 4, 0.05)
 
+    α = 0.5
+
     # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
-    for leaf in IMASdd.AbstractTrees.Leaves(source1d)
+    for (leaf,old_leaf) in zip(IMASdd.AbstractTrees.Leaves(source1d),IMASdd.AbstractTrees.Leaves(old_source1d))
         if leaf.field in keys(_core_sources_value_keys)
             if leaf.field == :j_parallel
-                leaf.value .= flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value
+                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value) * α .+ old_leaf.value .* (1.0 .- α)
             else
-                leaf.value .= flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.volume, rho0, width) .- leaf.value
+                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.volume, rho0, width) .- leaf.value) * α .+ old_leaf.value .* (1.0 .- α)
             end
         end
     end
