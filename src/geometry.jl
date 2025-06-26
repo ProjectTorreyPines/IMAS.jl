@@ -333,7 +333,7 @@ function intersection_split(
             r[end], z[end] = crossings[kk]
             # if segment is made only of intersections, put a point in the middle of the segment
             if length(r) == 2
-                segments[k] = (r=[r[1],(r[1] + r[end])/2, r[end]], z=[z[1],(z[1] + z[end])/2, z[end]])
+                segments[k] = (r=[r[1], (r[1] + r[end]) / 2, r[end]], z=[z[1], (z[1] + z[end]) / 2, z[end]])
             else
                 segments[k] = (r=r, z=z)
             end
@@ -654,7 +654,7 @@ function resample_plasma_boundary(
     retain_extrema::Bool=true,
     retain_original_xy::Bool=false,
     method::Symbol=:linear) where {T<:Real}
-    x, y = resample_2d_path(x, y; step, n_points, curvature_weight, retain_extrema, retain_original_xy, method)
+    x, y = resample_2d_path(closed_polygon(x, y).rz...; step, n_points, curvature_weight, retain_extrema, retain_original_xy, method)
     return x, y
 end
 
@@ -1058,6 +1058,51 @@ end
     return (q[1] - p[1]) * (r[2] - p[2]) - (q[2] - p[2]) * (r[1] - p[1]) < 0.0
 end
 
+function halfhull_indices(points::AbstractVector, sorted_indices::AbstractVector{Int})
+    hull_indices = Vector{Int}(undef, length(sorted_indices))
+    n = 0
+    for idx in sorted_indices
+        while n > 1 && !isrightturn(points[hull_indices[n-1]], points[hull_indices[n]], points[idx])
+            n -= 1
+        end
+        n += 1
+        hull_indices[n] = idx
+    end
+    return view(hull_indices, 1:n)
+end
+
+function grahamscan_indices(points::AbstractVector)
+    # Create array of indices and sort them based on point comparison
+    indices = collect(1:length(points))
+    sort!(indices; lt=(i, j) -> points_isless(points[i], points[j]))
+
+    # Compute upper hull
+    upperhull_indices = halfhull_indices(points, indices)
+
+    # Reverse indices for lower hull
+    reverse!(indices)
+    lowerhull_indices = halfhull_indices(points, indices)
+
+    # Combine hulls (excluding duplicate endpoints)
+    return [upperhull_indices; lowerhull_indices[2:end-1]]
+end
+
+"""
+    convex_hull_indices(xy_points::AbstractVector)
+
+Compute the indices of points that form the convex hull of a set of 2D points.
+Returns the indices in counter-clockwise order.
+
+This is the internal function that works with indices only.
+"""
+function convex_hull_indices(xy_points::AbstractVector)
+    if length(xy_points) <= 1
+        return collect(1:length(xy_points))
+    end
+    return grahamscan_indices(xy_points)
+end
+
+# Original halfhull function (kept for compatibility)
 function halfhull(points::AbstractVector)
     halfhull = similar(points)
     n = 0
@@ -1071,12 +1116,10 @@ function halfhull(points::AbstractVector)
     return view(halfhull, 1:n)
 end
 
+# Modified grahamscan! to use index-based approach internally
 function grahamscan!(points::AbstractVector)
-    sort!(points; lt=points_isless)
-    upperhull = halfhull(points)
-    reverse!(points)
-    lowerhull = halfhull(points)
-    return [upperhull; lowerhull[2:end-1]]
+    hull_indices = grahamscan_indices(points)
+    return points[hull_indices]
 end
 
 """
@@ -1085,14 +1128,16 @@ end
 Compute the convex hull of a set of 2D points, sorted in counter-clockwise order.
 The resulting convex hull forms a closed polygon by appending the first point at the end.
 
-NOTE: The input vector is sorted and modified in-place
+NOTE: The input vector is not modified anymore (uses index-based approach internally)
 """
-function convex_hull!(xy_points::AbstractVector; closed_polygon::Bool)
-    hull = grahamscan!(xy_points)
-    if closed_polygon && !isempty(hull)
-        return push!(hull, hull[1])
+function convex_hull!(xy_points::AbstractVector; closed_polygon::Bool=false)
+    hull_indices = convex_hull_indices(xy_points)
+    hull_points = view(xy_points, hull_indices)
+
+    if closed_polygon && !isempty(hull_points)
+        return [hull_points; hull_points[1:1]]  # Use view for first element too
     else
-        return hull
+        return collect(hull_points)  # Convert view to array for return
     end
 end
 
@@ -1102,17 +1147,222 @@ end
 Compute the convex hull of a set of 2D points, sorted in counter-clockwise order.
 The resulting convex hull forms a closed polygon by appending the first point at the end.
 """
-function convex_hull(xy_points::AbstractVector; closed_polygon::Bool)
-    return convex_hull!(deepcopy(xy_points); closed_polygon)
+function convex_hull(xy_points::AbstractVector; closed_polygon::Bool=false)
+    hull_indices = convex_hull_indices(xy_points)
+    hull_points = xy_points[hull_indices]
+
+    if closed_polygon && !isempty(hull_points)
+        return push!(hull_points, hull_points[1])
+    else
+        return hull_points
+    end
 end
 
 """
     convex_hull(x::AbstractVector{T}, y::AbstractVector{T}; closed_polygon::Bool) where {T}
 """
-function convex_hull(x::AbstractVector{T}, y::AbstractVector{T}; closed_polygon::Bool) where {T}
+function convex_hull(x::AbstractVector{T}, y::AbstractVector{T}; closed_polygon::Bool=false) where {T}
     xy_points = [(xx, yy) for (xx, yy) in zip(x, y)]
-    return convex_hull!(xy_points; closed_polygon)
+    return convex_hull(xy_points; closed_polygon)
 end
 
-@compat public convex_hull
+# Export both the regular function and the index-based function
+@compat public convex_hull, convex_hull_indices
 push!(document[Symbol("Geometry")], :convex_hull)
+push!(document[Symbol("Geometry")], :convex_hull_indices)
+
+"""
+    inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float64}; target_area_fraction::Float64=0.9, max_iterations::Int=length(pr))
+
+Build an inscribed polygon by starting with all boundary points and iteratively removing
+the point that causes the least area loss, while ensuring no original boundary points
+end up inside the inscribed polygon.
+"""
+function inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float64}; target_area_fraction::Float64=0.9, max_iterations::Int=length(pr))
+    # Ensure we have a proper polygon
+    @assert length(pr) == length(pz) "pr and pz must have the same length"
+    @assert length(pr) >= 3 "Polygon must have at least 3 vertices"
+    @assert 0.0 < target_area_fraction <= 1.0 "target_area_fraction must be between 0 and 1"
+
+    # Work with open polygon to avoid duplication
+    open_poly = open_polygon(pr, pz)
+    original_r = open_poly.R
+    original_z = open_poly.Z
+    n_original = length(original_r)
+
+    # Pre-allocate buffers
+    max_size = n_original + 1  # +1 for closing point
+    candidate_r_buffer = Vector{Float64}(undef, max_size)
+    candidate_z_buffer = Vector{Float64}(undef, max_size)
+    candidate_indices_buffer = Vector{Int}(undef, n_original)
+
+    # Pre-allocate polygon tuple buffer for inpolygon checks
+    polygon_tuple_buffer = Vector{Tuple{Float64,Float64}}(undef, max_size)
+
+    # Pre-create original points as tuples for inpolygon checks
+    original_points = [(r, z) for (r, z) in zip(original_r, original_z)]
+
+    # Calculate original area and target
+    original_r_closed = [original_r; original_r[1]]
+    original_z_closed = [original_z; original_z[1]]
+    original_area = area(original_r_closed, original_z_closed)
+    target_area = target_area_fraction * original_area
+
+    # Start with all points in the inscribed polygon
+    inscribed_r = copy(original_r)
+    inscribed_z = copy(original_z)
+    current_indices = collect(1:n_original)
+
+    # Pre-allocate for area calculation
+    area_calc_r = Vector{Float64}(undef, max_size)
+    area_calc_z = Vector{Float64}(undef, max_size)
+
+    iteration = 0
+    total_removed = 0
+
+    while length(inscribed_r) > 3 && iteration < max_iterations
+        iteration += 1
+
+        # Calculate current area using pre-allocated buffer
+        n_current = length(inscribed_r)
+        @inbounds for i in 1:n_current
+            area_calc_r[i] = inscribed_r[i]
+            area_calc_z[i] = inscribed_z[i]
+        end
+        area_calc_r[n_current+1] = inscribed_r[1]  # Close polygon
+        area_calc_z[n_current+1] = inscribed_z[1]
+        current_area = area(@view(area_calc_r[1:n_current+1]), @view(area_calc_z[1:n_current+1]))
+
+        # Check if we've reached target area
+        if current_area <= target_area
+            break
+        end
+
+        # Try removing each point and find the best candidate
+        best_removal_idx = -1
+        best_area_loss = Inf
+
+        @inbounds for remove_idx in 1:length(inscribed_r)
+            candidate_length = length(inscribed_r) - 1
+
+            # Skip if polygon becomes too small
+            if candidate_length < 3
+                continue
+            end
+
+            # Create candidate polygon in pre-allocated buffer
+            # Copy elements before removal point
+            for i in 1:(remove_idx-1)
+                candidate_r_buffer[i] = inscribed_r[i]
+                candidate_z_buffer[i] = inscribed_z[i]
+                candidate_indices_buffer[i] = current_indices[i]
+            end
+
+            # Copy elements after removal point
+            for i in remove_idx:(candidate_length)
+                src_idx = i + 1  # Skip the removed element
+                candidate_r_buffer[i] = inscribed_r[src_idx]
+                candidate_z_buffer[i] = inscribed_z[src_idx]
+                candidate_indices_buffer[i] = current_indices[src_idx]
+            end
+
+            # Create polygon tuple buffer for inpolygon check (closed polygon)
+            for i in 1:candidate_length
+                polygon_tuple_buffer[i] = (candidate_r_buffer[i], candidate_z_buffer[i])
+            end
+            polygon_tuple_buffer[candidate_length+1] = (candidate_r_buffer[1], candidate_z_buffer[1])  # Close
+
+            # Check if candidate polygon contains any original boundary points
+            contains_original = false
+            for original_point in original_points
+                if PolygonOps.inpolygon(original_point, @view(polygon_tuple_buffer[1:candidate_length+1])) == 1
+                    contains_original = true
+                    break
+                end
+            end
+
+            if contains_original
+                continue  # Invalid removal - skip
+            end
+
+            # Calculate area loss using pre-allocated area calculation buffer
+            for i in 1:candidate_length
+                area_calc_r[i] = candidate_r_buffer[i]
+                area_calc_z[i] = candidate_z_buffer[i]
+            end
+            area_calc_r[candidate_length+1] = candidate_r_buffer[1]  # Close polygon
+            area_calc_z[candidate_length+1] = candidate_z_buffer[1]
+
+            candidate_area = area(@view(area_calc_r[1:candidate_length+1]), @view(area_calc_z[1:candidate_length+1]))
+            area_loss = current_area - candidate_area
+
+            # Update best candidate if this is better (smaller area loss)
+            if area_loss < best_area_loss
+                best_area_loss = area_loss
+                best_removal_idx = remove_idx
+            end
+        end
+
+        # Check if we found a valid removal
+        if best_removal_idx == -1
+            break
+        end
+
+        # Apply the best removal by updating inscribed arrays in-place
+        remove_idx = best_removal_idx
+        new_length = length(inscribed_r) - 1
+
+        # Shift elements to remove the selected point
+        @inbounds for i in remove_idx:new_length
+            inscribed_r[i] = inscribed_r[i+1]
+            inscribed_z[i] = inscribed_z[i+1]
+            current_indices[i] = current_indices[i+1]
+        end
+
+        # Resize arrays to new length
+        resize!(inscribed_r, new_length)
+        resize!(inscribed_z, new_length)
+        resize!(current_indices, new_length)
+
+        total_removed += 1
+
+        # Calculate new area for early exit check
+        @inbounds for i in 1:new_length
+            area_calc_r[i] = inscribed_r[i]
+            area_calc_z[i] = inscribed_z[i]
+        end
+        area_calc_r[new_length+1] = inscribed_r[1]
+        area_calc_z[new_length+1] = inscribed_z[1]
+        new_area = area(@view(area_calc_r[1:new_length+1]), @view(area_calc_z[1:new_length+1]))
+
+        # Early exit check
+        if new_area <= target_area
+            break
+        end
+    end
+
+    # Create final closed polygon
+    final_length = length(inscribed_r)
+    inscribed_r_closed = Vector{Float64}(undef, final_length + 1)
+    inscribed_z_closed = Vector{Float64}(undef, final_length + 1)
+
+    @inbounds for i in 1:final_length
+        inscribed_r_closed[i] = inscribed_r[i]
+        inscribed_z_closed[i] = inscribed_z[i]
+    end
+    inscribed_r_closed[final_length+1] = inscribed_r[1]
+    inscribed_z_closed[final_length+1] = inscribed_z[1]
+
+    final_area = area(inscribed_r_closed, inscribed_z_closed)
+    final_fraction = final_area / original_area
+
+    # println("\nOptimized shrinking algorithm completed:")
+    # println("  Iterations: $(iteration)")
+    # println("  Points removed: $(total_removed)")
+    # println("  Final vertices: $(length(inscribed_r))")
+    # println("  Final area: $(final_area)")
+    # println("  Area fraction: $(100*final_fraction)%")
+    # println("  Remaining indices: $(current_indices)")
+
+    return inscribed_r_closed, inscribed_z_closed
+end

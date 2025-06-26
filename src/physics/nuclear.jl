@@ -82,7 +82,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
         # r0 > 1.0 is undefined, cutoff at r0 of 0.95
         r0 .= ifelse.(r0 .> 0.95, 0.95, r0)
         if any(r0 .== 0.95)
-            @warn "r0 in D+D→He3 is incorrect. This is likely a symptom of very high Ti: $Ti [keV]"
+            @warn "r0 in D+D→He3 is incorrect. This is likely a symptom of very high Ti [keV]: $Ti"
         end
     end
     theta = Ti ./ (1.0 .- r0)
@@ -479,30 +479,32 @@ end
 push!(document[Symbol("Physics nuclear")], :fusion_plasma_power)
 
 """
-    fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+    fusion_power(cp1d::IMAS.core_profiles__profiles_1d{T}; DD_fusion::Bool=false) where {T<:Real}
 
 Calculates the total fusion power in [W]
 
 If D+T plasma, then D+D is neglected
 """
-function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+function fusion_power(cp1d::IMAS.core_profiles__profiles_1d{T}; DD_fusion::Bool=false) where {T<:Real}
     cp = parent(parent(cp1d))
     ion_list = (ion.label for ion in cp1d.ion)
     if "T" in ion_list || "DT" in ion_list
         polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
         tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 5.0
-    else
+    elseif DD_fusion
         tot_pow = D_D_to_He3_plasma_power(cp1d) * 4.0
         tot_pow += D_D_to_T_plasma_power(cp1d)
+    else
+        tot_pow = zero(T)
     end
     return tot_pow
 end
 
 """
-    fusion_power(dd::IMAS.dd)
+    fusion_power(dd::IMAS.dd; DD_fusion::Bool=false)
 """
-function fusion_power(dd::IMAS.dd)
-    return fusion_power(dd.core_profiles.profiles_1d[])
+function fusion_power(dd::IMAS.dd; DD_fusion::Bool=false)
+    return fusion_power(dd.core_profiles.profiles_1d[]; DD_fusion)
 end
 
 @compat public fusion_power

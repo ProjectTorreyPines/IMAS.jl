@@ -3,25 +3,25 @@ using DSP
 document[Symbol("Signal")] = Symbol[]
 
 """
-    step(t::Float64)
+    heaviside(t::Float64)
 
-Unitary step triggered at t=0
+Heaviside step triggered at t=0
 """
-function step(t::Float64)
+function heaviside(t::Float64)
     return Float64(t >= 0.0)
 end
 
 """
-    step(t::Float64, t_start::Float64)
+    heaviside(t::Float64, t_start::Float64)
 
-Unitary step triggered at t=t_start
+Heaviside step triggered at t=t_start
 """
-function step(t::Float64, t_start::Float64)
-    return step(t - t_start)
+function heaviside(t::Float64, t_start::Float64)
+    return heaviside(t - t_start)
 end
 
-@compat public step
-push!(document[Symbol("Signal")], :step)
+@compat public heaviside
+push!(document[Symbol("Signal")], :heaviside)
 
 """
     pulse(t::Float64)
@@ -29,8 +29,8 @@ push!(document[Symbol("Signal")], :step)
 Unitary pulse with width of 1, starting at t=0
 """
 function pulse(t::Float64)
-    a = step(t)
-    b = step(-t + 1)
+    a = heaviside(t)
+    b = heaviside(-t + 1)
     return a * b
 end
 
@@ -204,7 +204,7 @@ returns interpolated data given a sequence (tuple) of time/value points
 function sequence(t::Float64, t_y_sequence::Vector{Tuple{Float64,Float64}}; scheme::Symbol=:linear)
     tt = [t0 for (t0, y0) in t_y_sequence]
     yy = [y0 for (t0, y0) in t_y_sequence]
-    return IMAS.extrap1d(IMAS.interp1d_itp(tt, yy, scheme); first=:flat, last=:flat)(t)
+    return IMAS.extrap1d(IMAS.interp1d_itp(tt, yy, scheme); first=:constant, last=:constant)(t)
 end
 
 @compat public sequence
@@ -236,7 +236,16 @@ end
 
 Calculate the moving average of a data vector on a new time basis
 """
-function moving_average!(result::Ref{Float64}, w::Vector{Float64}, time::AbstractVector{Float64}, data::AbstractVector{T}, t0::Float64, width::Float64, interp, causal::Bool) where {T<:Real}
+function moving_average!(
+    result::Ref{Float64},
+    w::Vector{Float64},
+    time::AbstractVector{Float64},
+    data::AbstractVector{T},
+    t0::Float64,
+    width::Float64,
+    interp,
+    causal::Bool
+) where {T<:Real}
     if causal
         @. w = pulse(-time, -t0 - width, width)
     else
@@ -300,3 +309,277 @@ end
 
 @compat public lowpassfilter
 push!(document[Symbol("Signal")], :lowpassfilter)
+
+# Window function implementations that work on the full weights array
+# These now write directly to weights[idx] for each idx in idx_range
+function window_weights_range!(weights, ::Val{:gaussian}, xi, idx_range, x_target, window_size)
+    @inbounds for idx in idx_range
+        x_rel = xi[idx] - x_target
+        weights[idx] = exp(-0.5 * (4.0 * x_rel / window_size)^2) / (window_size / 4.0) / sqrt(2π)
+    end
+end
+
+function window_weights_range!(weights, ::Val{:hanning}, xi, idx_range, x_target, window_size)
+    a = window_size
+    @inbounds for idx in idx_range
+        x_rel = xi[idx] - x_target
+        if abs(x_rel) <= a / 2.0
+            weights[idx] = (1 - cos(2π * (x_rel + a / 2.0) / a)) / a
+        else
+            weights[idx] = 0.0
+        end
+    end
+end
+
+function window_weights_range!(weights, ::Val{:bartlett}, xi, idx_range, x_target, window_size)
+    a = window_size
+    @inbounds for idx in idx_range
+        x_rel = xi[idx] - x_target
+        if abs(x_rel) <= a / 2.0
+            weights[idx] = 1 - abs(x_rel) * 2.0 / a
+        else
+            weights[idx] = 0.0
+        end
+    end
+end
+
+function window_weights_range!(weights, ::Val{:blackman}, xi, idx_range, x_target, window_size)
+    a = window_size
+    @inbounds for idx in idx_range
+        x_rel = xi[idx] - x_target
+        if abs(x_rel) <= a / 2.0
+            weights[idx] = 0.42 - 0.5 * cos(2π * (x_rel + a / 2.0) / a) + 0.08 * cos(4π * (x_rel + a / 2.0) / a)
+        else
+            weights[idx] = 0.0
+        end
+    end
+end
+
+function window_weights_range!(weights, ::Val{:boxcar}, xi, idx_range, x_target, window_size)
+    a = window_size
+    @inbounds for idx in idx_range
+        x_rel = xi[idx] - x_target
+        if abs(x_rel) <= a / 2.0
+            weights[idx] = 1.0 / a
+        else
+            weights[idx] = 0.0
+        end
+    end
+end
+
+function window_weights_range!(weights, ::Val{:triangle}, xi, idx_range, x_target, window_size)
+    a = window_size
+    @inbounds for idx in idx_range
+        x_rel = xi[idx] - x_target
+        if abs(x_rel) <= a
+            weights[idx] = 1 - abs(x_rel) / a
+        else
+            weights[idx] = 0.0
+        end
+    end
+end
+
+"""
+    select_by_window!(weights, xi, x_target, window_size, window_function; causal=false)
+
+Fill weights array with window weights around x_target. Returns the index range of non-zero weights.
+The weights array must be the same length as xi.
+
+Returns:
+
+  - idx_range: UnitRange of indices in xi that have non-zero weights
+"""
+function select_by_window!(
+    weights::AbstractVector{Float64},
+    xi::AbstractVector{T},
+    x_target::Real,
+    window_size::Real,
+    window_function::Union{Symbol,Val};
+    causal::Bool=false
+) where {T<:Real}
+
+    @assert issorted(xi)
+    @assert length(weights) == length(xi)
+
+    # Clear all weights first
+    fill!(weights, 0.0)
+
+    # Convert symbol to Val if needed
+    wf_val = window_function isa Symbol ? Val(window_function) : window_function
+
+    # Determine window extent (internal implementation detail)
+    win_mult = if wf_val isa Val{:gaussian} || wf_val isa Val{:triangle}
+        2.0
+    else
+        1.0
+    end
+
+    win_extent = window_size * win_mult
+    half_extent = win_extent / 2.0
+
+    # Find indices within window using binary search
+    if causal
+        idx_range = searchsortedfirst(xi, x_target):searchsortedlast(xi, x_target + win_extent)
+    else
+        idx_range = searchsortedfirst(xi, x_target - half_extent):searchsortedlast(xi, x_target + half_extent)
+    end
+
+    if isempty(idx_range)
+        return 1:0
+    end
+
+    # Calculate weights in-place for the relevant range
+    window_weights_range!(weights, wf_val, xi, idx_range, x_target, window_size)
+
+    # Apply causal constraint if needed
+    if causal
+        @inbounds for idx in idx_range
+            x_rel = xi[idx] - x_target
+            if x_rel < 0
+                weights[idx] = 0.0
+            end
+        end
+    end
+
+    # Normalize weights in the range
+    norm = 0.0
+    @inbounds for idx in idx_range
+        norm += weights[idx]
+    end
+
+    if norm == 0
+        @inbounds for idx in idx_range
+            weights[idx] = NaN
+        end
+    else
+        inv_norm = 1.0 / norm
+        @inbounds for idx in idx_range
+            weights[idx] *= inv_norm
+        end
+    end
+
+    return idx_range
+end
+
+function select_time_window(ids::IDS, field::Symbol, time0::Float64; window_size::Float64=0.1, window_function::Symbol=:gaussian, causal::Bool=false)
+    @assert time_coordinate_index(ids, field; error_if_not_time_dependent=true) == 1
+    data = getproperty(ids, field)
+    time = getproperty(time_coordinate(ids, field))
+    weights = Vector{Float64}(undef, length(time))
+    idx_range = select_by_window!(weights, time, time0, window_size, window_function; causal)
+    return (time=time[idx_range], data=data[idx_range], weights=weights[idx_range], idx_range=idx_range)
+end
+
+"""
+    smooth_by_convolution(
+        yi::AbstractVector{T};
+        xi=nothing,
+        xo=nothing,
+        window_size=nothing,
+        window_function::Symbol=:gaussian,
+        causal::Bool=false,
+        interpolate::Int=0
+    ) where {T<:Real}
+
+Smooth non-uniformly sampled data with a chosen convolution window function. Supports error propagation.
+
+The output values are nan where no points are found in finite windows (weight is zero).
+The gaussian window is infinite in extent, and thus returns values for all xo.
+
+:param yi: Values of input array
+
+:param xi: Original grid points of input array (default y indicies)
+
+:param xo: Output grid points of convolution array (default xi)
+
+:param window_size: float.
+Width of passed to window function (default maximum xi step).
+For the Gaussian, sigma=window_size/4. and the convolution is integrated across +/-4.*sigma.
+
+:param window_function: Symbol
+Accepted strings are :hanning, :bartlett, :blackman, :gaussian, or :boxcar
+
+:param axis: int. Axis of y along which convolution is performed
+
+:param causal: int. Forces fw(x>0) = 0.
+
+:param interpolate: Int > 0
+Paramter indicating to interpolate data so that there are`interpolate`
+number of data points within a time window. This is useful in presence of sparse
+data, which would result in stair-case output if not interpolated.
+The integer value sets the # of points per window size.
+
+:return: convolved array on xo
+"""
+function smooth_by_convolution(
+    yi::AbstractVector{T};
+    xi=nothing,
+    xo=nothing,
+    window_size=nothing,
+    window_function::Symbol=:gaussian,
+    causal::Bool=false,
+    interpolate::Int=0
+) where {T<:Real}
+
+    xi = xi === nothing ? collect(1:length(yi)) : xi
+    xo = xo === nothing ? xi : xo
+
+    @assert issorted(xi)
+
+    if length(xi) < 2
+        return zeros(T, length(xo)) .* NaN
+    end
+
+    # Remove any NaN
+    if any(isnan, yi) || any(isnan, xi)
+        index = .!isnan.(yi) .&& .!isnan.(xi)
+        yi = yi[index]
+        xi = xi[index]
+    end
+
+    # Convert symbol to Val for dispatch
+    wf_val = Val(window_function)
+
+    if window_size === nothing
+        dx = diff(xi)  # xi is already sorted
+        window_size = maximum(filter(x -> x > 0.0, dx))
+    end
+
+    # Handle interpolation
+    if interpolate > 1 && length(xi) > 1
+        n_interp = Int(ceil((maximum(xi) - minimum(xi)) / window_size * interpolate))
+        interp_y = DataInterpolations.LinearInterpolation(yi, xi)
+        xi = range(minimum(xi); stop=maximum(xi), length=n_interp)
+        yi = interp_y.(xi)
+    end
+
+    N = length(xo)
+    yo = Vector{eltype(yi)}(undef, N)
+
+    # Pre-allocate weights array once
+    weights = Vector{Float64}(undef, length(xi))
+
+    # Main smoothing loop using select_by_window!
+    for k in 1:N
+        idx_range = select_by_window!(weights, xi, xo[k], window_size, wf_val; causal=causal)
+
+        if isempty(idx_range) || all(isnan, (@view weights[idx_range]))
+            yo[k] = NaN
+        else
+            yo[k] = sum((@view weights[idx_range]) .* (@view yi[idx_range]))
+        end
+    end
+
+    return yo
+end
+
+function smooth_by_convolution(ids::IDS, field::Symbol, time0::Vector{Float64}; window_size::Float64=0.1, window_function::Symbol=:gaussian, causal::Bool=false, interpolate::Int=0)
+    @assert time_coordinate_index(ids, field; error_if_not_time_dependent=true) == 1
+    data = getproperty(ids, field)
+    field_σ = Symbol("$(field)_σ")
+    if hasdata(ids, field_σ)
+        data = Measurements.measurement.(data, getproperty(ids, field_σ))
+    end
+    time = getproperty(time_coordinate(ids, field))
+    return smooth_by_convolution(data; xi=time, xo=time0, window_size, window_function, causal, interpolate)
+end

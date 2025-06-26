@@ -39,16 +39,16 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     else
         value = getfield(ids, field)
         if field == :time || !(eltype(value) <: T2)
-            _setproperty!(ids_new, field, value, internal_cocos)
+            _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
         else
             efield = Symbol("$(field)_σ")
             if !ismissing(ids, efield)
                 error = getfield(ids, efield)
-                uncer = value ± error
+                uncer = value .± error
             else
                 uncer = value .± 0.0
             end
-            _setproperty!(ids_new, field, uncer, internal_cocos)
+            _setproperty!(ids_new, field, uncer; from_cocos=internal_cocos)
         end
     end
     return nothing
@@ -65,10 +65,10 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     else
         value = getraw(ids, field)
         if eltype(value) <: T2
-            _setproperty!(ids_new, field, value.val, internal_cocos)
-            _setproperty!(ids_new, Symbol("$(field)_σ"), value.err, internal_cocos)
+            _setproperty!(ids_new, field, value.val; from_cocos=internal_cocos)
+            _setproperty!(ids_new, Symbol("$(field)_σ"), value.err; from_cocos=internal_cocos)
         else
-            _setproperty!(ids_new, field, value, internal_cocos)
+            _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
         end
     end
     return nothing
@@ -76,3 +76,15 @@ end
 
 @compat public fill!
 push!(document[:Real], :fill!)
+
+function Base.setproperty!(ids::IDS{T}, field::Symbol, value::AbstractVector{<:Measurements.Measurement}) where {T<:Float64}
+    setproperty!(ids, field, [v.val for v in value])
+    setproperty!(ids, Symbol("$(field)_σ"), [v.err for v in value])
+    return value
+end
+
+function Base.setproperty!(ids::IDS{T}, field::Symbol, value::Measurements.Measurement) where {T<:Float64}
+    setproperty!(ids, field, value.val)
+    setproperty!(ids, Symbol("$(field)_σ"), value.err)
+    return value
+end

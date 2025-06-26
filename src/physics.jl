@@ -4,6 +4,7 @@ import Contour
 import StaticArrays
 import PolygonOps
 import Optim
+import Statistics
 import DataInterpolations: DataInterpolations, ExtrapolationType
 import IMASutils: IMASutils, trapz, cumtrapz, cumtrapz!, mirror_bound, argmin_abs
 import PeriodicTable: elements

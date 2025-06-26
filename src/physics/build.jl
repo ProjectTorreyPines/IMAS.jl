@@ -332,14 +332,20 @@ end
 @compat public volume
 push!(document[Symbol("Physics build")], :volume)
 
+Memoize.@memoize function memoized_inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float64}, target_area_fraction::Float64)
+    return inscribed_polygon(pr, pz; target_area_fraction)
+end
+
 """
-    first_wall(wall::IMAS.wall{T}) where {T<:Real}
+    first_wall(wall::IMAS.wall{T}; simplify_to_inscribed_fractional_area::Float64=1 - 1E-6) where {T<:Real}
 
 Returns named tuple with outline of the official contiguous first wall limiter contour, or an empty outline if not present
 
 NOTE: in IMAS `wall.description_2d[].limiter.type.index == 0` indicates an official contiguous limiter contour
+
+NOTE: By default the first wall simplifies points on straight lines
 """
-function first_wall(wall::IMAS.wall{T}) where {T<:Real}
+function first_wall(wall::IMAS.wall{T}; simplify_to_inscribed_fractional_area::Float64=1 - 1E-6) where {T<:Real}
     for d2d in wall.description_2d
         # d2d.limiter.type.index != 0 indicates a disjoint limiter
         if !ismissing(d2d.limiter.type, :index) && d2d.limiter.type.index != 0
@@ -348,7 +354,12 @@ function first_wall(wall::IMAS.wall{T}) where {T<:Real}
         for unit in d2d.limiter.unit
             @assert length(d2d.limiter.unit) == 1 # there should be just one official contiguous limiter contour
             oute = closed_polygon(unit.outline.r, unit.outline.z)
-            return (r=oute.r, z=oute.z)
+            if simplify_to_inscribed_fractional_area < 1.0
+                simplified_r, simplified_z = memoized_inscribed_polygon(oute.r, oute.z, simplify_to_inscribed_fractional_area)
+                return (r=simplified_r, z=simplified_z)
+            else
+                return (r=oute.r, z=oute.z)
+            end
         end
     end
     return (r=Float64[], z=Float64[])
