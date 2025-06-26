@@ -438,8 +438,8 @@ function total_sources!(
     for ids1 in [[total_source1d, total_source1d.electrons]; total_source1d.ion]
         for field in keys(ids1)
             if field in keys(_core_sources_integral_value_keys)
-                if hasdata(ids1, field)
-                    fill!(getproperty(ids1, field), 0.0)
+                if hasdata(ids1, field) && length(getfield(ids1, field)) == length(rho)
+                    fill!(getproperty(ids1, field), zero(T))
                 else
                     # assume coordinates have been set
                     setproperty!(ids1, field, zeros(T, size(rho)); error_on_missing_coordinates=false)
