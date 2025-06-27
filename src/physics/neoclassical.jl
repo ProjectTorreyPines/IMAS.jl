@@ -465,3 +465,28 @@ end
 
 @compat public sawtooth_conductivity
 push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
+
+function compute_omega_from_dd(dd::IMASdd.dd{Float64}, ind::Int = 2)
+    dd.global_time = 4.5
+    cp1d = dd.core_profiles.profiles_1d[]
+    eqt1d = dd.equilibrium.time_slice[].profiles_1d
+    rho_cp = cp1d.grid.rho_tor_norm # meters
+    rho_eq = eqt1d.rho_tor_norm  # meters
+
+    ni = cp1d.ion[ind].density #m^-3
+    zi = cp1d.ion[ind].z_ion #dimensionless
+    rot_freq = cp1d.ion[ind].rotation_frequency_tor 
+
+    dpi_dpsi = IMAS.interp1d(rho_eq, eqt1d.dpressure_dpsi).(rho_cp) # eqt1d.dpressure_dpsi is Pa.Wb^-1 
+
+    omega = compute_omega(ni, zi, dpi_dpsi, rot_freq)
+    plot(omega, label="Omega (rad/s)", xlabel="Radial Index", ylabel="Omega", legend=:topright)
+    cp1d.rotation_frequency_tor_sonic = omega
+end
+
+function compute_omega(ni, zi, dpi_dpsi, rot_freq)
+    term1 = dpi_dpsi ./ (ni .* zi .* IMAS.mks.e)
+    term2 = rot_freq
+    omega = term1 .+ term2
+    return omega
+end
