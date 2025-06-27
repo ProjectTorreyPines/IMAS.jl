@@ -579,6 +579,7 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
     # fill in sawteeth
     source = resize!(dd.core_sources.source, :sawteeth, "identifier.name" => "sawteeth"; wipe=false)
 
+    # get past value of sawteeth source
     if isempty(source.profiles_1d)
         old_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
     else
@@ -590,6 +591,7 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
         end
     end
 
+    # wipe data at current time
     source1d = resize!(source.profiles_1d)
 
     # identify sawteeth inversion radius
@@ -609,6 +611,7 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
 
     # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
     for (leaf,old_leaf) in zip(IMASdd.AbstractTrees.Leaves(source1d),IMASdd.AbstractTrees.Leaves(old_source1d))
+        @assert leaf.field == old_leaf.field
         if leaf.field in keys(_core_sources_value_keys)
             if leaf.field == :j_parallel
                 leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value) * α .+ old_leaf.value .* (1.0 .- α)
