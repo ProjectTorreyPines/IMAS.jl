@@ -580,12 +580,13 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
     source = resize!(dd.core_sources.source, :sawteeth, "identifier.name" => "sawteeth"; wipe=false)
 
     # get past value of sawteeth source
-    if isempty(source.profiles_1d)
+    if isempty(source.profiles_1d) || hasdata(source.profiles_1d[])
         old_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
     else
-        itime = IMAS.index(source.profiles_1d[])
+        source1d = source.profiles_1d[]
+        itime = IMAS.index(source1d)
         if itime == 1
-            old_source1d = deepcopy(source.profiles_1d[itime])
+            old_source1d = deepcopy(source1d)
         else
             old_source1d = source.profiles_1d[itime-1]
         end
