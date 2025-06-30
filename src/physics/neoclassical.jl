@@ -6,7 +6,7 @@ document[Symbol("Physics neoclassical")] = Symbol[]
 Calculates the Spitzer conductivity in [1/(Ω*m)]
 """
 function spitzer_conductivity(ne, Te, Zeff)
-    return @. 1.9012e4 * Te ^ 1.5 / (Zeff * (0.58 + 0.74 / (0.76 + Zeff)) * lnLambda_e(ne, Te))
+    return @. 1.9012e4 * Te^1.5 / (Zeff * (0.58 + 0.74 / (0.76 + Zeff)) * lnLambda_e(ne, Te))
 end
 
 @compat public spitzer_conductivity
@@ -344,7 +344,7 @@ Calculate the electron collisionality, ν_*e, as a dimensionless measure of the
 frequency of electron collisions relative to their characteristic transit frequency.
 """
 function nuestar(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T};
-                 Zeff::Vector{T}=cp1d.zeff) where {T<:Real}
+    Zeff::Vector{T}=cp1d.zeff) where {T<:Real}
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density_thermal
@@ -436,11 +436,11 @@ function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
     # neo 2021
     f33teff =
         @. tf_itp(rho) / (
-            1 + 0.25 * (1 - 0.7 * tf_itp(rho)) * sqrt(nue) * (1 + 0.45 * (Zeff - 1) ^ 0.5) +
-            0.61 * (1 - 0.41 * tf_itp(rho)) * nue / Zeff ^ 0.5
+            1 + 0.25 * (1 - 0.7 * tf_itp(rho)) * sqrt(nue) * (1 + 0.45 * (Zeff - 1)^0.5) +
+            0.61 * (1 - 0.41 * tf_itp(rho)) * nue / Zeff^0.5
         )
 
-    F33 = @. 1 - (1 + 0.21 / Zeff) * f33teff + 0.54 / Zeff * f33teff ^ 2 - 0.33 / Zeff * f33teff ^ 3
+    F33 = @. 1 - (1 + 0.21 / Zeff) * f33teff + 0.54 / Zeff * f33teff^2 - 0.33 / Zeff * f33teff^3
 
     conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
 
@@ -466,27 +466,43 @@ end
 @compat public sawtooth_conductivity
 push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
 
-function compute_omega_from_dd(dd::IMASdd.dd{Float64}, ind::Int = 2)
-    dd.global_time = 4.5
+
+"""
+omegator2sonic!(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+
+Model to populates ExB rotation based on ion omega_tor assuming ωpol=0.0
+"""
+function ωtor2sonic(dd::IMASdd.dd{Float64}, ind::Int=0)
     cp1d = dd.core_profiles.profiles_1d[]
-    eqt1d = dd.equilibrium.time_slice[].profiles_1d
-    rho_cp = cp1d.grid.rho_tor_norm # meters
-    rho_eq = eqt1d.rho_tor_norm  # meters
-
-    ni = cp1d.ion[ind].density #m^-3
-    zi = cp1d.ion[ind].z_ion #dimensionless
-    rot_freq = cp1d.ion[ind].rotation_frequency_tor 
-
-    dpi_dpsi = IMAS.interp1d(rho_eq, eqt1d.dpressure_dpsi).(rho_cp) # eqt1d.dpressure_dpsi is Pa.Wb^-1 
-
-    omega = compute_omega(ni, zi, dpi_dpsi, rot_freq)
-    plot(omega, label="Omega (rad/s)", xlabel="Radial Index", ylabel="Omega", legend=:topright)
-    cp1d.rotation_frequency_tor_sonic = omega
+    if ind == 0
+        ind = findfirst(x -> !ismissing(x, :rotation_frequency_tor) && x.rotation_frequency_tor != 0, cp1d.ion)
+    end
+    ni = cp1d.ion[ind].density
+    zi = cp1d.ion[ind].z_ion
+    rot_freq = cp1d.ion[ind].rotation_frequency_tor
+    dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure)
+    display(IMAS.plot(dpi_dpsi))
+    cp1d.rotation_frequency_tor_sonic = @. rot_freq + dpi_dpsi / (ni * zi * IMAS.mks.e)
+    # Compute ωtor for all species
+    return sonic2ωtor(dd)
 end
 
-function compute_omega(ni, zi, dpi_dpsi, rot_freq)
-    term1 = dpi_dpsi ./ (ni .* zi .* IMAS.mks.e)
-    term2 = rot_freq
-    omega = term1 .+ term2
-    return omega
+@compat public ωtor2sonic
+
+"""
+omegator2sonic!(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
+
+Model to populates ion ωtors based on ExB rotation assuming ωpol=0.0
+"""
+function sonic2ωtor(dd::IMASdd.dd{Float64})
+    cp1d = dd.core_profiles.profiles_1d[]
+    ωExB = cp1d.rotation_frequency_tor_sonic
+    for ion in cp1d.ion
+        ni = ion.density
+        zi = ion.z_ion
+        dpi_dpsi = IMAS.gradient(cp1d.grid.psi, ion.pressure)
+        ion.rotation_frequency_tor = @. ωExB - dpi_dpsi / (ni * zi * IMAS.mks.e)
+    end
 end
+
+@compat public sonic2ωtor
