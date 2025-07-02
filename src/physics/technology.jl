@@ -80,6 +80,9 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
         coil_tech.fraction_void = 0.1
     end
 
+    coil_tech.thermal_strain = 0.0
+    coil_tech.JxB_strain = 0.0
+
     if technology == :nb3sn_iter
         if coil_type == :oh
             coil_tech.thermal_strain = -0.64
@@ -95,9 +98,6 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
             coil_tech.fraction_steel = 0.46
         end
     end
-
-    coil_tech.thermal_strain = 0.0
-    coil_tech.JxB_strain = 0.0
 
     return coil_tech
 end
