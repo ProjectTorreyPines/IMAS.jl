@@ -53,26 +53,27 @@ function coil_technology(coil_tech::Union{IMAS.build__pf_active__technology,IMAS
         coil_tech.fraction_void = 0.2
 
     elseif technology ∈ (:nb3sn, :nbti, :nb3sn_iter, :nb3sn_kdemo, :rebco)
+        t_margin = 1.0 # introduce a small correction to operating temperature
         if technology == :nb3sn
-            coil_tech.temperature = 4.2
+            coil_tech.temperature = 4.2 + t_margin
             coil_tech.material = "nb3sn"
             coil_tech.fraction_void = 0.1
         elseif technology == :nbti
-            coil_tech.temperature = 4.2
+            coil_tech.temperature = 4.2 + t_margin
             coil_tech.material = "nbti"
             coil_tech.fraction_void = 0.2 # from Supercond. Sci. Technol. 36 (2023) 075009
         elseif technology == :nb3sn_iter
-            coil_tech.temperature = 4.2
+            coil_tech.temperature = 4.2 + t_margin
             coil_tech.material = "nb3sn_iter"
             coil_tech.fraction_void = 0.1
         elseif technology == :nb3sn_kdemo
-            coil_tech.temperature = 4.2
+            coil_tech.temperature = 4.2 + t_margin
             coil_tech.material = "nb3sn_kdemo"
             if coil_type == :tf
                 coil_tech.fraction_void = 0.26 # from NF 55 (2015) 053027, Table 2
             end
         else
-            coil_tech.temperature = 4.2
+            coil_tech.temperature = 20.0
             coil_tech.material = "rebco"
         end
         coil_tech.fraction_steel = 0.5
