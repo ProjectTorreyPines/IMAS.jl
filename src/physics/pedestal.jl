@@ -332,3 +332,38 @@ end
 
 @compat public pedestal_tanh_width_half_maximum
 push!(document[Symbol("Physics pedestal")], :pedestal_tanh_width_half_maximum)
+
+"""
+    h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.4) where {T<:Real}
+
+Given a profile (works well with electron pressure) it identifies the presence of a pedestal.
+
+This function works by comparing the inverse scalelength at the pedestal
+(defined as where the inverse scalelength is maximum)
+against the inverse scalelength at the top of the pedestal.
+"""
+function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.4) where {T<:Real}
+    p = electrons_pressure
+    n = length(p)
+    v = p .+ sum(p) / n * 0.1 # let the inverse scalelength be large because the gradients are high, not because of very small values
+    z = -IMAS.calc_z(rho, v, :backward)
+
+    imaxZ = argmax(z)
+    maxz = z[imaxZ]
+    rho0 = rho[imaxZ]
+
+    rhoσ = 1.0 - rho0
+    zwell = IMAS.interp1d(rho, z).(rho0 - 2 * rhoσ)
+
+    if rho0 < 1.0 && zwell / maxz < threshold
+        hmode = true
+    else
+        hmode = false
+    end
+
+    # plot(rho, p / maximum(p); label="", ylim=(0, 1), color=hmode ? :red : :blue)
+    # plot!(rho, z / maxz; label="", ylim=(0, 1), color=:black)
+    # return hline!([zwell]; label="")
+
+    return hmode
+end
