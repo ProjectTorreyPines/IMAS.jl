@@ -3014,16 +3014,9 @@ end
 end
 
 @recipe function plot_wd2dlu(wd2dlu::IMAS.wall__description_2d___limiter__unit)
+    poly = closed_polygon(wd2dlu.outline.r, wd2dlu.outline.z, Bool(wd2dlu.closed))
     @series begin
         label --> getproperty(wd2dlu, :name, "")
-        wd2dlu.outline
-    end
-end
-
-@recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
-    poly = closed_polygon(outline.r, outline.z)
-    aspect_ratio := :equal
-    @series begin
         poly.r, poly.z
     end
 end
