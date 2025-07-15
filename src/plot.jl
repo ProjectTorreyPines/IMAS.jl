@@ -990,11 +990,12 @@ function layer_attrs(l::IMAS.build__layer)
     return name, color
 end
 
-@recipe function plot_build(bd::IMAS.build; equilibrium=true, pf_active=true, pf_passive=true)
+@recipe function plot_build(bd::IMAS.build; equilibrium=true, pf_active=true, pf_passive=true, wall=true)
     id = recipe_dispatch(bd)
-    assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
-    assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
-    assert_type_and_record_argument(id, Bool, "Include plot of pf_passive"; pf_passive)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.equilibrium"; equilibrium)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.pf_active"; pf_active)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.pf_passive"; pf_passive)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.wall"; wall)
 
     dd = top_dd(bd)
 
@@ -1005,6 +1006,8 @@ end
     if !isempty(bd.layer)
         rmax = maximum(bd.layer[end].outline.r)
         xlim --> [0, rmax]
+    else
+        xlim --> [0, Inf]
     end
 
     if dd !== nothing && equilibrium
@@ -1014,8 +1017,19 @@ end
         end
     end
 
-    @series begin
-        bd.layer
+    if isempty(bd.layer)
+        if dd !== nothing && wall
+            fw = IMAS.first_wall(dd.wall)
+            @series begin
+                label := ""
+                color := :black
+                fw.r, fw.z
+            end
+        end
+    else
+        @series begin
+            bd.layer
+        end
     end
 
     if dd !== nothing && pf_active
@@ -1032,6 +1046,7 @@ end
             dd.pf_passive
         end
     end
+
 end
 
 @recipe function plot_build_layer(layers::IDSvector{<:IMAS.build__layer}; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
