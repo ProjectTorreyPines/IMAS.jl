@@ -1410,7 +1410,14 @@ function trace_surfaces(
         else  # other flux surfaces
             tmp = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
             pr, pz = collect(tmp[1]), collect(tmp[2])
-            if k == N && !is_closed_surface(pr, pz, wall_r, wall_z)
+            if isempty(pr) && k == 2
+                # If there are too many flux surfaces for a given grid resolution, the inner-most flux surface may fail to trace
+                pr = (surfaces[k+1].r .- RA) ./ 2 .+ RA
+                pz = (surfaces[k+1].z .- ZA) ./ 2 .+ ZA
+            end
+            if k == N && !is_closed_surface(pr, pz, wall_r, wall_z) || isempty(pr)
+                # contour(r, z, PSI'; levels=psi)
+                # display(plot!(wall_r, wall_z; aspect_ratio=:equal, color=:black))
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
         end
