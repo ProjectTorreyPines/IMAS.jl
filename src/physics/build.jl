@@ -507,18 +507,56 @@ push!(document[Symbol("Physics build")], :first_wall)
     first_wall!(wall::IMAS.wall{T}, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
 
 Set `wall.description_2d[?].limiter.unit[1].outline` from input `r` and `z`
+
+Returns the limiter.unit with the new outline
 """
 function first_wall!(wall::IMAS.wall{T}, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
-    d2d = resize!(wall.description_2d, "limiter.type.index" => 0)
-    resize!(d2d.limiter.unit, 1)
     oute = open_polygon(r, z)
-    d2d.limiter.unit[1].outline.r = oute.r
-    d2d.limiter.unit[1].outline.z = oute.z
-    return wall
+    d2d = resize!(wall.description_2d, "limiter.type.index" => 0) # there should be only one limiter with type.index=0
+    unit = resize!(d2d.limiter.unit, 1)[1]
+    unit.closed = 1
+    unit.name = "Contiguous first wall"
+    unit.outline.r = oute.r
+    unit.outline.z = oute.z
+    return unit
 end
 
 @compat public first_wall!
 push!(document[Symbol("Physics build")], :first_wall!)
+
+"""
+    contiguous_limiter_from_open_limiters!(wall::IMAS.wall{T}) where {T<:Real}
+
+Combines multiple open limiter units into a single contiguous closed limiter by connecting 
+their outlines in sequence. The function chooses the connection order to minimize gaps 
+between adjacent limiter segments.
+
+Modifies the wall structure in-place by replacing existing limiters with one closed 
+contiguous limiter named "contiguous first wall" and limiter.type.index=0
+
+Returns the limiter.unit with the contiguous outline.
+"""
+function contiguous_limiter_from_open_limiters!(wall::IMAS.wall{T}) where {T<:Real}
+    r = T[]
+    z = T[]
+    for d2d in wall.description_2d
+        for unit in d2d.limiter.unit
+            if unit.closed == 0
+                if isempty(r) || sqrt((r[end] - unit.outline.r[1])^2 + (z[end] - unit.outline.z[1])^2) < sqrt((r[end] - unit.outline.r[end])^2 + (z[end] - unit.outline.z[end])^2)
+                    append!(r, unit.outline.r)
+                    append!(z, unit.outline.z)
+                else
+                    append!(r, reverse(unit.outline.r))
+                    append!(z, reverse(unit.outline.z))
+                end
+            end
+        end
+    end
+    return first_wall!(wall, r, z)
+end
+
+@compat public contiguous_limiter_from_open_limiters!
+push!(document[Symbol("Physics build")], :contiguous_limiter_from_open_limiters!)
 
 """
     build_max_R0_B0(bd::IMAS.build)
