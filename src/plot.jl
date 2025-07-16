@@ -1457,7 +1457,7 @@ end
 
     if only === nothing
         layout := 4 + length(ions)
-        Nr = Int(ceil(sqrt(4 + length(ions))))
+        Nr = round(Int, sqrt(4 + length(ions)), RoundUp)
         size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
@@ -2005,7 +2005,7 @@ end
             N = 5 + length(ions)
         end
         layout := N
-        Nr = Int(ceil(sqrt(N)))
+        Nr = round(Int, sqrt(N), RoundUp)
         size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
@@ -3375,7 +3375,7 @@ end
 @recipe function plot(summary::IMAS.summary)
     valid_leaves = [leaf for leaf in IMASdd.AbstractTrees.Leaves(summary) if typeof(leaf.value) <: Vector && leaf.field != :time]
     layout := length(valid_leaves)
-    N = Int(ceil(sqrt(length(valid_leaves))))
+    N = round(Int, sqrt(length(valid_leaves)), RoundUp)
     size --> (200 * N, 200 * N)
     for (k, leaf) in enumerate(valid_leaves)
         loc = replace(location(leaf.ids, leaf.field), ".value" => "")

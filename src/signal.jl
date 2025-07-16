@@ -547,7 +547,7 @@ function smooth_by_convolution(
 
     # Handle interpolation
     if interpolate > 1 && length(xi) > 1
-        n_interp = Int(ceil((maximum(xi) - minimum(xi)) / window_size * interpolate))
+        n_interp = round(Int, (maximum(xi) - minimum(xi)) / window_size * interpolate, RoundUp)
         interp_y = DataInterpolations.LinearInterpolation(yi, xi)
         xi = range(minimum(xi); stop=maximum(xi), length=n_interp)
         yi = interp_y.(xi)

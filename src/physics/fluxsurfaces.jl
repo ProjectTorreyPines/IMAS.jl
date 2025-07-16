@@ -1462,7 +1462,7 @@ function trace_surfaces(
     end
 
     if refine_extrema
-        N2 = Int(ceil(N / 2))
+        N2 = round(Int, N / 2, RoundUp)
         psi_norm = abs(psi[end] - psi[1]) / N
         space_norm = (surfaces[N].max_r - surfaces[N].min_r) / 2 / N
 
@@ -1624,7 +1624,7 @@ push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
 function _extrema_index(r::AbstractVector{T}, z::AbstractVector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
     i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
     N = length(z)
-    j = Int(ceil(N / 2))
+    j = round(Int, N / 2, RoundUp)
     n = 3
     if direction == :right
         if (r[j] - r[j-1]) > 0 # oriented right

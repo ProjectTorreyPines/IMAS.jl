@@ -294,7 +294,7 @@ function ion_properties(ion_symbol::Symbol; fast::Bool=false)
             n = parse(Int, ion_a) - z
             a = atomic_mass(z, n)
         end
-        label = "$(ion_name)$(Int(floor(a)))"
+        label = "$(ion_name)$(round(Int, a, RoundDown))"
     end
 
     if fast
