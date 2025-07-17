@@ -156,7 +156,7 @@ function find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector
     for p in particles
         ti = toroidal_intersection(rwall, zwall, p.x, p.y, p.z, p.δvx, p.δvy, p.δvz)
 
-        if ti == NaN
+        if isnan(ti)
             @show p
             error("No intersection found while moving particles")
         end
