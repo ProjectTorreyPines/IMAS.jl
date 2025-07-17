@@ -1101,8 +1101,8 @@ function find_magnetic_axis(
     z::AbstractVector{<:T1},
     PSI_interpolant::Interpolations.AbstractInterpolation,
     psi_sign::T2;
-    rguess::T1=r[Int(round(length(r) / 2))],
-    zguess::T1=z[Int(round(length(z) / 2))]) where {T1<:Real,T2<:Real}
+    rguess::T1=r[round(Int, length(r) / 2)],
+    zguess::T1=z[round(Int, length(z) / 2)]) where {T1<:Real,T2<:Real}
 
     res = Optim.optimize(
         x -> begin
@@ -1729,8 +1729,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # If there's a wall, try the following:
     # 1. guess from the previous time slice
     # 2. guess by  finding all interior extrema that could be near axes then exclude points outside the first wall (i.e., likely coils)
-    rguess = r[Int(round(length(r) / 2))]
-    zguess = z[Int(round(length(z) / 2))]
+    rguess = r[round(Int, length(r) / 2)]
+    zguess = z[round(Int, length(z) / 2)]
     eqts = parent(eqt)
     if eqts !== nothing && index(eqts, eqt) > 1 && hasdata(eqts[index(eqts, eqt)-1].global_quantities.magnetic_axis, :r)
         rguess = eqts[index(eqts, eqt)-1].global_quantities.magnetic_axis.r
