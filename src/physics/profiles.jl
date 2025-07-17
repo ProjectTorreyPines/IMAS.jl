@@ -702,18 +702,18 @@ function Hmode_profiles(edge::Real, ped::Real, core::Real, ngrid::Int, expin::Re
 end
 
 """
-    Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
+    Hmode_profiles(edge::T, ped::T, ngrid::Int, expin::T, expout::T, width::T) where {T<:Real}
 
 NOTE: The core value is allowed to float
 """
-function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
+function Hmode_profiles(edge::T, ped::T, ngrid::Int, expin::T, expout::T, width::T) where {T<:Real}
     @assert edge >= 0.0 "invalid edge = $edge"
     @assert ped >= 0.0 "invalid ped = $ped"
     @assert expin >= 0.0 "invalid expin = $expin"
     @assert expout >= 0.0 "invalid expout = $expout"
     @assert 0.0 < width < 1.0 "invalid width = $width"
 
-    xpsi = range(0.0, 1.0, ngrid)
+    xpsi = range(T(0.0), T(1.0), ngrid)
 
     widthp = 0.5 * width  # width as defined in eped
     xphalf = 1.0 - widthp
@@ -734,6 +734,11 @@ function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::
     end
 
     return val
+end
+
+function Hmode_profiles(edge::Real, ped::Real, ngrid::Int, expin::Real, expout::Real, width::Real)
+    edge, ped, expin, expout, width = promote(edge, ped, expin, expout, width)
+    return Hmode_profiles(edge, ped, ngrid, expin, expout, width)
 end
 
 @compat public Hmode_profiles
@@ -957,13 +962,19 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
     end
     if only_electrons_ions ∈ (:all, :ions)
         if only_thermal_fast ∈ (:all, :thermal)
-            dd_thermal = ((index=k, name=Symbol(ion.label)) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0))
+            dd_thermal = (
+                (index=k, name=Symbol(ion.label)) for
+                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0)
+            )
             for item in dd_thermal
                 push!(out, item)
             end
         end
         if only_thermal_fast ∈ (:all, :fast)
-            dd_fast = ((index=k, name=Symbol("$(ion.label)_fast")) for (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0))
+            dd_fast = (
+                (index=k, name=Symbol("$(ion.label)_fast")) for
+                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0)
+            )
             for item in dd_fast
                 push!(out, item)
             end
