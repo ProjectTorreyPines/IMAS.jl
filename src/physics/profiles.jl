@@ -1091,7 +1091,7 @@ function lump_ions_as_bulk_and_impurity(cp1d::IMAS.core_profiles__profiles_1d{T}
     impu_index = findall(!IMAS.is_hydrogenic, ions)
 
     rho_tor_norm = cp1d.grid.rho_tor_norm
-    ratios = zeros(length(rho_tor_norm), length(ions))
+    ratios = zeros(T, length(rho_tor_norm), length(ions))
     ntot = zero(rho_tor_norm)
     for index in (bulk_index, impu_index)
         fill!(ntot, 0.0)

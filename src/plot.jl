@@ -3843,5 +3843,3 @@ function hash_to_color(input::Any; seed::Int=0)
     # Return an RGB color using Plots' RGB type
     return RGB(r, g, b)
 end
-
-
