@@ -81,9 +81,37 @@ end
 # ========================= #
 const ObjectiveFunctionsLibrary = OrderedCollections.OrderedDict{Symbol,ObjectiveFunction}()
 
+# Helper function for Greenwald fraction calculation
+function calculate_greenwald_fraction(dd::IMAS.dd)
+    try
+        eqt = dd.equilibrium.time_slice[]
+        cp1d = dd.core_profiles.profiles_1d[]
+        ne_line = IMAS.ne_line(eqt, cp1d)
+        Ip_MA = eqt.global_quantities.ip / 1e6  # Convert to MA
+        a_minor = eqt.boundary.minor_radius  # Get minor radius from equilibrium
+        n_Greenwald = (Ip_MA / (π * a_minor^2)) * 1e20  # Greenwald limit [m⁻³]
+        return ne_line / n_Greenwald
+    catch
+        return 0.0
+    end
+end
+
+# Helper function for bootstrap fraction calculation
+function calculate_bootstrap_fraction(dd::IMAS.dd)
+    try
+        I_bootstrap = @ddtime(dd.summary.global_quantities.current_bootstrap.value)
+        I_p = dd.equilibrium.time_slice[].global_quantities.ip
+        return I_bootstrap / I_p
+    catch
+        return 0.0
+    end
+end
+
 function update_ObjectiveFunctionsLibrary!()
     empty!(ObjectiveFunctionsLibrary)
     #! format: off
+    
+    # Original FUSE objectives
     ObjectiveFunction(:min_levelized_CoE, "\$/kWh", dd -> dd.costing.levelized_CoE, -Inf)
     ObjectiveFunction(:min_log10_levelized_CoE, "log₁₀(\$/kW)", dd -> log10(dd.costing.levelized_CoE), -Inf)
     ObjectiveFunction(:min_capital_cost, "\$B", dd -> dd.costing.cost_direct_capital.cost / 1E3, -Inf)
@@ -97,6 +125,14 @@ function update_ObjectiveFunctionsLibrary!()
     ObjectiveFunction(:min_βn, "", dd -> dd.equilibrium.time_slice[].global_quantities.beta_normal, -Inf)
     ObjectiveFunction(:min_R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r, -Inf)
     ObjectiveFunction(:max_zeff, "", dd -> @ddtime(dd.summary.volume_average.zeff.value), Inf)
+    
+    # New physics objectives for my studies
+    ObjectiveFunction(:max_βp, "", dd -> dd.equilibrium.time_slice[].global_quantities.beta_pol, Inf)
+    ObjectiveFunction(:max_h98, "", dd -> @ddtime(dd.summary.global_quantities.h_98.value), Inf)
+    ObjectiveFunction(:max_tau_e, "s", dd -> @ddtime(dd.summary.global_quantities.tau_energy.value), Inf)
+    ObjectiveFunction(:max_fbs, "", dd -> calculate_bootstrap_fraction(dd), Inf)
+    ObjectiveFunction(:max_greenwald_fraction, "", dd -> calculate_greenwald_fraction(dd), Inf)
+    
     #! format: on
     return ObjectiveFunctionsLibrary
 end
