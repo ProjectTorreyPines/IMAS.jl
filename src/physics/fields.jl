@@ -145,7 +145,7 @@ end
 push!(document[Symbol("Physics fields")], :Bp)
 
 """
-    ImplicitMidpointUpdateEquation{T,F<:Function}(vector_field, current_point, step_size)
+    ImplicitMidpointUpdateEquation{T,F<:Function}(vector_field, current_point, step_size, count)
 
 Represents an implicit midpoint update equation for numerical integration.
 
@@ -153,11 +153,13 @@ Represents an implicit midpoint update equation for numerical integration.
 - `vector_field`: Function representing the vector field to be integrated
 - `current_point`: Current position in the vector field
 - `step_size`: Step size for numerical integration
+- `count`: Counter
 """
-struct ImplicitMidpointUpdateEquation{T,F<:Function}
+mutable struct ImplicitMidpointUpdateEquation{T,F<:Function}
     vector_field::F
     current_point::Vector{T}
     step_size::T
+    count::Int
 end
 
 """
@@ -191,6 +193,7 @@ function _next!(obj::ImplicitMidpointUpdateEquation)
 
     # Update implicit equation
     obj.current_point .= next_point
+    obj.count += 1
 
     return next_point
 end
@@ -212,7 +215,7 @@ Trajectory represented as a vector of points
 function trace_field_line(vector_field, start_point, step_size, stop_condition)
 
     # Initialize implicit equation struct
-    implicit_equation = ImplicitMidpointUpdateEquation(vector_field, start_point, step_size)
+    implicit_equation = ImplicitMidpointUpdateEquation(vector_field, start_point, step_size, 0)
 
     # Initialize trajectory
     next_point = start_point
