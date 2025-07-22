@@ -275,7 +275,7 @@ function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
 
     # Define stop condition
     if stop_condition == nothing
-        stop = (xyz) -> begin
+        stop = (obj) -> begin
             xyz = obj.current_point
             phi = abs(atan(xyz[2],xyz[1]))
             turns = floor(Int,phi/(2pi))
