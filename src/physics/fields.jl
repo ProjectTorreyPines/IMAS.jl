@@ -145,7 +145,7 @@ end
 push!(document[Symbol("Physics fields")], :Bp)
 
 """
-    ImplicitMidpointUpdateEquation{T,F<:Function}(vector_field, current_point, step_size, count)
+    ImplicitMidpointUpdateEquation{T,F<:Function}(vector_field, current_point, step_size, count, Δϕ)
 
 Represents an implicit midpoint update equation for numerical integration.
 
@@ -154,12 +154,14 @@ Represents an implicit midpoint update equation for numerical integration.
 - `current_point`: Current position in the vector field
 - `step_size`: Step size for numerical integration
 - `count`: Counter
+- `Δϕ`: Phi angle traversed
 """
 mutable struct ImplicitMidpointUpdateEquation{T,F<:Function}
     vector_field::F
     current_point::Vector{T}
     step_size::T
     count::Int
+    Δϕ::T
 end
 
 """
@@ -192,8 +194,11 @@ function _next!(obj::ImplicitMidpointUpdateEquation)
     next_point = sol.zero
 
     # Update implicit equation
+    dx = next_point .- obj.current_point
+    dphi = abs(atan(dx[2],dx[1]))
     obj.current_point .= next_point
     obj.count += 1
+    obj.Δϕ += dphi
 
     return next_point
 end
@@ -215,7 +220,7 @@ Trajectory represented as a vector of points
 function trace_field_line(vector_field, start_point, step_size, stop_condition)
 
     # Initialize implicit equation struct
-    implicit_equation = ImplicitMidpointUpdateEquation(vector_field, start_point, step_size, 0)
+    implicit_equation = ImplicitMidpointUpdateEquation(vector_field, start_point, step_size, 0, 0.0)
 
     # Initialize trajectory
     next_point = start_point
@@ -276,9 +281,7 @@ function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
     # Define stop condition
     if stop_condition == nothing
         stop = (obj) -> begin
-            xyz = obj.current_point
-            phi = abs(atan(xyz[2],xyz[1]))
-            turns = floor(Int,phi/(2pi))
+            turns = floor(Int,obj.Δϕ/(2pi))
             turns > max_turns
         end
     else
