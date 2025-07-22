@@ -194,8 +194,7 @@ function _next!(obj::ImplicitMidpointUpdateEquation)
     next_point = sol.zero
 
     # Update implicit equation
-    dx = next_point .- obj.current_point
-    dphi = abs(atan(dx[2],dx[1]))
+    dphi = abs(acos(dot(next_point[1:2],obj.current_point[1:2])/(norm(next_point[1:2])*norm(obj.current_point[1:2]))))
     obj.current_point .= next_point
     obj.count += 1
     obj.Δϕ += dphi
@@ -223,8 +222,8 @@ function trace_field_line(vector_field, start_point, step_size, stop_condition)
     implicit_equation = ImplicitMidpointUpdateEquation(vector_field, start_point, step_size, 0, 0.0)
 
     # Initialize trajectory
-    next_point = start_point
-    trajectory = [start_point]
+    next_point = copy(start_point)
+    trajectory = [next_point]
 
     while !stop_condition(implicit_equation)
         # Update position
@@ -282,7 +281,7 @@ function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
     if stop_condition == nothing
         stop = (obj) -> begin
             turns = floor(Int,obj.Δϕ/(2pi))
-            turns > max_turns
+            turns >= max_turns
         end
     else
         stop = stop_condition
