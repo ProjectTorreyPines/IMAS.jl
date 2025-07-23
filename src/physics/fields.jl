@@ -145,7 +145,7 @@ end
 push!(document[Symbol("Physics fields")], :Bp)
 
 """
-    ImplicitMidpointUpdateEquation{T,F<:Function}(vector_field, current_point, step_size, count, Δϕ)
+    ImplicitMidpointState{T,F<:Function}(vector_field, current_point, step_size, count, Δϕ)
 
 Represents an implicit midpoint update equation for numerical integration.
 
@@ -156,7 +156,7 @@ Represents an implicit midpoint update equation for numerical integration.
 - `count`: Counter
 - `Δϕ`: Phi angle traversed
 """
-mutable struct ImplicitMidpointUpdateEquation{T,F<:Function}
+mutable struct ImplicitMidpointState{T,F<:Function}
     vector_field::F
     current_point::Vector{T}
     step_size::T
@@ -165,7 +165,7 @@ mutable struct ImplicitMidpointUpdateEquation{T,F<:Function}
 end
 
 """
-    (obj::ImplicitMidpointUpdateEquation)(next_point)
+    (obj::ImplicitMidpointState)(next_point)
 
 Implements the implicit midpoint method update equation.
 
@@ -175,20 +175,20 @@ Implements the implicit midpoint method update equation.
 # Returns
 Residual of the implicit midpoint equation
 """
-function (obj::ImplicitMidpointUpdateEquation)(next_point)
+function (obj::ImplicitMidpointState)(next_point)
     midpoint = 0.5 * (obj.current_point .+ next_point)
     return next_point .- obj.current_point .- obj.step_size * obj.vector_field(midpoint)
 end
 
 """
-    _next!(obj::ImplicitMidpointUpdateEquation)
+    _next!(obj::ImplicitMidpointState)
 
 Advances the trajectory by one step using the implicit midpoint method.
 
 # Returns
 Next point in the trajectory
 """
-function _next!(obj::ImplicitMidpointUpdateEquation)
+function _next!(obj::ImplicitMidpointState)
     # Use root finding to solve the implicit equation
     sol = NLsolve.nlsolve(obj, obj.current_point)
     next_point = sol.zero
@@ -211,7 +211,7 @@ Compute a trajectory along a vector field using the implicit midpoint method.
 - `vector_field`: Vector field function
 - `start_point`: Initial point of the trajectory
 - `step_size`: Size of each integration step
-- `stop_condition`: Function determining when to stop integration
+- `stop_condition`: Function determining when to stop integration. Takes a ImplicitMidpointState struct as an argument.
 
 # Returns
 Trajectory represented as a vector of points
@@ -219,7 +219,7 @@ Trajectory represented as a vector of points
 function trace_field_line(vector_field, start_point, step_size, stop_condition)
 
     # Initialize implicit equation struct
-    implicit_equation = ImplicitMidpointUpdateEquation(vector_field, start_point, step_size, 0, 0.0)
+    implicit_equation = ImplicitMidpointState(vector_field, start_point, step_size, 0, 0.0)
 
     # Initialize trajectory
     next_point = copy(start_point)
@@ -248,7 +248,7 @@ Compute a field line trajectory for a specific equilibrium time slice.
 - `phi`: Toroidal angle (default: 0)
 - `step_size`: Size of each integration step (default: 0.01)
 - `max_turns`: Maximum number of toroidal turns used in default stop condition (default: 1)
-- `stop_condition`: User defined stop condition that takes a position in Cartesian coordinates and returns a Boolean (default: nothing)
+- `stop_condition`: User defined stop condition that takes a ImplicitMidpointState struct and returns a Boolean (default: nothing)
 
 # Returns
 Named tuple with x, y, z, r, and phi coordinates of the trajectory
