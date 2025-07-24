@@ -67,8 +67,13 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     else
         value = getraw(ids, field)
         if eltype(value) <: T2
-            _setproperty!(ids_new, field, value.val; from_cocos=internal_cocos)
-            _setproperty!(ids_new, Symbol("$(field)_σ"), value.err; from_cocos=internal_cocos)
+            if typeof(value) <: AbstractArray
+                _setproperty!(ids_new, field, [v.val for v in value]; from_cocos=internal_cocos)
+                _setproperty!(ids_new, Symbol("$(field)_σ"), [v.err for v in value]; from_cocos=internal_cocos)
+            else
+                _setproperty!(ids_new, field, value.val; from_cocos=internal_cocos)
+                _setproperty!(ids_new, Symbol("$(field)_σ"), value.err; from_cocos=internal_cocos)
+            end
         else
             _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
         end
