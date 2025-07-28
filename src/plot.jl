@@ -2150,15 +2150,29 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__temperature}; label="")
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__temperature}; label="", thomson_scattering=false)
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Overlay Thomson scattering data"; thomson_scattering)
 
     @series begin
         title --> "Temperatures"
         label := "e" * label
         ylim --> (0, Inf)
         cpt.electrons, :temperature
+    end
+
+    if thomson_scattering
+        try
+            dd = IMAS.top_dd(cpt)
+            if !isempty(dd.thomson_scattering)
+                @series begin
+                    time0 := cpt.time
+                    dd.thomson_scattering, :t_e
+                end
+            end
+        catch
+        end
     end
 end
 
@@ -2200,23 +2214,38 @@ end
         label := label
         cpt, Val(:electrons__temperature)
     end
-    
+
     @series begin
         label := label
         cpt, Val(:ions__temperature)
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__density}; label="", what_density=:density)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__density}; label="", what_density=:density, thomson_scattering=false)
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
     assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
+    assert_type_and_record_argument(id, Bool, "Overlay Thomson scattering data"; thomson_scattering)
 
     @series begin
         title --> "Densities"
         label := "e" * label
         ylim --> (0.0, Inf)
         cpt.electrons, what_density
+    end
+
+    if thomson_scattering
+        try
+            dd = IMAS.top_dd(cpt)
+
+            if !isempty(dd.thomson_scattering)
+                @series begin
+                    time0 := cpt.time
+                    dd.thomson_scattering, :n_e
+                end
+            end
+        catch
+        end
     end
 end
 
@@ -2248,7 +2277,7 @@ end
         what_density := what_density
         cpt, Val(:electrons__density)
     end
-    
+
     if greenwald
         @series begin
             seriestype := :hline
@@ -2257,7 +2286,7 @@ end
             [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
         end
     end
-    
+
     @series begin
         label := label
         what_density := what_density
@@ -3347,7 +3376,7 @@ end
 #= ======= =#
 #  getdata  #
 #= ======= =#
-@recipe function plot_getdata(ids::IDS, what::Val, ; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
+@recipe function plot_getdata(ids::IDS, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
     id = recipe_dispatch(ids)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
@@ -3355,6 +3384,7 @@ end
 
     time, rho, data, weights = getdata(what, top_dd(ids), time0, time_averaging)
     data = data .* normalization
+
     if eltype(data) <: Measurements.Measurement
         data_σ = [d.err for d in data]
         data = [d.val for d in data]
@@ -3396,8 +3426,18 @@ end
 #= ================== =#
 @recipe function plot_thomson(ts::thomson_scattering, what::Symbol; time0=global_time(ts), time_averaging=0.05, normalization=1.0)
     @assert what in (:n_e, :t_e)
+
+    @series begin
+        label := "Thomson scattering"
+        seriestype := :scatter
+        markersize := 3
+        color := :black
+        [NaN], [NaN]
+    end
+
     @series begin
         time0 := time0
+        label := ""
         time_averaging := time_averaging
         normalization := normalization
         ts, Val(what)
@@ -3407,11 +3447,20 @@ end
 #= =============== =#
 #  charge_exchange  #
 #= =============== =#
-@recipe function plot_charge_exchange(cer::charge_exchange{T}, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0) where {T<:Real}
+@recipe function plot_charge_exchange(cer::charge_exchange, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0)
     @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
 
     @series begin
+        label := "Charge exchange"
+        seriestype := :scatter
+        markersize := 3
+        color := :black
+        [NaN], [NaN]
+    end
+
+    @series begin
         time0 := time0
+        label := ""
         time_averaging := time_averaging
         normalization := normalization
         cer, Val(what)
