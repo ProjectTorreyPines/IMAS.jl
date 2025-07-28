@@ -54,10 +54,10 @@ push!(document[Symbol("Physics fields")], :Br_Bz)
 Returns Br, Bphi, Bz named tuple evaluated at r and z starting from ψ interpolant and B0 and R0
 """
 function Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
-                  B0::T, R0::T, r::T, phi::T, z::T) where {T<:Real}
+    B0::T, R0::T, r::T, phi::T, z::T) where {T<:Real}
 
     Br, Bz = IMAS.Br_Bz(PSI_interpolant, r, z)
-    Bphi = B0*R0/r
+    Bphi = B0 * R0 / r
 
     return (Br=Br, Bphi=Bphi, Bz=Bz) #B-field components in this order in accordance with cocos 11
 end
@@ -71,16 +71,16 @@ push!(document[Symbol("Physics fields")], :Br_Bphi_Bz)
 Returns Bx, By, Bz named tuple evaluated at x,y,z starting from ψ interpolant and B0 and R0
 """
 function Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
-                  B0::T, R0::T, x::T, y::T, z::T) where {T<:Real}
+    B0::T, R0::T, x::T, y::T, z::T) where {T<:Real}
 
-    r = hypot(x,y)
-    phi = atan(y,x)
+    r = hypot(x, y)
+    phi = atan(y, x)
 
     Br, Bphi, Bz = IMAS.Br_Bphi_Bz(PSI_interpolant, B0, R0, r, phi, z)
 
     sp, cp = sincos(phi)
-    Bx = Br*cp - Bphi*sp
-    By = Br*sp + Bphi*cp
+    Bx = Br * cp - Bphi * sp
+    By = Br * sp + Bphi * cp
 
     return (Bx=Bx, By=By, Bz=Bz)
 end
@@ -150,11 +150,12 @@ push!(document[Symbol("Physics fields")], :Bp)
 Represents an implicit midpoint update equation for numerical integration.
 
 # Fields
-- `vector_field`: Function representing the vector field to be integrated
-- `current_point`: Current position in the vector field
-- `step_size`: Step size for numerical integration
-- `count`: Counter
-- `Δϕ`: Phi angle traversed
+
+  - `vector_field`: Function representing the vector field to be integrated
+  - `current_point`: Current position in the vector field
+  - `step_size`: Step size for numerical integration
+  - `count`: Counter
+  - `Δϕ`: Phi angle traversed
 """
 mutable struct ImplicitMidpointState{T,F<:Function}
     vector_field::F
@@ -170,9 +171,11 @@ end
 Implements the implicit midpoint method update equation.
 
 # Arguments
-- `next_point`: Proposed next point in the integration
+
+  - `next_point`: Proposed next point in the integration
 
 # Returns
+
 Residual of the implicit midpoint equation
 """
 function (obj::ImplicitMidpointState)(next_point)
@@ -186,6 +189,7 @@ end
 Advances the trajectory by one step using the implicit midpoint method.
 
 # Returns
+
 Next point in the trajectory
 """
 function _next!(obj::ImplicitMidpointState)
@@ -194,7 +198,7 @@ function _next!(obj::ImplicitMidpointState)
     next_point = sol.zero
 
     # Update implicit equation
-    dphi = abs(acos(dot(next_point[1:2],obj.current_point[1:2])/(norm(next_point[1:2])*norm(obj.current_point[1:2]))))
+    dphi = abs(acos(dot(next_point[1:2], obj.current_point[1:2]) / (norm(next_point[1:2]) * norm(obj.current_point[1:2]))))
     obj.current_point .= next_point
     obj.count += 1
     obj.Δϕ += dphi
@@ -208,12 +212,14 @@ end
 Compute a trajectory along a vector field using the implicit midpoint method.
 
 # Arguments
-- `vector_field`: Vector field function
-- `start_point`: Initial point of the trajectory
-- `step_size`: Size of each integration step
-- `stop_condition`: Function determining when to stop integration. Takes a ImplicitMidpointState struct as an argument.
+
+  - `vector_field`: Vector field function
+  - `start_point`: Initial point of the trajectory
+  - `step_size`: Size of each integration step
+  - `stop_condition`: Function determining when to stop integration. Takes a ImplicitMidpointState struct as an argument.
 
 # Returns
+
 Trajectory represented as a vector of points
 """
 function trace_field_line(vector_field, start_point, step_size, stop_condition)
@@ -242,20 +248,22 @@ end
 Compute a field line trajectory for a specific equilibrium time slice.
 
 # Arguments
-- `eqt`: Equilibrium time slice
-- `r`: Radial coordinate
-- `z`: Vertical coordinate
-- `phi`: Toroidal angle (default: 0)
-- `step_size`: Size of each integration step (default: 0.01)
-- `max_turns`: Maximum number of toroidal turns used in default stop condition (default: 1)
-- `stop_condition`: User defined stop condition that takes a ImplicitMidpointState struct and returns a Boolean (default: nothing)
+
+  - `eqt`: Equilibrium time slice
+  - `r`: Radial coordinate
+  - `z`: Vertical coordinate
+  - `phi`: Toroidal angle (default: 0)
+  - `step_size`: Size of each integration step (default: 0.01)
+  - `max_turns`: Maximum number of toroidal turns used in default stop condition (default: 1)
+  - `stop_condition`: User defined stop condition that takes a ImplicitMidpointState struct and returns a Boolean (default: nothing)
 
 # Returns
+
 Named tuple with x, y, z, r, and phi coordinates of the trajectory
 """
-function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z; 
-                               phi=zero(r), step_size=0.01, max_turns=1, 
-                               stop_condition::Union{Nothing,Function} = nothing)
+function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
+    phi=zero(r), step_size=0.01, max_turns=1,
+    stop_condition::Union{Nothing,Function}=nothing)
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     rg, zg, PSI_interpolant = ψ_interpolant(eqt2d)
@@ -269,18 +277,18 @@ function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
         z = xyz[3]
         Bx, By, Bz = IMAS.Bx_By_Bz(PSI_interpolant, B0, R0, x, y, z)
         B = [Bx, By, Bz]
-        B/norm(B)
+        B / norm(B)
     end
 
     # Define start point
-    x = r*cos(phi)
-    y = r*sin(phi)
+    x = r * cos(phi)
+    y = r * sin(phi)
     start_point = [x, y, z]
 
     # Define stop condition
-    if stop_condition == nothing
+    if stop_condition === nothing
         stop = (obj) -> begin
-            turns = floor(Int,obj.Δϕ/(2pi))
+            turns = floor(Int, obj.Δϕ / (2pi))
             turns >= max_turns
         end
     else
@@ -291,12 +299,12 @@ function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
     trajectory = trace_field_line(vector_field, start_point, step_size, stop)
 
     # Extract positions and return named tuple
-    xt = getindex.(trajectory,1)
-    yt = getindex.(trajectory,2)
-    zt = getindex.(trajectory,3)
-    rt = hypot.(xt,yt)
+    xt = getindex.(trajectory, 1)
+    yt = getindex.(trajectory, 2)
+    zt = getindex.(trajectory, 3)
+    rt = hypot.(xt, yt)
     phit = atan.(yt, xt)
-    
+
     return (x=xt, y=yt, z=zt, r=rt, phi=phit)
 end
 
