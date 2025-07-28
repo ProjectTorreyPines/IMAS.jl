@@ -2150,16 +2150,103 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false, what_density=:density)
-    id = recipe_dispatch(cpt)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:temperature}; label="")
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+
+    @series begin
+        title --> "Temperatures"
+        label := "e" * label
+        ylim --> (0, Inf)
+        cpt.electrons, :temperature
+    end
+
+    same_temps = false
+    if length(cpt.ion) > 1
+        same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end] if !ismissing(iion, :temperature)])
+        if same_temps
+            @series begin
+                title --> "Temperatures"
+                label := "Ions" * label
+                linestyle --> :dash
+                ylim --> (0, Inf)
+                cpt.ion[1], :temperature
+            end
+        end
+    end
+
+    if !same_temps
+        for ion in cpt.ion
+            if !ismissing(ion, :temperature)
+                @series begin
+                    title --> "Temperatures"
+                    label := ion.label * label
+                    linestyle --> :dash
+                    ylim --> (0, Inf)
+                    ion, :temperature
+                end
+            end
+        end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:density}; label="", greenwald=false, what_density=:density)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
     assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
     assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
 
-    if label === nothing
-        label = ""
+    @series begin
+        title --> "Densities"
+        label := "e" * label
+        ylim --> (0.0, Inf)
+        cpt.electrons, what_density
     end
+    
+    if greenwald
+        @series begin
+            seriestype := :hline
+            primary := false
+            style := :dashdotdot
+            [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
+        end
+    end
+    
+    for ion in cpt.ion
+        @series begin
+            Z = ion.element[1].z_n
+            title --> "Densities"
+            if Z == 1.0
+                label := ion.label * label
+            else
+                label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
+            end
+            linestyle --> :dash
+            ylim --> (0.0, Inf)
+            normalization --> Z
+            ion, what_density
+        end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:rotation}; label="")
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+
+    @series begin
+        title --> "Rotation"
+        label := label
+        if !ismissing(cpt, :rotation_frequency_tor_sonic)
+            cpt, :rotation_frequency_tor_sonic
+        else
+            [NaN], [NaN]
+        end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing)
+    id = recipe_dispatch(cpt)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
 
     if only === nothing
         layout := (1, 3)
@@ -2167,108 +2254,30 @@ end
         margin --> 5 * Measures.mm
     end
 
-    # temperatures
     if only === nothing || only == 1
         @series begin
             if only === nothing
                 subplot := 1
             end
-            title --> "Temperatures"
-            label := "e" * label
-            ylim --> (0, Inf)
-            cpt.electrons, :temperature
-        end
-
-        same_temps = false
-        if length(cpt.ion) > 1
-            same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end] if !ismissing(iion, :temperature)])
-            if same_temps
-                @series begin
-                    if only === nothing
-                        subplot := 1
-                    end
-                    title --> "Temperatures"
-                    label := "Ions" * label
-                    linestyle --> :dash
-                    ylim --> (0, Inf)
-                    cpt.ion[1], :temperature
-                end
-            end
-        end
-
-        if !same_temps
-            for ion in cpt.ion
-                if !ismissing(ion, :temperature)
-                    @series begin
-                        if only === nothing
-                            subplot := 1
-                        end
-                        title --> "Temperatures"
-                        label := ion.label * label
-                        linestyle --> :dash
-                        ylim --> (0, Inf)
-                        ion, :temperature
-                    end
-                end
-            end
+            cpt, Val(:temperature)
         end
     end
 
-    # densities
     if only === nothing || only == 2
         @series begin
             if only === nothing
                 subplot := 2
             end
-            title --> "Densities"
-            label := "e" * label
-            ylim --> (0.0, Inf)
-            cpt.electrons, what_density
-        end
-        if greenwald
-            @series begin
-                if only === nothing
-                    subplot := 2
-                end
-                seriestype := :hline
-                primary := false
-                style := :dashdotdot
-                [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
-            end
-        end
-        for ion in cpt.ion
-            @series begin
-                Z = ion.element[1].z_n
-                if only === nothing
-                    subplot := 2
-                end
-                title --> "Densities"
-                if Z == 1.0
-                    label := ion.label * label
-                else
-                    label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
-                end
-                linestyle --> :dash
-                ylim --> (0.0, Inf)
-                normalization --> Z
-                ion, what_density
-            end
+            cpt, Val(:density)
         end
     end
 
-    # rotation
     if only === nothing || only == 3
         @series begin
             if only === nothing
                 subplot := 3
             end
-            title --> "Rotation"
-            label := "" * label
-            if !ismissing(cpt, :rotation_frequency_tor_sonic)
-                cpt, :rotation_frequency_tor_sonic
-            else
-                [NaN], [NaN]
-            end
+            cpt, Val(:rotation)
         end
     end
 end
