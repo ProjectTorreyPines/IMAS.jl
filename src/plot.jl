@@ -2150,7 +2150,7 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:temperature}; label="")
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__temperature}; label="")
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
 
@@ -2160,6 +2160,11 @@ end
         ylim --> (0, Inf)
         cpt.electrons, :temperature
     end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__temperature}; label="")
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
 
     same_temps = false
     if length(cpt.ion) > 1
@@ -2190,10 +2195,21 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:density}; label="", greenwald=false, what_density=:density)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:temperature}; label="")
+    @series begin
+        label := label
+        cpt, Val(:electrons__temperature)
+    end
+    
+    @series begin
+        label := label
+        cpt, Val(:ions__temperature)
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__density}; label="", what_density=:density)
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
     assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
 
     @series begin
@@ -2202,16 +2218,13 @@ end
         ylim --> (0.0, Inf)
         cpt.electrons, what_density
     end
-    
-    if greenwald
-        @series begin
-            seriestype := :hline
-            primary := false
-            style := :dashdotdot
-            [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
-        end
-    end
-    
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__density}; label="", what_density=:density)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
+
     for ion in cpt.ion
         @series begin
             Z = ion.element[1].z_n
@@ -2226,6 +2239,29 @@ end
             normalization --> Z
             ion, what_density
         end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:density}; label="", greenwald=false, what_density=:density)
+    @series begin
+        label := label
+        what_density := what_density
+        cpt, Val(:electrons__density)
+    end
+    
+    if greenwald
+        @series begin
+            seriestype := :hline
+            primary := false
+            style := :dashdotdot
+            [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
+        end
+    end
+    
+    @series begin
+        label := label
+        what_density := what_density
+        cpt, Val(:ions__density)
     end
 end
 
