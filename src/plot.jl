@@ -3029,7 +3029,11 @@ end
 end
 
 @recipe function plot_wd2dlu(wd2dlu::IMAS.wall__description_2d___limiter__unit)
-    poly = closed_polygon(wd2dlu.outline.r, wd2dlu.outline.z, Bool(wd2dlu.closed))
+    if ismissing(wd2dlu, :closed)
+        poly = closed_polygon(wd2dlu.outline.r, wd2dlu.outline.z)
+    else
+        poly = closed_polygon(wd2dlu.outline.r, wd2dlu.outline.z, Bool(wd2dlu.closed))
+    end
     @series begin
         label --> getproperty(wd2dlu, :name, "")
         poly.r, poly.z
