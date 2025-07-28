@@ -2176,9 +2176,10 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__temperature}; label="")
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__temperature}; label="", charge_exchange=false)
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Overlay charge exchange data"; charge_exchange)
 
     same_temps = false
     if length(cpt.ion) > 1
@@ -2205,6 +2206,20 @@ end
                     ion, :temperature
                 end
             end
+        end
+    end
+
+    if charge_exchange
+        try
+            dd = IMAS.top_dd(cpt)
+            if !isempty(dd.charge_exchange)
+                @series begin
+                    markershape := :diamond
+                    time0 := cpt.time
+                    dd.charge_exchange, :t_i
+                end
+            end
+        catch
         end
     end
 end
