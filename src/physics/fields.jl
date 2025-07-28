@@ -289,7 +289,9 @@ function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
     if stop_condition === nothing
         stop = (obj) -> begin
             turns = floor(Int, obj.Δϕ / (2pi))
-            turns >= max_turns
+            x1, y1, z1 = obj.current_point
+            r1 = hypot(x1, y1)
+            r1 < rg[1] || r1 > rg[end] || z1 < zg[1] || z1 > zg[end] || turns >= max_turns
         end
     else
         stop = stop_condition
