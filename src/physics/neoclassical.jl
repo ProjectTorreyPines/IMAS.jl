@@ -467,42 +467,60 @@ end
 push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
 
 
-"""
-omegator2sonic!(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
-
-Model to populates ExB rotation based on ion omega_tor assuming ωpol=0.0
-"""
-function ωtor2sonic(dd::IMASdd.dd{Float64}, ind::Int=0)
+function ωtor2sonic(dd::IMAS.dd; ind::Int=0)
     cp1d = dd.core_profiles.profiles_1d[]
+    return ωtor2sonic(cp1d; ind)
+end
+
+"""
+    ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0)
+
+Populates ExB rotation based on ion omega_tor assuming ωpol=0.0
+
+Returns the updated `cp1d` with `rotation_frequency_tor_sonic` populated and all ion rotation frequencies updated.
+
+`ind` is the ion species index to use as reference (0 = auto-select first non-zero rotation)
+"""
+function ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0) where {T<:Real}
     if ind == 0
         ind = findfirst(x -> !ismissing(x, :rotation_frequency_tor) && x.rotation_frequency_tor != 0, cp1d.ion)
+        if ind === nothing
+            return cp1d.rotation_frequency_tor_sonic = zero(T, cp1d.grid.rho_tor_norm)
+        end
     end
     ni = cp1d.ion[ind].density
     zi = cp1d.ion[ind].z_ion
     rot_freq = cp1d.ion[ind].rotation_frequency_tor
     dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure)
-    display(IMAS.plot(dpi_dpsi))
     cp1d.rotation_frequency_tor_sonic = @. rot_freq + dpi_dpsi / (ni * zi * IMAS.mks.e)
-    # Compute ωtor for all species
-    return sonic2ωtor(dd)
+    return sonic2ωtor(cp1d)
 end
 
 @compat public ωtor2sonic
+push!(document[Symbol("Physics neoclassical")], :ωtor2sonic)
 
-"""
-omegator2sonic!(conductivity::AbstractVector{T}, q::AbstractVector{T}; q_sawtooth::Float64=1.0) where {T<:Real}
-
-Model to populates ion ωtors based on ExB rotation assuming ωpol=0.0
-"""
-function sonic2ωtor(dd::IMASdd.dd{Float64})
+function sonic2ωtor(dd::IMAS.dd)
     cp1d = dd.core_profiles.profiles_1d[]
+    return sonic2ωtor(cp1d)
+end
+
+"""
+    sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d)
+
+Populates ion ωtors based on ExB rotation assuming ωpol=0.0
+
+Uses the existing `rotation_frequency_tor_sonic` field to compute individual ion rotation frequencies.
+"""
+function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d)
     ωExB = cp1d.rotation_frequency_tor_sonic
     for ion in cp1d.ion
         ni = ion.density
         zi = ion.z_ion
-        dpi_dpsi = IMAS.gradient(cp1d.grid.psi, ion.pressure)
+        dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure)
         ion.rotation_frequency_tor = @. ωExB - dpi_dpsi / (ni * zi * IMAS.mks.e)
     end
+    return cp1d
 end
 
 @compat public sonic2ωtor
+push!(document[Symbol("Physics neoclassical")], :sonic2ωtor)
