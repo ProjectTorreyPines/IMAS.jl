@@ -115,7 +115,7 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}
     # particles structures
     particles = Vector{Particle{Float64}}(undef, N)
     for k in eachindex(particles)
-        dk = Int(ceil(ICDF(rand())))
+        dk = round(Int, ICDF(rand()), RoundUp)
         ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D
 
         θv = rand() * 2π            # toroidal angle of velocity - put to 0 for 2D
@@ -156,7 +156,7 @@ function find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector
     for p in particles
         ti = toroidal_intersection(rwall, zwall, p.x, p.y, p.z, p.δvx, p.δvy, p.δvz)
 
-        if ti == NaN
+        if isnan(ti)
             @show p
             error("No intersection found while moving particles")
         end
@@ -207,13 +207,13 @@ function find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector
         σw = maximum([1250 * l[end] / length(particles), 2 * maximum([dr, dz])])  # standard deviation of the distribution
     end
     @assert minimum(d) !== 0.0 "Error in mesher_heat_flux: mesh has repeating points, instead of unique ones"
-    ns = maximum([ns, Int(ceil(5 * σw / minimum(d)))])
+    ns = maximum([ns, round(Int, 5 * σw / minimum(d), RoundUp)])
 
     # check that the window size is smaller than the whole wall
     if ns > length(wall_r) / 2
         # what is the minimum set of ns elements that covers at least 5*σw?
         ns = 10
-        counter_max = Int(floor(length(wall_r) / 2) - 1)
+        counter_max = round(Int, length(wall_r) / 2, RoundDown) - 1
         dist_min = 5σw
         for counter in 1:counter_max
             # find minimum distance for a set of succesive ns element in d

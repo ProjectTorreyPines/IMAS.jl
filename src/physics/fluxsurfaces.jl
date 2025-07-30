@@ -83,106 +83,6 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :ρ_interpolant)
 
 """
-    Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-
-Returns Br and Bz named tuple evaluated at r and z starting from ψ interpolant
-"""
-function Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
-    return Br_Bz_meshgrid(PSI_interpolant, r, z)
-end
-
-"""
-    Br_Bz(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
-"""
-function Br_Bz(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
-    eqt2d = findfirst(:rectangular, eqt2dv)
-    return Br_Bz(eqt2d)
-end
-
-"""
-    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
-"""
-function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
-    grad = Interpolations.gradient(PSI_interpolant, r, z)
-    inv_twopi_r = 1.0 / (2π * r)
-    Br = grad[2] * inv_twopi_r
-    Bz = -grad[1] * inv_twopi_r
-    return (Br=Br, Bz=Bz)
-end
-
-"""
-    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
-"""
-function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
-    @assert size(r) == size(z)
-    Br, Bz = similar(r), similar(r)
-    for k in eachindex(r)
-        Br[k], Bz[k] = Br_Bz(PSI_interpolant, r[k], z[k])
-    end
-    return (Br=Br, Bz=Bz)
-end
-
-@compat public Br_Bz
-push!(document[Symbol("Physics flux-surfaces")], :Br_Bz)
-
-"""
-    Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
-"""
-function Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
-    Br = Matrix{T}(undef, length(r), length(z))
-    Bz = Matrix{T}(undef, length(r), length(z))
-    for kr in eachindex(r)
-        for kz in eachindex(z)
-            Br[kr, kz], Bz[kr, kz] = Br_Bz(PSI_interpolant, r[kr], z[kz])
-        end
-    end
-    return (Br=Br, Bz=Bz)
-end
-
-"""
-    Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-
-Returns Bp evaluated at r and z starting from ψ interpolant
-"""
-function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
-    return Bp_meshgrid(PSI_interpolant, r, z)
-end
-
-"""
-    Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
-"""
-function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
-    Br, Bz = Br_Bz(PSI_interpolant, r, z)
-    return sqrt(Br^2 + Bz^2)
-end
-
-"""
-    Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
-"""
-function Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
-    Bp = Matrix{T}(undef, length(r), length(z))
-    for kr in eachindex(r)
-        for kz in eachindex(z)
-            Bp[kr, kz] = Bp(PSI_interpolant, r[kr], z[kz])
-        end
-    end
-    return Bp
-end
-
-"""
-    Bp(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
-"""
-function Bp(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
-    eqt2d = findfirst(:rectangular, eqt2dv)
-    return Bp(eqt2d)
-end
-
-@compat public Bp
-push!(document[Symbol("Physics flux-surfaces")], :Bp)
-
-"""
     find_psi_boundary(
         dimR::Union{AbstractVector{T1},AbstractRange{T1}},
         dimZ::Union{AbstractVector{T1},AbstractRange{T1}},
@@ -1101,8 +1001,8 @@ function find_magnetic_axis(
     z::AbstractVector{<:T1},
     PSI_interpolant::Interpolations.AbstractInterpolation,
     psi_sign::T2;
-    rguess::T1=r[Int(round(length(r) / 2))],
-    zguess::T1=z[Int(round(length(z) / 2))]) where {T1<:Real,T2<:Real}
+    rguess::T1=r[round(Int, length(r) / 2)],
+    zguess::T1=z[round(Int, length(z) / 2)]) where {T1<:Real,T2<:Real}
 
     res = Optim.optimize(
         x -> begin
@@ -1410,7 +1310,14 @@ function trace_surfaces(
         else  # other flux surfaces
             tmp = IMASutils.contour_from_midplane!(r_cache, z_cache, PSI, r, z, psi_level, RA, ZA, PSIA)
             pr, pz = collect(tmp[1]), collect(tmp[2])
-            if k == N && !is_closed_surface(pr, pz, wall_r, wall_z)
+            if isempty(pr) && k == 2
+                # If there are too many flux surfaces for a given grid resolution, the inner-most flux surface may fail to trace
+                pr = (surfaces[k+1].r .- RA) ./ 2 .+ RA
+                pz = (surfaces[k+1].z .- ZA) ./ 2 .+ ZA
+            end
+            if k == N && !is_closed_surface(pr, pz, wall_r, wall_z) || isempty(pr)
+                # contour(r, z, PSI'; levels=psi)
+                # display(plot!(wall_r, wall_z; aspect_ratio=:equal, color=:black))
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
         end
@@ -1455,7 +1362,7 @@ function trace_surfaces(
     end
 
     if refine_extrema
-        N2 = Int(ceil(N / 2))
+        N2 = round(Int, N / 2, RoundUp)
         psi_norm = abs(psi[end] - psi[1]) / N
         space_norm = (surfaces[N].max_r - surfaces[N].min_r) / 2 / N
 
@@ -1617,7 +1524,7 @@ push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
 function _extrema_index(r::AbstractVector{T}, z::AbstractVector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
     i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
     N = length(z)
-    j = Int(ceil(N / 2))
+    j = round(Int, N / 2, RoundUp)
     n = 3
     if direction == :right
         if (r[j] - r[j-1]) > 0 # oriented right
@@ -1688,7 +1595,7 @@ end
 Update flux surface averaged and geometric quantities for all time_slices in the equilibrium IDS
 """
 function flux_surfaces(eq::equilibrium{T1}, wall_r::AbstractVector{T2}, wall_z::AbstractVector{T2}) where {T1<:Real,T2<:Real}
-    Threads.@threads :static for time_index in eachindex(eq.time_slice)
+    Threads.@threads for time_index in eachindex(eq.time_slice)
         eqt = eq.time_slice[time_index]
         eqt2d = findfirst(:rectangular, eqt.profiles_2d)
         if eqt2d !== nothing
@@ -1722,8 +1629,8 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # If there's a wall, try the following:
     # 1. guess from the previous time slice
     # 2. guess by  finding all interior extrema that could be near axes then exclude points outside the first wall (i.e., likely coils)
-    rguess = r[Int(round(length(r) / 2))]
-    zguess = z[Int(round(length(z) / 2))]
+    rguess = r[round(Int, length(r) / 2)]
+    zguess = z[round(Int, length(z) / 2)]
     eqts = parent(eqt)
     if eqts !== nothing && index(eqts, eqt) > 1 && hasdata(eqts[index(eqts, eqt)-1].global_quantities.magnetic_axis, :r)
         rguess = eqts[index(eqts, eqt)-1].global_quantities.magnetic_axis.r

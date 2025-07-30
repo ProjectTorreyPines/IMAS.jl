@@ -585,7 +585,7 @@ function resample_2d_path(
 
     if curvature_weight != 0.0
         @assert 0.0 < curvature_weight < 1.0
-        c = moving_average(abs.(curvature(x, y)), Int(ceil(length(x) / 2.0 * (1.0 - curvature_weight))))
+        c = moving_average(abs.(curvature(x, y)), round(Int, length(x) / 2.0 * (1.0 - curvature_weight), RoundUp))
         c = c ./ maximum(c)
         c = cumsum((1.0 - curvature_weight) .+ c * curvature_weight)
         t = (c .- c[1]) ./ (c[end] - c[1]) .* (t[end] - t[1]) .+ t[1]
@@ -972,7 +972,7 @@ function split_long_segments(R::AbstractVector{T}, Z::AbstractVector{T}, max_len
         d = sqrt((r2 - r1)^2 + (z2 - z1)^2)
         if d > max_length
             # linear interpolation
-            n = Int(ceil(d / max_length)) + 1
+            n = round(Int, d / max_length, RoundUp) + 1
             append!(Rout, collect(range(r1 + (r2 - r1) / (n - 1), r2, n - 1)))
             append!(Zout, collect(range(z1 + (z2 - z1) / (n - 1), z2, n - 1)))
         else

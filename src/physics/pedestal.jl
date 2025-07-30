@@ -242,12 +242,12 @@ The height is the value of the profile evaluated at (1.0 - width)
 function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=false, guess=nothing) where {T<:Real}
     @assert psi_norm[end] == 1.0
 
-    psi_norm0 = range(0, 1, length(profile))
+    psi_norm0 = range(T(0.0), T(1.0), length(profile))
     profile0 = interp1d(psi_norm, profile).(psi_norm0)
 
     mask = psi_norm0
 
-    function cost_function(params)
+    function cost_function(params::Vector{T}) where {T<:Real}
         width0 = mirror_bound(params[1], 0.01, 0.1)
         height0 = interp1d(psi_norm0, profile0)(1.0 - width0)
         core0 = abs(params[2])
@@ -260,7 +260,7 @@ function pedestal_finder(profile::Vector{T}, psi_norm::Vector{T}; do_plot::Bool=
         return norm(mask .* (profile_fit0 .- profile0))
     end
 
-    if guess != nothing
+    if guess !== nothing
         width = guess.width
         height = interp1d(psi_norm0, profile0)(1.0 - width)
         core = profile[1]
@@ -326,9 +326,44 @@ function pedestal_tanh_width_half_maximum(rho::AbstractVector{T}, profile::Abstr
     profile09 = (IMAS.interp1d(rho, profile)(rho_pedestal_full_height) - profile[end]) * tanh_width_to_09_factor + profile[end]
     profile10 = profile[end]
     profilex = (profile10 + profile09) / 2
-    tanh_width = (1.0 - IMAS.intersection(rho[index], profile[index], [0.0, 1.0], [profilex, profilex]).crossings[end][1]) * 2
+    tanh_width = (1.0 - IMAS.intersection(rho[index], profile[index], [T(0.0), T(1.0)], [profilex, profilex]).crossings[end][1]) * 2
     return tanh_width
 end
 
 @compat public pedestal_tanh_width_half_maximum
 push!(document[Symbol("Physics pedestal")], :pedestal_tanh_width_half_maximum)
+
+"""
+    h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.4) where {T<:Real}
+
+Given a profile (works well with electron pressure) it identifies the presence of a pedestal.
+
+This function works by comparing the inverse scalelength at the pedestal
+(defined as where the inverse scalelength is maximum)
+against the inverse scalelength at the top of the pedestal.
+"""
+function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.4) where {T<:Real}
+    p = electrons_pressure
+    n = length(p)
+    v = p .+ sum(p) / n * 0.1 # let the inverse scalelength be large because the gradients are high, not because of very small values
+    z = -IMAS.calc_z(rho, v, :backward)
+
+    imaxZ = argmax(z)
+    maxz = z[imaxZ]
+    rho0 = rho[imaxZ]
+
+    rhoσ = 1.0 - rho0
+    zwell = IMAS.interp1d(rho, z).(rho0 - 2 * rhoσ)
+
+    if rho0 < 1.0 && zwell / maxz < threshold
+        hmode = true
+    else
+        hmode = false
+    end
+
+    # plot(rho, p / maximum(p); label="", ylim=(0, 1), color=hmode ? :red : :blue)
+    # plot!(rho, z / maxz; label="", ylim=(0, 1), color=:black)
+    # return hline!([zwell]; label="")
+
+    return hmode
+end

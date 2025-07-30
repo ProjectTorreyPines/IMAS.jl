@@ -6,6 +6,8 @@ document[:Real] = Symbol[]
 import Measurements
 import Measurements: Measurement, ±
 import Ratios
+import ForwardDiff
+import ForwardDiff: Dual
 
 function Base.convert(::Type{Array{<:Measurement{T},N}}, a::AbstractArray{T,N}) where {T<:Real,N}
     return a .± 0.0
@@ -65,8 +67,13 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     else
         value = getraw(ids, field)
         if eltype(value) <: T2
-            _setproperty!(ids_new, field, value.val; from_cocos=internal_cocos)
-            _setproperty!(ids_new, Symbol("$(field)_σ"), value.err; from_cocos=internal_cocos)
+            if typeof(value) <: AbstractArray
+                _setproperty!(ids_new, field, [v.val for v in value]; from_cocos=internal_cocos)
+                _setproperty!(ids_new, Symbol("$(field)_σ"), [v.err for v in value]; from_cocos=internal_cocos)
+            else
+                _setproperty!(ids_new, field, value.val; from_cocos=internal_cocos)
+                _setproperty!(ids_new, Symbol("$(field)_σ"), value.err; from_cocos=internal_cocos)
+            end
         else
             _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
         end
@@ -88,3 +95,44 @@ function Base.setproperty!(ids::IDS{T}, field::Symbol, value::Measurements.Measu
     setproperty!(ids, Symbol("$(field)_σ"), value.err)
     return value
 end
+
+"""
+    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Float64,T2<:ForwardDiff.Dual{Float64,Float64,0}}
+
+Function used to map fields in `IDS{Dual{T,T,0}}` to `IDS{T}`
+"""
+function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Float64,T2<:ForwardDiff.Dual{Float64,Float64,0}}
+    value = getraw(ids, field)
+    if eltype(value) <: T2
+        _setproperty!(ids_new, field, ForwardDiff.value.(value); from_cocos=internal_cocos)
+    else
+        _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
+    end
+    return nothing
+end
+
+function Base.setproperty!(ids::IDS{T}, field::Symbol, value::AbstractVector{<:ForwardDiff.Dual}) where {T<:Float64}
+    setproperty!(ids, field, [ForwardDiff.value(v) for v in value])
+    return value
+end
+
+function Base.setproperty!(ids::IDS{T}, field::Symbol, value::ForwardDiff.Dual) where {T<:Float64}
+    setproperty!(ids, field, ForwardDiff.value(value))
+    return value
+end
+
+function Base.round(::Type{Int64}, x::ForwardDiff.Dual, r::RoundingMode)
+    return round(Int, ForwardDiff.value(x), r)
+end
+
+# Default method for Float64 - no conversion needed
+force_float64(x::Float64) = x
+
+# Method for Dual - extract the value part
+force_float64(x::ForwardDiff.Dual) = Float64(ForwardDiff.value(x))
+
+# Method for Measurements.Measurement - extract the value part
+force_float64(x::Measurements.Measurement) = Float64(Measurements.value(x))
+
+# Fallback method for other Real types
+force_float64(x::Real) = Float64(x)

@@ -990,11 +990,12 @@ function layer_attrs(l::IMAS.build__layer)
     return name, color
 end
 
-@recipe function plot_build(bd::IMAS.build; equilibrium=true, pf_active=true, pf_passive=true)
+@recipe function plot_build(bd::IMAS.build; equilibrium=true, pf_active=true, pf_passive=true, wall=true)
     id = recipe_dispatch(bd)
-    assert_type_and_record_argument(id, Bool, "Include plot of equilibrium"; equilibrium)
-    assert_type_and_record_argument(id, Bool, "Include plot of pf_active"; pf_active)
-    assert_type_and_record_argument(id, Bool, "Include plot of pf_passive"; pf_passive)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.equilibrium"; equilibrium)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.pf_active"; pf_active)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.pf_passive"; pf_passive)
+    assert_type_and_record_argument(id, Bool, "Include plot of dd.wall"; wall)
 
     dd = top_dd(bd)
 
@@ -1005,6 +1006,8 @@ end
     if !isempty(bd.layer)
         rmax = maximum(bd.layer[end].outline.r)
         xlim --> [0, rmax]
+    else
+        xlim --> [0, Inf]
     end
 
     if dd !== nothing && equilibrium
@@ -1014,8 +1017,19 @@ end
         end
     end
 
-    @series begin
-        bd.layer
+    if isempty(bd.layer)
+        if dd !== nothing && wall
+            fw = IMAS.first_wall(dd.wall)
+            @series begin
+                label := ""
+                color := :black
+                fw.r, fw.z
+            end
+        end
+    else
+        @series begin
+            bd.layer
+        end
     end
 
     if dd !== nothing && pf_active
@@ -1032,6 +1046,7 @@ end
             dd.pf_passive
         end
     end
+
 end
 
 @recipe function plot_build_layer(layers::IDSvector{<:IMAS.build__layer}; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
@@ -1442,7 +1457,7 @@ end
 
     if only === nothing
         layout := 4 + length(ions)
-        Nr = Int(ceil(sqrt(4 + length(ions))))
+        Nr = round(Int, sqrt(4 + length(ions)), RoundUp)
         size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
@@ -1569,7 +1584,7 @@ end
     integrated=false,
     flux=false,
     show_zeros=false,
-    min_power=1e3,
+    min_power=0.0,
     only_positive_negative=0,
     show_source_number=false)
 
@@ -1634,7 +1649,7 @@ end
     integrated=false,
     flux=false,
     show_zeros=false,
-    min_power=1e3,
+    min_power=0.0,
     only_positive_negative=0,
     show_source_number=false)
 
@@ -1962,7 +1977,7 @@ end
     flux=false,
     only=nothing,
     show_zeros=false,
-    min_power=1e3,
+    min_power=0.0,
     only_positive_negative=0,
     show_source_number=false,
     ions=Symbol[])
@@ -1990,7 +2005,7 @@ end
             N = 5 + length(ions)
         end
         layout := N
-        Nr = Int(ceil(sqrt(N)))
+        Nr = round(Int, sqrt(N), RoundUp)
         size --> (1100, Nr * 290)
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
     end
@@ -2135,16 +2150,183 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; label=nothing, only=nothing, greenwald=false, what_density=:density)
-    id = recipe_dispatch(cpt)
-    assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
-    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
-    assert_type_and_record_argument(id, Bool, "Include Greenwald density"; greenwald)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__temperature}; label="", thomson_scattering=false)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Overlay Thomson scattering data"; thomson_scattering)
+
+    @series begin
+        title --> "Temperatures"
+        label := "e" * label
+        ylim --> (0, Inf)
+        cpt.electrons, :temperature
+    end
+
+    if thomson_scattering
+        try
+            dd = IMAS.top_dd(cpt)
+            if !isempty(dd.thomson_scattering)
+                @series begin
+                    time0 := cpt.time
+                    dd.thomson_scattering, :t_e
+                end
+            end
+        catch
+        end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__temperature}; label="", charge_exchange=false)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Overlay charge exchange data"; charge_exchange)
+
+    same_temps = false
+    if length(cpt.ion) > 1
+        same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end] if !ismissing(iion, :temperature)])
+        if same_temps
+            @series begin
+                title --> "Temperatures"
+                label := "Ions" * label
+                linestyle --> :dash
+                ylim --> (0, Inf)
+                cpt.ion[1], :temperature
+            end
+        end
+    end
+
+    if !same_temps
+        for ion in cpt.ion
+            if !ismissing(ion, :temperature)
+                @series begin
+                    title --> "Temperatures"
+                    label := ion.label * label
+                    linestyle --> :dash
+                    ylim --> (0, Inf)
+                    ion, :temperature
+                end
+            end
+        end
+    end
+
+    if charge_exchange
+        try
+            dd = IMAS.top_dd(cpt)
+            if !isempty(dd.charge_exchange)
+                @series begin
+                    markershape := :diamond
+                    time0 := cpt.time
+                    dd.charge_exchange, :t_i
+                end
+            end
+        catch
+        end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:temperature}; label="")
+    @series begin
+        label := label
+        cpt, Val(:electrons__temperature)
+    end
+
+    @series begin
+        label := label
+        cpt, Val(:ions__temperature)
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__density}; label="", what_density=:density, thomson_scattering=false)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
+    assert_type_and_record_argument(id, Bool, "Overlay Thomson scattering data"; thomson_scattering)
+
+    @series begin
+        title --> "Densities"
+        label := "e" * label
+        ylim --> (0.0, Inf)
+        cpt.electrons, what_density
+    end
+
+    if thomson_scattering
+        try
+            dd = IMAS.top_dd(cpt)
+
+            if !isempty(dd.thomson_scattering)
+                @series begin
+                    time0 := cpt.time
+                    dd.thomson_scattering, :n_e
+                end
+            end
+        catch
+        end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__density}; label="", what_density=:density)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
     assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
 
-    if label === nothing
-        label = ""
+    for ion in cpt.ion
+        @series begin
+            Z = ion.element[1].z_n
+            title --> "Densities"
+            if Z == 1.0
+                label := ion.label * label
+            else
+                label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
+            end
+            linestyle --> :dash
+            ylim --> (0.0, Inf)
+            normalization --> Z
+            ion, what_density
+        end
     end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:density}; label="", greenwald=false, what_density=:density)
+    @series begin
+        label := label
+        what_density := what_density
+        cpt, Val(:electrons__density)
+    end
+
+    if greenwald
+        @series begin
+            seriestype := :hline
+            primary := false
+            style := :dashdotdot
+            [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
+        end
+    end
+
+    @series begin
+        label := label
+        what_density := what_density
+        cpt, Val(:ions__density)
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:rotation}; label="")
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+
+    @series begin
+        title --> "Rotation"
+        label := label
+        if !ismissing(cpt, :rotation_frequency_tor_sonic)
+            cpt, :rotation_frequency_tor_sonic
+        else
+            [NaN], [NaN]
+        end
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing)
+    id = recipe_dispatch(cpt)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
 
     if only === nothing
         layout := (1, 3)
@@ -2152,108 +2334,30 @@ end
         margin --> 5 * Measures.mm
     end
 
-    # temperatures
     if only === nothing || only == 1
         @series begin
             if only === nothing
                 subplot := 1
             end
-            title --> "Temperatures"
-            label := "e" * label
-            ylim --> (0, Inf)
-            cpt.electrons, :temperature
-        end
-
-        same_temps = false
-        if length(cpt.ion) > 1
-            same_temps = !any(x -> x == false, [iion.temperature == cpt.ion[1].temperature for iion in cpt.ion[2:end] if !ismissing(iion, :temperature)])
-            if same_temps
-                @series begin
-                    if only === nothing
-                        subplot := 1
-                    end
-                    title --> "Temperatures"
-                    label := "Ions" * label
-                    linestyle --> :dash
-                    ylim --> (0, Inf)
-                    cpt.ion[1], :temperature
-                end
-            end
-        end
-
-        if !same_temps
-            for ion in cpt.ion
-                if !ismissing(ion, :temperature)
-                    @series begin
-                        if only === nothing
-                            subplot := 1
-                        end
-                        title --> "Temperatures"
-                        label := ion.label * label
-                        linestyle --> :dash
-                        ylim --> (0, Inf)
-                        ion, :temperature
-                    end
-                end
-            end
+            cpt, Val(:temperature)
         end
     end
 
-    # densities
     if only === nothing || only == 2
         @series begin
             if only === nothing
                 subplot := 2
             end
-            title --> "Densities"
-            label := "e" * label
-            ylim --> (0.0, Inf)
-            cpt.electrons, what_density
-        end
-        if greenwald
-            @series begin
-                if only === nothing
-                    subplot := 2
-                end
-                seriestype := :hline
-                primary := false
-                style := :dashdotdot
-                [IMAS.greenwald_density(IMAS.top_dd(cpt).equilibrium.time_slice[cpt.time])]
-            end
-        end
-        for ion in cpt.ion
-            @series begin
-                Z = ion.element[1].z_n
-                if only === nothing
-                    subplot := 2
-                end
-                title --> "Densities"
-                if Z == 1.0
-                    label := ion.label * label
-                else
-                    label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
-                end
-                linestyle --> :dash
-                ylim --> (0.0, Inf)
-                normalization --> Z
-                ion, what_density
-            end
+            cpt, Val(:density)
         end
     end
 
-    # rotation
     if only === nothing || only == 3
         @series begin
             if only === nothing
                 subplot := 3
             end
-            title --> "Rotation"
-            label := "" * label
-            if !ismissing(cpt, :rotation_frequency_tor_sonic)
-                cpt, :rotation_frequency_tor_sonic
-            else
-                [NaN], [NaN]
-            end
+            cpt, Val(:rotation)
         end
     end
 end
@@ -2502,7 +2606,7 @@ end
     end
 end
 
-@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false, min_power=1e3)
+@recipe function plot_beam(beam::IMAS.waves__coherent_wave___beam_tracing___beam; top=false, min_power=0.0)
     id = recipe_dispatch(beam)
     assert_type_and_record_argument(id, Bool, "Top view"; top)
     assert_type_and_record_argument(id, Float64, "Minimum power above which to show the beam"; min_power)
@@ -3014,16 +3118,13 @@ end
 end
 
 @recipe function plot_wd2dlu(wd2dlu::IMAS.wall__description_2d___limiter__unit)
+    if ismissing(wd2dlu, :closed)
+        poly = closed_polygon(wd2dlu.outline.r, wd2dlu.outline.z)
+    else
+        poly = closed_polygon(wd2dlu.outline.r, wd2dlu.outline.z, Bool(wd2dlu.closed))
+    end
     @series begin
         label --> getproperty(wd2dlu, :name, "")
-        wd2dlu.outline
-    end
-end
-
-@recipe function plot_limiter_unit_outline(outline::IMAS.wall__description_2d___limiter__unit___outline)
-    poly = closed_polygon(outline.r, outline.z)
-    aspect_ratio := :equal
-    @series begin
         poly.r, poly.z
     end
 end
@@ -3290,7 +3391,7 @@ end
 #= ======= =#
 #  getdata  #
 #= ======= =#
-@recipe function plot_getdata(ids::IDS, what::Val, ; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
+@recipe function plot_getdata(ids::IDS, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
     id = recipe_dispatch(ids)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
@@ -3298,6 +3399,7 @@ end
 
     time, rho, data, weights = getdata(what, top_dd(ids), time0, time_averaging)
     data = data .* normalization
+
     if eltype(data) <: Measurements.Measurement
         data_σ = [d.err for d in data]
         data = [d.val for d in data]
@@ -3339,8 +3441,18 @@ end
 #= ================== =#
 @recipe function plot_thomson(ts::thomson_scattering, what::Symbol; time0=global_time(ts), time_averaging=0.05, normalization=1.0)
     @assert what in (:n_e, :t_e)
+
+    @series begin
+        label := "Thomson scattering"
+        seriestype := :scatter
+        markersize := 3
+        color := :black
+        [NaN], [NaN]
+    end
+
     @series begin
         time0 := time0
+        label := ""
         time_averaging := time_averaging
         normalization := normalization
         ts, Val(what)
@@ -3350,11 +3462,20 @@ end
 #= =============== =#
 #  charge_exchange  #
 #= =============== =#
-@recipe function plot_charge_exchange(cer::charge_exchange{T}, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0) where {T<:Real}
+@recipe function plot_charge_exchange(cer::charge_exchange, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0)
     @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
 
     @series begin
+        label := "Charge exchange"
+        seriestype := :scatter
+        markersize := 3
+        color := :black
+        [NaN], [NaN]
+    end
+
+    @series begin
         time0 := time0
+        label := ""
         time_averaging := time_averaging
         normalization := normalization
         cer, Val(what)
@@ -3367,7 +3488,7 @@ end
 @recipe function plot(summary::IMAS.summary)
     valid_leaves = [leaf for leaf in IMASdd.AbstractTrees.Leaves(summary) if typeof(leaf.value) <: Vector && leaf.field != :time]
     layout := length(valid_leaves)
-    N = Int(ceil(sqrt(length(valid_leaves))))
+    N = round(Int, sqrt(length(valid_leaves)), RoundUp)
     size --> (200 * N, 200 * N)
     for (k, leaf) in enumerate(valid_leaves)
         loc = replace(location(leaf.ids, leaf.field), ".value" => "")
@@ -3551,8 +3672,9 @@ end
 end
 
 @recipe function plot_field_1d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_1d}; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
-    id = recipe_dispatch(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
+
+    id = recipe_dispatch(ids, field)
     assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
     assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Coordinate for x-axis"; coordinate)
     assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Weighting field"; weighted)
@@ -3622,10 +3744,47 @@ end
     end
 end
 
+@recipe function plot_field_1d_manyDDs(ids::IMAS.IDS, field::Symbol, DDs::AbstractVector{<:IMAS.dd})
+    @series begin
+        [IMAS.goto(dd, IMAS.location(ids)) for dd in DDs], field
+    end
+end
+
+@recipe function plot_field_1d_manyIDSs(IDSs::Vector{<:IMAS.IDS}, field::Symbol; alpha_of_individual_lines=0.1, normalization=1.0, coordinate=nothing)
+    id = recipe_dispatch(IDSs, field)
+    assert_type_and_record_argument(id, Real, "Alpha  individual lines"; alpha_of_individual_lines)
+    assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
+    assert_type_and_record_argument(id, Union{Nothing,Symbol}, "Coordinate for x-axis"; coordinate)
+
+    ids = IDSs[1]
+    @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
+    coords = coordinates(ids, field; override_coord_leaves=[coordinate])
+
+    coords = hcat((getproperty(coordinates(ids, field; override_coord_leaves=[coordinate])[1]) for ids in IDSs)...)
+
+    values = hcat((getproperty(ids, field) for ids in IDSs)...) .* normalization
+    mv = Statistics.mean(values; dims=2)[:, 1]
+    σv = Statistics.std(values; dims=2)[:, 1]
+    mc = Statistics.mean(coords; dims=2)[:, 1]
+    σc = Statistics.std(coords; dims=2)[:, 1]
+    @series begin
+        lw := 2
+        ribbon := σv
+        mc, mv
+    end
+    if alpha_of_individual_lines > 0.0
+        @series begin
+            primary := false
+            alpha := alpha_of_individual_lines
+            coords, values
+        end
+    end
+end
+
 @recipe function plot_field_2d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_2d}; normalization=1.0, seriestype=:contourf)
-    id = recipe_dispatch(ids, field)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
 
+    id = recipe_dispatch(ids, field)
     assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
     assert_type_and_record_argument(id, Symbol, "Seriestype for 2D data [:contourf (default), :contour, :surface, :heatmap]"; seriestype)
 
@@ -3660,15 +3819,6 @@ end
             xvalue, yvalue, zvalue' # (calls Plots' default recipe for a given seriestype)
         end
     end
-end
-
-@recipe function plot(x::AbstractVector{<:Real}, y::AbstractVector{<:Measurement}, err::Symbol=:ribbon)
-    if err == :ribbon
-        ribbon := Measurements.uncertainty.(y)
-    elseif err == :bar
-        yerror := Measurements.uncertainty.(y)
-    end
-    return x, Measurements.value.(y)
 end
 
 """
@@ -3806,5 +3956,3 @@ function hash_to_color(input::Any; seed::Int=0)
     # Return an RGB color using Plots' RGB type
     return RGB(r, g, b)
 end
-
-

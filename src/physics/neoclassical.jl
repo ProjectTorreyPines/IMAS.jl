@@ -13,13 +13,13 @@ end
 push!(document[Symbol("Physics neoclassical")], :spitzer_conductivity)
 
 """
-    collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
+    collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
 
 Returns named tuple with `nue`, `nui`, `nu_exch` in [1/s]
 
 NOTE: transpiled from the TGYRO `collision_rates` subroutine
 """
-function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
+function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     # from TGYRO `collision_rates` subroutine
     mp = cgs.mp # g
     me = cgs.me # g
@@ -35,7 +35,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
     nue = @. sqrt(2) * pi * ne * e^4.0 * loglam / (sqrt(me) * (k * Te)^1.5)
 
     # 1/tau_ii (Belli 2008) in 1/s
-    nui = zeros(length(Te))
+    nui = zeros(T, length(Te))
     for ion in cp1d.ion
         if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
             Ti = ion.temperature
@@ -50,7 +50,7 @@ function collision_frequencies(cp1d::IMAS.core_profiles__profiles_1d)
     c_exch = 2.0 * (4.0 / 3) * sqrt(2.0 * pi) * e^4 / k^1.5
 
     # nu_exch in 1/s
-    nu_exch = zeros(length(Te))
+    nu_exch = zeros(T, length(Te))
     for ion in cp1d.ion
         if !ismissing(ion, :temperature)
             Ti = ion.temperature

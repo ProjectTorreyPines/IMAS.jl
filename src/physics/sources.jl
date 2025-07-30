@@ -143,8 +143,6 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    sawteeth_source!(dd) # sawteeth
-
     return nothing
 end
 
@@ -440,8 +438,8 @@ function total_sources!(
     for ids1 in [[total_source1d, total_source1d.electrons]; total_source1d.ion]
         for field in keys(ids1)
             if field in keys(_core_sources_integral_value_keys)
-                if hasdata(ids1, field)
-                    fill!(getproperty(ids1, field), 0.0)
+                if hasdata(ids1, field) && length(getfield(ids1, field)) == length(rho)
+                    fill!(getproperty(ids1, field), zero(T))
                 else
                     # assume coordinates have been set
                     setproperty!(ids1, field, zeros(T, size(rho)); error_on_missing_coordinates=false)
@@ -546,39 +544,80 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 """
     sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
 
-Model sawteeth by flattening all sources within the q inversion radius
+Model sawteeth by flattening all sources where abs(q) drops below qmin_desired
 """
 function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
-    cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
+
+    q = abs.(eqt1d.q)
+    if !any(x -> x < qmin_desired, q)
+        rho0 = 0.0
+    else
+        rho0 = eqt1d.rho_tor_norm[findlast(qq -> abs(qq) < qmin_desired, q)]
+    end
+
+    return sawteeth_source!(dd, rho0)
+end
+
+function sawteeth_source!(dd::IMAS.dd{T}, ::Nothing) where {T<:Real}
+    return sawteeth_source!(dd, 0.0)
+end
+
+function sawteeth_source!(dd::IMAS.dd{T}, i_qdes::Int) where {T<:Real}
+    cp1d = dd.core_profiles.profiles_1d[]
+    return sawteeth_source!(dd, cp1d.grid.rho_tor_norm[i_qdes])
+end
+
+"""
+    sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
+
+Model sawteeth by flattening all sources within the inversion radius rho0
+"""
+function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
+    cp1d = dd.core_profiles.profiles_1d[]
 
     # fill in sawteeth
     source = resize!(dd.core_sources.source, :sawteeth, "identifier.name" => "sawteeth"; wipe=false)
+
+    # get past value of sawteeth source
+    if isempty(source.profiles_1d) || hasdata(source.profiles_1d[])
+        old_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
+    else
+        source1d = source.profiles_1d[]
+        itime = IMAS.index(source1d)
+        if itime == 1
+            old_source1d = deepcopy(source1d)
+        else
+            old_source1d = source.profiles_1d[itime-1]
+        end
+    end
+
+    # wipe data at current time
     source1d = resize!(source.profiles_1d)
 
     # identify sawteeth inversion radius
-    q = abs.(eqt1d.q)
-    if !any(x -> x < qmin_desired, q)
+    if rho0 > 0.0
+        # exlude :time_dependent source (701)
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=Int[701])
+        fill!(source1d, total_source1d)
+    else
         # this will return an empty source
         total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
         fill!(source1d, total_source1d)
-        return source
-    else
-        # exlude :sawteeth source itself
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=[701])
-        fill!(source1d, total_source1d)
     end
 
-    rho0 = eqt1d.rho_tor_norm[findlast(qq -> abs(qq) < qmin_desired, q)]
     width = min(rho0 / 4, 0.05)
 
+    α = 0.5
+
     # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
-    for leaf in IMASdd.AbstractTrees.Leaves(source1d)
+    for (leaf,old_leaf) in zip(IMASdd.AbstractTrees.Leaves(source1d),IMASdd.AbstractTrees.Leaves(old_source1d))
+        @assert leaf.field == old_leaf.field
         if leaf.field in keys(_core_sources_value_keys)
             if leaf.field == :j_parallel
-                leaf.value .= flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value
+                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value) * α .+ old_leaf.value .* (1.0 .- α)
             else
-                leaf.value .= flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.volume, rho0, width) .- leaf.value
+                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.volume, rho0, width) .- leaf.value) * α .+ old_leaf.value .* (1.0 .- α)
             end
         end
     end
@@ -653,72 +692,72 @@ function new_source(
 
     if electrons_energy !== missing
         value = electrons_energy
-        setproperty!(electrons, :energy, value; error_on_missing_coordinates = false)
-        setproperty!(electrons, :power_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
+        setproperty!(electrons, :energy, value; error_on_missing_coordinates=false)
+        setproperty!(electrons, :power_inside, cumtrapz(volume, value); error_on_missing_coordinates=false)
     elseif electrons_power_inside !== missing
         value = electrons_power_inside
-        setproperty!(electrons, :power_inside, value; error_on_missing_coordinates = false)
-        setproperty!(electrons, :energy, gradient(volume, value); error_on_missing_coordinates = false)
+        setproperty!(electrons, :power_inside, value; error_on_missing_coordinates=false)
+        setproperty!(electrons, :energy, gradient(volume, value); error_on_missing_coordinates=false)
     else
-        setproperty!(electrons, :energy, zero(volume); error_on_missing_coordinates = false)
-        setproperty!(electrons, :power_inside, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(electrons, :energy, zero(volume); error_on_missing_coordinates=false)
+        setproperty!(electrons, :power_inside, zero(volume); error_on_missing_coordinates=false)
     end
     csglbl.electrons.power = electrons.power_inside[end]
 
     if total_ion_energy !== missing
         value = total_ion_energy
-        setproperty!(cs1d, :total_ion_energy, value; error_on_missing_coordinates = false)
-        setproperty!(cs1d, :total_ion_power_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :total_ion_energy, value; error_on_missing_coordinates=false)
+        setproperty!(cs1d, :total_ion_power_inside, cumtrapz(volume, value); error_on_missing_coordinates=false)
     elseif total_ion_power_inside !== missing
         value = total_ion_power_inside
-        setproperty!(cs1d, :total_ion_power_inside, value; error_on_missing_coordinates = false)
-        setproperty!(cs1d, :total_ion_energy, gradient(volume, value); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :total_ion_power_inside, value; error_on_missing_coordinates=false)
+        setproperty!(cs1d, :total_ion_energy, gradient(volume, value); error_on_missing_coordinates=false)
     else
-        setproperty!(cs1d, :total_ion_energy, zero(volume); error_on_missing_coordinates = false)
-        setproperty!(cs1d, :total_ion_power_inside, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :total_ion_energy, zero(volume); error_on_missing_coordinates=false)
+        setproperty!(cs1d, :total_ion_power_inside, zero(volume); error_on_missing_coordinates=false)
     end
     csglbl.total_ion_power = cs1d.total_ion_power_inside[end]
     csglbl.power = csglbl.total_ion_power + csglbl.electrons.power
 
     if electrons_particles !== missing
         value = electrons_particles
-        setproperty!(electrons, :particles, value; error_on_missing_coordinates = false)
-        setproperty!(electrons, :particles_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
+        setproperty!(electrons, :particles, value; error_on_missing_coordinates=false)
+        setproperty!(electrons, :particles_inside, cumtrapz(volume, value); error_on_missing_coordinates=false)
     elseif electrons_particles_inside !== missing
         value = electrons_particles_inside
-        setproperty!(electrons, :particles_inside, value; error_on_missing_coordinates = false)
-        setproperty!(electrons, :particles, gradient(volume, value); error_on_missing_coordinates = false)
+        setproperty!(electrons, :particles_inside, value; error_on_missing_coordinates=false)
+        setproperty!(electrons, :particles, gradient(volume, value); error_on_missing_coordinates=false)
     else
-        setproperty!(electrons, :particles, zero(volume); error_on_missing_coordinates = false)
-        setproperty!(electrons, :particles_inside, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(electrons, :particles, zero(volume); error_on_missing_coordinates=false)
+        setproperty!(electrons, :particles_inside, zero(volume); error_on_missing_coordinates=false)
     end
     csglbl.electrons.particles = electrons.particles_inside[end]
 
     if j_parallel !== missing
         value = j_parallel
-        setproperty!(cs1d, :j_parallel, value; error_on_missing_coordinates = false)
-        setproperty!(cs1d, :current_parallel_inside, cumtrapz(area, value); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :j_parallel, value; error_on_missing_coordinates=false)
+        setproperty!(cs1d, :current_parallel_inside, cumtrapz(area, value); error_on_missing_coordinates=false)
     elseif current_parallel_inside !== missing
         value = current_parallel_inside
-        setproperty!(cs1d, :current_parallel_inside, value; error_on_missing_coordinates = false)
-        setproperty!(cs1d, :j_parallel, gradient(area, value); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :current_parallel_inside, value; error_on_missing_coordinates=false)
+        setproperty!(cs1d, :j_parallel, gradient(area, value); error_on_missing_coordinates=false)
     else
-        setproperty!(cs1d, :j_parallel, zero(area); error_on_missing_coordinates = false)
-        setproperty!(cs1d, :current_parallel_inside, zero(area); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :j_parallel, zero(area); error_on_missing_coordinates=false)
+        setproperty!(cs1d, :current_parallel_inside, zero(area); error_on_missing_coordinates=false)
     end
     csglbl.current_parallel = cs1d.current_parallel_inside[end]
 
     if momentum_tor !== missing
         value = momentum_tor
-        setproperty!(cs1d, :momentum_tor, value; error_on_missing_coordinates = false)
-        setproperty!(cs1d, :torque_tor_inside, cumtrapz(volume, value); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :momentum_tor, value; error_on_missing_coordinates=false)
+        setproperty!(cs1d, :torque_tor_inside, cumtrapz(volume, value); error_on_missing_coordinates=false)
     elseif torque_tor_inside !== missing
         value = torque_tor_inside
-        setproperty!(cs1d, :torque_tor_inside, value; error_on_missing_coordinates = false)
-        setproperty!(cs1d, :momentum_tor, gradient(volume, value); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :torque_tor_inside, value; error_on_missing_coordinates=false)
+        setproperty!(cs1d, :momentum_tor, gradient(volume, value); error_on_missing_coordinates=false)
     else
-        setproperty!(cs1d, :momentum_tor, zero(volume); error_on_missing_coordinates = false)
-        setproperty!(cs1d, :torque_tor_inside, zero(volume); error_on_missing_coordinates = false)
+        setproperty!(cs1d, :momentum_tor, zero(volume); error_on_missing_coordinates=false)
+        setproperty!(cs1d, :torque_tor_inside, zero(volume); error_on_missing_coordinates=false)
     end
     csglbl.torque_tor = cs1d.torque_tor_inside[end]
 
