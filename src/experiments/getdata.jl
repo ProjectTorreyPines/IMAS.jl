@@ -12,7 +12,9 @@ Extract charge exchange spectroscopy data for ion temperature, impurity to elect
 
   - time_averaging: time averaging window size (required if time0 is specified)
 
-Returns NamedTuple with (:time, :rho, :data)
+Returns NamedTuple with (:time, :rho, :data, :weights)
+
+Data is always of type Measurements.Measurement
 """
 function getdata(
     what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
@@ -93,7 +95,9 @@ Extract Thomson scattering data for electron temperature or density.
 
   - time_averaging: time averaging window size (required if time0 is specified)
 
-Returns NamedTuple with time, rho coordinates, and data arrays. Data is always of type Measurements.Measurement
+Returns NamedTuple with (:time, :rho, :data, :weights)
+
+Data is always of type Measurements.Measurement
 """
 function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
