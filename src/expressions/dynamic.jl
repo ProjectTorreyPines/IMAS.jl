@@ -529,6 +529,12 @@ dyexp["limits.all_cleared"] =
         return all_cleared
     end
 
+#= ============== =#
+#  interferometer  #
+#= ============== =#
+dyexp["interferometer.channel[:].n_e_line_average.data"] = (; channel, _...) -> channel.n_e_line.data ./ lenght_line_of_sight(channel.line_of_sight)
+dyexp["interferometer.channel[:].n_e_line_average.time"] = (; channel, _...) -> channel.n_e_line.time
+
 #= ======= =#
 #  summary  #
 #= ======= =#

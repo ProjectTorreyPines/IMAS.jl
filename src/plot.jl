@@ -3482,6 +3482,75 @@ end
     end
 end
 
+#= ============== =#
+#  interferometer  #
+#= ============== =#
+@recipe function plot_interferometer_line_of_sight(icls::IMAS.interferometer__channel___line_of_sight; top=false)
+    id = recipe_dispatch(icls)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
+
+    label --> parent(icls).name
+
+    if isempty(icls.third_point)
+        if top
+            a1 = icls.first_point.r * cos(icls.first_point.phi)
+            a2 = icls.second_point.r * cos(icls.second_point.phi)
+            b1 = icls.first_point.r * sin(icls.first_point.phi)
+            b2 = icls.second_point.r * sin(icls.second_point.phi)
+        else
+            a1 = icls.first_point.r
+            a2 = icls.second_point.r
+            b1 = icls.first_point.z
+            b2 = icls.second_point.z
+        end
+
+        @series begin
+            if a1 == a2 && b1 == b2
+                seriestype := :scatter
+            end
+            [a1, a2], [b1, b2]
+        end
+
+    else
+        if top
+            a1 = icls.first_point.r * cos(icls.first_point.phi)
+            a2 = icls.second_point.r * cos(icls.second_point.phi)
+            a3 = icls.third_point.r * cos(icls.third_point.phi)
+            b1 = icls.first_point.r * sin(icls.first_point.phi)
+            b2 = icls.second_point.r * sin(icls.second_point.phi)
+            b3 = icls.third_point.r * sin(icls.third_point.phi)
+        else
+            a1 = icls.first_point.r
+            a2 = icls.second_point.r
+            a3 = icls.third_point.r
+            b1 = icls.first_point.z
+            b2 = icls.second_point.z
+            b3 = icls.third_point.z
+        end
+
+        @series begin
+            if a1 == a2 == a3 && b1 == b2 == b3
+                seriestype := :scatter
+            end
+            [a1, a2, a3], [b1, b2, b3]
+        end
+    end
+end
+
+@recipe function plot_interferometer_line_of_sights(iclss::AbstractVector{<:IMAS.interferometer__channel___line_of_sight})
+    for icls in iclss
+        @series begin
+            icls
+        end
+    end
+end
+
+@recipe function plot_interferometer(ifrmtr::IMAS.interferometer)
+    @series begin
+        [ch.line_of_sight for ch in ifrmtr.channel]
+    end
+end
+
 #= ======= =#
 #  summary  #
 #= ======= =#
