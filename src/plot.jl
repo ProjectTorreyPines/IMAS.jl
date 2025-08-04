@@ -2693,7 +2693,7 @@ end
     end
 end
 
-@recipe function plot_wave(bts::AbstractVector{<:IMAS.waves__coherent_wave___beam_tracing}; time0=global_time(bts))
+@recipe function plot_wave(bts::IDSvector{<:IMAS.waves__coherent_wave___beam_tracing}; time0=global_time(bts))
     id = recipe_dispatch(bts)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
@@ -3770,6 +3770,17 @@ end
 
     yvalue = yvalue .* normalization
 
+    # figure out a good label
+    lbl = join((name(ids), " ", field))
+    h = ids
+    while h !== nothing
+        if hasfield(typeof(h), :name) && hasdata(h, :name)
+            lbl = h.name
+            break
+        end
+        h = parent(h)
+    end
+
     @series begin
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
@@ -3782,10 +3793,10 @@ end
             weight = coordinates(ids, field; override_coord_leaves=[weighted])[1]
             yvalue .*= getproperty(weight)
             ylabel = nice_units(units(ids, field) * "*" * units(weight.field))
-            label = nice_field("$field*$weighted")
+            label = nice_field("$lbl*$weighted")
         else
             ylabel = nice_units(units(ids, field))
-            label = nice_field(field)
+            label = nice_field(lbl)
         end
 
         if coordinate_name == "1...N"
