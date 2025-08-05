@@ -3504,11 +3504,15 @@ end
             b2 = icls.second_point.z
         end
 
-        @series begin
-            if a1 == a2 && b1 == b2
+        if a1 == a2 && b1 == b2
+            @series begin
                 seriestype := :scatter
+                [a1, a2], [b1, b2]
             end
-            [a1, a2], [b1, b2]
+        else
+            @series begin
+                [a1, a2], [b1, b2]
+            end
         end
 
     else
@@ -3528,11 +3532,22 @@ end
             b3 = icls.third_point.z
         end
 
-        @series begin
-            if a1 == a2 == a3 && b1 == b2 == b3
+        if a1 == a2 == a3 && b1 == b2 == b3
+            @series begin
                 seriestype := :scatter
+                [a1], [b1]
             end
-            [a1, a2, a3], [b1, b2, b3]
+        else
+            @series begin
+                [a1, a2, a3], [b1, b2, b3]
+            end
+            @series begin
+                primary := false
+                seriestype := :scatter
+                marker := :square
+                markerstrokewidth := 0.0
+                [a2], [b2]
+            end
         end
     end
 end
