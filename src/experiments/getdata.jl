@@ -32,7 +32,7 @@ function getdata(
 
     data = Measurements.Measurement[]
     weights = Float64[]
-    time = Float64[]
+    times = Float64[]
     chr = T[]
     chz = T[]
     for ch in cer.channel
@@ -50,7 +50,7 @@ function getdata(
             else
                 append!(data, Measurements.measurement.(selection.data, selection.data .* 0.0))
             end
-            append!(time, selection.time)
+            append!(times, selection.time)
             append!(weights, selection.weights)
             append!(chr, ch.position.r.data[selection.idx_range])
             append!(chz, ch.position.z.data[selection.idx_range])
@@ -62,18 +62,18 @@ function getdata(
                 _data = Measurements.measurement.(_data, _data .* 0.0)
             end
             append!(data, _data)
-            append!(time, getproperty(ch_data, :time))
+            append!(times, getproperty(ch_data, :time))
             append!(chr, ch.position.r.data)
             append!(chz, ch.position.z.data)
         end
     end
 
     rho = chz .* 0.0
-    for time0 in unique(time)
+    for time0 in unique(times)
         i = nearest_causal_time(dd.equilibrium.time, time0; bounds_error=false).index
         eqt = dd.equilibrium.time_slice[i]
         r, z, RHO_interpolant = ρ_interpolant(eqt)
-        index = time .== time0
+        index = (times .== time0)
         rho[index] = RHO_interpolant.(chr[index], chz[index])
     end
 
@@ -83,7 +83,7 @@ function getdata(
         data = data .* n_e
     end
 
-    return (time=time, rho=rho, data=data, weights=weights)
+    return (time=times, rho=rho, data=data, weights=weights)
 end
 
 """
@@ -109,7 +109,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
 
     data = Measurements.Measurement[]
     weights = Float64[]
-    time = Float64[]
+    times = Float64[]
     chr = T[]
     chz = T[]
     for ch in ts.channel
@@ -121,7 +121,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
             else
                 append!(data, Measurements.measurement.(selection.data, selection.data .* 0.0))
             end
-            append!(time, selection.time)
+            append!(times, selection.time)
             append!(weights, selection.weights)
             append!(chr, fill(ch.position.r, length(selection.time)))
             append!(chz, fill(ch.position.z, length(selection.time)))
@@ -133,20 +133,20 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
                 _data = Measurements.measurement.(_data, _data .* 0.0)
             end
             append!(data, _data)
-            append!(time, getproperty(ch_data, :time))
+            append!(times, getproperty(ch_data, :time))
             append!(chr, fill(ch.position.r, size(_data)))
             append!(chz, fill(ch.position.z, size(_data)))
         end
     end
 
     rho = chz .* 0.0
-    for t in unique(time)
+    for t in unique(times)
         i = nearest_causal_time(dd.equilibrium.time, t; bounds_error=false).index
         eqt = dd.equilibrium.time_slice[i]
         r, z, RHO_interpolant = ρ_interpolant(eqt)
-        index = time .== t
+        index = (times .== t)
         rho[index] = RHO_interpolant.(chr[index], chz[index])
     end
 
-    return (time=time, rho=rho, data=data, weights=weights)
+    return (time=times, rho=rho, data=data, weights=weights)
 end

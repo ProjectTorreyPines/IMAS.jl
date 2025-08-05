@@ -29,18 +29,19 @@ end
 
 """
     line_average(
-        rho_interp, 
-        lcfs_r::AbstractVector{<:Real}, 
+        rho_interp,
+        lcfs_r::AbstractVector{<:Real},
         lcfs_z::AbstractVector{<:Real},
-        q::AbstractVector{<:Real}, 
+        q::AbstractVector{<:Real},
         rho_tor_norm::AbstractVector{<:Real},
-        r1::T1, z1::T1, r2::T1, z2::T1;
+        r1::T1, z1::T1, ϕ1::T1,
+        r2::T1, z2::T1, ϕ2::T1;
         n_points::Int=100
     ) where {T1<:Real}
 
 Low-level function that takes pre-computed ρ interpolant and LCFS boundary arrays.
-This is more efficient when computing line averages for multiple channels or time-slices
-with the same equilibrium.
+
+This is more efficient when computing line averages for multiple channels or time-slices with the same equilibrium.
 
 Returns named tuple with (:line_integral, :line_average, :path_length)
 """
@@ -57,7 +58,7 @@ function line_average(
 
     T = promote_type(eltype(q), eltype(rho_tor_norm), typeof(r1), typeof(z1), typeof(r2), typeof(z2))
 
-    @assert ϕ1 == ϕ2
+    @assert ϕ1 == ϕ2 "line_average cannot handle different ϕ yet"
 
     # Create 1D interpolant for the quantity q
     q_interp = cubic_interp1d(rho_tor_norm, q)
@@ -98,6 +99,7 @@ end
     _get_rho_interp_and_lcfs(eqt::IMAS.equilibrium__time_slice)
 
 Memoized helper function to extract and cache ρ interpolant and LCFS boundary.
+
 This automatically handles caching for repeated calls with the same equilibrium.
 """
 Memoize.@memoize function _get_rho_interp_and_lcfs(eqt::IMAS.equilibrium__time_slice)
@@ -109,15 +111,14 @@ end
 
 """
     line_average(
-        eqt::IMAS.equilibrium__time_slice, 
-        q::AbstractVector{<:Real}, 
+        eqt::IMAS.equilibrium__time_slice,
+        q::AbstractVector{<:Real},
         rho_tor_norm::AbstractVector{<:Real},
-        r1::Real, z1::Real, r2::Real, z2::Real;
+        line_of_sight;
         n_points::Int=100
     )
 
-High-level convenience function with automatic memoization of expensive ρ interpolant creation.
-Automatically caches and reuses interpolants for the same equilibrium across multiple calls.
+High-level convenience function for computing line averages
 
 Returns named tuple with (:line_integral, :line_average, :path_length)
 """
@@ -125,9 +126,38 @@ function line_average(
     eqt::IMAS.equilibrium__time_slice,
     q::AbstractVector{<:Real},
     rho_tor_norm::AbstractVector{<:Real},
+    line_of_sight;
+    n_points::Int=100
+)
+    if !isempty(line_of_sight.third_point)
+        return line_average(
+            eqt,
+            q,
+            rho_tor_norm,
+            line_of_sight.first_point.r, line_of_sight.first_point.z, line_of_sight.first_point.phi,
+            line_of_sight.second_point.r, line_of_sight.second_point.z, line_of_sight.second_point.phi,
+            line_of_sight.third_point.r, line_of_sight.third_point.z, line_of_sight.third_point.phi;
+            n_points
+        )
+    else
+        return line_average(
+            eqt,
+            q,
+            rho_tor_norm,
+            line_of_sight.first_point.r, line_of_sight.first_point.z, line_of_sight.first_point.phi,
+            line_of_sight.second_point.r, line_of_sight.second_point.z, line_of_sight.second_point.phi,
+            n_points
+        )
+    end
+end
+
+function line_average(
+    eqt::IMAS.equilibrium__time_slice,
+    q::AbstractVector{<:Real},
+    rho_tor_norm::AbstractVector{<:Real},
     r1::T1, z1::T1, ϕ1::T1,
     r2::T1, z2::T1, ϕ2::T1;
-    n_points::Int=100
+    n_points::Int
 ) where {T1<:Real}
 
     # Get cached ρ interpolant and LCFS boundary
@@ -144,7 +174,7 @@ function line_average(
     r1::T1, z1::T1, ϕ1::T1,
     r2::T1, z2::T1, ϕ2::T1,
     r3::T1, z3::T1, ϕ3::T1;
-    n_points::Int=100
+    n_points::Int
 ) where {T1<:Real}
 
     # Get cached ρ interpolant and LCFS boundary
@@ -160,6 +190,9 @@ function line_average(
         path_length=tmp12.path_length + tmp23.path_length)
 end
 
+@compat public line_average
+push!(document[Symbol("Physics diagnostics")], :line_average)
+
 """
     ne_line(
         equilibrium::IMAS.equilibrium,
@@ -170,28 +203,7 @@ end
 
 Calculate time-dependent line average electron density for all interferometer channels.
 
-# Arguments
-
-  - `equilibrium`: equilibrium IDS containing time-dependent equilibrium data
-  - `core_profiles`: core_profiles IDS containing electron density profiles
-  - `interferometer`: interferometer IDS containing channel line-of-sight information
-  - `times`: time points to evaluate (defaults to equilibrium.time)
-
-# Returns
-
-Vector of vectors, where `result[i]` contains the time-dependent line average density
-for channel `i` at the specified time points.
-
-# Example
-
-```julia
-# Calculate for all channels at equilibrium time points
-ne_line_avg = ne_line(dd.equilibrium, dd.core_profiles, dd.interferometer)
-
-# Calculate at specific times
-ne_line_avg = ne_line(dd.equilibrium, dd.core_profiles, dd.interferometer;
-    times=[1.0, 2.0, 3.0])
-```
+Returns new interferometer IDS with synthetic data.
 """
 function ne_line(
     equilibrium::IMAS.equilibrium,
@@ -214,20 +226,8 @@ function ne_line(
         chout.n_e_line.data = Vector{T}(undef, n_times)
         chout.name = ch.name
 
-        # Get line-of-sight coordinates for this channel
-        r1 = chout.line_of_sight.first_point.r = ch.line_of_sight.first_point.r
-        z1 = chout.line_of_sight.first_point.z = ch.line_of_sight.first_point.z
-        ϕ1 = chout.line_of_sight.first_point.phi = ch.line_of_sight.first_point.phi
-        r2 = chout.line_of_sight.second_point.r = ch.line_of_sight.second_point.r
-        z2 = chout.line_of_sight.second_point.z = ch.line_of_sight.second_point.z
-        ϕ2 = chout.line_of_sight.second_point.phi = ch.line_of_sight.second_point.phi
-        @assert ϕ1 == ϕ2 "ne_line cannot handle different ϕ yet"
-        if !isempty(ch.line_of_sight.third_point)
-            r3 = chout.line_of_sight.third_point.r = ch.line_of_sight.third_point.r
-            z3 = chout.line_of_sight.third_point.z = ch.line_of_sight.third_point.z
-            ϕ3 = chout.line_of_sight.third_point.phi = ch.line_of_sight.third_point.phi
-            @assert ϕ1 == ϕ2 == ϕ3 "ne_line cannot handle different ϕ yet"
-        end
+        # fill line-of-sight for this channel
+        fill!(chout.line_of_sight, ch.line_of_sight)
 
         for (t_idx, time0) in enumerate(times)
             try
@@ -235,29 +235,9 @@ function ne_line(
                 eqt = equilibrium.time_slice[time0]
                 cp1d = core_profiles.profiles_1d[time0]
 
-                # Calculate line average density
-                if !isempty(ch.line_of_sight.third_point)
-                    tmp = line_average(
-                        eqt,
-                        cp1d.electrons.density,
-                        cp1d.grid.rho_tor_norm,
-                        r1, z1, ϕ1,
-                        r2, z2, ϕ2,
-                        r3, z3, ϕ3;
-                        n_points
-                    )
-                else
-                    tmp = line_average(
-                        eqt,
-                        cp1d.electrons.density,
-                        cp1d.grid.rho_tor_norm,
-                        r1, z1, ϕ1,
-                        r2, z2, ϕ2;
-                        n_points
-                    )
-                end
-
-                chout.n_e_line.data[t_idx] = tmp.line_integral
+                # Calculate line integral of the density
+                density_thermal = line_average(eqt, cp1d.electrons.density_thermal, cp1d.grid.rho_tor_norm, ch.line_of_sight; n_points)
+                chout.n_e_line.data[t_idx] = density_thermal.line_integral
 
             catch e
                 if typeof(e) <: IMASdd.IMASbadTime
@@ -273,5 +253,5 @@ function ne_line(
     return interferometer_out
 end
 
-@compat public line_average, ne_line
-push!(document[Symbol("Physics diagnostics")], :line_average, :ne_line)
+@compat public ne_line
+push!(document[Symbol("Physics diagnostics")], :ne_line)
