@@ -97,6 +97,7 @@ function update_ObjectiveFunctionsLibrary!()
     ObjectiveFunction(:min_βn, "", dd -> dd.equilibrium.time_slice[].global_quantities.beta_normal, -Inf)
     ObjectiveFunction(:min_R0, "m", dd -> dd.equilibrium.time_slice[].boundary.geometric_axis.r, -Inf)
     ObjectiveFunction(:max_zeff, "", dd -> @ddtime(dd.summary.volume_average.zeff.value), Inf)
+    ObjectiveFunction(:req_ne_sep, "Δ(particles m^-3)", dd -> abs(@ddtime(dd.edge_profiles.profiles_1d[].electrons.density[1]) - @ddtime(dd.core_profiles.profiles_1d[].electrons.density[end])), 0.0)
     #! format: on
     return ObjectiveFunctionsLibrary
 end
