@@ -121,6 +121,21 @@ function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_
     return error("`get_from(dd, $what, Val(:$from_where))` doesn't exist yet")
 end
 
+# ne_sep [m^-3]
+function get_from(dd::IMAS.dd, what::Type{Val{:ne_sep}}, from_where::Symbol; time0::Float64=dd.global_time)
+    if from_where == :core_profiles
+        cp1d = dd.core_profiles.profiles_1d[time0]
+        return interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(1.0)
+    elseif from_where == :pulse_schedule
+        if !ismissing(dd.pulse_schedule.density_control.n_e_separatrix, :reference)
+            return get_time_array(dd.pulse_schedule.density_control.n_e_separatrix, :reference, time0, :linear)
+        end
+        error("`get_from(dd, $what, Val{:$from_where})` does not have data")
+    end
+    return error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
+end
+
+
 Base.Docs.@doc """
     get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol; time0::Float64=dd.global_time)
 
