@@ -1,5 +1,7 @@
 document[Symbol("Physics particles")] = Symbol[]
 
+import Random
+
 #= ======================================= =#
 #  Particle tracker in a toroidal geometry  #
 #= ======================================= =#
@@ -70,13 +72,13 @@ end
 push!(document[Symbol("Physics particles")], :Particle)
 
 """
-    define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+    define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int; random_seed::Int=0) where {T<:Real}
 
 Creates a vector of particles from a 1D source (psi_norm, source_1d) launching N particles.
 
 Returns also a scalar (I_per_trace) which is the intensity per trace.
 """
-function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int; random_seed::Int=0) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
 
     # in-plasma mask
@@ -113,13 +115,13 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}
     ICDF = interp1d(CDF, range(1.0, length(CDF)), :linear)
 
     # particles structures
+    rng = Random.MersenneTwister(random_seed)
     particles = Vector{Particle{Float64}}(undef, N)
     for k in eachindex(particles)
-        dk = round(Int, ICDF(rand()), RoundUp)
-        ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D
-
-        θv = rand() * 2π            # toroidal angle of velocity - put to 0 for 2D
-        ϕv = acos(rand() * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand() * 2π
+        dk = round(Int, ICDF(rand(rng)), RoundUp)
+        ϕ = rand(rng) * 2π # toroidal angle of position - put to 0 for 2D
+        θv = rand(rng) * 2π # toroidal angle of velocity - put to 0 for 2D
+        ϕv = acos(rand(rng) * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand(rng) * 2π
 
         Rk = R[dk]
         Zk = Z[dk]
