@@ -389,6 +389,7 @@ Returns the first time of intersection between a moving particle and a wall in t
   - `v`: Vector with current velocity components of the particle
 """
 function toroidal_intersection(wallr::Vector{T}, wallz::Vector{T}, p::Vector{T}, v::Vector{T}) where {T<:Real}
+    @assert length(p) == length(v) == 3
     return toroidal_intersection(wallr, wallz, p[1], p[2], p[3], v[1], v[2], v[3])
 end
 
