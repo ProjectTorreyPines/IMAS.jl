@@ -1,5 +1,18 @@
 import NaturalNeighbours
 
+struct NaturalNeighboursMeasurementInterpolator
+    itp
+    itp_σ
+end
+
+function (nnmi::NaturalNeighboursMeasurementInterpolator)(rho::Real, time::Real)
+    return Measurements.measurement(nnmi.itp(rho, time), nnmi.itp_σ(rho, time))
+end
+
+function (nnmi::NaturalNeighboursMeasurementInterpolator)(rho::AbstractVector{<:Real}, time::AbstractVector{<:Real})
+    return [Measurements.measurement(v, e) for (v, e) in zip(nnmi.itp(rho, time), nnmi.itp_σ(rho, time))]
+end
+
 """
     fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real, F<:Function}
 
@@ -13,9 +26,14 @@ NOTE: what is a Val{<:Symbol} that gets passed to the `getrawdata(what, dd)`
 """
 function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<:Function}
     # get data
-    time, rho, data = getdata(what, dd)
+    time, rho, data_measurement = getdata(what, dd)
 
-    @assert eltype(data) <: Measurements.Measurement
+    @assert eltype(data_measurement) <: Measurements.Measurement
+    @assert eltype(rho) <: T
+    @assert eltype(time) <: Float64
+
+    data = [d.val for d in data_measurement]
+    #data_σ = [d.err for d in data_measurement]
 
     # remove any NaN
     index = .!isnan.(rho) .&& .!isnan.(data)
@@ -23,9 +41,13 @@ function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<
         time = @views time[index]
         rho = @views rho[index]
         data = @views data[index]
+        #data_σ = @views data_σ[index]
     end
 
-    return NaturalNeighbours.interpolate(rho, time, transform.(data))
+    itp = NaturalNeighbours.interpolate(rho, time, transform.(data))
+    # itp_σ = NaturalNeighbours.interpolate(rho, time, transform.(data_σ))
+
+    return itp #NaturalNeighboursMeasurementInterpolator(itp, itp_σ)
 end
 
 """
@@ -44,6 +66,8 @@ function fit1d(rho::AbstractVector{T1}, data::AbstractVector{T2}, rho_tor_norm::
     result = smooth_by_convolution(Measurements.value.(data); xi=rho, xo=rho_tor_norm, window_size=smooth1)
     g = abs.(gradient(rho_tor_norm, result) ./ result)
     g .= cumtrapz(rho_tor_norm, g)
+    g ./= maximum(g)
+    g .= g .+ rho_tor_norm
     rho_inverse = @. (g - g[1]) / (g[end] - g[1]) * (rho_tor_norm[end] - rho_tor_norm[1]) + rho_tor_norm[1]
     rho_linearized = interp1d(rho_tor_norm, rho_inverse).(rho)
 

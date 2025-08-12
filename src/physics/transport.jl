@@ -101,8 +101,8 @@ function total_fluxes!(
     # zero out total_flux
     for path in paths
         ids1 = goto(total_flux1d, path)
-        if hasdata(ids1, :flux)
-            getproperty(ids1, :flux) .*= 0.0
+        if hasdata(ids1, :flux) && length(getfield(ids1, :flux)) == size(rho_total_fluxes)
+            fill!(getproperty(ids1, :flux), zero(T))
         else
             setproperty!(ids1, :flux, zeros(T, size(rho_total_fluxes)))
         end

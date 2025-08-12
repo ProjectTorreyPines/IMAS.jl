@@ -319,9 +319,9 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                 # NOTE: contribution of non-thermal components in core_profiles comes in through pressure_fast and density_fast
                 cindex = findfirst(
                     cion ->
-                        (Int(round(cion.element[1].z_n)) == Int(round(particle_charge)) && Int(round(cion.element[1].a)) == Int(round(particle_mass))) ||
-                            (Int(round(particle_charge)) == 1 && Int(round(particle_mass)) == 2 && cion.label == "DT") ||
-                            (Int(round(particle_charge)) == 1 && Int(round(particle_mass)) == 3 && cion.label == "DT"), cp1d.ion)
+                        (round(Int, cion.element[1].z_n) == round(Int, particle_charge) && round(Int, cion.element[1].a) == round(Int, particle_mass)) ||
+                            (round(Int, particle_charge) == 1 && round(Int, particle_mass) == 2 && cion.label == "DT") ||
+                            (round(Int, particle_charge) == 1 && round(Int, particle_mass) == 3 && cion.label == "DT"), cp1d.ion)
 
                 if cindex === nothing
                     if verbose

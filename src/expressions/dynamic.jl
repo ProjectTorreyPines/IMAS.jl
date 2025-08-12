@@ -101,7 +101,7 @@ dyexp["core_profiles.profiles_1d[:].pressure"] =
 
 
 dyexp["core_profiles.profiles_1d[:].conductivity_parallel"] =
-    (; dd, profiles_1d, _...) -> neo_conductivity(dd.equilibrium.time_slice[Float64(profiles_1d.time)], profiles_1d)
+    (; dd, profiles_1d, _...) -> neo_conductivity(dd.equilibrium.time_slice[profiles_1d.time], profiles_1d)
 
 dyexp["core_profiles.profiles_1d[:].j_bootstrap"] =
     (; dd, profiles_1d, _...) -> findfirst(:bootstrap_current, dd.core_sources.source).profiles_1d[profiles_1d.time].j_parallel
@@ -110,7 +110,7 @@ dyexp["core_profiles.profiles_1d[:].j_ohmic"] =
     (; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
 dyexp["core_profiles.profiles_1d[:].j_non_inductive"] =
-    (; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=dd.global_time, exclude_indexes=[7, 409, 701], fields=[:j_parallel]).j_parallel # no ohmic, sawteeth, or time_depedent
+    (; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=profiles_1d.time, exclude_indexes=[7, 409, 701], fields=[:j_parallel]).j_parallel # no ohmic, sawteeth, or time_depedent
 
 dyexp["core_profiles.profiles_1d[:].j_total"] =
     (; dd, profiles_1d, _...) -> begin
@@ -126,7 +126,7 @@ dyexp["core_profiles.profiles_1d[:].j_total"] =
 dyexp["core_profiles.profiles_1d[:].j_tor"] =
     (; dd, profiles_1d, _...) -> begin
         rho_tor_norm = profiles_1d.grid.rho_tor_norm
-        eqt = dd.equilibrium.time_slice[Float64(profiles_1d.time)]
+        eqt = dd.equilibrium.time_slice[profiles_1d.time]
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 

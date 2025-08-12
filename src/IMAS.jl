@@ -18,6 +18,7 @@ end
 import IMASdd
 @import_all IMASdd
 import IMASdd: @ddtime, @findall
+import AbstractTrees: print_tree
 
 #= ===== =#
 #= UTILS =#
@@ -65,5 +66,6 @@ export @ddtime, @findall, help
 
 import HelpPlots: help_plot, help_plot!
 export help_plot, help_plot!
+export print_tree
 
 end # module

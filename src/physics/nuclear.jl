@@ -479,34 +479,50 @@ end
 push!(document[Symbol("Physics nuclear")], :fusion_plasma_power)
 
 """
-    fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
+    fusion_power(cp1d::IMAS.core_profiles__profiles_1d{T}; DD_fusion::Bool=false) where {T<:Real}
 
 Calculates the total fusion power in [W]
 
 If D+T plasma, then D+D is neglected
 """
-function fusion_power(cp1d::IMAS.core_profiles__profiles_1d)
-    cp = parent(parent(cp1d))
+function fusion_power(cp1d::IMAS.core_profiles__profiles_1d{T}; DD_fusion::Bool=false) where {T<:Real}
     ion_list = (ion.label for ion in cp1d.ion)
     if "T" in ion_list || "DT" in ion_list
+        cp = top_ids(cp1d)
         polarized_fuel_fraction = getproperty(cp.global_quantities, :polarized_fuel_fraction, 0.0)
         tot_pow = D_T_to_He4_plasma_power(cp1d; polarized_fuel_fraction) * 5.0
-    else
+    elseif DD_fusion
         tot_pow = D_D_to_He3_plasma_power(cp1d) * 4.0
         tot_pow += D_D_to_T_plasma_power(cp1d)
+    else
+        tot_pow = zero(T)
     end
     return tot_pow
 end
 
 """
-    fusion_power(dd::IMAS.dd)
+    fusion_power(dd::IMAS.dd; DD_fusion::Bool=false)
 """
-function fusion_power(dd::IMAS.dd)
-    return fusion_power(dd.core_profiles.profiles_1d[])
+function fusion_power(dd::IMAS.dd; time0::Float64=dd.global_time, DD_fusion::Bool=false)
+    return fusion_power(dd.core_profiles.profiles_1d[time0]; DD_fusion)
 end
 
 @compat public fusion_power
 push!(document[Symbol("Physics nuclear")], :fusion_power)
+
+"""
+    fusion_energy(dd::IMAS.dd{T}; DD_fusion::Bool=false) where {T<:Real}
+
+Fusion energy in [J]: fusion power integrated over simulation time
+"""
+function fusion_energy(dd::IMAS.dd{T}; DD_fusion::Bool=false) where {T<:Real}
+    time = Float64[cp1d.time for cp1d in dd.core_profiles.profiles_1d]
+    data = T[fusion_power(cp1d; DD_fusion) for cp1d in dd.core_profiles.profiles_1d]
+    return trapz(time, data) / (time[end] - time[1])
+end
+
+@compat public fusion_energy
+push!(document[Symbol("Physics nuclear")], :fusion_energy)
 
 """
     fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
