@@ -109,16 +109,21 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}
     source_2d .*= R .* (2π * (r[2] - r[1]) * (z[2] - z[1]))
 
     # cumulative distribution function
-    CDF = cumsum(source_2d)
+    source_2d_positive = max.(source_2d, 0.0)  # Ensure non-negative values
+    CDF = cumsum(source_2d_positive)
     I_per_trace = CDF[end] / N
+    if I_per_trace == 0.0
+        return (particles=Particle{Float64}[], I_per_trace=I_per_trace, dr=dr, dz=dz)
+    end
     CDF .= (CDF .- CDF[1]) ./ (CDF[end] - CDF[1])
-    ICDF = interp1d(CDF, range(1.0, length(CDF)), :linear)
+    index = source_2d_positive .> 0.0
+    ICDF = interp1d(CDF[index], range(1, length(CDF))[index], :constant)
 
     # particles structures
     rng = Random.MersenneTwister(random_seed)
     particles = Vector{Particle{Float64}}(undef, N)
     for k in eachindex(particles)
-        dk = round(Int, ICDF(rand(rng)), RoundUp)
+        dk = ICDF(rand(rng))
         ϕ = rand(rng) * 2π # toroidal angle of position - put to 0 for 2D
         θv = rand(rng) * 2π # toroidal angle of velocity - put to 0 for 2D
         ϕv = acos(rand(rng) * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand(rng) * 2π
