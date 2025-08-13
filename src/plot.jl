@@ -2712,7 +2712,7 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave), time0=global_time(bts))
+@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave), time0=global_time(wv))
     id = recipe_dispatch(wv)
     assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
