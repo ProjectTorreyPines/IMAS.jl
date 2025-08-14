@@ -116,8 +116,9 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}
         return (particles=Particle{Float64}[], I_per_trace=I_per_trace, dr=dr, dz=dz)
     end
     CDF .= (CDF .- CDF[1]) ./ (CDF[end] - CDF[1])
-    index = source_2d_positive .> 0.0
-    ICDF = interp1d(CDF[index], range(1, length(CDF))[index], :constant)
+    positive_indices = findall(>(0.0), source_2d_positive)
+    cdf_values = @view(CDF[positive_indices])
+    ICDF = x -> positive_indices[searchsortedlast(cdf_values, x)]
 
     # particles structures
     rng = Random.MersenneTwister(random_seed)
