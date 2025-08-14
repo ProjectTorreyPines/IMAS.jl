@@ -194,7 +194,8 @@ push!(document[Symbol("Physics profiles")], :list_ions)
 """
     ion_element!(
         ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
-        ion_symbol::Symbol)
+        ion_symbol::Symbol;
+        fast::Bool=false)
 
 Fills the `ion.element` structure with the a and z_n information, also updates the `ion.label`
 """
@@ -223,20 +224,26 @@ end
 
 function ion_element!(
     ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
-    ion_z::Int, ion_a::Float64; fast::Bool=false)
-    if ion_z == 1 && ion_a == 1.0
+    ion_z::Int,
+    ion_a::Float64;
+    fast::Bool=false,
+    ion_a_tolerance::Float64=0.1)
+
+    @assert ion_a > 0
+    if ion_z == 1.0 && abs(ion_a - 1.0) < ion_a_tolerance
         ion_symbol = :H
-    elseif ion_z == 1 && ion_a == 2.0
+    elseif ion_z == 1.0 && abs(ion_a - 2.0) < ion_a_tolerance
         ion_symbol = :D
-    elseif ion_z == 1 && ion_a == 2.5
+    elseif ion_z == 1.0 && abs(ion_a - 2.5) < ion_a_tolerance
         ion_symbol = :DT
-    elseif ion_z == 1 && ion_a == 3.0
+    elseif ion_z == 1.0 && abs(ion_a - 3.0) < ion_a_tolerance
         ion_symbol = :T
-    elseif ion_z == 2 && ion_a == 4.0
+    elseif ion_z == 2.0 && abs(ion_a - 4.0) < ion_a_tolerance
         ion_symbol = :α
     else
         ion_symbol = elements[Int(ion_z)].symbol
     end
+
     return ion_element!(ion, ion_symbol; fast)
 end
 
@@ -277,7 +284,7 @@ function ion_properties(ion_symbol::Symbol; fast::Bool=false)
         a = 4.007
         label = "α"
 
-    elseif ion_symbol == :DT
+    elseif ion_symbol ∈ (:DT, :D_T)
         z_n = 1.0
         a = (2.014 + 3.016) / 2.0
         label = "DT"
