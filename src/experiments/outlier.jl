@@ -230,7 +230,8 @@ end
         max_window::Tuple{Int,Int}=(7, 7),
         base_window::Tuple{Int,Int}=min_window,
         threshold::Float64=3.0,
-        adaptivity::Symbol=:gradient) where {T<:Real}
+        adaptivity::Symbol=:variance,
+        min_channels::Int=0) where {T<:Real}
 
 Adaptive outlier removal that adjusts window size based on local data characteristics.
 """
@@ -239,58 +240,64 @@ function adaptive_outlier_removal!(data::AbstractMatrix{T};
     max_window::Tuple{Int,Int}=(7, 7),
     base_window::Tuple{Int,Int}=min_window,
     threshold::Float64=3.0,
-    adaptivity::Symbol=:gradient) where {T<:Real}
+    adaptivity::Symbol=:variance,
+    min_channels::Int=0) where {T<:Real}
 
     m, n = size(data)
-    cleaned = IMASdd.ThreadSafeDicts.ThreadSafeDict{Tuple{Int,Int},T}()
 
-    #Threads.@threads 
-    for i in 1:m, j in 1:n
-        # Determine local window size based on adaptivity criterion
-        if adaptivity == :gradient
-            # Smaller windows in high-gradient regions (preserve edges)
-            local_grad = compute_local_gradient(data, i, j)
-            window_scale = 1.0 / (1.0 + local_grad)
-        elseif adaptivity == :variance
-            # Smaller windows in high-variance regions
-            local_var = compute_local_variance(data, i, j, base_window)
-            window_scale = 1.0 / (1.0 + local_var / Statistics.mean(data)^2)
-        else
-            window_scale = 1.0
+    if n < min_channels
+        data[data.==0.0] .= NaN
+
+    else
+        cleaned = IMASdd.ThreadSafeDicts.ThreadSafeDict{Tuple{Int,Int},T}()
+        #Threads.@threads 
+        for i in 1:m, j in 1:n
+            # Determine local window size based on adaptivity criterion
+            if adaptivity == :gradient
+                # Smaller windows in high-gradient regions (preserve edges)
+                local_grad = compute_local_gradient(data, i, j)
+                window_scale = 1.0 / (1.0 + local_grad)
+            elseif adaptivity == :variance
+                # Smaller windows in high-variance regions
+                local_var = compute_local_variance(data, i, j, base_window)
+                window_scale = 1.0 / (1.0 + local_var / Statistics.mean(data)^2)
+            else
+                window_scale = 1.0
+            end
+            if isnan(window_scale)
+                window_scale = 1.0
+            end
+
+            # Scale window size
+            h_scaled = round(Int, base_window[1] * window_scale)
+            w_scaled = round(Int, base_window[2] * window_scale)
+
+            # Clamp to min/max window sizes
+            h_scaled = clamp(h_scaled, min_window[1], max_window[1])
+            w_scaled = clamp(w_scaled, min_window[2], max_window[2])
+
+            # Ensure odd sizes
+            h_scaled += (h_scaled % 2 == 0 ? 1 : 0)
+            w_scaled += (w_scaled % 2 == 0 ? 1 : 0)
+
+            # Apply outlier removal with adaptive window
+            h_half = h_scaled ÷ 2
+            w_half = w_scaled ÷ 2
+
+            neighborhood = extract_neighborhood(data, i, j, h_half, w_half, :reflect)
+            center, scale = compute_robust_statistics(neighborhood, :mad)
+
+            current_val = data[i, j]
+            if Float64(current_val) == 0.0 # we assume exact zero is a NaN
+                cleaned[i, j] = NaN
+            elseif !isnan(current_val) && abs(current_val - center) > threshold * scale
+                cleaned[i, j] = center
+            end
         end
-        if isnan(window_scale)
-            window_scale = 1.0
+
+        for ((i, j), value) in cleaned
+            data[i, j] = value
         end
-
-        # Scale window size
-        h_scaled = round(Int, base_window[1] * window_scale)
-        w_scaled = round(Int, base_window[2] * window_scale)
-
-        # Clamp to min/max window sizes
-        h_scaled = clamp(h_scaled, min_window[1], max_window[1])
-        w_scaled = clamp(w_scaled, min_window[2], max_window[2])
-
-        # Ensure odd sizes
-        h_scaled += (h_scaled % 2 == 0 ? 1 : 0)
-        w_scaled += (w_scaled % 2 == 0 ? 1 : 0)
-
-        # Apply outlier removal with adaptive window
-        h_half = h_scaled ÷ 2
-        w_half = w_scaled ÷ 2
-
-        neighborhood = extract_neighborhood(data, i, j, h_half, w_half, :reflect)
-        center, scale = compute_robust_statistics(neighborhood, :mad)
-
-        current_val = data[i, j]
-        if Float64(current_val) == 0.0 # we assume exact zero is a NaN
-            cleaned[i, j] = NaN
-        elseif !isnan(current_val) && abs(current_val - center) > threshold * scale
-            cleaned[i, j] = center
-        end
-    end
-
-    for ((i, j), value) in cleaned
-        data[i, j] = value
     end
 
     return data
@@ -323,13 +330,13 @@ function compute_local_variance(data::AbstractMatrix{T}, i::Int, j::Int, window:
     return length(valid_vals) > 1 ? Statistics.var(valid_vals) : 0.0
 end
 
-function adaptive_outlier_removal!(tg::Vector{Vector{IMASnodeRepr{T}}}) where {T<:Real}
+function adaptive_outlier_removal!(tg::Vector{Vector{IMASnodeRepr{T}}}; min_channels::Int=0) where {T<:Real}
     for time_group in tg
         leaf1 = first(time_group)
         for field in keys(leaf1.ids)
             if field != :time && hasdata(leaf1.ids, field) && typeof(getproperty(leaf1.ids, field)) <: Vector
                 data = hcat((getproperty(leaf.ids, field) for leaf in time_group if hasdata(leaf.ids, field))...)
-                clean_data = adaptive_outlier_removal!(data; adaptivity=:gradient)
+                clean_data = adaptive_outlier_removal!(data; adaptivity=:gradient, min_channels)
                 for (k, leaf) in enumerate(time_group)
                     if hasdata(leaf.ids, field)
                         setproperty!(leaf.ids, field, clean_data[:, k])
