@@ -194,7 +194,8 @@ push!(document[Symbol("Physics profiles")], :list_ions)
 """
     ion_element!(
         ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
-        ion_symbol::Symbol)
+        ion_symbol::Symbol;
+        fast::Bool=false)
 
 Fills the `ion.element` structure with the a and z_n information, also updates the `ion.label`
 """
@@ -223,20 +224,26 @@ end
 
 function ion_element!(
     ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
-    ion_z::Int, ion_a::Float64; fast::Bool=false)
-    if ion_z == 1 && ion_a == 1.0
+    ion_z::Int,
+    ion_a::Float64;
+    fast::Bool=false,
+    ion_a_tolerance::Float64=0.1)
+
+    @assert ion_a > 0
+    if ion_z == 1.0 && abs(ion_a - 1.0) < ion_a_tolerance
         ion_symbol = :H
-    elseif ion_z == 1 && ion_a == 2.0
+    elseif ion_z == 1.0 && abs(ion_a - 2.0) < ion_a_tolerance
         ion_symbol = :D
-    elseif ion_z == 1 && ion_a == 2.5
+    elseif ion_z == 1.0 && abs(ion_a - 2.5) < ion_a_tolerance
         ion_symbol = :DT
-    elseif ion_z == 1 && ion_a == 3.0
+    elseif ion_z == 1.0 && abs(ion_a - 3.0) < ion_a_tolerance
         ion_symbol = :T
-    elseif ion_z == 2 && ion_a == 4.0
+    elseif ion_z == 2.0 && abs(ion_a - 4.0) < ion_a_tolerance
         ion_symbol = :α
     else
         ion_symbol = elements[Int(ion_z)].symbol
     end
+
     return ion_element!(ion, ion_symbol; fast)
 end
 
@@ -277,7 +284,7 @@ function ion_properties(ion_symbol::Symbol; fast::Bool=false)
         a = 4.007
         label = "α"
 
-    elseif ion_symbol == :DT
+    elseif ion_symbol ∈ (:DT, :D_T)
         z_n = 1.0
         a = (2.014 + 3.016) / 2.0
         label = "DT"
@@ -1158,6 +1165,239 @@ end
 
 @compat public lump_ions_as_bulk_and_impurity
 push!(document[Symbol("Physics profiles")], :lump_ions_as_bulk_and_impurity)
+
+"""
+    unbundle_DT!(cp1d::IMAS.core_profiles__profiles_1d; dt_fraction::Real=0.5)
+
+Split DT ion species into separate D and T species.
+
+Finds ion species labeled "DT" and splits them into separate "D" and "T" species.
+
+The densities, pressures, and other quantities are distributed according to dt_fraction.
+"""
+function unbundle_DT!(cp1d::IMAS.core_profiles__profiles_1d; dt_fraction::Real=0.5)
+    @assert 0.0 < dt_fraction < 1.0
+    dt_indices = []
+
+    # Find DT species
+    for (i, ion) in enumerate(cp1d.ion)
+        if ion.label == "DT"
+            push!(dt_indices, i)
+        end
+    end
+
+    if isempty(dt_indices)
+        @info "No DT species found to unbundle"
+        return cp1d
+    end
+
+    # Process each DT species (in reverse order to avoid index shifting)
+    for dt_idx in reverse(dt_indices)
+        dt_ion = cp1d.ion[dt_idx]
+
+        # Create D species
+        d_ion = deepcopy(dt_ion)
+        d_ion.label = "D"
+        d_ion.element[1].z_n = 1.0
+        d_ion.element[1].a = 2.014
+
+        # Split densities and pressures only if they exist
+        if IMAS.hasdata(d_ion, :density_thermal)
+            d_ion.density_thermal .*= dt_fraction
+        end
+        if IMAS.hasdata(d_ion, :density_fast)
+            d_ion.density_fast .*= dt_fraction
+        end
+        if IMAS.hasdata(d_ion, :pressure_fast_perpendicular)
+            d_ion.pressure_fast_perpendicular .*= dt_fraction
+        end
+        if IMAS.hasdata(d_ion, :pressure_fast_parallel)
+            d_ion.pressure_fast_parallel .*= dt_fraction
+        end
+
+        # Create T species
+        t_ion = deepcopy(dt_ion)
+        t_ion.label = "T"
+        t_ion.element[1].z_n = 1.0
+        t_ion.element[1].a = 3.016
+
+        # Split densities and pressures only if they exist
+        if IMAS.hasdata(t_ion, :density_thermal)
+            t_ion.density_thermal .*= (1.0 - dt_fraction)
+        end
+        if IMAS.hasdata(t_ion, :density_fast)
+            t_ion.density_fast .*= (1.0 - dt_fraction)
+        end
+        if IMAS.hasdata(t_ion, :pressure_fast_perpendicular)
+            t_ion.pressure_fast_perpendicular .*= (1.0 - dt_fraction)
+        end
+        if IMAS.hasdata(t_ion, :pressure_fast_parallel)
+            t_ion.pressure_fast_parallel .*= (1.0 - dt_fraction)
+        end
+
+        # Replace DT with D and T
+        deleteat!(cp1d.ion, dt_idx)
+        insert!(cp1d.ion, dt_idx, t_ion)
+        insert!(cp1d.ion, dt_idx, d_ion)
+
+        @info "Unbundled DT species at index $dt_idx into D ($(dt_fraction*100)%) and T ($(100*(1-dt_fraction))%)"
+    end
+
+    return cp1d
+end
+
+function unbundle_DT!(cp::IMAS.core_profiles; dt_fraction::Real=0.5)
+    for cp1d in cp.profiles_1d
+        unbundle_DT!(cp1d; dt_fraction)
+    end
+    return cp
+end
+
+@compat public unbundle_DT!
+push!(document[Symbol("Physics profiles")], :unbundle_DT!)
+
+"""
+    bundle_DT!(cp1d::IMAS.core_profiles__profiles_1d; d_label::String="D", t_label::String="T")
+
+Combine separate D and T ion species into a single DT species.
+
+Finds "D" and "T" ion species and combines them into a single "DT" species.
+
+Densities and pressures are summed, temperatures are density-weighted averaged.
+"""
+function bundle_DT!(cp1d::IMAS.core_profiles__profiles_1d; d_label::String="D", t_label::String="T")
+    d_idx = nothing
+    t_idx = nothing
+
+    # Find D and T species
+    for (i, ion) in enumerate(cp1d.ion)
+        if ion.label == d_label
+            d_idx = i
+        elseif ion.label == t_label
+            t_idx = i
+        end
+    end
+
+    if isnothing(d_idx) || isnothing(t_idx)
+        @warn "Could not find both D ($d_label) and T ($t_label) species to bundle"
+        return cp1d
+    end
+
+    d_ion = cp1d.ion[d_idx]
+    t_ion = cp1d.ion[t_idx]
+
+    # Create DT species by combining D and T
+    dt_ion = deepcopy(d_ion)  # Start with D as template
+    dt_ion.label = "DT"
+    dt_ion.element[1].z_n = 1.0  # Effective charge
+    dt_ion.element[1].a = 2.5  # Average atomic mass
+
+    # Handle thermal densities (required field)
+    if IMAS.hasdata(d_ion, :density_thermal) && IMAS.hasdata(t_ion, :density_thermal)
+        total_density_thermal = d_ion.density_thermal .+ t_ion.density_thermal
+        dt_ion.density_thermal = total_density_thermal
+    elseif IMAS.hasdata(d_ion, :density_thermal)
+        dt_ion.density_thermal = d_ion.density_thermal
+        total_density_thermal = d_ion.density_thermal
+    elseif IMAS.hasdata(t_ion, :density_thermal)
+        dt_ion.density_thermal = t_ion.density_thermal
+        total_density_thermal = t_ion.density_thermal
+    else
+        @warn "Neither D nor T ion has thermal density data"
+        total_density_thermal = zeros(length(d_ion.temperature))
+    end
+
+    # Handle fast densities (optional field)
+    if IMAS.hasdata(d_ion, :density_fast) && IMAS.hasdata(t_ion, :density_fast)
+        total_density_fast = d_ion.density_fast .+ t_ion.density_fast
+        dt_ion.density_fast = total_density_fast
+    elseif IMAS.hasdata(d_ion, :density_fast)
+        dt_ion.density_fast = d_ion.density_fast
+        total_density_fast = d_ion.density_fast
+    elseif IMAS.hasdata(t_ion, :density_fast)
+        dt_ion.density_fast = t_ion.density_fast
+        total_density_fast = t_ion.density_fast
+    else
+        # No fast density data available - this is okay
+        total_density_fast = zeros(length(d_ion.temperature))
+    end
+
+    # Handle temperatures with density-weighted average
+    if IMAS.hasdata(d_ion, :temperature) && IMAS.hasdata(t_ion, :temperature)
+        if sum(abs.(total_density_thermal)) > 1e-20
+            dt_ion.temperature = @. (d_ion.density_thermal * d_ion.temperature +
+                                     t_ion.density_thermal * t_ion.temperature) /
+                                    (total_density_thermal + 1e-20)
+        else
+            # If no thermal density, just average the temperatures
+            dt_ion.temperature = @. (d_ion.temperature + t_ion.temperature) / 2
+        end
+    elseif IMAS.hasdata(d_ion, :temperature)
+        dt_ion.temperature = d_ion.temperature
+    elseif IMAS.hasdata(t_ion, :temperature)
+        dt_ion.temperature = t_ion.temperature
+    else
+        @warn "Neither D nor T ion has temperature data"
+    end
+
+    # Handle fast perpendicular pressure with density-weighted average
+    if IMAS.hasdata(d_ion, :pressure_fast_perpendicular) && IMAS.hasdata(t_ion, :pressure_fast_perpendicular)
+        if sum(abs.(total_density_fast)) > 1e-20
+            dt_ion.pressure_fast_perpendicular = @. (d_ion.density_fast * d_ion.pressure_fast_perpendicular +
+                t_ion.density_fast * t_ion.pressure_fast_perpendicular) /
+               (total_density_fast + 1e-20)
+        else
+            # If no fast density, just average the pressures
+            dt_ion.pressure_fast_perpendicular = @. (d_ion.pressure_fast_perpendicular +
+                                                     t_ion.pressure_fast_perpendicular) / 2
+        end
+    elseif IMAS.hasdata(d_ion, :pressure_fast_perpendicular)
+        dt_ion.pressure_fast_perpendicular = d_ion.pressure_fast_perpendicular
+    elseif IMAS.hasdata(t_ion, :pressure_fast_perpendicular)
+        dt_ion.pressure_fast_perpendicular = t_ion.pressure_fast_perpendicular
+    end
+
+    # Handle fast parallel pressure with density-weighted average
+    if IMAS.hasdata(d_ion, :pressure_fast_parallel) && IMAS.hasdata(t_ion, :pressure_fast_parallel)
+        if sum(abs.(total_density_fast)) > 1e-20
+            dt_ion.pressure_fast_parallel = @. (d_ion.density_fast * d_ion.pressure_fast_parallel +
+                t_ion.density_fast * t_ion.pressure_fast_parallel) /
+               (total_density_fast + 1e-20)
+        else
+            # If no fast density, just average the pressures
+            dt_ion.pressure_fast_parallel = @. (d_ion.pressure_fast_parallel +
+                                                t_ion.pressure_fast_parallel) / 2
+        end
+    elseif IMAS.hasdata(d_ion, :pressure_fast_parallel)
+        dt_ion.pressure_fast_parallel = d_ion.pressure_fast_parallel
+    elseif IMAS.hasdata(t_ion, :pressure_fast_parallel)
+        dt_ion.pressure_fast_parallel = t_ion.pressure_fast_parallel
+    end
+
+    # Preserve the lower index by placing DT there and removing the higher index
+    lower_idx = min(d_idx, t_idx)
+    higher_idx = max(d_idx, t_idx)
+
+    # Replace the ion at the lower index with the combined DT species
+    cp1d.ion[lower_idx] = dt_ion
+
+    # Remove the ion at the higher index
+    deleteat!(cp1d.ion, higher_idx)
+
+    @info "Bundled D and T species into DT species at index $lower_idx"
+
+    return cp1d
+end
+
+function bundle_DT!(cp::IMAS.core_profiles; d_label::String="D", t_label::String="T")
+    for cp1d in cp.profiles_1d
+        bundle_DT!(cp1d; d_label, t_label)
+    end
+    return cp
+end
+
+@compat public bundle_DT!
+push!(document[Symbol("Physics profiles")], :bundle_DT!)
 
 """
     new_impurity_fraction!(cp1d::IMAS.core_profiles__profiles_1d, impurity_name::Symbol, impurity_ne_fraction::Real)

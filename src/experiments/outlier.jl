@@ -212,7 +212,9 @@ function compute_robust_statistics(neighborhood::AbstractMatrix{Float64}, method
 end
 
 """
-    Huber weight function for robust estimation
+    huber_weights(x::Float64, k::Float64=1.345)
+
+Huber weight function for robust estimation
 """
 function huber_weights(x::Float64, k::Float64=1.345)
     if abs(x) <= k

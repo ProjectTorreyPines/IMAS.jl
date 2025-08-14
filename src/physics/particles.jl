@@ -1,5 +1,7 @@
 document[Symbol("Physics particles")] = Symbol[]
 
+import Random
+
 #= ======================================= =#
 #  Particle tracker in a toroidal geometry  #
 #= ======================================= =#
@@ -70,13 +72,13 @@ end
 push!(document[Symbol("Physics particles")], :Particle)
 
 """
-    define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+    define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int; random_seed::Int=0) where {T<:Real}
 
 Creates a vector of particles from a 1D source (psi_norm, source_1d) launching N particles.
 
 Returns also a scalar (I_per_trace) which is the intensity per trace.
 """
-function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int) where {T<:Real}
+function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}, source_1d::Vector{T}, N::Int; random_seed::Int=0) where {T<:Real}
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
 
     # in-plasma mask
@@ -107,19 +109,25 @@ function define_particles(eqt::IMAS.equilibrium__time_slice, psi_norm::Vector{T}
     source_2d .*= R .* (2π * (r[2] - r[1]) * (z[2] - z[1]))
 
     # cumulative distribution function
-    CDF = cumsum(source_2d)
+    source_2d_positive = max.(source_2d, 0.0)  # Ensure non-negative values
+    CDF = cumsum(source_2d_positive)
     I_per_trace = CDF[end] / N
+    if I_per_trace == 0.0
+        return (particles=Particle{Float64}[], I_per_trace=I_per_trace, dr=dr, dz=dz)
+    end
     CDF .= (CDF .- CDF[1]) ./ (CDF[end] - CDF[1])
-    ICDF = interp1d(CDF, range(1.0, length(CDF)), :linear)
+    positive_indices = findall(>(0.0), source_2d_positive)
+    cdf_values = @view(CDF[positive_indices])
+    ICDF = x -> positive_indices[searchsortedlast(cdf_values, x)]
 
     # particles structures
+    rng = Random.MersenneTwister(random_seed)
     particles = Vector{Particle{Float64}}(undef, N)
     for k in eachindex(particles)
-        dk = round(Int, ICDF(rand()), RoundUp)
-        ϕ = rand() * 2π # toroidal angle of position - put to 0 for 2D
-
-        θv = rand() * 2π            # toroidal angle of velocity - put to 0 for 2D
-        ϕv = acos(rand() * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand() * 2π
+        dk = ICDF(rand(rng))
+        ϕ = rand(rng) * 2π # toroidal angle of position - put to 0 for 2D
+        θv = rand(rng) * 2π # toroidal angle of velocity - put to 0 for 2D
+        ϕv = acos(rand(rng) * 2.0 - 1.0) # poloidal angle of velocity 0 <= ϕv <= π; comment for 2D and use ϕv = rand(rng) * 2π
 
         Rk = R[dk]
         Zk = Z[dk]
