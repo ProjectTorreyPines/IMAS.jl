@@ -574,6 +574,7 @@ end
 Model sawteeth by flattening all sources within the inversion radius rho0
 """
 function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
+    @assert rho0 <= 1.0
     cp1d = dd.core_profiles.profiles_1d[]
 
     # fill in sawteeth
@@ -611,7 +612,7 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
     α = 0.5
 
     # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
-    for (leaf,old_leaf) in zip(IMASdd.AbstractTrees.Leaves(source1d),IMASdd.AbstractTrees.Leaves(old_source1d))
+    for (leaf, old_leaf) in zip(IMASdd.AbstractTrees.Leaves(source1d), IMASdd.AbstractTrees.Leaves(old_source1d))
         @assert leaf.field == old_leaf.field
         if leaf.field in keys(_core_sources_value_keys)
             if leaf.field == :j_parallel
@@ -639,6 +640,29 @@ end
 
 @compat public sawteeth_source!
 push!(document[Symbol("Physics sources")], :sawteeth_source!)
+
+"""
+    sawteeth_profiles!(cp1d::IMAS.core_profiles__profiles_1d{T}, rho0::T) where {T<:Real}
+
+Model sawteeth by flattening core_profiles within the inversion radius rho0
+"""
+function sawteeth_profiles!(cp1d::IMAS.core_profiles__profiles_1d{T}, rho0::T) where {T<:Real}
+
+    @assert rho0 <= 1.0
+    width = min(rho0 / 4, 0.05)
+
+    α = 0.5
+
+    for leaf in IMAS.IMASdd.AbstractTrees.Leaves(cp1d)
+        if IMAS.hasdata(leaf.ids, leaf.field) && leaf.field in [:temperature, :density_thermal, :rotation_frequency_tor_sonic]
+            old_leaf_value = leaf.value
+            new_leaf_value = IMAS.flatten_profile!(copy(leaf.value), cp1d.grid.rho_tor_norm, cp1d.grid.volume, rho0, width) * α .+ old_leaf_value .* (1.0 .- α)
+            setproperty!(leaf.ids, leaf.field, new_leaf_value)
+        end
+    end
+
+    return cp1d
+end
 
 """
     new_source(

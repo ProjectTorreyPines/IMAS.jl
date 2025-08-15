@@ -63,9 +63,9 @@ function update_limits!(plot_extrema::PlotExtrema, y::AbstractVector{T}) where {
     return nothing
 end
 
-# ========= #
-# pf_active #
-# ========= #
+#= ========= =#
+#  pf_active  #
+#= ========= =#
 @recipe function plot_pf_active_cx(pfa::pf_active; what=:cx, time0=global_time(pfa), cname=:vik)
     id = recipe_dispatch(pfa)
     assert_type_and_record_argument(id, Symbol, "What to plot [:currents, :cx, :coils_flux]"; what)
@@ -233,7 +233,7 @@ end
     end
 end
 
-@recipe function plot_pf_active_rail(rails::IDSvector{<:IMAS.build__pf_active__rail})
+@recipe function plot_pf_active_rail(rails::AbstractVector{<:IMAS.build__pf_active__rail})
     for (krail, rail) in enumerate(rails)
         if !ismissing(rail.outline, :r)
             @series begin
@@ -329,7 +329,7 @@ end
     end
 end
 
-@recipe function plot_circuits(circuits::IMAS.IDSvector{<:IMAS.pf_active__circuit})
+@recipe function plot_circuits(circuits::AbstractVector{<:IMAS.pf_active__circuit})
     layout := RecipesBase.@layout length(circuits)
     for (kkk, circuit) in enumerate(circuits)
         @series begin
@@ -339,16 +339,16 @@ end
     end
 end
 
-# ========== #
-# pf_passive #
-# ========== #
+#= ========== =#
+#  pf_passive  #
+#= ========== =#
 @recipe function plot_pf_passive(pf_passive::IMAS.pf_passive)
     @series begin
         pf_passive.loop
     end
 end
 
-@recipe function plot_pf_passive(loops::IMAS.IDSvector{<:IMAS.pf_passive__loop})
+@recipe function plot_pf_passive(loops::AbstractVector{<:IMAS.pf_passive__loop})
     for loop in loops
         @series begin
             loop
@@ -390,9 +390,9 @@ end
     end
 end
 
-# ======= #
-# costing #
-# ======= #
+#= ======= =#
+#  costing  #
+#= ======= =#
 @recipe function plot_costing(cstdc::IMAS.costing__cost_direct_capital)
     cstdcM = convert(Measurement{eltype(cstdc)}, cstdc)
     @series begin
@@ -501,9 +501,9 @@ end
     end
 end
 
-# =========== #
-# equilibrium #
-# =========== #
+#= =========== =#
+#  equilibrium  #
+#= =========== =#
 @recipe function plot_eq(eq::IMAS.equilibrium; time0=global_time(eq))
     id = recipe_dispatch(eq)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
@@ -645,7 +645,7 @@ end
     end
 end
 
-@recipe function plot_eqt2dv(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
+@recipe function plot_eqt2dv(eqt2dv::AbstractVector{<:IMAS.equilibrium__time_slice___profiles_2d})
     if !isempty(eqt2dv)
         @series begin
             return eqt2dv[1]
@@ -835,7 +835,7 @@ end
     end
 end
 
-@recipe function plot_x_points(x_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__x_point})
+@recipe function plot_x_points(x_points::AbstractVector{<:IMAS.equilibrium__time_slice___boundary__x_point})
     for (k, x_point) in enumerate(x_points)
         @series begin
             markersize --> ((length(x_points) + 1 - k) / length(x_points)) * 4
@@ -855,7 +855,7 @@ end
     end
 end
 
-@recipe function plot_strike_points(s_points::IDSvector{<:IMAS.equilibrium__time_slice___boundary__strike_point})
+@recipe function plot_strike_points(s_points::AbstractVector{<:IMAS.equilibrium__time_slice___boundary__strike_point})
     for s_point in s_points
         @series begin
             s_point
@@ -884,16 +884,16 @@ end
     end
 end
 
-# ========= #
-# divertors #
-# ========= #
+#= ========= =#
+#  divertors  #
+#= ========= =#
 @recipe function plot_divertors(divertors::IMAS.divertors)
     @series begin
         divertors.divertor
     end
 end
 
-@recipe function plot_divertors(divertors::IDSvector{<:IMAS.divertors__divertor})
+@recipe function plot_divertors(divertors::AbstractVector{<:IMAS.divertors__divertor})
     for divertor in divertors
         @series begin
             divertor
@@ -907,7 +907,7 @@ end
     end
 end
 
-@recipe function plot_divertors(targets::IDSvector{<:IMAS.divertors__divertor___target})
+@recipe function plot_divertors(targets::AbstractVector{<:IMAS.divertors__divertor___target})
     for target in targets
         @series begin
             target
@@ -922,7 +922,7 @@ end
     end
 end
 
-@recipe function plot_divertors(tiles::IDSvector{<:IMAS.divertors__divertor___target___tile})
+@recipe function plot_divertors(tiles::AbstractVector{<:IMAS.divertors__divertor___target___tile})
     for tile in tiles
         @series begin
             tile
@@ -946,9 +946,9 @@ end
     end
 end
 
-# ===== #
-# build #
-# ===== #
+#= ===== =#
+#  build  #
+#= ===== =#
 function join_outlines(r1::AbstractVector{T}, z1::AbstractVector{T}, r2::AbstractVector{T}, z2::AbstractVector{T}) where {T<:Real}
     distance, i1, i2 = minimum_distance_polygons_vertices(r1, z1, r2, z2)
     r = vcat(reverse(r1[i1:end]), r2[i2:end], r2[1:i2], reverse(r1[1:i1]))
@@ -1049,7 +1049,7 @@ end
 
 end
 
-@recipe function plot_build_layer(layers::IDSvector{<:IMAS.build__layer}; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
+@recipe function plot_build_layer(layers::AbstractVector{<:IMAS.build__layer}; cx=true, wireframe=false, only=Symbol[], exclude_layers=Symbol[])
     id = recipe_dispatch(layers)
     assert_type_and_record_argument(id, Bool, "Plot cross section"; cx)
     assert_type_and_record_argument(id, Bool, "Use wireframe"; wireframe)
@@ -1322,9 +1322,9 @@ end
     end
 end
 
-# ======== #
-# build tf #
-# ======== #
+#= ======== =#
+#  build tf  #
+#= ======== =#
 @recipe function plot_build_tf(tf::IMAS.build__tf)
     layers = parent(tf).layer
     TF = get_build_layers(layers; type=IMAS._tf_)
@@ -1366,9 +1366,9 @@ end
     end
 end
 
-# ========= #
-# transport #
-# ========= #
+#= ========= =#
+#  transport  #
+#= ========= =#
 @recipe function plot_ct1d(ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
     @series begin
         markershape --> :none
@@ -1571,9 +1571,9 @@ end
     end
 end
 
-# ============ #
-# core_sources #
-# ============ #
+#= ============ =#
+#  core_sources  #
+#= ============ =#
 @recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema())
     return cs1d.electrons, Val(:energy), plot_extrema
 end
@@ -2138,9 +2138,9 @@ end
 
 end
 
-# ============= #
-# core_profiles #
-# ============= #
+#= ============= =#
+#  core_profiles  #
+#= ============= =#
 @recipe function plot_core_profiles(cp::IMAS.core_profiles; time0=global_time(cp))
     id = recipe_dispatch(cp)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
@@ -2362,9 +2362,9 @@ end
     end
 end
 
-# ============ #
-# ec_launchers #
-# ============ #
+#= ============ =#
+#  ec_launchers  #
+#= ============ =#
 function label(beam::IMAS.ec_launchers__beam)
     name = beam.name
     freq = frequency(beam.frequency)
@@ -2443,7 +2443,7 @@ end
     end
 end
 
-@recipe function plot_ec(beams::IDSvector{<:IMAS.ec_launchers__beam{T}}; time0::global_time(beams)) where {T<:Real}
+@recipe function plot_ec(beams::AbstractVector{<:IMAS.ec_launchers__beam{T}}; time0::global_time(beams)) where {T<:Real}
     id = recipe_dispatch(beams)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
 
@@ -2473,9 +2473,9 @@ end
     end
 end
 
-# === #
-# nbi #
-# === #
+#= === =#
+#  nbi  #
+#= === =#
 function label(unit::IMAS.nbi__unit)
     if !isempty(unit.beamlets_group) && !ismissing(unit.beamlets_group[1], :angle)
         angle_tor = unit.beamlets_group[1].direction * asin(unit.beamlets_group[1].tangency_radius / unit.beamlets_group[1].position.r) * 180 / pi
@@ -2573,9 +2573,9 @@ end
     end
 end
 
-# ===== #
-# waves #
-# ===== #
+#= ===== =#
+#  waves  #
+#= ===== =#
 @recipe function plot_waves_profiles_1d(wvc1d::IMAS.waves__coherent_wave___profiles_1d)
     layout := RecipesBase.@layout [1, 1]
     if !ismissing(parent(parent(wvc1d)).identifier, :antenna_name)
@@ -2712,7 +2712,7 @@ end
     end
 end
 
-@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave), time0=global_time(bts))
+@recipe function plot_wave(wv::IMAS.waves; max_beam=length(wv.coherent_wave), time0=global_time(wv))
     id = recipe_dispatch(wv)
     assert_type_and_record_argument(id, Int, "Maximum number of beams to show"; max_beam)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
@@ -2980,7 +2980,7 @@ end
     end
 end
 
-@recipe function plot_wd2d_list(wd2d_list::IDSvector{<:IMAS.wall__description_2d})
+@recipe function plot_wd2d_list(wd2d_list::AbstractVector{<:IMAS.wall__description_2d})
     for wd2d in wd2d_list
         @series begin
             return wd2d
@@ -3019,7 +3019,7 @@ end
 
 # --- Vessel
 
-@recipe function plot_wd2dvu_list(wd2dvu_list::IDSvector{<:IMAS.wall__description_2d___vessel__unit})
+@recipe function plot_wd2dvu_list(wd2dvu_list::AbstractVector{<:IMAS.wall__description_2d___vessel__unit})
     for wd2dvu in wd2dvu_list
         @series begin
             return wd2dvu
@@ -3090,7 +3090,7 @@ end
     end
 end
 
-@recipe function plot_wd2dvue(elements::IDSvector{<:IMAS.wall__description_2d___vessel__unit___element})
+@recipe function plot_wd2dvue(elements::AbstractVector{<:IMAS.wall__description_2d___vessel__unit___element})
     for (k, element) in enumerate(elements)
         @series begin
             primary := k == 1
@@ -3109,7 +3109,7 @@ end
 
 # --- Limiter
 
-@recipe function plot_wd2dlu_list(wd2dlu_list::IDSvector{<:IMAS.wall__description_2d___limiter__unit})
+@recipe function plot_wd2dlu_list(wd2dlu_list::AbstractVector{<:IMAS.wall__description_2d___limiter__unit})
     for wd2dlu in wd2dlu_list
         @series begin
             return wd2dlu
@@ -3314,7 +3314,7 @@ end
 #= =========== =#
 #  controllers  #
 #= =========== =#
-@recipe function plot_controllers(controller_outputs::controllers__linear_controller___outputs, k::Int)
+@recipe function plot_controllers(controller_outputs::IMAS.controllers__linear_controller___outputs, k::Int)
     controller = IMAS.parent(controller_outputs)
 
     data = controller.inputs.data[1, :]
@@ -3361,7 +3361,7 @@ end
 
 end
 
-@recipe function plot_controllers(controller_inputs::controllers__linear_controller___inputs, k::Int)
+@recipe function plot_controllers(controller_inputs::IMAS.controllers__linear_controller___inputs, k::Int)
     controller = IMAS.parent(controller_inputs)
     @series begin
         label := controller.input_names[k]
@@ -3369,7 +3369,7 @@ end
     end
 end
 
-@recipe function plot_controllers(controller::controllers__linear_controller)
+@recipe function plot_controllers(controller::IMAS.controllers__linear_controller)
     n = size(controller.inputs.data)[1] + size(controller.outputs.data)[1]
     layout := (n, 1)
     size --> (800, n * 300)
@@ -3439,7 +3439,7 @@ end
 #= ================== =#
 #  thomson_scattering  #
 #= ================== =#
-@recipe function plot_thomson(ts::thomson_scattering, what::Symbol; time0=global_time(ts), time_averaging=0.05, normalization=1.0)
+@recipe function plot_thomson(ts::IMAS.thomson_scattering, what::Symbol; time0=global_time(ts), time_averaging=0.05, normalization=1.0)
     @assert what in (:n_e, :t_e)
 
     @series begin
@@ -3462,7 +3462,7 @@ end
 #= =============== =#
 #  charge_exchange  #
 #= =============== =#
-@recipe function plot_charge_exchange(cer::charge_exchange, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0)
+@recipe function plot_charge_exchange(cer::IMAS.charge_exchange, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0)
     @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
 
     @series begin
@@ -3479,6 +3479,90 @@ end
         time_averaging := time_averaging
         normalization := normalization
         cer, Val(what)
+    end
+end
+
+#= ============== =#
+#  interferometer  #
+#= ============== =#
+@recipe function plot_interferometer_line_of_sight(icls::IMAS.interferometer__channel___line_of_sight; top=false)
+    id = recipe_dispatch(icls)
+    assert_type_and_record_argument(id, Bool, "Top view"; top)
+
+    label --> parent(icls).name
+
+    if isempty(icls.third_point)
+        if top
+            a1 = icls.first_point.r * cos(icls.first_point.phi)
+            a2 = icls.second_point.r * cos(icls.second_point.phi)
+            b1 = icls.first_point.r * sin(icls.first_point.phi)
+            b2 = icls.second_point.r * sin(icls.second_point.phi)
+        else
+            a1 = icls.first_point.r
+            a2 = icls.second_point.r
+            b1 = icls.first_point.z
+            b2 = icls.second_point.z
+        end
+
+        if a1 == a2 && b1 == b2
+            @series begin
+                seriestype := :scatter
+                [a1, a2], [b1, b2]
+            end
+        else
+            @series begin
+                [a1, a2], [b1, b2]
+            end
+        end
+
+    else
+        if top
+            a1 = icls.first_point.r * cos(icls.first_point.phi)
+            a2 = icls.second_point.r * cos(icls.second_point.phi)
+            a3 = icls.third_point.r * cos(icls.third_point.phi)
+            b1 = icls.first_point.r * sin(icls.first_point.phi)
+            b2 = icls.second_point.r * sin(icls.second_point.phi)
+            b3 = icls.third_point.r * sin(icls.third_point.phi)
+        else
+            a1 = icls.first_point.r
+            a2 = icls.second_point.r
+            a3 = icls.third_point.r
+            b1 = icls.first_point.z
+            b2 = icls.second_point.z
+            b3 = icls.third_point.z
+        end
+
+        if a1 == a2 == a3 && b1 == b2 == b3
+            @series begin
+                seriestype := :scatter
+                [a1], [b1]
+            end
+        else
+            @series begin
+                [a1, a2, a3], [b1, b2, b3]
+            end
+            @series begin
+                primary := false
+                seriestype := :scatter
+                marker := :square
+                markerstrokewidth := 0.0
+                [a2], [b2]
+            end
+        end
+    end
+end
+
+@recipe function plot_interferometer_line_of_sights(iclss::AbstractVector{<:IMAS.interferometer__channel___line_of_sight})
+    for icls in iclss
+        @series begin
+            icls
+        end
+    end
+end
+
+@recipe function plot_interferometer(ifrmtr::IMAS.interferometer)
+    @series begin
+        [ch.line_of_sight for ch in ifrmtr.channel]
     end
 end
 
@@ -3659,7 +3743,7 @@ end
     end
 end
 
-@recipe function plot_field(ids::IMAS.IDS, field::Symbol)
+@recipe function plot_field(ids::IDS, field::Symbol)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
 
     fType = fieldtype_typeof(ids, field)
@@ -3671,7 +3755,7 @@ end
     end
 end
 
-@recipe function plot_field_1d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_1d}; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
+@recipe function plot_field_1d(ids::IDS, field::Symbol, ::Val{:plt_1d}; normalization=1.0, coordinate=nothing, weighted=nothing, fill0=false)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
 
     id = recipe_dispatch(ids, field)
@@ -3682,7 +3766,9 @@ end
 
     coords = coordinates(ids, field; override_coord_leaves=[coordinate])
     coordinate_name = string(coords[1].field)
-    coordinate_value = getproperty(coords[1])
+    coordinate_value = getproperty(coords[1]; return_missing_time=true)
+
+    @assert coordinate_value !== missing "Missing coordinate for plotting $(coords[1])"
 
     # If the field is the reference coordinate of the given IDS,
     # set the coordinate_value as its index
@@ -3699,6 +3785,17 @@ end
 
     yvalue = yvalue .* normalization
 
+    # figure out a good label
+    lbl = join((name(ids), " ", field))
+    h = ids
+    while h !== nothing
+        if hasfield(typeof(h), :name) && hasdata(h, :name)
+            lbl = h.name
+            break
+        end
+        h = parent(h)
+    end
+
     @series begin
         background_color_legend := PlotUtils.Colors.RGBA(1.0, 1.0, 1.0, 0.6)
 
@@ -3711,10 +3808,10 @@ end
             weight = coordinates(ids, field; override_coord_leaves=[weighted])[1]
             yvalue .*= getproperty(weight)
             ylabel = nice_units(units(ids, field) * "*" * units(weight.field))
-            label = nice_field("$field*$weighted")
+            label = nice_field("$lbl*$weighted")
         else
             ylabel = nice_units(units(ids, field))
-            label = nice_field(field)
+            label = nice_field(lbl)
         end
 
         if coordinate_name == "1...N"
@@ -3744,13 +3841,13 @@ end
     end
 end
 
-@recipe function plot_field_1d_manyDDs(ids::IMAS.IDS, field::Symbol, DDs::AbstractVector{<:IMAS.dd})
+@recipe function plot_field_1d_manyDDs(ids::IDS, field::Symbol, DDs::AbstractVector{<:IMAS.dd})
     @series begin
         [IMAS.goto(dd, IMAS.location(ids)) for dd in DDs], field
     end
 end
 
-@recipe function plot_field_1d_manyIDSs(IDSs::Vector{<:IMAS.IDS}, field::Symbol; alpha_of_individual_lines=0.1, normalization=1.0, coordinate=nothing)
+@recipe function plot_field_1d_manyIDSs(IDSs::Vector{<:IDS}, field::Symbol; alpha_of_individual_lines=0.1, normalization=1.0, coordinate=nothing)
     id = recipe_dispatch(IDSs, field)
     assert_type_and_record_argument(id, Real, "Alpha  individual lines"; alpha_of_individual_lines)
     assert_type_and_record_argument(id, Union{Real,AbstractVector{<:Real}}, "Normalization factor"; normalization)
@@ -3781,7 +3878,7 @@ end
     end
 end
 
-@recipe function plot_field_2d(ids::IMAS.IDS, field::Symbol, ::Val{:plt_2d}; normalization=1.0, seriestype=:contourf)
+@recipe function plot_field_2d(ids::IDS, field::Symbol, ::Val{:plt_2d}; normalization=1.0, seriestype=:contourf)
     @assert hasfield(typeof(ids), field) "$(location(ids)) does not have field `$field`. Did you mean: $(keys(ids))"
 
     id = recipe_dispatch(ids, field)
