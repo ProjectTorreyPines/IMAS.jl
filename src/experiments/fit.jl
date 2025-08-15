@@ -25,14 +25,13 @@ Returns interpolation function for 2D data (rho, time) -> transformed_data
 NOTE: what is a Val{<:Symbol} that gets passed to the `getrawdata(what, dd)`
 """
 function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<:Function}
-    # get data
     time, rho, data_measurement = getdata(what, dd)
+    data_measurement = transform.(data_measurement)
+    return fit2d(time, rho, data_measurement)
+end
 
-    @assert eltype(data_measurement) <: Measurements.Measurement
-    @assert eltype(rho) <: T
-    @assert eltype(time) <: Float64
-
-    data = [d.val for d in data_measurement]
+function fit2d(time::Vector{Float64}, rho::Vector{T}, data_measurement::Vector{<:Measurements.Measurement}) where {T<:Real}
+    data = T[d.val for d in data_measurement]
     #data_σ = [d.err for d in data_measurement]
 
     # remove any NaN
@@ -44,8 +43,8 @@ function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<
         #data_σ = @views data_σ[index]
     end
 
-    itp = NaturalNeighbours.interpolate(rho, time, transform.(data))
-    # itp_σ = NaturalNeighbours.interpolate(rho, time, transform.(data_σ))
+    itp = NaturalNeighbours.interpolate(rho, time, data)
+    # itp_σ = NaturalNeighbours.interpolate(rho, time, data_σ)
 
     return itp #NaturalNeighboursMeasurementInterpolator(itp, itp_σ)
 end

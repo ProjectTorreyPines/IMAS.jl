@@ -12,7 +12,9 @@ Extract charge exchange spectroscopy data for ion temperature, impurity to elect
 
   - time_averaging: time averaging window size (required if time0 is specified)
 
-Returns NamedTuple with (:time, :rho, :data)
+Returns NamedTuple with (:time, :rho, :data, :weights)
+
+Data is always of type Measurements.Measurement
 """
 function getdata(
     what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
@@ -30,7 +32,7 @@ function getdata(
 
     data = Measurements.Measurement[]
     weights = Float64[]
-    time = Float64[]
+    times = Float64[]
     chr = T[]
     chz = T[]
     for ch in cer.channel
@@ -48,7 +50,7 @@ function getdata(
             else
                 append!(data, Measurements.measurement.(selection.data, selection.data .* 0.0))
             end
-            append!(time, selection.time)
+            append!(times, selection.time)
             append!(weights, selection.weights)
             append!(chr, ch.position.r.data[selection.idx_range])
             append!(chz, ch.position.z.data[selection.idx_range])
@@ -60,18 +62,18 @@ function getdata(
                 _data = Measurements.measurement.(_data, _data .* 0.0)
             end
             append!(data, _data)
-            append!(time, getproperty(ch_data, :time))
+            append!(times, getproperty(ch_data, :time))
             append!(chr, ch.position.r.data)
             append!(chz, ch.position.z.data)
         end
     end
 
     rho = chz .* 0.0
-    for time0 in unique(time)
+    for time0 in unique(times)
         i = nearest_causal_time(dd.equilibrium.time, time0; bounds_error=false).index
         eqt = dd.equilibrium.time_slice[i]
         r, z, RHO_interpolant = ρ_interpolant(eqt)
-        index = time .== time0
+        index = (times .== time0)
         rho[index] = RHO_interpolant.(chr[index], chz[index])
     end
 
@@ -81,7 +83,7 @@ function getdata(
         data = data .* n_e
     end
 
-    return (time=time, rho=rho, data=data, weights=weights)
+    return (time=times, rho=rho, data=data, weights=weights)
 end
 
 """
@@ -93,7 +95,9 @@ Extract Thomson scattering data for electron temperature or density.
 
   - time_averaging: time averaging window size (required if time0 is specified)
 
-Returns NamedTuple with time, rho coordinates, and data arrays. Data is always of type Measurements.Measurement
+Returns NamedTuple with (:time, :rho, :data, :weights)
+
+Data is always of type Measurements.Measurement
 """
 function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
@@ -105,7 +109,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
 
     data = Measurements.Measurement[]
     weights = Float64[]
-    time = Float64[]
+    times = Float64[]
     chr = T[]
     chz = T[]
     for ch in ts.channel
@@ -117,7 +121,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
             else
                 append!(data, Measurements.measurement.(selection.data, selection.data .* 0.0))
             end
-            append!(time, selection.time)
+            append!(times, selection.time)
             append!(weights, selection.weights)
             append!(chr, fill(ch.position.r, length(selection.time)))
             append!(chz, fill(ch.position.z, length(selection.time)))
@@ -129,20 +133,20 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
                 _data = Measurements.measurement.(_data, _data .* 0.0)
             end
             append!(data, _data)
-            append!(time, getproperty(ch_data, :time))
+            append!(times, getproperty(ch_data, :time))
             append!(chr, fill(ch.position.r, size(_data)))
             append!(chz, fill(ch.position.z, size(_data)))
         end
     end
 
     rho = chz .* 0.0
-    for t in unique(time)
+    for t in unique(times)
         i = nearest_causal_time(dd.equilibrium.time, t; bounds_error=false).index
         eqt = dd.equilibrium.time_slice[i]
         r, z, RHO_interpolant = ρ_interpolant(eqt)
-        index = time .== t
+        index = (times .== t)
         rho[index] = RHO_interpolant.(chr[index], chz[index])
     end
 
-    return (time=time, rho=rho, data=data, weights=weights)
+    return (time=times, rho=rho, data=data, weights=weights)
 end
