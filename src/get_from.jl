@@ -122,10 +122,10 @@ function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_
 end
 
 # ne_sep [m^-3]
-function get_from(dd::IMAS.dd, what::Type{Val{:ne_sep}}, from_where::Symbol; time0::Float64=dd.global_time)
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_sep}}, from_where::Symbol, rho_sep::Float64; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        return interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(1.0)
+        return cp1d.electrons.density_thermal[end]  # Last point is separatrix
     elseif from_where == :pulse_schedule
         if !ismissing(dd.pulse_schedule.density_control.n_e_separatrix, :reference)
             return get_time_array(dd.pulse_schedule.density_control.n_e_separatrix, :reference, time0, :linear)
@@ -135,6 +135,10 @@ function get_from(dd::IMAS.dd, what::Type{Val{:ne_sep}}, from_where::Symbol; tim
     return error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
 
+function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_sep}}, from_where::Symbol, rho_sep::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
+    rho_sep = 1.0 
+    return get_from(dd, what, from_where, rho_sep; time0)
+end
 
 Base.Docs.@doc """
     get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol; time0::Float64=dd.global_time)
