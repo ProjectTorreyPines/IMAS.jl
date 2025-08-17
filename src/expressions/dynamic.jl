@@ -130,6 +130,13 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
+dyexp["core_profiles.profiles_1d[:].q"] =
+    (; dd, profiles_1d, _...) -> begin
+        rho_tor_norm = profiles_1d.grid.rho_tor_norm
+        eqt1d = dd.equilibrium.time_slice[profiles_1d.time].profiles_1d
+        return interp1d(eqt1d.rho_tor_norm, eqt1d.q).(rho_tor_norm)
+    end
+
 dyexp["core_profiles.profiles_1d[:].zeff"] =
     (; dd, profiles_1d, _...) -> zeff(profiles_1d)
 
