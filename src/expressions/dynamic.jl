@@ -140,6 +140,12 @@ dyexp["core_profiles.profiles_1d[:].q"] =
 dyexp["core_profiles.profiles_1d[:].zeff"] =
     (; dd, profiles_1d, _...) -> zeff(profiles_1d)
 
+dyexp["core_profiles.profiles_1d[:].rotation_frequency_tor_sonic"] =
+    (; dd, profiles_1d, _...) -> ωtor2sonic(profiles_1d)
+
+dyexp["core_profiles.profiles_1d[:].ion[:].rotation_frequency_tor"] =
+    (; dd, profiles_1d, ion, _...) -> sonic2ωtor(profiles_1d, ion)
+
 #  core_profiles.global_quantities  #
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
     (; dd, core_profiles, _...) -> [Ip_non_inductive(cp1d, dd.equilibrium.time_slice[cp1d.time]) for cp1d in core_profiles.profiles_1d]

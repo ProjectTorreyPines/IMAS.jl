@@ -2150,6 +2150,44 @@ end
     end
 end
 
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing)
+    id = recipe_dispatch(cpt)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+
+    if only === nothing
+        layout := (1, 3)
+        size --> (1100, 290)
+        margin --> 5 * Measures.mm
+    end
+
+    if only === nothing || only == 1
+        @series begin
+            if only === nothing
+                subplot := 1
+            end
+            cpt, Val(:temperature)
+        end
+    end
+
+    if only === nothing || only == 2
+        @series begin
+            if only === nothing
+                subplot := 2
+            end
+            cpt, Val(:density)
+        end
+    end
+
+    if only === nothing || only == 3
+        @series begin
+            if only === nothing
+                subplot := 3
+            end
+            cpt, Val(:sonic_rotation)
+        end
+    end
+end
+
 @recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:electrons__temperature}; label="", thomson_scattering=false)
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
@@ -2167,6 +2205,7 @@ end
             dd = IMAS.top_dd(cpt)
             if !isempty(dd.thomson_scattering)
                 @series begin
+                    title --> "Temperatures"
                     time0 := cpt.time
                     dd.thomson_scattering, :t_e
                 end
@@ -2214,6 +2253,7 @@ end
             dd = IMAS.top_dd(cpt)
             if !isempty(dd.charge_exchange)
                 @series begin
+                    title --> "Temperatures"
                     markershape := :diamond
                     time0 := cpt.time
                     dd.charge_exchange, :t_i
@@ -2252,9 +2292,9 @@ end
     if thomson_scattering
         try
             dd = IMAS.top_dd(cpt)
-
             if !isempty(dd.thomson_scattering)
                 @series begin
+                    title --> "Densities"
                     time0 := cpt.time
                     dd.thomson_scattering, :n_e
                 end
@@ -2309,12 +2349,12 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:rotation}; label="")
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:sonic_rotation}; label="")
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
 
     @series begin
-        title --> "Rotation"
+        title --> "Sonic rotation"
         label := label
         if !ismissing(cpt, :rotation_frequency_tor_sonic)
             cpt, :rotation_frequency_tor_sonic
@@ -2324,40 +2364,31 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing)
-    id = recipe_dispatch(cpt)
-    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__toroidal_rotation}; label="", charge_exchange=false)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Overlay charge exchange data"; charge_exchange)
 
-    if only === nothing
-        layout := (1, 3)
-        size --> (1100, 290)
-        margin --> 5 * Measures.mm
+    @series begin
+        title --> "Toroidal rotation"
+        label := "Ions" * label
+        linestyle --> :dash
+        ylim --> (0, Inf)
+        cpt.ion[1], :rotation_frequency_tor
     end
 
-    if only === nothing || only == 1
-        @series begin
-            if only === nothing
-                subplot := 1
+    if charge_exchange
+        try
+            dd = IMAS.top_dd(cpt)
+            if !isempty(dd.charge_exchange)
+                @series begin
+                    title --> "Toroidal rotation"
+                    markershape := :circle
+                    time0 := cpt.time
+                    dd.charge_exchange, :ω_tor
+                end
             end
-            cpt, Val(:temperature)
-        end
-    end
-
-    if only === nothing || only == 2
-        @series begin
-            if only === nothing
-                subplot := 2
-            end
-            cpt, Val(:density)
-        end
-    end
-
-    if only === nothing || only == 3
-        @series begin
-            if only === nothing
-                subplot := 3
-            end
-            cpt, Val(:rotation)
+        catch
         end
     end
 end
@@ -3397,8 +3428,12 @@ end
     assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
     assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
 
-    time, rho, data, weights = getdata(what, top_dd(ids), time0, time_averaging)
-    data = data .* normalization
+    time, rho, data, weights, units = getdata(what, top_dd(ids), time0, time_averaging)
+    if normalization != 1.0
+        data = data .* normalization
+        units = "$normalization $units"
+    end
+    units = nice_units(units)
 
     if eltype(data) <: Measurements.Measurement
         data_σ = [d.err for d in data]
@@ -3412,6 +3447,7 @@ end
 
     if isempty(data_σ)
         @series begin
+            ylabel := "[$units]"
             label --> string(what)
             color := :transparent
             seriestype := :scatter
@@ -3425,6 +3461,7 @@ end
             primary := (k == 1)
             k += 1
             @series begin
+                ylabel := units
                 label --> string(what)
                 color := :transparent
                 seriestype := :scatter
@@ -3463,7 +3500,7 @@ end
 #  charge_exchange  #
 #= =============== =#
 @recipe function plot_charge_exchange(cer::IMAS.charge_exchange, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0)
-    @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
+    @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp, :ω_tor)
 
     @series begin
         label := "Charge exchange"
@@ -3984,7 +4021,8 @@ const nice_field_symbols = Dict()
 nice_field_symbols["rho_tor_norm"] = () -> latex_support() ? L"\rho" : "ρ"
 nice_field_symbols["psi"] = () -> latex_support() ? L"\psi" : "ψ"
 nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_\mathrm{N}" : "ψₙ"
-nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
+nice_field_symbols["rotation_frequency_tor_sonic"] = "Sonic rotation"
+nice_field_symbols["rotation_frequency_tor"] = "Toroidal rotation"
 nice_field_symbols["i_plasma"] = "Plasma current"
 nice_field_symbols["b_field_tor_vacuum_r"] = "B₀×R₀"
 nice_field_symbols["rho_tor_norm_width"] = "w₀"
@@ -4026,6 +4064,7 @@ function nice_units(units::String)
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
         units = replace(units, "." => s"\\,")
+        units = replace(units, " " => s"~")
         units = latex_support() ? L"[\mathrm{%$units}]" : "[$units]"
         units = " " * units
     end

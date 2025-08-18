@@ -1,6 +1,6 @@
 """
     getdata(
-        what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
+        what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp},Val{:ω_tor}},
         dd::IMAS.dd{T},
         time0::Union{Nothing,Float64}=nothing,
         time_averaging::Float64=0.0
@@ -12,12 +12,12 @@ Extract charge exchange spectroscopy data for ion temperature, impurity to elect
 
   - time_averaging: time averaging window size (required if time0 is specified)
 
-Returns NamedTuple with (:time, :rho, :data, :weights)
+Returns NamedTuple with (:time, :rho, :data, :weights, :units)
 
 Data is always of type Measurements.Measurement
 """
 function getdata(
-    what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp}},
+    what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp},Val{:ω_tor}},
     dd::IMAS.dd{T},
     time0::Union{Nothing,Float64}=nothing,
     time_averaging::Float64=0.0
@@ -37,34 +37,48 @@ function getdata(
     chz = T[]
     for ch in cer.channel
         if what == :n_imp
-            ch_data = getproperty(ch.ion[1], :n_i_over_n_e)
+            ch_data = ch.ion[1].n_i_over_n_e
+        elseif what ∈ (:v_tor, :ω_tor)
+            ch_data = ch.ion[1].velocity_tor
         elseif what == :zeff
-            ch_data = getproperty(ch, what)
+            ch_data = ch.zeff
         else
             ch_data = getproperty(ch.ion[1], what)
         end
-        if time0 !== nothing
-            selection = select_time_window(ch_data, :data, time0; window_size=time_averaging)
-            if hasdata(ch_data, :data_σ)
-                append!(data, Measurements.measurement.(selection.data, getproperty(ch_data, :data_σ)[selection.idx_range]))
+        if hasdata(ch_data, :data)
+            if time0 !== nothing
+                selection = select_time_window(ch_data, :data, time0; window_size=time_averaging)
+                v = selection.data
+                if hasdata(ch_data, :data_σ)
+                    σ = getproperty(ch_data, :data_σ)[selection.idx_range]
+                else
+                    σ = v .* 0.0
+                end
+                _data = Measurements.measurement.(v, σ)
+                if what == :ω_tor
+                    _data .= _data ./ ch.position.r.data[selection.idx_range]
+                end
+                append!(data, _data)
+                append!(times, selection.time)
+                append!(weights, selection.weights)
+                append!(chr, ch.position.r.data[selection.idx_range])
+                append!(chz, ch.position.z.data[selection.idx_range])
             else
-                append!(data, Measurements.measurement.(selection.data, selection.data .* 0.0))
+                v = getproperty(ch_data, :data)
+                if hasdata(ch_data, :data_σ)
+                    σ = getproperty(ch_data, :data_σ)
+                else
+                    σ = v .* 0.0
+                end
+                _data = Measurements.measurement.(v, σ)
+                if what == :ω_tor
+                    _data .= _data ./ ch.position.r.data
+                end
+                append!(data, _data)
+                append!(times, getproperty(ch_data, :time))
+                append!(chr, ch.position.r.data)
+                append!(chz, ch.position.z.data)
             end
-            append!(times, selection.time)
-            append!(weights, selection.weights)
-            append!(chr, ch.position.r.data[selection.idx_range])
-            append!(chz, ch.position.z.data[selection.idx_range])
-        else
-            _data = getproperty(ch_data, :data)
-            if hasdata(ch_data, :data_σ)
-                _data = Measurements.measurement.(_data, getproperty(ch_data, :data_σ))
-            else
-                _data = Measurements.measurement.(_data, _data .* 0.0)
-            end
-            append!(data, _data)
-            append!(times, getproperty(ch_data, :time))
-            append!(chr, ch.position.r.data)
-            append!(chz, ch.position.z.data)
         end
     end
 
@@ -83,7 +97,19 @@ function getdata(
         data = data .* n_e
     end
 
-    return (time=times, rho=rho, data=data, weights=weights)
+    if what == :t_i
+        units = "eV"
+    elseif what ∈ (:n_i_over_n_e, :zeff)
+        units = ""
+    elseif what == :n_imp
+        units = "m^-3"
+    elseif what == :ω_tor
+        units = "rad s^-1"
+    else
+        error("getdata() should not be here")
+    end
+
+    return (time=times, rho=rho, data=data, weights=weights, units=units)
 end
 
 """
@@ -148,5 +174,13 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
         rho[index] = RHO_interpolant.(chr[index], chz[index])
     end
 
-    return (time=times, rho=rho, data=data, weights=weights)
+    if what == :t_e
+        units = "eV"
+    elseif what == :n_e
+        units = "m^-3"
+    else
+        error("getdata() should not be here")
+    end
+
+    return (time=times, rho=rho, data=data, weights=weights, units=units)
 end
