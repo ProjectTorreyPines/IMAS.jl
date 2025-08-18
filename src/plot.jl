@@ -2150,9 +2150,11 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing, rotation_quantity=:toroidal)
     id = recipe_dispatch(cpt)
     assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    assert_type_and_record_argument(id, Symbol, "What rotation to plot, one of (:toroidal, :sonic)"; rotation_quantity)
+    @assert rotation_quantity in (:toroidal, :sonic)
 
     if only === nothing
         layout := (1, 3)
@@ -2183,7 +2185,11 @@ end
             if only === nothing
                 subplot := 3
             end
-            cpt, Val(:sonic_rotation)
+            if rotation_quantity == :toroidal
+                cpt, Val(:ions__toroidal_rotation)
+            elseif rotation_quantity == :sonic
+                cpt, Val(:sonic_rotation)
+            end
         end
     end
 end
