@@ -45,6 +45,51 @@ end
 push!(document[Symbol("Physics transport")], :profile_from_z_transport)
 
 """
+    profile_from_rotation_shear_transport(
+        profile_old::AbstractVector{<:Real},
+        rho::AbstractVector{<:Real},
+        transport_grid::AbstractVector{<:Real},
+        rotation_shear_transport_grid::AbstractVector{<:Real},
+        rotation_edge::Real=0.0)
+
+Updates rotation profile using the rotation shear given by rotation_shear_transport_grid
+
+We integrate dω/dr to get ω(r).
+
+The boundary condition for integration is at ρ = 1.0 with ω(1.0) = rotation_edge (default 0.0).
+"""
+function profile_from_rotation_shear_transport(
+    profile_old::AbstractVector{<:Real},
+    rho::AbstractVector{<:Real},
+    transport_grid::AbstractVector{<:Real},
+    rotation_shear_transport_grid::AbstractVector{<:Real},
+    rotation_edge::Real=0.0)
+
+    transport_indices = [IMAS.argmin_abs(rho, rho_x) for rho_x in transport_grid]
+
+    # Interpolate rotation shear to full grid from axis to edge
+    dw_dr = IMAS.interp1d([1; transport_indices; length(rho)], [0.0; rotation_shear_transport_grid; 0.0]).(1:length(rho))
+
+    # Set boundary condition at edge: ω(1.0) = rotation_edge
+    profile_new = similar(profile_old)
+    profile_new[end] = rotation_edge
+    
+    # Integrate rotation shear from edge inward to axis
+    # Integration: ω(rho) = ω(1.0) - ∫_{rho}^{1.0} (dω/dr') dr'
+    for i in (length(rho)-1):-1:1
+        # Trapezoidal integration: negative because we integrate inward
+        dw_avg = (dw_dr[i] + dw_dr[i+1]) / 2.0
+        dr = rho[i+1] - rho[i]
+        profile_new[i] = profile_new[i+1] - dw_avg * dr
+    end
+
+    return profile_new
+end
+
+@compat public profile_from_rotation_shear_transport
+push!(document[Symbol("Physics transport")], :profile_from_rotation_shear_transport)
+
+"""
     total_fluxes(
         core_transport::IMAS.core_transport{T},
         cp1d::IMAS.core_profiles__profiles_1d,
