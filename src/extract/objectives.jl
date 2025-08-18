@@ -81,7 +81,6 @@ end
 # ========================= #
 const ObjectiveFunctionsLibrary = OrderedCollections.OrderedDict{Symbol,ObjectiveFunction}()
 
-# Helper function for Greenwald fraction calculation
 function calculate_greenwald_fraction(dd::IMAS.dd)
     try
         eqt = dd.equilibrium.time_slice[]
@@ -96,7 +95,6 @@ function calculate_greenwald_fraction(dd::IMAS.dd)
     end
 end
 
-# Helper function for bootstrap fraction calculation
 function calculate_bootstrap_fraction(dd::IMAS.dd)
     try
         I_bootstrap = @ddtime(dd.summary.global_quantities.current_bootstrap.value)
