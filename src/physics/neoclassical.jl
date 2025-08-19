@@ -6,7 +6,7 @@ document[Symbol("Physics neoclassical")] = Symbol[]
 Calculates the Spitzer conductivity in [1/(Ω*m)]
 """
 function spitzer_conductivity(ne, Te, Zeff)
-    return @. 1.9012e4 * Te ^ 1.5 / (Zeff * (0.58 + 0.74 / (0.76 + Zeff)) * lnLambda_e(ne, Te))
+    return @. 1.9012e4 * Te^1.5 / (Zeff * (0.58 + 0.74 / (0.76 + Zeff)) * lnLambda_e(ne, Te))
 end
 
 @compat public spitzer_conductivity
@@ -344,7 +344,7 @@ Calculate the electron collisionality, ν_*e, as a dimensionless measure of the
 frequency of electron collisions relative to their characteristic transit frequency.
 """
 function nuestar(eqt::IMAS.equilibrium__time_slice{T}, cp1d::IMAS.core_profiles__profiles_1d{T};
-                 Zeff::Vector{T}=cp1d.zeff) where {T<:Real}
+    Zeff::Vector{T}=cp1d.zeff) where {T<:Real}
     rho = cp1d.grid.rho_tor_norm
     Te = cp1d.electrons.temperature
     ne = cp1d.electrons.density_thermal
@@ -436,11 +436,11 @@ function neo_conductivity(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
     # neo 2021
     f33teff =
         @. tf_itp(rho) / (
-            1 + 0.25 * (1 - 0.7 * tf_itp(rho)) * sqrt(nue) * (1 + 0.45 * (Zeff - 1) ^ 0.5) +
-            0.61 * (1 - 0.41 * tf_itp(rho)) * nue / Zeff ^ 0.5
+            1 + 0.25 * (1 - 0.7 * tf_itp(rho)) * sqrt(nue) * (1 + 0.45 * (Zeff - 1)^0.5) +
+            0.61 * (1 - 0.41 * tf_itp(rho)) * nue / Zeff^0.5
         )
 
-    F33 = @. 1 - (1 + 0.21 / Zeff) * f33teff + 0.54 / Zeff * f33teff ^ 2 - 0.33 / Zeff * f33teff ^ 3
+    F33 = @. 1 - (1 + 0.21 / Zeff) * f33teff + 0.54 / Zeff * f33teff^2 - 0.33 / Zeff * f33teff^3
 
     conductivity_parallel = spitzer_conductivity(ne, Te, Zeff) .* F33
 
@@ -465,3 +465,62 @@ end
 
 @compat public sawtooth_conductivity
 push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
+
+
+function ωtor2sonic(dd::IMAS.dd; ind::Int=0)
+    cp1d = dd.core_profiles.profiles_1d[]
+    return ωtor2sonic(cp1d; ind)
+end
+
+"""
+    ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0)
+
+Populates ExB rotation based on ion omega_tor assuming ωpol=0.0
+
+Returns the updated `cp1d` with `rotation_frequency_tor_sonic` populated and all ion rotation frequencies updated.
+
+`ind` is the ion species index to use as reference (0 = auto-select first non-zero rotation)
+"""
+function ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0) where {T<:Real}
+    if ind == 0
+        ind = findfirst(x -> !ismissing(x, :rotation_frequency_tor) && x.rotation_frequency_tor != 0, cp1d.ion)
+        if ind === nothing
+            return cp1d.rotation_frequency_tor_sonic = zero(T, cp1d.grid.rho_tor_norm)
+        end
+    end
+    ni = cp1d.ion[ind].density
+    zi = cp1d.ion[ind].z_ion
+    rot_freq = cp1d.ion[ind].rotation_frequency_tor
+    dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure)
+    cp1d.rotation_frequency_tor_sonic = @. rot_freq + dpi_dpsi / (ni * zi * IMAS.mks.e)
+    return sonic2ωtor(cp1d)
+end
+
+@compat public ωtor2sonic
+push!(document[Symbol("Physics neoclassical")], :ωtor2sonic)
+
+function sonic2ωtor(dd::IMAS.dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    return sonic2ωtor(cp1d)
+end
+
+"""
+    sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d)
+
+Populates ion ωtors based on ExB rotation assuming ωpol=0.0
+
+Uses the existing `rotation_frequency_tor_sonic` field to compute individual ion rotation frequencies.
+"""
+function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d)
+    ωExB = cp1d.rotation_frequency_tor_sonic
+    for ion in cp1d.ion
+        ni = ion.density
+        zi = ion.z_ion
+        dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure)
+        ion.rotation_frequency_tor = @. ωExB - dpi_dpsi / (ni * zi * IMAS.mks.e)
+    end
+    return cp1d
+end
+
+@compat public sonic2ωtor
+push!(document[Symbol("Physics neoclassical")], :sonic2ωtor)
