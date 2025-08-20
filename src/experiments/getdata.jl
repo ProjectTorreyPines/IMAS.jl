@@ -30,6 +30,8 @@ function getdata(
         @assert time_averaging > 0.0
     end
 
+    random_seed = 0
+    rng = Random.MersenneTwister(random_seed)
     data = Measurements.Measurement[]
     weights = Float64[]
     times = Float64[]
@@ -74,10 +76,15 @@ function getdata(
                 if what == :ω_tor
                     _data .= _data ./ ch.position.r.data
                 end
+                n = length(_data)
                 append!(data, _data)
                 append!(times, getproperty(ch_data, :time))
-                append!(chr, ch.position.r.data)
-                append!(chz, ch.position.z.data)
+                append!(chr, ch.position.r.data .+ randn(rng, n) .* 1E-6)
+                append!(chz, ch.position.z.data .+ randn(rng, n) .* 1E-6)
+                # note we add a small random variation on top of the R and Z channels
+                # because in some situations (eg. DIII-D shot 200000) different CER
+                # channels can have the same exact spatial location, which messes
+                # up the DelaunayTriangulation in the NaturalNeighbours interpolator.
             end
         end
     end
