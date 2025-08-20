@@ -11,6 +11,7 @@ document[Symbol("Physics transport")] = Symbol[]
 Updates profile_old with the scale lengths given by z_transport_grid
 
 If `rho_ped > transport_grid[end]` then scale-length is linearly interpolated between `transport_grid[end]` and `rho_ped`
+
 if `rho_ped < transport_grid[end]` then scale-length then boundary condition is at `transport_grid[end]`
 """
 function profile_from_z_transport(
@@ -50,33 +51,49 @@ push!(document[Symbol("Physics transport")], :profile_from_z_transport)
         rho::AbstractVector{<:Real},
         transport_grid::AbstractVector{<:Real},
         rotation_shear_transport_grid::AbstractVector{<:Real},
-        rotation_edge::Real=0.0)
+        rho_ped::Real=0.0)
 
 Updates rotation profile using the rotation shear given by rotation_shear_transport_grid
 
 We integrate dω/dr to get ω(r).
 
-The boundary condition for integration is at ρ = 1.0 with ω(1.0) = rotation_edge (default 0.0).
+If `rho_ped > transport_grid[end]` then rotation shear is linearly interpolated between `transport_grid[end]` and `rho_ped`
+
+If `rho_ped < transport_grid[end]` then boundary condition is at `transport_grid[end]`
 """
 function profile_from_rotation_shear_transport(
     profile_old::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     transport_grid::AbstractVector{<:Real},
     rotation_shear_transport_grid::AbstractVector{<:Real},
-    rotation_edge::Real=0.0)
+    rho_ped::Real=0.0)
 
     transport_indices = [IMAS.argmin_abs(rho, rho_x) for rho_x in transport_grid]
-
-    # Interpolate rotation shear to full grid from axis to edge
-    dw_dr = IMAS.interp1d([1; transport_indices; length(rho)], [0.0; rotation_shear_transport_grid; 0.0]).(1:length(rho))
-
-    # Set boundary condition at edge: ω(1.0) = rotation_edge
-    profile_new = similar(profile_old)
-    profile_new[end] = rotation_edge
+    index_ped = IMAS.argmin_abs(rho, rho_ped)
+    index_last = transport_indices[end]
     
-    # Integrate rotation shear from edge inward to axis
-    # Integration: ω(rho) = ω(1.0) - ∫_{rho}^{1.0} (dω/dr') dr'
-    for i in (length(rho)-1):-1:1
+    if index_ped > index_last
+        # If rho_ped is beyond transport_grid[end], extend interpolation
+        dw_dr_old = gradient(rho, profile_old; method=:backward)
+        transport_indices = vcat(1, transport_indices, index_ped)
+        rotation_shear_transport_grid = vcat(0.0, rotation_shear_transport_grid, dw_dr_old[index_ped])
+    else
+        # If rho_ped is within transport_grid, use transport_grid[end] as boundary
+        transport_indices = vcat(1, transport_indices)
+        rotation_shear_transport_grid = vcat(0.0, rotation_shear_transport_grid)
+    end
+
+    # Interpolate rotation shear to the integration range
+    dw_dr = IMAS.interp1d(transport_indices, rotation_shear_transport_grid).(1:index_last)
+
+    # Set up the profile
+    profile_new = similar(profile_old)
+    profile_new[index_last:end] .= @views profile_old[index_last:end]
+    
+    # Integrate rotation shear from boundary inward to axis
+    # Integration: ω(rho) = ω(rho_boundary) - ∫_{rho}^{rho_boundary} (dω/dr') dr'
+    profile_new[index_last] = profile_old[index_last]
+    for i in (index_last-1):-1:1
         # Trapezoidal integration: negative because we integrate inward
         dw_avg = (dw_dr[i] + dw_dr[i+1]) / 2.0
         dr = rho[i+1] - rho[i]
