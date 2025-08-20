@@ -2213,6 +2213,7 @@ end
                 @series begin
                     title --> "Temperatures"
                     time0 := cpt.time
+                    xlim --> (0.0, 1.0)
                     dd.thomson_scattering, :t_e
                 end
             end
@@ -2262,6 +2263,7 @@ end
                     title --> "Temperatures"
                     markershape := :diamond
                     time0 := cpt.time
+                    xlim --> (0.0, 1.0)
                     dd.charge_exchange, :t_i
                 end
             end
@@ -2302,6 +2304,7 @@ end
                 @series begin
                     title --> "Densities"
                     time0 := cpt.time
+                    xlim --> (0.0, 1.0)
                     dd.thomson_scattering, :n_e
                 end
             end
@@ -2391,6 +2394,7 @@ end
                     title --> "Toroidal rotation"
                     markershape := :circle
                     time0 := cpt.time
+                    xlim --> (0.0, 1.0)
                     dd.charge_exchange, :ω_tor
                 end
             end
