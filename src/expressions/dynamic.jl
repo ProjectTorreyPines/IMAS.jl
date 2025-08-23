@@ -1,6 +1,6 @@
 import IMASutils: trapz, cumtrapz
 
-function IMASdd.get_expressions(::Type{Val{:dynamic}})
+function IMASdd.get_expressions(::Val{:dynamic})
     return dynamic_expressions
 end
 
