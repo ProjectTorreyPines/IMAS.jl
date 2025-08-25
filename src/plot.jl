@@ -2071,8 +2071,9 @@ end
         end
     end
 
+    # find plot extrema for each of the channels
     plots_extrema = PlotExtrema[]
-    all_indexes = [source.identifier.index for source in cs.source]
+    all_indexes = Int[source.identifier.index for source in cs.source]
     exclude_indexes = Int[]
     if aggregate_radiation
         append!(exclude_indexes, index_radiation_sources)
@@ -2094,45 +2095,45 @@ end
 
     if dd !== nothing
         if aggregate_radiation
-            rad_source = IMAS.core_sources__source{T}()
-            resize!(rad_source.profiles_1d, 1)
-            merge!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
-            rad_source.identifier.index = 200
-            rad_source.identifier.name = "radiation"
+            tmp_source = IMAS.core_sources__source{T}()
+            push!(tmp_source.profiles_1d, total_radiation_sources(dd; time0))
+            tmp_source.identifier.index = 200
+            tmp_source.identifier.name = "radiation"
             @series begin
                 color := :orange
                 ions := ions
-                rad_source, plots_extrema
+                hold_on_to_this_to_avoid_GC := tmp_source
+                tmp_source, plots_extrema
             end
         end
 
         if aggregate_hcd
             for (source_type, color) in ((:ec, :blue), (:ic, :green), (:lh, :magenta), (:nbi, :red), (:pellet, :purple))
-                hcd_source = IMAS.core_sources__source{T}()
-                idx = name_2_index(hcd_source)[source_type]
-                resize!(hcd_source.profiles_1d, 1)
-                merge!(hcd_source.profiles_1d[1], total_sources(dd; time0, include_indexes=[idx]))
-                hcd_source.identifier.index = idx
-                hcd_source.identifier.name = "$source_type"
+                idx = name_2_index(tmp_source)[source_type]
+                tmp_source = IMAS.core_sources__source{T}()
+                push!(tmp_source.profiles_1d, total_sources(dd; time0, include_indexes=[idx]))
+                tmp_source.identifier.index = idx
+                tmp_source.identifier.name = "$source_type"
                 @series begin
                     color := color
                     ions := ions
-                    hcd_source, plots_extrema
+                    hold_on_to_this_to_avoid_GC := tmp_source
+                    tmp_source, plots_extrema
                 end
             end
         end
 
-        tot_source = IMAS.core_sources__source{T}()
-        resize!(tot_source.profiles_1d, 1)
-        merge!(tot_source.profiles_1d[1], total_sources(dd; time0))
-        tot_source.identifier.index = 1
-        tot_source.identifier.name = "total"
+        tmp_source = IMAS.core_sources__source{T}()
+        push!(tmp_source.profiles_1d, total_sources(dd; time0))
+        tmp_source.identifier.index = 1
+        tmp_source.identifier.name = "total"
         @series begin
             linewidth := 2
             color := :black
             min_power := 0.0
             ions := ions
-            tot_source, plots_extrema
+            hold_on_to_this_to_avoid_GC := tmp_source
+            tmp_source, plots_extrema
         end
     end
 
