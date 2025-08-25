@@ -361,7 +361,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     IMAS.refreeze!(cp1d, :pressure_ion_total)
     IMAS.refreeze!(cp1d, :pressure_parallel)
     IMAS.refreeze!(cp1d, :pressure_perpendicular)
-    return IMAS.refreeze!(cp1d, :pressure)
+    IMAS.refreeze!(cp1d, :pressure)
 
     # must decide how to handle quasineutrality
 end
