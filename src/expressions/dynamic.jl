@@ -1,11 +1,17 @@
 import IMASutils: trapz, cumtrapz
 
-function IMASdd.get_expressions(::Type{Val{:dynamic}})
-    return dynamic_expressions
-end
-
 const dynamic_expressions = Dict{String,Function}()
 dyexp = dynamic_expressions
+
+# Register the reference into IMASdd
+if isdefined(IMASdd, :set_dynamic_expressions)
+    IMASdd.set_dynamic_expressions(dynamic_expressions)
+else
+    # TODO: Remove.
+    function IMASdd.get_expressions(::Type{Val{:dynamic}})
+        return dynamic_expressions
+    end
+end
 
 #= =========== =#
 # core_profiles #

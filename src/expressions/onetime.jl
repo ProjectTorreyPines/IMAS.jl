@@ -1,11 +1,17 @@
 document[:Expressions] = Symbol[]
 
-function IMASdd.get_expressions(::Type{Val{:onetime}})
-    return onetime_expressions
-end
-
 const onetime_expressions = Dict{String,Function}()
 otexp = onetime_expressions
+
+# Register the reference into IMASdd
+if isdefined(IMASdd, :set_onetime_expressions)
+    IMASdd.set_onetime_expressions(onetime_expressions)
+else
+    # TODO: Remove.
+    function IMASdd.get_expressions(::Type{Val{:dynamic}})
+        return dynamic_expressions
+    end
+end
 
 # These expressions are frozen the first time they are accessed.
 # This is necessary to ensure that core_profiles, core_sources, and core_transport grids do not change after changing the equilibrium.
