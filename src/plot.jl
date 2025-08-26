@@ -17,13 +17,14 @@ end
 #  PlotExtrema  #
 #= =========== =#
 mutable struct PlotExtrema
+    ids::IMAS.IDS # reference to top level IDS to avoid garbage collection
     yext::Vector{Float64} # the extrema of y that are observed
     ylim::Vector{Float64} # the y limits of the plot
     active::Bool # should the y limits be touched
 end
 
-function PlotExtrema()
-    return PlotExtrema([Inf, -Inf], [-Inf, Inf], false)
+function PlotExtrema(ids)
+    return PlotExtrema(ids, [Inf, -Inf], [-Inf, Inf], false)
 end
 
 """
@@ -1369,7 +1370,11 @@ end
 #= ========= =#
 #  transport  #
 #= ========= =#
-@recipe function plot_ct1d(ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__electrons__energy)
+)
     @series begin
         markershape --> :none
         title := "Electron energy flux"
@@ -1380,7 +1385,11 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__total_ion_energy::IMAS.core_transport__model___profiles_1d___total_ion_energy, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__total_ion_energy::IMAS.core_transport__model___profiles_1d___total_ion_energy,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__total_ion_energy)
+)
     @series begin
         markershape --> :none
         title := "Total ion energy flux"
@@ -1391,7 +1400,11 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__electrons__particles::IMAS.core_transport__model___profiles_1d___electrons__particles, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__electrons__particles::IMAS.core_transport__model___profiles_1d___electrons__particles,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__electrons__particles)
+)
     @series begin
         update_limits!(plot_extrema, ct1d__electrons__particles.flux)
         if plot_extrema.active
@@ -1405,7 +1418,11 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__ion___particles::IMAS.core_transport__model___profiles_1d___ion___particles, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__ion___particles::IMAS.core_transport__model___profiles_1d___ion___particles,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__ion___particles)
+)
     ion = parent(ct1d__ion___particles)
     @series begin
         update_limits!(plot_extrema, ct1d__ion___particles.flux)
@@ -1420,7 +1437,7 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__momentum_tor::IMAS.core_transport__model___profiles_1d___momentum_tor, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(ct1d__momentum_tor::IMAS.core_transport__model___profiles_1d___momentum_tor, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema(ct1d__momentum_tor))
     @series begin
         markershape --> :none
         title := "Momentum flux"
@@ -1574,11 +1591,8 @@ end
 #= ============ =#
 #  core_sources  #
 #= ============ =#
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema())
-    return cs1d.electrons, Val(:energy), plot_extrema
-end
-
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(
+    cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1588,7 +1602,7 @@ end
     only_positive_negative=0,
     show_source_number=false)
 
-    id = recipe_dispatch(cs1de, v)
+    id = recipe_dispatch(cs1d, v)
     assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
@@ -1598,7 +1612,8 @@ end
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de; error_parent_of_nothing=true)
+    #    cs1d = parent(cs1de; error_parent_of_nothing=true)
+    cs1de = cs1d.electrons
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
@@ -1643,7 +1658,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1707,11 +1722,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles}, plot_extrema::PlotExtrema=PlotExtrema())
-    return cs1d.electrons, Val(:particles), plot_extrema
-end
-
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1719,7 +1730,7 @@ end
     show_zeros=false,
     show_source_number=false)
 
-    id = recipe_dispatch(cs1de, v)
+    id = recipe_dispatch(cs1d, v)
     assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
@@ -1727,7 +1738,7 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de; error_parent_of_nothing=true)
+    cs1de = cs1d.electrons
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
@@ -1780,7 +1791,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema(cs1di);
     name="",
     label="",
     integrated=false,
@@ -1849,7 +1860,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1905,7 +1916,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -2013,7 +2024,7 @@ end
     for (k, path) in enumerate(paths)
         if length(plots_extrema) < k
             resize!(plots_extrema, k)
-            plots_extrema[k] = PlotExtrema()
+            plots_extrema[k] = PlotExtrema(cs1d)
         end
         if k == only || only === nothing
             @series begin
@@ -2102,7 +2113,6 @@ end
             @series begin
                 color := :orange
                 ions := ions
-                hold_on_to_this_to_avoid_GC := tmp_source
                 tmp_source, plots_extrema
             end
         end
@@ -2117,7 +2127,6 @@ end
                 @series begin
                     color := color
                     ions := ions
-                    hold_on_to_this_to_avoid_GC := tmp_source
                     tmp_source, plots_extrema
                 end
             end
@@ -2132,11 +2141,9 @@ end
             color := :black
             min_power := 0.0
             ions := ions
-            hold_on_to_this_to_avoid_GC := tmp_source
             tmp_source, plots_extrema
         end
     end
-
 end
 
 #= ============= =#
