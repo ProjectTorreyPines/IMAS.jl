@@ -3440,6 +3440,7 @@ end
 #= ======= =#
 #  getdata  #
 #= ======= =#
+# plotting of experimental data. For now: thomson_scattering and charge_exchange
 @recipe function plot_getdata(ids::IDS, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
     id = recipe_dispatch(ids)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
@@ -3476,9 +3477,9 @@ end
         k = 1
         for w in unique(weights)
             index = findall(==(w), weights)
-            primary := (k == 1)
             k += 1
             @series begin
+                primary --> (k == 1)
                 ylabel := units
                 label --> string(what)
                 color := :transparent
@@ -3508,6 +3509,7 @@ end
     @series begin
         time0 := time0
         label := ""
+        primary := false
         time_averaging := time_averaging
         normalization := normalization
         ts, Val(what)
@@ -3531,6 +3533,7 @@ end
     @series begin
         time0 := time0
         label := ""
+        primary := false
         time_averaging := time_averaging
         normalization := normalization
         cer, Val(what)
