@@ -3,9 +3,6 @@ document[:Expressions] = Symbol[]
 const onetime_expressions = Dict{String,Function}()
 otexp = onetime_expressions
 
-# Register the reference into IMASdd
-IMASdd.set_onetime_expressions(onetime_expressions)
-
 # These expressions are frozen the first time they are accessed.
 # This is necessary to ensure that core_profiles, core_sources, and core_transport grids do not change after changing the equilibrium.
 # The idea is that we want to freeze in the core_profiles, core_sources, and core_transport grids the rho, psi, volume, area, ... info that were used when those IDSs were filled.

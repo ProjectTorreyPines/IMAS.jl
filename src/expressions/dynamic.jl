@@ -3,9 +3,6 @@ import IMASutils: trapz, cumtrapz
 const dynamic_expressions = Dict{String,Function}()
 dyexp = dynamic_expressions
 
-# Register the reference into IMASdd
-IMASdd.set_dynamic_expressions(dynamic_expressions)
-
 #= =========== =#
 # core_profiles #
 #= =========== =#
