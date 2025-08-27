@@ -1,11 +1,17 @@
 import IMASutils: trapz, cumtrapz
 
-function IMASdd.get_expressions(::Val{:dynamic})
-    return dynamic_expressions
-end
-
 const dynamic_expressions = Dict{String,Function}()
 dyexp = dynamic_expressions
+
+# Register the reference into IMASdd
+if isdefined(IMASdd, :set_dynamic_expressions)
+    IMASdd.set_dynamic_expressions(dynamic_expressions)
+else
+    # TODO: Remove.
+    function IMASdd.get_expressions(::Type{Val{:dynamic}})
+        return dynamic_expressions
+    end
+end
 
 #= =========== =#
 # core_profiles #
@@ -15,17 +21,17 @@ dyexp = dynamic_expressions
 
 dyexp["core_profiles.profiles_1d[:].electrons.density"] =
     (; profiles_1d, electrons, _...) -> begin
-        if !hasdata(electrons, :density_thermal) && !hasdata(electrons, :density_fast)
-            rho_tor_norm = profiles_1d.grid.rho_tor_norm
-            return zero(rho_tor_norm)
-        elseif !hasdata(electrons, :density_thermal) && hasdata(electrons, :density_fast)
-            return electrons.density_fast
-        elseif hasdata(electrons, :density_thermal) && !hasdata(electrons, :density_fast)
-            return electrons.density_thermal
-        else
-            return electrons.density_thermal .+ electrons.density_fast
-        end
+    if !hasdata(electrons, :density_thermal) && !hasdata(electrons, :density_fast)
+        rho_tor_norm = profiles_1d.grid.rho_tor_norm
+        return zero(rho_tor_norm)
+    elseif !hasdata(electrons, :density_thermal) && hasdata(electrons, :density_fast)
+        return electrons.density_fast
+    elseif hasdata(electrons, :density_thermal) && !hasdata(electrons, :density_fast)
+        return electrons.density_thermal
+    else
+        return electrons.density_thermal .+ electrons.density_fast
     end
+end
 
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
     (; electrons, _...) -> pressure_thermal(electrons)
@@ -116,7 +122,7 @@ dyexp["core_profiles.profiles_1d[:].j_total"] =
     (; dd, profiles_1d, _...) -> begin
         if hasdata(profiles_1d, :j_ohmic)
             return profiles_1d.j_ohmic .+ profiles_1d.j_non_inductive
-        elseif !isempty(dd.equilibrium.time) && profiles_1d.time >= dd.equilibrium.time[1]
+        elseif !isempty(dd.equilibrium.time) && profiles_1d.time>=dd.equilibrium.time[1]
             rho_tor_norm = profiles_1d.grid.rho_tor_norm
             eqt1d = dd.equilibrium.time_slice[profiles_1d.time].profiles_1d
             return interp1d(eqt1d.rho_tor_norm, eqt1d.j_parallel).(rho_tor_norm)
@@ -130,23 +136,11 @@ dyexp["core_profiles.profiles_1d[:].j_tor"] =
         Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_total, true, eqt)
     end
 
-dyexp["core_profiles.profiles_1d[:].q"] =
-    (; dd, profiles_1d, _...) -> begin
-        rho_tor_norm = profiles_1d.grid.rho_tor_norm
-        eqt1d = dd.equilibrium.time_slice[profiles_1d.time].profiles_1d
-        return interp1d(eqt1d.rho_tor_norm, eqt1d.q).(rho_tor_norm)
-    end
-
 dyexp["core_profiles.profiles_1d[:].zeff"] =
     (; dd, profiles_1d, _...) -> zeff(profiles_1d)
 
-dyexp["core_profiles.profiles_1d[:].rotation_frequency_tor_sonic"] =
-    (; dd, profiles_1d, _...) -> ωtor2sonic(profiles_1d)
-
-dyexp["core_profiles.profiles_1d[:].ion[:].rotation_frequency_tor"] =
-    (; dd, profiles_1d, ion, _...) -> sonic2ωtor(profiles_1d, ion)
-
 #  core_profiles.global_quantities  #
+
 dyexp["core_profiles.global_quantities.current_non_inductive"] =
     (; dd, core_profiles, _...) -> [Ip_non_inductive(cp1d, dd.equilibrium.time_slice[cp1d.time]) for cp1d in core_profiles.profiles_1d]
 
@@ -540,12 +534,6 @@ dyexp["limits.all_cleared"] =
         end
         return all_cleared
     end
-
-#= ============== =#
-#  interferometer  #
-#= ============== =#
-dyexp["interferometer.channel[:].n_e_line_average.data"] = (; channel, _...) -> channel.n_e_line.data ./ lenght_line_of_sight(channel.line_of_sight)
-dyexp["interferometer.channel[:].n_e_line_average.time"] = (; channel, _...) -> channel.n_e_line.time
 
 #= ======= =#
 #  summary  #
