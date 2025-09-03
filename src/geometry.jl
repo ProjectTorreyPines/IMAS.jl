@@ -219,14 +219,6 @@ function intersects(
     l1_y::AbstractVector{<:Real},
     l2_x::AbstractVector{<:Real},
     l2_y::AbstractVector{<:Real})
-    return intersects(promote(l1_x, l1_y, l2_x, l2_y)...)
-end
-
-function intersects(
-    l1_x::AbstractVector{T},
-    l1_y::AbstractVector{T},
-    l2_x::AbstractVector{T},
-    l2_y::AbstractVector{T})::Bool where {T<:Real}
 
     @assert length(l1_x) == length(l1_y)
     @assert length(l2_x) == length(l2_y)
