@@ -1,9 +1,5 @@
 import IMASutils: trapz, cumtrapz
 
-function IMASdd.get_expressions(::Type{Val{:dynamic}})
-    return dynamic_expressions
-end
-
 const dynamic_expressions = Dict{String,Function}()
 dyexp = dynamic_expressions
 
@@ -139,6 +135,12 @@ dyexp["core_profiles.profiles_1d[:].q"] =
 
 dyexp["core_profiles.profiles_1d[:].zeff"] =
     (; dd, profiles_1d, _...) -> zeff(profiles_1d)
+
+dyexp["core_profiles.profiles_1d[:].rotation_frequency_tor_sonic"] =
+    (; dd, profiles_1d, _...) -> ωtor2sonic(profiles_1d)
+
+dyexp["core_profiles.profiles_1d[:].ion[:].rotation_frequency_tor"] =
+    (; dd, profiles_1d, ion, _...) -> sonic2ωtor(profiles_1d, ion)
 
 #  core_profiles.global_quantities  #
 dyexp["core_profiles.global_quantities.current_non_inductive"] =

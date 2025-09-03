@@ -17,13 +17,14 @@ end
 #  PlotExtrema  #
 #= =========== =#
 mutable struct PlotExtrema
+    ids::IMAS.IDS # reference to top level IDS to avoid garbage collection
     yext::Vector{Float64} # the extrema of y that are observed
     ylim::Vector{Float64} # the y limits of the plot
     active::Bool # should the y limits be touched
 end
 
-function PlotExtrema()
-    return PlotExtrema([Inf, -Inf], [-Inf, Inf], false)
+function PlotExtrema(ids)
+    return PlotExtrema(ids, [Inf, -Inf], [-Inf, Inf], false)
 end
 
 """
@@ -1369,7 +1370,11 @@ end
 #= ========= =#
 #  transport  #
 #= ========= =#
-@recipe function plot_ct1d(ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__electrons__energy::IMAS.core_transport__model___profiles_1d___electrons__energy,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__electrons__energy)
+)
     @series begin
         markershape --> :none
         title := "Electron energy flux"
@@ -1380,7 +1385,11 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__total_ion_energy::IMAS.core_transport__model___profiles_1d___total_ion_energy, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__total_ion_energy::IMAS.core_transport__model___profiles_1d___total_ion_energy,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__total_ion_energy)
+)
     @series begin
         markershape --> :none
         title := "Total ion energy flux"
@@ -1391,7 +1400,11 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__electrons__particles::IMAS.core_transport__model___profiles_1d___electrons__particles, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__electrons__particles::IMAS.core_transport__model___profiles_1d___electrons__particles,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__electrons__particles)
+)
     @series begin
         update_limits!(plot_extrema, ct1d__electrons__particles.flux)
         if plot_extrema.active
@@ -1405,7 +1418,11 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__ion___particles::IMAS.core_transport__model___profiles_1d___ion___particles, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(
+    ct1d__ion___particles::IMAS.core_transport__model___profiles_1d___ion___particles,
+    ::Val{:flux},
+    plot_extrema::PlotExtrema=PlotExtrema(ct1d__ion___particles)
+)
     ion = parent(ct1d__ion___particles)
     @series begin
         update_limits!(plot_extrema, ct1d__ion___particles.flux)
@@ -1420,7 +1437,7 @@ end
     end
 end
 
-@recipe function plot_ct1d(ct1d__momentum_tor::IMAS.core_transport__model___profiles_1d___momentum_tor, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema())
+@recipe function plot_ct1d(ct1d__momentum_tor::IMAS.core_transport__model___profiles_1d___momentum_tor, ::Val{:flux}, plot_extrema::PlotExtrema=PlotExtrema(ct1d__momentum_tor))
     @series begin
         markershape --> :none
         title := "Momentum flux"
@@ -1574,11 +1591,8 @@ end
 #= ============ =#
 #  core_sources  #
 #= ============ =#
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema())
-    return cs1d.electrons, Val(:energy), plot_extrema
-end
-
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(
+    cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1588,7 +1602,7 @@ end
     only_positive_negative=0,
     show_source_number=false)
 
-    id = recipe_dispatch(cs1de, v)
+    id = recipe_dispatch(cs1d, v)
     assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
@@ -1598,7 +1612,8 @@ end
     assert_type_and_record_argument(id, Int, "Show only positive or negative values (0 for all)"; only_positive_negative)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de; error_parent_of_nothing=true)
+    #    cs1d = parent(cs1de; error_parent_of_nothing=true)
+    cs1de = cs1d.electrons
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
@@ -1643,7 +1658,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:total_ion_energy}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1707,11 +1722,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles}, plot_extrema::PlotExtrema=PlotExtrema())
-    return cs1d.electrons, Val(:particles), plot_extrema
-end
-
-@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__particles}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1719,7 +1730,7 @@ end
     show_zeros=false,
     show_source_number=false)
 
-    id = recipe_dispatch(cs1de, v)
+    id = recipe_dispatch(cs1d, v)
     assert_type_and_record_argument(id, AbstractString, "Name of the source"; name)
     assert_type_and_record_argument(id, Union{Nothing,AbstractString}, "Label for the plot"; label)
     assert_type_and_record_argument(id, Bool, "Plot integrated values"; integrated)
@@ -1727,7 +1738,7 @@ end
     assert_type_and_record_argument(id, Bool, "Show zeros"; show_zeros)
     assert_type_and_record_argument(id, Bool, "Show source number"; show_source_number)
 
-    cs1d = parent(cs1de; error_parent_of_nothing=true)
+    cs1de = cs1d.electrons
     source = parent(parent(cs1d; error_parent_of_nothing=false); error_parent_of_nothing=false)
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
@@ -1780,7 +1791,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1di::IMAS.core_sources__source___profiles_1d___ion, v::Val{:particles}, plot_extrema::PlotExtrema=PlotExtrema(cs1di);
     name="",
     label="",
     integrated=false,
@@ -1849,7 +1860,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:momentum_tor}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -1905,7 +1916,7 @@ end
     end
 end
 
-@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel}, plot_extrema::PlotExtrema=PlotExtrema();
+@recipe function plot_source1d(cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:j_parallel}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
     label="",
     integrated=false,
@@ -2013,7 +2024,7 @@ end
     for (k, path) in enumerate(paths)
         if length(plots_extrema) < k
             resize!(plots_extrema, k)
-            plots_extrema[k] = PlotExtrema()
+            plots_extrema[k] = PlotExtrema(cs1d)
         end
         if k == only || only === nothing
             @series begin
@@ -2071,8 +2082,9 @@ end
         end
     end
 
+    # find plot extrema for each of the channels
     plots_extrema = PlotExtrema[]
-    all_indexes = [source.identifier.index for source in cs.source]
+    all_indexes = Int[source.identifier.index for source in cs.source]
     exclude_indexes = Int[]
     if aggregate_radiation
         append!(exclude_indexes, index_radiation_sources)
@@ -2094,48 +2106,44 @@ end
 
     if dd !== nothing
         if aggregate_radiation
-            rad_source = IMAS.core_sources__source{T}()
-            resize!(rad_source.profiles_1d, 1)
-            merge!(rad_source.profiles_1d[1], total_radiation_sources(dd; time0))
-            rad_source.identifier.index = 200
-            rad_source.identifier.name = "radiation"
+            tmp_source = IMAS.core_sources__source{T}()
+            push!(tmp_source.profiles_1d, total_radiation_sources(dd; time0))
+            tmp_source.identifier.index = 200
+            tmp_source.identifier.name = "radiation"
             @series begin
                 color := :orange
                 ions := ions
-                rad_source, plots_extrema
+                tmp_source, plots_extrema
             end
         end
 
         if aggregate_hcd
             for (source_type, color) in ((:ec, :blue), (:ic, :green), (:lh, :magenta), (:nbi, :red), (:pellet, :purple))
-                hcd_source = IMAS.core_sources__source{T}()
-                idx = name_2_index(hcd_source)[source_type]
-                resize!(hcd_source.profiles_1d, 1)
-                merge!(hcd_source.profiles_1d[1], total_sources(dd; time0, include_indexes=[idx]))
-                hcd_source.identifier.index = idx
-                hcd_source.identifier.name = "$source_type"
+                idx = name_2_index(tmp_source)[source_type]
+                tmp_source = IMAS.core_sources__source{T}()
+                push!(tmp_source.profiles_1d, total_sources(dd; time0, include_indexes=[idx]))
+                tmp_source.identifier.index = idx
+                tmp_source.identifier.name = "$source_type"
                 @series begin
                     color := color
                     ions := ions
-                    hcd_source, plots_extrema
+                    tmp_source, plots_extrema
                 end
             end
         end
 
-        tot_source = IMAS.core_sources__source{T}()
-        resize!(tot_source.profiles_1d, 1)
-        merge!(tot_source.profiles_1d[1], total_sources(dd; time0))
-        tot_source.identifier.index = 1
-        tot_source.identifier.name = "total"
+        tmp_source = IMAS.core_sources__source{T}()
+        push!(tmp_source.profiles_1d, total_sources(dd; time0))
+        tmp_source.identifier.index = 1
+        tmp_source.identifier.name = "total"
         @series begin
             linewidth := 2
             color := :black
             min_power := 0.0
             ions := ions
-            tot_source, plots_extrema
+            tmp_source, plots_extrema
         end
     end
-
 end
 
 #= ============= =#
@@ -2147,6 +2155,50 @@ end
 
     @series begin
         return cp.profiles_1d[time0]
+    end
+end
+
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing, rotation_quantity=:toroidal)
+    id = recipe_dispatch(cpt)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+    assert_type_and_record_argument(id, Symbol, "What rotation to plot, one of (:toroidal, :sonic)"; rotation_quantity)
+    @assert rotation_quantity in (:toroidal, :sonic)
+
+    if only === nothing
+        layout := (1, 3)
+        size --> (1100, 290)
+        margin --> 5 * Measures.mm
+    end
+
+    if only === nothing || only == 1
+        @series begin
+            if only === nothing
+                subplot := 1
+            end
+            cpt, Val(:temperature)
+        end
+    end
+
+    if only === nothing || only == 2
+        @series begin
+            if only === nothing
+                subplot := 2
+            end
+            cpt, Val(:density)
+        end
+    end
+
+    if only === nothing || only == 3
+        @series begin
+            if only === nothing
+                subplot := 3
+            end
+            if rotation_quantity == :toroidal
+                cpt, Val(:ions__toroidal_rotation)
+            elseif rotation_quantity == :sonic
+                cpt, Val(:sonic_rotation)
+            end
+        end
     end
 end
 
@@ -2167,7 +2219,9 @@ end
             dd = IMAS.top_dd(cpt)
             if !isempty(dd.thomson_scattering)
                 @series begin
+                    title --> "Temperatures"
                     time0 := cpt.time
+                    xlim --> (0.0, 1.0)
                     dd.thomson_scattering, :t_e
                 end
             end
@@ -2214,8 +2268,10 @@ end
             dd = IMAS.top_dd(cpt)
             if !isempty(dd.charge_exchange)
                 @series begin
+                    title --> "Temperatures"
                     markershape := :diamond
                     time0 := cpt.time
+                    xlim --> (0.0, 1.0)
                     dd.charge_exchange, :t_i
                 end
             end
@@ -2252,10 +2308,11 @@ end
     if thomson_scattering
         try
             dd = IMAS.top_dd(cpt)
-
             if !isempty(dd.thomson_scattering)
                 @series begin
+                    title --> "Densities"
                     time0 := cpt.time
+                    xlim --> (0.0, 1.0)
                     dd.thomson_scattering, :n_e
                 end
             end
@@ -2309,12 +2366,12 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:rotation}; label="")
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:sonic_rotation}; label="")
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
 
     @series begin
-        title --> "Rotation"
+        title --> "Sonic rotation"
         label := label
         if !ismissing(cpt, :rotation_frequency_tor_sonic)
             cpt, :rotation_frequency_tor_sonic
@@ -2324,40 +2381,32 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d; only=nothing)
-    id = recipe_dispatch(cpt)
-    assert_type_and_record_argument(id, Union{Nothing,Int}, "Plot only this subplot number"; only)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__toroidal_rotation}; label="", charge_exchange=false)
+    id = recipe_dispatch(cpt, v)
+    assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
+    assert_type_and_record_argument(id, Bool, "Overlay charge exchange data"; charge_exchange)
 
-    if only === nothing
-        layout := (1, 3)
-        size --> (1100, 290)
-        margin --> 5 * Measures.mm
+    @series begin
+        title --> "Toroidal rotation"
+        label := "Ions" * label
+        linestyle --> :dash
+        ylim --> (0, Inf)
+        cpt.ion[1], :rotation_frequency_tor
     end
 
-    if only === nothing || only == 1
-        @series begin
-            if only === nothing
-                subplot := 1
+    if charge_exchange
+        try
+            dd = IMAS.top_dd(cpt)
+            if !isempty(dd.charge_exchange)
+                @series begin
+                    title --> "Toroidal rotation"
+                    markershape := :circle
+                    time0 := cpt.time
+                    xlim --> (0.0, 1.0)
+                    dd.charge_exchange, :ω_tor
+                end
             end
-            cpt, Val(:temperature)
-        end
-    end
-
-    if only === nothing || only == 2
-        @series begin
-            if only === nothing
-                subplot := 2
-            end
-            cpt, Val(:density)
-        end
-    end
-
-    if only === nothing || only == 3
-        @series begin
-            if only === nothing
-                subplot := 3
-            end
-            cpt, Val(:rotation)
+        catch
         end
     end
 end
@@ -3391,14 +3440,19 @@ end
 #= ======= =#
 #  getdata  #
 #= ======= =#
+# plotting of experimental data. For now: thomson_scattering and charge_exchange
 @recipe function plot_getdata(ids::IDS, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
     id = recipe_dispatch(ids)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
     assert_type_and_record_argument(id, Float64, "Normalization factor"; normalization)
 
-    time, rho, data, weights = getdata(what, top_dd(ids), time0, time_averaging)
-    data = data .* normalization
+    time, rho, data, weights, units = getdata(what, top_dd(ids), time0, time_averaging)
+    if normalization != 1.0
+        data = data .* normalization
+        units = "$normalization $units"
+    end
+    units = nice_units(units)
 
     if eltype(data) <: Measurements.Measurement
         data_σ = [d.err for d in data]
@@ -3412,6 +3466,7 @@ end
 
     if isempty(data_σ)
         @series begin
+            ylabel := "[$units]"
             label --> string(what)
             color := :transparent
             seriestype := :scatter
@@ -3422,9 +3477,10 @@ end
         k = 1
         for w in unique(weights)
             index = findall(==(w), weights)
-            primary := (k == 1)
             k += 1
             @series begin
+                primary --> (k == 1)
+                ylabel := units
                 label --> string(what)
                 color := :transparent
                 seriestype := :scatter
@@ -3453,6 +3509,7 @@ end
     @series begin
         time0 := time0
         label := ""
+        primary := false
         time_averaging := time_averaging
         normalization := normalization
         ts, Val(what)
@@ -3463,7 +3520,7 @@ end
 #  charge_exchange  #
 #= =============== =#
 @recipe function plot_charge_exchange(cer::IMAS.charge_exchange, what::Symbol; time0=global_time(cer), time_averaging=0.05, normalization=1.0)
-    @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp)
+    @assert what in (:t_i, :n_i_over_n_e, :zeff, :n_imp, :ω_tor)
 
     @series begin
         label := "Charge exchange"
@@ -3476,6 +3533,7 @@ end
     @series begin
         time0 := time0
         label := ""
+        primary := false
         time_averaging := time_averaging
         normalization := normalization
         cer, Val(what)
@@ -3984,7 +4042,8 @@ const nice_field_symbols = Dict()
 nice_field_symbols["rho_tor_norm"] = () -> latex_support() ? L"\rho" : "ρ"
 nice_field_symbols["psi"] = () -> latex_support() ? L"\psi" : "ψ"
 nice_field_symbols["psi_norm"] = () -> latex_support() ? L"\psi_\mathrm{N}" : "ψₙ"
-nice_field_symbols["rotation_frequency_tor_sonic"] = "Rotation"
+nice_field_symbols["rotation_frequency_tor_sonic"] = "Sonic rotation"
+nice_field_symbols["rotation_frequency_tor"] = "Toroidal rotation"
 nice_field_symbols["i_plasma"] = "Plasma current"
 nice_field_symbols["b_field_tor_vacuum_r"] = "B₀×R₀"
 nice_field_symbols["rho_tor_norm_width"] = "w₀"
@@ -4026,6 +4085,7 @@ function nice_units(units::String)
     if length(units) > 0
         units = replace(units, r"\^([-+]?[0-9]+)" => s"^{\1}")
         units = replace(units, "." => s"\\,")
+        units = replace(units, " " => s"~")
         units = latex_support() ? L"[\mathrm{%$units}]" : "[$units]"
         units = " " * units
     end

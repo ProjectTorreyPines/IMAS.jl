@@ -1,7 +1,7 @@
 name = "IMAS"
 uuid = "13ead8c1-b7d1-41bb-a6d0-5b8b65ed587a"
 authors = ["Orso Meneghini <orso82@gmail.com>"]
-version = "5.4.9"
+version = "6.0.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -57,7 +57,7 @@ FuseExchangeProtocol = "2"
 GraphRecipes = "0.5"
 Graphs = "1"
 HelpPlots = "1.1"
-IMASdd = "7.1"
+IMASdd = "8"
 IMASutils = "1.5.1"
 Interpolations = "0.14.7, 0.15, 0.16.1"
 Jedis = "0.3"

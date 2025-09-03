@@ -466,12 +466,6 @@ end
 @compat public sawtooth_conductivity
 push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
 
-
-function ωtor2sonic(dd::IMAS.dd; ind::Int=0)
-    cp1d = dd.core_profiles.profiles_1d[]
-    return ωtor2sonic(cp1d; ind)
-end
-
 """
     ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0)
 
@@ -483,44 +477,72 @@ Returns the updated `cp1d` with `rotation_frequency_tor_sonic` populated and all
 """
 function ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0) where {T<:Real}
     if ind == 0
-        ind = findfirst(x -> !ismissing(x, :rotation_frequency_tor) && x.rotation_frequency_tor != 0, cp1d.ion)
+        ind = findfirst(x -> hasdata(x, :rotation_frequency_tor) && sum(abs.(x.rotation_frequency_tor)) != 0.0, cp1d.ion)
         if ind === nothing
-            return cp1d.rotation_frequency_tor_sonic = zero(T, cp1d.grid.rho_tor_norm)
+            return zero(cp1d.grid.rho_tor_norm)
         end
     end
     ni = cp1d.ion[ind].density
     zi = cp1d.ion[ind].z_ion
     rot_freq = cp1d.ion[ind].rotation_frequency_tor
     dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure)
-    cp1d.rotation_frequency_tor_sonic = @. rot_freq + dpi_dpsi / (ni * zi * IMAS.mks.e)
-    return sonic2ωtor(cp1d)
+    return @. rot_freq + dpi_dpsi / (ni * zi * IMAS.mks.e)
 end
 
 @compat public ωtor2sonic
 push!(document[Symbol("Physics neoclassical")], :ωtor2sonic)
 
-function sonic2ωtor(dd::IMAS.dd)
-    cp1d = dd.core_profiles.profiles_1d[]
-    return sonic2ωtor(cp1d)
+"""
+    ωtor2sonic!(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0)
+
+Updates `cp1d.rotation_frequency_tor_sonic` in place based on the specified ion species toroidal rotation, assuming poloidal rotation ωpol=0.0.
+"""
+function ωtor2sonic!(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0) where {T<:Real}
+    return cp1d.rotation_frequency_tor_sonic = ωtor2sonic(cp1d; ind)
 end
 
-"""
-    sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d)
+@compat public ωtor2sonic!
+push!(document[Symbol("Physics neoclassical")], :ωtor2sonic!)
 
-Populates ion ωtors based on ExB rotation assuming ωpol=0.0
-
-Uses the existing `rotation_frequency_tor_sonic` field to compute individual ion rotation frequencies.
 """
-function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d)
+    sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
+
+Returns ion ω_tor based on ExB rotation assuming ω_pol=0.0
+
+Uses the existing `rotation_frequency_tor_sonic` field to compute individual ion toroidal rotation frequencies
+"""
+function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
     ωExB = cp1d.rotation_frequency_tor_sonic
-    for ion in cp1d.ion
-        ni = ion.density
-        zi = ion.z_ion
-        dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure)
-        ion.rotation_frequency_tor = @. ωExB - dpi_dpsi / (ni * zi * IMAS.mks.e)
-    end
-    return cp1d
+    ni = ion.density
+    zi = ion.z_ion
+    dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure)
+    return @. ωExB - dpi_dpsi / (ni * zi * IMAS.mks.e)
 end
 
 @compat public sonic2ωtor
 push!(document[Symbol("Physics neoclassical")], :sonic2ωtor)
+
+"""
+    sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
+
+In-place conversion of ExB sonic rotation to ion toroidal rotation frequencies.
+
+Updates individual ion `rotation_frequency_tor` fields based on the existing ExB sonic rotation, assuming poloidal rotation ωpol=0.0.
+"""
+function sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
+    return ion.rotation_frequency_tor = sonic2ωtor(cp1d, ion)
+end
+
+"""
+    sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d)
+
+All ions: Updates rotation frequencies for all ion species in the profile
+"""
+function sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d)
+    for ion in cp1d.ion
+        sonic2ωtor!(cp1d, ion)
+    end
+end
+
+@compat public sonic2ωtor!
+push!(document[Symbol("Physics neoclassical")], :sonic2ωtor!)
