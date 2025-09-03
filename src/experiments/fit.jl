@@ -25,9 +25,8 @@ Returns interpolation function for 2D data (rho, time) -> transformed_data
 NOTE: what is a Val{<:Symbol} that gets passed to the `getrawdata(what, dd)`
 """
 function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<:Function}
-    time, rho, data_measurement = getdata(what, dd)
-    data_measurement = transform.(data_measurement)
-    return fit2d(time, rho, data_measurement)
+    meas = getdata(what, dd)
+    return fit2d(meas.time, meas.rho, transform.(meas.data))
 end
 
 function fit2d(time::Vector{Float64}, rho::Vector{T}, data_measurement::Vector{<:Measurements.Measurement}) where {T<:Real}

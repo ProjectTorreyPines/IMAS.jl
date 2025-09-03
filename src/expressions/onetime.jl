@@ -1,9 +1,5 @@
 document[:Expressions] = Symbol[]
 
-function IMASdd.get_expressions(::Type{Val{:onetime}})
-    return onetime_expressions
-end
-
 const onetime_expressions = Dict{String,Function}()
 otexp = onetime_expressions
 

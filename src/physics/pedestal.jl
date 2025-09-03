@@ -348,30 +348,53 @@ This function works by comparing the inverse scalelength at the pedestal
 against the inverse scalelength at the top of the pedestal.
 """
 function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.4, do_plot::Bool=false) where {T<:Real}
+    # Step 1: Profile preprocessing to avoid division by zero in gradient calculations
+    # Add small offset (mean value) to prevent numerical issues when profile has very small values
+    # This ensures robust inverse scale length computation without affecting gradient structure
     p = electrons_pressure
     n = length(p)
-    v = p .+ sum(p) / n # let the inverse scalelength be large because the gradients are high, not because of very small values
+    v = p .+ sum(p) / n
+
+    # Step 2: Calculate inverse scale length z = -1/L = -(1/p)(dp/drho)
     z = -IMAS.calc_z(rho, v, :backward)
 
+    # Step 3: Find location of maximum gradient (steepest part of pedestal)
+    # This typically corresponds to the pedestal foot where transport barriers form
     imaxZ = argmax(z)
-    maxz = z[imaxZ]
-    rho0 = rho[imaxZ]
+    maxz = z[imaxZ]          # Maximum inverse scale length value
+    rho0 = rho[imaxZ]        # Radial location of maximum gradient
 
+    # Step 4: Define reference point well inside the pedestal for comparison
+    # Use pedestal characteristic width (distance from max gradient to edge)
+    # Reference point is located 2 pedestal widths inward from max gradient location
+    # This should be in a relatively flat region if a true pedestal exists
     rhoσ = 1.0 - rho0
     rho1 = rho0 - 2 * rhoσ
+
+    # Step 5: Evaluate inverse scale length at the reference point
+    # Interpolate to get precise value at rho1 (may not align with grid points)
     zwell = IMAS.interp1d(rho, z).(rho1)
 
-    if rho0 < 1.0 && rho1 > 0.5 && (zwell / maxz) < threshold
+    # Step 6: Apply H-mode classification criteria
+    # All three conditions must be satisfied for H-mode detection:
+    if rho0 < 1.0 &&              # Maximum gradient occurs before plasma edge (not edge-localized)
+       rho1 > 0.5 &&              # Reference point is in reasonable radial range (not too deep in core)
+       (zwell / maxz) < threshold  # Gradient ratio test: inner gradients much smaller than pedestal gradients
         hmode = true
     else
         hmode = false
     end
 
+    # Optional diagnostic plotting
     if do_plot
-        plot(rho, p / maximum(p); label="", xlim=(0, 1), ylim=(0, 1), color=hmode ? :red : :blue)
+        # Plot normalized profile (red for H-mode, blue for L-mode)
+        plot(rho, p / maximum(p); label=hmode ? "H-mode" : "L-mode", xlim=(0, 1), ylim=(0, 1), color=hmode ? :red : :blue)
+        # Plot normalized inverse scale length profile
         plot!(rho, z / maxz; label="", xlim=(0, 1), ylim=(0, 1), color=:black)
-        vline!([rho1])
-        display(hline!([threshold]; label=""))
+        # Mark reference point location
+        vline!([rho1]; label="Reference location")
+        # Mark threshold line for gradient ratio test
+        display(hline!([threshold]; label="Threshold"))
     end
 
     return hmode

@@ -12,6 +12,12 @@ macro import_all(mod)
     return Expr(:toplevel, imports...)
 end
 
+function __init__()
+    # register IMAS expressions with IMASdd
+    IMASdd.set_dynamic_expressions(dynamic_expressions)
+    IMASdd.set_onetime_expressions(onetime_expressions)
+end
+
 #= ====== =#
 #= IMASdd =#
 #= ====== =#

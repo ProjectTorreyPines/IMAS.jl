@@ -449,7 +449,7 @@ function total_sources!(
     end
 
     # start accumulating
-    all_indexes = [source.identifier.index for source in core_sources.source]
+    all_indexes = Int[source.identifier.index for source in core_sources.source]
     for source in core_sources.source
         if !retain_source(source, all_indexes, include_indexes, exclude_indexes)
             continue
@@ -464,7 +464,7 @@ function total_sources!(
         source1d = source.profiles_1d[time0]
 
         if ismissing(source1d.grid, :rho_tor_norm)
-            continue # skip sources don't have radial coordinate, since they cannot have data
+            continue # skip sources that don't have radial coordinate, since they cannot have data
         end
 
         # ions that this source contributes to
