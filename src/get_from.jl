@@ -135,10 +135,6 @@ function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_sep}}, from_where::Symbol; 
     return error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
 end
 
-function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_sep}}, from_where::Symbol, time0::Float64=dd.global_time)::T where {T<:Real}
-    return get_from(dd, what, from_where; time0)
-end
-
 Base.Docs.@doc """
     get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol; time0::Float64=dd.global_time)
 
