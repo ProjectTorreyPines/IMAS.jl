@@ -624,7 +624,7 @@ end
                 label := ""
                 primary := false
                 subplot := 5
-                seriestype --> :hline
+                seriestype := :hline
                 color := :gray
                 linestyle := :dash
                 [sum(eqt.profiles_1d.q) > 0 ? 1.0 : -1.0]
@@ -3621,6 +3621,49 @@ end
 @recipe function plot_interferometer(ifrmtr::IMAS.interferometer)
     @series begin
         [ch.line_of_sight for ch in ifrmtr.channel]
+    end
+end
+
+@recipe function plot_interferometer_channel(ich::IMAS.interferometer__channel{T}; synthetic=true, density_quantity=:n_e_line_average) where {T<:Real}
+    id = recipe_dispatch(ich)
+    assert_type_and_record_argument(id, Bool, "Overplot synthetic measurement"; synthetic)
+
+    @assert density_quantity in (:n_e_line_average, :n_e_line)
+
+    label --> ich.name
+
+    dd = top_dd(ich)
+    if synthetic && dd !== nothing
+        simulated = zeros(T, (length(dd.core_profiles.profiles_1d),))
+        for (k,cp1d) in enumerate(dd.core_profiles.profiles_1d)
+            eqt = dd.equilibrium.time_slice[cp1d.time]
+            n_e_integrated = IMAS.line_average(eqt, cp1d.electrons.density_thermal, cp1d.grid.rho_tor_norm, ich.line_of_sight; n_points=100)
+            if density_quantity == :n_e_line_average
+                simulated[k]= n_e_integrated.line_average
+            else
+                simulated[k]= n_e_integrated.line_integral
+            end
+        end
+        @series begin
+            dd.core_profiles.time, simulated
+        end
+    end
+
+    @series begin
+        if synthetic
+            alpha := 0.5
+            primary := false
+        end
+        getproperty(ich, density_quantity), :data
+    end
+
+end
+
+@recipe function plot_interferometer_channels(ichs::AbstractVector{IMAS.interferometer__channel{T}}) where {T<:Real}
+    for ich in ichs
+        @series begin
+            ich
+        end
     end
 end
 
