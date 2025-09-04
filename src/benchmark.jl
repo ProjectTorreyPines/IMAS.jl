@@ -1,3 +1,5 @@
+using Plots
+
 document[Symbol("Benchmark")] = Symbol[]
 
 """
