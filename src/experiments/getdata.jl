@@ -14,7 +14,7 @@ Extract charge exchange spectroscopy data for ion temperature, impurity to elect
 
 Returns NamedTuple with (:time, :rho, :data, :weights, :units)
 
-Data is always of type Measurements.Measurement
+Data is always of type Measurements.Measurement{T}
 """
 function getdata(
     what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp},Val{:ω_tor}},
@@ -32,7 +32,7 @@ function getdata(
 
     random_seed = 0
     rng = Random.MersenneTwister(random_seed)
-    data = Measurements.Measurement[]
+    data = Measurements.Measurement{T}[]
     weights = Float64[]
     times = Float64[]
     chr = T[]
@@ -130,7 +130,7 @@ Extract Thomson scattering data for electron temperature or density.
 
 Returns NamedTuple with (:time, :rho, :data, :weights)
 
-Data is always of type Measurements.Measurement
+Data is always of type Measurements.Measurement{T}
 """
 function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
@@ -140,7 +140,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
         @assert time_averaging > 0.0
     end
 
-    data = Measurements.Measurement[]
+    data = Measurements.Measurement{T}[]
     weights = Float64[]
     times = Float64[]
     chr = T[]

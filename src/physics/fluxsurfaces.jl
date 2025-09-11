@@ -933,7 +933,9 @@ function find_magnetic_axis(
             try
                 PSI_interpolant(x[1], x[2]) * psi_sign
             catch e
-                if typeof(e) <: BoundsError
+                if isa(e, InterruptException)
+                    retrhow(e)
+                elseif typeof(e) <: BoundsError
                     return T2(Inf)
                 else
                     rethrow(e)
@@ -2288,7 +2290,11 @@ function luce_squareness(
             PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
             push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
         catch e
-            push!(z, T(0.0))
+            if isa(e, InterruptException)
+                retrhow(e)
+            else
+                push!(z, T(0.0))
+            end
             # plot(pr,pz;aspect_ratio=:equal,title=name)
             # display(plot!([PO[1], PE[1]], [PO[2], PE[2]]))
             # rethrow(e)

@@ -624,7 +624,7 @@ end
                 label := ""
                 primary := false
                 subplot := 5
-                seriestype --> :hline
+                seriestype := :hline
                 color := :gray
                 linestyle := :dash
                 [sum(eqt.profiles_1d.q) > 0 ? 1.0 : -1.0]
@@ -2222,6 +2222,8 @@ end
                     title --> "Temperatures"
                     time0 := cpt.time
                     xlim --> (0.0, 1.0)
+                    ylim --> (0.0, Inf)
+                    primary := false
                     dd.thomson_scattering, :t_e
                 end
             end
@@ -2272,6 +2274,8 @@ end
                     markershape := :diamond
                     time0 := cpt.time
                     xlim --> (0.0, 1.0)
+                    ylim --> (0.0, Inf)
+                    primary := false
                     dd.charge_exchange, :t_i
                 end
             end
@@ -2313,6 +2317,8 @@ end
                     title --> "Densities"
                     time0 := cpt.time
                     xlim --> (0.0, 1.0)
+                    ylim --> (0.0, Inf)
+                    primary := false
                     dd.thomson_scattering, :n_e
                 end
             end
@@ -2321,25 +2327,48 @@ end
     end
 end
 
-@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__density}; label="", what_density=:density)
+@recipe function plot_core_profiles(cpt::IMAS.core_profiles__profiles_1d, v::Val{:ions__density}; label="", what_density=:density, charge_exchange=false)
     id = recipe_dispatch(cpt, v)
     assert_type_and_record_argument(id, AbstractString, "Label for the plot"; label)
     assert_type_and_record_argument(id, Symbol, "What density to plot: [:density, :density_thermal, :density_fast]"; what_density)
+    assert_type_and_record_argument(id, Bool, "Overlay charge exchange data"; charge_exchange)
 
-    for ion in cpt.ion
+    for (kion, ion) in enumerate(cpt.ion)
+        Z = ion.element[1].z_n
+        if Z == 1.0
+            lbl = ion.label * label
+        else
+            lbl = "$(ion.label) × " * @sprintf("%.3g", Z) * label
+        end
+
         @series begin
-            Z = ion.element[1].z_n
             title --> "Densities"
-            if Z == 1.0
-                label := ion.label * label
-            else
-                label := "$(ion.label) × " * @sprintf("%.3g", Z) * label
-            end
+            label := lbl
             linestyle --> :dash
             ylim --> (0.0, Inf)
-            normalization --> Z
+            normalization := Z
             ion, what_density
         end
+
+        if kion == 2 && charge_exchange
+            try
+                dd = IMAS.top_dd(cpt)
+                if !isempty(dd.charge_exchange)
+                    @series begin
+                        title --> "Densities"
+                        markershape := :diamond
+                        time0 := cpt.time
+                        xlim --> (0.0, 1.0)
+                        ylim --> (0.0, Inf)
+                        normalization := Z
+                        primary := false
+                        dd.charge_exchange, :n_imp
+                    end
+                end
+            catch
+            end
+        end
+
     end
 end
 
@@ -2403,6 +2432,7 @@ end
                     markershape := :circle
                     time0 := cpt.time
                     xlim --> (0.0, 1.0)
+                    primary := false
                     dd.charge_exchange, :ω_tor
                 end
             end
@@ -3621,6 +3651,49 @@ end
 @recipe function plot_interferometer(ifrmtr::IMAS.interferometer)
     @series begin
         [ch.line_of_sight for ch in ifrmtr.channel]
+    end
+end
+
+@recipe function plot_interferometer_channel(ich::IMAS.interferometer__channel{T}; synthetic=true, density_quantity=:n_e_line_average) where {T<:Real}
+    id = recipe_dispatch(ich)
+    assert_type_and_record_argument(id, Bool, "Overplot synthetic measurement"; synthetic)
+
+    @assert density_quantity in (:n_e_line_average, :n_e_line)
+
+    label --> ich.name
+
+    dd = top_dd(ich)
+    if synthetic && dd !== nothing
+        simulated = zeros(T, (length(dd.core_profiles.profiles_1d),))
+        for (k, cp1d) in enumerate(dd.core_profiles.profiles_1d)
+            eqt = dd.equilibrium.time_slice[cp1d.time]
+            n_e_integrated = IMAS.line_average(eqt, cp1d.electrons.density_thermal, cp1d.grid.rho_tor_norm, ich.line_of_sight; n_points=100)
+            if density_quantity == :n_e_line_average
+                simulated[k] = n_e_integrated.line_average
+            else
+                simulated[k] = n_e_integrated.line_integral
+            end
+        end
+        @series begin
+            dd.core_profiles.time, simulated
+        end
+    end
+
+    @series begin
+        if synthetic
+            alpha := 0.5
+            primary := false
+        end
+        getproperty(ich, density_quantity), :data
+    end
+
+end
+
+@recipe function plot_interferometer_channels(ichs::AbstractVector{IMAS.interferometer__channel{T}}) where {T<:Real}
+    for ich in ichs
+        @series begin
+            ich
+        end
     end
 end
 
