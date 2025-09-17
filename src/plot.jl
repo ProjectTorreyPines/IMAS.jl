@@ -3480,7 +3480,6 @@ end
     time, rho, data, weights, units = getdata(what, top_dd(ids), time0, time_averaging)
     if normalization != 1.0
         data = data .* normalization
-        units = "$normalization $units"
     end
     units = nice_units(units)
 
@@ -3496,7 +3495,7 @@ end
 
     if isempty(data_σ)
         @series begin
-            ylabel := "[$units]"
+            ylabel := units
             label --> string(what)
             color := :transparent
             seriestype := :scatter
