@@ -3471,7 +3471,7 @@ end
 #  getdata  #
 #= ======= =#
 # plotting of experimental data. For now: thomson_scattering and charge_exchange
-@recipe function plot_getdata(ids::IDS, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
+@recipe function plot_getdata(ids::Union{<:thomson_scattering, <:charge_exchange}, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
     id = recipe_dispatch(ids)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
