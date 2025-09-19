@@ -195,3 +195,93 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
 
     return (time=times, rho=rho, data=data, weights=weights, units=units)
 end
+
+"""
+    getavg(what_val::Union{Val{:b_field_pol_probe},Val{:flux_loop}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
+
+Averages magnetics data for b_field_pol_probe or flux_loop.
+
+  - time0: optional specific time for extraction
+
+  - time_averaging: time averaging window size (required if time0 is specified)
+
+Returns NamedTuple with (:time, :data, :units)
+
+Data is always of type Measurements.Measurement{T}
+"""
+function getavg(what_val::Union{Val{:b_field_pol_probe},Val{:flux_loop}}, dd::IMAS.dd{T}, time0::Float64=0.0, time_averaging::Float64=0.0) where {T<:Real}
+    what = typeof(what_val).parameters[1]
+    ids = getproperty(dd.magnetics, what)
+    if what == :b_field_pol_probe
+        data_location = :field
+        units = "T"
+    elseif what == :flux_loop
+        data_location = :flux
+        units = "Wb"
+    else
+        error("getavg() should not be here")
+    end
+
+    @assert time0 > 0.0
+    @assert time_averaging > 0.0
+
+    data = Measurements.Measurement{T}[]
+    times = Float64[]
+    for ch in ids
+        ch_data = getproperty(ch, data_location)
+        selection = select_time_window(ch_data, :data, time0; window_size=time_averaging)
+        avg_data = sum(selection.data.*selection.weights)
+        if hasdata(ch_data, :data_σ)
+            append!(data, Measurements.measurement.(avg_data, sum(getproperty(ch_data, :data_σ)[selection.idx_range].*selection.weights)))
+        else
+            append!(data, Measurements.measurement.(avg_data, avg_data .* 0.0))
+        end
+        append!(times, time0)
+    end
+
+    return (time=times, data=data, units=units)
+end
+
+"""
+    getavg(pf::Union{IMAS.pf_active__coil{T},IMAS.pf_passive__loop{T}}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
+
+Average pf data for an individual pf_active.coil or pf_passive.loop.
+
+  - time0: optional specific time for extraction
+
+  - time_averaging: time averaging window size (required if time0 is specified)
+
+Returns NamedTuple with (:time, :data, :units)
+
+Data is always of type Measurements.Measurement{T}
+"""
+function getavg(pf::Union{IMAS.pf_active__coil{T},IMAS.pf_passive__loop{T}}, time0::Float64=0.0, time_averaging::Float64=0.0) where {T<:Real}
+    @assert time0 > 0.0
+    @assert time_averaging > 0.0
+
+    units = "A"
+
+    if typeof(pf) == IMAS.pf_active__coil{T}
+        current = pf.current
+        data_location = :data
+    elseif typeof(pf) == IMAS.pf_passive__loop{T}
+        current = pf
+        data_location = :current
+    else
+        error("getavg() should not be here")
+    end
+    if ismissing(current, data_location)
+        return (time=time0, data=0.0, units=units)
+    end
+
+    selection = select_time_window(current, data_location, time0; window_size=time_averaging)
+    avg_data = sum(selection.data.*selection.weights)
+    if hasdata(current, :data_σ)
+        data = Measurements.measurement.(avg_data, sum(getproperty(current, :data_σ)[selection.idx_range].*selection.weights))
+    else
+        data = Measurements.measurement.(avg_data, avg_data .* 0.0)
+    end
+    time = time0
+
+    return (time=time, data=data, units=units)
+end
