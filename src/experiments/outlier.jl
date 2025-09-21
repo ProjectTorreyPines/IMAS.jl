@@ -232,7 +232,7 @@ end
         min_window::Tuple{Int,Int}=(3, 3),
         max_window::Tuple{Int,Int}=(7, 7),
         base_window::Tuple{Int,Int}=min_window,
-        threshold::Float64=2.0,
+        threshold::Float64=3.0,
         adaptivity::Symbol=:variance_gradient,
         min_channels::Int=0) where {T<:Real}
 
@@ -243,7 +243,7 @@ function adaptive_outlier_removal!(
     min_window::Tuple{Int,Int}=(3, 3),
     max_window::Tuple{Int,Int}=(7, 7),
     base_window::Tuple{Int,Int}=min_window,
-    threshold::Float64=2.0,
+    threshold::Float64=3.0,
     adaptivity::Symbol=:variance_gradient,
     min_channels::Int=0) where {T<:Real}
 
