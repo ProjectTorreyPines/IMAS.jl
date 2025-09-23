@@ -14,7 +14,7 @@ Extract charge exchange spectroscopy data for ion temperature, impurity to elect
 
 Returns NamedTuple with (:time, :rho, :data, :weights, :units)
 
-Data is always of type Measurements.Measurement
+Data is always of type Measurements.Measurement{T}
 """
 function getdata(
     what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp},Val{:ω_tor}},
@@ -32,7 +32,7 @@ function getdata(
 
     random_seed = 0
     rng = Random.MersenneTwister(random_seed)
-    data = Measurements.Measurement[]
+    data = Measurements.Measurement{T}[]
     weights = Float64[]
     times = Float64[]
     chr = T[]
@@ -47,7 +47,10 @@ function getdata(
         else
             ch_data = getproperty(ch.ion[1], what)
         end
+
         if hasdata(ch_data, :data)
+            position_r = interp1d(ch.position.r.time, ch.position.r.data)
+            position_z = interp1d(ch.position.z.time, ch.position.z.data)
             if time0 !== nothing
                 selection = select_time_window(ch_data, :data, time0; window_size=time_averaging)
                 v = selection.data
@@ -58,14 +61,15 @@ function getdata(
                 end
                 _data = Measurements.measurement.(v, σ)
                 if what == :ω_tor
-                    _data .= _data ./ ch.position.r.data[selection.idx_range]
+                    _data .= _data ./ position_r.(selection.time)
                 end
                 append!(data, _data)
                 append!(times, selection.time)
                 append!(weights, selection.weights)
-                append!(chr, ch.position.r.data[selection.idx_range])
-                append!(chz, ch.position.z.data[selection.idx_range])
+                append!(chr, position_r.(selection.time))
+                append!(chz, position_z.(selection.time))
             else
+                time = getproperty(ch_data, :time)
                 v = getproperty(ch_data, :data)
                 if hasdata(ch_data, :data_σ)
                     σ = getproperty(ch_data, :data_σ)
@@ -74,13 +78,13 @@ function getdata(
                 end
                 _data = Measurements.measurement.(v, σ)
                 if what == :ω_tor
-                    _data .= _data ./ ch.position.r.data
+                    _data .= _data ./ position_r.(time)
                 end
                 n = length(_data)
                 append!(data, _data)
-                append!(times, getproperty(ch_data, :time))
-                append!(chr, ch.position.r.data .+ randn(rng, n) .* 1E-6)
-                append!(chz, ch.position.z.data .+ randn(rng, n) .* 1E-6)
+                append!(times, time)
+                append!(chr, position_r.(time) .+ randn(rng, n) .* 1E-6)
+                append!(chz, position_z.(time) .+ randn(rng, n) .* 1E-6)
                 # note we add a small random variation on top of the R and Z channels
                 # because in some situations (eg. DIII-D shot 200000) different CER
                 # channels can have the same exact spatial location, which messes
@@ -130,7 +134,7 @@ Extract Thomson scattering data for electron temperature or density.
 
 Returns NamedTuple with (:time, :rho, :data, :weights)
 
-Data is always of type Measurements.Measurement
+Data is always of type Measurements.Measurement{T}
 """
 function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
@@ -140,7 +144,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
         @assert time_averaging > 0.0
     end
 
-    data = Measurements.Measurement[]
+    data = Measurements.Measurement{T}[]
     weights = Float64[]
     times = Float64[]
     chr = T[]

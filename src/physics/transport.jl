@@ -194,8 +194,9 @@ function total_fluxes!(
                 catch e
                     if isa(e, InterruptException)
                         retrhow(e)
+                    else
+                        continue
                     end
-                    continue
                 end
                 if !hasdata(ids1, :flux)
                     continue

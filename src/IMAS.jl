@@ -33,6 +33,7 @@ include("real.jl")
 include("get_from.jl")
 include("geometry.jl")
 include("math.jl")
+include("benchmark.jl")
 include("signal.jl")
 
 #= ======= =#

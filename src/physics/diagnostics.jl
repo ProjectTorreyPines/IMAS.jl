@@ -145,7 +145,7 @@ function line_average(
             q,
             rho_tor_norm,
             line_of_sight.first_point.r, line_of_sight.first_point.z, line_of_sight.first_point.phi,
-            line_of_sight.second_point.r, line_of_sight.second_point.z, line_of_sight.second_point.phi,
+            line_of_sight.second_point.r, line_of_sight.second_point.z, line_of_sight.second_point.phi;
             n_points
         )
     end

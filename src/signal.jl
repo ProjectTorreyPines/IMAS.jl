@@ -467,7 +467,7 @@ function select_time_window(ids::IDS, field::Symbol, time0::Float64; window_size
     time = getproperty(time_coordinate(ids, field))
     weights = Vector{Float64}(undef, length(time))
     idx_range = select_by_window!(weights, time, time0, window_size, window_function; causal)
-    return (time=time[idx_range], data=data[idx_range], weights=weights[idx_range], idx_range=idx_range)
+    return (original_time=time, original_data=data, time=time[idx_range], data=data[idx_range], weights=weights[idx_range], idx_range=idx_range)
 end
 
 """

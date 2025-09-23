@@ -26,7 +26,8 @@ NOTE: what is a Val{<:Symbol} that gets passed to the `getrawdata(what, dd)`
 """
 function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<:Function}
     meas = getdata(what, dd)
-    return fit2d(meas.time, meas.rho, transform.(meas.data))
+    transformed_data = transform.(meas.data)::typeof(meas.data) # force type for empty arrays
+    return fit2d(meas.time, meas.rho, transformed_data)
 end
 
 function fit2d(time::Vector{Float64}, rho::Vector{T}, data_measurement::Vector{<:Measurements.Measurement}) where {T<:Real}
