@@ -303,6 +303,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     for ion in cp1d.ion
         ion.pressure_fast_parallel = zeros(Npsi)
         ion.pressure_fast_perpendicular = zeros(Npsi)
+        ion.density_thermal .+= ion.density_fast
         ion.density_fast = zeros(Npsi)
     end
 
