@@ -23,8 +23,10 @@ Calculates synthetic magnetic probes and flux loops data for a single time slice
 """
 function magnetics!(mag::IMAS.magnetics, eqt::IMAS.equilibrium__time_slice)
     _, _, PSI_interpolant = IMAS.ψ_interpolant(eqt.profiles_2d)
-    field!(mag.b_field_pol_probe, PSI_interpolant, eqt.time)
-    return flux!(mag.flux_loop, PSI_interpolant, eqt.time)
+    if PSI_interpolant !== nothing
+        field!(mag.b_field_pol_probe, PSI_interpolant, eqt.time)
+        return flux!(mag.flux_loop, PSI_interpolant, eqt.time)
+    end
 end
 
 """
