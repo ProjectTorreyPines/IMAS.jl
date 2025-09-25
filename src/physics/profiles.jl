@@ -1054,7 +1054,7 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         end
         q_density_difference = ne .- sum(ion.density .* avgZ(ion) for ion in cp1d.ion if ion !== ion0)
         if hasdata(ion0, :density_fast)
-            q_density_difference .-= .-ion0.density_fast .* avgZ(ion0)
+            q_density_difference .-= ion0.density_fast .* avgZ(ion0)
         end
 
         # positive difference is assigned to target ion density_thermal
