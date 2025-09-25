@@ -130,7 +130,7 @@ push!(document[Symbol("Physics sources")], :radiation_source!)
 
 Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
-function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_density::Bool=true)
+function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
     if bootstrap
         bootstrap_source!(dd) # current
     end
