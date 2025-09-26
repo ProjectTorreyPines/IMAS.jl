@@ -338,7 +338,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     taut = thermalization_time(cp1d, particle_energy, particle_mass, particle_charge)
                     _, i4 = estrada_I_integrals(cp1d, particle_energy, particle_mass, particle_charge)
                     
-                    density = deepcopy(cion.density)
+                    density = cion.density
                     sion_particles = interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
                     cion.pressure_fast_parallel .+= pressa ./ 3.0

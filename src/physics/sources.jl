@@ -143,7 +143,7 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    if fast_density
+    if fast_ion_densities
         fast_particles_profiles!(dd) # update fast ion densities
     end
 
