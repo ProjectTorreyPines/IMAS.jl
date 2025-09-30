@@ -61,11 +61,11 @@ If `rho_ped > transport_grid[end]` then rotation shear is linearly interpolated 
 
 If `rho_ped < transport_grid[end]` then boundary condition is at `transport_grid[end]`
 """
-function profile_from_gradient(
+function profile_from_grad(
     profile_old::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     transport_grid::AbstractVector{<:Real},
-    gradient_transport_grid::AbstractVector{<:Real},
+    grad_transport_grid::AbstractVector{<:Real},
     rho_ped::Real=0.0)
 
     transport_indices = [IMAS.argmin_abs(rho, rho_x) for rho_x in transport_grid]
@@ -74,17 +74,17 @@ function profile_from_gradient(
 
     if index_ped > index_last
         # If rho_ped is beyond transport_grid[end], extend interpolation
-        gradient_old = gradient(rho, profile_old; method=:backward)
+        grad_old = grad(rho, profile_old; method=:backward)
         transport_indices = vcat(1, transport_indices, index_ped)
-        gradient_transport_grid = vcat(0.0, gradient_transport_grid, gradient_old[index_ped])
+        grad_transport_grid = vcat(0.0, grad_transport_grid, grad_old[index_ped])
     else
         # If rho_ped is within transport_grid, use transport_grid[end] as boundary
         transport_indices = vcat(1, transport_indices)
-        gradient_transport_grid = vcat(0.0, gradient_transport_grid)
+        grad_transport_grid = vcat(0.0, grad_transport_grid)
     end
 
     # Interpolate rotation shear to the integration range
-    gradient = IMAS.interp1d(transport_indices, gradient_transport_grid).(1:index_last)
+    grad = IMAS.interp1d(transport_indices, grad_transport_grid).(1:index_last)
 
     # Set up the profile
     profile_new = similar(profile_old)
@@ -95,7 +95,7 @@ function profile_from_gradient(
     profile_new[index_last] = profile_old[index_last]
     for i in (index_last-1):-1:1
         # Trapezoidal integration: negative because we integrate inward
-        grad_avg = (gradient[i] + gradient[i+1]) / 2.0
+        grad_avg = (grad[i] + grad[i+1]) / 2.0
         dr = rho[i+1] - rho[i]
         profile_new[i] = profile_new[i+1] - grad_avg * dr
     end
