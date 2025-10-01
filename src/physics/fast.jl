@@ -352,20 +352,6 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
             end
         end
     end
-
-    # re-evaluate all cp1d fast-ion expressions
-    IMAS.refreeze!(cp1d.electrons, :density)
-    IMAS.refreeze!(cp1d.electrons, :pressure)
-    for ion in cp1d.ion
-        IMAS.refreeze!(ion, :density)
-        IMAS.refreeze!(ion, :pressure)
-    end
-    IMAS.refreeze!(cp1d, :pressure_ion_total)
-    IMAS.refreeze!(cp1d, :pressure_parallel)
-    IMAS.refreeze!(cp1d, :pressure_perpendicular)
-    IMAS.refreeze!(cp1d, :pressure)
-
-    # must decide how to handle quasineutrality
 end
 
 function fast_particles_profiles!(dd::IMAS.dd; verbose::Bool=false)
