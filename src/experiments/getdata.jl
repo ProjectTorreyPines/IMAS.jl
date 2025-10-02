@@ -98,8 +98,8 @@ function getdata(
         i = nearest_causal_time(dd.equilibrium.time, time0; bounds_error=false).index
         eqt = dd.equilibrium.time_slice[i]
         r, z, RHO_interpolant = ρ_interpolant(eqt)
-        index = (times .== time0) .&& (.!isnan.(chr)) .&& (.!isnan.(chz)) 
-        rho[index] = RHO_interpolant.(chr[index], chz[index])
+        index = (times .== time0)
+        rho[index] .= RHO_interpolant.(chr[index], chz[index])
     end
 
     if what == :n_imp
