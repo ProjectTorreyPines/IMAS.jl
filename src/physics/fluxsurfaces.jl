@@ -928,24 +928,32 @@ function find_magnetic_axis(
     rguess::T1=r[round(Int, length(r) / 2)],
     zguess::T1=z[round(Int, length(z) / 2)]) where {T1<:Real,T2<:Real}
 
-    res = Optim.optimize(
-        x -> begin
-            try
-                PSI_interpolant(x[1], x[2]) * psi_sign
-            catch e
-                if isa(e, InterruptException)
-                    retrhow(e)
-                elseif typeof(e) <: BoundsError
-                    return T2(Inf)
-                else
-                    rethrow(e)
-                end
-            end
-        end,
-        [rguess, zguess],
-        Optim.Newton()#;
-        #autodiff=:forward
-    )
+    f(x) = psi_sign * PSI_interpolant(x[1], x[2])
+    function g!(G, x)
+        G .= psi_sign .* Interpolations.gradient(PSI_interpolant, x[1], x[2])
+    end
+    function h!(H, x)
+        H .= psi_sign .* Interpolations.hessian(PSI_interpolant, x[1], x[2])
+    end
+    x0 = [rguess, zguess]
+    res = Optim.optimize(f, g!, h!, x0, Optim.NewtonTrustRegion(), Optim.Options(g_abstol = 1e-16))#, Optim.Options(g_tol=1e-12))
+
+    # res = Optim.optimize(
+    #     x -> begin
+    #         try
+    #             PSI_interpolant(x[1], x[2]) * psi_sign
+    #         catch e
+    #             if typeof(e) <: BoundsError
+    #                 return T2(Inf)
+    #             else
+    #                 rethrow(e)
+    #             end
+    #         end
+    #     end,
+    #     [rguess, zguess],
+    #     Optim.Newton(),
+    #     Optim.Options(g_abstol = 1e-20)
+    # )
 
     return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
