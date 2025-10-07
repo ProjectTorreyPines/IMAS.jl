@@ -61,43 +61,43 @@ If `rho_ped > transport_grid[end]` then rotation shear is linearly interpolated 
 
 If `rho_ped < transport_grid[end]` then boundary condition is at `transport_grid[end]`
 """
-function profile_from_rotation_shear_transport(
+function profile_from_grad(
     profile_old::AbstractVector{<:Real},
     rho::AbstractVector{<:Real},
     transport_grid::AbstractVector{<:Real},
-    rotation_shear_transport_grid::AbstractVector{<:Real},
+    grad_transport_grid::AbstractVector{<:Real},
     rho_ped::Real=0.0)
 
     transport_indices = [IMAS.argmin_abs(rho, rho_x) for rho_x in transport_grid]
     index_ped = IMAS.argmin_abs(rho, rho_ped)
     index_last = transport_indices[end]
-    
+
     if index_ped > index_last
         # If rho_ped is beyond transport_grid[end], extend interpolation
-        dw_dr_old = gradient(rho, profile_old; method=:backward)
+        grad_old = grad(rho, profile_old; method=:backward)
         transport_indices = vcat(1, transport_indices, index_ped)
-        rotation_shear_transport_grid = vcat(0.0, rotation_shear_transport_grid, dw_dr_old[index_ped])
+        grad_transport_grid = vcat(0.0, grad_transport_grid, grad_old[index_ped])
     else
         # If rho_ped is within transport_grid, use transport_grid[end] as boundary
         transport_indices = vcat(1, transport_indices)
-        rotation_shear_transport_grid = vcat(0.0, rotation_shear_transport_grid)
+        grad_transport_grid = vcat(0.0, grad_transport_grid)
     end
 
     # Interpolate rotation shear to the integration range
-    dw_dr = IMAS.interp1d(transport_indices, rotation_shear_transport_grid).(1:index_last)
+    grad = IMAS.interp1d(transport_indices, grad_transport_grid).(1:index_last)
 
     # Set up the profile
     profile_new = similar(profile_old)
     profile_new[index_last:end] .= @views profile_old[index_last:end]
-    
+
     # Integrate rotation shear from boundary inward to axis
     # Integration: ω(rho) = ω(rho_boundary) - ∫_{rho}^{rho_boundary} (dω/dr') dr'
     profile_new[index_last] = profile_old[index_last]
     for i in (index_last-1):-1:1
         # Trapezoidal integration: negative because we integrate inward
-        dw_avg = (dw_dr[i] + dw_dr[i+1]) / 2.0
+        grad_avg = (grad[i] + grad[i+1]) / 2.0
         dr = rho[i+1] - rho[i]
-        profile_new[i] = profile_new[i+1] - dw_avg * dr
+        profile_new[i] = profile_new[i+1] - grad_avg * dr
     end
 
     return profile_new
@@ -121,7 +121,7 @@ function total_fluxes(
     rho_total_fluxes::AbstractVector{<:Real};
     time0::Float64) where {T<:Real}
     total_flux1d = core_transport__model___profiles_1d{T}()
-    total_fluxes!(total_flux1d, core_transport, cp1d, rho_total_fluxes; time0)
+    return total_fluxes!(total_flux1d, core_transport, cp1d, rho_total_fluxes; time0)
 end
 
 function total_fluxes!(
@@ -150,7 +150,7 @@ function total_fluxes!(
     end
 
     # defines paths to fill
-    paths = Union{Tuple{Symbol, Symbol}, Tuple{Symbol, Int64, Symbol}, Tuple{Symbol}}[]
+    paths = Union{Tuple{Symbol,Symbol},Tuple{Symbol,Int64,Symbol},Tuple{Symbol}}[]
     push!(paths, (:electrons, :energy))
     push!(paths, (:electrons, :particles))
     for k in eachindex(total_flux1d.ion)
@@ -221,6 +221,64 @@ end
 function total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
     return total_fluxes(dd.core_transport, dd.core_profiles.profiles_1d[], rho_total_fluxes; time0)
 end
+
+
+"""
+    calculate_diffusivities(dd; ne=:none, Te=:none, Ti=:none, omega=:none)
+
+Compute transport particle, heat, and rotation diffusivities from desired profiles.
+"""
+function calculate_diffusivities(dd::IMAS.dd; ne=:none, Te=:none, Ti=:none, ω=:none)
+
+    cs1d = IMAS.total_sources(dd)
+    cp1d = dd.core_profiles.profiles_1d[]
+    eqt = dd.equilibrium.time_slice[]
+    eqt1d = eqt.profiles_1d
+    rho_cp = cs1d.grid.rho_tor_norm
+    rho_eq = eqt1d.rho_tor_norm
+
+    # Volumes and surfaces
+    surf = IMAS.interp1d(rho_eq, eqt1d.surface).(rho_cp)
+
+    # Default profiles if not provided
+    ne = ne === :none ? cp1d.electrons.density_thermal : ne
+    Te = Te === :none ? cp1d.electrons.temperature : Te
+    Ti = Ti === :none ? cp1d.ion[1].temperature : Ti
+    ω = ω === :none ? cp1d.rotation_frequency_tor_sonic : ω
+
+    # omega currently not used
+    zeff = cp1d.zeff
+
+    # Logarithmic gradients
+    dlntedr = .-IMAS.calc_z(rho_cp, Te, :backward)
+    dlnnedr = .-IMAS.calc_z(rho_cp, ne, :backward)
+    dlntidr = .-IMAS.calc_z(rho_cp, Ti, :backward)
+
+    # Pressure gradient terms
+    dpe = @. ne * IMAS.mks.e * Te * (dlntedr + dlnnedr)
+    dpi = @. ne * IMAS.mks.e * Ti * (dlntidr + dlnnedr) / zeff
+
+    # momentum pressure
+    mi = cp1d.ion[1].element[1].a * IMAS.mks.m_p
+    Rmaj = eqt.boundary.geometric_axis.r               # major radius
+    dωdr = .-IMAS.calc_z(rho_cp, ω, :backward) .* ω
+    pφ = dωdr .* ne .* mi .* Rmaj .^ 2
+
+    # Diffusivities
+    Dn = @. cs1d.electrons.particles_inside / (surf * dlnnedr * ne)
+    χe = @. cs1d.electrons.power_inside / (surf * dpe)
+    χi = @. cs1d.total_ion_power_inside / (surf * dpi)
+    χφ = @. cs1d.torque_tor_inside / (surf * pφ)
+
+    # Patch singular boundary values
+    Dn[1] = Dn[2]
+    χe[1] = χe[2]
+    χi[1] = χi[2]
+    χφ[1] = χφ[2]
+
+    return Dn, χe, χi, χφ
+end
+
 
 @compat public total_fluxes
 push!(document[Symbol("Physics transport")], :total_fluxes)
