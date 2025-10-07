@@ -36,6 +36,10 @@ function ψ_interpolant(eqt::IMAS.equilibrium__time_slice)
     return ψ_interpolant(eqt.profiles_2d)
 end
 
+function ψ_interpolant(::Nothing)
+    return (r=nothing, z=nothing, PSI_interpolant=nothing)
+end
+
 @compat public ψ_interpolant
 push!(document[Symbol("Physics equilibrium")], :ψ_interpolant)
 
