@@ -93,12 +93,12 @@ function getdata(
         end
     end
 
-    rho = chz .* 0.0
+    rho = chz .* NaN
     for time0 in unique(times)
         i = nearest_causal_time(dd.equilibrium.time, time0; bounds_error=false).index
         eqt = dd.equilibrium.time_slice[i]
         r, z, RHO_interpolant = ρ_interpolant(eqt)
-        index = (times .== time0)
+        index = (times .== time0) .&& .!isnan.(chr) .&& .!isnan.(chz)
         rho[index] .= RHO_interpolant.(chr[index], chz[index])
     end
 
