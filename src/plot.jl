@@ -2420,7 +2420,11 @@ end
         label := "Ions" * label
         linestyle --> :dash
         ylim --> (0, Inf)
-        cpt.ion[1], :rotation_frequency_tor
+        if !isempty(cpt.ion)
+            cpt.ion[1], :rotation_frequency_tor
+        else
+            [NaN], [NaN]
+        end
     end
 
     if charge_exchange
