@@ -914,7 +914,12 @@ Returns the interpolant r_mid(ψ) to compute the r at the midplane of the flux s
 The vector `R` defines the sampling of interest for thie interpolation
 """
 function interp_rmid_at_psi(PSI_interpolant::Interpolations.AbstractInterpolation, R::AbstractVector{T}, ZA::T) where {T<:Real}
-    return cubic_interp1d(PSI_interpolant.(R, R .* 0.0 .+ ZA), R)
+    psi = PSI_interpolant.(R, fill(ZA, size(R)))
+    # consider only portion where psi is monotonic
+    # generally not an issue, but can psi can become non-monotoinic when coils are close to the lcfs
+    dpsi = diff(psi)
+    index = findlast(x -> sign(x) == sign(dpsi[1]), dpsi)
+    return cubic_interp1d(psi[1:index], R[1:index])
 end
 
 @compat public interp_rmid_at_psi

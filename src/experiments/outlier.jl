@@ -237,6 +237,8 @@ end
         min_channels::Int=0) where {T<:Real}
 
 Adaptive outlier removal that adjusts window size based on local data characteristics.
+
+adaptivity in (:none, :gradient, :variance, :variance_gradient)
 """
 function adaptive_outlier_removal!(
     data::AbstractMatrix{T};
@@ -257,7 +259,9 @@ function adaptive_outlier_removal!(
         Threads.@threads for i in 1:m
             for j in 1:n
                 # Determine local window size based on adaptivity criterion
-                if adaptivity == :gradient
+                if adaptivity == :none
+                    window_scale = 1.0
+                elseif adaptivity == :gradient
                     # Smaller windows in high-gradient regions (preserve edges)
                     local_grad = compute_local_gradient(data, i, j)
                     window_scale = 1.0 / (1.0 + local_grad)
@@ -272,7 +276,7 @@ function adaptive_outlier_removal!(
                     window_scale2 = 1.0 / (1.0 + local_grad)
                     window_scale = (window_scale1 + window_scale2) / 2
                 else
-                    window_scale = 1.0
+                    @assert adaptivity in (:none, :gradient, :variance, :variance_gradient)
                 end
                 if isnan(window_scale)
                     window_scale = 1.0
