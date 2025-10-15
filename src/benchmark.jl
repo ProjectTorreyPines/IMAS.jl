@@ -42,7 +42,9 @@ function Benchmark(dd::IMAS.dd{T}) where {T<:Real}
             push!(tmp, pop!(data, item))
         end
     end
-    data["time"] = tmp[1]
+    if !isempty(tmp)
+        data["time"] = tmp[1]
+    end
 
     return Benchmark(dd, data)
 end

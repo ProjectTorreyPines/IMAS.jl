@@ -228,7 +228,7 @@ end
 
 Compute transport particle, heat, and rotation diffusivities from desired profiles.
 """
-function calculate_diffusivities(dd::IMAS.dd; ne=:none, Te=:none, Ti=:none, ω=:none)
+function calculate_diffusivities(dd::IMAS.dd{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
 
     cs1d = IMAS.total_sources(dd)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -241,10 +241,10 @@ function calculate_diffusivities(dd::IMAS.dd; ne=:none, Te=:none, Ti=:none, ω=:
     surf = IMAS.interp1d(rho_eq, eqt1d.surface).(rho_cp)
 
     # Default profiles if not provided
-    ne = ne === :none ? cp1d.electrons.density_thermal : ne
-    Te = Te === :none ? cp1d.electrons.temperature : Te
-    Ti = Ti === :none ? cp1d.ion[1].temperature : Ti
-    ω = ω === :none ? cp1d.rotation_frequency_tor_sonic : ω
+    ne = isempty(ne) ? cp1d.electrons.density_thermal : ne
+    Te = isempty(Te) ? cp1d.electrons.temperature : Te
+    Ti = isempty(Ti) ? cp1d.ion[1].temperature : Ti
+    ω = isempty(ω) ? cp1d.rotation_frequency_tor_sonic : ω
 
     # omega currently not used
     zeff = cp1d.zeff
