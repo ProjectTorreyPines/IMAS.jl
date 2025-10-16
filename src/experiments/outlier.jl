@@ -232,19 +232,21 @@ end
         min_window::Tuple{Int,Int}=(3, 3),
         max_window::Tuple{Int,Int}=(7, 7),
         base_window::Tuple{Int,Int}=min_window,
-        threshold::Float64=2.0,
-        adaptivity::Symbol=:variance,
+        threshold::Float64=3.0,
+        adaptivity::Symbol=:variance_gradient,
         min_channels::Int=0) where {T<:Real}
 
 Adaptive outlier removal that adjusts window size based on local data characteristics.
+
+adaptivity in (:none, :gradient, :variance, :variance_gradient)
 """
 function adaptive_outlier_removal!(
     data::AbstractMatrix{T};
     min_window::Tuple{Int,Int}=(3, 3),
     max_window::Tuple{Int,Int}=(7, 7),
     base_window::Tuple{Int,Int}=min_window,
-    threshold::Float64=2.0,
-    adaptivity::Symbol=:variance,
+    threshold::Float64=3.0,
+    adaptivity::Symbol=:variance_gradient,
     min_channels::Int=0) where {T<:Real}
 
     m, n = size(data)
@@ -257,7 +259,9 @@ function adaptive_outlier_removal!(
         Threads.@threads for i in 1:m
             for j in 1:n
                 # Determine local window size based on adaptivity criterion
-                if adaptivity == :gradient
+                if adaptivity == :none
+                    window_scale = 1.0
+                elseif adaptivity == :gradient
                     # Smaller windows in high-gradient regions (preserve edges)
                     local_grad = compute_local_gradient(data, i, j)
                     window_scale = 1.0 / (1.0 + local_grad)
@@ -265,8 +269,14 @@ function adaptive_outlier_removal!(
                     # Smaller windows in high-variance regions
                     local_var = compute_local_variance(data, i, j, base_window)
                     window_scale = 1.0 / (1.0 + local_var / Statistics.mean(data)^2)
+                elseif adaptivity == :variance_gradient
+                    local_var = compute_local_variance(data, i, j, base_window)
+                    window_scale1 = 1.0 / (1.0 + local_var / Statistics.mean(data)^2)
+                    local_grad = compute_local_gradient(data, i, j)
+                    window_scale2 = 1.0 / (1.0 + local_grad)
+                    window_scale = (window_scale1 + window_scale2) / 2
                 else
-                    window_scale = 1.0
+                    @assert adaptivity in (:none, :gradient, :variance, :variance_gradient)
                 end
                 if isnan(window_scale)
                     window_scale = 1.0
@@ -341,7 +351,7 @@ function adaptive_outlier_removal!(tg::Vector{Vector{IMASnodeRepr{T}}}; min_chan
         for field in keys(leaf1.ids)
             if field != :time && hasdata(leaf1.ids, field) && typeof(getproperty(leaf1.ids, field)) <: Vector
                 data = hcat((getproperty(leaf.ids, field) for leaf in time_group if hasdata(leaf.ids, field))...)
-                adaptive_outlier_removal!(data; adaptivity=:gradient, min_channels, kw...)
+                adaptive_outlier_removal!(data; min_channels, kw...)
                 for (k, leaf) in enumerate(time_group)
                     if hasdata(leaf.ids, field)
                         setproperty!(leaf.ids, field, data[:, k])

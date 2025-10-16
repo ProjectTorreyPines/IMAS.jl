@@ -179,7 +179,7 @@ function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, mf::Real, Zf::Re
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
-    avg_cmr = sum(ion.density_thermal .* (avgZ(ion.element[1].z_n, sum(ion.temperature)/length(ion.temperature))^2) / ion.element[1].a for ion in cp1d.ion) ./ ne
+    avg_cmr = sum(ion.density_thermal .* (avgZ(ion.element[1].z_n, sum(ion.temperature) / length(ion.temperature))^2) / ion.element[1].a for ion in cp1d.ion) ./ ne
     Ec = 14.8 .* mf .* Te .* avg_cmr .^ 1.5
     if !approximate
         Ec1 = critical_energy(cp1d, 1, mf, Zf; approximate)
@@ -292,7 +292,7 @@ Fills the core_profiles fast ion densities and pressures that result from fast i
 
 This calculation is done based on the `slowing_down_time` and `thermalization_time` of the fast ion species.
 """
-function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
+function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.9)
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
@@ -303,6 +303,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     for ion in cp1d.ion
         ion.pressure_fast_parallel = zeros(Npsi)
         ion.pressure_fast_perpendicular = zeros(Npsi)
+        ion.density_thermal .+= ion.density_fast
         ion.density_fast = zeros(Npsi)
     end
 
@@ -336,30 +337,21 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     taus = slowing_down_time.(ne, Te, particle_mass, particle_charge)
                     taut = thermalization_time(cp1d, particle_energy, particle_mass, particle_charge)
                     _, i4 = estrada_I_integrals(cp1d, particle_energy, particle_mass, particle_charge)
-
+                    
+                    density = cion.density
                     sion_particles = interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
                     cion.pressure_fast_parallel .+= pressa ./ 3.0
                     cion.pressure_fast_perpendicular .+= pressa ./ 3.0
                     cion.density_fast .+= sion_particles .* taut
+                    limit = max_fast_frac .* cion.density_thermal
+                    mask = cion.density_fast .> limit
+                    cion.density_fast[mask] .= limit[mask]
+                    cion.density_thermal = density - cion.density_fast
                 end
             end
         end
     end
-
-    # re-evaluate all cp1d fast-ion expressions
-    IMAS.refreeze!(cp1d.electrons, :density)
-    IMAS.refreeze!(cp1d.electrons, :pressure)
-    for ion in cp1d.ion
-        IMAS.refreeze!(ion, :density)
-        IMAS.refreeze!(ion, :pressure)
-    end
-    IMAS.refreeze!(cp1d, :pressure_ion_total)
-    IMAS.refreeze!(cp1d, :pressure_parallel)
-    IMAS.refreeze!(cp1d, :pressure_perpendicular)
-    IMAS.refreeze!(cp1d, :pressure)
-
-    # must decide how to handle quasineutrality
 end
 
 function fast_particles_profiles!(dd::IMAS.dd; verbose::Bool=false)
@@ -601,22 +593,22 @@ end
 """
     bkefun(y::T1, vcvo::T2, tstcx::T3, emzrat::T4) where {T1<:Real, T2<:Real, T3<:Real, T4<:Real}
 """
-function bkefun(y::T1, vcvo::T2, tstcx::T3, emzrat::T4) where {T1<:Real, T2<:Real, T3<:Real, T4<:Real}
+function bkefun(y::T1, vcvo::T2, tstcx::T3, emzrat::T4) where {T1<:Real,T2<:Real,T3<:Real,T4<:Real}
     T = promote_type(T1, T2, T3, T4)
     y <= 0 && return zero(T)
-    y2  = y*y
-    y3  = y2*y
-    v2  = vcvo*vcvo
-    v3  = v2*vcvo
+    y2 = y * y
+    y3 = y2 * y
+    v2 = vcvo * vcvo
+    v3 = v2 * vcvo
     y3v3 = y3 + v3
 
     inv_y3v3 = inv(y3v3)
-    arg      = (1 + v3)*inv_y3v3             # (1+v³)/(y³+v³)
+    arg = (1 + v3) * inv_y3v3             # (1+v³)/(y³+v³)
 
     # log(arg), but with a cheap accuracy win when arg ≈ 1
-    alogarg  = log(arg)
+    alogarg = log(arg)
 
-    logy  = log(y)
+    logy = log(y)
     logy3v3 = log(y3v3)
 
     # algebraic simplification of the original expression:
@@ -624,14 +616,14 @@ function bkefun(y::T1, vcvo::T2, tstcx::T3, emzrat::T4) where {T1<:Real, T2<:Rea
     #           alogarg*(emzrat - tstcx)/3 -
     #           logy3v3
     bkeflog = muladd(logy, 3 + emzrat,
-                    muladd(alogarg, (emzrat - tstcx)/3, -logy3v3))
+        muladd(alogarg, (emzrat - tstcx) / 3, -logy3v3))
     return bkeflog < -30 ? zero(T) : exp(bkeflog)
 end
 
 """
     ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N::Int=100) where {T1<:Real, T2<:Real, T3<:Real}
 """
-function ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N::Int=100) where {T1<:Real, T2<:Real, T3<:Real}
+function ion_momentum_fraction(vpar::T1, tpar::T2, emzpar::T3; N::Int=100) where {T1<:Real,T2<:Real,T3<:Real}
     T = promote_type(T1, T2, T3)
     out = zero(T)
     @inbounds @simd for y1 in range(0.0, 1.0, N)
@@ -649,7 +641,7 @@ function ion_momentum_slowingdown_time(cp1d::IMAS.core_profiles__profiles_1d, Ef
     Te = cp1d.electrons.temperature
     a = cp1d.ion[1].element[1].a
     Zeff = cp1d.zeff
-    tau_mom = @. slowing_down_time(ne, Te, mf, Zf) * ion_momentum_fraction(sqrt(E_c / Ef), 0.0, a *  Zeff / (mf * Zf))
+    tau_mom = @. slowing_down_time(ne, Te, mf, Zf) * ion_momentum_fraction(sqrt(E_c / Ef), 0.0, a * Zeff / (mf * Zf))
     return tau_mom
 end
 

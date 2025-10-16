@@ -2420,7 +2420,11 @@ end
         label := "Ions" * label
         linestyle --> :dash
         ylim --> (0, Inf)
-        cpt.ion[1], :rotation_frequency_tor
+        if !isempty(cpt.ion)
+            cpt.ion[1], :rotation_frequency_tor
+        else
+            [NaN], [NaN]
+        end
     end
 
     if charge_exchange
@@ -3471,7 +3475,7 @@ end
 #  getdata  #
 #= ======= =#
 # plotting of experimental data. For now: thomson_scattering and charge_exchange
-@recipe function plot_getdata(ids::IDS, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
+@recipe function plot_getdata(ids::Union{<:thomson_scattering,<:charge_exchange}, what::Val; time0=global_time(ids), time_averaging=0.05, normalization=1.0)
     id = recipe_dispatch(ids)
     assert_type_and_record_argument(id, Float64, "Time to plot"; time0)
     assert_type_and_record_argument(id, Float64, "Time averaging window"; time_averaging)
@@ -3480,7 +3484,6 @@ end
     time, rho, data, weights, units = getdata(what, top_dd(ids), time0, time_averaging)
     if normalization != 1.0
         data = data .* normalization
-        units = "$normalization $units"
     end
     units = nice_units(units)
 
@@ -3494,9 +3497,18 @@ end
         data_σ = []
     end
 
+    # remove NaNs from data, since seriesalpha will throw a warning
+    index = .!isnan.(data)
+    data = @views data[index]
+    rho = @views rho[index]
+    weights = @views weights[index]
+    if !isempty(data_σ)
+        data_σ = @views data_σ[index]
+    end
+
     if isempty(data_σ)
         @series begin
-            ylabel := "[$units]"
+            ylabel := units
             label --> string(what)
             color := :transparent
             seriestype := :scatter
