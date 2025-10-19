@@ -57,3 +57,29 @@ function flux!(loops::IMAS.IDSvector{IMAS.magnetics__flux_loop{T}}, PSI_interpol
         set_time_array(loop.flux, :data, time0, psi)
     end
 end
+
+"""
+    sortperm(probes::AbstractVector{<:IMAS.magnetics__b_field_pol_probe})
+
+Sort field probes around the vessel
+"""
+function Base.sortperm(probes::AbstractVector{<:IMAS.magnetics__b_field_pol_probe})
+    R0 = sum([probe.position.r for probe in probes]) / length(probes)
+    Z0 = sum([probe.position.z for probe in probes]) / length(probes)
+    r = [probe.position.r - R0 for probe in probes]
+    z = [probe.position.z - Z0 for probe in probes]
+    return sortperm(atan.(z, r))
+end
+
+"""
+    sortperm(probes::AbstractVector{<:IMAS.magnetics__flux_loop})
+
+Sort flux loops around the vessel
+"""
+function Base.sortperm(loops::AbstractVector{<:IMAS.magnetics__flux_loop})
+    R0 = sum([loop.position[1].r for loop in loops]) / length(loops)
+    Z0 = sum([loop.position[1].z for loop in loops]) / length(loops)
+    r = [loop.position[1].r - R0 for loop in loops]
+    z = [loop.position[1].z - Z0 for loop in loops]
+    return sortperm(atan.(z, r))
+end

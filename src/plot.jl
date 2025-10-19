@@ -3582,6 +3582,70 @@ end
     end
 end
 
+#= =============== =#
+#  charge_exchange  #
+#= =============== =#
+@recipe function plot_magnetics(mag::IMAS.magnetics)
+
+    @series begin
+        label --> "Flux loops"
+        mag.flux_loop
+    end
+
+    @series begin
+        label --> "Magnetic probes"
+        mag.b_field_pol_probe
+    end
+end
+
+
+@recipe function plot_magnetics(loops::IMAS.IDSvector{<:IMAS.magnetics__flux_loop})
+    for (k,loop) in enumerate(loops)
+        @series begin
+            primary := k==1
+            seriestype := :scatter
+            loop
+        end
+    end
+end
+
+@recipe function plot_magnetics(loop::IMAS.magnetics__flux_loop; loops_names=false)
+    id = recipe_dispatch(loop)
+    assert_type_and_record_argument(id, Bool, "Flux loops names"; loops_names)
+    @series begin
+        seriestype := :scatter
+        if loops_names
+            series_annotations := [(loop.name, :center, :middle, :red, 6)]
+        end
+        label --> loop.name
+        [pos.r for pos in loop.position], [pos.z for pos in loop.position]
+    end
+end
+
+@recipe function plot_magnetics(probes::IMAS.IDSvector{<:IMAS.magnetics__b_field_pol_probe})
+    for (k,probe) in enumerate(probes)
+        @series begin
+            primary := k==1
+            seriestype := :scatter
+            probe
+        end
+    end
+end
+
+@recipe function plot_magnetics(probe::IMAS.magnetics__b_field_pol_probe; probes_names=false)
+    id = recipe_dispatch(probe)
+    assert_type_and_record_argument(id, Bool, "Magnetic probes names"; probes_names)
+    @series begin
+        seriestype := :scatter
+        marker := :square
+        if probes_names
+            series_annotations := [(probe.name, :center, :middle, :red, 6)]
+        end
+        label --> probe.name
+        [probe.position.r], [probe.position.z]
+    end
+end
+
 #= ============== =#
 #  interferometer  #
 #= ============== =#
