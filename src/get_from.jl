@@ -122,17 +122,17 @@ function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_
 end
 
 # ne_sep [m^-3]
-function get_from(dd::IMAS.dd{T}, what::Type{Val{:ne_sep}}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.dd{T}, what::Val{:ne_sep}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
-        return cp1d.electrons.density_thermal[end] 
+        return cp1d.electrons.density_thermal[end]
     elseif from_where == :pulse_schedule
         if !ismissing(dd.pulse_schedule.density_control.n_e_separatrix, :reference)
             return get_time_array(dd.pulse_schedule.density_control.n_e_separatrix, :reference, time0, :linear)
         end
-        error("`get_from(dd, $what, Val{:$from_where})` does not have data")
+        error("`get_from(dd, $what, Val(:$from_where))` does not have data")
     end
-    return error("`get_from(dd, $what, Val{:$from_where})` doesn't exist yet")
+    return error("`get_from(dd, $what, Val(:$from_where))` doesn't exist yet")
 end
 
 Base.Docs.@doc """
