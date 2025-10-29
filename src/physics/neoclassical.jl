@@ -67,7 +67,7 @@ end
 @compat public collision_frequencies
 push!(document[Symbol("Physics neoclassical")], :collision_frequencies)
 
-function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool=true, same_ne_ni::Bool=false)
+function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool, same_ne_ni::Bool)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
     return Sauter_neo2021_bootstrap(eqt, cp1d; neo_2021, same_ne_ni)
@@ -82,7 +82,7 @@ Calculates bootstrap current
 
   - same_ne_ni: assume same inverse scale length for electrons and ions
 """
-function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=false, same_ne_ni::Bool=false)
+function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=true, same_ne_ni::Bool=false)
     psi = cp1d.grid.psi
 
     ne = cp1d.electrons.density_thermal
@@ -125,8 +125,8 @@ function Sauter_neo2021_bootstrap(
     nuistar::T,
     ip::Real,
     B0::Real;
-    neo_2021::Bool=false,
-    same_ne_ni::Bool=false
+    neo_2021::Bool,
+    same_ne_ni::Bool
 ) where {T<:AbstractVector{<:Real}}
     psi = psi ./ 2π # COCOS 11 to COCOS 1 --> 1/2π
     dP_dpsi = gradient(psi, p)
