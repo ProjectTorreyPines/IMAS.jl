@@ -116,8 +116,8 @@ function find_psi_boundary(
     ZA::T3,
     fw_r::AbstractVector{T4}=T1[],
     fw_z::AbstractVector{T5}=T1[],
-    r_cache::AbstractVector{T1}=T1[],
-    z_cache::AbstractVector{T1}=T1[];
+    r_cache::AbstractVector{<:Real}=T1[],
+    z_cache::AbstractVector{<:Real}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=flux_surfaces_precision,
     raise_error_on_not_open::Bool,
@@ -186,8 +186,8 @@ function find_psi_boundary(
     ZA::T3,
     fw_r::AbstractVector{T4},
     fw_z::AbstractVector{T5},
-    r_cache::AbstractVector{T1}=T1[],
-    z_cache::AbstractVector{T1}=T1[];
+    r_cache::AbstractVector{<:Real}=T1[],
+    z_cache::AbstractVector{<:Real}=T1[];
     PSI_interpolant=IMAS.ψ_interpolant(dimR, dimZ, PSI).PSI_interpolant,
     precision::Float64=flux_surfaces_precision,
     raise_error_on_not_open::Bool,
@@ -264,7 +264,7 @@ end
 @compat public find_psi_boundary
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_boundary)
 
-function is_closed_surface(pr::AbstractVector{T}, pz::AbstractVector{T}, fw_r::AbstractVector{T}=T[], fw_z::AbstractVector{T}=T[]) where {T<:Real}
+function is_closed_surface(pr::AbstractVector{T1}, pz::AbstractVector{T1}, fw_r::AbstractVector{T2}=T1[], fw_z::AbstractVector{T2}=T1[]) where {T1<:Real, T2<:Real}
     @assert length(pr) == length(pz)
     closed = !isempty(pr) && is_closed_polygon(pr, pz)
     if closed
@@ -933,24 +933,32 @@ function find_magnetic_axis(
     rguess::T1=r[round(Int, length(r) / 2)],
     zguess::T1=z[round(Int, length(z) / 2)]) where {T1<:Real,T2<:Real}
 
-    res = Optim.optimize(
-        x -> begin
-            try
-                PSI_interpolant(x[1], x[2]) * psi_sign
-            catch e
-                if isa(e, InterruptException)
-                    retrhow(e)
-                elseif typeof(e) <: BoundsError
-                    return T2(Inf)
-                else
-                    rethrow(e)
-                end
-            end
-        end,
-        [rguess, zguess],
-        Optim.Newton()#;
-        #autodiff=:forward
-    )
+    f(x) = psi_sign * PSI_interpolant(x[1], x[2])
+    function g!(G, x)
+        G .= psi_sign .* Interpolations.gradient(PSI_interpolant, x[1], x[2])
+    end
+    function h!(H, x)
+        H .= psi_sign .* Interpolations.hessian(PSI_interpolant, x[1], x[2])
+    end
+    x0 = [rguess, zguess]
+    res = Optim.optimize(f, g!, h!, x0, Optim.NewtonTrustRegion(), Optim.Options(g_abstol = 1e-16))#, Optim.Options(g_tol=1e-12))
+
+    # res = Optim.optimize(
+    #     x -> begin
+    #         try
+    #             PSI_interpolant(x[1], x[2]) * psi_sign
+    #         catch e
+    #             if typeof(e) <: BoundsError
+    #                 return T2(Inf)
+    #             else
+    #                 rethrow(e)
+    #             end
+    #         end
+    #     end,
+    #     [rguess, zguess],
+    #     Optim.Newton(),
+    #     Optim.Options(g_abstol = 1e-20)
+    # )
 
     return (RA=res.minimizer[1], ZA=res.minimizer[2])
 end
@@ -1132,15 +1140,15 @@ The result contains only the contours and what is needed to perform flux-surface
 """
 function trace_simple_surfaces!(
     surfaces::Vector{SimpleSurface{T}},
-    psi::AbstractVector{T},
-    r::AbstractVector{T},
-    z::AbstractVector{T},
-    PSI::Matrix{T},
+    psi::AbstractVector{<:Real},
+    r::AbstractVector{<:Real},
+    z::AbstractVector{<:Real},
+    PSI::Matrix{<:Real},
     PSI_interpolant::Interpolations.AbstractInterpolation,
-    RA::T,
-    ZA::T,
-    wall_r::AbstractVector{T},
-    wall_z::AbstractVector{T},
+    RA::Real,
+    ZA::Real,
+    wall_r::AbstractVector{<:Real},
+    wall_z::AbstractVector{<:Real},
     r_cache::AbstractVector{T}=T[],
     z_cache::AbstractVector{T}=T[]) where {T<:Real}
 
