@@ -1591,6 +1591,12 @@ end
 #= ============ =#
 #  core_sources  #
 #= ============ =#
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy})
+    @series begin
+        parent(cs1de), Val(:electrons__energy)
+    end
+end
+
 @recipe function plot_source1d(
     cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
@@ -1719,6 +1725,12 @@ end
             label := ""
             [NaN], [NaN]
         end
+    end
+end
+
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles})
+    @series begin
+        parent(cs1de), Val(:electrons__particles)
     end
 end
 
@@ -3600,9 +3612,9 @@ end
 
 
 @recipe function plot_magnetics(loops::IMAS.IDSvector{<:IMAS.magnetics__flux_loop})
-    for (k,loop) in enumerate(loops)
+    for (k, loop) in enumerate(loops)
         @series begin
-            primary := k==1
+            primary := k == 1
             seriestype := :scatter
             loop
         end
@@ -3623,9 +3635,9 @@ end
 end
 
 @recipe function plot_magnetics(probes::IMAS.IDSvector{<:IMAS.magnetics__b_field_pol_probe})
-    for (k,probe) in enumerate(probes)
+    for (k, probe) in enumerate(probes)
         @series begin
-            primary := k==1
+            primary := k == 1
             seriestype := :scatter
             probe
         end
