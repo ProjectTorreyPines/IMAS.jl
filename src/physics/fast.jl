@@ -307,6 +307,9 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
         ion.density_fast = zeros(Npsi)
     end
 
+    # === accumulator for total thermalized particle source per species ===
+    thermal_source_sum = Dict{Int, Vector{Float64}}()
+
     # go through sources and look for ones that have ion particles source at given energy
     for source in cs.source
         source1d = source.profiles_1d[]
@@ -348,8 +351,39 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     mask = cion.density_fast .> limit
                     cion.density_fast[mask] .= limit[mask]
                     cion.density_thermal = density - cion.density_fast
+
+                    # === accumulate Σ s_fast(ρ) for this thermal species ===
+                    if haskey(thermal_source_sum, cindex)
+                        thermal_source_sum[cindex] .+= sion_particles
+                    else
+                        thermal_source_sum[cindex]  = copy(sion_particles)
+                    end
                 end
             end
+        end
+    end
+    # === write a new independent "fast→thermal" ion particle source (index = 901) ===
+    if !isempty(thermal_source_sum)
+        name = "fast_thermalization"
+        src = resize!(cs.source, :fast_thermalization, "identifier.name" => name; wipe=false)
+        new_source(src, src.identifier.index, name,
+                   cp1d.grid.rho_tor_norm, cp1d.grid.volume, cp1d.grid.area;
+                   electrons_particles = zero(cp1d.grid.rho_tor_norm))   # only ion particles, no energy
+
+        s1d = src.profiles_1d[]
+        for (idx, Ssum) in thermal_source_sum
+            ion_th = resize!(s1d.ion, length(s1d.ion)+1)[end]
+            fill!(ion_th.element, cp1d.ion[idx].element)                
+            if IMAS.hasdata(cp1d.ion[idx], :label)
+                ion_th.label = cp1d.ion[idx].label
+            else
+                ion_th.label = "ion"
+            end
+            ion_th.particles = Ssum                                      # [m^-3 s^-1]
+            # no fast_particles_energy → this is a purely thermal particle source
+        end
+        if verbose
+            println("Wrote $(NAME_FAST_TO_THERMAL) (index=$(INDEX_FAST_TO_THERMAL)) for $(length(thermal_source_sum)) ions.")
         end
     end
 end
