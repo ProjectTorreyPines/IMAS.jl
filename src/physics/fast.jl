@@ -362,7 +362,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
             end
         end
     end
-    # === write a new independent "fast→thermal" ion particle source (index = 901) ===
+    # === write a new independent "fast→thermal" ion particle source (index = 307) ===
     if !isempty(thermal_source_sum)
         name = "fast_thermalization"
         src = resize!(cs.source, :fast_thermalization, "identifier.name" => name; wipe=false)
