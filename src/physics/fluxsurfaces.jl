@@ -939,7 +939,7 @@ function find_magnetic_axis(
                 PSI_interpolant(x[1], x[2]) * psi_sign
             catch e
                 if isa(e, InterruptException)
-                    retrhow(e)
+                    rethrow(e)
                 elseif typeof(e) <: BoundsError
                     return T2(Inf)
                 else
@@ -2310,7 +2310,7 @@ function luce_squareness(
             push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
         catch e
             if isa(e, InterruptException)
-                retrhow(e)
+                rethrow(e)
             else
                 push!(z, T(0.0))
             end
