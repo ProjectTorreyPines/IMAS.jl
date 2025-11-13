@@ -444,13 +444,13 @@ function total_sources!(
 
     # initialize ions (get list of ions by looking both under core_profiles and core_sources)
     for ion in cp1d.ion
-        resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
+        resize!(total_source1d.ion, "element[1].a" => ion.element[1].a, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
     end
     for source in core_sources.source
         if !isempty(source.profiles_1d) && source.profiles_1d[1].time <= time0
             source1d = source.profiles_1d[1]
             for ion in source1d.ion
-                resize!(total_source1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
+                resize!(total_source1d.ion, "element[1].a" => ion.element[1].a, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
             end
         end
     end
