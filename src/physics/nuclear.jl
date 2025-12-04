@@ -240,6 +240,13 @@ function fusion_reaction_source(
     ion.particles = reactivity
     ion.fast_particles_energy = eV
 
+    if out == :He4
+        k += 1
+        ion = resize!(s1d.ion, k)[k]
+        ion_element!(ion, out; fast=false)
+        ion.particles = reactivity
+    end
+
     return nothing
 end
 
