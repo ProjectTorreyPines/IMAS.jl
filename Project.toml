@@ -1,7 +1,7 @@
 name = "IMAS"
 uuid = "13ead8c1-b7d1-41bb-a6d0-5b8b65ed587a"
-authors = ["Orso Meneghini <orso82@gmail.com>"]
 version = "6.3.0"
+authors = ["Orso Meneghini <orso82@gmail.com>"]
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -68,7 +68,7 @@ Memoize = "0.4"
 MillerExtendedHarmonic = "1, 2"
 NLsolve = "4.5.1"
 NaturalNeighbours = "1.3.6"
-Optim = "1"
+Optim = "1, 2"
 OrderedCollections = "1"
 PeriodicTable = "1"
 PhysicalConstants = "0.2"
