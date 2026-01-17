@@ -559,31 +559,39 @@ end
 @compat public total_radiation_sources
 push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
+
 """
-    sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
+    sawteeth_source!(dd::IMAS.dd, qmin_desired::Float64)
 
 Model sawteeth by flattening all sources where abs(q) drops below qmin_desired
 """
-function sawteeth_source!(dd::IMAS.dd; qmin_desired::Float64=1.0)
-    eqt1d = dd.equilibrium.time_slice[].profiles_1d
+function sawteeth_source!(dd::IMAS.dd; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
 
-    q = abs.(eqt1d.q)
-    if !any(x -> x < qmin_desired, q)
-        rho0 = 0.0
+    if qmin_desired === nothing
+        if !ismissing(dd.sawteeth.diagnostics, :rho_tor_norm_inversion)
+            rho0 = @ddtime(dd.sawteeth.diagnostics.rho_tor_norm_inversion)
+            return sawteeth_source!(dd, rho0; flat_factor)
+        else
+            return sawteeth_source!(dd; qmin_desired=1.0, flat_factor)
+        end
     else
-        rho0 = eqt1d.rho_tor_norm[findlast(qq -> abs(qq) < qmin_desired, q)]
+        cp1d = dd.core_profiles.profiles_1d[]
+
+        # update core_sources with sawteeth
+        i_qdes = findlast(q -> (abs(q) < qmin_desired), cp1d.q)
+        #rho_qdes = (i_qdes === nothing) ? 0.0 : cp1d.grid.rho_tor_norm[i_qdes]
+        return sawteeth_source!(dd, i_qdes; flat_factor)
     end
-
-    return sawteeth_source!(dd, rho0)
 end
 
-function sawteeth_source!(dd::IMAS.dd{T}, ::Nothing) where {T<:Real}
-    return sawteeth_source!(dd, 0.0)
+function sawteeth_source!(dd::IMAS.dd{T}, ::Nothing; flat_factor::Real=0.5) where {T<:Real}
+    # no inversion radius, so call with rho0 = 0.0
+    return sawteeth_source!(dd, 0.0; flat_factor)
 end
 
-function sawteeth_source!(dd::IMAS.dd{T}, i_qdes::Int) where {T<:Real}
+function sawteeth_source!(dd::IMAS.dd{T}, i_qdes::Int; flat_factor::Real=0.5) where {T<:Real}
     cp1d = dd.core_profiles.profiles_1d[]
-    return sawteeth_source!(dd, cp1d.grid.rho_tor_norm[i_qdes])
+    return sawteeth_source!(dd, cp1d.grid.rho_tor_norm[i_qdes]; flat_factor)
 end
 
 """
@@ -591,7 +599,7 @@ end
 
 Model sawteeth by flattening all sources within the inversion radius rho0
 """
-function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
+function sawteeth_source!(dd::IMAS.dd{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
     @assert rho0 <= 1.0
     cp1d = dd.core_profiles.profiles_1d[]
 
@@ -600,6 +608,7 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
 
     # get past value of sawteeth source
     if isempty(source.profiles_1d) || hasdata(source.profiles_1d[])
+        # BCL 1/14/26: I think, like below, this will return an empty source
         old_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, include_indexes=[-10000])
     else
         source1d = source.profiles_1d[]
@@ -616,8 +625,8 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
 
     # identify sawteeth inversion radius
     if rho0 > 0.0
-        # exlude :time_dependent source (701)
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=Int[701])
+        # exclude sources that come from profiles, not external drive
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=IMASdd.index_no_sawtooth)
         fill!(source1d, total_source1d)
     else
         # this will return an empty source
@@ -627,16 +636,14 @@ function sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
 
     width = min(rho0 / 4, 0.05)
 
-    α = 0.5
-
     # sawteeth source as difference between the total using the flattened profiles and the total using the original profiles
     for (leaf, old_leaf) in zip(IMASdd.AbstractTrees.Leaves(source1d), IMASdd.AbstractTrees.Leaves(old_source1d))
         @assert leaf.field == old_leaf.field
         if leaf.field in keys(_core_sources_value_keys)
             if leaf.field == :j_parallel
-                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value) * α .+ old_leaf.value .* (1.0 .- α)
+                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.area, rho0, width) .- leaf.value) * flat_factor .+ old_leaf.value .* (1.0 .- flat_factor)
             else
-                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.volume, rho0, width) .- leaf.value) * α .+ old_leaf.value .* (1.0 .- α)
+                leaf.value .= (flatten_profile!(copy(leaf.value), source1d.grid.rho_tor_norm, source1d.grid.volume, rho0, width) .- leaf.value) * flat_factor .+ old_leaf.value .* (1.0 .- flat_factor)
             end
         end
     end
