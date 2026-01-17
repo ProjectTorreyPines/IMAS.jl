@@ -143,16 +143,11 @@ end
 push!(document[Symbol("Physics sources")], :radiation_source!)
 
 """
-    sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
+    intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
 
 Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
-function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
-    if bootstrap
-        bootstrap_source!(dd) # current
-    end
-
-    ohmic_source!(dd) # electron energy, current
+function intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
 
     collisional_exchange_source!(dd) # electron and ion energy
 
@@ -160,15 +155,17 @@ function sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    if fast_ion_densities
-        fast_particles_profiles!(dd) # update fast ion densities
-    end
+    fast_ion_densities && fast_particles_profiles!(dd) # update fast ion densities
+
+    bootstrap && bootstrap_source!(dd) # current
+
+    ohmic_source!(dd) # electron energy, current
 
     return nothing
 end
 
-@compat public sources!
-push!(document[Symbol("Physics sources")], :sources!)
+@compat public intrinsic_sources!
+push!(document[Symbol("Physics sources")], :intrinsic_sources!)
 
 """
     time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; zero_out::Bool)
