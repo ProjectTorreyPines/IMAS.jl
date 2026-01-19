@@ -1624,12 +1624,16 @@ end
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
+    abstot = 0.0
     if !ismissing(cs1de, :energy)
         tot = trapz(cs1d.grid.volume, cs1de.energy)
+        # Use sum of absolute values to include net-zero sources (e.g., sawteeth)
+        abstot = trapz(cs1d.grid.volume, (k, xx) -> abs(cs1de.energy[k]))
     end
+
     show_condition =
         show_zeros || identifier in [:total, :collisional_equipartition, :time_derivative] ||
-        (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
+        (abstot > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
     @series begin
         if identifier == :collisional_equipartition
             linestyle --> :dash
