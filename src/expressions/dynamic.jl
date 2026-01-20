@@ -106,7 +106,7 @@ dyexp["core_profiles.profiles_1d[:].j_ohmic"] =
     (; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
 dyexp["core_profiles.profiles_1d[:].j_non_inductive"] =
-    (; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=profiles_1d.time, exclude_indexes=[7, 409, 701], fields=[:j_parallel]).j_parallel # no ohmic, sawteeth, or time_depedent
+    (; dd, profiles_1d, _...) -> total_sources(dd.core_sources, profiles_1d; time0=profiles_1d.time, exclude_indexes=[7, 409], fields=[:j_parallel]).j_parallel # no ohmic or time_derivative
 
 dyexp["core_profiles.profiles_1d[:].j_total"] =
     (; dd, profiles_1d, _...) -> begin
