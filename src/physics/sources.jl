@@ -143,7 +143,7 @@ end
 push!(document[Symbol("Physics sources")], :radiation_source!)
 
 """
-    intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false)
+    intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
 
 Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
 """
@@ -561,9 +561,13 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
 
 """
-    sawteeth_source!(dd::IMAS.dd, qmin_desired::Float64)
+    sawteeth_source!(dd::IMAS.dd; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
 
-Model sawteeth by flattening all sources where abs(q) drops below qmin_desired
+Model sawteeth by flattening all sources where abs(q) drops below qmin_desired.
+
+If qmin_desired is `nothing`, then
+    - Uses `dd.sawteeth.diagnostics.rho_tor_norm_inversion` if available
+    - Otherwise falls back to `qmin_desired=1.0`
 """
 function sawteeth_source!(dd::IMAS.dd; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
 
@@ -595,7 +599,7 @@ function sawteeth_source!(dd::IMAS.dd{T}, i_qdes::Int; flat_factor::Real=0.5) wh
 end
 
 """
-    sawteeth_source!(dd::IMAS.dd{T}, rho0::T) where {T<:Real}
+    sawteeth_source!(dd::IMAS.dd{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
 
 Model sawteeth by flattening all sources within the inversion radius rho0
 """
