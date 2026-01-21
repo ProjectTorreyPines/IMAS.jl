@@ -145,7 +145,11 @@ push!(document[Symbol("Physics sources")], :radiation_source!)
 """
     intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
 
-Calculates intrisic sources and sinks, and adds them to `dd.core_sources`
+Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
+
+  - `bootstrap`: Include bootstrap current source
+  - `DD_fusion`: Include D-D fusion reactions (only relevant for D+D plasmas)
+  - `fast_ion_densities`: Update fast ion density profiles after fusion source calculation
 """
 function intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
 
@@ -565,9 +569,9 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
 Model sawteeth by flattening all sources where abs(q) drops below qmin_desired.
 
-If qmin_desired is `nothing`, then
-    - Uses `dd.sawteeth.diagnostics.rho_tor_norm_inversion` if available
-    - Otherwise falls back to `qmin_desired=1.0`
+  - `qmin_desired`: Safety factor threshold for sawteeth inversion. If `nothing`, uses
+    `dd.sawteeth.diagnostics.rho_tor_norm_inversion` if available, otherwise falls back to `1.0`
+  - `flat_factor`: Relaxation factor for flattening, from 0.0 (no change) to 1.0 (full flattening)
 """
 function sawteeth_source!(dd::IMAS.dd; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
 
@@ -602,6 +606,9 @@ end
     sawteeth_source!(dd::IMAS.dd{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
 
 Model sawteeth by flattening all sources within the inversion radius rho0
+
+  - `rho0`: Normalized toroidal flux coordinate of the inversion radius
+  - `flat_factor`: Relaxation factor for flattening (0 = no change, 1 = full flattening)
 """
 function sawteeth_source!(dd::IMAS.dd{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
     @assert rho0 <= 1.0
