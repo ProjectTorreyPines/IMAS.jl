@@ -939,7 +939,7 @@ function find_magnetic_axis(
                 PSI_interpolant(x[1], x[2]) * psi_sign
             catch e
                 if isa(e, InterruptException)
-                    retrhow(e)
+                    rethrow(e)
                 elseif typeof(e) <: BoundsError
                     return T2(Inf)
                 else
@@ -1060,6 +1060,20 @@ end
             surfaces[k]
         end
     end
+end
+
+"""
+    trace_simple_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+
+Trace flux surfaces and returns vector of SimpleSurface structures. The result
+contains only the contours and what is needed to perform flux-surface averaging.
+"""
+function trace_simple_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r, z, PSI_interpolant = ψ_interpolant(eqt2d)
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+    return trace_simple_surfaces(eqt.profiles_1d.psi, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z)
 end
 
 """
@@ -2296,7 +2310,7 @@ function luce_squareness(
             push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
         catch e
             if isa(e, InterruptException)
-                retrhow(e)
+                rethrow(e)
             else
                 push!(z, T(0.0))
             end
