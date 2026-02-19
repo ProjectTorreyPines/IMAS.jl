@@ -348,6 +348,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     mask = cion.density_fast .> limit
                     cion.density_fast[mask] .= limit[mask]
                     cion.density_thermal = density - cion.density_fast
+                    IMAS.unfreeze!(cion, :density)
                 end
             end
         end

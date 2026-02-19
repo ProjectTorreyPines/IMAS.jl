@@ -1023,13 +1023,9 @@ push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 
 If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi-neutrality.
 
-Also, sets `density` to the original expression
+If `species` is an ion species, it evaluates the difference in number of charges needed to reach quasi-neutrality. If the required thermal density would be negative, an error is raised. Otherwise, the target ion is updated. When `density_fast` is present for that ion, `density_thermal` is updated and `density` is unfrozen; otherwise `density` is updated and `density_thermal` is unfrozen.
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
-    # Make sure expressions are used for total densities
-    IMAS.unfreeze!(cp1d.electrons, :density)
-        IMAS.unfreeze!(ion, :density)
-    end
 
     if species == :electrons
         cp1d.electrons.density_thermal = sum(ion.density .* avgZ(ion) for ion in cp1d.ion)
@@ -1057,6 +1053,7 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         end
         if hasdata(ion0, :density_fast)
             q_density_difference .-= ion0.density_fast .* avgZ(ion0)
+            if any(<(0), q_density_difference)
                 error("""Cannot enforce quasi-neutrality by adjusting $(species) density_thermal because desired density is negative.
                 Consider adjusting `species=:electrons` instead.""")
             end
@@ -1322,6 +1319,7 @@ function bundle_DT!(cp1d::IMAS.core_profiles__profiles_1d; d_label::String="D", 
         # No fast density data available - this is okay
         total_density_fast = zeros(length(d_ion.temperature))
     end
+    IMAS.unfreeze!(dt_ion, :density)
 
     # Handle temperatures with density-weighted average
     if IMAS.hasdata(d_ion, :temperature) && IMAS.hasdata(t_ion, :temperature)
@@ -1423,6 +1421,7 @@ function new_impurity_fraction!(cp1d::IMAS.core_profiles__profiles_1d, impurity_
 
     new_ion.density_thermal = cp1d.electrons.density_thermal .* impurity_ne_fraction
     new_ion.density_fast = zeros(length(cp1d.electrons.density_thermal))
+    IMAS.unfreeze!(new_ion, :density)
     new_ion.temperature = cp1d.ion[1].temperature
 
     main_ion = cp1d.ion[1]
@@ -1768,6 +1767,7 @@ function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_
             else
                 ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
             end
+            IMAS.unfreeze!(ion, :density)
         end
     end
     return scales
@@ -1789,6 +1789,7 @@ function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_
             else
                 ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
             end
+            IMAS.unfreeze!(ion, :density)
         end
     end
     return scales
