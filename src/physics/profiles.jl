@@ -1021,16 +1021,13 @@ push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 """
     enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
 
-If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi neutrality condtion.
-
-If `species` is a ion species, it evaluates the difference in number of charges needed to reach quasi-neutrality, and assigns positive difference to target ion density_thermal species and negative difference to electrons density_thermal
+If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi-neutrality.
 
 Also, sets `density` to the original expression
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
     # Make sure expressions are used for total densities
     IMAS.unfreeze!(cp1d.electrons, :density)
-    for ion in cp1d.ion
         IMAS.unfreeze!(ion, :density)
     end
 
@@ -1039,6 +1036,7 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
         if hasdata(cp1d.electrons, :density_fast)
             cp1d.electrons.density_thermal .-= cp1d.electrons.density_fast
         end
+        IMAS.unfreeze!(cp1d.electrons, :density)
 
     else
         # identify ion species
@@ -1053,18 +1051,21 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
             ne = cp1d.electrons.density_thermal
         end
         q_density_difference = ne .- sum(ion.density .* avgZ(ion) for ion in cp1d.ion if ion !== ion0)
+        if any(<(0), q_density_difference)
+            error("""Cannot enforce quasi-neutrality by adjusting $(species) density_thermal because desired density is negative.
+            Consider adjusting `species=:electrons` instead.""")
+        end
         if hasdata(ion0, :density_fast)
             q_density_difference .-= ion0.density_fast .* avgZ(ion0)
+                error("""Cannot enforce quasi-neutrality by adjusting $(species) density_thermal because desired density is negative.
+                Consider adjusting `species=:electrons` instead.""")
+            end
+            ion0.density_thermal = q_density_difference ./ avgZ(ion0)
+            unfreeze!(ion0, :density)
+        else
+            ion0.density = q_density_difference ./ avgZ(ion0)
+            unfreeze!(ion0, :density_thermal)
         end
-
-        # positive difference is assigned to target ion density_thermal
-        index = q_density_difference .> 0.0
-        ion0.density_thermal = zero(cp1d.electrons.density_thermal)
-        ion0.density_thermal[index] .= q_density_difference[index] ./ avgZ(ion0)[index]
-
-        # negative difference is assigned to electrons density_thermal
-        index = q_density_difference .< 0.0
-        cp1d.electrons.density_thermal[index] .+= abs.(q_density_difference[index])
     end
 
     return nothing
