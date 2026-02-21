@@ -1060,7 +1060,11 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
             ion0.density_thermal = q_density_difference ./ avgZ(ion0)
             unfreeze!(ion0, :density)
         else
+            # we want density fixed to ensure quasi-neutrality,
+            #   so we update density and unfreeze density_thermal
+            #   But density_fast isn't set, so set it to zero for now
             ion0.density = q_density_difference ./ avgZ(ion0)
+            ion0.density_fast .= 0.0
             unfreeze!(ion0, :density_thermal)
         end
     end
