@@ -23,6 +23,15 @@ dyexp["core_profiles.profiles_1d[:].electrons.density"] =
         end
     end
 
+dyexp["core_profiles.profiles_1d[:].electrons.density_thermal"] =
+    (; profiles_1d, electrons, _...) -> begin
+        if hasdata(electrons, :density) && !hasdata(electrons, :density_fast)
+            return electrons.density
+        else
+            return electrons.density .- electrons.density_fast
+        end
+    end
+
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
     (; electrons, _...) -> pressure_thermal(electrons)
 
@@ -60,7 +69,13 @@ dyexp["core_profiles.profiles_1d[:].ion[:].density_fast"] =
     (; ion, _...) -> ion.density .- ion.density_thermal
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density_thermal"] =
-    (; ion, _...) -> ion.density .- ion.density_fast
+    (; ion, _...) -> begin
+        if hasdata(ion, :density) && !hasdata(ion, :density_fast)
+            return ion.density
+        else
+            return ion.density .- ion.density_fast
+        end
+    end
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_thermal"] =
     (; ion, _...) -> pressure_thermal(ion)
