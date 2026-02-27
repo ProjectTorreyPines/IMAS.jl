@@ -292,7 +292,7 @@ Fills the core_profiles fast ion densities and pressures that result from fast i
 
 This calculation is done based on the `slowing_down_time` and `thermalization_time` of the fast ion species.
 """
-function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.9)
+function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.8)
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
@@ -347,7 +347,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     limit = max_fast_frac .* cion.density_thermal
                     mask = cion.density_fast .> limit
                     cion.density_fast[mask] .= limit[mask]
-                    cion.density_thermal = density - cion.density_fast
+                    cion.density_thermal = max.(density .- cion.density_fast, 0.0)
                     IMAS.unfreeze!(cion, :density)
                 end
             end
