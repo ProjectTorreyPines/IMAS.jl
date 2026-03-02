@@ -344,10 +344,10 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     cion.pressure_fast_parallel .+= pressa ./ 3.0
                     cion.pressure_fast_perpendicular .+= pressa ./ 3.0
                     cion.density_fast .+= sion_particles .* taut
-                    limit = max_fast_frac .* cion.density_thermal
+                    limit = max_fast_frac .* cion.density
                     mask = cion.density_fast .> limit
                     cion.density_fast[mask] .= limit[mask]
-                    cion.density_thermal = max.(density .- cion.density_fast, 0.0)
+                    cion.density_thermal = density .- cion.density_fast
                     IMAS.unfreeze!(cion, :density)
                 end
             end
