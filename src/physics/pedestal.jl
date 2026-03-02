@@ -343,11 +343,11 @@ push!(document[Symbol("Physics pedestal")], :pedestal_tanh_width_half_maximum)
 
 Given a profile (works well with electron pressure) it identifies the presence of a pedestal.
 
-This function works by comparing the inverse scalelength at the pedestal
-(defined as where the inverse scalelength is maximum)
-against the inverse scalelength at the top of the pedestal.
+This function works by comparing the average inverse scalelength in the core region (rho < 0.7)
+against the maximum inverse scalelength (typically at the pedestal). If the ratio is below
+the threshold, it indicates a steep pedestal with a flat core, characteristic of H-mode.
 """
-function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.4, do_plot::Bool=false) where {T<:Real}
+function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.3, do_plot::Bool=false) where {T<:Real}
     # Step 1: Profile preprocessing to avoid division by zero in gradient calculations
     # Add small offset (mean value) to prevent numerical issues when profile has very small values
     # This ensures robust inverse scale length computation without affecting gradient structure
@@ -364,37 +364,31 @@ function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVec
     maxz = z[imaxZ]          # Maximum inverse scale length value
     rho0 = rho[imaxZ]        # Radial location of maximum gradient
 
-    # Step 4: Define reference point well inside the pedestal for comparison
-    # Use pedestal characteristic width (distance from max gradient to edge)
-    # Reference point is located 2 pedestal widths inward from max gradient location
-    # This should be in a relatively flat region if a true pedestal exists
-    rhoσ = 1.0 - rho0
-    rho1 = rho0 - 2 * rhoσ
+    # Step 4: Calculate average inverse scale length in the core region
+    # Use a fixed core region (rho < 0.7) which is well inside any pedestal
+    # This is more robust than using an arbitrary reference point based on pedestal width
+    core_mask = rho .< 0.7
+    z_core_avg = sum(z[core_mask]) / sum(core_mask)
 
-    # Step 5: Evaluate inverse scale length at the reference point
-    # Interpolate to get precise value at rho1 (may not align with grid points)
-    zwell = IMAS.interp1d(rho, z).(rho1)
-
-    # Step 6: Apply H-mode classification criteria
-    # All three conditions must be satisfied for H-mode detection:
-    if rho0 < 1.0 &&              # Maximum gradient occurs before plasma edge (not edge-localized)
-       rho1 > 0.5 &&              # Reference point is in reasonable radial range (not too deep in core)
-       (zwell / maxz) < threshold  # Gradient ratio test: inner gradients much smaller than pedestal gradients
+    # Step 5: Apply H-mode classification criteria
+    # Both conditions must be satisfied for H-mode detection:
+    if rho0 < 1.0 &&                    # Maximum gradient occurs before plasma edge (not edge-localized)
+       (z_core_avg / maxz) < threshold  # Gradient ratio test: core gradients much smaller than pedestal gradients
         hmode = true
     else
         hmode = false
     end
-
     # Optional diagnostic plotting
     if do_plot
         # Plot normalized profile (red for H-mode, blue for L-mode)
         plot(rho, p / maximum(p); label=hmode ? "H-mode" : "L-mode", xlim=(0, 1), ylim=(0, 1), color=hmode ? :red : :blue)
         # Plot normalized inverse scale length profile
-        plot!(rho, z / maxz; label="", xlim=(0, 1), ylim=(0, 1), color=:black)
-        # Mark reference point location
-        vline!([rho1]; label="Reference location")
-        # Mark threshold line for gradient ratio test
-        display(hline!([threshold]; label="Threshold"))
+        plot!(rho, z / maxz; label="z/maxz", xlim=(0, 1), ylim=(0, 1), color=:black)
+        # Mark core region boundary
+        vline!([0.7]; label="Core boundary (ρ=0.7)")
+        # Mark threshold line and core average
+        hline!([threshold]; label="Threshold", color=:red, ls=:dash)
+        display(hline!([z_core_avg / maxz]; label="Core avg z/maxz", color=:green, ls=:dash))
     end
 
     return hmode
