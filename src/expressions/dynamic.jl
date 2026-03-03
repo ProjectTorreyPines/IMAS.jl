@@ -117,6 +117,13 @@ dyexp["core_profiles.profiles_1d[:].conductivity_parallel"] =
 dyexp["core_profiles.profiles_1d[:].j_bootstrap"] =
     (; dd, profiles_1d, _...) -> findfirst(:bootstrap_current, dd.core_sources.source).profiles_1d[profiles_1d.time].j_parallel
 
+dyexp["core_profiles.profiles_1d[:].j_bootstrap_tor"] =
+    (; dd, profiles_1d, _...) -> begin
+        rho_tor_norm = profiles_1d.grid.rho_tor_norm
+        eqt = dd.equilibrium.time_slice[profiles_1d.time]
+        Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_bootstrap, true, eqt)
+    end
+
 dyexp["core_profiles.profiles_1d[:].j_ohmic"] =
     (; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive
 
