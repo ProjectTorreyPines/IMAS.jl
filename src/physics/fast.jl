@@ -337,17 +337,17 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     taus = slowing_down_time.(ne, Te, particle_mass, particle_charge)
                     taut = thermalization_time(cp1d, particle_energy, particle_mass, particle_charge)
                     _, i4 = estrada_I_integrals(cp1d, particle_energy, particle_mass, particle_charge)
-                    
+
                     density = cion.density
                     sion_particles = interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
                     cion.pressure_fast_parallel .+= pressa ./ 3.0
                     cion.pressure_fast_perpendicular .+= pressa ./ 3.0
                     cion.density_fast .+= sion_particles .* taut
-                    limit = max_fast_frac .* cion.density
+                    limit = max_fast_frac .* cion.density_thermal # here density_thermal includes the old fast-ion contribution
                     mask = cion.density_fast .> limit
                     cion.density_fast[mask] .= limit[mask]
-                    cion.density_thermal = density .- cion.density_fast
+                    cion.density_thermal = max.(density .- cion.density_fast, 0.0)
                     IMAS.unfreeze!(cion, :density)
                 end
             end
