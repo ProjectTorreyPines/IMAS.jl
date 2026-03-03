@@ -1023,10 +1023,13 @@ push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 
 If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi-neutrality.
 
-If `species` is an ion species, it evaluates the difference in number of charges needed to reach quasi-neutrality. If the required thermal density would be negative, an error is raised. Otherwise, the target ion is updated. When `density_fast` is present for that ion, `density_thermal` is updated and `density` is unfrozen; otherwise `density` is updated and `density_thermal` is unfrozen.
+If `species` is an ion species, it evaluates the charge difference needed to reach quasi-neutrality (`q_density_difference`).
+At grid points where `q_density_difference` is negative (i.e., the target ion's required density would be negative, typically due to numerical noise at the boundary),
+the deficit is absorbed by increasing `electrons.density_thermal` at those points, and `q_density_difference` is clamped to zero.
+The positive remainder is then assigned to the target ion: when `density_fast` is present, `density_thermal` is updated and `density` is unfrozen;
+otherwise `density` is updated and `density_thermal` is unfrozen.
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
-
     if species == :electrons
         cp1d.electrons.density_thermal = sum(ion.density .* avgZ(ion) for ion in cp1d.ion)
         if hasdata(cp1d.electrons, :density_fast)
@@ -1047,16 +1050,18 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
             ne = cp1d.electrons.density_thermal
         end
         q_density_difference = ne .- sum(ion.density .* avgZ(ion) for ion in cp1d.ion if ion !== ion0)
-        if any(<(0), q_density_difference)
-            error("""Cannot enforce quasi-neutrality by adjusting $(species) density_thermal because desired density is negative.
-            Consider adjusting `species=:electrons` instead.""")
-        end
         if hasdata(ion0, :density_fast)
             q_density_difference .-= ion0.density_fast .* avgZ(ion0)
-            if any(<(0), q_density_difference)
-                error("""Cannot enforce quasi-neutrality by adjusting $(species) density_thermal because desired density is negative.
-                Consider adjusting `species=:electrons` instead.""")
-            end
+        end
+
+        # where q_density_difference is negative, adjust electrons density_thermal instead
+        index = q_density_difference .< 0.0
+        if any(index)
+            cp1d.electrons.density_thermal[index] .+= abs.(q_density_difference[index])
+            q_density_difference[index] .= 0.0
+        end
+
+        if hasdata(ion0, :density_fast)
             ion0.density_thermal = q_density_difference ./ avgZ(ion0)
             unfreeze!(ion0, :density)
         else
