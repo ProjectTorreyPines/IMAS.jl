@@ -960,10 +960,10 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
     out = @NamedTuple{index::Int64, name::Symbol}[]
     if only_electrons_ions ∈ (:all, :electrons)
-        if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && (return_zero_densities || sum(cp1d.electrons.density_thermal) > 0.0)
+        if only_thermal_fast ∈ (:all, :thermal) && !ismissing(cp1d.electrons, :density_thermal) && (return_zero_densities || sum(cp1d.electrons.density_thermal) > 0.0)
             push!(out, (index=0, name=:electrons))
         end
-        if only_thermal_fast ∈ (:all, :fast) && hasdata(cp1d.electrons, :density_fast) && (return_zero_densities || sum(cp1d.electrons.density_fast) > 0.0)
+        if only_thermal_fast ∈ (:all, :fast) && !ismissing(cp1d.electrons, :density_fast) && (return_zero_densities || sum(cp1d.electrons.density_fast) > 0.0)
             push!(out, (index=0, name=:electrons_fast))
         end
     end
@@ -971,7 +971,7 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
         if only_thermal_fast ∈ (:all, :thermal)
             dd_thermal = (
                 (index=k, name=Symbol(ion.label)) for
-                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0)
+                (k, ion) in enumerate(cp1d.ion) if !ismissing(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0)
             )
             for item in dd_thermal
                 push!(out, item)
@@ -980,7 +980,7 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
         if only_thermal_fast ∈ (:all, :fast)
             dd_fast = (
                 (index=k, name=Symbol("$(ion.label)_fast")) for
-                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0)
+                (k, ion) in enumerate(cp1d.ion) if !ismissing(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0)
             )
             for item in dd_fast
                 push!(out, item)
