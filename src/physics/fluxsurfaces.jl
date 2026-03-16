@@ -1650,7 +1650,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # trace flux surfaces
     Br, Bz = Br_Bz(eqt2d)
-    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z;refine_extrema=false)
+    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z;refine_extrema=true)
 
     # calculate flux surface averaged and geometric quantities
     N = length(eqt1d.psi)
