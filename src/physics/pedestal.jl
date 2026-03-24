@@ -347,7 +347,7 @@ This function works by comparing the average inverse scalelength in the core reg
 against the maximum inverse scalelength (typically at the pedestal). If the ratio is below
 the threshold, it indicates a steep pedestal with a flat core, characteristic of H-mode.
 """
-function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.3, do_plot::Bool=false) where {T<:Real}
+function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVector{T}; threshold::Float64=0.4, do_plot::Bool=false) where {T<:Real}
     # Step 1: Profile preprocessing to avoid division by zero in gradient calculations
     # Add small offset (mean value) to prevent numerical issues when profile has very small values
     # This ensures robust inverse scale length computation without affecting gradient structure
@@ -363,7 +363,6 @@ function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVec
     imaxZ = argmax(z)
     maxz = z[imaxZ]          # Maximum inverse scale length value
     rho0 = rho[imaxZ]        # Radial location of maximum gradient
-
     # Step 4: Calculate average inverse scale length in the core region
     # Use a fixed core region (rho < 0.7) which is well inside any pedestal
     # This is more robust than using an arbitrary reference point based on pedestal width
@@ -372,7 +371,7 @@ function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVec
 
     # Step 5: Apply H-mode classification criteria
     # Both conditions must be satisfied for H-mode detection:
-    if rho0 < 1.0 &&                    # Maximum gradient occurs before plasma edge (not edge-localized)
+    if rho0 > 0.8 && rho0 < 1.0 &&     # Maximum gradient must be in pedestal region (not core or edge)
        (z_core_avg / maxz) < threshold  # Gradient ratio test: core gradients much smaller than pedestal gradients
         hmode = true
     else
