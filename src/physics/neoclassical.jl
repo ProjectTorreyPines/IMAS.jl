@@ -492,8 +492,10 @@ function ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0) where
     ni = cp1d.ion[ind].density
     zi = cp1d.ion[ind].z_ion
     rot_freq = cp1d.ion[ind].rotation_frequency_tor
-    dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure)
-    return @. rot_freq + dpi_dpsi / (ni * zi * IMAS.mks.e)
+    rho = cp1d.grid.rho_tor_norm
+    dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure_thermal)
+    correction = @. dpi_dpsi / (ni * zi * IMAS.mks.e) * min(rho / 0.2, 1.0)^2
+    return @. rot_freq + correction
 end
 
 @compat public ωtor2sonic
@@ -522,8 +524,10 @@ function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profi
     ωExB = cp1d.rotation_frequency_tor_sonic
     ni = ion.density
     zi = ion.z_ion
-    dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure)
-    return @. ωExB - dpi_dpsi / (ni * zi * IMAS.mks.e)
+    rho = cp1d.grid.rho_tor_norm
+    dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure_thermal)
+    correction = @. dpi_dpsi / (ni * zi * IMAS.mks.e) * min(rho / 0.2, 1.0)^2
+    return @. ωExB - correction
 end
 
 @compat public sonic2ωtor
