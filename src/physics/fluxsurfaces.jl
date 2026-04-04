@@ -1805,6 +1805,15 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     Bp2v = trapz(eqt1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
     eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * mks.μ_0)^2
 
+    # li_1 (EFIT definition): Circum^2 * <Bp^2>_vol / (Vol * mu0^2 * Ip^2)
+    circum = eqt.global_quantities.length_pol
+    vol = eqt1d.volume[end]
+    eqt.global_quantities.li_1 = circum^2 * Bp2v / vol / (eqt.global_quantities.ip * mks.μ_0)^2
+
+    # li_2: 2 * <Bp^2>_vol / (R_axis * mu0^2 * Ip^2)
+    R_axis = eqt.global_quantities.magnetic_axis.r
+    eqt.global_quantities.li_2 = 2.0 * Bp2v / R_axis / (eqt.global_quantities.ip * mks.μ_0)^2
+
     # beta_tor
     avg_press = volume_integrate(eqt, eqt1d.pressure) / eqt1d.volume[end]
     eqt.global_quantities.beta_tor = abs(avg_press / (Btvac^2 / 2.0 / mks.μ_0))
