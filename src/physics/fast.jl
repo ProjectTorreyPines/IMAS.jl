@@ -180,7 +180,7 @@ function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, mf::Real, Zf::Re
     Te = cp1d.electrons.temperature
 
     avg_cmr = sum(ion.density_thermal .* (avgZ(ion.element[1].z_n, sum(ion.temperature) / length(ion.temperature))^2) / ion.element[1].a for ion in cp1d.ion) ./ ne
-    Ec = 14.8 .* mf .* Te .* avg_cmr .^ 1.5
+    Ec = 14.8 .* mf .* Te .* avg_cmr .^ (2.0 / 3.0)
     if !approximate
         Ec1 = critical_energy(cp1d, 1, mf, Zf; approximate)
         Ec = Ec .* (Ec1 ./ Ec[1])

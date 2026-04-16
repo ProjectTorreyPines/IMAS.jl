@@ -1765,7 +1765,12 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # volume
     eqt1d.volume = cumtrapz(eqt1d.psi, eqt1d.dvolume_dpsi)
-    eqt.global_quantities.volume = eqt1d.volume[end]
+    # int_fluxexpansion_dl is inaccurate at the LCFS near X-points (Bp→0 diverges numerically),
+    # so correct dvolume_dpsi[end] and volume[end] using the geometrically exact boundary outline volume
+    vol_lcfs = π * abs(trapz(eqt.boundary.outline.z, eqt.boundary.outline.r .^ 2))
+    eqt1d.dvolume_dpsi[end] = 2 * (vol_lcfs - eqt1d.volume[end-1]) / (eqt1d.psi[end] - eqt1d.psi[end-1]) - eqt1d.dvolume_dpsi[end-1]
+    eqt1d.volume[end] = vol_lcfs
+    eqt.global_quantities.volume = vol_lcfs
 
     # phi
     tmp .= eqt1d.f .* eqt1d.gm1 / (2π)

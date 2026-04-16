@@ -284,7 +284,7 @@ function total_power_inside(
 )
     exclude_indexes = Int[]
     if !include_time_derivative
-        exclude_indexes = [11]
+        exclude_indexes = [409]
     else
         exclude_indexes = Int[]
     end
