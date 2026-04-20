@@ -1553,6 +1553,10 @@ function avgZ(Z::Real, Ti::T) where {T<:Real}
     if Z == 1.0
         return one(T)
     end
+    if Ti <= 0.0
+        @warn "avgZ: Ti=$Ti ≤ 0, clamping to 1.0 eV"
+        Ti = one(T)
+    end
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return @. 10.0^(func(log10(Ti / 1E3), Z)) - 1.0
 end
@@ -1561,11 +1565,18 @@ function avgZ(Z::Real, Ti::AbstractVector{T}) where {T<:Real}
     if Z == 1.0
         return ones(T, length(Ti))
     end
+    if any(t -> t <= 0.0, Ti)
+        @warn "avgZ: $(count(t -> t <= 0.0, Ti)) negative/zero Ti values detected, clamping to 1.0 eV"
+        Ti = max.(Ti, one(T))
+    end
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return avgZ.(Ref(func), Z, Ti)
 end
 
 function avgZ(func::F, Z::Real, Ti::Real) where {F}
+    if Ti <= 0.0
+        Ti = 1.0
+    end
     return 10.0^(func(log10(Ti / 1E3), Z)) - 1.0
 end
 
