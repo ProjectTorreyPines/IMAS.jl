@@ -1505,9 +1505,9 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     z = zero(cp1d.grid.rho_tor_norm)
     for ion in cp1d.ion
         Zi = avgZ(ion)
-        @. z += ion.density * Zi^2
+        @. z += ion.density_thermal * Zi^2
     end
-    @. z /= cp1d.electrons.density
+    @. z /= cp1d.electrons.density_thermal
     clamp!(z, 1.0, Inf) # Zeff must be at least 1.0
     return z
 end
