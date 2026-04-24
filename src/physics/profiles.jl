@@ -1684,6 +1684,7 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
     nh = zero(T)
     nim_Z = zero(T)
     nim_Z2 = zero(T)
+    n_fast_Z = zero(T)
     for ion in cp1d.ion
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
@@ -1695,11 +1696,14 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
                 nim_Z2 += nimp .* Zimp^2
             end
         end
+        if !ismissing(ion, :density_fast)
+            n_fast_Z += ion.density_fast[rho_index] * ion.element[1].z_n
+        end
     end
 
 <<<<<<< Updated upstream
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    manion_scale = (ne .- n_fast_Z .- impurity_scale .* nim_Z) ./ nh
 =======
     ne_eff = ne .- fast_charge
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)  # use ne, not ne_eff
@@ -1732,6 +1736,7 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
     nh = zero(ne)
     nim_Z = zero(ne)
     nim_Z2 = zero(ne)
+    n_fast_Z = zero(ne)
     for ion in cp1d.ion
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
@@ -1743,11 +1748,14 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
                 nim_Z2 .+= nimp .* Zimp .^ 2
             end
         end
+        if !ismissing(ion, :density_fast)
+            n_fast_Z .+= ion.density_fast .* ion.element[1].z_n
+        end
     end
 
 <<<<<<< Updated upstream
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    manion_scale = (ne .- n_fast_Z .- impurity_scale .* nim_Z) ./ nh
 =======
     ne_eff = ne .- fast_charge
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)  # use ne, not ne_eff
