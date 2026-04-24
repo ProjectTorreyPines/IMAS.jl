@@ -1606,6 +1606,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # accurately find the lcfs and scale psi accordingly
     if !isempty(wall_r) || eqt.global_quantities.free_boundary == 1
+    # if false
         psi_boundaries = find_psi_boundary(r, z, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, wall_r, wall_z;
             PSI_interpolant, raise_error_on_not_open=false, raise_error_on_not_closed=false)
     else
