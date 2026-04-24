@@ -1487,21 +1487,30 @@ end
 push!(document[Symbol("Physics profiles")], :new_impurity_radiation!)
 
 
-"""
-    zeff(cp1d::IMAS.core_profiles__profiles_1d)
-
-Returns plasma effective charge
-"""
 function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     z = zero(cp1d.grid.rho_tor_norm)
     for ion in cp1d.ion
         Zi = avgZ(ion)
         @. z += ion.density_thermal * Zi^2
+<<<<<<< Updated upstream
     end
     @. z /= cp1d.electrons.density_thermal
     clamp!(z, 1.0, Inf) # Zeff must be at least 1.0
+=======
+        if !ismissing(ion, :density_fast)
+            @. z += ion.density_fast * Zi^2  # ← fast ions contribute to Zeff
+        end
+    end
+    ne_total = cp1d.electrons.density_thermal
+    if !ismissing(cp1d.electrons, :density_fast)
+        ne_total = ne_total .+ cp1d.electrons.density_fast
+    end
+    @. z /= ne_total
+    clamp!(z, 1.0, Inf)
+>>>>>>> Stashed changes
     return z
 end
+
 
 @compat public zeff
 push!(document[Symbol("Physics profiles")], :zeff)
@@ -1688,8 +1697,14 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
+<<<<<<< Updated upstream
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
     manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+=======
+    ne_eff = ne .- fast_charge
+    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)  # use ne, not ne_eff
+    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh           # keep ne_eff here
+>>>>>>> Stashed changes
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
@@ -1730,8 +1745,14 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
+<<<<<<< Updated upstream
     impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
     manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+=======
+    ne_eff = ne .- fast_charge
+    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)  # use ne, not ne_eff
+    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh           # keep ne_eff here
+>>>>>>> Stashed changes
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
