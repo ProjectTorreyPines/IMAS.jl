@@ -1507,7 +1507,6 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
         if !ismissing(ion, :density_fast)
             @. z += ion.density_fast * Zi^2  # ← fast ions contribute to Zeff
         end
-    end
     ne_total = cp1d.electrons.density_thermal
     if !ismissing(cp1d.electrons, :density_fast)
         ne_total = ne_total .+ cp1d.electrons.density_fast
