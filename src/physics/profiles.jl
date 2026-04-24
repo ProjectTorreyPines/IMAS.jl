@@ -1504,7 +1504,6 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     end
     @. z /= cp1d.electrons.density
     clamp!(z, 1.0, Inf) # Zeff must be at least 1.0
-=======
         if !ismissing(ion, :density_fast)
             @. z += ion.density_fast * Zi^2  # ← fast ions contribute to Zeff
         end
@@ -1515,7 +1514,6 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     end
     @. z /= ne_total
     clamp!(z, 1.0, Inf)
->>>>>>> Stashed changes
     return z
 end
 
