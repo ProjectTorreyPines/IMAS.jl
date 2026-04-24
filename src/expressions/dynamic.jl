@@ -23,6 +23,15 @@ dyexp["core_profiles.profiles_1d[:].electrons.density"] =
         end
     end
 
+dyexp["core_profiles.profiles_1d[:].electrons.density_thermal"] =
+    (; profiles_1d, electrons, _...) -> begin
+        if hasdata(electrons, :density) && !hasdata(electrons, :density_fast)
+            return electrons.density
+        else
+            return electrons.density .- electrons.density_fast
+        end
+    end
+
 dyexp["core_profiles.profiles_1d[:].electrons.pressure_thermal"] =
     (; electrons, _...) -> pressure_thermal(electrons)
 
@@ -60,7 +69,13 @@ dyexp["core_profiles.profiles_1d[:].ion[:].density_fast"] =
     (; ion, _...) -> ion.density .- ion.density_thermal
 
 dyexp["core_profiles.profiles_1d[:].ion[:].density_thermal"] =
-    (; ion, _...) -> ion.density .- ion.density_fast
+    (; ion, _...) -> begin
+        if hasdata(ion, :density) && !hasdata(ion, :density_fast)
+            return ion.density
+        else
+            return ion.density .- ion.density_fast
+        end
+    end
 
 dyexp["core_profiles.profiles_1d[:].ion[:].pressure_thermal"] =
     (; ion, _...) -> pressure_thermal(ion)
@@ -101,6 +116,13 @@ dyexp["core_profiles.profiles_1d[:].conductivity_parallel"] =
 
 dyexp["core_profiles.profiles_1d[:].j_bootstrap"] =
     (; dd, profiles_1d, _...) -> findfirst(:bootstrap_current, dd.core_sources.source).profiles_1d[profiles_1d.time].j_parallel
+
+dyexp["core_profiles.profiles_1d[:].j_bootstrap_tor"] =
+    (; dd, profiles_1d, _...) -> begin
+        rho_tor_norm = profiles_1d.grid.rho_tor_norm
+        eqt = dd.equilibrium.time_slice[profiles_1d.time]
+        Jpar_2_Jtor(rho_tor_norm, profiles_1d.j_bootstrap, true, eqt)
+    end
 
 dyexp["core_profiles.profiles_1d[:].j_ohmic"] =
     (; profiles_1d, _...) -> profiles_1d.j_total .- profiles_1d.j_non_inductive

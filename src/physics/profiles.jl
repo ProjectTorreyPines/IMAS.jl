@@ -960,10 +960,10 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
     out = @NamedTuple{index::Int64, name::Symbol}[]
     if only_electrons_ions ∈ (:all, :electrons)
-        if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && (return_zero_densities || sum(cp1d.electrons.density_thermal) > 0.0)
+        if only_thermal_fast ∈ (:all, :thermal) && !ismissing(cp1d.electrons, :density_thermal) && (return_zero_densities || sum(cp1d.electrons.density_thermal) > 0.0)
             push!(out, (index=0, name=:electrons))
         end
-        if only_thermal_fast ∈ (:all, :fast) && hasdata(cp1d.electrons, :density_fast) && (return_zero_densities || sum(cp1d.electrons.density_fast) > 0.0)
+        if only_thermal_fast ∈ (:all, :fast) && !ismissing(cp1d.electrons, :density_fast) && (return_zero_densities || sum(cp1d.electrons.density_fast) > 0.0)
             push!(out, (index=0, name=:electrons_fast))
         end
     end
@@ -971,7 +971,7 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
         if only_thermal_fast ∈ (:all, :thermal)
             dd_thermal = (
                 (index=k, name=Symbol(ion.label)) for
-                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0)
+                (k, ion) in enumerate(cp1d.ion) if !ismissing(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0)
             )
             for item in dd_thermal
                 push!(out, item)
@@ -980,7 +980,7 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
         if only_thermal_fast ∈ (:all, :fast)
             dd_fast = (
                 (index=k, name=Symbol("$(ion.label)_fast")) for
-                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0)
+                (k, ion) in enumerate(cp1d.ion) if !ismissing(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0)
             )
             for item in dd_fast
                 push!(out, item)
@@ -1021,24 +1021,21 @@ push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 """
     enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
 
-If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi neutrality condtion.
+If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi-neutrality.
 
-If `species` is a ion species, it evaluates the difference in number of charges needed to reach quasi-neutrality, and assigns positive difference to target ion density_thermal species and negative difference to electrons density_thermal
-
-Also, sets `density` to the original expression
+If `species` is an ion species, it evaluates the charge difference needed to reach quasi-neutrality (`q_density_difference`).
+At grid points where `q_density_difference` is negative (i.e., the target ion's required density would be negative, typically due to numerical noise at the boundary),
+the deficit is absorbed by increasing `electrons.density_thermal` at those points, and `q_density_difference` is clamped to zero.
+The positive remainder is then assigned to the target ion: when `density_fast` is present, `density_thermal` is updated and `density` is unfrozen;
+otherwise `density` is updated and `density_thermal` is unfrozen.
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
-    # Make sure expressions are used for total densities
-    IMAS.unfreeze!(cp1d.electrons, :density)
-    for ion in cp1d.ion
-        IMAS.unfreeze!(ion, :density)
-    end
-
     if species == :electrons
         cp1d.electrons.density_thermal = sum(ion.density .* avgZ(ion) for ion in cp1d.ion)
         if hasdata(cp1d.electrons, :density_fast)
             cp1d.electrons.density_thermal .-= cp1d.electrons.density_fast
         end
+        IMAS.unfreeze!(cp1d.electrons, :density)
 
     else
         # identify ion species
@@ -1057,14 +1054,24 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
             q_density_difference .-= ion0.density_fast .* avgZ(ion0)
         end
 
-        # positive difference is assigned to target ion density_thermal
-        index = q_density_difference .> 0.0
-        ion0.density_thermal = zero(cp1d.electrons.density_thermal)
-        ion0.density_thermal[index] .= q_density_difference[index] ./ avgZ(ion0)[index]
-
-        # negative difference is assigned to electrons density_thermal
+        # where q_density_difference is negative, adjust electrons density_thermal instead
         index = q_density_difference .< 0.0
-        cp1d.electrons.density_thermal[index] .+= abs.(q_density_difference[index])
+        if any(index)
+            cp1d.electrons.density_thermal[index] .+= abs.(q_density_difference[index])
+            q_density_difference[index] .= 0.0
+        end
+
+        if hasdata(ion0, :density_fast)
+            ion0.density_thermal = q_density_difference ./ avgZ(ion0)
+            unfreeze!(ion0, :density)
+        else
+            # we want density fixed to ensure quasi-neutrality,
+            #   so we update density and unfreeze density_thermal
+            #   But density_fast isn't set, so set it to zero for now
+            ion0.density = q_density_difference ./ avgZ(ion0)
+            ion0.density_fast = zeros(length(q_density_difference))
+            unfreeze!(ion0, :density_thermal)
+        end
     end
 
     return nothing
@@ -1321,6 +1328,7 @@ function bundle_DT!(cp1d::IMAS.core_profiles__profiles_1d; d_label::String="D", 
         # No fast density data available - this is okay
         total_density_fast = zeros(length(d_ion.temperature))
     end
+    IMAS.unfreeze!(dt_ion, :density)
 
     # Handle temperatures with density-weighted average
     if IMAS.hasdata(d_ion, :temperature) && IMAS.hasdata(t_ion, :temperature)
@@ -1422,6 +1430,7 @@ function new_impurity_fraction!(cp1d::IMAS.core_profiles__profiles_1d, impurity_
 
     new_ion.density_thermal = cp1d.electrons.density_thermal .* impurity_ne_fraction
     new_ion.density_fast = zeros(length(cp1d.electrons.density_thermal))
+    IMAS.unfreeze!(new_ion, :density)
     new_ion.temperature = cp1d.ion[1].temperature
 
     main_ion = cp1d.ion[1]
@@ -1491,10 +1500,9 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     z = zero(cp1d.grid.rho_tor_norm)
     for ion in cp1d.ion
         Zi = avgZ(ion)
-        @. z += ion.density_thermal * Zi^2
-<<<<<<< Updated upstream
+        @. z += ion.density * Zi^2
     end
-    @. z /= cp1d.electrons.density_thermal
+    @. z /= cp1d.electrons.density
     clamp!(z, 1.0, Inf) # Zeff must be at least 1.0
 =======
         if !ismissing(ion, :density_fast)
@@ -1553,6 +1561,10 @@ function avgZ(Z::Real, Ti::T) where {T<:Real}
     if Z == 1.0
         return one(T)
     end
+    if Ti <= 0.0
+        @warn "avgZ: Ti=$Ti ≤ 0, clamping to 1.0 eV"
+        Ti = one(T)
+    end
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return @. 10.0^(func(log10(Ti / 1E3), Z)) - 1.0
 end
@@ -1561,11 +1573,18 @@ function avgZ(Z::Real, Ti::AbstractVector{T}) where {T<:Real}
     if Z == 1.0
         return ones(T, length(Ti))
     end
+    if any(t -> t <= 0.0, Ti)
+        @warn "avgZ: $(count(t -> t <= 0.0, Ti)) negative/zero Ti values detected, clamping to 1.0 eV"
+        Ti = max.(Ti, one(T))
+    end
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return avgZ.(Ref(func), Z, Ti)
 end
 
 function avgZ(func::F, Z::Real, Ti::Real) where {F}
+    if Ti <= 0.0
+        Ti = 1.0
+    end
     return 10.0^(func(log10(Ti / 1E3), Z)) - 1.0
 end
 
@@ -1684,8 +1703,11 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
     nh = zero(T)
     nim_Z = zero(T)
     nim_Z2 = zero(T)
-    n_fast_Z = zero(T)
+    fast_charge = zero(T)
     for ion in cp1d.ion
+        if hasdata(ion, :density_fast)
+            fast_charge += ion.density_fast[rho_index] * avgZ(ion.element[1].z_n, ion.temperature[rho_index])
+        end
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
                 nh += ion.density_thermal[rho_index]
@@ -1701,14 +1723,9 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-<<<<<<< Updated upstream
-    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne .- n_fast_Z .- impurity_scale .* nim_Z) ./ nh
-=======
-    ne_eff = ne .- fast_charge
-    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)  # use ne, not ne_eff
-    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh           # keep ne_eff here
->>>>>>> Stashed changes
+    ne_eff = ne - fast_charge
+    impurity_scale = (target_zeff .- 1.0) .* ne_eff ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
@@ -1736,8 +1753,11 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
     nh = zero(ne)
     nim_Z = zero(ne)
     nim_Z2 = zero(ne)
-    n_fast_Z = zero(ne)
+    fast_charge = zero(ne)
     for ion in cp1d.ion
+        if hasdata(ion, :density_fast)
+            fast_charge .+= ion.density_fast .* avgZ(ion)
+        end
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
                 nh .+= ion.density_thermal
@@ -1753,14 +1773,9 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-<<<<<<< Updated upstream
-    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne .- n_fast_Z .- impurity_scale .* nim_Z) ./ nh
-=======
     ne_eff = ne .- fast_charge
-    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)  # use ne, not ne_eff
-    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh           # keep ne_eff here
->>>>>>> Stashed changes
+    impurity_scale = (target_zeff .- 1.0) .* ne_eff ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
@@ -1792,10 +1807,11 @@ function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_
     for ion in cp1d.ion
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
-                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+                ion.density_thermal = ion.density_thermal .* scales.manion_scale
             else
-                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+                ion.density_thermal = ion.density_thermal .* scales.impurity_scale
             end
+            IMAS.unfreeze!(ion, :density)
         end
     end
     return scales
@@ -1813,10 +1829,11 @@ function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_
     for ion in cp1d.ion
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
-                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+                ion.density_thermal = ion.density_thermal .* scales.manion_scale
             else
-                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+                ion.density_thermal = ion.density_thermal .* scales.impurity_scale
             end
+            IMAS.unfreeze!(ion, :density)
         end
     end
     return scales

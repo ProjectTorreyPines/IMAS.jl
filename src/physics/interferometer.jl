@@ -61,7 +61,7 @@ function line_average(
     @assert ϕ1 == ϕ2 "line_average cannot handle different ϕ yet"
 
     # Create 1D interpolant for the quantity q
-    q_interp = cubic_interp1d(rho_tor_norm, q)
+    q_interp = linear_interp1d(rho_tor_norm, q)
 
     # Find intersections between line and LCFS
     intersections = intersection([r1, r2], [z1, z2], lcfs_r, lcfs_z)
@@ -83,7 +83,7 @@ function line_average(
         rho_seg = rho_interp.RHO_interpolant.(r_seg, z_seg)
 
         # Interpolate quantity q along the segment
-        q_seg = q_interp.(rho_seg)
+        q_seg = max.(q_interp.(rho_seg), zero(T))
 
         # Calculate path length inside LCFS
         path_length_inside_lcfs = sqrt((r_exit - r_entry)^2 + (z_exit - z_entry)^2)

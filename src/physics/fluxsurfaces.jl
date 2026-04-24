@@ -1651,7 +1651,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # trace flux surfaces
     Br, Bz = Br_Bz(eqt2d)
-    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z)
+    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z;refine_extrema=true)
 
     # calculate flux surface averaged and geometric quantities
     N = length(eqt1d.psi)
@@ -1766,7 +1766,12 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
 
     # volume
     eqt1d.volume = cumtrapz(eqt1d.psi, eqt1d.dvolume_dpsi)
-    eqt.global_quantities.volume = eqt1d.volume[end]
+    # int_fluxexpansion_dl is inaccurate at the LCFS near X-points (Bp→0 diverges numerically),
+    # so correct dvolume_dpsi[end] and volume[end] using the geometrically exact boundary outline volume
+    vol_lcfs = π * abs(trapz(eqt.boundary.outline.z, eqt.boundary.outline.r .^ 2))
+    eqt1d.dvolume_dpsi[end] = 2 * (vol_lcfs - eqt1d.volume[end-1]) / (eqt1d.psi[end] - eqt1d.psi[end-1]) - eqt1d.dvolume_dpsi[end-1]
+    eqt1d.volume[end] = vol_lcfs
+    eqt.global_quantities.volume = vol_lcfs
 
     # phi
     tmp .= eqt1d.f .* eqt1d.gm1 / (2π)
@@ -1805,6 +1810,15 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # li
     Bp2v = trapz(eqt1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
     eqt.global_quantities.li_3 = 2.0 * Bp2v / Rgeo / (eqt.global_quantities.ip * mks.μ_0)^2
+
+    # li_1 (EFIT definition): Circum^2 * <Bp^2>_vol / (Vol * mu0^2 * Ip^2)
+    circum = eqt.global_quantities.length_pol
+    vol = eqt1d.volume[end]
+    eqt.global_quantities.li_1 = circum^2 * Bp2v / vol / (eqt.global_quantities.ip * mks.μ_0)^2
+
+    # li_2: 2 * <Bp^2>_vol / (R_axis * mu0^2 * Ip^2)
+    R_axis = eqt.global_quantities.magnetic_axis.r
+    eqt.global_quantities.li_2 = 2.0 * Bp2v / R_axis / (eqt.global_quantities.ip * mks.μ_0)^2
 
     # beta_tor
     avg_press = volume_integrate(eqt, eqt1d.pressure) / eqt1d.volume[end]
@@ -2343,3 +2357,62 @@ end
 
 @compat public areal_elongation
 push!(document[Symbol("Physics flux-surfaces")], :areal_elongation)
+
+
+
+"""
+    rec_to_mxh_coeffs(dd::IMAS.dd)
+
+fits rectangular flux surface mesh in dd to MXH
+"""
+function rec_to_mxh_coeffs(dd; MXH_modes=4, λ=10.0)
+    return rec_to_mxh_coeffs(dd.equilibrium.time_slice[], dd.wall; MXH_modes, λ)
+end
+
+function rec_to_mxh_coeffs(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; MXH_modes=4, λ=10.0)
+
+    function extrap(x::Vector, u::Vector)
+        m = (u[3] - u[2]) / (x[3] - x[2])
+        return u[3] - m * x[3]
+    end
+    fw = first_wall(wall)
+
+    pnorm = eqt.profiles_1d.psi_norm
+    surfaces = trace_surfaces(eqt, fw.r, fw.z)
+    ns = length(surfaces)
+
+    nimas = 5 + 2*MXH_modes
+    coeffs = zeros(nimas, ns)
+    mxh_fits = Vector{Any}(nothing, ns)
+
+    for isurface in 1:ns
+        r,z  = surfaces[isurface].r, surfaces[isurface].z
+        # Inside-out with extrapolated prior
+        mxh_prev = if isurface <3
+            nothing
+        else
+            # Extrapolate from two already-fitted inner surfaces
+            x0, x1, x2 = pnorm[isurface], pnorm[isurface-1], pnorm[isurface-2]
+            mxh1, mxh2 = mxh_fits[isurface-1], mxh_fits[isurface-2]
+            c0_ext = mxh1.c0 + (mxh1.c0 - mxh2.c0) / (x1 - x2) * (x0 - x1)
+            c_ext  = mxh1.c  .+ (mxh1.c  .- mxh2.c)  ./ (x1 - x2) .* (x0 - x1)
+            s_ext  = mxh1.s  .+ (mxh1.s  .- mxh2.s)  ./ (x1 - x2) .* (x0 - x1)
+            MXH(mxh1.R0, mxh1.Z0, mxh1.ϵ, mxh1.κ, c0_ext, c_ext, s_ext)
+        end
+        mxh_fits[isurface] = MXH(r, z, MXH_modes; spline=false, optimize_fit=false, mxh_prev, λ)
+        coeffs[:, isurface]   = flat_coeffs(mxh_fits[isurface])
+    end
+
+    rnorm = sqrt.(pnorm)
+    coeffs[1, 1] = extrap(pnorm, coeffs[1, :])  # R0: linear in pnorm
+    coeffs[2, 1] = extrap(rnorm, coeffs[2, :])  # Z0: linear in rnorm
+    coeffs[3, 1] = 0.0                               # ϵ = 0 at axis
+    coeffs[4, 1] = extrap(rnorm, coeffs[4, :])  # κ: linear in rnorm
+    coeffs[5, 1] = extrap(pnorm, coeffs[5, :])  # c0: linear in pnorm
+    coeffs[6:end, 1] .= 0.0                          # Fourier terms = 0
+
+    return coeffs
+end
+
+@compat public rec_to_mxh_coeffs
+push!(document[Symbol("Physics flux-surfaces")], :rec_to_mxh_coeffs)
