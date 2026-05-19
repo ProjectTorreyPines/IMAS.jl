@@ -510,8 +510,7 @@ end
 """
     fusion_power(dd::IMAS.DD; time0::Float64=dd.global_time, DD_fusion::Bool=false)
 
-Accepts any `IMAS.DD` subtype so satellite packages whose own top-level
-container (e.g. IFEdd's `dd_ife`) embeds `core_profiles` can call through.
+Calculates the total fusion power [W] at `time0` from `dd.core_profiles`.
 """
 function fusion_power(dd::IMAS.DD; time0::Float64=dd.global_time, DD_fusion::Bool=false)
     return fusion_power(dd.core_profiles.profiles_1d[time0]; DD_fusion)
@@ -556,8 +555,8 @@ end
 """
     fusion_neutron_power(dd::IMAS.DD)
 
-Accepts any `IMAS.DD` subtype so satellite packages whose own top-level
-container (e.g. IFEdd's `dd_ife`) embeds `core_profiles` can call through.
+Calculates the total fusion power in neutrons [W] from the current time
+slice of `dd.core_profiles`.
 """
 function fusion_neutron_power(dd::IMAS.DD)
     return fusion_neutron_power(dd.core_profiles.profiles_1d[])
