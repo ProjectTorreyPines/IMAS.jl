@@ -121,6 +121,20 @@ function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_
     return error("`get_from(dd, $what, Val(:$from_where))` doesn't exist yet")
 end
 
+# ne_sep [m^-3]
+function get_from(dd::IMAS.dd{T}, what::Val{:ne_sep}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+    if from_where == :core_profiles
+        cp1d = dd.core_profiles.profiles_1d[time0]
+        return cp1d.electrons.density_thermal[end]
+    elseif from_where == :pulse_schedule
+        if !ismissing(dd.pulse_schedule.density_control.n_e_separatrix, :reference)
+            return get_time_array(dd.pulse_schedule.density_control.n_e_separatrix, :reference, time0, :linear)
+        end
+        error("`get_from(dd, $what, Val(:$from_where))` does not have data")
+    end
+    return error("`get_from(dd, $what, Val(:$from_where))` doesn't exist yet")
+end
+
 Base.Docs.@doc """
     get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol; time0::Float64=dd.global_time)
 
@@ -141,6 +155,8 @@ Supported quantities for `what`:
     - Possible sources (`from_where`): `:core_profiles`, `:summary`, `:pulse_schedule`
 - `:zeff_ped`    - Effective charge at the pedestal [-]
     - Possible sources (`from_where`): `:core_profiles`, `:summary`, `:pulse_schedule`
+- `:ne_sep`      - Electron density at the separatrix [m^-3]
+    - Possible sources (`from_where`): `:core_profiles`, `:pulse_schedule`
 
 `time0` defines the time point at which to retrieve the value, default is `dd.global_time`.
 

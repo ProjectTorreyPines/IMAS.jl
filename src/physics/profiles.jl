@@ -1496,11 +1496,6 @@ end
 push!(document[Symbol("Physics profiles")], :new_impurity_radiation!)
 
 
-"""
-    zeff(cp1d::IMAS.core_profiles__profiles_1d)
-
-Returns plasma effective charge
-"""
 function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     z = zero(cp1d.grid.rho_tor_norm)
     for ion in cp1d.ion
@@ -1509,8 +1504,18 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     end
     @. z /= cp1d.electrons.density
     clamp!(z, 1.0, Inf) # Zeff must be at least 1.0
+        if !ismissing(ion, :density_fast)
+            @. z += ion.density_fast * Zi^2  # ← fast ions contribute to Zeff
+        end
+    ne_total = cp1d.electrons.density_thermal
+    if !ismissing(cp1d.electrons, :density_fast)
+        ne_total = ne_total .+ cp1d.electrons.density_fast
+    end
+    @. z /= ne_total
+    clamp!(z, 1.0, Inf)
     return z
 end
+
 
 @compat public zeff
 push!(document[Symbol("Physics profiles")], :zeff)
@@ -1710,6 +1715,9 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
                 nim_Z2 += nimp .* Zimp^2
             end
         end
+        if !ismissing(ion, :density_fast)
+            n_fast_Z += ion.density_fast[rho_index] * ion.element[1].z_n
+        end
     end
 
     ne_eff = ne - fast_charge
@@ -1756,6 +1764,9 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
                 nim_Z .+= nimp .* Zimp
                 nim_Z2 .+= nimp .* Zimp .^ 2
             end
+        end
+        if !ismissing(ion, :density_fast)
+            n_fast_Z .+= ion.density_fast .* ion.element[1].z_n
         end
     end
 
