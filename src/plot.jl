@@ -885,6 +885,82 @@ end
     end
 end
 
+#= ========== =#
+#  mhd_linear  #
+#= ========== =#
+"""
+    plot(ml::IMAS.mhd_linear; mode_index=1, time_index=nothing, component=:perpendicular, part=:real)
+
+Plot a linear-MHD displacement eigenmode (e.g. as stored by FUSE's `ActorMars`): a poloidal
+cross-section of the displacement in real R,Z space. Use as `plot(dd.mhd_linear)`.
+
+The displacement is stored as Fourier harmonics `ξₘ(s)` on the `(s, m)` grid, while the
+flux-surface geometry `R(s,χ)`, `Z(s,χ)` lives on the `(s, χ)` grid. This reconstructs
+`ξ(s,χ) = Σₘ ξₘ(s)·e^{imχ}` onto the `χ` grid so it can be drawn on the geometry.
+
+Keyword arguments:
+- `mode_index`  : which `toroidal_mode` to plot (default 1)
+- `time_index`  : `time_slice` index; `nothing` uses the global-time slice
+- `component`   : `:perpendicular` (ξ·∇s) or `:parallel`
+- `part`        : `:real` (φ=t=0 snapshot), `:imag`, or `:abs` (amplitude)
+"""
+@recipe function plot_mhd_linear(ml::IMAS.mhd_linear; mode_index=1, time_index=nothing,
+                                 component=:perpendicular, part=:real)
+    id = recipe_dispatch(ml)
+    assert_type_and_record_argument(id, Int, "Index of the toroidal_mode to plot"; mode_index)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "time_slice index (nothing = global time)"; time_index)
+    assert_type_and_record_argument(id, Symbol, "Displacement component (:perpendicular or :parallel)"; component)
+    assert_type_and_record_argument(id, Symbol, "Part to plot (:real, :imag, :abs)"; part)
+
+    ts = time_index === nothing ? ml.time_slice[] : ml.time_slice[time_index]
+    mode = ts.toroidal_mode[mode_index]
+    pl = mode.plasma
+    @assert !ismissing(pl.coordinate_system, :r) "No R,Z mode-structure geometry stored in mhd_linear"
+
+    # displacement harmonics ξₘ(s) on (s, m)
+    disp = component === :perpendicular ? pl.displacement_perpendicular :
+           component === :parallel ? pl.displacement_parallel :
+           error("component must be :perpendicular or :parallel, got :$component")
+    ξm = disp.real .+ im .* disp.imaginary           # [Ns × Nm]
+    m = pl.grid.dim2                                  # poloidal mode numbers
+
+    # real-space geometry on (s, χ)
+    χ = pl.coordinate_system.grid.dim2
+    R = pl.coordinate_system.r
+    Z = pl.coordinate_system.z
+
+    # inverse Fourier transform (s, m) → (s, χ); now on the same grid as R, Z
+    ξ = ξm * exp.(im .* (m * χ'))                     # [Ns × Nχ]
+    field = part === :real ? real.(ξ) : part === :imag ? imag.(ξ) : part === :abs ? abs.(ξ) :
+            error("part must be :real, :imag or :abs, got :$part")
+
+    aspect_ratio --> :equal
+    xguide --> "R [m]"
+    yguide --> "Z [m]"
+    title --> "ξ$(component === :parallel ? "∥" : "⊥") ($(part)), n=$(mode.n_tor)"
+
+    # displacement on the poloidal cross-section
+    @series begin
+        seriestype := :scatter
+        marker_z := vec(field)
+        markershape := :square
+        markersize --> 2
+        markerstrokewidth := 0
+        c --> :RdBu
+        label := ""
+        vec(R), vec(Z)
+    end
+
+    # plasma boundary (outermost flux surface)
+    @series begin
+        seriestype := :path
+        linecolor := :black
+        linewidth --> 1
+        label := ""
+        R[end, :], Z[end, :]
+    end
+end
+
 #= ========= =#
 #  divertors  #
 #= ========= =#
