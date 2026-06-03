@@ -1318,7 +1318,7 @@ function trace_surfaces(
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
             # plot!(pr, pz)
-            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)))
+            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)); init=Inf)
             if dd < d
                 d = dd
                 k = kk
@@ -1387,7 +1387,7 @@ function trace_surfaces(
         for (kk, line) in enumerate(lines)
             pr, pz = Contour.coordinates(line)
             # plot!(pr, pz)
-            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2)))
+            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2)); init=Inf)
             if dd < d
                 d = dd
                 k = kk
