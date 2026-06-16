@@ -851,7 +851,7 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
     Rgeo = eqt.boundary.geometric_axis.r
     ageo = eqt.boundary.minor_radius
 
-    nel = ne_line(eqt, cp1d)
+    nel = ne_line(eqt, cp1d) / 1e20
     ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * ageo^-0.95 * (Rgeo / ageo)^0.4 # in 1e19 m^-3
     ne_min *= 0.1 # [10^20 m⁻³]
     nel = max(ne_min, nel)
