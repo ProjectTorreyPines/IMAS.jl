@@ -877,11 +877,15 @@ end
 
 """
     scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
+
+When `include_metallic_wall` is `nothing` (default) the wall type is auto-detected from
+`dd.build` via [`is_metallic_wall`](@ref); pass `true`/`false` to force it.
 """
 function scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time,
-    include_metallic_wall::Bool=true, include_∇B_drift::Bool=true, include_isotope::Bool=true)
+    include_metallic_wall::Union{Nothing,Bool}=nothing, include_∇B_drift::Bool=true, include_isotope::Bool=true)
+    metallic = include_metallic_wall === nothing ? is_metallic_wall(dd) : include_metallic_wall
     return scaling_L_to_H_power(dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0];
-        include_metallic_wall, include_∇B_drift, include_isotope)
+        include_metallic_wall=metallic, include_∇B_drift, include_isotope)
 end
 
 @compat public scaling_L_to_H_power
@@ -892,17 +896,20 @@ push!(document[Symbol("Physics profiles")], :scaling_L_to_H_power)
 
 Returns ratio of Psol to Plh
 """
-function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time)
+function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time, include_metallic_wall::Bool=true)
     Psol = power_sol(cs, cp1d; time0)
-    Plh = scaling_L_to_H_power(cp1d, eqt)
+    Plh = scaling_L_to_H_power(cp1d, eqt; include_metallic_wall)
     return Psol / Plh
 end
 
 """
     L_H_threshold(dd::IMAS.dd)
+
+The wall type (metallic vs. carbon) is auto-detected from `dd.build` via [`is_metallic_wall`](@ref).
 """
 function L_H_threshold(dd::IMAS.dd; time0::Float64=dd.global_time)
-    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0]; time0)
+    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0];
+        time0, include_metallic_wall=is_metallic_wall(dd))
 end
 
 @compat public L_H_threshold
