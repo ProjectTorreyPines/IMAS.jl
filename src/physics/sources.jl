@@ -150,8 +150,9 @@ Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
   - `bootstrap`: Include bootstrap current source
   - `DD_fusion`: Include D-D fusion reactions (only relevant for D+D plasmas)
   - `fast_ion_densities`: Update fast ion density profiles after fusion source calculation
+  - `modify_electron_density`: When updating fast ion densities, adjust the electron density to satisfy quasi-neutrality instead of subtracting the fast density from the thermal ion density
 """
-function intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
+function intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false)
 
     collisional_exchange_source!(dd) # electron and ion energy
 
@@ -159,7 +160,7 @@ function intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=f
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    fast_ion_densities && fast_particles_profiles!(dd) # update fast ion densities
+    fast_ion_densities && fast_particles_profiles!(dd; modify_electron_density) # update fast ion densities
 
     bootstrap && bootstrap_source!(dd) # current
 
