@@ -41,7 +41,7 @@ Run the extract function and store its result in xfun.value
 
 NOTE: NaN is assigned on error
 """
-function (xfun::ExtractFunction)(dd::IMAS.dd)
+function (xfun::ExtractFunction)(dd::IMAS.DD)
     try
         xfun.error = nothing
         return xfun.func(dd)
@@ -60,7 +60,7 @@ library can be one of:
   - `:moopt` => `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
   - `:all` => `ExtractFunctionsLibrary` + `ConstraintFunctionsLibrary` + `ObjectiveFunctionsLibrary`
 """
-function extract(dd::IMAS.dd, library::Symbol=:extract)
+function extract(dd::IMAS.DD, library::Symbol=:extract)
     if library == :extract
         return extract(dd, ExtractFunctionsLibrary)
     elseif library in (:moopt, :all)
@@ -92,7 +92,7 @@ Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as inpu
         :Te0 => ExtractFunction(:profiles, :Te0, "keV", dd -> dd.core_profiles.profiles_1d[].electrons.temperature[1] / 1E3)
     ]
 """
-function extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction})
+function extract(dd::IMAS.DD, xtract::AbstractDict{Symbol,<:ExtractFunction})
     xtract_out = OrderedCollections.OrderedDict{Symbol,ExtractFunction}()
     for xfun in values(xtract)
         xtract_out[xfun.name] = deepcopy(xfun)
