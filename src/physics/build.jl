@@ -187,6 +187,32 @@ end
 push!(document[Symbol("Physics build")], :opposite_side_layer)
 
 """
+    is_metallic_wall(bd::IMAS.build)
+
+Returns `true` if the plasma-facing wall is metallic.
+
+Classification is based on the `material` of the `_wall_` build layer(s): graphite/carbon
+walls return `false`, everything else returns `true`. Defaults to `true` (metallic) when no
+wall layer or material information is available, preserving the historical assumption of
+scalings that were derived for metal walls.
+"""
+function is_metallic_wall(bd::IMAS.build)
+    for layer in get_build_layers(bd.layer; type=_wall_)
+        ismissing(layer, :material) && continue
+        mat = lowercase(strip(layer.material))
+        if occursin("graphite", mat) || occursin("carbon", mat) || mat == "c"
+            return false
+        end
+    end
+    return true
+end
+
+is_metallic_wall(dd::IMAS.dd) = is_metallic_wall(dd.build)
+
+@compat public is_metallic_wall
+push!(document[Symbol("Physics build")], :is_metallic_wall)
+
+"""
     structures_mask(bd::IMAS.build; ngrid::Int = 257, border_fraction::Real = 0.1)
 
 return rmask, zmask, mask of structures that are not vacuum
