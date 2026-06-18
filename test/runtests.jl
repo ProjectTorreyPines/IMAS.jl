@@ -10,6 +10,8 @@ else
 
     include("runtests_fields.jl")
 
+    include("runtests_fast.jl")
+
     include("runtests_extract.jl")
 
     include("runtests_plot_recipes.jl")
