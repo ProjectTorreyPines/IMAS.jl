@@ -145,6 +145,19 @@ end
 push!(document[Symbol("Physics fields")], :Bp)
 
 """
+    _toroidal_angle(p, q)
+
+Angle swept in the (x, y) plane between two consecutive points `p` and `q`.
+Shared by both field-line integrators so they measure `Δϕ` identically. The
+`acos` argument is clamped to `[-1, 1]` to stay robust against floating-point
+round-off when `p` and `q` are nearly collinear (small steps).
+"""
+function _toroidal_angle(p, q)
+    c = (p[1] * q[1] + p[2] * q[2]) / (hypot(p[1], p[2]) * hypot(q[1], q[2]))
+    return abs(acos(clamp(c, -one(c), one(c))))
+end
+
+"""
     ImplicitMidpointState{T,F<:Function}(vector_field, current_point, step_size, count, Δϕ)
 
 State for the implicit-midpoint field-line integrator. Each step solves the
@@ -190,7 +203,7 @@ function _next!(obj::ImplicitMidpointState)
     sol = SimpleNonlinearSolve.solve(prob, SimpleNonlinearSolve.SimpleTrustRegion(); abstol=1e-10, reltol=1e-10)
     next_point = sol.u
 
-    dphi = abs(acos(dot(next_point[1:2], obj.current_point[1:2]) / (norm(next_point[1:2]) * norm(obj.current_point[1:2]))))
+    dphi = _toroidal_angle(obj.current_point, next_point)
     obj.current_point .= next_point
     obj.count += 1
     obj.Δϕ += dphi
@@ -217,7 +230,7 @@ function _trace_rk4(vector_field::VF, start_point, step_size, stop_condition::SC
         k3 = vector_field(p .+ (h / 2) .* k2)
         k4 = vector_field(p .+ h .* k3)
         pnext = p .+ (h / 6) .* (k1 .+ 2 .* k2 .+ 2 .* k3 .+ k4)
-        dphi = abs(acos((p[1] * pnext[1] + p[2] * pnext[2]) / (hypot(p[1], p[2]) * hypot(pnext[1], pnext[2]))))
+        dphi = _toroidal_angle(p, pnext)
         Δϕ += dphi
         count += 1
         p = pnext
@@ -257,7 +270,8 @@ function trace_field_line(vector_field::VF, start_point, step_size, stop_conditi
 end
 
 function _trace_implicit_midpoint(vector_field::VF, start_point, step_size, stop_condition::SC) where {VF,SC}
-    integrator = ImplicitMidpointState(vector_field, start_point, step_size, 0, zero(step_size))
+    # copy start_point so the caller's array is not mutated (matches _trace_rk4)
+    integrator = ImplicitMidpointState(vector_field, copy(start_point), step_size, 0, zero(step_size))
 
     next_point = copy(start_point)
     trajectory = [next_point]
