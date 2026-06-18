@@ -8,6 +8,8 @@ else
     # Default behavior: run all tests
     include("runtests_fluxsurfaces.jl")
 
+    include("runtests_fields.jl")
+
     include("runtests_extract.jl")
 
     include("runtests_plot_recipes.jl")

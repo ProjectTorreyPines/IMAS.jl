@@ -1,5 +1,5 @@
 using LinearAlgebra
-import NLsolve
+import SimpleNonlinearSolve
 import Interpolations
 
 document[Symbol("Physics fields")] = Symbol[]
@@ -49,12 +49,12 @@ end
 push!(document[Symbol("Physics fields")], :Br_Bz)
 
 """
-    Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::T, R0::T, r::T, z::T) where {T<:Real}
+    Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::Real, R0::Real, r::Real, phi::Real, z::Real)
 
 Returns Br, Bphi, Bz named tuple evaluated at r and z starting from ψ interpolant and B0 and R0
 """
 function Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
-    B0::T, R0::T, r::T, phi::T, z::T) where {T<:Real}
+    B0::Real, R0::Real, r::Real, phi::Real, z::Real)
 
     Br, Bz = IMAS.Br_Bz(PSI_interpolant, r, z)
     Bphi = B0 * R0 / r
@@ -66,12 +66,12 @@ end
 push!(document[Symbol("Physics fields")], :Br_Bphi_Bz)
 
 """
-    Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::T, R0::T, r::T, z::T) where {T<:Real}
+    Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::Real, R0::Real, x::Real, y::Real, z::Real)
 
 Returns Bx, By, Bz named tuple evaluated at x,y,z starting from ψ interpolant and B0 and R0
 """
 function Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
-    B0::T, R0::T, x::T, y::T, z::T) where {T<:Real}
+    B0::Real, R0::Real, x::Real, y::Real, z::Real)
 
     r = hypot(x, y)
     phi = atan(y, x)
@@ -193,9 +193,10 @@ Advances the trajectory by one step using the implicit midpoint method.
 Next point in the trajectory
 """
 function _next!(obj::ImplicitMidpointState)
-    # Use root finding to solve the implicit equation
-    sol = NLsolve.nlsolve(obj, obj.current_point)
-    next_point = sol.zero
+    # Solve the implicit-midpoint equation obj(next)=0 (copy guess to avoid aliasing)
+    prob = SimpleNonlinearSolve.NonlinearProblem((u, _p) -> obj(u), copy(obj.current_point))
+    sol = SimpleNonlinearSolve.solve(prob, SimpleNonlinearSolve.SimpleTrustRegion(); abstol=1e-10, reltol=1e-10)
+    next_point = sol.u
 
     # Update implicit equation
     dphi = abs(acos(dot(next_point[1:2], obj.current_point[1:2]) / (norm(next_point[1:2]) * norm(obj.current_point[1:2]))))
