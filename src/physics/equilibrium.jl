@@ -17,7 +17,7 @@ end
     ψ_interpolant(r::AbstractRange{T1}, z::AbstractRange{T1}, psi::Matrix{T2}) where {T1<:Real,T2<:Real}
 """
 function ψ_interpolant(r::AbstractRange{T1}, z::AbstractRange{T1}, psi::Matrix{T2}) where {T1<:Real,T2<:Real}
-    PSI_interpolant = Interpolations.cubic_spline_interpolation((r, z), psi; extrapolation_bc=Interpolations.Line())
+    PSI_interpolant = FI.cubic_interp((r, z), psi; extrap=FI.ExtendExtrap())
     return (r=r, z=z, PSI_interpolant=PSI_interpolant)
 end
 

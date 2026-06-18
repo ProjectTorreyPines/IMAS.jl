@@ -1,6 +1,5 @@
 using LinearAlgebra
 import SimpleNonlinearSolve
-import Interpolations
 
 document[Symbol("Physics fields")] = Symbol[]
 
@@ -23,10 +22,10 @@ function Br_Bz(eqt2dv::IDSvector{<:IMAS.equilibrium__time_slice___profiles_2d})
 end
 
 """
-    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
+    Br_Bz(PSI_interpolant::FI.AbstractInterpolant, r::T, z::T) where {T<:Real}
 """
-function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
-    grad = Interpolations.gradient(PSI_interpolant, r, z)
+function Br_Bz(PSI_interpolant::FI.AbstractInterpolant, r::T, z::T) where {T<:Real}
+    grad = FI.gradient(PSI_interpolant, (r, z))
     inv_twopi_r = 1.0 / (2π * r)
     Br = grad[2] * inv_twopi_r
     Bz = -grad[1] * inv_twopi_r
@@ -34,9 +33,9 @@ function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T
 end
 
 """
-    Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
+    Br_Bz(PSI_interpolant::FI.AbstractInterpolant, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
 """
-function Br_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
+function Br_Bz(PSI_interpolant::FI.AbstractInterpolant, r::AbstractArray{T}, z::AbstractArray{T}) where {T<:Real}
     @assert size(r) == size(z)
     Br, Bz = similar(r), similar(r)
     for k in eachindex(r)
@@ -49,13 +48,13 @@ end
 push!(document[Symbol("Physics fields")], :Br_Bz)
 
 """
-    Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::Real, R0::Real, r::Real, phi::Real, z::Real)
+    Br_Bphi_Bz(PSI_interpolant::FI.AbstractInterpolant, B0::Real, R0::Real, r::Real, phi::Real, z::Real)
 
 Returns Br, Bphi, Bz named tuple evaluated at (r, z) starting from ψ interpolant and B0 and R0.
 `phi` is accepted for signature symmetry with the (x, y, z) callers but is unused: the
 equilibrium is axisymmetric, so all components are independent of the toroidal angle.
 """
-function Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
+function Br_Bphi_Bz(PSI_interpolant::FI.AbstractInterpolant,
     B0::Real, R0::Real, r::Real, phi::Real, z::Real)
 
     Br, Bz = IMAS.Br_Bz(PSI_interpolant, r, z)
@@ -68,11 +67,11 @@ end
 push!(document[Symbol("Physics fields")], :Br_Bphi_Bz)
 
 """
-    Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::Real, R0::Real, x::Real, y::Real, z::Real)
+    Bx_By_Bz(PSI_interpolant::FI.AbstractInterpolant, B0::Real, R0::Real, x::Real, y::Real, z::Real)
 
 Returns Bx, By, Bz named tuple evaluated at x,y,z starting from ψ interpolant and B0 and R0
 """
-function Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
+function Bx_By_Bz(PSI_interpolant::FI.AbstractInterpolant,
     B0::Real, R0::Real, x::Real, y::Real, z::Real)
 
     r = hypot(x, y)
@@ -91,9 +90,9 @@ end
 push!(document[Symbol("Physics fields")], :Bx_By_Bz)
 
 """
-    Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    Br_Bz_meshgrid(PSI_interpolant::FI.AbstractInterpolant, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
 """
-function Br_Bz_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+function Br_Bz_meshgrid(PSI_interpolant::FI.AbstractInterpolant, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
     Br = Matrix{T}(undef, length(r), length(z))
     Bz = Matrix{T}(undef, length(r), length(z))
     for kr in eachindex(r)
@@ -115,17 +114,17 @@ function Bp(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 end
 
 """
-    Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
+    Bp(PSI_interpolant::FI.AbstractInterpolant, r::T, z::T) where {T<:Real}
 """
-function Bp(PSI_interpolant::Interpolations.AbstractInterpolation, r::T, z::T) where {T<:Real}
+function Bp(PSI_interpolant::FI.AbstractInterpolant, r::T, z::T) where {T<:Real}
     Br, Bz = Br_Bz(PSI_interpolant, r, z)
     return sqrt(Br^2 + Bz^2)
 end
 
 """
-    Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+    Bp_meshgrid(PSI_interpolant::FI.AbstractInterpolant, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
 """
-function Bp_meshgrid(PSI_interpolant::Interpolations.AbstractInterpolation, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
+function Bp_meshgrid(PSI_interpolant::FI.AbstractInterpolant, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
     Bp = Matrix{T}(undef, length(r), length(z))
     for kr in eachindex(r)
         for kz in eachindex(z)
