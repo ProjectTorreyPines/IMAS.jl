@@ -128,6 +128,16 @@ _vecnorm(v) = sqrt(sum(abs2, v))
         end
     end
 
+    # --- smoke: both methods integrate the same ODE, so they must agree --------
+    @testset "implicit vs RK4 agree (smoke)" begin
+        vf = p -> (v = [-p[2], p[1], 0.0]; v ./ _vecnorm(v))   # unit rotation → circle
+        stop = o -> o.count >= 10
+        imp = IMAS.trace_field_line(vf, [1.0, 0.0, 0.0], 0.05, stop; method=:implicit_midpoint)
+        rk4 = IMAS.trace_field_line(vf, [1.0, 0.0, 0.0], 0.05, stop; method=:rk4)
+        @test length(imp) == length(rk4)
+        @test maximum(_vecnorm(imp[k] .- rk4[k]) for k in eachindex(imp)) < 1e-3
+    end
+
     # unknown method is rejected
     @test_throws ErrorException IMAS.trace_field_line(
         p -> [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], 0.1, obj -> obj.count >= 1; method=:bogus)
