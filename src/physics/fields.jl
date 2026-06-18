@@ -51,7 +51,9 @@ push!(document[Symbol("Physics fields")], :Br_Bz)
 """
     Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::Real, R0::Real, r::Real, phi::Real, z::Real)
 
-Returns Br, Bphi, Bz named tuple evaluated at r and z starting from ψ interpolant and B0 and R0
+Returns Br, Bphi, Bz named tuple evaluated at (r, z) starting from ψ interpolant and B0 and R0.
+`phi` is accepted for signature symmetry with the (x, y, z) callers but is unused: the
+equilibrium is axisymmetric, so all components are independent of the toroidal angle.
 """
 function Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
     B0::Real, R0::Real, r::Real, phi::Real, z::Real)
@@ -147,14 +149,16 @@ push!(document[Symbol("Physics fields")], :Bp)
 """
     _toroidal_angle(p, q)
 
-Angle swept in the (x, y) plane between two consecutive points `p` and `q`.
-Shared by both field-line integrators so they measure `Δϕ` identically. The
-`acos` argument is clamped to `[-1, 1]` to stay robust against floating-point
-round-off when `p` and `q` are nearly collinear (small steps).
+Unsigned angle swept in the (x, y) plane between two consecutive points `p` and
+`q`, via `atan(cross, dot)`. Shared by both field-line integrators so they
+measure `Δϕ` identically. Unlike `acos(dot / (‖p‖‖q‖))` this needs no
+normalization and no domain clamp: it is exact for nearly-collinear points and
+returns 0 when a point lies on the axis (r = 0), instead of `NaN`.
 """
 function _toroidal_angle(p, q)
-    c = (p[1] * q[1] + p[2] * q[2]) / (hypot(p[1], p[2]) * hypot(q[1], q[2]))
-    return abs(acos(clamp(c, -one(c), one(c))))
+    cross = p[1] * q[2] - p[2] * q[1]
+    dot2d = p[1] * q[1] + p[2] * q[2]
+    return abs(atan(cross, dot2d))
 end
 
 """

@@ -185,6 +185,17 @@ _radius_drift(traj, r0) = maximum(abs(hypot(p[1], p[2]) - r0) for p in traj)
         @test 1.7 < log2(imp_e1 / imp_e2) < 2.3  # ~2nd order
     end
 
+    # --- _toroidal_angle helper: robust angle accounting ----------------------
+    @testset "toroidal angle helper" begin
+        @test IMAS._toroidal_angle([1.0, 0.0, 0.0], [0.0, 1.0, 0.0]) ≈ pi / 2   # quarter turn
+        @test IMAS._toroidal_angle([1.0, 0.0, 0.0], [1.0, 1.0, 0.0]) ≈ pi / 4   # eighth turn
+        @test IMAS._toroidal_angle([3.0, 4.0, 0.0], [6.0, 8.0, 0.0]) ≈ 0.0 atol = 1e-12  # parallel
+        @test IMAS._toroidal_angle([2.0, 1.0, 5.0], [1.0, 3.0, 9.0]) ≈
+              IMAS._toroidal_angle([1.0, 3.0, 9.0], [2.0, 1.0, 5.0])             # unsigned/symmetric
+        # on-axis point (r=0) is well-defined (0), not NaN — guards the acos→atan2 change
+        @test IMAS._toroidal_angle([0.0, 0.0, 1.0], [1.0, 0.0, 0.0]) == 0.0
+    end
+
     # unknown method is rejected
     @test_throws ErrorException IMAS.trace_field_line(
         p -> [1.0, 0.0, 0.0], [1.0, 0.0, 0.0], 0.1, obj -> obj.count >= 1; method=:bogus)
