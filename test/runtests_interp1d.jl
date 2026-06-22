@@ -74,7 +74,6 @@ const RTOL = 1e-2
         @test cond[end] ≈ 788970.6202650126    rtol = RTOL
     end
 
-    # extrapolation semantics — DataInterpolations `Extension` continues the edge
     # polynomial. The FI replacement must keep linear continuation outside the grid
     # or the linear checks break (cf. the avgZ Flat() check in runtests_interpolations).
     @testset "interp1d extrapolation (Extension)" begin
@@ -85,11 +84,9 @@ const RTOL = 1e-2
         citp = IMAS.cubic_interp1d([0.0, 1.0, 2.0, 3.0], [0.0, 1.0, 8.0, 27.0])  # = x^3
         @test citp(1.0) ≈ 1.0                            # interpolates through the nodes
         @test citp(2.0) ≈ 8.0
-        # A cubic spline should reproduce a cubic exactly. DataInterpolations' default
-        # (natural) BC does NOT for few points — citp(1.5)=3.15 — while FastInterpolations'
-        # CubicFit BC does (3.375 exactly). So this is broken on the DataInterp baseline and
-        # will start passing once cubic_interp1d moves to FI: flip @test_broken → @test then.
-        @test_broken citp(1.5) ≈ 1.5^3 rtol = 1e-6
-        @test citp(3.5) > 27.0                           # extrapolation continues upward
+
+        # FastInterpolations' cubic spline (with default CubicFit() bc) should reproduce a cubic exactly. 
+        @test citp(1.5) ≈ 1.5^3 rtol = 1e-6
+        @test citp(3.5) ≈ 3.5^3 rtol = 1e-6            # extrapolation continues upward
     end
 end
