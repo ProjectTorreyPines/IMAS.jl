@@ -139,9 +139,7 @@ function core_radiation_heat_flux(
         ss = vcat(0.0, ss)
         qq = vcat((qq[1] + qq[end]) / 2, qq)
 
-        interp = cubic_interp1d(vcat(ss .- s[end], ss, ss .+ s[end]), vcat(qq, qq, qq))
-        Qrad = interp.(s)
-
+        Qrad = cubic_interp1d(vcat(ss .- s[end], ss, ss .+ s[end]), vcat(qq, qq, qq), s)
     else
         # Wall is NOT closed, therefore length(wall_s) = length(wall_r)
         error("wall is not closed")

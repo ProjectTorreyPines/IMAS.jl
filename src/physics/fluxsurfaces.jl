@@ -1793,8 +1793,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # gm2: <∇ρ²/R²>
     cumtrapz!(tmp, eqt1d.area, eqt1d.j_tor) # It(psi)
     eqt1d.gm2 = (mks.μ_0 * (2π)^2) .* tmp ./ (eqt1d.dvolume_dpsi .* (eqt1d.dpsi_drho_tor .^ 2))
-    @views gm2_itp = cubic_interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5])
-    eqt.profiles_1d.gm2[1] = gm2_itp(0.0) # extrapolate to axis due to zero / zero division
+    eqt.profiles_1d.gm2[1] = @views cubic_interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5], 0.0) # extrapolate to axis due to zero / zero division
 
     # Geometric major and minor radii
     Rgeo = (eqt1d.r_outboard[end] + eqt1d.r_inboard[end]) / 2.0

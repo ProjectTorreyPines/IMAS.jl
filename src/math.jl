@@ -196,9 +196,18 @@ function cubic_interp1d(x, y)
     return FI.cubic_interp(x, y; extrap = FI.ExtendExtrap())
 end
 
+# One-shot API
+function cubic_interp1d(x, y, xq)
+    return FI.cubic_interp(x, y, xq; extrap = FI.ExtendExtrap())
+end
+
 # A firm, type-stable linear interpolation function
 function linear_interp1d(x, y)
     return FI.linear_interp(x, y; extrap = FI.ExtendExtrap())
+end
+
+function linear_interp1d(x, y, xq)
+    return FI.linear_interp(x, y, xq; extrap = FI.ExtendExtrap())
 end
 
 # Make a sorted (non-decreasing) vector of knots strictly increasing, in place, by

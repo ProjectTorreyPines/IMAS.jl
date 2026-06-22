@@ -513,7 +513,7 @@ function find_levels_from_P(
     p_levels = sort!(p_levels)
     P = _deduplicate_knots!(P)
     interp_inverseP = cubic_interp1d(P, r) # interpolant of inverse function of r(P)
-    R = interp_inverseP.(p_levels)
+    R = interp_inverseP(p_levels)
 
     # using ψ(R), go from discretization in R to discretization in ψ
     psi_levels = PSI_interpolant.(R, R .* 0.0 .+ ZA) # ψ(R)
