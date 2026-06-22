@@ -1,35 +1,17 @@
 using IMAS
 using Test
 
-# =============================================================================
-# Interpolations.jl  ->  FastInterpolations.jl  migration safety net
-# =============================================================================
+# Characterization tests for the interpolation-backed equilibrium/profile workflows
+# (flux_surfaces, ρ_interpolant, magnetics!, sol, line_average, avgZ/zeff). Each test
+# drives a real interpolant through the workflow that consumes it, so a broken
+# interpolation path makes the workflow error and a changed result trips the goldens.
 #
-# PURPOSE
-#   IMAS builds its 2-D ψ/ρ interpolants and several 1-D/2-D lookups with
-#   Interpolations.jl. These are about to be migrated to FastInterpolations.jl.
-#   The danger is a SILENT half-migration: if one function keeps its old
-#   `::Interpolations.AbstractInterpolation` signature while the interpolant it
-#   receives becomes a FastInterpolations type, that path MethodErrors — and if
-#   no test ever runs that path, the broken code ships unnoticed.
-#
-#   These are CHARACTERIZATION tests, deliberately at the *workflow* level
-#   (flux_surfaces, magnetics!, sol, line_average, zeff, ...). Each one drags a
-#   real interpolant through the code path that consumes it, so:
-#     1. a forgotten migration makes the workflow ERROR  -> test fails (hard),
-#     2. a legitimate-but-different result is caught by the golden tolerances.
-#
-# GOLDEN VALUES
-#   Recorded on the pre-migration baseline (commit 0fa0c100, all Interpolations.jl).
-#   RTOL is the "거의 그대로" / "essentially unchanged" band: the cubic-spline
-#   construction differs between the two libraries (different boundary
-#   conditions => coefficients differ everywhere, not just at the edges), so
-#   small interior drift is expected and acceptable. If a value moves past RTOL
-#   after migration, INSPECT it and re-baseline only once the shift is understood.
-#
-const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
+# RTOL is the "essentially unchanged" band: interpolant results can drift slightly
+# between spline backends, so small interior drift is acceptable — a value moving past
+# RTOL is worth inspecting before re-baselining.
+const RTOL = 1e-2
 
-@testset "Interpolations migration coverage" begin
+@testset "interpolation coverage" begin
     samp = joinpath(dirname(dirname(pathof(IMAS.IMASdd))), "sample")
     dd = IMAS.json2imas(joinpath(samp, "D3D_eq_ods.json"); show_warnings=false)
     fw = IMAS.first_wall(dd.wall)
@@ -41,12 +23,9 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
     r0 = gq.magnetic_axis.r
     z0 = gq.magnetic_axis.z
 
-    # -------------------------------------------------------------------------
-    # ψ_interpolant + find_magnetic_axis + trace_simple_surfaces +
-    # interp_rmid_at_psi + Br_Bz(gradient) + q_95(linear interp)
-    # -------------------------------------------------------------------------
+    # ψ_interpolant, find_magnetic_axis, trace_simple_surfaces, interp_rmid_at_psi, Br_Bz, q_95
     @testset "flux_surfaces" begin
-        # invariants (interpolation-backend independent)
+        # invariants (backend-independent)
         @test 1.0 < r0 < 2.5 && -0.5 < z0 < 0.5                          # axis inside grid
         @test p1.psi[1] < p1.psi[end]                                    # psi increases axis->edge
         @test abs(gq.q_95) > abs(gq.q_axis) > 1.0                        # q rises outward
@@ -71,10 +50,7 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test p1.area[end]           ≈ 1.8817059348806984  rtol = RTOL
     end
 
-    # -------------------------------------------------------------------------
-    # ρ_interpolant -> Interpolations.cubic_spline_interpolation 2D + Line() extrap
-    # consumed off-grid by interferometer / getdata, so extrapolation matters.
-    # -------------------------------------------------------------------------
+    # ρ_interpolant — 2-D cubic spline; consumed off-grid by interferometer/getdata
     @testset "ρ_interpolant" begin
         ri = IMAS.ρ_interpolant(eqt)
         rho_axis = ri.RHO_interpolant(r0, z0)
@@ -91,14 +67,11 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test rho_axis ≈ 0.01975067410323628 rtol = RTOL
         @test rho_01   ≈ 0.15193360172059409 rtol = RTOL
         @test rho_03   ≈ 0.48257505484846797 rtol = RTOL
-        # NOTE: off-grid extrapolation (Line() vs ExtendExtrap()) is the value
-        # MOST likely to move on migration; pinned loosely on purpose.
+        # off-grid extrapolation is the value most likely to drift; pinned loosely.
         @test rho_off  ≈ 1.7284309375336697 rtol = 0.15
     end
 
-    # -------------------------------------------------------------------------
-    # Br_Bz / Bp -> Interpolations.gradient of ψ
-    # -------------------------------------------------------------------------
+    # Br_Bz / Bp — poloidal field from ∇ψ
     @testset "Br_Bz / Bp" begin
         _, _, PSI = IMAS.ψ_interpolant(eqt.profiles_2d)
         Br, Bz = IMAS.Br_Bz(PSI, r0 + 0.2, z0)
@@ -115,10 +88,7 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test Bp ≈ 0.18796222638334772   rtol = RTOL
     end
 
-    # -------------------------------------------------------------------------
-    # magnetics! -> field! / flux!  (the ::Interpolations.AbstractInterpolation
-    # dispatch sites). Synthetic probe + loop on the D3D equilibrium.
-    # -------------------------------------------------------------------------
+    # magnetics! → field! / flux! on a synthetic probe + loop
     @testset "magnetics! (field! / flux!)" begin
         pr, pz = r0 + 0.3, 0.2
         resize!(dd.magnetics.b_field_pol_probe, 1)
@@ -145,10 +115,7 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test loop.flux.data[1]   ≈ -2.1356278924110654  rtol = RTOL
     end
 
-    # -------------------------------------------------------------------------
-    # sol -> find_levels_from_P / find_levels_from_wall / find_psi_* /
-    # Interpolations.deduplicate_knots!
-    # -------------------------------------------------------------------------
+    # sol → find_levels_from_P / find_levels_from_wall / find_psi_* / _deduplicate_knots!
     @testset "sol (SOL field lines)" begin
         OFL = IMAS.sol(dd)
 
@@ -159,8 +126,7 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test 20 <= n_total <= 28
         @test OFL[:lfs][1].psi ≈ p1.psi[end] rtol = 1e-3   # first SOL surface ≈ separatrix
 
-        # regression goldens (counts are structural; a small shift after
-        # migration is worth INSPECTING, not auto-accepting)
+        # regression goldens (counts are structural; a small shift is worth inspecting)
         @test length(OFL[:hfs])     == 2
         @test length(OFL[:lfs])     == 17
         @test length(OFL[:lfs_far]) == 5
@@ -169,12 +135,8 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test OFL[:lfs][1].Bp[OFL[:lfs][1].midplane_index] ≈ 0.3044471249238311 rtol = RTOL
     end
 
-    # -------------------------------------------------------------------------
-    # _deduplicate_knots! -> the in-house replacement for the only utility SOL
-    # borrowed from Interpolations.jl. Contract test (backend-independent): the
-    # output must be strictly increasing with minimal (nextfloat) perturbation,
-    # so any correct implementation passes regardless of how it's written.
-    # -------------------------------------------------------------------------
+    # _deduplicate_knots! — SOL knot dedup. Contract (backend-independent): output strictly
+    # increasing with minimal (nextfloat) perturbation, so any correct impl passes.
     @testset "_deduplicate_knots!" begin
         # trailing duplicate bumped by one ulp; earlier values untouched
         out = IMAS._deduplicate_knots!([-8.0, 0.0, 20.0, 20.0])
@@ -202,9 +164,7 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test v[2] == nextfloat(0.0)
     end
 
-    # -------------------------------------------------------------------------
-    # line_average -> a real ρ_interpolant consumer (interferometer-style LOS)
-    # -------------------------------------------------------------------------
+    # line_average — a real ρ_interpolant consumer (interferometer-style LOS)
     @testset "line_average (ρ_interpolant consumer)" begin
         ri = IMAS.ρ_interpolant(eqt)
         rho = p1.rho_tor_norm
@@ -223,10 +183,7 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test res.line_integral ≈ 6.863219237461546e19 rtol = RTOL
     end
 
-    # -------------------------------------------------------------------------
-    # avgZ / zeff -> Interpolations.interpolate(Gridded(Linear())) + Flat() extrap
-    # (average ionization-state lookup table, log-log space)
-    # -------------------------------------------------------------------------
+    # avgZ / zeff — average ionization-state lookup (2-D gridded linear, log-log space)
     @testset "avgZ / zeff" begin
         # THEORETICAL anchors (backend-independent physics)
         @test IMAS.avgZ(1.0, 1000.0) == 1.0                  # H has no bound electrons
@@ -253,15 +210,9 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test sum(zf) / length(zf)   ≈ 2.6828619948019363 rtol = RTOL
     end
 
-    # -------------------------------------------------------------------------
-    # avgZ extrapolation -> Interpolations.Flat(): outside the table Ti range the
-    # lookup must return a CONSTANT (the boundary value). This pins the
-    # extrapolation SEMANTICS, not just a number: the FI replacement must choose a
-    # flat/constant extrapolation or these equalities break loudly. The interior
-    # avgZ tests above never leave the table, so this is the path they miss.
-    # (avgZ Ti table range ≈ 0.5 eV .. 100 keV.)
-    # -------------------------------------------------------------------------
-    @testset "avgZ extrapolation (Flat beyond table)" begin
+    # avgZ extrapolation — outside the table Ti range the lookup must stay CONSTANT (flat);
+    # pins the extrapolation semantics, not just a number. Table Ti ≈ 0.5 eV .. 100 keV.
+    @testset "avgZ extrapolation (flat beyond table)" begin
         # high-T: above the 100 keV table max -> flat -> equals the boundary value
         @test IMAS.avgZ(18.0, 500_000.0) == IMAS.avgZ(18.0, 100_000.0)
         @test IMAS.avgZ(18.0, 100_000.0) ≈ 18.0 rtol = 1e-6     # argon fully stripped
