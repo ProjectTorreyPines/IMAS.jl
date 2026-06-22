@@ -193,12 +193,12 @@ push!(document[Symbol("Math")], :chunk_indices)
 
 # A firm, type-stable cubic interpolation function
 function cubic_interp1d(x, y)
-    DataInterpolations.CubicSpline(y, x; extrapolation=ExtrapolationType.Extension)
+    return FI.cubic_interp(x, y; extrap = FI.ExtendExtrap())
 end
 
 # A firm, type-stable linear interpolation function
 function linear_interp1d(x, y)
-    DataInterpolations.LinearInterpolation(y, x; extrapolation=ExtrapolationType.Extension)
+    return FI.linear_interp(x, y; extrap = FI.ExtendExtrap())
 end
 
 # Make a sorted (non-decreasing) vector of knots strictly increasing, in place, by

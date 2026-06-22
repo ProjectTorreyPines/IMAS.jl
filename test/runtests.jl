@@ -10,6 +10,8 @@ else
 
     include("runtests_interpolations.jl")
 
+    include("runtests_interp1d.jl")
+
     include("runtests_fields.jl")
 
     include("runtests_fast.jl")
