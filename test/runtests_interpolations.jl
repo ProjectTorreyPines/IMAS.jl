@@ -252,4 +252,24 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
         @test zf[end]                ≈ 3.612027923377595 rtol = RTOL
         @test sum(zf) / length(zf)   ≈ 2.6828619948019363 rtol = RTOL
     end
+
+    # -------------------------------------------------------------------------
+    # avgZ extrapolation -> Interpolations.Flat(): outside the table Ti range the
+    # lookup must return a CONSTANT (the boundary value). This pins the
+    # extrapolation SEMANTICS, not just a number: the FI replacement must choose a
+    # flat/constant extrapolation or these equalities break loudly. The interior
+    # avgZ tests above never leave the table, so this is the path they miss.
+    # (avgZ Ti table range ≈ 0.5 eV .. 100 keV.)
+    # -------------------------------------------------------------------------
+    @testset "avgZ extrapolation (Flat beyond table)" begin
+        # high-T: above the 100 keV table max -> flat -> equals the boundary value
+        @test IMAS.avgZ(18.0, 500_000.0) == IMAS.avgZ(18.0, 100_000.0)
+        @test IMAS.avgZ(18.0, 100_000.0) ≈ 18.0 rtol = 1e-6     # argon fully stripped
+        @test IMAS.avgZ(6.0, 1_000_000.0) ≈ 6.0 rtol = 1e-6     # carbon fully stripped
+
+        # low-T: below the 0.5 eV table min -> flat -> equals the boundary value
+        @test IMAS.avgZ(18.0, 0.2) == IMAS.avgZ(18.0, 0.5)
+        @test 0.0 <= IMAS.avgZ(18.0, 0.5) < 1.0                 # argon ~neutral when cold
+        @test IMAS.avgZ(18.0, 0.5) ≈ 5.349999998571775e-8 rtol = RTOL
+    end
 end

@@ -58,7 +58,7 @@ end
     ρ_interpolant(r::AbstractRange{T}, z::AbstractRange{T}, rho::Matrix{T}) where {T<:Real}
 """
 function ρ_interpolant(r::AbstractRange{T}, z::AbstractRange{T}, rho::Matrix{T}) where {T<:Real}
-    RHO_interpolant = Interpolations.cubic_spline_interpolation((r, z), rho; extrapolation_bc=Interpolations.Line())
+    RHO_interpolant = FI.cubic_interp((r, z), rho; extrap = FI.ExtendExtrap())
     return (r=r, z=z, RHO_interpolant=RHO_interpolant)
 end
 

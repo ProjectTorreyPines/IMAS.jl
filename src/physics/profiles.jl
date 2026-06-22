@@ -1558,7 +1558,7 @@ Memoize.@memoize function avgZinterpolator(filename::String)
         end
     end
 
-    return Interpolations.extrapolate(Interpolations.interpolate((log10.(Ti), iion), log10.(data .+ 1.0), Interpolations.Gridded(Interpolations.Linear())), Interpolations.Flat())
+    return FI.linear_interp((log10.(Ti), iion), log10.(data .+ 1.0); extrap = FI.ClampExtrap())
 end
 
 """

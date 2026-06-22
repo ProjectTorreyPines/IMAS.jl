@@ -200,3 +200,21 @@ end
 function linear_interp1d(x, y)
     DataInterpolations.LinearInterpolation(y, x; extrapolation=ExtrapolationType.Extension)
 end
+
+# Make a sorted (non-decreasing) vector of interpolation knots strictly increasing,
+# in place, by nudging each duplicate up to `nextfloat` of its predecessor.
+#
+# Drop-in replacement for `Interpolations.deduplicate_knots!` (used by the SOL P(r)/r(P)
+# cubic interpolants, where numerically-equal knots make the spline ill-posed). For
+# non-decreasing input it reproduces that function's default behavior exactly, and it also
+# resolves runs of 3+ duplicates — which the original only warned about — the way
+# `move_knots=true` would, always returning a strictly increasing vector.
+function _deduplicate_knots!(knots::AbstractVector{<:AbstractFloat})
+    for i in eachindex(knots)
+        i == firstindex(knots) && continue
+        @inbounds if knots[i] <= knots[i-1]
+            knots[i] = nextfloat(knots[i-1])
+        end
+    end
+    return knots
+end

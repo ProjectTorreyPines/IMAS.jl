@@ -1,5 +1,4 @@
 import CoordinateConventions: cocos, COCOS
-import Interpolations
 import Contour
 import StaticArrays
 import PolygonOps
