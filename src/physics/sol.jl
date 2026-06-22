@@ -478,7 +478,7 @@ function find_levels_from_P(
     end
     # being 2πr q(r) positive-definite, P(r) is strictly monotonic, therefore also injective (one-to-one)
     # P(r) is always invertible for every q(r)>0
-    r = Interpolations.deduplicate_knots!(r)
+    r = _deduplicate_knots!(r)
     interp_P = cubic_interp1d(r, P) # interpolant of P(r)
 
     p_levels = collect(LinRange(0, maximum(P), levels))   # levels to interpolate P
@@ -511,7 +511,7 @@ function find_levels_from_P(
     end
 
     p_levels = sort!(p_levels)
-    P = Interpolations.deduplicate_knots!(P)
+    P = _deduplicate_knots!(P)
     interp_inverseP = cubic_interp1d(P, r) # interpolant of inverse function of r(P)
     R = interp_inverseP.(p_levels)
 

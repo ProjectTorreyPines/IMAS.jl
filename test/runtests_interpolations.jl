@@ -170,6 +170,39 @@ const RTOL = 1e-2   # 1% band for interpolant-dependent regression goldens
     end
 
     # -------------------------------------------------------------------------
+    # _deduplicate_knots! -> the in-house replacement for the only utility SOL
+    # borrowed from Interpolations.jl. Contract test (backend-independent): the
+    # output must be strictly increasing with minimal (nextfloat) perturbation,
+    # so any correct implementation passes regardless of how it's written.
+    # -------------------------------------------------------------------------
+    @testset "_deduplicate_knots!" begin
+        # trailing duplicate bumped by one ulp; earlier values untouched
+        out = IMAS._deduplicate_knots!([-8.0, 0.0, 20.0, 20.0])
+        @test out[1:3] == [-8.0, 0.0, 20.0]
+        @test out[4] == nextfloat(20.0)
+        @test issorted(out) && allunique(out)
+
+        # realistic SOL case: a flat spot (P[i] == P[i+1]) in a cumulative quantity
+        flat = IMAS._deduplicate_knots!([0.0, 1.0, 1.0, 2.0])
+        @test flat == [0.0, 1.0, nextfloat(1.0), 2.0]
+        @test issorted(flat) && allunique(flat)
+
+        # runs of 3+ duplicates resolve to strictly increasing (not just a no-op)
+        out3 = IMAS._deduplicate_knots!([1.0, 1.0, 1.0])
+        @test out3[1] == 1.0
+        @test issorted(out3) && allunique(out3)
+
+        # already strictly increasing -> returned unchanged
+        inc = [0.0, 1.0, 2.5, 9.0]
+        @test IMAS._deduplicate_knots!(copy(inc)) == inc
+
+        # mutates in place and returns the same object
+        v = [0.0, 0.0]
+        @test IMAS._deduplicate_knots!(v) === v
+        @test v[2] == nextfloat(0.0)
+    end
+
+    # -------------------------------------------------------------------------
     # line_average -> a real ρ_interpolant consumer (interferometer-style LOS)
     # -------------------------------------------------------------------------
     @testset "line_average (ρ_interpolant consumer)" begin
