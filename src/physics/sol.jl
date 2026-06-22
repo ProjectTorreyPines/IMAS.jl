@@ -367,7 +367,7 @@ function find_levels_from_P(
     psi_mid = PSI_interpolant.(r_mid_of_interest, r_mid_of_interest .* 0.0 .+ ZA)
     psi_sign = sign(psi_mid[end] - psi_mid[1])
     if psi_sign < 0
-        r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolation=ExtrapolationType.Extension)
+        r_mid = FI.cubic_interp(-psi_mid, r_mid_of_interest; extrap=FI.ExtendExtrap())
     end
 
     psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
