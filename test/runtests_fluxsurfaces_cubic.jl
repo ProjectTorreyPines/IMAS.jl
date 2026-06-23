@@ -30,4 +30,20 @@ end
         (_, _), ok = IMAS._project_to_level(itp, 0.36, (R0, 0.0))
         @test ok == false
     end
+
+    @testset "_contour_tangent is unit and ⊥ ∇ψ" begin
+        x = (R0 + a0 * sqrt(0.36), 0.0)         # OMP of the ψ=0.36 ellipse
+        t = IMAS._contour_tangent(itp, x, 1)
+        g = IMAS.FI.gradient(itp, x)
+        @test isapprox(hypot(t[1], t[2]), 1.0; atol=1e-10)
+        @test isapprox(t[1]*g[1] + t[2]*g[2], 0.0; atol=1e-8)   # tangent ⟂ gradient
+    end
+
+    @testset "_contour_curvature matches a circle (κ = 1/radius)" begin
+        citp, _, _ = ellipse_itp(R0, 0.5, 0.5)   # a0=b0 -> circles
+        c = 0.25                                   # radius = 0.5*sqrt(0.25) = 0.25
+        x = (R0 + 0.5 * sqrt(c), 0.0)
+        κ = IMAS._contour_curvature(citp, x)
+        @test isapprox(abs(κ), 1 / 0.25; rtol=1e-3)
+    end
 end

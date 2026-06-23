@@ -154,3 +154,29 @@ function _project_to_level(itp::FI.AbstractInterpolant, c::T, x::Tuple{T,T}; tol
     val, _ = FI.value_gradient(itp, (R, Z))
     return ((R, Z), abs(val - c) <= tol)
 end
+
+"""
+    _contour_tangent(itp::FI.AbstractInterpolant, x::Tuple{T,T}, sgn::Int) where {T<:Real}
+
+Unit tangent of the ψ iso-contour at `x`: `sgn·(ψ_Z, -ψ_R)/|∇ψ|` (rotate ∇ψ by 90°).
+`sgn ∈ {+1,-1}` selects traversal orientation (CW vs CCW).
+"""
+function _contour_tangent(itp::FI.AbstractInterpolant, x::Tuple{T,T}, sgn::Int) where {T<:Real}
+    g = FI.gradient(itp, x)
+    nrm = hypot(g[1], g[2])
+    return (sgn * g[2] / nrm, -sgn * g[1] / nrm)
+end
+
+"""
+    _contour_curvature(itp::FI.AbstractInterpolant, x::Tuple{T,T}) where {T<:Real}
+
+Signed curvature of the ψ iso-contour at `x`:
+`κ = (ψ_R²ψ_ZZ - 2ψ_Rψ_Zψ_RZ + ψ_Z²ψ_RR) / |∇ψ|³` (needs the Hessian).
+"""
+function _contour_curvature(itp::FI.AbstractInterpolant, x::Tuple{T,T}) where {T<:Real}
+    g = FI.gradient(itp, x)
+    H = FI.hessian(itp, x)
+    gR, gZ = g[1], g[2]
+    n2 = gR^2 + gZ^2
+    return (gR^2 * H[2, 2] - 2 * gR * gZ * H[1, 2] + gZ^2 * H[1, 1]) / n2^(T(3) / 2)
+end
