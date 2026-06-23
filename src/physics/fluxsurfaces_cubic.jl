@@ -433,3 +433,18 @@ function trace_surfaces_cubic(psis::AbstractVector{T}, f::AbstractVector{T}, RA:
     end
     return surfaces
 end
+
+"""
+    _find_xpoint(itp::FI.AbstractInterpolant, seed::Tuple{T,T}; tol=1e-10, maxit=50) where {T<:Real}
+
+Locate a critical point of ψ (`∇ψ=0`) by 2-D Newton ([`_newton2d`](@ref) + [`_critical_residual`](@ref))
+from `seed`, and classify it by the Hessian determinant: `:saddle` (X-point, `det H < 0`) or
+`:extremum` (O-point/axis, `det H > 0`). Returns `(point, kind::Symbol, converged::Bool)`.
+"""
+function _find_xpoint(itp::FI.AbstractInterpolant, seed::Tuple{T,T}; tol::Real=1e-10, maxit::Int=50) where {T<:Real}
+    pt, ok = _newton2d(_critical_residual(itp), seed; tol, maxit)
+    ok || return (pt, :none, false)
+    H = FI.hessian(itp, pt)
+    detH = H[1, 1] * H[2, 2] - H[1, 2]^2
+    return (pt, detH < 0 ? :saddle : :extremum, true)
+end

@@ -201,4 +201,18 @@ end
             @test isapprox(cub[k].int_fluxexpansion_dl, ref[k].int_fluxexpansion_dl; rtol=5e-3)
         end
     end
+
+    @testset "_find_xpoint locates and classifies the upper X-point (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        _, _, itp2 = IMAS.ψ_interpolant(eqt2d)
+        xp = eqt.boundary.x_point[argmax([p.z for p in eqt.boundary.x_point])]
+        pt, kind, ok = IMAS._find_xpoint(itp2, (xp.r + 0.02, xp.z + 0.02))
+        @test ok
+        @test kind == :saddle
+        @test isapprox(pt[1], xp.r; atol=1e-2)
+        @test isapprox(pt[2], xp.z; atol=1e-2)
+    end
 end
