@@ -30,7 +30,7 @@ function magnetics!(mag::IMAS.magnetics, eqt::IMAS.equilibrium__time_slice)
 end
 
 """
-    field!(probes::IMAS.IDSvector{b_field_pol_probe{T}}, PSI_interpolant::FI.AbstractInterpolant, time0::Float64) where {T<:Real
+    field!(probes::IMAS.IDSvector{b_field_pol_probe{T}}, PSI_interpolant::FI.AbstractInterpolant, time0::Float64) where {T<:Real}
 
 Calculates synthetic magnetic probes data
 """

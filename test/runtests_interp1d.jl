@@ -1,16 +1,12 @@
 using IMAS
 using Test
 
-# Characterization tests for the DataInterpolations-backed interpolation in IMAS,
-# pinned across the migration to FastInterpolations. Covers the cubic_interp1d /
-# linear_interp1d wrappers (math.jl) via real workflows (currents, interp_rmid_at_psi,
-# neoclassical) and routines that call DataInterpolations directly
-# (smooth_by_convolution, total_sources, find_levels_from_P).
+# Regression tests for the cubic_interp1d / linear_interp1d wrappers (math.jl) and the
+# routines that build on them, each exercised through a real workflow: currents,
+# interp_rmid_at_psi, neoclassical, smooth_by_convolution, total_sources, find_levels_from_P.
 #
-# RTOL is the "essentially unchanged" band. Note: linear interpolation is the same
-# math in both backends, so the neoclassical goldens should stay tight; the cubic
-# spline construction differs (boundary conditions), so cubic goldens may drift
-# slightly — inspect before re-baselining if a value moves past RTOL.
+# RTOL is the golden-value tolerance: linear results are exact, while cubic-spline
+# goldens can drift slightly — inspect before re-baselining if a value moves past RTOL.
 const RTOL = 1e-2
 
 @testset "interp1d coverage" begin
@@ -27,7 +23,7 @@ const RTOL = 1e-2
         Jtor = 1.0e6 .* (1.0 .- rho_out .^ 2)
         Jpar = IMAS.Jtor_2_Jpar(rho_out, Jtor, false, eqt)
 
-        # invariant: round-trip Jpar→Jtor recovers the input (backend-independent)
+        # invariant: round-trip Jpar→Jtor recovers the input
         Jtor_rt = IMAS.Jpar_2_Jtor(rho_out, Jpar, false, eqt)
         @test maximum(abs.(Jtor_rt .- Jtor)) < 10.0     # ~1e-10 in practice
 
@@ -74,9 +70,9 @@ const RTOL = 1e-2
         @test cond[end] ≈ 788970.6202650126    rtol = RTOL
     end
 
-    # polynomial. The FI replacement must keep linear continuation outside the grid
-    # or the linear checks break (cf. the avgZ Flat() check in runtests_interpolations).
-    @testset "interp1d extrapolation (Extension)" begin
+    # Extrapolation (ExtendExtrap): outside the grid linear_interp1d continues as a
+    # straight line and cubic_interp1d as the boundary polynomial.
+    @testset "interp1d extrapolation" begin
         litp = IMAS.linear_interp1d([0.0, 1.0, 2.0], [0.0, 10.0, 20.0])
         @test litp(1.5) ≈ 15.0 rtol = 1e-9               # exact on a line
         @test litp(3.0) ≈ 30.0 rtol = 1e-9               # Extension = linear continuation
@@ -90,8 +86,7 @@ const RTOL = 1e-2
         @test citp(3.5) ≈ 3.5^3 rtol = 1e-6            # extrapolation continues upward
     end
 
-    # smooth_by_convolution (signal.jl) — DataInterpolations.LinearInterpolation is
-    # used to up-sample sparse data when interpolate>1.
+    # smooth_by_convolution (signal.jl) — linear up-sampling of sparse data when interpolate>1.
     @testset "smooth_by_convolution" begin
         xi = collect(range(0.0, 10.0, 11))
         yi = sin.(xi) .+ 0.1 .* xi
@@ -107,8 +102,8 @@ const RTOL = 1e-2
         @test sum(yo) ≈ 13.697236829875614   rtol = RTOL
     end
 
-    # total_sources (sources.jl) — onetime cubic_interp1d grid-remap of cp1d.grid +
-    # DataInterpolations.LinearInterpolation (sources.jl:520) for off-grid source data.
+    # total_sources (sources.jl) — onetime cubic_interp1d grid-remap of cp1d.grid plus
+    # linear interpolation of off-grid source data.
     @testset "total_sources" begin
         dds = IMAS.json2imas(joinpath(samp, "omas_sample.json"); show_warnings=false)
         cs1d = IMAS.total_sources(dds)
@@ -122,8 +117,8 @@ const RTOL = 1e-2
         @test cs1d.torque_tor_inside[end]          ≈ 4.449586129377494    rtol = RTOL
     end
 
-    # find_levels_from_P (sol.jl) — cubic_interp1d for P(r)/r(P) plus the direct
-    # DataInterpolations.CubicSpline at sol.jl:370. Driven with a synthetic SOL q(r).
+    # find_levels_from_P (sol.jl) — cubic_interp1d for P(r)/r(P) and r_mid(ψ),
+    # driven with a synthetic SOL q(r).
     @testset "find_levels_from_P" begin
         r = collect(range(0.0, 0.10, 60))      # SOL outboard-midplane distance from separatrix [m]
         q = 1.0e7 .* exp.(-r ./ 0.015)         # parallel heat flux, exponential decay

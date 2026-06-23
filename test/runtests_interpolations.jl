@@ -1,14 +1,14 @@
 using IMAS
 using Test
 
-# Characterization tests for the interpolation-backed equilibrium/profile workflows
+# Regression tests for the interpolation-backed equilibrium/profile workflows
 # (flux_surfaces, ρ_interpolant, magnetics!, sol, line_average, avgZ/zeff). Each test
 # drives a real interpolant through the workflow that consumes it, so a broken
 # interpolation path makes the workflow error and a changed result trips the goldens.
 #
-# RTOL is the "essentially unchanged" band: interpolant results can drift slightly
-# between spline backends, so small interior drift is acceptable — a value moving past
-# RTOL is worth inspecting before re-baselining.
+# RTOL is the golden-value tolerance: interpolant results can drift slightly, so small
+# interior drift is acceptable — a value moving past RTOL is worth inspecting before
+# re-baselining.
 const RTOL = 1e-2
 
 @testset "interpolation coverage" begin
@@ -25,7 +25,7 @@ const RTOL = 1e-2
 
     # ψ_interpolant, find_magnetic_axis, trace_simple_surfaces, interp_rmid_at_psi, Br_Bz, q_95
     @testset "flux_surfaces" begin
-        # invariants (backend-independent)
+        # invariants
         @test 1.0 < r0 < 2.5 && -0.5 < z0 < 0.5                          # axis inside grid
         @test p1.psi[1] < p1.psi[end]                                    # psi increases axis->edge
         @test abs(gq.q_95) > abs(gq.q_axis) > 1.0                        # q rises outward
@@ -135,7 +135,7 @@ const RTOL = 1e-2
         @test OFL[:lfs][1].Bp[OFL[:lfs][1].midplane_index] ≈ 0.3044471249238311 rtol = RTOL
     end
 
-    # _deduplicate_knots! — SOL knot dedup. Contract (backend-independent): output strictly
+    # _deduplicate_knots! — SOL knot dedup. Contract: output strictly
     # increasing with minimal (nextfloat) perturbation, so any correct impl passes.
     @testset "_deduplicate_knots!" begin
         # trailing duplicate bumped by one ulp; earlier values untouched
@@ -185,7 +185,7 @@ const RTOL = 1e-2
 
     # avgZ / zeff — average ionization-state lookup (2-D gridded linear, log-log space)
     @testset "avgZ / zeff" begin
-        # THEORETICAL anchors (backend-independent physics)
+        # THEORETICAL anchors (physics)
         @test IMAS.avgZ(1.0, 1000.0) == 1.0                  # H has no bound electrons
         @test IMAS.avgZ(6.0, 1000.0) ≈ 6.0 rtol = 1e-6       # carbon fully stripped @1keV
         for (Z, Ti) in ((6.0, 50.0), (18.0, 200.0), (18.0, 2000.0), (74.0, 1000.0))
