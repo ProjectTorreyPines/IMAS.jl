@@ -2,7 +2,9 @@ using IMAS
 using Test
 
 # _refine_extremum solves {ψ = target, ∂ψ/∂(diraxis) = 0} with a 2×2 Newton
-# seeded at a rough extremum, falling back to the seed if it cannot converge.
+# seeded at a rough extremum (falling back to the seed if it cannot converge),
+# then validates the result and, near an X-point, recovers the genuine confined
+# extremum using the magnetic axis passed as the last argument.
 # Analytic test field: nested ellipses ψ = ((R-R0)/a0)^2 + (Z/b0)^2, whose
 # level-L surface has extrema  max_r=(R0+a0√L, 0),  min_r=(R0-a0√L, 0),
 #                              max_z=(R0, b0√L),    min_z=(R0, -b0√L).
@@ -26,32 +28,32 @@ using Test
             ("min_z", :Z, (R0, -b0 * s), (R0 + 0.3dc, -b0 * s + 0.4dc)),
         )
         for (label, extremum_of, truth, seed) in cases
-            R, Z = IMAS._refine_extremum(itp, L, seed, extremum_of)
+            R, Z = IMAS._refine_extremum(itp, L, seed, extremum_of, (R0, 0.0))
             @test isapprox(R, truth[1]; atol=1e-6)
             @test isapprox(Z, truth[2]; atol=1e-6)
         end
     end
 
     @testset "rejects an invalid extremum_of" begin
-        @test_throws ArgumentError IMAS._refine_extremum(itp, 0.36, (R0, 0.0), :bogus)
+        @test_throws ArgumentError IMAS._refine_extremum(itp, 0.36, (R0, 0.0), :bogus, (R0, 0.0))
     end
 
     @testset "falls back to seed when Newton cannot converge" begin
         # seeding exactly at the magnetic axis gives ∇ψ = 0 -> singular Jacobian.
         # The solver must not blow up to NaN/Inf; it returns the seed unchanged.
         seed = (R0, 0.0)
-        R, Z = IMAS._refine_extremum(itp, 0.36, seed, :R)
+        R, Z = IMAS._refine_extremum(itp, 0.36, seed, :R, (R0, 0.0))
         @test (R, Z) == seed
     end
 
-    @testset "RED: refinement keeps max_z below X-point (DIII-D)" begin
+    @testset "refinement keeps max_z below X-point (DIII-D)" begin
         # On a diverted equilibrium the outermost (~separatrix) surface's rough
         # max_z overshoots ABOVE the upper X-point. The plain fast-path Newton
         # seeded there converges to the wrong basin (a solution of {ψ=target,
         # ∂ψ/∂R=0} above the X-point) instead of the confined-region top below it.
-        # With the magnetic axis provided, the recovery (curvature check -> find the
-        # X-point by ∇ψ=0 -> mirror across it -> bounded Newton) returns the genuine
-        # confined max below the X-point. FAILS until that recovery is implemented.
+        # Given the magnetic axis, _refine_extremum detects the wrong branch
+        # (curvature check), finds the X-point by ∇ψ=0, mirrors across it, and
+        # re-solves below it -> the genuine confined max below the X-point.
         filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
         dd = IMAS.json2imas(filename; show_warnings=false)
         eqt = dd.equilibrium.time_slice[1]
@@ -68,8 +70,7 @@ using Test
         rough = IMAS.trace_surfaces(psis, eqt1d.f, collect(rr), collect(zz), eqt2d.psi, BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)
         s = rough[end]
         xp_up = maximum(xp.z for xp in eqt.boundary.x_point)
-        cand = IMAS._refine_extremum(itp2, psis[end], (s.r_at_max_z, s.max_z), :Z)  # fast path -> wrong
-        _, max_z = IMAS._refine_extremum_bounded(itp2, psis[end], cand, :Z, (RA, ZA))  # recovery
+        _, max_z = IMAS._refine_extremum(itp2, psis[end], (s.r_at_max_z, s.max_z), :Z, (RA, ZA))
         @test max_z < xp_up
     end
 end
