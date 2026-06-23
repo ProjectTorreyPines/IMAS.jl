@@ -248,6 +248,7 @@ tangent. `domain=(Rlo,Rhi,Zlo,Zhi)` (or `nothing`) terminates open contours at t
 function _trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, seed::Tuple{T,T};
     method::Symbol=:pc, sgn::Int=-1, ε::Real=1e-6, h_min::Real=1e-4, h_max::Real=0.1,
     max_turn::Real=deg2rad(10), κ_floor::Real=1e-8, s_min::Real=0.0, max_steps::Int=100_000,
+    rk4_tol::Real=1e-8,
     domain=nothing) where {T<:Real}
 
     x0, ok = _project_to_level(itp, c, seed)
@@ -255,10 +256,15 @@ function _trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, seed::Tuple{T,T
     t0 = _contour_tangent(itp, x0, sgn)
     Rs = T[x0[1]]; Zs = T[x0[2]]
     x = x0; tprev = t0; Θ = zero(T); s = zero(T)
+    hrk = h_max
 
     for _ in 1:max_steps
-        h = _contour_step(itp, x; ε, h_min, h_max, max_turn, κ_floor)
-        xnew, sok = _step_pc(itp, c, x, h, sgn)
+        if method === :rk4
+            xnew, hrk, sok = _step_rk4_adaptive(itp, x, hrk, sgn; tol=rk4_tol, h_min, h_max)
+        else
+            h = _contour_step(itp, x; ε, h_min, h_max, max_turn, κ_floor)
+            xnew, sok = _step_pc(itp, c, x, h, sgn)
+        end
         sok || break
         if domain !== nothing && !(domain[1] <= xnew[1] <= domain[2] && domain[3] <= xnew[2] <= domain[4])
             push!(Rs, xnew[1]); push!(Zs, xnew[2])

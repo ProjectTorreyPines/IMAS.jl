@@ -103,4 +103,15 @@ end
         # pure integrator: drift exists but is small for one step
         @test abs(IMAS.FI.value_gradient(itp, x1)[1] - c) < 1e-4
     end
+
+    @testset ":rk4 method traces the ellipse but drifts more than :pc" begin
+        c = 0.36; seed = (R0 + a0*sqrt(c), 0.0)
+        Rp, Zp, clp = IMAS._trace_surface_cubic(itp, c, seed; method=:pc, h_max=0.05)
+        Rr, Zr, clr = IMAS._trace_surface_cubic(itp, c, seed; method=:rk4, rk4_tol=1e-8, h_max=0.05)
+        @test clp && clr
+        drift_pc = maximum(abs(IMAS.FI.value_gradient(itp,(Rp[k],Zp[k]))[1]-c) for k in eachindex(Rp))
+        drift_rk = maximum(abs(IMAS.FI.value_gradient(itp,(Rr[k],Zr[k]))[1]-c) for k in eachindex(Rr))
+        @test drift_pc < 1e-8                  # corrector enforces the constraint
+        @test drift_rk >= drift_pc             # pure integrator drifts at least as much
+    end
 end
