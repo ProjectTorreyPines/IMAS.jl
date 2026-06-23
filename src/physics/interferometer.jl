@@ -83,7 +83,7 @@ function line_average(
         rho_seg = rho_interp.RHO_interpolant.(r_seg, z_seg)
 
         # Interpolate quantity q along the segment
-        q_seg = max.(q_interp.(rho_seg), zero(T))
+        q_seg = max.(q_interp(rho_seg), zero(T))
 
         # Calculate path length inside LCFS
         path_length_inside_lcfs = sqrt((r_exit - r_entry)^2 + (z_exit - z_entry)^2)

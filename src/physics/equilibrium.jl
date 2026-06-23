@@ -17,7 +17,7 @@ end
     ψ_interpolant(r::AbstractRange{T1}, z::AbstractRange{T1}, psi::Matrix{T2}) where {T1<:Real,T2<:Real}
 """
 function ψ_interpolant(r::AbstractRange{T1}, z::AbstractRange{T1}, psi::Matrix{T2}) where {T1<:Real,T2<:Real}
-    PSI_interpolant = Interpolations.cubic_spline_interpolation((r, z), psi; extrapolation_bc=Interpolations.Line())
+    PSI_interpolant = FI.cubic_interp((r, z), psi; extrap=FI.ExtendExtrap())
     return (r=r, z=z, PSI_interpolant=PSI_interpolant)
 end
 
@@ -58,7 +58,7 @@ end
     ρ_interpolant(r::AbstractRange{T}, z::AbstractRange{T}, rho::Matrix{T}) where {T<:Real}
 """
 function ρ_interpolant(r::AbstractRange{T}, z::AbstractRange{T}, rho::Matrix{T}) where {T<:Real}
-    RHO_interpolant = Interpolations.cubic_spline_interpolation((r, z), rho; extrapolation_bc=Interpolations.Line())
+    RHO_interpolant = FI.cubic_interp((r, z), rho; extrap = FI.ExtendExtrap())
     return (r=r, z=z, RHO_interpolant=RHO_interpolant)
 end
 
@@ -291,8 +291,8 @@ function optimal_kappa_delta(li::T1, βp::T1, ϵ::T1, γτw::T2, ∆o::T2) where
     δ_opt = 2.30 * li^1.27 * βp^-0.01 * ϵ^(1.21 − 0.76 * li - 1.22 * βp - 0.001 * γτw + 1.21 * (1.0 + ∆o))
     δ_opt = max(min(δ_opt, maximum(δδ_)), minimum(δδ_))
 
-    k0 = cubic_interp1d(δδ_, k0_).(δ_opt)
-    k1 = cubic_interp1d(δδ_, k1_).(δ_opt)
+    k0 = cubic_interp1d(δδ_, k0_, δ_opt)
+    k1 = cubic_interp1d(δδ_, k1_, δ_opt)
     κ_opt = k0 + k1 * ((2.0 * ϵ) / (1.0 + ϵ^2))^2
 
     return (κ_opt=κ_opt, δ_opt=δ_opt)

@@ -331,7 +331,7 @@ push!(document[Symbol("Physics sol")], :sol)
         eqt::IMAS.equilibrium__time_slice,
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
-        PSI_interpolant::Interpolations.AbstractInterpolation,
+        PSI_interpolant,
         r::Vector{<:Real},
         q::Vector{<:Real},
         levels::Int
@@ -345,7 +345,7 @@ function find_levels_from_P(
     eqt::IMAS.equilibrium__time_slice,
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
-    PSI_interpolant::Interpolations.AbstractInterpolation,
+    PSI_interpolant,
     r::Vector{<:Real},
     q::Vector{<:Real},
     levels::Int
@@ -367,7 +367,7 @@ function find_levels_from_P(
     psi_mid = PSI_interpolant.(r_mid_of_interest, r_mid_of_interest .* 0.0 .+ ZA)
     psi_sign = sign(psi_mid[end] - psi_mid[1])
     if psi_sign < 0
-        r_mid = DataInterpolations.CubicSpline(r_mid_of_interest, -psi_mid; extrapolation=ExtrapolationType.Extension)
+        r_mid = FI.cubic_interp(-psi_mid, r_mid_of_interest; extrap=FI.ExtendExtrap())
     end
 
     psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
@@ -478,7 +478,7 @@ function find_levels_from_P(
     end
     # being 2πr q(r) positive-definite, P(r) is strictly monotonic, therefore also injective (one-to-one)
     # P(r) is always invertible for every q(r)>0
-    r = Interpolations.deduplicate_knots!(r)
+    r = _deduplicate_knots!(r)
     interp_P = cubic_interp1d(r, P) # interpolant of P(r)
 
     p_levels = collect(LinRange(0, maximum(P), levels))   # levels to interpolate P
@@ -511,9 +511,9 @@ function find_levels_from_P(
     end
 
     p_levels = sort!(p_levels)
-    P = Interpolations.deduplicate_knots!(P)
+    P = _deduplicate_knots!(P)
     interp_inverseP = cubic_interp1d(P, r) # interpolant of inverse function of r(P)
-    R = interp_inverseP.(p_levels)
+    R = interp_inverseP(p_levels)
 
     # using ψ(R), go from discretization in R to discretization in ψ
     psi_levels = PSI_interpolant.(R, R .* 0.0 .+ ZA) # ψ(R)
@@ -534,7 +534,7 @@ end
     find_levels_from_P(
         eqt::IMAS.equilibrium__time_slice,
         wall::IMAS.wall,
-        PSI_interpolant::Interpolations.AbstractInterpolation,
+        PSI_interpolant,
         r::Vector{<:Real},
         q::Vector{<:Real},
         levels::Int
@@ -543,7 +543,7 @@ end
 function find_levels_from_P(
     eqt::IMAS.equilibrium__time_slice,
     wall::IMAS.wall,
-    PSI_interpolant::Interpolations.AbstractInterpolation,
+    PSI_interpolant,
     r::Vector{<:Real},
     q::Vector{<:Real},
     levels::Int
@@ -567,7 +567,7 @@ push!(document[Symbol("Physics sol")], :find_levels_from_P)
         eqt::IMAS.equilibrium__time_slice,
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
-        PSI_interpolant::Interpolations.AbstractInterpolation
+        PSI_interpolant
     )
 
 Function for that computes the value of psi at the points of the wall mesh in dd
@@ -576,7 +576,7 @@ function find_levels_from_wall(
     eqt::IMAS.equilibrium__time_slice{T},
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
-    PSI_interpolant::Interpolations.AbstractInterpolation
+    PSI_interpolant
 ) where {T<:Real}
 
     @assert length(wall_r) == length(wall_z)
@@ -600,9 +600,9 @@ function find_levels_from_wall(
 end
 
 """
-    find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation)
+    find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant)
 """
-function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::Interpolations.AbstractInterpolation)
+function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant)
     return find_levels_from_wall(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant)
 end
 

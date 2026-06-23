@@ -30,11 +30,11 @@ function magnetics!(mag::IMAS.magnetics, eqt::IMAS.equilibrium__time_slice)
 end
 
 """
-    field!(probes::IMAS.IDSvector{b_field_pol_probe{T}}, PSI_interpolant::Interpolations.AbstractInterpolation, time0::Float64) where {T<:Real
+    field!(probes::IMAS.IDSvector{b_field_pol_probe{T}}, PSI_interpolant, time0::Float64) where {T<:Real}
 
 Calculates synthetic magnetic probes data
 """
-function field!(probes::IMAS.IDSvector{IMAS.magnetics__b_field_pol_probe{T}}, PSI_interpolant::Interpolations.AbstractInterpolation, time0::Float64) where {T<:Real}
+function field!(probes::IMAS.IDSvector{IMAS.magnetics__b_field_pol_probe{T}}, PSI_interpolant, time0::Float64) where {T<:Real}
     for probe in probes
         # local Br and Bz at probe location
         Br, Bz = IMAS.Br_Bz(PSI_interpolant, probe.position.r, probe.position.z)
@@ -45,11 +45,11 @@ function field!(probes::IMAS.IDSvector{IMAS.magnetics__b_field_pol_probe{T}}, PS
 end
 
 """
-    flux!(loops::IMAS.IDSvector{IMAS.magnetics__flux_loop{T}}, PSI_interpolant::Interpolations.AbstractInterpolation, time0::Float64) where {T <: Real}
+    flux!(loops::IMAS.IDSvector{IMAS.magnetics__flux_loop{T}}, PSI_interpolant, time0::Float64) where {T <: Real}
 
 Calculates synthetic flux loops data
 """
-function flux!(loops::IMAS.IDSvector{IMAS.magnetics__flux_loop{T}}, PSI_interpolant::Interpolations.AbstractInterpolation, time0::Float64) where {T<:Real}
+function flux!(loops::IMAS.IDSvector{IMAS.magnetics__flux_loop{T}}, PSI_interpolant, time0::Float64) where {T<:Real}
     for loop in loops
         r = sum(pos.r for pos in loop.position) / length(loop.position)
         z = sum(pos.z for pos in loop.position) / length(loop.position)

@@ -193,10 +193,33 @@ push!(document[Symbol("Math")], :chunk_indices)
 
 # A firm, type-stable cubic interpolation function
 function cubic_interp1d(x, y)
-    DataInterpolations.CubicSpline(y, x; extrapolation=ExtrapolationType.Extension)
+    return FI.cubic_interp(x, y; extrap = FI.ExtendExtrap())
+end
+
+# One-shot API
+function cubic_interp1d(x, y, xq)
+    return FI.cubic_interp(x, y, xq; extrap = FI.ExtendExtrap())
 end
 
 # A firm, type-stable linear interpolation function
 function linear_interp1d(x, y)
-    DataInterpolations.LinearInterpolation(y, x; extrapolation=ExtrapolationType.Extension)
+    return FI.linear_interp(x, y; extrap = FI.ExtendExtrap())
+end
+
+function linear_interp1d(x, y, xq)
+    return FI.linear_interp(x, y, xq; extrap = FI.ExtendExtrap())
+end
+
+# Make a sorted (non-decreasing) vector of knots strictly increasing, in place, by
+# nudging each duplicate up to `nextfloat` of its predecessor. Used by the SOL P(r)/r(P)
+# cubic interpolants, where numerically-equal knots make the spline ill-posed; runs of
+# 3+ duplicates are all resolved, so the result is always strictly increasing.
+function _deduplicate_knots!(knots::AbstractVector{<:AbstractFloat})
+    for i in eachindex(knots)
+        i == firstindex(knots) && continue
+        @inbounds if knots[i] <= knots[i-1]
+            knots[i] = nextfloat(knots[i-1])
+        end
+    end
+    return knots
 end

@@ -8,6 +8,10 @@ else
     # Default behavior: run all tests
     include("runtests_fluxsurfaces.jl")
 
+    include("runtests_interpolations.jl")
+
+    include("runtests_interp1d.jl")
+
     include("runtests_fields.jl")
 
     include("runtests_fast.jl")
