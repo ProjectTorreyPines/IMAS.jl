@@ -43,4 +43,33 @@ using Test
         R, Z = IMAS._refine_extremum(itp, 0.36, seed, :R)
         @test (R, Z) == seed
     end
+
+    @testset "RED: refinement keeps max_z below X-point (DIII-D)" begin
+        # On a diverted equilibrium the outermost (~separatrix) surface's rough
+        # max_z overshoots ABOVE the upper X-point. The plain fast-path Newton
+        # seeded there converges to the wrong basin (a solution of {ψ=target,
+        # ∂ψ/∂R=0} above the X-point) instead of the confined-region top below it.
+        # With the magnetic axis provided, the recovery (curvature check -> find the
+        # X-point by ∇ψ=0 -> mirror across it -> bounded Newton) returns the genuine
+        # confined max below the X-point. FAILS until that recovery is implemented.
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp2 = IMAS.ψ_interpolant(eqt2d)
+        eqt1d = eqt.profiles_1d
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        psi_axis = itp2(RA, ZA)
+        pb = IMAS.find_psi_boundary(rr, zz, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, fw.r, fw.z;
+            PSI_interpolant=itp2, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+        psis = (eqt1d.psi .- eqt1d.psi[1]) ./ (eqt1d.psi[end] - eqt1d.psi[1]) .* (pb.last_closed - psi_axis) .+ psi_axis
+        BR, BZ = IMAS.Br_Bz(eqt2d)
+        rough = IMAS.trace_surfaces(psis, eqt1d.f, collect(rr), collect(zz), eqt2d.psi, BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)
+        s = rough[end]
+        xp_up = maximum(xp.z for xp in eqt.boundary.x_point)
+        cand = IMAS._refine_extremum(itp2, psis[end], (s.r_at_max_z, s.max_z), :Z)  # fast path -> wrong
+        _, max_z = IMAS._refine_extremum_bounded(itp2, psis[end], cand, :Z, (RA, ZA))  # recovery
+        @test max_z < xp_up
+    end
 end
