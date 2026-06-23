@@ -87,10 +87,15 @@ end
         R2, Z2 = IMAS._resample_contour(Rs, Zs, 128)
         @test length(R2) == 128
         # resampled points stay on ψ=c (they lie on the traced polyline, ~on-surface)
-        @test all(abs(IMAS.FI.value_gradient(itp, (R2[k], Z2[k]))[1] - c) < 5e-4 for k in eachindex(R2))
-        # arclength steps roughly uniform
+        @test all(abs(IMAS.FI.value_gradient(itp, (R2[k], Z2[k]))[1] - c) < 1e-5 for k in eachindex(R2))
+        # arclength steps are all genuinely non-zero (no duplicate endpoint / collapsed wrap)
         ds = [hypot(R2[mod1(k+1,128)]-R2[k], Z2[mod1(k+1,128)]-Z2[k]) for k in 1:128]
-        @test (maximum(ds) - minimum(ds)) / sum(ds) < 0.05
+        @test minimum(ds) > 0.5 * sum(ds) / 128
+        # closed-contour wrap segment equals the interior spacing (no duplicate endpoint)
+        @test isapprox(ds[end], sum(ds)/128; rtol=0.05)
+        # m==1 degenerate input: every output equals the single input point
+        R2s, Z2s = IMAS._resample_contour([2.0], [0.0], 128)
+        @test all(==(2.0), R2s) && all(==(0.0), Z2s) && length(R2s) == 128
     end
 
     @testset "_step_rk4_adaptive advances along the tangent, no corrector" begin
@@ -214,6 +219,14 @@ end
         @test kind == :saddle
         @test isapprox(pt[1], xp.r; atol=1e-2)
         @test isapprox(pt[2], xp.z; atol=1e-2)
+        # Fix 12.1: O-point (magnetic axis) must classify as :extremum, exercising both branches
+        ax = (eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z)
+        po, kindo, oko = IMAS._find_xpoint(itp2, ax)
+        @test oko
+        @test kindo == :extremum
+        # Fix 12.2: out-of-domain seed must be rejected (domain guard rejects spurious extrapolated critical)
+        ptb, kindb, okb = IMAS._find_xpoint(itp2, (3.0, 2.0))
+        @test !okb
     end
 
     @testset "near-separatrix surface stays in the confined region (DIII-D)" begin

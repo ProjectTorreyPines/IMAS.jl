@@ -304,12 +304,20 @@ closure point for closed surfaces.
 """
 function _resample_contour(Rs::AbstractVector{T}, Zs::AbstractVector{T}, n::Int) where {T<:Real}
     m = length(Rs)
+    if m == 1
+        return (fill(Rs[1], n), fill(Zs[1], n))   # degenerate / single-point input
+    end
     ll = zeros(T, m)
     for k in 2:m
         ll[k] = ll[k-1] + hypot(Rs[k]-Rs[k-1], Zs[k]-Zs[k-1])
     end
     L = ll[end]
-    targets = range(zero(T), L; length=n)
+    L > 0 || return (fill(Rs[1], n), fill(Zs[1], n))
+    # detect a closed polyline (last vertex coincides with first); if so, sample the
+    # half-open interval [0, L) so the n outputs are distinct and the wrap segment equals
+    # the interior spacing instead of collapsing to ~0.
+    closed = hypot(Rs[end]-Rs[1], Zs[end]-Zs[1]) < 1e-9 * max(L, one(T))
+    targets = closed ? range(zero(T), L; length=n+1)[1:n] : range(zero(T), L; length=n)
     Ro = Vector{T}(undef, n); Zo = Vector{T}(undef, n)
     j = 1
     for (i, s) in enumerate(targets)
@@ -318,8 +326,8 @@ function _resample_contour(Rs::AbstractVector{T}, Zs::AbstractVector{T}, n::Int)
         end
         seg = ll[j+1] - ll[j]
         f = seg > 0 ? (s - ll[j]) / seg : zero(T)
-        Ro[i] = Rs[j] + f * (Rs[min(j+1,m)] - Rs[j])
-        Zo[i] = Zs[j] + f * (Zs[min(j+1,m)] - Zs[j])
+        Ro[i] = Rs[j] + f * (Rs[j+1] - Rs[j])
+        Zo[i] = Zs[j] + f * (Zs[j+1] - Zs[j])
     end
     return Ro, Zo
 end
@@ -399,7 +407,7 @@ function trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_
     Rs, Zs, closed = _trace_surface_cubic(itp, c, seed; kw...)
     closed || return (Rs, Zs, false)
     R, Z = _resample_contour(Rs, Zs, npoints)
-    reorder_flux_surface!(R, Z, RA, ZA)          # CCW from OMP (same as the Contour path)
+    reorder_flux_surface!(R, Z, RA, ZA; force_close=false)   # CW from OMP; half-open rep (no duplicate endpoint)
     return (R, Z, true)
 end
 
@@ -450,6 +458,8 @@ from `seed`, and classify it by the Hessian determinant: `:saddle` (X-point, `de
 function _find_xpoint(itp::FI.AbstractInterpolant, seed::Tuple{T,T}; tol::Real=1e-10, maxit::Int=50) where {T<:Real}
     pt, ok = _newton2d(_critical_residual(itp), seed; tol, maxit)
     ok || return (pt, :none, false)
+    g1, g2 = itp.grids[1], itp.grids[2]                       # interpolant grid extents
+    (first(g1) <= pt[1] <= last(g1) && first(g2) <= pt[2] <= last(g2)) || return (pt, :none, false)
     H = FI.hessian(itp, pt)
     detH = H[1, 1] * H[2, 2] - H[1, 2]^2
     return (pt, detH < 0 ? :saddle : :extremum, true)
