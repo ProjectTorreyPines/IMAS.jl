@@ -46,4 +46,15 @@ end
         κ = IMAS._contour_curvature(citp, x)
         @test isapprox(abs(κ), 1 / 0.25; rtol=1e-3)
     end
+
+    @testset "_step_pc lands on-surface and advances ~h" begin
+        c = 0.36
+        x0 = (R0 + a0 * sqrt(c), 0.0)            # exactly on ψ=c (OMP)
+        h = 0.02
+        x1, ok = IMAS._step_pc(itp, c, x0, h, 1)
+        @test ok
+        val, _ = IMAS.FI.value_gradient(itp, x1)
+        @test isapprox(val, c; atol=1e-9)        # still on the surface after the step
+        @test isapprox(hypot(x1[1]-x0[1], x1[2]-x0[2]), h; rtol=0.05)  # advanced ~h along curve
+    end
 end

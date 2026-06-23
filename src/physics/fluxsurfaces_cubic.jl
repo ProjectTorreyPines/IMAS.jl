@@ -180,3 +180,22 @@ function _contour_curvature(itp::FI.AbstractInterpolant, x::Tuple{T,T}) where {T
     n2 = gR^2 + gZ^2
     return (gR^2 * H[2, 2] - 2 * gR * gZ * H[1, 2] + gZ^2 * H[1, 1]) / n2^(T(3) / 2)
 end
+
+"""
+    _step_pc(itp::FI.AbstractInterpolant, c::T, x::Tuple{T,T}, h::Real, sgn::Int;
+             corr_tol::Real=1e-10, corr_max::Int=8) where {T<:Real}
+
+One predictor–corrector step of arclength `h` along the ψ=c contour. Predictor is the
+Hessian-osculating 2nd-order Taylor step `x + h·t + ½h²·κ·n_p` (`t` tangent, `n_p` principal
+normal `(-t_Z, t_R)`, `κ` curvature); corrector is [`_project_to_level`](@ref) back onto ψ=c.
+Returns `(xnew, on_surface::Bool)`.
+"""
+function _step_pc(itp::FI.AbstractInterpolant, c::T, x::Tuple{T,T}, h::Real, sgn::Int;
+    corr_tol::Real=1e-10, corr_max::Int=8) where {T<:Real}
+    t = _contour_tangent(itp, x, sgn)
+    np = (-t[2], t[1])                            # principal normal (rotate tangent +90°)
+    κ = _contour_curvature(itp, x)
+    xp = (x[1] + h * t[1] + (h^2 / 2) * κ * np[1],
+          x[2] + h * t[2] + (h^2 / 2) * κ * np[2])
+    return _project_to_level(itp, c, xp; tol=corr_tol, maxit=corr_max)
+end
