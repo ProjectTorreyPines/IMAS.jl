@@ -138,4 +138,39 @@ end
         @test all(abs(itp2(R[k], Z[k]) - c) < 1e-6 for k in eachindex(R))
         @test argmax(R) <= 3 || argmax(R) >= length(R)-2   # OMP is near the start (reordered)
     end
+
+    @testset "cubic trace agrees with Contour path on a mid-radius surface (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp2 = IMAS.ψ_interpolant(eqt2d)
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        psi_axis = itp2(RA, ZA)
+        eqt1d = eqt.profiles_1d
+        c = psi_axis + 0.5 * (eqt1d.psi[end] - psi_axis)
+
+        # cubic trace
+        Rc, Zc, closed = IMAS.trace_surface_cubic(itp2, c, RA, ZA, maximum(rr))
+        @test closed
+        # Contour path (existing), same level
+        BR, BZ = IMAS.Br_Bz(eqt2d)
+        psis = [psi_axis, c]
+        ff   = [eqt1d.f[1], eqt1d.f[end]]
+        ref = IMAS.trace_surfaces(psis, ff, collect(rr), collect(zz), eqt2d.psi,
+                                  BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)[2]
+        # compare bounding box (geometry) within a few mm
+        @test isapprox(maximum(Rc), maximum(ref.r); atol=5e-3)
+        @test isapprox(minimum(Rc), minimum(ref.r); atol=5e-3)
+        @test isapprox(maximum(Zc), maximum(ref.z); atol=5e-3)
+        @test isapprox(minimum(Zc), minimum(ref.z); atol=5e-3)
+    end
+
+    @testset "ISOLATION: cubic tracer is not wired into the existing path" begin
+        # the production tracer must not reference the cubic wrapper until validated
+        src = read(joinpath(pkgdir(IMAS), "src", "physics", "fluxsurfaces.jl"), String)
+        @test !occursin("trace_surface_cubic", src)
+        @test !occursin("_trace_surface_cubic", src)
+    end
 end
