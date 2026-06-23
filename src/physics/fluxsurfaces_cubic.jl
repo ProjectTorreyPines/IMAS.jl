@@ -282,3 +282,32 @@ function _trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, seed::Tuple{T,T
     end
     return (Rs, Zs, false)
 end
+
+"""
+    _resample_contour(Rs::AbstractVector{T}, Zs::AbstractVector{T}, n::Int) where {T<:Real}
+
+Resample a traced polyline to `n` points equally spaced in cumulative arclength (linear
+interpolation between traced vertices). Input is treated as ordered; the last point is the
+closure point for closed surfaces.
+"""
+function _resample_contour(Rs::AbstractVector{T}, Zs::AbstractVector{T}, n::Int) where {T<:Real}
+    m = length(Rs)
+    ll = zeros(T, m)
+    for k in 2:m
+        ll[k] = ll[k-1] + hypot(Rs[k]-Rs[k-1], Zs[k]-Zs[k-1])
+    end
+    L = ll[end]
+    targets = range(zero(T), L; length=n)
+    Ro = Vector{T}(undef, n); Zo = Vector{T}(undef, n)
+    j = 1
+    for (i, s) in enumerate(targets)
+        while j < m && ll[j+1] < s
+            j += 1
+        end
+        seg = ll[j+1] - ll[j]
+        f = seg > 0 ? (s - ll[j]) / seg : zero(T)
+        Ro[i] = Rs[j] + f * (Rs[min(j+1,m)] - Rs[j])
+        Zo[i] = Zs[j] + f * (Zs[min(j+1,m)] - Zs[j])
+    end
+    return Ro, Zo
+end

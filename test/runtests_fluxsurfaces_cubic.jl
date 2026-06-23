@@ -80,4 +80,16 @@ end
         area = abs(sum(Rs[k]*Zs[mod1(k+1,length(Rs))] - Rs[mod1(k+1,length(Rs))]*Zs[k] for k in eachindex(Rs))) / 2
         @test isapprox(area, π * a0 * b0 * c; rtol=1e-3)
     end
+
+    @testset "_resample_contour gives n ~uniform-arclength points" begin
+        c = 0.36
+        Rs, Zs, _ = IMAS._trace_surface_cubic(itp, c, (R0 + a0*sqrt(c), 0.0); h_max=0.05)
+        R2, Z2 = IMAS._resample_contour(Rs, Zs, 128)
+        @test length(R2) == 128
+        # resampled points stay on ψ=c (they lie on the traced polyline, ~on-surface)
+        @test all(abs(IMAS.FI.value_gradient(itp, (R2[k], Z2[k]))[1] - c) < 5e-4 for k in eachindex(R2))
+        # arclength steps roughly uniform
+        ds = [hypot(R2[mod1(k+1,128)]-R2[k], Z2[mod1(k+1,128)]-Z2[k]) for k in 1:128]
+        @test (maximum(ds) - minimum(ds)) / sum(ds) < 0.05
+    end
 end
