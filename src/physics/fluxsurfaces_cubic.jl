@@ -215,3 +215,70 @@ function _contour_step(itp::FI.AbstractInterpolant, x::Tuple{T,T}; ε::Real=1e-6
     h = min(h, max_turn / κ)       # turning-angle cap
     return clamp(h, h_min, h_max)
 end
+
+# signed angle from vector a to vector b (radians, in (-π, π])
+_signed_angle(a::Tuple, b::Tuple) = atan(a[1]*b[2] - a[2]*b[1], a[1]*b[2]*0 + a[1]*b[1] + a[2]*b[2])
+
+# does segment p->q cross the ray from x0 along normal m (the Poincaré section ⟂ t0)?
+# returns the interpolation fraction in [0,1] if it crosses on the +section side, else nothing
+function _section_cross(p::Tuple{T,T}, q::Tuple{T,T}, x0::Tuple{T,T}, t0::Tuple{T,T}) where {T<:Real}
+    # Poincaré section through x0, ⟂ t0 (design §5.5). Detect sign change of the tangential
+    # coordinate (point - x0)·t0; the section line's normal is t0 itself.
+    fp = (p[1]-x0[1])*t0[1] + (p[2]-x0[2])*t0[2]
+    fq = (q[1]-x0[1])*t0[1] + (q[2]-x0[2])*t0[2]
+    (fp == fq) && return nothing
+    (sign(fp) == sign(fq)) && return nothing       # no crossing of the section line
+    frac = fp / (fp - fq)                           # in [0,1]
+    # require the crossing to be near x0 along the section line (n0 ⟂ t0), not the far side
+    cx = p[1] + frac*(q[1]-p[1]); cz = p[2] + frac*(q[2]-p[2])
+    n0 = (-t0[2], t0[1])
+    along = (cx-x0[1])*n0[1] + (cz-x0[2])*n0[2]
+    return abs(along) < 1e-2 ? frac : nothing
+end
+
+"""
+    _trace_surface_cubic(itp, c, seed; method=:pc, sgn=-1, ε, h_min, h_max, max_turn,
+                         κ_floor, s_min, max_steps, domain) -> (Rs, Zs, closed)
+
+Trace the ψ=c contour from `seed` by predictor–corrector continuation. Returns ordered
+`(Rs, Zs)` and whether the loop closed. Closure is tested only after the accumulated turning
+angle exceeds ~2π (a confined surface winds once), via a Poincaré section ⟂ the start
+tangent. `domain=(Rlo,Rhi,Zlo,Zhi)` (or `nothing`) terminates open contours at the boundary.
+"""
+function _trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, seed::Tuple{T,T};
+    method::Symbol=:pc, sgn::Int=-1, ε::Real=1e-6, h_min::Real=1e-4, h_max::Real=0.1,
+    max_turn::Real=deg2rad(10), κ_floor::Real=1e-8, s_min::Real=0.0, max_steps::Int=100_000,
+    domain=nothing) where {T<:Real}
+
+    x0, ok = _project_to_level(itp, c, seed)
+    ok || return (T[seed[1]], T[seed[2]], false)
+    t0 = _contour_tangent(itp, x0, sgn)
+    Rs = T[x0[1]]; Zs = T[x0[2]]
+    x = x0; tprev = t0; Θ = zero(T); s = zero(T)
+
+    for _ in 1:max_steps
+        h = _contour_step(itp, x; ε, h_min, h_max, max_turn, κ_floor)
+        xnew, sok = _step_pc(itp, c, x, h, sgn)
+        sok || break
+        if domain !== nothing && !(domain[1] <= xnew[1] <= domain[2] && domain[3] <= xnew[2] <= domain[4])
+            push!(Rs, xnew[1]); push!(Zs, xnew[2])
+            return (Rs, Zs, false)                # open contour: exited domain
+        end
+        tnew = _contour_tangent(itp, xnew, sgn)
+        Θ += _signed_angle(tprev, tnew)
+        s += hypot(xnew[1]-x[1], xnew[2]-x[2])
+        # closure: only after a full turn, and segment crosses the start section
+        if abs(Θ) >= 2π - 0.5 && s > s_min
+            frac = _section_cross(x, xnew, x0, t0)
+            if frac !== nothing
+                cx = x[1] + frac*(xnew[1]-x[1]); cz = x[2] + frac*(xnew[2]-x[2])
+                xc, _ = _project_to_level(itp, c, (cx, cz))   # interp crossing is O(h²) off the curve; snap onto ψ=c
+                push!(Rs, xc[1]); push!(Zs, xc[2])
+                return (Rs, Zs, true)
+            end
+        end
+        push!(Rs, xnew[1]); push!(Zs, xnew[2])
+        x = xnew; tprev = tnew
+    end
+    return (Rs, Zs, false)
+end

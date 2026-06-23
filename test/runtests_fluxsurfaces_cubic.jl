@@ -67,4 +67,17 @@ end
         @test κ * h <= deg2rad(10) + 1e-9         # turning-angle cap respected
         @test 1e-4 <= h <= 1.0                     # within clamp
     end
+
+    @testset "_trace_surface_cubic traces a closed ellipse exactly" begin
+        c = 0.36
+        seed = (R0 + a0 * sqrt(c), 0.0)          # OMP seed, on-surface
+        Rs, Zs, closed = IMAS._trace_surface_cubic(itp, c, seed; h_max=0.05)
+        @test closed
+        @test length(Rs) > 20
+        # every point on ψ=c
+        @test all(abs(IMAS.FI.value_gradient(itp, (Rs[k], Zs[k]))[1] - c) < 1e-8 for k in eachindex(Rs))
+        # enclosed area (shoelace) == π·a0·b0·c
+        area = abs(sum(Rs[k]*Zs[mod1(k+1,length(Rs))] - Rs[mod1(k+1,length(Rs))]*Zs[k] for k in eachindex(Rs))) / 2
+        @test isapprox(area, π * a0 * b0 * c; rtol=1e-3)
+    end
 end
