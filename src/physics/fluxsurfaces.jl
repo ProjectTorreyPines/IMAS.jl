@@ -414,7 +414,7 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_2nd_separatrix)
         eqt::IMAS.equilibrium__time_slice,
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
-        PSI_interpolant::FI.AbstractInterpolant;
+        PSI_interpolant;
         precision::Float64=flux_surfaces_precision)
 
 Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
@@ -429,7 +429,7 @@ function find_psi_last_diverted(
     eqt::IMAS.equilibrium__time_slice,
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
-    PSI_interpolant::FI.AbstractInterpolant;
+    PSI_interpolant;
     precision::Float64=flux_surfaces_precision)
 
     # if no wall in dd, psi_last diverted not defined
@@ -631,7 +631,7 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_last_diverted)
         eqt::IMAS.equilibrium__time_slice,
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
-        PSI_interpolant::FI.AbstractInterpolant;
+        PSI_interpolant;
         precision::Float64=flux_surfaces_precision)
 
 Returns the psi of the magnetic surface in the SOL which is tangent to the wall near the outer midplane
@@ -640,7 +640,7 @@ function find_psi_tangent_omp(
     eqt::IMAS.equilibrium__time_slice,
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
-    PSI_interpolant::FI.AbstractInterpolant;
+    PSI_interpolant;
     precision::Float64=flux_surfaces_precision)
 
     psi_max = find_psi_max(eqt)
@@ -869,7 +869,7 @@ end
 
 """
     find_psi_wall_omp(
-        PSI_interpolant::FI.AbstractInterpolant,
+        PSI_interpolant,
         RA::T1,
         ZA::T1,
         wall_r::AbstractVector{T2},
@@ -879,7 +879,7 @@ end
     ) where {T1<:Real,T2<:Real}
 """
 function find_psi_wall_omp(
-    PSI_interpolant::FI.AbstractInterpolant,
+    PSI_interpolant,
     RA::T1,
     ZA::T1,
     wall_r::AbstractVector{T2},
@@ -907,13 +907,13 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :find_psi_wall_omp)
 
 """
-    interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant::FI.AbstractInterpolant, R::AbstractVector{<:Real})
+    interp_rmid_at_psi(eqt::IMAS.equilibrium__time_slice, PSI_interpolant, R::AbstractVector{<:Real})
 
 Returns the interpolant r_mid(ψ) to compute the r at the midplane of the flux surface identified by ψ
 
 The vector `R` defines the sampling of interest for thie interpolation
 """
-function interp_rmid_at_psi(PSI_interpolant::FI.AbstractInterpolant, R::AbstractVector{T}, ZA::T) where {T<:Real}
+function interp_rmid_at_psi(PSI_interpolant, R::AbstractVector{T}, ZA::T) where {T<:Real}
     psi = PSI_interpolant.(R, fill(ZA, size(R)))
     # consider only portion where psi is monotonic
     # generally not an issue, but can psi can become non-monotoinic when coils are close to the lcfs
@@ -928,7 +928,7 @@ push!(document[Symbol("Physics flux-surfaces")], :interp_rmid_at_psi)
 function find_magnetic_axis(
     r::AbstractVector{<:T1},
     z::AbstractVector{<:T1},
-    PSI_interpolant::FI.AbstractInterpolant,
+    PSI_interpolant,
     psi_sign::T2;
     rguess::T1=r[round(Int, length(r) / 2)],
     zguess::T1=z[round(Int, length(z) / 2)]) where {T1<:Real,T2<:Real}
@@ -1082,7 +1082,7 @@ end
         r::AbstractVector{T},
         z::AbstractVector{T},
         PSI::Matrix{T},
-        PSI_interpolant::FI.AbstractInterpolant,
+        PSI_interpolant,
         RA::T,
         ZA::T,
         wall_r::AbstractVector{T},
@@ -1097,7 +1097,7 @@ function trace_simple_surfaces(
     r::AbstractVector{T},
     z::AbstractVector{T},
     PSI::Matrix{T},
-    PSI_interpolant::FI.AbstractInterpolant,
+    PSI_interpolant,
     RA::T,
     ZA::T,
     wall_r::AbstractVector{T},
@@ -1118,7 +1118,7 @@ push!(document[Symbol("Physics flux-surfaces")], :trace_simple_surfaces)
         r::AbstractVector{T},
         z::AbstractVector{T},
         PSI::Matrix{T},
-        PSI_interpolant::FI.AbstractInterpolant,
+        PSI_interpolant,
         RA::T,
         ZA::T,
         wall_r::AbstractVector{T},
@@ -1136,7 +1136,7 @@ function trace_simple_surfaces!(
     r::AbstractVector{T},
     z::AbstractVector{T},
     PSI::Matrix{T},
-    PSI_interpolant::FI.AbstractInterpolant,
+    PSI_interpolant,
     RA::T,
     ZA::T,
     wall_r::AbstractVector{T},
@@ -1216,7 +1216,7 @@ end
         PSI::Matrix{T},
         BR::Matrix{T},
         BZ::Matrix{T},
-        PSI_interpolant::FI.AbstractInterpolant,
+        PSI_interpolant,
         RA::T,
         ZA::T,
         wall_r::AbstractVector{T},
@@ -1232,7 +1232,7 @@ function trace_surfaces(
     PSI::Matrix{T},
     BR::Matrix{T},
     BZ::Matrix{T},
-    PSI_interpolant::FI.AbstractInterpolant,
+    PSI_interpolant,
     RA::T,
     ZA::T,
     wall_r::AbstractVector{T},

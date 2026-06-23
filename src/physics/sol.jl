@@ -331,7 +331,7 @@ push!(document[Symbol("Physics sol")], :sol)
         eqt::IMAS.equilibrium__time_slice,
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
-        PSI_interpolant::FI.AbstractInterpolant,
+        PSI_interpolant,
         r::Vector{<:Real},
         q::Vector{<:Real},
         levels::Int
@@ -345,7 +345,7 @@ function find_levels_from_P(
     eqt::IMAS.equilibrium__time_slice,
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
-    PSI_interpolant::FI.AbstractInterpolant,
+    PSI_interpolant,
     r::Vector{<:Real},
     q::Vector{<:Real},
     levels::Int
@@ -534,7 +534,7 @@ end
     find_levels_from_P(
         eqt::IMAS.equilibrium__time_slice,
         wall::IMAS.wall,
-        PSI_interpolant::FI.AbstractInterpolant,
+        PSI_interpolant,
         r::Vector{<:Real},
         q::Vector{<:Real},
         levels::Int
@@ -543,7 +543,7 @@ end
 function find_levels_from_P(
     eqt::IMAS.equilibrium__time_slice,
     wall::IMAS.wall,
-    PSI_interpolant::FI.AbstractInterpolant,
+    PSI_interpolant,
     r::Vector{<:Real},
     q::Vector{<:Real},
     levels::Int
@@ -567,7 +567,7 @@ push!(document[Symbol("Physics sol")], :find_levels_from_P)
         eqt::IMAS.equilibrium__time_slice,
         wall_r::AbstractVector{<:Real},
         wall_z::AbstractVector{<:Real},
-        PSI_interpolant::FI.AbstractInterpolant
+        PSI_interpolant
     )
 
 Function for that computes the value of psi at the points of the wall mesh in dd
@@ -576,7 +576,7 @@ function find_levels_from_wall(
     eqt::IMAS.equilibrium__time_slice{T},
     wall_r::AbstractVector{<:Real},
     wall_z::AbstractVector{<:Real},
-    PSI_interpolant::FI.AbstractInterpolant
+    PSI_interpolant
 ) where {T<:Real}
 
     @assert length(wall_r) == length(wall_z)
@@ -600,9 +600,9 @@ function find_levels_from_wall(
 end
 
 """
-    find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::FI.AbstractInterpolant)
+    find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant)
 """
-function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant::FI.AbstractInterpolant)
+function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall, PSI_interpolant)
     return find_levels_from_wall(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant)
 end
 
