@@ -215,4 +215,24 @@ end
         @test isapprox(pt[1], xp.r; atol=1e-2)
         @test isapprox(pt[2], xp.z; atol=1e-2)
     end
+
+    @testset "near-separatrix surface stays in the confined region (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp2 = IMAS.ψ_interpolant(eqt2d)
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        psi_axis = itp2(RA, ZA)
+        eqt1d = eqt.profiles_1d
+        pb = IMAS.find_psi_boundary(rr, zz, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, fw.r, fw.z;
+            PSI_interpolant=itp2, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+        c = psi_axis + 0.98 * (pb.last_closed - psi_axis)   # 98% out: close to the separatrix
+        xpz = maximum(p.z for p in eqt.boundary.x_point)
+        R, Z, closed = IMAS.trace_surface_cubic(itp2, c, RA, ZA, maximum(rr);
+                                                τ_grad=0.05, h_max=0.02)
+        @test closed
+        @test maximum(Z) < xpz                  # stayed below the upper X-point
+    end
 end

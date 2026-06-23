@@ -248,7 +248,7 @@ tangent. `domain=(Rlo,Rhi,Zlo,Zhi)` (or `nothing`) terminates open contours at t
 function _trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, seed::Tuple{T,T};
     method::Symbol=:pc, sgn::Int=-1, ε::Real=1e-6, h_min::Real=1e-4, h_max::Real=0.1,
     max_turn::Real=deg2rad(10), κ_floor::Real=1e-8, s_min::Real=0.0, max_steps::Int=100_000,
-    rk4_tol::Real=1e-8,
+    rk4_tol::Real=1e-8, τ_grad::Real=0.0,
     domain=nothing) where {T<:Real}
 
     x0, ok = _project_to_level(itp, c, seed)
@@ -259,7 +259,13 @@ function _trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, seed::Tuple{T,T
     hrk = h_max
 
     for _ in 1:max_steps
-        if method === :rk4
+        # near-critical-point guard: when |∇ψ| < τ_grad (close to an X-point saddle), creep
+        # at the smallest step via the corrector so the surface traces the confined side
+        # instead of leaking through the saddle (τ_grad=0 disables this, default behavior).
+        gg = τ_grad > 0 ? FI.gradient(itp, x) : nothing
+        if gg !== nothing && hypot(gg[1], gg[2]) < τ_grad
+            xnew, sok = _step_pc(itp, c, x, h_min, sgn)
+        elseif method === :rk4
             xnew, hrk, sok = _step_rk4_adaptive(itp, x, hrk, sgn; tol=rk4_tol, h_min, h_max)
         else
             h = _contour_step(itp, x; ε, h_min, h_max, max_turn, κ_floor)
