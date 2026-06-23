@@ -174,7 +174,8 @@ end
         c = psi_axis + 0.5 * (eqt.profiles_1d.psi[end] - psi_axis)   # mid-radius closed surface
         R, Z, closed = IMAS.trace_surface_cubic(itp2, c, RA, ZA, maximum(rr); npoints=257)
         @test closed
-        @test length(R) == 257
+        @test length(R) == 258   # npoints=257 distinct + 1 closing duplicate
+        @test R[1] == R[end] && Z[1] == Z[end]   # closed: first point repeated at end
         # Fix 10.1 (B): the TRACER's 1e-9 on-surface invariant should be asserted on the
         # PRE-resample traced vertices, not on the linearly-resampled output (which has ~1e-6
         # chord error independent of tracer correctness). Assert on the raw traced points.
@@ -185,15 +186,14 @@ end
         @test all(abs(IMAS.FI.value_gradient(itp2, (vR[k], vZ[k]))[1] - c) < 1e-9 for k in eachindex(vR))
         # coarse sanity on the resampled output (linear-interp chord error is ~1e-6, not 1e-9)
         @test all(abs(itp2(R[k], Z[k]) - c) < 5e-6 for k in eachindex(R))
-        # Fix 10.2: assert the actual post-reorder contract (OMP-boundary + clockwise orientation).
-        # Empirically reorder_flux_surface! places max-R at the LAST position (half-open rep:
-        # last element = seed = OMP ≈ first element). The original "|| argmax(R) >= length(R)-2"
-        # escape hatch IS the correct post-reorder branch; the "argmax <= 3" alone is wrong here.
-        # The sensitive assertion is the orientation: without reorder the shoelace can be either
-        # sign; with the clockwise! call it is always negative. Require both.
-        @test argmax(R) >= length(R) - 2   # post-reorder: OMP (max-R) is at the end (half-open rep)
+        # Post-reorder contract: OMP-first (force_close=true circshifts so OMP is index 1),
+        # and clockwise orientation.
+        @test argmax(R) <= 3   # OMP (max-R) is now first after the circshift
         # orientation: reorder_flux_surface! enforces clockwise (negative shoelace in R-right/Z-up axes)
         @test sum(R[k]*Z[k+1] - R[k+1]*Z[k] for k in 1:length(R)-1) < 0
+        # MXH regression: MXH crashed on the old half-open output; verify it builds correctly on the closed output
+        mxh = IMAS.MXH(R, Z, 4)
+        @test isfinite(mxh.R0) && mxh.R0 > 0
     end
 
     @testset "cubic trace agrees with Contour path on a mid-radius surface (DIII-D)" begin

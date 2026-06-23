@@ -217,7 +217,7 @@ function _contour_step(itp::FI.AbstractInterpolant, x::Tuple{T,T}; ε::Real=1e-6
 end
 
 # signed angle from vector a to vector b (radians, in (-π, π])
-_signed_angle(a::Tuple, b::Tuple) = atan(a[1]*b[2] - a[2]*b[1], a[1]*b[2]*0 + a[1]*b[1] + a[2]*b[2])
+_signed_angle(a::Tuple, b::Tuple) = atan(a[1]*b[2] - a[2]*b[1], a[1]*b[1] + a[2]*b[2])
 
 # does segment p->q cross the ray from x0 along normal m (the Poincaré section ⟂ t0)?
 # returns the interpolation fraction in [0,1] if it crosses on the +section side, else nothing
@@ -396,10 +396,16 @@ end
                         npoints::Int=361, kw...) where {T<:Real}
 
 Trace a single closed flux surface ψ=c on the cubic interpolant: outboard-midplane seed →
-predictor–corrector trace → uniform-arclength resample to `npoints` → reorder CW from the
-outboard midplane (`reorder_flux_surface!` with `force_close=false`, matching the Contour path).
-Returns `(r, z, closed::Bool)`. Standalone —
-not wired into `trace_surfaces`.
+predictor–corrector trace → uniform-arclength resample to `npoints` distinct points →
+close and reorder via `reorder_flux_surface!` (default `force_close=true`).
+
+The returned vectors have length `npoints+1`: `npoints` distinct arclength-uniform points
+plus a closing duplicate (`r[end] == r[1]`, `z[end] == z[1]`), reordered so the outboard
+midplane (OMP) point is first and the polygon is clockwise. This matches the Contour-path
+`FluxSurface` representation, so `MXH` and arclength integrals (`int_fluxexpansion_dl`) work
+correctly on the output.
+
+Returns `(r, z, closed::Bool)`. Standalone — not wired into `trace_surfaces`.
 """
 function trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_max::T;
     npoints::Int=361, kw...) where {T<:Real}
@@ -408,7 +414,7 @@ function trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_
     Rs, Zs, closed = _trace_surface_cubic(itp, c, seed; kw...)
     closed || return (Rs, Zs, false)
     R, Z = _resample_contour(Rs, Zs, npoints)
-    reorder_flux_surface!(R, Z, RA, ZA; force_close=false)   # CW from OMP; half-open rep (no duplicate endpoint)
+    reorder_flux_surface!(R, Z, RA, ZA)   # close (first==last), reorder OMP-first, clockwise — matches the Contour FluxSurface representation
     return (R, Z, true)
 end
 
