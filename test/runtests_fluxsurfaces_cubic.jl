@@ -92,4 +92,15 @@ end
         ds = [hypot(R2[mod1(k+1,128)]-R2[k], Z2[mod1(k+1,128)]-Z2[k]) for k in 1:128]
         @test (maximum(ds) - minimum(ds)) / sum(ds) < 0.05
     end
+
+    @testset "_step_rk4_adaptive advances along the tangent, no corrector" begin
+        c = 0.36
+        x0 = (R0 + a0*sqrt(c), 0.0)
+        x1, hnext, acc = IMAS._step_rk4_adaptive(itp, x0, 0.02, 1)
+        @test acc
+        @test hnext > 0
+        @test isapprox(hypot(x1[1]-x0[1], x1[2]-x0[2]), 0.02; rtol=0.1)
+        # pure integrator: drift exists but is small for one step
+        @test abs(IMAS.FI.value_gradient(itp, x1)[1] - c) < 1e-4
+    end
 end

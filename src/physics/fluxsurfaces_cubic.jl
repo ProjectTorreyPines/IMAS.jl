@@ -311,3 +311,36 @@ function _resample_contour(Rs::AbstractVector{T}, Zs::AbstractVector{T}, n::Int)
     end
     return Ro, Zo
 end
+
+# one classic RK4 step of size h on dx/ds = tangent(x, sgn)
+function _rk4(itp::FI.AbstractInterpolant, x::Tuple{T,T}, h::Real, sgn::Int) where {T<:Real}
+    k1 = _contour_tangent(itp, x, sgn)
+    x2 = (x[1] + h/2*k1[1], x[2] + h/2*k1[2]);  k2 = _contour_tangent(itp, x2, sgn)
+    x3 = (x[1] + h/2*k2[1], x[2] + h/2*k2[2]);  k3 = _contour_tangent(itp, x3, sgn)
+    x4 = (x[1] + h*k3[1],   x[2] + h*k3[2]);    k4 = _contour_tangent(itp, x4, sgn)
+    return (x[1] + h/6*(k1[1]+2k2[1]+2k3[1]+k4[1]), x[2] + h/6*(k1[2]+2k2[2]+2k3[2]+k4[2]))
+end
+
+"""
+    _step_rk4_adaptive(itp, x, h, sgn; tol=1e-8, h_min=1e-5, h_max=0.1)
+
+Adaptive RK4 (step-doubling) on `dx/ds = tangent`. Compares one step of `h` against two of
+`h/2`; accepts the (extrapolated) half-step if the estimated error ≤ `tol`, and returns the
+next step size. **Comparison baseline only — no corrector**, so it measures the intrinsic
+off-surface drift of pure integration. Returns `(xnew, h_next, accepted::Bool)`.
+"""
+function _step_rk4_adaptive(itp::FI.AbstractInterpolant, x::Tuple{T,T}, h::Real, sgn::Int;
+    tol::Real=1e-8, h_min::Real=1e-5, h_max::Real=0.1) where {T<:Real}
+    hh = clamp(h, h_min, h_max)
+    for _ in 1:20
+        big = _rk4(itp, x, hh, sgn)
+        half = _rk4(itp, _rk4(itp, x, hh/2, sgn), hh/2, sgn)
+        err = hypot(big[1]-half[1], big[2]-half[2])
+        xnew = (half[1] + (half[1]-big[1])/15, half[2] + (half[2]-big[2])/15)  # local extrapolation
+        fac = err > 0 ? 0.9 * (tol/err)^(1/5) : 2.0
+        hnext = clamp(hh * clamp(fac, 0.2, 2.0), h_min, h_max)
+        (err <= tol || hh <= h_min) && return (xnew, hnext, true)
+        hh = hnext
+    end
+    return (_rk4(itp, x, hh, sgn), hh, false)
+end
