@@ -396,8 +396,9 @@ end
                         npoints::Int=361, kw...) where {T<:Real}
 
 Trace a single closed flux surface ψ=c on the cubic interpolant: outboard-midplane seed →
-predictor–corrector trace → uniform-arclength resample to `npoints` → reorder CCW from the
-outboard midplane (`reorder_flux_surface!`). Returns `(r, z, closed::Bool)`. Standalone —
+predictor–corrector trace → uniform-arclength resample to `npoints` → reorder CW from the
+outboard midplane (`reorder_flux_surface!` with `force_close=false`, matching the Contour path).
+Returns `(r, z, closed::Bool)`. Standalone —
 not wired into `trace_surfaces`.
 """
 function trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_max::T;
