@@ -376,3 +376,23 @@ function _seed_omp(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_max::T; ns
     end
     return ((a, ZA), false)
 end
+
+"""
+    trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_max::T;
+                        npoints::Int=361, kw...) where {T<:Real}
+
+Trace a single closed flux surface ψ=c on the cubic interpolant: outboard-midplane seed →
+predictor–corrector trace → uniform-arclength resample to `npoints` → reorder CCW from the
+outboard midplane (`reorder_flux_surface!`). Returns `(r, z, closed::Bool)`. Standalone —
+not wired into `trace_surfaces`.
+"""
+function trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_max::T;
+    npoints::Int=361, kw...) where {T<:Real}
+    seed, ok = _seed_omp(itp, c, RA, ZA, R_max)
+    ok || return (T[], T[], false)
+    Rs, Zs, closed = _trace_surface_cubic(itp, c, seed; kw...)
+    closed || return (Rs, Zs, false)
+    R, Z = _resample_contour(Rs, Zs, npoints)
+    reorder_flux_surface!(R, Z, RA, ZA)          # CCW from OMP (same as the Contour path)
+    return (R, Z, true)
+end

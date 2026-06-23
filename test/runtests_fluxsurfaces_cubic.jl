@@ -122,4 +122,20 @@ end
         @test isapprox(IMAS.FI.value_gradient(itp, seed)[1], c; atol=1e-9)
         @test seed[1] > R0                       # outboard side
     end
+
+    @testset "trace_surface_cubic returns an ordered closed loop (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp2 = IMAS.ψ_interpolant(eqt2d)
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        psi_axis = itp2(RA, ZA)
+        c = psi_axis + 0.5 * (eqt.profiles_1d.psi[end] - psi_axis)   # mid-radius closed surface
+        R, Z, closed = IMAS.trace_surface_cubic(itp2, c, RA, ZA, maximum(rr); npoints=257)
+        @test closed
+        @test length(R) == 257
+        @test all(abs(itp2(R[k], Z[k]) - c) < 1e-6 for k in eachindex(R))
+        @test argmax(R) <= 3 || argmax(R) >= length(R)-2   # OMP is near the start (reordered)
+    end
 end
