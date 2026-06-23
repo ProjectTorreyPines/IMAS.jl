@@ -1535,6 +1535,46 @@ function _extrema_cost(
 end
 
 """
+    _refine_extremum(itp, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol; tol::Real=1e-10, maxit::Int=30) where {T<:Real}
+
+Refine a flux-surface geometric extremum by solving the 2×2 system
+`{ψ(R,Z) = target_psi, ∂ψ/∂n(R,Z) = 0}` with Newton iteration seeded at
+`seed = (R, Z)`, using the analytic gradient and Hessian of the cubic interpolant `itp`.
+
+`extremum_of = :R` finds an extremum of `R` (`max_r`/`min_r`) by enforcing `∂ψ/∂Z = 0`;
+`extremum_of = :Z` finds an extremum of `Z` (`max_z`/`min_z`) by enforcing `∂ψ/∂R = 0`.
+The seed selects which root (e.g. outboard vs inboard) is found, since both satisfy
+the same system.
+
+Returns the refined `(R, Z)`, or `seed` if Newton fails to converge or hits a
+degenerate Jacobian.
+"""
+function _refine_extremum(itp, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol; tol::Real=1e-10, maxit::Int=30) where {T<:Real}
+    # daxis = gradient component forced to zero: extremum of R needs ∂ψ/∂Z=0, of Z needs ∂ψ/∂R=0
+    daxis = extremum_of === :R ? 2 : extremum_of === :Z ? 1 :
+            throw(ArgumentError("_refine_extremum: extremum_of must be :R or :Z, got :$extremum_of"))
+    R, Z = seed
+    converged = false
+    for _ in 1:maxit
+        val, g = FI.value_gradient(itp, (R, Z))
+        F1 = val - target_psi
+        F2 = g[daxis]
+        if abs(F1) <= tol && abs(F2) <= tol
+            converged = true
+            break
+        end
+        H = FI.hessian(itp, (R, Z))
+        a, b, c, d = g[1], g[2], H[daxis, 1], H[daxis, 2]
+        det = a * d - b * c
+        (isfinite(det) && abs(det) > eps(T)) || break   # singular/degenerate Jacobian
+        R -= (d * F1 - b * F2) / det
+        Z -= (-c * F1 + a * F2) / det
+        (isfinite(R) && isfinite(Z)) || break
+    end
+    return converged ? (R, Z) : seed   # fall back to the rough seed if Newton failed
+end
+
+"""
     flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
 
 Update flux surface averaged and geometric quantities for all time_slices in the equilibrium IDS

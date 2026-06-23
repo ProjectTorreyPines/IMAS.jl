@@ -6,6 +6,8 @@ if !isempty(ARGS)
     end
 else
     # Default behavior: run all tests
+    include("runtests_refine_extremum.jl")
+
     include("runtests_fluxsurfaces.jl")
 
     include("runtests_interpolations.jl")
