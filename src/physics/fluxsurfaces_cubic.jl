@@ -130,3 +130,27 @@ function _refine_extremum(itp::FI.AbstractInterpolant, target_psi::T, seed::Tupl
     (recovered && is_genuine(point)) && return point
     return mir
 end
+
+"""
+    _project_to_level(itp::FI.AbstractInterpolant, c::T, x::Tuple{T,T}; tol::Real=1e-10, maxit::Int=8) where {T<:Real}
+
+Newton corrector that projects `x = (R,Z)` onto the level set ψ=c **along the gradient**:
+`x ← x - (ψ(x) - c) · ∇ψ / |∇ψ|²` (the codimension-1 Moore–Penrose Newton step; quadratic
+convergence). Returns `((R, Z), converged::Bool)`; `converged=false` if `|∇ψ|` collapses
+(a critical point) or iterates go non-finite.
+"""
+function _project_to_level(itp::FI.AbstractInterpolant, c::T, x::Tuple{T,T}; tol::Real=1e-10, maxit::Int=8) where {T<:Real}
+    R, Z = x
+    for _ in 1:maxit
+        val, g = FI.value_gradient(itp, (R, Z))
+        r = val - c
+        abs(r) <= tol && return ((R, Z), true)
+        n2 = g[1]^2 + g[2]^2
+        (isfinite(n2) && n2 > eps(T)) || return ((R, Z), false)   # critical point / degenerate
+        R -= r * g[1] / n2
+        Z -= r * g[2] / n2
+        (isfinite(R) && isfinite(Z)) || return ((R, Z), false)
+    end
+    val, _ = FI.value_gradient(itp, (R, Z))
+    return ((R, Z), abs(val - c) <= tol)
+end
