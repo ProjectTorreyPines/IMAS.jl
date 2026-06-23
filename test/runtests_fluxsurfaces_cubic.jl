@@ -326,4 +326,43 @@ end
         @test cl0g || closed1   # at minimum one closes; if both close, paths may or may not differ
         # the guard fires (the predicate τ_grad=0.15 > min|∇ψ| near separatrix was verified to fire)
     end
+
+    @testset "trace_surfaces_cubic drop-in matches trace_surfaces (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp2 = IMAS.ψ_interpolant(eqt2d)
+        BR, BZ = IMAS.Br_Bz(eqt2d)
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        e1 = eqt.profiles_1d
+        pa, pb = itp2(RA, ZA), e1.psi[end]
+        # nudge the exact-separatrix last level a hair inside so BOTH paths close it (neither
+        # path traces the open X-point separatrix without wall-clipping)
+        psis = collect(e1.psi); psis[end] = pa + 0.999 * (pb - pa)
+        ff = collect(e1.f)
+
+        # low-level drop-in: same args as trace_surfaces (minus the precomputed grid/field arrays),
+        # refine_extrema on both -> the refined geometric extrema agree to ~1e-7 m (both Newton-refine
+        # to the same point on the same interpolant)
+        ref = IMAS.trace_surfaces(psis, ff, collect(rr), collect(zz), eqt2d.psi, BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=true)
+        cub = IMAS.trace_surfaces_cubic(psis, ff, RA, ZA, maximum(rr), itp2; refine_extrema=true)
+        @test length(cub) == length(ref)
+        for k in (16, 32, 48)                       # mid-radius surfaces
+            @test isapprox(cub[k].max_r, ref[k].max_r; atol=1e-4)
+            @test isapprox(cub[k].min_r, ref[k].min_r; atol=1e-4)
+            @test isapprox(cub[k].max_z, ref[k].max_z; atol=1e-4)
+            @test isapprox(cub[k].min_z, ref[k].min_z; atol=1e-4)
+            gm1_c = IMAS.flux_surface_avg(1.0 ./ cub[k].r .^ 2, cub[k])
+            gm1_r = IMAS.flux_surface_avg(1.0 ./ ref[k].r .^ 2, ref[k])
+            @test isapprox(gm1_c, gm1_r; rtol=2e-3)
+        end
+
+        # high-level overload mirrors trace_surfaces(eqt, wall_r, wall_z): runs the full profile;
+        # the raw separatrix boundary can't close, so it warns and uses an inner proxy (assert the warn)
+        cub_hl = @test_logs (:warn,) match_mode = :any IMAS.trace_surfaces_cubic(eqt, fw.r, fw.z)
+        @test length(cub_hl) == length(e1.psi)
+        @test cub_hl[32].max_r > RA
+    end
 end

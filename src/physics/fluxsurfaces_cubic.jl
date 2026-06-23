@@ -419,24 +419,59 @@ function trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_
 end
 
 """
-    trace_surfaces_cubic(psis, f, RA, ZA, R_max, itp; npoints=361, kw...)
+    trace_surfaces_cubic(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T},
+                         wall_z::AbstractVector{T}; refine_extrema::Bool=true, npoints::Int=361, kw...) where {T<:Real}
 
-Batch flux-surface tracer on the cubic interpolant: for each level in `psis`, trace with
-[`trace_surface_cubic`](@ref) and populate a `FluxSurface` by reusing the existing field-eval
-helpers (`arc_length`, `Br_Bz`, `trapz`, `fluxsurface_extrema`). The innermost (k=1) surface
-is the usual artificial scaled-down copy of the second. Standalone — NOT wired into
-`trace_surfaces`; used to validate flux-surface averages against the Contour path.
+Cubic-interpolant drop-in mirror of [`trace_surfaces`](@ref)`(eqt, wall_r, wall_z)`: same
+high-level signature, returns the same `Vector{FluxSurface{T}}`, so the two can be compared
+1:1 (e.g. `trace_surfaces(eqt, fw.r, fw.z)` vs `trace_surfaces_cubic(eqt, fw.r, fw.z)`).
+Each ψ level is traced by predictor–corrector continuation on the bicubic interpolant instead
+of marching squares. `kw...` forwards to the tracer (`method=:pc|:rk4`, `ε`, `rk4_tol`, …).
+
+`wall_r`/`wall_z` are accepted for signature parity but currently unused: every level is
+traced as a closed surface (open/wall-clipping is not yet implemented in the cubic path), so a
+level that does not close raises an error. Standalone — NOT wired into `trace_surfaces`.
+"""
+function trace_surfaces_cubic(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVector{T},
+    wall_z::AbstractVector{T}; refine_extrema::Bool=true, npoints::Int=361, kw...) where {T<:Real}
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    r, _, itp = ψ_interpolant(eqt2d)
+    RA = eqt.global_quantities.magnetic_axis.r
+    ZA = eqt.global_quantities.magnetic_axis.z
+    return trace_surfaces_cubic(eqt.profiles_1d.psi, eqt.profiles_1d.f, RA, ZA, maximum(r), itp;
+        refine_extrema, npoints, kw...)
+end
+
+"""
+    trace_surfaces_cubic(psis, f, RA, ZA, R_max, itp; refine_extrema=false, npoints=361, kw...)
+
+Low-level batch flux-surface tracer on the cubic interpolant: for each level in `psis`, trace
+with [`trace_surface_cubic`](@ref) and populate a `FluxSurface` by reusing the existing
+field-eval helpers (`arc_length`, `Br_Bz`, `trapz`, `fluxsurface_extrema`). The innermost
+(k=1) surface is the usual artificial scaled-down copy of the second. When `refine_extrema`,
+the four geometric extrema (`max_r`/`min_r`/`max_z`/`min_z`) of each real surface are refined
+with [`_refine_extremum`](@ref) (X-point-aware Newton on the interpolant) — the cubic analogue
+of the `refine_extrema` step in [`trace_surfaces`](@ref). Standalone.
 """
 function trace_surfaces_cubic(psis::AbstractVector{T}, f::AbstractVector{T}, RA::T, ZA::T,
-    R_max::T, itp::FI.AbstractInterpolant; npoints::Int=361, kw...) where {T<:Real}
+    R_max::T, itp::FI.AbstractInterpolant; refine_extrema::Bool=false, npoints::Int=361, kw...) where {T<:Real}
     N = length(psis)
     surfaces = Vector{FluxSurface{T}}(undef, N)
+    axis = (RA, ZA)
     for k in N:-1:1
         if k == 1
             pr = (surfaces[2].r .- RA) ./ 100 .+ RA
             pz = (surfaces[2].z .- ZA) ./ 100 .+ ZA
         else
             pr, pz, closed = trace_surface_cubic(itp, psis[k], RA, ZA, R_max; npoints, kw...)
+            if !closed
+                # A level passing through the X-point (separatrix) cannot be closed by the PC
+                # tracer — the cubic separatrix/open-surface layer is not implemented. Retry a
+                # hair toward the axis as a proxy and warn, so a full-profile call still runs.
+                psi_in = psis[k] + T(1e-3) * (psis[1] - psis[k])
+                pr, pz, closed = trace_surface_cubic(itp, psi_in, RA, ZA, R_max; npoints, kw...)
+                closed && @warn "trace_surfaces_cubic: ψ level $k of $N did not close; traced a slightly inner proxy (separatrix/open handling not implemented in the cubic path)"
+            end
             closed || error("trace_surfaces_cubic: failed to close surface $k of $N at ψ=$(psis[k])")
         end
         ll = arc_length(pr, pz)
@@ -449,8 +484,15 @@ function trace_surfaces_cubic(psis::AbstractVector{T}, f::AbstractVector{T}, RA:
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
         (_, _, _, _, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) =
             fluxsurface_extrema(pr, pz)
-        surfaces[k] = FluxSurface(psis[k], pr, pz, r_at_max_z, max_z, r_at_min_z, min_z,
+        s = FluxSurface(psis[k], pr, pz, r_at_max_z, max_z, r_at_min_z, min_z,
             z_at_max_r, max_r, z_at_min_r, min_r, Br, Bz, Bp, Btot, ll, fluxexpansion, int_fluxexpansion_dl)
+        if refine_extrema && k != 1   # X-point-aware Newton refinement of the 4 geometric extrema (cubic analogue of trace_surfaces' refine_extrema)
+            (s.max_r, s.z_at_max_r) = _refine_extremum(itp, psis[k], (s.max_r, s.z_at_max_r), :R, axis)
+            (s.min_r, s.z_at_min_r) = _refine_extremum(itp, psis[k], (s.min_r, s.z_at_min_r), :R, axis)
+            (s.r_at_max_z, s.max_z) = _refine_extremum(itp, psis[k], (s.r_at_max_z, s.max_z), :Z, axis)
+            (s.r_at_min_z, s.min_z) = _refine_extremum(itp, psis[k], (s.r_at_min_z, s.min_z), :Z, axis)
+        end
+        surfaces[k] = s
     end
     return surfaces
 end
