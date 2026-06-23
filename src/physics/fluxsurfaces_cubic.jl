@@ -396,3 +396,40 @@ function trace_surface_cubic(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_
     reorder_flux_surface!(R, Z, RA, ZA)          # CCW from OMP (same as the Contour path)
     return (R, Z, true)
 end
+
+"""
+    trace_surfaces_cubic(psis, f, RA, ZA, R_max, itp; npoints=361, kw...)
+
+Batch flux-surface tracer on the cubic interpolant: for each level in `psis`, trace with
+[`trace_surface_cubic`](@ref) and populate a `FluxSurface` by reusing the existing field-eval
+helpers (`arc_length`, `Br_Bz`, `trapz`, `fluxsurface_extrema`). The innermost (k=1) surface
+is the usual artificial scaled-down copy of the second. Standalone — NOT wired into
+`trace_surfaces`; used to validate flux-surface averages against the Contour path.
+"""
+function trace_surfaces_cubic(psis::AbstractVector{T}, f::AbstractVector{T}, RA::T, ZA::T,
+    R_max::T, itp::FI.AbstractInterpolant; npoints::Int=361, kw...) where {T<:Real}
+    N = length(psis)
+    surfaces = Vector{FluxSurface{T}}(undef, N)
+    for k in N:-1:1
+        if k == 1
+            pr = (surfaces[2].r .- RA) ./ 100 .+ RA
+            pz = (surfaces[2].z .- ZA) ./ 100 .+ ZA
+        else
+            pr, pz, closed = trace_surface_cubic(itp, psis[k], RA, ZA, R_max; npoints, kw...)
+            closed || error("trace_surfaces_cubic: failed to close surface $k of $N at ψ=$(psis[k])")
+        end
+        ll = arc_length(pr, pz)
+        Br, Bz = Br_Bz(itp, pr, pz)
+        Bp2 = Br .^ 2 .+ Bz .^ 2
+        Bp_abs = sqrt.(Bp2)
+        Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
+        Btot = sqrt.(Bp2 .+ (f[k] ./ pr) .^ 2)
+        fluxexpansion = 1.0 ./ Bp_abs
+        int_fluxexpansion_dl = trapz(ll, fluxexpansion)
+        (_, _, _, _, r_at_max_z, max_z, r_at_min_z, min_z, z_at_max_r, max_r, z_at_min_r, min_r) =
+            fluxsurface_extrema(pr, pz)
+        surfaces[k] = FluxSurface(psis[k], pr, pz, r_at_max_z, max_z, r_at_min_z, min_z,
+            z_at_max_r, max_r, z_at_min_r, min_r, Br, Bz, Bp, Btot, ll, fluxexpansion, int_fluxexpansion_dl)
+    end
+    return surfaces
+end

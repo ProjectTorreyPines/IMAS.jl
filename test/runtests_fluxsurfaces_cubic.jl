@@ -173,4 +173,32 @@ end
         @test !occursin("trace_surface_cubic", src)
         @test !occursin("_trace_surface_cubic", src)
     end
+
+    @testset "trace_surfaces_cubic FSA agrees with Contour path (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp2 = IMAS.ψ_interpolant(eqt2d)
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        psi_axis = itp2(RA, ZA)
+        eqt1d = eqt.profiles_1d
+        # mid-radius levels (avoid axis & near-separatrix edge cases for the FSA check)
+        fracs = [0.3, 0.5, 0.7]
+        psis = [psi_axis + φ * (eqt1d.psi[end] - psi_axis) for φ in fracs]
+        ff = fill(eqt1d.f[end], length(psis))
+
+        cub = IMAS.trace_surfaces_cubic(psis, ff, RA, ZA, maximum(rr), itp2)
+        BR, BZ = IMAS.Br_Bz(eqt2d)
+        ref = IMAS.trace_surfaces(psis, ff, collect(rr), collect(zz), eqt2d.psi,
+                                  BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)
+
+        for k in eachindex(psis)
+            gm1_c = IMAS.flux_surface_avg(1.0 ./ cub[k].r .^ 2, cub[k])
+            gm1_r = IMAS.flux_surface_avg(1.0 ./ ref[k].r .^ 2, ref[k])
+            @test isapprox(gm1_c, gm1_r; rtol=2e-3)
+            @test isapprox(cub[k].int_fluxexpansion_dl, ref[k].int_fluxexpansion_dl; rtol=5e-3)
+        end
+    end
 end
