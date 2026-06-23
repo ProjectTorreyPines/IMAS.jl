@@ -57,4 +57,14 @@ end
         @test isapprox(val, c; atol=1e-9)        # still on the surface after the step
         @test isapprox(hypot(x1[1]-x0[1], x1[2]-x0[2]), h; rtol=0.05)  # advanced ~h along curve
     end
+
+    @testset "_contour_step bounds turning angle and clamps" begin
+        citp, _, _ = ellipse_itp(R0, 0.5, 0.5)   # circle, κ = 1/radius known
+        c = 0.25; radius = 0.5 * sqrt(c)          # = 0.25, κ = 4
+        x = (R0 + radius, 0.0)
+        h = IMAS._contour_step(citp, x; h_min=1e-4, h_max=1.0, max_turn=deg2rad(10))
+        κ = abs(IMAS._contour_curvature(citp, x))
+        @test κ * h <= deg2rad(10) + 1e-9         # turning-angle cap respected
+        @test 1e-4 <= h <= 1.0                     # within clamp
+    end
 end

@@ -199,3 +199,19 @@ function _step_pc(itp::FI.AbstractInterpolant, c::T, x::Tuple{T,T}, h::Real, sgn
           x[2] + h * t[2] + (h^2 / 2) * κ * np[2])
     return _project_to_level(itp, c, xp; tol=corr_tol, maxit=corr_max)
 end
+
+"""
+    _contour_step(itp::FI.AbstractInterpolant, x::Tuple{T,T}; ε::Real=1e-6,
+                  h_min::Real, h_max::Real, max_turn::Real=deg2rad(10), κ_floor::Real=1e-8) where {T<:Real}
+
+Arclength step for the contour at `x`: bound the predictor chord error `≈ ½|κ|h² ≤ ε` and
+the per-step turning angle `|κ|·h ≤ max_turn`, then clamp to `[h_min, h_max]`. `κ_floor`
+prevents division by zero on near-straight pieces.
+"""
+function _contour_step(itp::FI.AbstractInterpolant, x::Tuple{T,T}; ε::Real=1e-6,
+    h_min::Real, h_max::Real, max_turn::Real=deg2rad(10), κ_floor::Real=1e-8) where {T<:Real}
+    κ = max(abs(_contour_curvature(itp, x)), κ_floor)
+    h = sqrt(2 * ε / κ)            # chord-error bound
+    h = min(h, max_turn / κ)       # turning-angle cap
+    return clamp(h, h_min, h_max)
+end
