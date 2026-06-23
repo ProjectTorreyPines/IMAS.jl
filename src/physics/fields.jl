@@ -1,5 +1,5 @@
 using LinearAlgebra
-import NLsolve
+import SimpleNonlinearSolve
 import Interpolations
 
 document[Symbol("Physics fields")] = Symbol[]
@@ -49,12 +49,14 @@ end
 push!(document[Symbol("Physics fields")], :Br_Bz)
 
 """
-    Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::T, R0::T, r::T, z::T) where {T<:Real}
+    Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::Real, R0::Real, r::Real, phi::Real, z::Real)
 
-Returns Br, Bphi, Bz named tuple evaluated at r and z starting from ψ interpolant and B0 and R0
+Returns Br, Bphi, Bz named tuple evaluated at (r, z) starting from ψ interpolant and B0 and R0.
+`phi` is accepted for signature symmetry with the (x, y, z) callers but is unused: the
+equilibrium is axisymmetric, so all components are independent of the toroidal angle.
 """
 function Br_Bphi_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
-    B0::T, R0::T, r::T, phi::T, z::T) where {T<:Real}
+    B0::Real, R0::Real, r::Real, phi::Real, z::Real)
 
     Br, Bz = IMAS.Br_Bz(PSI_interpolant, r, z)
     Bphi = B0 * R0 / r
@@ -66,12 +68,12 @@ end
 push!(document[Symbol("Physics fields")], :Br_Bphi_Bz)
 
 """
-    Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::T, R0::T, r::T, z::T) where {T<:Real}
+    Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation, B0::Real, R0::Real, x::Real, y::Real, z::Real)
 
 Returns Bx, By, Bz named tuple evaluated at x,y,z starting from ψ interpolant and B0 and R0
 """
 function Bx_By_Bz(PSI_interpolant::Interpolations.AbstractInterpolation,
-    B0::T, R0::T, x::T, y::T, z::T) where {T<:Real}
+    B0::Real, R0::Real, x::Real, y::Real, z::Real)
 
     r = hypot(x, y)
     phi = atan(y, x)
@@ -145,17 +147,34 @@ end
 push!(document[Symbol("Physics fields")], :Bp)
 
 """
+    _toroidal_angle(p, q)
+
+Unsigned angle swept in the (x, y) plane between two consecutive points `p` and
+`q`, via `atan(cross, dot)`. Shared by both field-line integrators so they
+measure `Δϕ` identically. Unlike `acos(dot / (‖p‖‖q‖))` this needs no
+normalization and no domain clamp: it is exact for nearly-collinear points and
+returns 0 when a point lies on the axis (r = 0), instead of `NaN`.
+"""
+function _toroidal_angle(p, q)
+    cross = p[1] * q[2] - p[2] * q[1]
+    dot2d = p[1] * q[1] + p[2] * q[2]
+    return abs(atan(cross, dot2d))
+end
+
+"""
     ImplicitMidpointState{T,F<:Function}(vector_field, current_point, step_size, count, Δϕ)
 
-Represents an implicit midpoint update equation for numerical integration.
+State for the implicit-midpoint field-line integrator. Each step solves the
+implicit midpoint equation `next = current + h·vector_field((current+next)/2)`
+for the next point. (The RK4 path needs no state object — see [`_trace_rk4`](@ref).)
 
 # Fields
 
   - `vector_field`: Function representing the vector field to be integrated
   - `current_point`: Current position in the vector field
   - `step_size`: Step size for numerical integration
-  - `count`: Counter
-  - `Δϕ`: Phi angle traversed
+  - `count`: Step counter
+  - `Δϕ`: Toroidal angle traversed
 """
 mutable struct ImplicitMidpointState{T,F<:Function}
     vector_field::F
@@ -168,15 +187,8 @@ end
 """
     (obj::ImplicitMidpointState)(next_point)
 
-Implements the implicit midpoint method update equation.
-
-# Arguments
-
-  - `next_point`: Proposed next point in the integration
-
-# Returns
-
-Residual of the implicit midpoint equation
+Residual of the implicit midpoint equation, driven to zero each step to find
+`next_point`.
 """
 function (obj::ImplicitMidpointState)(next_point)
     midpoint = 0.5 * (obj.current_point .+ next_point)
@@ -186,19 +198,16 @@ end
 """
     _next!(obj::ImplicitMidpointState)
 
-Advances the trajectory by one step using the implicit midpoint method.
-
-# Returns
-
-Next point in the trajectory
+Advance one step with the implicit midpoint rule (2nd-order, symplectic): solve
+`obj(next) = 0`, then record the new point and the toroidal angle swept.
 """
 function _next!(obj::ImplicitMidpointState)
-    # Use root finding to solve the implicit equation
-    sol = NLsolve.nlsolve(obj, obj.current_point)
-    next_point = sol.zero
+    # Solve the implicit-midpoint equation obj(next)=0 (copy guess to avoid aliasing)
+    prob = SimpleNonlinearSolve.NonlinearProblem((u, _p) -> obj(u), copy(obj.current_point))
+    sol = SimpleNonlinearSolve.solve(prob, SimpleNonlinearSolve.SimpleTrustRegion(); abstol=1e-10, reltol=1e-10)
+    next_point = sol.u
 
-    # Update implicit equation
-    dphi = abs(acos(dot(next_point[1:2], obj.current_point[1:2]) / (norm(next_point[1:2]) * norm(obj.current_point[1:2]))))
+    dphi = _toroidal_angle(obj.current_point, next_point)
     obj.current_point .= next_point
     obj.count += 1
     obj.Δϕ += dphi
@@ -207,35 +216,72 @@ function _next!(obj::ImplicitMidpointState)
 end
 
 """
-    trace_field_line(vector_field, start_point, step_size, stop_condition)
+    _trace_rk4(vector_field, start_point, step_size, stop_condition)
 
-Compute a trajectory along a vector field using the implicit midpoint method.
+Trace a field line with the explicit classical Runge–Kutta (RK4) method.
+Self-contained: a single loop, no per-step nonlinear solve. `stop_condition`
+receives a lightweight object exposing `current_point`, `count`, and `Δϕ`.
+"""
+function _trace_rk4(vector_field::VF, start_point, step_size, stop_condition::SC) where {VF,SC}
+    h = step_size
+    p = copy(start_point)
+    trajectory = [p]
+    count = 0
+    Δϕ = zero(h)
+    while !stop_condition((current_point=p, count=count, Δϕ=Δϕ))
+        k1 = vector_field(p)
+        k2 = vector_field(p .+ (h / 2) .* k1)
+        k3 = vector_field(p .+ (h / 2) .* k2)
+        k4 = vector_field(p .+ h .* k3)
+        pnext = p .+ (h / 6) .* (k1 .+ 2 .* k2 .+ 2 .* k3 .+ k4)
+        dphi = _toroidal_angle(p, pnext)
+        Δϕ += dphi
+        count += 1
+        p = pnext
+        push!(trajectory, pnext)
+    end
+    return trajectory
+end
+
+"""
+    trace_field_line(vector_field, start_point, step_size, stop_condition; method=:implicit_midpoint)
+
+Compute a trajectory along a vector field.
 
 # Arguments
 
   - `vector_field`: Vector field function
   - `start_point`: Initial point of the trajectory
   - `step_size`: Size of each integration step
-  - `stop_condition`: Function determining when to stop integration. Takes a ImplicitMidpointState struct as an argument.
+  - `stop_condition`: Function determining when to stop integration. Receives an object exposing `current_point`, `count`, and `Δϕ`, and returns a `Bool`.
+
+# Keywords
+
+  - `method`: integration method, `:implicit_midpoint` (default; 2nd-order, symplectic) or `:rk4` (explicit 4th-order, faster)
 
 # Returns
 
 Trajectory represented as a vector of points
 """
-function trace_field_line(vector_field, start_point, step_size, stop_condition)
+function trace_field_line(vector_field::VF, start_point, step_size, stop_condition::SC; method::Symbol=:implicit_midpoint) where {VF,SC}
+    if method === :implicit_midpoint
+        return _trace_implicit_midpoint(vector_field, start_point, step_size, stop_condition)
+    elseif method === :rk4
+        return _trace_rk4(vector_field, start_point, step_size, stop_condition)
+    else
+        error("unknown field-line integration method :$(method); use :implicit_midpoint or :rk4")
+    end
+end
 
-    # Initialize implicit equation struct
-    implicit_equation = ImplicitMidpointState(vector_field, start_point, step_size, 0, 0.0)
+function _trace_implicit_midpoint(vector_field::VF, start_point, step_size, stop_condition::SC) where {VF,SC}
+    # copy start_point so the caller's array is not mutated (matches _trace_rk4)
+    integrator = ImplicitMidpointState(vector_field, copy(start_point), step_size, 0, zero(step_size))
 
-    # Initialize trajectory
     next_point = copy(start_point)
     trajectory = [next_point]
 
-    while !stop_condition(implicit_equation)
-        # Update position
-        next_point = _next!(implicit_equation)
-
-        # Add to trajectory
+    while !stop_condition(integrator)
+        next_point = _next!(integrator)
         push!(trajectory, next_point)
     end
 
@@ -243,7 +289,7 @@ function trace_field_line(vector_field, start_point, step_size, stop_condition)
 end
 
 """
-    trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z; phi=zero(r), step_size=0.01, max_turns=1, stop_condition=nothing)
+    trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z; phi=zero(r), step_size=0.01, max_turns=1, stop_condition=nothing, method=:implicit_midpoint)
 
 Compute a field line trajectory for a specific equilibrium time slice.
 
@@ -255,7 +301,8 @@ Compute a field line trajectory for a specific equilibrium time slice.
   - `phi`: Toroidal angle (default: 0)
   - `step_size`: Size of each integration step (default: 0.01)
   - `max_turns`: Maximum number of toroidal turns used in default stop condition (default: 1)
-  - `stop_condition`: User defined stop condition that takes a ImplicitMidpointState struct and returns a Boolean (default: nothing)
+  - `stop_condition`: User defined stop condition that takes an object exposing `current_point`, `count`, and `Δϕ` and returns a Boolean (default: nothing)
+  - `method`: integration method, `:implicit_midpoint` (default) or `:rk4` (explicit, faster)
 
 # Returns
 
@@ -263,14 +310,14 @@ Named tuple with x, y, z, r, and phi coordinates of the trajectory
 """
 function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
     phi=zero(r), step_size=0.01, max_turns=1,
-    stop_condition::Union{Nothing,Function}=nothing)
+    stop_condition::Union{Nothing,Function}=nothing, method::Symbol=:implicit_midpoint)
 
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     rg, zg, PSI_interpolant = ψ_interpolant(eqt2d)
     R0 = eqt.global_quantities.vacuum_toroidal_field.r0
     B0 = eqt.global_quantities.vacuum_toroidal_field.b0
 
-    # Define vector field function
+    # Define vector field function (unit B)
     vector_field = (xyz) -> begin
         x = xyz[1]
         y = xyz[2]
@@ -298,7 +345,7 @@ function trace_field_line(eqt::IMAS.equilibrium__time_slice, r, z;
     end
 
     # Calculate field line trajectory
-    trajectory = trace_field_line(vector_field, start_point, step_size, stop)
+    trajectory = trace_field_line(vector_field, start_point, step_size, stop; method)
 
     # Extract positions and return named tuple
     xt = getindex.(trajectory, 1)
