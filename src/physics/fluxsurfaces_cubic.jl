@@ -350,3 +350,29 @@ function _step_rk4_adaptive(itp::FI.AbstractInterpolant, x::Tuple{T,T}, h::Real,
     end
     return (_rk4(itp, x, hh, sgn), hh, false)
 end
+
+"""
+    _seed_omp(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_max::T; nscan::Int=200) where {T<:Real}
+
+Outboard-midplane seed for the ψ=c contour: scan `R ∈ [RA, R_max]` at `Z = ZA` for the first
+sign change of `ψ(R,ZA) - c`, bisect to a bracket, then project onto ψ=c. Returns
+`((R,Z), found::Bool)`.
+"""
+function _seed_omp(itp::FI.AbstractInterpolant, c::T, RA::T, ZA::T, R_max::T; nscan::Int=200) where {T<:Real}
+    Rs = range(RA, R_max; length=nscan)
+    f(R) = itp(R, ZA) - c
+    prevf = f(Rs[1]); a = Rs[1]
+    for i in 2:nscan
+        fi = f(Rs[i])
+        if sign(fi) != sign(prevf)
+            lo, hi = Rs[i-1], Rs[i]
+            for _ in 1:60
+                mid = (lo + hi) / 2
+                (sign(f(mid)) == sign(f(lo))) ? (lo = mid) : (hi = mid)
+            end
+            return _project_to_level(itp, c, ((lo + hi) / 2, ZA))
+        end
+        prevf = fi; a = Rs[i]
+    end
+    return ((a, ZA), false)
+end

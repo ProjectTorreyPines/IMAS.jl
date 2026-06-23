@@ -114,4 +114,12 @@ end
         @test drift_pc < 1e-8                  # corrector enforces the constraint
         @test drift_rk >= drift_pc             # pure integrator drifts at least as much
     end
+
+    @testset "_seed_omp finds the outboard seed on ψ=c" begin
+        c = 0.36
+        seed, ok = IMAS._seed_omp(itp, c, R0, 0.0, R0 + 1.3a0)
+        @test ok
+        @test isapprox(IMAS.FI.value_gradient(itp, seed)[1], c; atol=1e-9)
+        @test seed[1] > R0                       # outboard side
+    end
 end
