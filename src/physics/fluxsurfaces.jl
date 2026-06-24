@@ -2149,14 +2149,28 @@ Returns extrema indexes and values of R,Z flux surfaces vectors:
     z_at_min_r, min_r
 """
 function fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
-    _, imaxr = findmax(pr)
-    _, iminr = findmin(pr)
-    _, imaxz = findmax(pz)
-    _, iminz = findmin(pz)
-    r_at_max_z, max_z = pr[imaxz], pz[imaxz]
-    r_at_min_z, min_z = pr[iminz], pz[iminz]
-    z_at_max_r, max_r = pz[imaxr], pr[imaxr]
-    z_at_min_r, min_r = pz[iminr], pr[iminr]
+    n = length(pr)
+    n == length(pz) || throw(DimensionMismatch("fluxsurface_extrema: pr and pz must have equal length"))
+    # One sweep tracks all four extrema (value+index) at once — an order of magnitude faster than
+    # four findmax/findmin calls (NaN-aware ordering + index reduction don't vectorize). Plain >/<
+    # is safe: traced flux-surface coordinates are finite.
+    @inbounds begin
+        max_r = min_r = pr[1]
+        max_z = min_z = pz[1]
+        imaxr = iminr = imaxz = iminz = 1
+        for i in 2:n
+            pri = pr[i]
+            pzi = pz[i]
+            if pri > max_r; max_r = pri; imaxr = i; end
+            if pri < min_r; min_r = pri; iminr = i; end
+            if pzi > max_z; max_z = pzi; imaxz = i; end
+            if pzi < min_z; min_z = pzi; iminz = i; end
+        end
+        r_at_max_z = pr[imaxz]
+        r_at_min_z = pr[iminz]
+        z_at_max_r = pz[imaxr]
+        z_at_min_r = pz[iminr]
+    end
     return (imaxr, iminr, imaxz, iminz,
         r_at_max_z, max_z,
         r_at_min_z, min_z,
