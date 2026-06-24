@@ -1,5 +1,6 @@
 using IMAS
 using Test
+import Interpolations
 
 # _refine_extremum solves {ψ = target, ∂ψ/∂(diraxis) = 0} with a 2×2 Newton
 # seeded at a rough extremum (falling back to the seed if it cannot converge),
@@ -71,5 +72,60 @@ using Test
         xp_up = maximum(xp.z for xp in eqt.boundary.x_point)
         _, max_z = IMAS._refine_extremum(itp2, psis[end], (s.r_at_max_z, s.max_z), :Z, (RA, ZA))
         @test max_z < xp_up
+    end
+end
+
+# The Newton refine is backend-agnostic via the _psi_* adapters: it must work not only with a
+# FastInterpolations interpolant but also with an Interpolations.jl one (e.g. as FRESCO builds).
+@testset "_refine_extremum backend-agnostic (Interpolations.jl)" begin
+    @testset "analytic ellipse, IP interpolant" begin
+        R0, a0, b0 = 1.7, 0.5, 1.0
+        psi_fun = (R, Z) -> ((R - R0) / a0)^2 + (Z / b0)^2
+        r = range(1.0, 2.4, length=65)
+        z = range(-1.3, 1.3, length=65)
+        PSI = [psi_fun(ri, zj) for ri in r, zj in z]
+        itp = Interpolations.cubic_spline_interpolation((r, z), PSI; extrapolation_bc=Interpolations.Line())
+        @test !(itp isa IMAS.FI.AbstractInterpolant)   # genuinely exercises the non-FI path
+        L = 0.36; s = sqrt(L); dc = step(r)
+        cases = (
+            (:R, (R0 + a0 * s, 0.0), (R0 + a0 * s - 0.4dc, 0.3dc)),
+            (:R, (R0 - a0 * s, 0.0), (R0 - a0 * s + 0.4dc, 0.3dc)),
+            (:Z, (R0, b0 * s), (R0 + 0.3dc, b0 * s - 0.4dc)),
+            (:Z, (R0, -b0 * s), (R0 + 0.3dc, -b0 * s + 0.4dc)),
+        )
+        for (extremum_of, truth, seed) in cases
+            R, Z = IMAS._refine_extremum(itp, L, seed, extremum_of, (R0, 0.0))
+            @test isapprox(R, truth[1]; atol=1e-3)
+            @test isapprox(Z, truth[2]; atol=1e-3)
+        end
+    end
+
+    @testset "DIII-D trace_surfaces: Interpolations matches FastInterpolations" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp_fi = IMAS.ψ_interpolant(eqt2d)
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        psi_axis = itp_fi(RA, ZA)
+        eqt1d = eqt.profiles_1d
+        fracs = collect(range(0.1, 0.95; length=16))
+        psis = [psi_axis; psi_axis .+ fracs .* (eqt1d.psi[end] - psi_axis)]
+        ff = fill(eqt1d.f[end], length(psis))
+        # FRESCO-style: an Interpolations.jl cubic interpolant of the SAME ψ grid as itp_fi
+        itp_ip = Interpolations.cubic_spline_interpolation((rr, zz), collect(eqt2d.psi); extrapolation_bc=Interpolations.Line())
+        @test !(itp_ip isa IMAS.FI.AbstractInterpolant)
+        r = collect(rr); z = collect(zz); PSI = collect(eqt2d.psi)
+        # identical marching trace (same PSI matrix); only the refine backend differs
+        s_fi = IMAS.trace_surfaces(psis, ff, r, z, PSI, itp_fi, RA, ZA, fw.r, fw.z; refine_extrema=true)
+        s_ip = IMAS.trace_surfaces(psis, ff, r, z, PSI, itp_ip, RA, ZA, fw.r, fw.z; refine_extrema=true)
+        @test length(s_ip) == length(s_fi)
+        for k in 2:length(s_fi)
+            @test isapprox(s_ip[k].max_r, s_fi[k].max_r; atol=2e-3)
+            @test isapprox(s_ip[k].min_r, s_fi[k].min_r; atol=2e-3)
+            @test isapprox(s_ip[k].max_z, s_fi[k].max_z; atol=2e-3)
+            @test isapprox(s_ip[k].min_z, s_fi[k].min_z; atol=2e-3)
+        end
     end
 end

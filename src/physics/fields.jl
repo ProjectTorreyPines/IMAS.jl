@@ -8,6 +8,14 @@ document[Symbol("Physics fields")] = Symbol[]
 @inline _psi_gradient(itp::FI.AbstractInterpolant, r, z) = FI.gradient(itp, (r, z))
 @inline _psi_gradient(itp, r, z) = parentmodule(typeof(itp)).gradient(itp, r, z)
 
+# value+gradient and Hessian with the same FI-fast / open-fallback split, so the Newton extremum
+# refine stays backend-agnostic. Open value_gradient emulates (value, gradient); open hessian!
+# copies the backend's returned Hessian into the caller's buffer.
+@inline _psi_value_gradient(itp::FI.AbstractInterpolant, r, z) = FI.value_gradient(itp, (r, z))
+@inline _psi_value_gradient(itp, r, z) = (itp(r, z), parentmodule(typeof(itp)).gradient(itp, r, z))
+@inline _psi_hessian!(H, itp::FI.AbstractInterpolant, r, z) = FI.hessian!(H, itp, (r, z))
+@inline _psi_hessian!(H, itp, r, z) = (H .= parentmodule(typeof(itp)).hessian(itp, r, z); H)
+
 """
     Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
 

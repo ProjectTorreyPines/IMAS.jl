@@ -45,33 +45,34 @@ end
 
 # residual + 2×2 Jacobian for the extremum system {ψ = target_psi, ∂ψ/∂(daxis) = 0}
 # (daxis = 2 -> ∂ψ/∂Z = 0 for R-extrema; daxis = 1 -> ∂ψ/∂R = 0 for Z-extrema).
-# Returns a residual closure that writes its 2×2 Jacobian into the caller-owned scratch `H`
-# every call (in-place `hessian!` avoids the per-call heap matrix of `hessian`); the leading
-# `!` + dest-first `H` follow the Julia mutating-buffer convention.
-_extremum_residual!(H::AbstractMatrix, itp::FI.AbstractInterpolant, target_psi::Real, daxis::Int) =
+# Writes its 2×2 Jacobian into the caller-owned scratch `H` each call via the backend-agnostic
+# `_psi_*` adapters (FI uses in-place hessian!/value_gradient; other backends fall back to their
+# gradient/hessian). `!` + dest-first `H` per the Julia mutating-buffer convention.
+_extremum_residual!(H::AbstractMatrix, itp, target_psi::Real, daxis::Int) =
     (R, Z) -> begin
-        val, g = FI.value_gradient(itp, (R, Z))
-        FI.hessian!(H, itp, (R, Z))
+        val, g = _psi_value_gradient(itp, R, Z)
+        _psi_hessian!(H, itp, R, Z)
         return (val - target_psi, g[daxis], g[1], g[2], H[daxis, 1], H[daxis, 2])
     end
 
 # residual + 2×2 Jacobian for the critical-point system ∇ψ = 0 (Jacobian = Hessian).
 # Writes into the caller-owned scratch `H` (see [`_extremum_residual!`](@ref)).
-_critical_residual!(H::AbstractMatrix, itp::FI.AbstractInterpolant) =
+_critical_residual!(H::AbstractMatrix, itp) =
     (R, Z) -> begin
-        g = FI.gradient(itp, (R, Z))
-        FI.hessian!(H, itp, (R, Z))
+        g = _psi_gradient(itp, R, Z)
+        _psi_hessian!(H, itp, R, Z)
         return (g[1], g[2], H[1, 1], H[1, 2], H[2, 1], H[2, 2])
     end
 
 """
-    _refine_extremum!(H::AbstractMatrix, itp::FI.AbstractInterpolant, target_psi::T, seed::Tuple{T,T},
+    _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,T},
                       extremum_of::Symbol, axis::Tuple{T,T};
                       factor::Real=0.9, tol::Real=1e-10, maxit::Int=30) where {T<:Real}
     _refine_extremum(itp, target_psi, seed, extremum_of, axis; kw...)
 
 Refine a flux-surface geometric extremum from a rough `seed = (R, Z)`, using the analytic
-gradient and Hessian of the cubic interpolant `itp`.
+gradient and Hessian of the ψ interpolant `itp` — backend-agnostic via the `_psi_*` adapters
+(FastInterpolations fast path, or any backend exposing `gradient`/`hessian`, e.g. Interpolations.jl).
 
 `H` is a caller-owned 2×2 scratch matrix reused by every internal Newton solve (in-place
 `hessian!`, so no per-call heap matrix); a batch caller allocates one `H` and threads it
@@ -101,7 +102,7 @@ converge (e.g. a degenerate Jacobian seeded at the magnetic axis); the candidate
 critical point is found; the mirror point if the bounded re-solve does not land on a
 genuine extremum (already a confined-side estimate).
 """
-function _refine_extremum!(H::AbstractMatrix, itp::FI.AbstractInterpolant, target_psi::T, seed::Tuple{T,T},
+function _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,T},
     extremum_of::Symbol, axis::Tuple{T,T};
     factor::Real=0.9, tol::Real=1e-10, maxit::Int=30) where {T<:Real}
     daxis = extremum_of === :R ? 2 : extremum_of === :Z ? 1 :
@@ -116,8 +117,8 @@ function _refine_extremum!(H::AbstractMatrix, itp::FI.AbstractInterpolant, targe
     # (genuine maximum has -ψ_dd/ψ_e < 0, minimum > 0); want_max inferred vs the axis
     want_max = candidate[eaxis] > axis[eaxis]
     function is_genuine(p::Tuple{T,T})
-        g = FI.gradient(itp, p)
-        FI.hessian!(H, itp, p)
+        g = _psi_gradient(itp, p[1], p[2])
+        _psi_hessian!(H, itp, p[1], p[2])
         curv = -H[daxis, daxis] / g[eaxis]
         return want_max ? curv < zero(T) : curv > zero(T)
     end
@@ -142,7 +143,7 @@ function _refine_extremum!(H::AbstractMatrix, itp::FI.AbstractInterpolant, targe
 end
 
 # convenience wrapper: allocate the 2×2 Hessian scratch once and delegate to the in-place workhorse
-_refine_extremum(itp::FI.AbstractInterpolant, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol,
+_refine_extremum(itp, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol,
     axis::Tuple{T,T}; kw...) where {T<:Real} =
     _refine_extremum!(Matrix{T}(undef, 2, 2), itp, target_psi, seed, extremum_of, axis; kw...)
 
