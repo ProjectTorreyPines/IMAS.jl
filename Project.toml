@@ -5,6 +5,7 @@ authors = ["Orso Meneghini <orso82@gmail.com>"]
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
+AdaptiveArrayPools = "4f381ef7-9af0-4cbe-99d4-cf36d7b0f233"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 Contour = "d38c429a-6771-53c6-b99e-75d170b6e991"
 CoordinateConventions = "7204ce3a-f536-43d2-be4a-fbed74e90d86"
@@ -51,6 +52,7 @@ IMASInterpolationsExt = "Interpolations"
 
 [compat]
 AbstractTrees = "0.4"
+AdaptiveArrayPools = "0.3.6"
 Compat = "4.10"
 Contour = "0.6"
 CoordinateConventions = "1"

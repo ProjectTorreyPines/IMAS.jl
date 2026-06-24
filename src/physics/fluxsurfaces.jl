@@ -1221,7 +1221,7 @@ end
         refine_extrema::Bool=true
     ) where {T<:Real}
 """
-function trace_surfaces(
+@with_pool pool function trace_surfaces(
     psi::AbstractVector{T},
     f::AbstractVector{T},
     r::AbstractVector{T},
@@ -1237,7 +1237,11 @@ function trace_surfaces(
 
     N = length(psi)
     surfaces = Vector{FluxSurface{T}}(undef, N)
-    r_cache, z_cache = IMASutils.contour_cache(r, z)
+    # Assume rectangle (aggression_level == 2)
+    Ncache = 2 * (length(r) + length(z))
+    r_cache = acquire!(pool, T, Ncache)
+    z_cache = acquire!(pool, T, Ncache)
+
     PSIA = PSI_interpolant(RA, ZA)
     for k in N:-1:1
         psi_level = psi[k]
@@ -1265,10 +1269,14 @@ function trace_surfaces(
         # surface length
         ll = arc_length(pr, pz)
 
+        # Allocate temporary arrays
+        Bp2 = acquire!(pool, T, length(pr))
+        Bp_abs = acquire!(pool, T, length(pr))
+
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
-        Bp2 = Br .^ 2 .+ Bz .^ 2
-        Bp_abs = sqrt.(Bp2)
+        Bp2 .= Br .^ 2 .+ Bz .^ 2
+        Bp_abs .= sqrt.(Bp2)
         Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
         Btot = sqrt.(Bp2 .+ (f[k] ./ pr) .^ 2)
 
@@ -1306,7 +1314,7 @@ function trace_surfaces(
         # Newton (`_refine_extremum!`) on the ψ interpolant (analytic ∇ψ/Hessian), sharing one
         # 2×2 Hessian scratch across all calls.
         axis = (RA, ZA)
-        H = Matrix{T}(undef, 2, 2)
+        H = acquire!(pool, T, 2, 2)
         for k in 2:N   # skip k=1 (artificial on-axis surface); rebuilt below
             s = surfaces[k]
             (s.max_r, s.z_at_max_r) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.max_r, s.z_at_max_r), :R, axis)
