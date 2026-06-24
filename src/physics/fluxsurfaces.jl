@@ -1179,7 +1179,7 @@ function trace_simple_surfaces!(
 
             # flux expansion = 1 / abs(Bp)
             Br, Bz = Br_Bz(PSI_interpolant, pr[i], pz[i])
-            fluxexpansion[i] = 1.0 / sqrt(Br^2.0 + Bz^2.0)
+            fluxexpansion[i] = 1.0 / sqrt(Br^2 + Bz^2)
         end
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
@@ -1267,7 +1267,7 @@ function trace_surfaces(
 
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
-        Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
+        Bp2 = Br .^ 2 .+ Bz .^ 2
         Bp_abs = sqrt.(Bp2)
         Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
         Btot = sqrt.(Bp2 .+ (f[k] ./ pr) .^ 2)
