@@ -1307,145 +1307,22 @@ function trace_surfaces(
     end
 
     if refine_extrema
-        N2 = round(Int, N / 2, RoundUp)
-        psi_norm = abs(psi[end] - psi[1]) / N
-        space_norm = (surfaces[N].max_r - surfaces[N].min_r) / 2 / N
-
-        # Find where Br changes sign
-        lines = Contour.lines(Contour.contour(r, z, BR, 0.0))
-        k = 0
-        d = Inf
-        for (kk, line) in enumerate(lines)
-            pr, pz = Contour.coordinates(line)
-            # plot!(pr, pz)
-            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)); init=Inf)
-            if dd < d
-                d = dd
-                k = kk
-            end
-        end
-        leftright_r, leftright_z = Contour.coordinates(lines[k])
-        index = .!(isnan.(leftright_r) .|| isnan.(leftright_z))
-        leftright_r = @view leftright_r[index]
-        leftright_z = @view leftright_z[index]
-
-        # extrema in R
-        interp_r = interp1d(1:length(leftright_r), leftright_r)
-        interp_z = interp1d(1:length(leftright_z), leftright_z)
-        for k in 1:N
-            #@show "R", k
-            index = _extrema_index(leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, :right)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].max_r,
-                    surfaces[k].z_at_max_r,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :right
-                )
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            surfaces[k].max_r, surfaces[k].z_at_max_r = interp_r(x), interp_z(x)
-            index = _extrema_index(leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, :left)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].min_r,
-                    surfaces[k].z_at_min_r,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :left
-                )
-            #plot!(leftright_r[index], leftright_z[index]; label="")
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            min_r, z_at_min_r = interp_r(x), interp_z(x)
-            surfaces[k].min_r, surfaces[k].z_at_min_r = min_r, z_at_min_r
-            @assert surfaces[k].min_r < surfaces[k].max_r
-            if k < 3
-                surfaces[k+1].z_at_max_r = ZA
-                surfaces[k+1].z_at_min_r = ZA
-            elseif k < N
-                surfaces[k+1].z_at_max_r = (surfaces[k+1].z_at_max_r + surfaces[k].z_at_max_r) / 2.0
-                surfaces[k+1].z_at_min_r = (surfaces[k].z_at_min_r + surfaces[k+1].z_at_min_r) / 2.0
-            end
-        end
-
-        # Find where Bz changes sign
-        lines = Contour.lines(Contour.contour(r, z, BZ, 0.0))
-        k = 0
-        d = Inf
-        for (kk, line) in enumerate(lines)
-            pr, pz = Contour.coordinates(line)
-            # plot!(pr, pz)
-            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2)); init=Inf)
-            if dd < d
-                d = dd
-                k = kk
-            end
-        end
-        updown_r, updown_z = Contour.coordinates(lines[k])
-        index = .!(isnan.(updown_r) .|| isnan.(updown_z))
-        updown_r = @view updown_r[index]
-        updown_z = @view updown_z[index]
-
-        # extrema in Z
-        interp_r = interp1d(1:length(updown_r), updown_r)
-        interp_z = interp1d(1:length(updown_z), updown_z)
-        for k in 1:N
-            #@show "Z", k
-            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, :up)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].r_at_max_z,
-                    surfaces[k].max_z,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :up
-                )
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            surfaces[k].r_at_max_z, surfaces[k].max_z = interp_r(x), interp_z(x)
-            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, :down)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].r_at_min_z,
-                    surfaces[k].min_z,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :down
-                )
-            # plot!(updown_r[index], updown_z[index]; label="")
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            surfaces[k].r_at_min_z, surfaces[k].min_z = interp_r(x), interp_z(x)
-            @assert surfaces[k].min_z < surfaces[k].max_z
-            if k < 3
-                surfaces[k+1].r_at_max_z = RA
-                surfaces[k+1].r_at_min_z = RA
-            elseif k < N
-                surfaces[k+1].r_at_max_z = (surfaces[k+1].r_at_max_z + surfaces[k].r_at_max_z) / 2.0
-                surfaces[k+1].r_at_min_z = (surfaces[k+1].r_at_min_z + surfaces[k].r_at_min_z) / 2.0
-            end
+        # Geometric extrema (max_r/min_r/max_z/min_z) refined by an X-point-aware 2-D Newton on
+        # the ψ interpolant (`_refine_extremum!`), reading ∂ψ/∂R, ∂ψ/∂Z and the Hessian
+        # analytically. This replaces the former Contour.lines(Br=0)/(Bz=0) + Optim.Brent search:
+        # the same extremum conditions ({ψ=c, ∂ψ/∂Z=0} for R-extrema, {ψ=c, ∂ψ/∂R=0} for Z-extrema)
+        # are now solved point-locally per surface, so the precomputed `BR`/`BZ` grids are no longer
+        # used (the args are retained only for API compatibility). The original k<3/k<N companion
+        # seeding is not needed — the Newton refine is exact per surface. One 2×2 Hessian scratch is
+        # shared across all calls.
+        axis = (RA, ZA)
+        H = Matrix{T}(undef, 2, 2)
+        for k in 2:N   # skip k=1 (artificial on-axis surface); rebuilt below
+            s = surfaces[k]
+            (s.max_r, s.z_at_max_r) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.max_r, s.z_at_max_r), :R, axis)
+            (s.min_r, s.z_at_min_r) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.min_r, s.z_at_min_r), :R, axis)
+            (s.r_at_max_z, s.max_z) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_max_z, s.max_z), :Z, axis)
+            (s.r_at_min_z, s.min_z) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_min_z, s.min_z), :Z, axis)
         end
 
         # first flux surface just a scaled down version of the second one

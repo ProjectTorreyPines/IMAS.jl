@@ -21,7 +21,7 @@ end
         seed = (R0 + 0.3a0, 0.1b0)
         (R, Z), ok = IMAS._project_to_level(itp, c, seed)
         @test ok
-        val, _ = IMAS.FI.value_gradient(itp, (R, Z))
+        val = itp(R, Z)
         @test isapprox(val, c; atol=1e-9)
     end
 
@@ -53,7 +53,7 @@ end
         h = 0.02
         x1, ok = IMAS._step_pc(itp, c, x0, h, 1)
         @test ok
-        val, _ = IMAS.FI.value_gradient(itp, x1)
+        val = itp(x1)
         @test isapprox(val, c; atol=1e-9)        # still on the surface after the step
         @test isapprox(hypot(x1[1]-x0[1], x1[2]-x0[2]), h; rtol=0.05)  # advanced ~h along curve
     end
@@ -75,7 +75,7 @@ end
         @test closed
         @test length(Rs) > 20
         # every point on ψ=c
-        @test all(abs(IMAS.FI.value_gradient(itp, (Rs[k], Zs[k]))[1] - c) < 1e-8 for k in eachindex(Rs))
+        @test all(abs(itp(Rs[k], Zs[k]) - c) < 1e-8 for k in eachindex(Rs))
         # enclosed area (shoelace) == π·a0·b0·c
         area = abs(sum(Rs[k]*Zs[mod1(k+1,length(Rs))] - Rs[mod1(k+1,length(Rs))]*Zs[k] for k in eachindex(Rs))) / 2
         @test isapprox(area, π * a0 * b0 * c; rtol=1e-3)
@@ -87,7 +87,7 @@ end
         R2, Z2 = IMAS._resample_contour(Rs, Zs, 128)
         @test length(R2) == 128
         # resampled points stay on ψ=c (they lie on the traced polyline, ~on-surface)
-        @test all(abs(IMAS.FI.value_gradient(itp, (R2[k], Z2[k]))[1] - c) < 1e-5 for k in eachindex(R2))
+        @test all(abs(itp(R2[k], Z2[k]) - c) < 1e-5 for k in eachindex(R2))
         # arclength steps are all genuinely non-zero (no duplicate endpoint / collapsed wrap)
         ds = [hypot(R2[mod1(k+1,128)]-R2[k], Z2[mod1(k+1,128)]-Z2[k]) for k in 1:128]
         @test minimum(ds) > 0.5 * sum(ds) / 128
@@ -106,7 +106,7 @@ end
         @test hnext > 0
         @test isapprox(hypot(x1[1]-x0[1], x1[2]-x0[2]), 0.02; rtol=0.1)
         # pure integrator: drift exists but is small for one step
-        @test abs(IMAS.FI.value_gradient(itp, x1)[1] - c) < 1e-4
+        @test abs(itp(x1) - c) < 1e-4
     end
 
     # Fix 7.1: exercise the rejection/grow paths of the adaptive step controller
@@ -117,7 +117,7 @@ end
         x1, hnext_s, acc_s = IMAS._step_rk4_adaptive(itp, xtop, 0.1, 1; tol=1e-12)
         @test acc_s                       # eventually accepted after reducing h
         @test hnext_s < 0.1               # controller SHRANK the step (rejection path ran)
-        @test abs(IMAS.FI.value_gradient(itp, x1)[1] - c) < 1e-6  # accepted step accurate
+        @test abs(itp(x1) - c) < 1e-6  # accepted step accurate
 
         # low-error case at OMP: err << tol -> controller GROWS the step (capped at h_max)
         x0 = (R0 + a0*sqrt(c), 0.0)
@@ -132,7 +132,7 @@ end
         Rp, Zp, clp = IMAS._trace_surface_cubic(itp, c, seed; method=:pc, h_max=0.05)
         Rr, Zr, clr = IMAS._trace_surface_cubic(itp, c, seed; method=:rk4, rk4_tol=1e-8, h_max=0.05)
         @test clp && clr
-        drift_pc = maximum(abs(IMAS.FI.value_gradient(itp,(Rp[k],Zp[k]))[1]-c) for k in eachindex(Rp))
+        drift_pc = maximum(abs(itp(Rp[k],Zp[k])-c) for k in eachindex(Rp))
         # Fix 8.1: assert the corrector's actual invariant (drift bounded by corr_tol regardless
         # of rk4_tol). The cross-method drift comparison drift_rk >= drift_pc is NOT a robust
         # invariant on the exact-quadratic ellipse (RK4 can be tighter than the PC corrector tol
@@ -145,7 +145,7 @@ end
         c = 0.36
         seed, ok = IMAS._seed_omp(itp, c, R0, 0.0, R0 + 1.3a0)
         @test ok
-        @test isapprox(IMAS.FI.value_gradient(itp, seed)[1], c; atol=1e-9)
+        @test isapprox(itp(seed), c; atol=1e-9)
         @test seed[1] > R0                       # outboard side
 
         # Fix 9.1 (a): no-crossing negative case — ψ(R_max)=1.69 < 2.0 so no bracket exists;
@@ -160,7 +160,7 @@ end
         @test okz
         @test isapprox(seedz[2], 0.3; atol=1e-10)                      # stays on the requested chord
         @test isapprox(seedz[1], R0 + a0*sqrt(c - (0.3/b0)^2); atol=1e-7)  # analytic outboard root on chord
-        @test isapprox(IMAS.FI.value_gradient(itp, seedz)[1], c; atol=1e-9)
+        @test isapprox(itp(seedz), c; atol=1e-9)
     end
 
     @testset "trace_surface_cubic returns an ordered closed loop (DIII-D)" begin
@@ -183,7 +183,7 @@ end
         @test ok_c
         vR, vZ, vclosed = IMAS._trace_surface_cubic(itp2, c, seed_c)
         @test vclosed
-        @test all(abs(IMAS.FI.value_gradient(itp2, (vR[k], vZ[k]))[1] - c) < 1e-9 for k in eachindex(vR))
+        @test all(abs(itp2(vR[k], vZ[k]) - c) < 1e-9 for k in eachindex(vR))
         # coarse sanity on the resampled output (linear-interp chord error is ~1e-6, not 1e-9)
         @test all(abs(itp2(R[k], Z[k]) - c) < 5e-6 for k in eachindex(R))
         # Post-reorder contract: OMP-first (force_close=true circshifts so OMP is index 1),
@@ -318,7 +318,7 @@ end
         @test ok_g
         vRg, vZg, vcg = IMAS._trace_surface_cubic(itp2, c, seed_g; τ_grad=0.15, h_max=0.02)
         @test vcg
-        @test all(abs(IMAS.FI.value_gradient(itp2, (vRg[k], vZg[k]))[1] - c) < 1e-9 for k in eachindex(vRg))
+        @test all(abs(itp2(vRg[k], vZg[k]) - c) < 1e-9 for k in eachindex(vRg))
         # demonstrate the guard does something: paths with guard on vs off differ
         R0g, Z0g, cl0g = IMAS.trace_surface_cubic(itp2, c, RA, ZA, maximum(rr);
                                                     τ_grad=0.0, h_max=0.02)
