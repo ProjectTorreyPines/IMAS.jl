@@ -3,18 +3,13 @@ import SimpleNonlinearSolve
 
 document[Symbol("Physics fields")] = Symbol[]
 
-# gradient of a ψ interpolant: FI gets the native fast path,
-# the open version is for users still passing an Interpolations.jl interpolant
-@inline _psi_gradient(itp::FI.AbstractInterpolant, r, z) = FI.gradient(itp, (r, z))
-@inline _psi_gradient(itp, r, z) = parentmodule(typeof(itp)).gradient(itp, r, z)
-
-# value+gradient and Hessian with the same FI-fast / open-fallback split, so the Newton extremum
-# refine stays backend-agnostic. Open value_gradient emulates (value, gradient); open hessian!
-# copies the backend's returned Hessian into the caller's buffer.
-@inline _psi_value_gradient(itp::FI.AbstractInterpolant, r, z) = FI.value_gradient(itp, (r, z))
-@inline _psi_value_gradient(itp, r, z) = (itp(r, z), parentmodule(typeof(itp)).gradient(itp, r, z))
-@inline _psi_hessian!(H, itp::FI.AbstractInterpolant, r, z) = FI.hessian!(H, itp, (r, z))
-@inline _psi_hessian!(H, itp, r, z) = (H .= parentmodule(typeof(itp)).hessian(itp, r, z); H)
+# Analytic gradient / value+gradient / Hessian of a ψ interpolant, dispatched on the backend.
+# FastInterpolations gets the native in-place fast path here; other backends (e.g. Interpolations.jl)
+# are added by package extensions, loaded only when that backend is (see ext/IMASInterpolationsExt.jl).
+# Results are indexed g[1]/g[2] and H[i,j], so any backend returning indexable values works.
+@inline _gradient(itp::FI.AbstractInterpolant, r, z) = FI.gradient(itp, (r, z))
+@inline _value_gradient(itp::FI.AbstractInterpolant, r, z) = FI.value_gradient(itp, (r, z))
+@inline _hessian!(H, itp::FI.AbstractInterpolant, r, z) = FI.hessian!(H, itp, (r, z))
 
 """
     Br_Bz(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
@@ -38,7 +33,7 @@ end
     Br_Bz(PSI_interpolant, r::T, z::T) where {T<:Real}
 """
 function Br_Bz(PSI_interpolant, r::T, z::T) where {T<:Real}
-    grad = _psi_gradient(PSI_interpolant, r, z)
+    grad = _gradient(PSI_interpolant, r, z)
     inv_twopi_r = 1.0 / (2π * r)
     Br = grad[2] * inv_twopi_r
     Bz = -grad[1] * inv_twopi_r

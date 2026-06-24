@@ -1302,14 +1302,9 @@ function trace_surfaces(
     end
 
     if refine_extrema
-        # Geometric extrema (max_r/min_r/max_z/min_z) refined by an X-point-aware 2-D Newton on
-        # the ψ interpolant (`_refine_extremum!`), reading ∂ψ/∂R, ∂ψ/∂Z and the Hessian
-        # analytically. This replaces the former Contour.lines(Br=0)/(Bz=0) + Optim.Brent search:
-        # the same extremum conditions ({ψ=c, ∂ψ/∂Z=0} for R-extrema, {ψ=c, ∂ψ/∂R=0} for Z-extrema)
-        # are now solved point-locally per surface, so the precomputed `BR`/`BZ` grids are no longer
-        # used (the args are retained only for API compatibility). The original k<3/k<N companion
-        # seeding is not needed — the Newton refine is exact per surface. One 2×2 Hessian scratch is
-        # shared across all calls.
+        # Refine the four geometric extrema (max_r/min_r/max_z/min_z) with an X-point-aware 2-D
+        # Newton (`_refine_extremum!`) on the ψ interpolant (analytic ∇ψ/Hessian), sharing one
+        # 2×2 Hessian scratch across all calls.
         axis = (RA, ZA)
         H = Matrix{T}(undef, 2, 2)
         for k in 2:N   # skip k=1 (artificial on-axis surface); rebuilt below
@@ -1320,15 +1315,15 @@ function trace_surfaces(
             (s.r_at_min_z, s.min_z) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_min_z, s.min_z), :Z, axis)
         end
 
-        # first flux surface just a scaled down version of the second one
+        # first flux surface just a scaled down version of the second one (all scalar fields)
         frac = 0.01
-        surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z .- RA) .* frac .+ RA
-        surfaces[1].max_z = (surfaces[2].max_z .- ZA) .* frac .+ ZA
-        surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z .- RA) .* frac .+ RA
-        surfaces[1].min_z = (surfaces[2].min_z .- ZA) .* frac .+ ZA
-        surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r .- ZA) .* frac .+ ZA
+        surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z - RA) * frac + RA
+        surfaces[1].max_z = (surfaces[2].max_z - ZA) * frac + ZA
+        surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z - RA) * frac + RA
+        surfaces[1].min_z = (surfaces[2].min_z - ZA) * frac + ZA
+        surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r - ZA) * frac + ZA
         surfaces[1].max_r = (surfaces[2].max_r - RA) * frac + RA
-        surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r .- ZA) .* frac .+ ZA
+        surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r - ZA) * frac + ZA
         surfaces[1].min_r = (surfaces[2].min_r - RA) * frac + RA
     end
 
