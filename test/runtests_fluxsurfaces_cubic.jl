@@ -212,11 +212,10 @@ end
         Rc, Zc, closed = IMAS.trace_surface_cubic(itp2, c, RA, ZA, maximum(rr))
         @test closed
         # Contour path (existing), same level
-        BR, BZ = IMAS.Br_Bz(eqt2d)
         psis = [psi_axis, c]
         ff   = [eqt1d.f[1], eqt1d.f[end]]
         ref = IMAS.trace_surfaces(psis, ff, collect(rr), collect(zz), eqt2d.psi,
-                                  BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)[2]
+                                  itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)[2]
         # compare bounding box (geometry) within a few mm
         @test isapprox(maximum(Rc), maximum(ref.r); atol=5e-3)
         @test isapprox(minimum(Rc), minimum(ref.r); atol=5e-3)
@@ -250,9 +249,8 @@ end
         ff = fill(eqt1d.f[end], length(psis))
 
         cub = IMAS.trace_surfaces_cubic(psis, ff, RA, ZA, maximum(rr), itp2)
-        BR, BZ = IMAS.Br_Bz(eqt2d)
         ref = IMAS.trace_surfaces(psis, ff, collect(rr), collect(zz), eqt2d.psi,
-                                  BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)
+                                  itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)
 
         for k in 2:length(psis)   # skip k=1 (artificial axis copy); validate the 3 real fracs
             gm1_c = IMAS.flux_surface_avg(1.0 ./ cub[k].r .^ 2, cub[k])
@@ -334,7 +332,6 @@ end
         fw = IMAS.first_wall(dd.wall)
         eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
         rr, zz, itp2 = IMAS.ψ_interpolant(eqt2d)
-        BR, BZ = IMAS.Br_Bz(eqt2d)
         RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
         e1 = eqt.profiles_1d
         pa, pb = itp2(RA, ZA), e1.psi[end]
@@ -346,7 +343,7 @@ end
         # low-level drop-in: same args as trace_surfaces (minus the precomputed grid/field arrays),
         # refine_extrema on both -> the refined geometric extrema agree to ~1e-7 m (both Newton-refine
         # to the same point on the same interpolant)
-        ref = IMAS.trace_surfaces(psis, ff, collect(rr), collect(zz), eqt2d.psi, BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=true)
+        ref = IMAS.trace_surfaces(psis, ff, collect(rr), collect(zz), eqt2d.psi, itp2, RA, ZA, fw.r, fw.z; refine_extrema=true)
         cub = IMAS.trace_surfaces_cubic(psis, ff, RA, ZA, maximum(rr), itp2; refine_extrema=true)
         @test length(cub) == length(ref)
         for k in (16, 32, 48)                       # mid-radius surfaces

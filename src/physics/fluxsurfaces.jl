@@ -1203,8 +1203,7 @@ function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVe
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
-    Br, Bz = Br_Bz(eqt2d)
-    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema)
+    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema)
 end
 
 """
@@ -1214,8 +1213,6 @@ end
         r::AbstractVector{T},
         z::AbstractVector{T},
         PSI::Matrix{T},
-        BR::Matrix{T},
-        BZ::Matrix{T},
         PSI_interpolant,
         RA::T,
         ZA::T,
@@ -1230,8 +1227,6 @@ function trace_surfaces(
     r::AbstractVector{T},
     z::AbstractVector{T},
     PSI::Matrix{T},
-    BR::Matrix{T},
-    BZ::Matrix{T},
     PSI_interpolant,
     RA::T,
     ZA::T,
@@ -1526,8 +1521,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     end
 
     # trace flux surfaces
-    Br, Bz = Br_Bz(eqt2d)
-    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z;refine_extrema=true)
+    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z;refine_extrema=true)
 
     # calculate flux surface averaged and geometric quantities
     N = length(eqt1d.psi)

@@ -66,8 +66,7 @@ using Test
         pb = IMAS.find_psi_boundary(rr, zz, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, fw.r, fw.z;
             PSI_interpolant=itp2, raise_error_on_not_open=false, raise_error_on_not_closed=false)
         psis = (eqt1d.psi .- eqt1d.psi[1]) ./ (eqt1d.psi[end] - eqt1d.psi[1]) .* (pb.last_closed - psi_axis) .+ psi_axis
-        BR, BZ = IMAS.Br_Bz(eqt2d)
-        rough = IMAS.trace_surfaces(psis, eqt1d.f, collect(rr), collect(zz), eqt2d.psi, BR, BZ, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)
+        rough = IMAS.trace_surfaces(psis, eqt1d.f, collect(rr), collect(zz), eqt2d.psi, itp2, RA, ZA, fw.r, fw.z; refine_extrema=false)
         s = rough[end]
         xp_up = maximum(xp.z for xp in eqt.boundary.x_point)
         _, max_z = IMAS._refine_extremum(itp2, psis[end], (s.r_at_max_z, s.max_z), :Z, (RA, ZA))
