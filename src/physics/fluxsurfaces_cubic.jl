@@ -135,10 +135,13 @@ function _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,
     point, recovered = _newton2d(_extremum_residual!(H, itp, target_psi, daxis), mir;
         reference=crit, factor, tol, maxit)
 
-    # accept only a genuine extremum; else fall back to the mirror point (already a
-    # confined-side estimate of the extremum)
+    # accept only a genuine extremum; else fall back to the original `seed` (the rough
+    # contour extremum). The mirror point `mir` is reflected across the critical point and
+    # is NOT on the flux surface (ψ(mir) ≠ target_psi); when the critical-point Newton
+    # diverges it lands far off-grid, corrupting max_r/min_r. `seed` is always a genuine
+    # on-surface point, so refinement can never do worse than refine_extrema=false.
     (recovered && is_genuine(point)) && return point
-    return mir
+    return seed
 end
 
 # convenience wrapper: allocate the 2×2 Hessian scratch once and delegate to the in-place workhorse
