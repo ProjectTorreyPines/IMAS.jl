@@ -63,6 +63,23 @@ _critical_residual!(H::AbstractMatrix, itp) =
         return (g[1], g[2], H[1, 1], H[1, 2], H[2, 1], H[2, 2])
     end
 
+# Split form of the extremum system for the globalized [`_damped_newton2d`](@ref): `residual`
+# (one `value_gradient`) returns the residual and the ψ=target Jacobian row (∇ψ, free from the
+# same eval); `hessrow` (one `hessian!`) returns the ∂ψ/∂n Jacobian row. The line search probes
+# with `residual` alone and pays `hessrow` only on accepted steps — halving the interpolant work
+# per Newton iterate, with a bit-identical iterate sequence.
+function _extremum_eqs(H::AbstractMatrix, itp, target_psi::Real, daxis::Int)
+    residual(R, Z) = begin
+        val, g = _value_gradient(itp, R, Z)
+        return (val - target_psi, g[daxis], g[1], g[2])
+    end
+    hessrow(R, Z) = begin
+        _hessian!(H, itp, R, Z)
+        return (H[daxis, 1], H[daxis, 2])
+    end
+    return (; residual, hessrow)
+end
+
 """
     _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,T},
                       extremum_of::Symbol, axis::Tuple{T,T};
@@ -146,20 +163,28 @@ function _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,
 end
 
 """
-    _damped_newton2d(residual_jacobian, seed; tol=1e-11, maxit=50, αmin=1e-3)
+    _damped_newton2d(eqs, seed; tol=1e-11, maxit=50, αmin=1e-3)
 
-Globalized 2×2 Newton: same residual/Jacobian contract as [`_newton2d`](@ref), but with a
-backtracking line search on `‖F‖` and a gradient-descent fallback when the Jacobian is
-near-singular. This makes it robust where pure Newton diverges — e.g. near the separatrix,
-where `det(J) = ψ_R·ψ_ZZ → 0` (small poloidal curvature) blows up the plain Newton step.
-Returns `((R, Z), converged::Bool)`.
+Globalized 2×2 Newton with a backtracking line search on `‖F‖` and a gradient-descent fallback
+when the Jacobian is near-singular — robust where pure Newton diverges (e.g. near the separatrix,
+where `det(J) = ψ_R·ψ_ZZ → 0`, small poloidal curvature, blows up the plain step). Returns
+`((R, Z), converged::Bool)`.
+
+`eqs` is the split extremum system from [`_extremum_eqs`](@ref): `eqs.residual(R,Z)` returns
+`(F1, F2, J11, J12)` — the residual plus the ψ=target Jacobian row (∇ψ), both from one
+`value_gradient` — and `eqs.hessrow(R,Z)` returns `(J21, J22)`, the `∂ψ/∂n` row (a `hessian`).
+The line search probes with `residual` alone; `hessrow` runs only on accepted steps, halving the
+interpolant work per iterate versus a combined residual+Jacobian eval (the iterate sequence is
+bit-identical: the `‖F‖` accept test uses only the residual, and `hessrow` runs at the exact
+accepted point a combined eval would have).
 """
-function _damped_newton2d(residual_jacobian::F, seed::Tuple{T,T}; tol::Real=1e-11, maxit::Int=50, αmin::Real=1e-3,
-    lo=(-Inf, -Inf), hi=(Inf, Inf)) where {F,T<:Real}
+function _damped_newton2d(eqs, seed::Tuple{T,T}; tol::Real=1e-11, maxit::Int=50, αmin::Real=1e-3,
+    lo=(-Inf, -Inf), hi=(Inf, Inf)) where {T<:Real}
     # every iterate is clamped to the box [lo, hi] (the ψ grid domain) so the search can never
     # wander into the extrapolation region outside the grid — the iterate physically cannot escape.
     R, Z = clamp(seed[1], lo[1], hi[1]), clamp(seed[2], lo[2], hi[2])
-    F1, F2, J11, J12, J21, J22 = residual_jacobian(R, Z)
+    F1, F2, J11, J12 = eqs.residual(R, Z)
+    J21, J22 = eqs.hessrow(R, Z)
     nrm = hypot(F1, F2)
     for _ in 1:maxit
         nrm <= tol && return ((R, Z), true)
@@ -178,10 +203,11 @@ function _damped_newton2d(residual_jacobian::F, seed::Tuple{T,T}; tol::Real=1e-1
         while α >= αmin
             q1, q2 = clamp(R - α * dR, lo[1], hi[1]), clamp(Z - α * dZ, lo[2], hi[2])
             if isfinite(q1) && isfinite(q2)
-                g1, g2, _, _, _, _ = residual_jacobian(q1, q2)
+                g1, g2, j11, j12 = eqs.residual(q1, q2)   # value_gradient only — no Hessian on probes
                 if hypot(g1, g2) < nrm
                     R, Z = q1, q2
-                    F1, F2, J11, J12, J21, J22 = residual_jacobian(R, Z)
+                    F1, F2, J11, J12 = g1, g2, j11, j12    # reuse the probe's value_gradient
+                    J21, J22 = eqs.hessrow(R, Z)           # one Hessian on the accepted step
                     nrm = hypot(F1, F2)
                     stepped = true
                     break
@@ -231,7 +257,8 @@ function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::T
         return true
     end
 
-    p, ok = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), seed; tol, maxit, lo, hi)
+    eqs = _extremum_eqs(H, itp, target_psi, d)
+    p, ok = _damped_newton2d(eqs, seed; tol, maxit, lo, hi)
     (ok && onsurf(p) && confined(p)) && return p
 
     # wrong branch (private/across-X-point) — only reachable from a bad seed. Re-seed along the
@@ -239,7 +266,7 @@ function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::T
     # pulls the Newton back onto the confined branch.
     for f in (T(0.3), T(0.5), T(0.7))
         reseed = (p[1] + f * (axis[1] - p[1]), p[2] + f * (axis[2] - p[2]))
-        q, okq = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), reseed; tol, maxit, lo, hi)
+        q, okq = _damped_newton2d(eqs, reseed; tol, maxit, lo, hi)
         (okq && onsurf(q) && confined(q)) && return q
     end
     return seed
