@@ -154,8 +154,11 @@ near-singular. This makes it robust where pure Newton diverges — e.g. near the
 where `det(J) = ψ_R·ψ_ZZ → 0` (small poloidal curvature) blows up the plain Newton step.
 Returns `((R, Z), converged::Bool)`.
 """
-function _damped_newton2d(residual_jacobian::F, seed::Tuple{T,T}; tol::Real=1e-11, maxit::Int=50, αmin::Real=1e-3) where {F,T<:Real}
-    R, Z = seed
+function _damped_newton2d(residual_jacobian::F, seed::Tuple{T,T}; tol::Real=1e-11, maxit::Int=50, αmin::Real=1e-3,
+    lo=(-Inf, -Inf), hi=(Inf, Inf)) where {F,T<:Real}
+    # every iterate is clamped to the box [lo, hi] (the ψ grid domain) so the search can never
+    # wander into the extrapolation region outside the grid — the iterate physically cannot escape.
+    R, Z = clamp(seed[1], lo[1], hi[1]), clamp(seed[2], lo[2], hi[2])
     F1, F2, J11, J12, J21, J22 = residual_jacobian(R, Z)
     nrm = hypot(F1, F2)
     for _ in 1:maxit
@@ -173,7 +176,7 @@ function _damped_newton2d(residual_jacobian::F, seed::Tuple{T,T}; tol::Real=1e-1
         end
         α = one(T); stepped = false
         while α >= αmin
-            q1, q2 = R - α * dR, Z - α * dZ
+            q1, q2 = clamp(R - α * dR, lo[1], hi[1]), clamp(Z - α * dZ, lo[2], hi[2])
             if isfinite(q1) && isfinite(q2)
                 g1, g2, _, _, _, _ = residual_jacobian(q1, q2)
                 if hypot(g1, g2) < nrm
@@ -214,7 +217,7 @@ a bad seed) it re-seeds along the segment toward the axis and re-solves; failing
 back to `seed` (always an on-surface contour vertex).
 """
 function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,T},
-    extremum_of::Symbol, axis::Tuple{T,T}, xpoints=(); tol::Real=1e-11, maxit::Int=50) where {T<:Real}
+    extremum_of::Symbol, axis::Tuple{T,T}, xpoints=(); tol::Real=1e-11, maxit::Int=50, lo=(-Inf, -Inf), hi=(Inf, Inf)) where {T<:Real}
     d = extremum_of === :R ? 2 : extremum_of === :Z ? 1 :
         throw(ArgumentError("_robust_refine_extremum!: extremum_of must be :R or :Z, got :$extremum_of"))
     e = extremum_of === :R ? 1 : 2
@@ -228,7 +231,7 @@ function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::T
         return true
     end
 
-    p, ok = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), seed; tol, maxit)
+    p, ok = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), seed; tol, maxit, lo, hi)
     (ok && onsurf(p) && confined(p)) && return p
 
     # wrong branch (private/across-X-point) — only reachable from a bad seed. Re-seed along the
@@ -236,7 +239,7 @@ function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::T
     # pulls the Newton back onto the confined branch.
     for f in (T(0.3), T(0.5), T(0.7))
         reseed = (p[1] + f * (axis[1] - p[1]), p[2] + f * (axis[2] - p[2]))
-        q, okq = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), reseed; tol, maxit)
+        q, okq = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), reseed; tol, maxit, lo, hi)
         (okq && onsurf(q) && confined(q)) && return q
     end
     return seed

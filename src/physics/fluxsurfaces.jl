@@ -1316,13 +1316,15 @@ end
         # Newton (`_refine_extremum!`) on the ψ interpolant (analytic ∇ψ/Hessian), sharing one
         # 2×2 Hessian scratch across all calls.
         axis = (RA, ZA)
+        lo = (first(r), first(z))   # ψ grid domain box — the refine search is clamped to it
+        hi = (last(r), last(z))
         H = acquire!(pool, T, 2, 2)
         for k in 2:N   # skip k=1 (artificial on-axis surface); rebuilt below
             s = surfaces[k]
-            (s.max_r, s.z_at_max_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.max_r, s.z_at_max_r), :R, axis, xpoints)
-            (s.min_r, s.z_at_min_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.min_r, s.z_at_min_r), :R, axis, xpoints)
-            (s.r_at_max_z, s.max_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_max_z, s.max_z), :Z, axis, xpoints)
-            (s.r_at_min_z, s.min_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_min_z, s.min_z), :Z, axis, xpoints)
+            (s.max_r, s.z_at_max_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.max_r, s.z_at_max_r), :R, axis, xpoints; lo, hi)
+            (s.min_r, s.z_at_min_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.min_r, s.z_at_min_r), :R, axis, xpoints; lo, hi)
+            (s.r_at_max_z, s.max_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_max_z, s.max_z), :Z, axis, xpoints; lo, hi)
+            (s.r_at_min_z, s.min_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_min_z, s.min_z), :Z, axis, xpoints; lo, hi)
         end
 
         # first flux surface just a scaled down version of the second one (all scalar fields)

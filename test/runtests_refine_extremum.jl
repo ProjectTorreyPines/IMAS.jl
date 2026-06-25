@@ -170,24 +170,60 @@ end
         xpoints = [(xp.r, xp.z) for xp in eqt.boundary.x_point]
         xp_up = eqt.boundary.x_point[argmax(xp.z for xp in eqt.boundary.x_point)]
         dr, dz = step(rr), step(zz)
+        lo = (first(rr), first(zz)); hi = (last(rr), last(zz))   # clamp to ψ grid box (as production does)
         N = length(rough)
         psiN(p) = (itp(p[1], p[2]) - psi_axis) / (pb.last_closed - psi_axis)
         for k in (N, N - 2, N - 5)
             s = rough[k]
             c = psis[k]
-            good_r = IMAS._robust_refine_extremum(itp, c, (s.max_r, s.z_at_max_r), :R, axis, xpoints)
-            good_z = IMAS._robust_refine_extremum(itp, c, (s.r_at_max_z, s.max_z), :Z, axis, xpoints)
+            good_r = IMAS._robust_refine_extremum(itp, c, (s.max_r, s.z_at_max_r), :R, axis, xpoints; lo, hi)
+            good_z = IMAS._robust_refine_extremum(itp, c, (s.r_at_max_z, s.max_z), :Z, axis, xpoints; lo, hi)
             # bad seed A: outside the separatrix (ψ_N>1), far outboard
             outside = (s.max_r + 12dr, s.z_at_max_r)
             @test psiN(outside) > 1
-            rA = IMAS._robust_refine_extremum(itp, c, outside, :R, axis, xpoints)
+            rA = IMAS._robust_refine_extremum(itp, c, outside, :R, axis, xpoints; lo, hi)
             @test isapprox(rA[1], good_r[1]; atol=5dr)
             @test psiN(rA) <= 1 + 1e-6
             # bad seed B: private region (reflect the rough max_z across the upper X-point)
             priv = (2xp_up.r - s.r_at_max_z, 2xp_up.z - s.max_z)
-            rB = IMAS._robust_refine_extremum(itp, c, priv, :Z, axis, xpoints)
+            rB = IMAS._robust_refine_extremum(itp, c, priv, :Z, axis, xpoints; lo, hi)
             @test isapprox(rB[2], good_z[2]; atol=5dz)
             @test rB[2] < xp_up.z
+        end
+    end
+
+    # Hardest case: at ψ_N=0.999 the PRIVATE region across the upper X-point ALSO has a
+    # ψ_N=0.999 point with ∂ψ/∂R=0 — a genuine solution of the SAME {ψ=c, ∂ψ/∂R=0} system.
+    # Seeds at / above the X-point must NOT be trapped there; they must return the confined
+    # max_z below the X-point. (This is the geometry behind the MANTA elongation≈0 failure.)
+    @testset "not trapped in the private lobe at ψ_N=0.999 (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp = IMAS.ψ_interpolant(eqt2d)
+        eqt1d = eqt.profiles_1d
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        axis = (RA, ZA)
+        psi_axis = itp(RA, ZA)
+        pb = IMAS.find_psi_boundary(rr, zz, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, fw.r, fw.z;
+            PSI_interpolant=itp, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+        xpoints = [(xp.r, xp.z) for xp in eqt.boundary.x_point]
+        xp_up = eqt.boundary.x_point[argmax(xp.z for xp in eqt.boundary.x_point)]
+        lo = (first(rr), first(zz)); hi = (last(rr), last(zz))
+        c = psi_axis + 0.999 * (pb.last_closed - psi_axis)   # ψ_N = 0.999, just inside the separatrix
+        psiN(p) = (itp(p[1], p[2]) - psi_axis) / (pb.last_closed - psi_axis)
+        # confined truth: seed just below the upper X-point
+        truth = IMAS._robust_refine_extremum(itp, c, (xp_up.r, xp_up.z - 0.15), :Z, axis, xpoints; lo, hi)
+        @test truth[2] < xp_up.z
+        @test isapprox(psiN(truth), 0.999; atol=2e-3)
+        # seeds AT / ABOVE the upper X-point (in / near the private lobe) must come back confined
+        for sd in ((xp_up.r, xp_up.z + 0.05), (xp_up.r + 0.05, xp_up.z + 0.03),
+                   (xp_up.r - 0.05, xp_up.z + 0.05), (xp_up.r, xp_up.z + 0.25))
+            res = IMAS._robust_refine_extremum(itp, c, sd, :Z, axis, xpoints; lo, hi)
+            @test res[2] < xp_up.z                         # not trapped above the X-point
+            @test isapprox(res[2], truth[2]; atol=1e-4)    # the genuine confined max_z
         end
     end
 end
