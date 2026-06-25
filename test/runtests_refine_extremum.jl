@@ -129,3 +129,65 @@ end
         end
     end
 end
+
+# Production tracing uses _robust_refine_extremum!: from ANY seed on the correct side of the
+# axis (even one outside the separatrix or in the private flux region across an X-point) it must
+# still arrive at the correct CONFINED extremum, never an off-surface / private / SOL point.
+# This is what guards the KDEMO (a_eq<0) and MANTA (elongation≈0 -> sqrt DomainError) failures.
+@testset "_robust_refine_extremum arrives from arbitrary/bad seeds" begin
+    @testset "far correct-side seed (analytic ellipse, no X-point)" begin
+        R0, a0, b0 = 1.7, 0.5, 1.0
+        psi_fun = (R, Z) -> ((R - R0) / a0)^2 + (Z / b0)^2
+        r = range(1.0, 2.4, length=65)
+        z = range(-1.3, 1.3, length=65)
+        itp = IMAS.ψ_interpolant(r, z, [psi_fun(ri, zj) for ri in r, zj in z]).PSI_interpolant
+        L = 0.36; s = sqrt(L)
+        # seed far OUTSIDE the L surface (ψ≈1.5≫L) but on the outboard side -> still finds max_r
+        R, Z = IMAS._robust_refine_extremum(itp, L, (R0 + 0.6, 0.2), :R, (R0, 0.0))
+        @test isapprox(R, R0 + a0 * s; atol=1e-4)
+        @test isapprox(Z, 0.0; atol=1e-4)
+        # seed far above the L surface on the upper side -> still finds max_z
+        R, Z = IMAS._robust_refine_extremum(itp, L, (R0 + 0.1, 1.2), :Z, (R0, 0.0))
+        @test isapprox(R, R0; atol=1e-4)
+        @test isapprox(Z, b0 * s; atol=1e-4)
+    end
+
+    @testset "outside-separatrix and private-region seeds (DIII-D)" begin
+        filename = joinpath(pkgdir(IMAS.IMASdd), "sample", "D3D_eq_ods.json")
+        dd = IMAS.json2imas(filename; show_warnings=false)
+        eqt = dd.equilibrium.time_slice[1]
+        fw = IMAS.first_wall(dd.wall)
+        eqt2d = IMAS.findfirst(:rectangular, eqt.profiles_2d)
+        rr, zz, itp = IMAS.ψ_interpolant(eqt2d)
+        eqt1d = eqt.profiles_1d
+        RA, ZA = eqt.global_quantities.magnetic_axis.r, eqt.global_quantities.magnetic_axis.z
+        axis = (RA, ZA)
+        psi_axis = itp(RA, ZA)
+        pb = IMAS.find_psi_boundary(rr, zz, eqt2d.psi, psi_axis, eqt1d.psi[end], RA, ZA, fw.r, fw.z;
+            PSI_interpolant=itp, raise_error_on_not_open=false, raise_error_on_not_closed=false)
+        psis = (eqt1d.psi .- eqt1d.psi[1]) ./ (eqt1d.psi[end] - eqt1d.psi[1]) .* (pb.last_closed - psi_axis) .+ psi_axis
+        rough = IMAS.trace_surfaces(psis, eqt1d.f, collect(rr), collect(zz), eqt2d.psi, itp, RA, ZA, fw.r, fw.z; refine_extrema=false)
+        xpoints = [(xp.r, xp.z) for xp in eqt.boundary.x_point]
+        xp_up = eqt.boundary.x_point[argmax(xp.z for xp in eqt.boundary.x_point)]
+        dr, dz = step(rr), step(zz)
+        N = length(rough)
+        psiN(p) = (itp(p[1], p[2]) - psi_axis) / (pb.last_closed - psi_axis)
+        for k in (N, N - 2, N - 5)
+            s = rough[k]
+            c = psis[k]
+            good_r = IMAS._robust_refine_extremum(itp, c, (s.max_r, s.z_at_max_r), :R, axis, xpoints)
+            good_z = IMAS._robust_refine_extremum(itp, c, (s.r_at_max_z, s.max_z), :Z, axis, xpoints)
+            # bad seed A: outside the separatrix (ψ_N>1), far outboard
+            outside = (s.max_r + 12dr, s.z_at_max_r)
+            @test psiN(outside) > 1
+            rA = IMAS._robust_refine_extremum(itp, c, outside, :R, axis, xpoints)
+            @test isapprox(rA[1], good_r[1]; atol=5dr)
+            @test psiN(rA) <= 1 + 1e-6
+            # bad seed B: private region (reflect the rough max_z across the upper X-point)
+            priv = (2xp_up.r - s.r_at_max_z, 2xp_up.z - s.max_z)
+            rB = IMAS._robust_refine_extremum(itp, c, priv, :Z, axis, xpoints)
+            @test isapprox(rB[2], good_z[2]; atol=5dz)
+            @test rB[2] < xp_up.z
+        end
+    end
+end

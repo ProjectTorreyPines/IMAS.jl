@@ -247,6 +247,11 @@ _refine_extremum(itp, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol,
     axis::Tuple{T,T}; kw...) where {T<:Real} =
     _refine_extremum!(Matrix{T}(undef, 2, 2), itp, target_psi, seed, extremum_of, axis; kw...)
 
+# convenience wrapper for the robust refine (allocates the 2×2 scratch; one-off calls / tests)
+_robust_refine_extremum(itp, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol,
+    axis::Tuple{T,T}, xpoints=(); kw...) where {T<:Real} =
+    _robust_refine_extremum!(Matrix{T}(undef, 2, 2), itp, target_psi, seed, extremum_of, axis, xpoints; kw...)
+
 """
     _project_to_level(itp::FI.AbstractInterpolant, c::T, x::Tuple{T,T}; tol::Real=1e-10, maxit::Int=8) where {T<:Real}
 
