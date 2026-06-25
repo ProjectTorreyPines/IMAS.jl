@@ -1203,7 +1203,8 @@ function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVe
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
-    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema)
+    xpoints = [(xp.r, xp.z) for xp in eqt.boundary.x_point]
+    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema, xpoints)
 end
 
 """
@@ -1232,7 +1233,8 @@ end
     ZA::T,
     wall_r::AbstractVector{T},
     wall_z::AbstractVector{T};
-    refine_extrema::Bool=true
+    refine_extrema::Bool=true,
+    xpoints=()
 ) where {T<:Real}
 
     N = length(psi)
@@ -1317,10 +1319,10 @@ end
         H = acquire!(pool, T, 2, 2)
         for k in 2:N   # skip k=1 (artificial on-axis surface); rebuilt below
             s = surfaces[k]
-            (s.max_r, s.z_at_max_r) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.max_r, s.z_at_max_r), :R, axis)
-            (s.min_r, s.z_at_min_r) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.min_r, s.z_at_min_r), :R, axis)
-            (s.r_at_max_z, s.max_z) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_max_z, s.max_z), :Z, axis)
-            (s.r_at_min_z, s.min_z) = _refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_min_z, s.min_z), :Z, axis)
+            (s.max_r, s.z_at_max_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.max_r, s.z_at_max_r), :R, axis, xpoints)
+            (s.min_r, s.z_at_min_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.min_r, s.z_at_min_r), :R, axis, xpoints)
+            (s.r_at_max_z, s.max_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_max_z, s.max_z), :Z, axis, xpoints)
+            (s.r_at_min_z, s.min_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_min_z, s.min_z), :Z, axis, xpoints)
         end
 
         # first flux surface just a scaled down version of the second one (all scalar fields)
@@ -1456,7 +1458,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     end
 
     # trace flux surfaces
-    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z;refine_extrema=true)
+    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema=true, xpoints=[(xp.r, xp.z) for xp in eqt.boundary.x_point])
 
     # calculate flux surface averaged and geometric quantities
     N = length(eqt1d.psi)

@@ -135,12 +135,110 @@ function _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,
     point, recovered = _newton2d(_extremum_residual!(H, itp, target_psi, daxis), mir;
         reference=crit, factor, tol, maxit)
 
-    # accept only a genuine extremum; else fall back to the original `seed` (the rough
-    # contour extremum). The mirror point `mir` is reflected across the critical point and
-    # is NOT on the flux surface (ψ(mir) ≠ target_psi); when the critical-point Newton
-    # diverges it lands far off-grid, corrupting max_r/min_r. `seed` is always a genuine
-    # on-surface point, so refinement can never do worse than refine_extrema=false.
+    # accept only a genuine extremum; else fall back to the mirror point (already a
+    # confined-side estimate of the extremum).
+    # NOTE: kept as-is for A/B comparison only — this pure-Newton + mirror path is FRAGILE
+    # (KDEMO: genuineness false-rejects a correct outboard point due to a grid-edge ψ_ZZ
+    # artifact, then the critical-point Newton diverges and `mir` lands off-grid). Production
+    # tracing uses the robust [`_robust_refine_extremum!`](@ref) instead.
     (recovered && is_genuine(point)) && return point
+    return mir
+end
+
+"""
+    _damped_newton2d(residual_jacobian, seed; tol=1e-11, maxit=50, αmin=1e-3)
+
+Globalized 2×2 Newton: same residual/Jacobian contract as [`_newton2d`](@ref), but with a
+backtracking line search on `‖F‖` and a gradient-descent fallback when the Jacobian is
+near-singular. This makes it robust where pure Newton diverges — e.g. near the separatrix,
+where `det(J) = ψ_R·ψ_ZZ → 0` (small poloidal curvature) blows up the plain Newton step.
+Returns `((R, Z), converged::Bool)`.
+"""
+function _damped_newton2d(residual_jacobian::F, seed::Tuple{T,T}; tol::Real=1e-11, maxit::Int=50, αmin::Real=1e-3) where {F,T<:Real}
+    R, Z = seed
+    F1, F2, J11, J12, J21, J22 = residual_jacobian(R, Z)
+    nrm = hypot(F1, F2)
+    for _ in 1:maxit
+        nrm <= tol && return ((R, Z), true)
+        det = J11 * J22 - J12 * J21
+        if isfinite(det) && abs(det) > 1e-13
+            dR = (J22 * F1 - J12 * F2) / det
+            dZ = (J11 * F2 - J21 * F1) / det
+        else  # near-singular J: descend 0.5‖F‖² along Jᵀ F with a small normalized step
+            dR = J11 * F1 + J21 * F2
+            dZ = J12 * F1 + J22 * F2
+            s = hypot(dR, dZ)
+            s > 0 && (dR /= s; dZ /= s)
+            dR *= T(1e-2); dZ *= T(1e-2)
+        end
+        α = one(T); stepped = false
+        while α >= αmin
+            q1, q2 = R - α * dR, Z - α * dZ
+            if isfinite(q1) && isfinite(q2)
+                g1, g2, _, _, _, _ = residual_jacobian(q1, q2)
+                if hypot(g1, g2) < nrm
+                    R, Z = q1, q2
+                    F1, F2, J11, J12, J21, J22 = residual_jacobian(R, Z)
+                    nrm = hypot(F1, F2)
+                    stepped = true
+                    break
+                end
+            end
+            α /= 2
+        end
+        stepped || return ((R, Z), nrm <= tol)
+    end
+    return ((R, Z), nrm <= tol)
+end
+
+"""
+    _robust_refine_extremum!(H, itp, target_psi, seed, extremum_of, axis; tol=1e-11, maxit=50)
+
+Robust replacement for [`_refine_extremum!`](@ref). Solves the same extremum system
+`{ψ = target_psi, ∂ψ/∂n = 0}` from `seed` with a globalized [`_damped_newton2d`](@ref)
+(no divergence near the separatrix), then validates the result by *physical region* — cheaply,
+using the precomputed critical points (`axis` = O-point, plus `xpoints` = X-points) as
+references, with NO per-call critical-point search:
+
+  1. **axis-relative direction** — the extremized coordinate must be on the same side of the
+     magnetic `axis` as the seed (kills the opposite O-point solution);
+  2. **confined side of every X-point** — `(p−xp)·(axis−xp) > 0` for each `xp ∈ xpoints`
+     (kills the private-flux-region / across-X-point solution). On-surface already excludes the
+     SOL (ψ_N>1), so the only ambiguity left is confined-surface vs private-region, which an
+     X-point dot test settles. Generic: `xpoints` empty (limited plasma → no private region)
+     reduces to the direction check; one or two X-points (single/double null) just loop.
+
+`xpoints` is a collection of `(R, Z)` (e.g. from `eqt.boundary.x_point`). If the solution is
+on-surface and confined it is accepted; otherwise (a private/wrong branch, only reachable from
+a bad seed) it re-seeds along the segment toward the axis and re-solves; failing that, falls
+back to `seed` (always an on-surface contour vertex).
+"""
+function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,T},
+    extremum_of::Symbol, axis::Tuple{T,T}, xpoints=(); tol::Real=1e-11, maxit::Int=50) where {T<:Real}
+    d = extremum_of === :R ? 2 : extremum_of === :Z ? 1 :
+        throw(ArgumentError("_robust_refine_extremum!: extremum_of must be :R or :Z, got :$extremum_of"))
+    e = extremum_of === :R ? 1 : 2
+    want_max = seed[e] > axis[e]
+    onsurf(q) = abs(itp(q[1], q[2]) - target_psi) < 1e-7
+    function confined(q::Tuple{T,T})
+        ((q[e] > axis[e]) == want_max) || return false                       # (1) axis-relative direction
+        for xp in xpoints                                                    # (2) confined side of every X-point
+            (q[1] - xp[1]) * (axis[1] - xp[1]) + (q[2] - xp[2]) * (axis[2] - xp[2]) > 0 || return false
+        end
+        return true
+    end
+
+    p, ok = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), seed; tol, maxit)
+    (ok && onsurf(p) && confined(p)) && return p
+
+    # wrong branch (private/across-X-point) — only reachable from a bad seed. Re-seed along the
+    # segment from `p` toward the magnetic `axis` (always confined) and re-solve: the axis anchor
+    # pulls the Newton back onto the confined branch.
+    for f in (T(0.3), T(0.5), T(0.7))
+        reseed = (p[1] + f * (axis[1] - p[1]), p[2] + f * (axis[2] - p[2]))
+        q, okq = _damped_newton2d(_extremum_residual!(H, itp, target_psi, d), reseed; tol, maxit)
+        (okq && onsurf(q) && confined(q)) && return q
+    end
     return seed
 end
 
