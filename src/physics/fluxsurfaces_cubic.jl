@@ -222,22 +222,6 @@ function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::T
         throw(ArgumentError("_robust_refine_extremum!: extremum_of must be :R or :Z, got :$extremum_of"))
     e = extremum_of === :R ? 1 : 2
     want_max = seed[e] > axis[e]
-    # For a Z-extremum, tighten the search box in Z to the confined side of the relevant X-point:
-    # the iterate then physically cannot cross into the private flux region above/below it, so the
-    # private-lobe solution is unreachable by construction. (R-extrema keep the grid box — the
-    # top/bottom X-points sit near R≈R_axis and would wrongly clip the outboard/inboard extremum.)
-    if extremum_of === :Z
-        lo, hi = let l = lo[2], h = hi[2]
-            for xp in xpoints
-                if want_max
-                    xp[2] > axis[2] && (h = min(h, xp[2]))
-                else
-                    xp[2] < axis[2] && (l = max(l, xp[2]))
-                end
-            end
-            ((lo[1], l), (hi[1], h))
-        end
-    end
     onsurf(q) = abs(itp(q[1], q[2]) - target_psi) < 1e-7
     function confined(q::Tuple{T,T})
         ((q[e] > axis[e]) == want_max) || return false                       # (1) axis-relative direction
