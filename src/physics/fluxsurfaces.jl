@@ -1312,9 +1312,9 @@ end
     end
 
     if refine_extrema
-        # Refine the four geometric extrema (max_r/min_r/max_z/min_z) with an X-point-aware 2-D
-        # Newton (`_refine_extremum!`) on the ψ interpolant (analytic ∇ψ/Hessian), sharing one
-        # 2×2 Hessian scratch across all calls.
+        # Refine the four geometric extrema (max_r/min_r/max_z/min_z) with a globalized X-point-aware
+        # 2-D Newton (`_robust_refine_extremum!`) on the ψ interpolant (analytic ∇ψ/Hessian), sharing
+        # one 2×2 Hessian scratch across all calls.
         axis = (RA, ZA)
         lo = (first(r), first(z))   # ψ grid domain box — the refine search is clamped to it
         hi = (last(r), last(z))

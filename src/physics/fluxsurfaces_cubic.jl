@@ -8,60 +8,22 @@
 # (max_r/min_r/max_z/min_z). Intended to also host a general cubic-interpolant-
 # based flux-surface tracer. All helpers here are private (no public API yet).
 
-"""
-    _newton2d(residual_jacobian::F, seed::Tuple{T,T}; reference::Union{Nothing,Tuple{T,T}}=nothing,
-              factor::Real=0.9, tol::Real=1e-10, maxit::Int=30) where {F,T<:Real}
-
-Generic damped 2×2 Newton solver for `F(R,Z) = 0`. `residual_jacobian(R, Z)` returns
-`(F1, F2, J11, J12, J21, J22)` — the residual and its 2×2 Jacobian at `(R, Z)`. Passing
-the condition in lets the same solver find a flux-surface extremum (via
-[`_extremum_residual!`](@ref)) or a critical point of ψ (via [`_critical_residual!`](@ref)).
-
-If `reference` is given, each step's displacement is capped below `factor ×` the distance
-to it, so the iterate cannot cross over that point (used to stay on one side of an
-X-point). Returns `((R, Z), converged::Bool)`.
-"""
-function _newton2d(residual_jacobian::F, seed::Tuple{T,T}; reference::Union{Nothing,Tuple{T,T}}=nothing,
-    factor::Real=0.9, tol::Real=1e-10, maxit::Int=30) where {F,T<:Real}
-    R, Z = seed
-    for _ in 1:maxit
-        F1, F2, J11, J12, J21, J22 = residual_jacobian(R, Z)
-        (abs(F1) <= tol && abs(F2) <= tol) && return ((R, Z), true)
-        det = J11 * J22 - J12 * J21
-        (isfinite(det) && abs(det) > eps(T)) || return ((R, Z), false)  # degenerate Jacobian
-        dR = (J22 * F1 - J12 * F2) / det
-        dZ = (J11 * F2 - J21 * F1) / det
-        if reference !== nothing
-            maxd = factor * hypot(R - reference[1], Z - reference[2])
-            st = hypot(dR, dZ)
-            st > maxd && (dR *= maxd / st; dZ *= maxd / st)
-        end
-        R -= dR
-        Z -= dZ
-        (isfinite(R) && isfinite(Z)) || return ((R, Z), false)
-    end
-    return ((R, Z), false)
-end
-
-# residual + 2×2 Jacobian for the extremum system {ψ = target_psi, ∂ψ/∂(daxis) = 0}
-# (daxis = 2 -> ∂ψ/∂Z = 0 for R-extrema; daxis = 1 -> ∂ψ/∂R = 0 for Z-extrema).
-# Writes its 2×2 Jacobian into the caller-owned scratch `H` each call via the backend-dispatched
-# `_value_gradient`/`_hessian!` helpers. `!` + dest-first `H` per the Julia mutating convention.
-_extremum_residual!(H::AbstractMatrix, itp, target_psi::Real, daxis::Int) =
-    (R, Z) -> begin
-        val, g = _value_gradient(itp, R, Z)
-        _hessian!(H, itp, R, Z)
-        return (val - target_psi, g[daxis], g[1], g[2], H[daxis, 1], H[daxis, 2])
-    end
-
-# residual + 2×2 Jacobian for the critical-point system ∇ψ = 0 (Jacobian = Hessian).
-# Writes into the caller-owned scratch `H` (see [`_extremum_residual!`](@ref)).
-_critical_residual!(H::AbstractMatrix, itp) =
-    (R, Z) -> begin
+# Split form of the critical-point system ∇ψ = 0 (Jacobian = Hessian) for the globalized
+# [`_damped_newton2d`](@ref): `residual` returns the residual (∇ψ) and the first Hessian row,
+# `hessrow` the second — same contract as [`_extremum_eqs`](@ref), so the one safe solver serves
+# both systems. (Critical-point finding is rare, so the probe recomputing the Hessian is not hot.)
+function _critical_eqs(H::AbstractMatrix, itp)
+    residual(R, Z) = begin
         g = _gradient(itp, R, Z)
         _hessian!(H, itp, R, Z)
-        return (g[1], g[2], H[1, 1], H[1, 2], H[2, 1], H[2, 2])
+        return (g[1], g[2], H[1, 1], H[1, 2])
     end
+    hessrow(R, Z) = begin
+        _hessian!(H, itp, R, Z)
+        return (H[2, 1], H[2, 2])
+    end
+    return (; residual, hessrow)
+end
 
 # Split form of the extremum system for the globalized [`_damped_newton2d`](@ref): `residual`
 # (one `value_gradient`) returns the residual and the ψ=target Jacobian row (∇ψ, free from the
@@ -78,88 +40,6 @@ function _extremum_eqs(H::AbstractMatrix, itp, target_psi::Real, daxis::Int)
         return (H[daxis, 1], H[daxis, 2])
     end
     return (; residual, hessrow)
-end
-
-"""
-    _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,T},
-                      extremum_of::Symbol, axis::Tuple{T,T};
-                      factor::Real=0.9, tol::Real=1e-10, maxit::Int=30) where {T<:Real}
-    _refine_extremum(itp, target_psi, seed, extremum_of, axis; kw...)
-
-Refine a flux-surface geometric extremum from a rough `seed = (R, Z)`, using the analytic
-gradient and Hessian of the ψ interpolant `itp` — backend-agnostic via the `_gradient`/`_hessian!`
-helpers (FastInterpolations built in; other backends, e.g. Interpolations.jl, via package extensions).
-
-`H` is a caller-owned 2×2 scratch matrix reused by every internal Newton solve (in-place
-`hessian!`, so no per-call heap matrix); a batch caller allocates one `H` and threads it
-through all of its `_refine_extremum!` calls. The non-bang [`_refine_extremum`](@ref) is the
-convenience entry point that allocates a fresh `H` and delegates here — use it for one-off calls.
-
-`extremum_of = :R` finds an extremum of `R` (`max_r`/`min_r`) by enforcing `∂ψ/∂Z = 0`;
-`extremum_of = :Z` finds an extremum of `Z` (`max_z`/`min_z`) by enforcing `∂ψ/∂R = 0`.
-The seed selects which root (e.g. outboard vs inboard) is found, since both satisfy the
-same 2×2 system `{ψ(R,Z) = target_psi, ∂ψ/∂n(R,Z) = 0}`.
-
-Fast path: a plain Newton ([`_newton2d`](@ref)) on that system. Near an X-point the system
-has two solutions and the plain Newton can converge to the wrong one (e.g. above the
-X-point, outside the confined region). The candidate is therefore validated by the sign of
-the constrained curvature of the extremized coordinate (`< 0` at a maximum, `> 0` at a
-minimum); whether a max or min is sought is inferred from the candidate relative to the
-magnetic `axis`. When the candidate is the wrong branch, the genuine extremum is recovered:
-
- 1. find the nearby critical point of ψ (`∇ψ = 0`, an X-point saddle or the O-point) with
-    [`_newton2d`](@ref) + [`_critical_residual!`](@ref), seeded at the candidate;
- 2. mirror the candidate across that critical point, back into the confined region;
- 3. re-solve the extremum system with [`_newton2d`](@ref) using that critical point as the
-    `reference`, so the bounded step cannot cross back over it.
-
-Returns the genuine `(R, Z)`. Degenerate fallbacks: `seed` if the fast-path Newton cannot
-converge (e.g. a degenerate Jacobian seeded at the magnetic axis); the candidate if no
-critical point is found; the mirror point if the bounded re-solve does not land on a
-genuine extremum (already a confined-side estimate).
-"""
-function _refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::Tuple{T,T},
-    extremum_of::Symbol, axis::Tuple{T,T};
-    factor::Real=0.9, tol::Real=1e-10, maxit::Int=30) where {T<:Real}
-    daxis = extremum_of === :R ? 2 : extremum_of === :Z ? 1 :
-            throw(ArgumentError("_refine_extremum!: extremum_of must be :R or :Z, got :$extremum_of"))
-    eaxis = extremum_of === :R ? 1 : 2
-
-    # fast path: plain Newton on {ψ = target_psi, ∂ψ/∂n = 0}
-    candidate, converged = _newton2d(_extremum_residual!(H, itp, target_psi, daxis), seed; tol, maxit)
-    converged || return seed   # degenerate Jacobian / no convergence -> give up
-
-    # genuineness test: sign of the constrained curvature of the extremized coordinate
-    # (genuine maximum has -ψ_dd/ψ_e < 0, minimum > 0); want_max inferred vs the axis
-    want_max = candidate[eaxis] > axis[eaxis]
-    function is_genuine(p::Tuple{T,T})
-        g = _gradient(itp, p[1], p[2])
-        _hessian!(H, itp, p[1], p[2])
-        curv = -H[daxis, daxis] / g[eaxis]
-        return want_max ? curv < zero(T) : curv > zero(T)
-    end
-    is_genuine(candidate) && return candidate   # fast path already genuine
-
-    # wrong branch near an X-point -> recover the genuine extremum
-    # 1. nearby critical point of ψ (X-point saddle or O-point) via ∇ψ = 0
-    crit, cok = _newton2d(_critical_residual!(H, itp), candidate; tol, maxit)
-    cok || return candidate
-
-    # 2. mirror the wrong root across the critical point (back into the confined region)
-    mir = (2crit[1] - candidate[1], 2crit[2] - candidate[2])
-
-    # 3. bounded Newton from the mirror seed, capped so it cannot cross back over the X-point
-    point, recovered = _newton2d(_extremum_residual!(H, itp, target_psi, daxis), mir;
-        reference=crit, factor, tol, maxit)
-
-    # accept only a genuine extremum; else fall back to the mirror point (already a
-    # confined-side estimate of the extremum).
-    # NOTE: kept as-is for A/B comparison only — this pure-Newton + mirror path is FRAGILE
-    # (KDEMO: genuineness false-rejects a correct outboard point due to a grid-edge ψ_ZZ
-    # artifact, then the critical-point Newton diverges and `mir` lands off-grid). Production
-    # tracing uses the robust [`_robust_refine_extremum!`](@ref) instead.
-    (recovered && is_genuine(point)) && return point
-    return mir
 end
 
 """
@@ -223,7 +103,7 @@ end
 """
     _robust_refine_extremum!(H, itp, target_psi, seed, extremum_of, axis; tol=1e-11, maxit=50)
 
-Robust replacement for [`_refine_extremum!`](@ref). Solves the same extremum system
+X-point-aware refinement of a flux-surface geometric extremum. Solves the extremum system
 `{ψ = target_psi, ∂ψ/∂n = 0}` from `seed` with a globalized [`_damped_newton2d`](@ref)
 (no divergence near the separatrix), then validates the result by *physical region* — cheaply,
 using the precomputed critical points (`axis` = O-point, plus `xpoints` = X-points) as
@@ -271,11 +151,6 @@ function _robust_refine_extremum!(H::AbstractMatrix, itp, target_psi::T, seed::T
     end
     return seed
 end
-
-# convenience wrapper: allocate the 2×2 Hessian scratch once and delegate to the in-place workhorse
-_refine_extremum(itp, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol,
-    axis::Tuple{T,T}; kw...) where {T<:Real} =
-    _refine_extremum!(Matrix{T}(undef, 2, 2), itp, target_psi, seed, extremum_of, axis; kw...)
 
 # convenience wrapper for the robust refine (allocates the 2×2 scratch; one-off calls / tests)
 _robust_refine_extremum(itp, target_psi::T, seed::Tuple{T,T}, extremum_of::Symbol,
@@ -609,15 +484,17 @@ with [`trace_surface_cubic`](@ref) and populate a `FluxSurface` by reusing the e
 field-eval helpers (`arc_length`, `Br_Bz`, `trapz`, `fluxsurface_extrema`). The innermost
 (k=1) surface is the usual artificial scaled-down copy of the second. When `refine_extrema`,
 the four geometric extrema (`max_r`/`min_r`/`max_z`/`min_z`) of each real surface are refined
-with [`_refine_extremum`](@ref) (X-point-aware Newton on the interpolant) — the cubic analogue
-of the `refine_extrema` step in [`trace_surfaces`](@ref). Standalone.
+with [`_robust_refine_extremum!`](@ref) (globalized X-point-aware Newton on the interpolant) —
+the cubic analogue of the `refine_extrema` step in [`trace_surfaces`](@ref). Standalone.
 """
 function trace_surfaces_cubic(psis::AbstractVector{T}, f::AbstractVector{T}, RA::T, ZA::T,
     R_max::T, itp::FI.AbstractInterpolant; refine_extrema::Bool=false, npoints::Int=361, kw...) where {T<:Real}
     N = length(psis)
     surfaces = Vector{FluxSurface{T}}(undef, N)
     axis = (RA, ZA)
-    H = Matrix{T}(undef, 2, 2)   # one 2×2 Hessian scratch shared by every _refine_extremum! call
+    lo = (first(itp.grids[1]), first(itp.grids[2]))   # ψ grid domain box — clamp the refine search
+    hi = (last(itp.grids[1]), last(itp.grids[2]))
+    H = Matrix{T}(undef, 2, 2)   # one 2×2 Hessian scratch shared by every _robust_refine_extremum! call
     for k in N:-1:1
         if k == 1
             pr = (surfaces[2].r .- RA) ./ 100 .+ RA
@@ -646,11 +523,11 @@ function trace_surfaces_cubic(psis::AbstractVector{T}, f::AbstractVector{T}, RA:
             fluxsurface_extrema(pr, pz)
         s = FluxSurface(psis[k], pr, pz, r_at_max_z, max_z, r_at_min_z, min_z,
             z_at_max_r, max_r, z_at_min_r, min_r, Br, Bz, Bp, Btot, ll, fluxexpansion, int_fluxexpansion_dl)
-        if refine_extrema && k != 1   # X-point-aware Newton refinement of the 4 geometric extrema (cubic analogue of trace_surfaces' refine_extrema)
-            (s.max_r, s.z_at_max_r) = _refine_extremum!(H, itp, psis[k], (s.max_r, s.z_at_max_r), :R, axis)
-            (s.min_r, s.z_at_min_r) = _refine_extremum!(H, itp, psis[k], (s.min_r, s.z_at_min_r), :R, axis)
-            (s.r_at_max_z, s.max_z) = _refine_extremum!(H, itp, psis[k], (s.r_at_max_z, s.max_z), :Z, axis)
-            (s.r_at_min_z, s.min_z) = _refine_extremum!(H, itp, psis[k], (s.r_at_min_z, s.min_z), :Z, axis)
+        if refine_extrema && k != 1   # globalized X-point-aware refinement of the 4 geometric extrema (cubic analogue of trace_surfaces' refine_extrema)
+            (s.max_r, s.z_at_max_r) = _robust_refine_extremum!(H, itp, psis[k], (s.max_r, s.z_at_max_r), :R, axis; lo, hi)
+            (s.min_r, s.z_at_min_r) = _robust_refine_extremum!(H, itp, psis[k], (s.min_r, s.z_at_min_r), :R, axis; lo, hi)
+            (s.r_at_max_z, s.max_z) = _robust_refine_extremum!(H, itp, psis[k], (s.r_at_max_z, s.max_z), :Z, axis; lo, hi)
+            (s.r_at_min_z, s.min_z) = _robust_refine_extremum!(H, itp, psis[k], (s.r_at_min_z, s.min_z), :Z, axis; lo, hi)
         end
         surfaces[k] = s
     end
@@ -660,13 +537,15 @@ end
 """
     _find_xpoint(itp::FI.AbstractInterpolant, seed::Tuple{T,T}; tol=1e-10, maxit=50) where {T<:Real}
 
-Locate a critical point of ψ (`∇ψ=0`) by 2-D Newton ([`_newton2d`](@ref) + [`_critical_residual!`](@ref))
-from `seed`, and classify it by the Hessian determinant: `:saddle` (X-point, `det H < 0`) or
-`:extremum` (O-point/axis, `det H > 0`). Returns `(point, kind::Symbol, converged::Bool)`.
+Locate a critical point of ψ (`∇ψ=0`) by globalized 2-D Newton ([`_damped_newton2d`](@ref) +
+[`_critical_eqs`](@ref)) from `seed`, and classify it by the Hessian determinant: `:saddle`
+(X-point, `det H < 0`) or `:extremum` (O-point/axis, `det H > 0`). Returns
+`(point, kind::Symbol, converged::Bool)`. Unclamped (no grid box) so an out-of-domain seed that
+converges outside the grid is rejected by the domain guard below.
 """
 function _find_xpoint(itp::FI.AbstractInterpolant, seed::Tuple{T,T}; tol::Real=1e-10, maxit::Int=50) where {T<:Real}
     H = Matrix{T}(undef, 2, 2)   # 2×2 Hessian scratch (Newton residual + saddle/extremum classification)
-    pt, ok = _newton2d(_critical_residual!(H, itp), seed; tol, maxit)
+    pt, ok = _damped_newton2d(_critical_eqs(H, itp), seed; tol, maxit)
     ok || return (pt, :none, false)
     g1, g2 = itp.grids[1], itp.grids[2]                       # interpolant grid extents
     (first(g1) <= pt[1] <= last(g1) && first(g2) <= pt[2] <= last(g2)) || return (pt, :none, false)
