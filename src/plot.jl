@@ -885,6 +885,82 @@ end
     end
 end
 
+#= ========== =#
+#  mhd_linear  #
+#= ========== =#
+"""
+    plot(ml::IMAS.mhd_linear; mode_index=1, time_index=nothing, component=:perpendicular, part=:real)
+
+Plot a linear-MHD displacement eigenmode (e.g. as stored by FUSE's `ActorMars`): a poloidal
+cross-section of the displacement in real R,Z space. Use as `plot(dd.mhd_linear)`.
+
+The displacement is stored as Fourier harmonics `ξₘ(s)` on the `(s, m)` grid, while the
+flux-surface geometry `R(s,χ)`, `Z(s,χ)` lives on the `(s, χ)` grid. This reconstructs
+`ξ(s,χ) = Σₘ ξₘ(s)·e^{imχ}` onto the `χ` grid so it can be drawn on the geometry.
+
+Keyword arguments:
+- `mode_index`  : which `toroidal_mode` to plot (default 1)
+- `time_index`  : `time_slice` index; `nothing` uses the global-time slice
+- `component`   : `:perpendicular` (ξ·∇s) or `:parallel`
+- `part`        : `:real` (φ=t=0 snapshot), `:imag`, or `:abs` (amplitude)
+"""
+@recipe function plot_mhd_linear(ml::IMAS.mhd_linear; mode_index=1, time_index=nothing,
+                                 component=:perpendicular, part=:real)
+    id = recipe_dispatch(ml)
+    assert_type_and_record_argument(id, Int, "Index of the toroidal_mode to plot"; mode_index)
+    assert_type_and_record_argument(id, Union{Nothing,Int}, "time_slice index (nothing = global time)"; time_index)
+    assert_type_and_record_argument(id, Symbol, "Displacement component (:perpendicular or :parallel)"; component)
+    assert_type_and_record_argument(id, Symbol, "Part to plot (:real, :imag, :abs)"; part)
+
+    ts = time_index === nothing ? ml.time_slice[] : ml.time_slice[time_index]
+    mode = ts.toroidal_mode[mode_index]
+    pl = mode.plasma
+    @assert !ismissing(pl.coordinate_system, :r) "No R,Z mode-structure geometry stored in mhd_linear"
+
+    # displacement harmonics ξₘ(s) on (s, m)
+    disp = component === :perpendicular ? pl.displacement_perpendicular :
+           component === :parallel ? pl.displacement_parallel :
+           error("component must be :perpendicular or :parallel, got :$component")
+    ξm = disp.real .+ im .* disp.imaginary           # [Ns × Nm]
+    m = pl.grid.dim2                                  # poloidal mode numbers
+
+    # real-space geometry on (s, χ)
+    χ = pl.coordinate_system.grid.dim2
+    R = pl.coordinate_system.r
+    Z = pl.coordinate_system.z
+
+    # inverse Fourier transform (s, m) → (s, χ); now on the same grid as R, Z
+    ξ = ξm * exp.(im .* (m * χ'))                     # [Ns × Nχ]
+    field = part === :real ? real.(ξ) : part === :imag ? imag.(ξ) : part === :abs ? abs.(ξ) :
+            error("part must be :real, :imag or :abs, got :$part")
+
+    aspect_ratio --> :equal
+    xguide --> "R [m]"
+    yguide --> "Z [m]"
+    title --> "ξ$(component === :parallel ? "∥" : "⊥") ($(part)), n=$(mode.n_tor)"
+
+    # displacement on the poloidal cross-section
+    @series begin
+        seriestype := :scatter
+        marker_z := vec(field)
+        markershape := :square
+        markersize --> 2
+        markerstrokewidth := 0
+        c --> :RdBu
+        label := ""
+        vec(R), vec(Z)
+    end
+
+    # plasma boundary (outermost flux surface)
+    @series begin
+        seriestype := :path
+        linecolor := :black
+        linewidth --> 1
+        label := ""
+        R[end, :], Z[end, :]
+    end
+end
+
 #= ========= =#
 #  divertors  #
 #= ========= =#
@@ -1591,6 +1667,12 @@ end
 #= ============ =#
 #  core_sources  #
 #= ============ =#
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:energy})
+    @series begin
+        parent(cs1de), Val(:electrons__energy)
+    end
+end
+
 @recipe function plot_source1d(
     cs1d::IMAS.core_sources__source___profiles_1d, v::Val{:electrons__energy}, plot_extrema::PlotExtrema=PlotExtrema(cs1d);
     name="",
@@ -1618,12 +1700,16 @@ end
     name, identifier, idx = source_name_identifier(source, name, show_source_number)
 
     tot = 0.0
+    abstot = 0.0
     if !ismissing(cs1de, :energy)
         tot = trapz(cs1d.grid.volume, cs1de.energy)
+        # Use sum of absolute values to include net-zero sources (e.g., sawteeth)
+        abstot = trapz(cs1d.grid.volume, (k, xx) -> abs(cs1de.energy[k]))
     end
+
     show_condition =
         show_zeros || identifier in [:total, :collisional_equipartition, :time_derivative] ||
-        (abs(tot) > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
+        (abstot > min_power && (only_positive_negative == 0 || sign(tot) == sign(only_positive_negative)))
     @series begin
         if identifier == :collisional_equipartition
             linestyle --> :dash
@@ -1719,6 +1805,12 @@ end
             label := ""
             [NaN], [NaN]
         end
+    end
+end
+
+@recipe function plot_source1d(cs1de::IMAS.core_sources__source___profiles_1d___electrons, v::Val{:particles})
+    @series begin
+        parent(cs1de), Val(:electrons__particles)
     end
 end
 
@@ -3579,6 +3671,70 @@ end
         time_averaging := time_averaging
         normalization := normalization
         cer, Val(what)
+    end
+end
+
+#= =============== =#
+#  charge_exchange  #
+#= =============== =#
+@recipe function plot_magnetics(mag::IMAS.magnetics)
+
+    @series begin
+        label --> "Flux loops"
+        mag.flux_loop
+    end
+
+    @series begin
+        label --> "Magnetic probes"
+        mag.b_field_pol_probe
+    end
+end
+
+
+@recipe function plot_magnetics(loops::IMAS.IDSvector{<:IMAS.magnetics__flux_loop})
+    for (k, loop) in enumerate(loops)
+        @series begin
+            primary := k == 1
+            seriestype := :scatter
+            loop
+        end
+    end
+end
+
+@recipe function plot_magnetics(loop::IMAS.magnetics__flux_loop; loops_names=false)
+    id = recipe_dispatch(loop)
+    assert_type_and_record_argument(id, Bool, "Flux loops names"; loops_names)
+    @series begin
+        seriestype := :scatter
+        if loops_names
+            series_annotations := [(loop.name, :center, :middle, :red, 6)]
+        end
+        label --> loop.name
+        [pos.r for pos in loop.position], [pos.z for pos in loop.position]
+    end
+end
+
+@recipe function plot_magnetics(probes::IMAS.IDSvector{<:IMAS.magnetics__b_field_pol_probe})
+    for (k, probe) in enumerate(probes)
+        @series begin
+            primary := k == 1
+            seriestype := :scatter
+            probe
+        end
+    end
+end
+
+@recipe function plot_magnetics(probe::IMAS.magnetics__b_field_pol_probe; probes_names=false)
+    id = recipe_dispatch(probe)
+    assert_type_and_record_argument(id, Bool, "Magnetic probes names"; probes_names)
+    @series begin
+        seriestype := :scatter
+        marker := :square
+        if probes_names
+            series_annotations := [(probe.name, :center, :middle, :red, 6)]
+        end
+        label --> probe.name
+        [probe.position.r], [probe.position.z]
     end
 end
 

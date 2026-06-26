@@ -240,6 +240,13 @@ function fusion_reaction_source(
     ion.particles = reactivity
     ion.fast_particles_energy = eV
 
+    if out == :He4
+        k += 1
+        ion = resize!(s1d.ion, k)[k]
+        ion_element!(ion, out; fast=false)
+        ion.particles = reactivity
+    end
+
     return nothing
 end
 
@@ -501,9 +508,11 @@ function fusion_power(cp1d::IMAS.core_profiles__profiles_1d{T}; DD_fusion::Bool=
 end
 
 """
-    fusion_power(dd::IMAS.dd; DD_fusion::Bool=false)
+    fusion_power(dd::IMAS.DD; time0::Float64=dd.global_time, DD_fusion::Bool=false)
+
+Calculates the total fusion power [W] at `time0` from `dd.core_profiles`.
 """
-function fusion_power(dd::IMAS.dd; time0::Float64=dd.global_time, DD_fusion::Bool=false)
+function fusion_power(dd::IMAS.DD; time0::Float64=dd.global_time, DD_fusion::Bool=false)
     return fusion_power(dd.core_profiles.profiles_1d[time0]; DD_fusion)
 end
 
@@ -511,11 +520,11 @@ end
 push!(document[Symbol("Physics nuclear")], :fusion_power)
 
 """
-    fusion_energy(dd::IMAS.dd{T}; DD_fusion::Bool=false) where {T<:Real}
+    fusion_energy(dd::IMAS.DD{T}; DD_fusion::Bool=false) where {T<:Real}
 
 Fusion energy in [J]: fusion power integrated over simulation time
 """
-function fusion_energy(dd::IMAS.dd{T}; DD_fusion::Bool=false) where {T<:Real}
+function fusion_energy(dd::IMAS.DD{T}; DD_fusion::Bool=false) where {T<:Real}
     time = Float64[cp1d.time for cp1d in dd.core_profiles.profiles_1d]
     data = T[fusion_power(cp1d; DD_fusion) for cp1d in dd.core_profiles.profiles_1d]
     return trapz(time, data) / (time[end] - time[1])
@@ -544,9 +553,12 @@ function fusion_neutron_power(cp1d::IMAS.core_profiles__profiles_1d)
 end
 
 """
-    fusion_neutron_power(dd::IMAS.dd)
+    fusion_neutron_power(dd::IMAS.DD)
+
+Calculates the total fusion power in neutrons [W] from the current time
+slice of `dd.core_profiles`.
 """
-function fusion_neutron_power(dd::IMAS.dd)
+function fusion_neutron_power(dd::IMAS.DD)
     return fusion_neutron_power(dd.core_profiles.profiles_1d[])
 end
 

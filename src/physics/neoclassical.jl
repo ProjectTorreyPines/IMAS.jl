@@ -67,7 +67,14 @@ end
 @compat public collision_frequencies
 push!(document[Symbol("Physics neoclassical")], :collision_frequencies)
 
-function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool=true, same_ne_ni::Bool=false)
+"""
+    Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool, same_ne_ni::Bool)
+
+Calculates bootstrap current from the data dictionary. Both keyword arguments are required.
+
+See `Sauter_neo2021_bootstrap(eqt, cp1d; ...)` for details on the keyword arguments.
+"""
+function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool, same_ne_ni::Bool)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
     return Sauter_neo2021_bootstrap(eqt, cp1d; neo_2021, same_ne_ni)
@@ -82,7 +89,7 @@ Calculates bootstrap current
 
   - same_ne_ni: assume same inverse scale length for electrons and ions
 """
-function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=false, same_ne_ni::Bool=false)
+function Sauter_neo2021_bootstrap(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d; neo_2021::Bool=true, same_ne_ni::Bool=false)
     psi = cp1d.grid.psi
 
     ne = cp1d.electrons.density_thermal
@@ -125,8 +132,8 @@ function Sauter_neo2021_bootstrap(
     nuistar::T,
     ip::Real,
     B0::Real;
-    neo_2021::Bool=false,
-    same_ne_ni::Bool=false
+    neo_2021::Bool,
+    same_ne_ni::Bool
 ) where {T<:AbstractVector{<:Real}}
     psi = psi ./ 2π # COCOS 11 to COCOS 1 --> 1/2π
     dP_dpsi = gradient(psi, p)
@@ -474,19 +481,24 @@ Populates ExB rotation based on ion omega_tor assuming ωpol=0.0
 Returns the updated `cp1d` with `rotation_frequency_tor_sonic` populated and all ion rotation frequencies updated.
 
 `ind` is the ion species index to use as reference (0 = auto-select first non-zero rotation)
+
+`rho_correction` is the near axis value where begin to taper dpi_dpsi term to zero, 
+    (This is needed to handle large gradients from fast ion subtraction)
 """
-function ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0) where {T<:Real}
+function ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0, rho_correction::Real=0.2) where {T<:Real}
     if ind == 0
         ind = findfirst(x -> hasdata(x, :rotation_frequency_tor) && sum(abs.(x.rotation_frequency_tor)) != 0.0, cp1d.ion)
         if ind === nothing
             return zero(cp1d.grid.rho_tor_norm)
         end
     end
-    ni = cp1d.ion[ind].density
+    ni = cp1d.ion[ind].density_thermal
     zi = cp1d.ion[ind].z_ion
     rot_freq = cp1d.ion[ind].rotation_frequency_tor
-    dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure)
-    return @. rot_freq + dpi_dpsi / (ni * zi * IMAS.mks.e)
+    rho = cp1d.grid.rho_tor_norm
+    dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure_thermal)
+    correction = @. dpi_dpsi / (ni * zi * IMAS.mks.e) * min(rho / rho_correction, 1.0)^2
+    return @. rot_freq + correction
 end
 
 @compat public ωtor2sonic
@@ -509,14 +521,19 @@ push!(document[Symbol("Physics neoclassical")], :ωtor2sonic!)
 
 Returns ion ω_tor based on ExB rotation assuming ω_pol=0.0
 
+`rho_correction` is the near axis value where begin to taper dpi_dpsi term to zero, 
+    (This is needed to handle large gradients from fast ion subtraction)
+
 Uses the existing `rotation_frequency_tor_sonic` field to compute individual ion toroidal rotation frequencies
 """
-function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
+function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion; rho_correction::Real=0.2)
     ωExB = cp1d.rotation_frequency_tor_sonic
-    ni = ion.density
+    ni = ion.density_thermal
     zi = ion.z_ion
-    dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure)
-    return @. ωExB - dpi_dpsi / (ni * zi * IMAS.mks.e)
+    rho = cp1d.grid.rho_tor_norm
+    dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure_thermal)
+    correction = @. dpi_dpsi / (ni * zi * IMAS.mks.e) * min(rho / rho_correction, 1.0)^2
+    return @. ωExB - correction
 end
 
 @compat public sonic2ωtor

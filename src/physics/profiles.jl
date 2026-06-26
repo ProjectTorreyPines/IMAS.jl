@@ -804,7 +804,7 @@ end
 push!(document[Symbol("Physics profiles")], :A_effective)
 
 """
-    scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; metallic_wall:Bool=true)
+    scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; include_metallic_wall::Bool=true, include_∇B_drift::Bool=true, include_isotope::Bool=true)
 
 L to H transition power threshold for metal walls and isotope effect according to: G. Birkenmeier et al 2022 Nucl. Fusion 62 086005
 
@@ -816,7 +816,8 @@ L_H_threshold doubles when ion ∇B drift is away from X-point
 
 returns Infinity if the plasma is diverted or in negative triangularity
 """
-function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; metallic_wall::Bool=true)
+function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice;
+     include_metallic_wall::Bool=true, include_∇B_drift::Bool=true, include_isotope::Bool=true)
     if isempty(eqt.boundary.x_point)
         return Inf
     end
@@ -825,53 +826,66 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
     end
 
     Bgeo = B0_geo(eqt)
-
-    if Bgeo < 0
-        # COCOS 11: Negative Bt is clockwise --> B×∇B is downward
-        # This checks out with ITER. Negative B in COCOS 11 and lower single null.
-        ∇B_drift_direction = -1
+    if include_∇B_drift
+        if Bgeo < 0
+            # COCOS 11: Negative Bt is clockwise --> B×∇B is downward
+            # This checks out with ITER. Negative B in COCOS 11 and lower single null.
+            ∇B_drift_direction = -1
+        else
+            # COCOS 11: Positive Bt is counter clockwise --> B×∇B is upward
+            # This checks out with DIII-D shot 200204, where at 1.2 s
+            # they go from lower to upper single null to go into H-mode
+            ∇B_drift_direction = +1
+        end
+        # L_H_threshold doubles when ion ∇B drift is away from primary X-point
+        if sign(eqt.boundary.x_point[1].z) == ∇B_drift_direction
+            ∇B_drift_factor = 1.0
+        else
+            ∇B_drift_factor = 2.0
+        end
     else
-        # COCOS 11: Positive Bt is counter clockwise --> B×∇B is upward
-        # This checks out with DIII-D shot 200204, where at 1.2 s
-        # they go from lower to upper single null to go into H-mode
-        ∇B_drift_direction = +1
-    end
-    # L_H_threshold doubles when ion ∇B drift is away from primary X-point
-    if sign(eqt.boundary.x_point[1].z) == ∇B_drift_direction
-        ∇B_drift_multiplier = 1.0
-    else
-        ∇B_drift_multiplier = 2.0
+        ∇B_drift_factor = 1.0
     end
 
     # The Martin scaling is only valid for plasma densities above the power threshold minimum
-    ne_volume = trapz(cp1d.grid.volume, cp1d.electrons.density_thermal) / cp1d.grid.volume[end] / 1E20
     Rgeo = eqt.boundary.geometric_axis.r
     ageo = eqt.boundary.minor_radius
+
+    nel = ne_line(eqt, cp1d) / 1e20
     ne_min = 0.7 * abs(eqt.global_quantities.ip / 1e6)^0.34 * abs(Bgeo)^0.62 * ageo^-0.95 * (Rgeo / ageo)^0.4 # in 1e19 m^-3
     ne_min *= 0.1 # [10^20 m⁻³]
-    ne_volume = max(ne_min, ne_volume)
+    nel = max(ne_min, nel)
 
     surface_area = eqt.profiles_1d.surface[end]
 
-    if metallic_wall
+    if include_metallic_wall
         # PLH is at least 20% lower in a metallic wall compared to the original ITPA scaling, which was derived from carbon wall data
         wall_factor = 0.8
     else
         wall_factor = 1.0
     end
+    if include_isotope
+        isotope_factor = 2.0 / A_effective(cp1d)
+    else
+        isotope_factor = 1.0
+    end
 
-    isotope_effect = 2.0 / A_effective(cp1d)
-
-    power_threshold = 1e6 * wall_factor * isotope_effect * 0.049 * ne_volume^0.72 * abs(Bgeo)^0.8 * surface_area^0.94 * ∇B_drift_multiplier
+    power_threshold = 1e6 * wall_factor * isotope_factor * 0.049 * nel^0.72 * abs(Bgeo)^0.8 * surface_area^0.94 * ∇B_drift_factor
 
     return power_threshold
 end
 
 """
     scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
+
+When `include_metallic_wall` is `nothing` (default) the wall type is auto-detected from
+`dd.build` via [`is_metallic_wall`](@ref); pass `true`/`false` to force it.
 """
-function scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time)
-    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0])
+function scaling_L_to_H_power(dd::IMAS.dd; time0::Float64=dd.global_time,
+    include_metallic_wall::Union{Nothing,Bool}=nothing, include_∇B_drift::Bool=true, include_isotope::Bool=true)
+    metallic = include_metallic_wall === nothing ? is_metallic_wall(dd) : include_metallic_wall
+    return scaling_L_to_H_power(dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0];
+        include_metallic_wall=metallic, include_∇B_drift, include_isotope)
 end
 
 @compat public scaling_L_to_H_power
@@ -882,17 +896,20 @@ push!(document[Symbol("Physics profiles")], :scaling_L_to_H_power)
 
 Returns ratio of Psol to Plh
 """
-function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time)
+function L_H_threshold(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; time0::Float64=dd.global_time, include_metallic_wall::Bool=true)
     Psol = power_sol(cs, cp1d; time0)
-    Plh = scaling_L_to_H_power(cp1d, eqt)
+    Plh = scaling_L_to_H_power(cp1d, eqt; include_metallic_wall)
     return Psol / Plh
 end
 
 """
     L_H_threshold(dd::IMAS.dd)
+
+The wall type (metallic vs. carbon) is auto-detected from `dd.build` via [`is_metallic_wall`](@ref).
 """
 function L_H_threshold(dd::IMAS.dd; time0::Float64=dd.global_time)
-    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0]; time0)
+    return L_H_threshold(dd.core_sources, dd.core_profiles.profiles_1d[time0], dd.equilibrium.time_slice[time0];
+        time0, include_metallic_wall=is_metallic_wall(dd))
 end
 
 @compat public L_H_threshold
@@ -960,10 +977,10 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
     @assert only_thermal_fast ∈ (:all, :thermal, :fast) "only_thermal_fast can be one of (:all, :thermal, :fast)"
     out = @NamedTuple{index::Int64, name::Symbol}[]
     if only_electrons_ions ∈ (:all, :electrons)
-        if only_thermal_fast ∈ (:all, :thermal) && hasdata(cp1d.electrons, :density_thermal) && (return_zero_densities || sum(cp1d.electrons.density_thermal) > 0.0)
+        if only_thermal_fast ∈ (:all, :thermal) && !ismissing(cp1d.electrons, :density_thermal) && (return_zero_densities || sum(cp1d.electrons.density_thermal) > 0.0)
             push!(out, (index=0, name=:electrons))
         end
-        if only_thermal_fast ∈ (:all, :fast) && hasdata(cp1d.electrons, :density_fast) && (return_zero_densities || sum(cp1d.electrons.density_fast) > 0.0)
+        if only_thermal_fast ∈ (:all, :fast) && !ismissing(cp1d.electrons, :density_fast) && (return_zero_densities || sum(cp1d.electrons.density_fast) > 0.0)
             push!(out, (index=0, name=:electrons_fast))
         end
     end
@@ -971,7 +988,7 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
         if only_thermal_fast ∈ (:all, :thermal)
             dd_thermal = (
                 (index=k, name=Symbol(ion.label)) for
-                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0)
+                (k, ion) in enumerate(cp1d.ion) if !ismissing(ion, :density_thermal) && (return_zero_densities || sum(ion.density_thermal) > 0.0)
             )
             for item in dd_thermal
                 push!(out, item)
@@ -980,7 +997,7 @@ function species(cp1d::IMAS.core_profiles__profiles_1d; only_electrons_ions::Sym
         if only_thermal_fast ∈ (:all, :fast)
             dd_fast = (
                 (index=k, name=Symbol("$(ion.label)_fast")) for
-                (k, ion) in enumerate(cp1d.ion) if hasdata(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0)
+                (k, ion) in enumerate(cp1d.ion) if !ismissing(ion, :density_fast) && (return_zero_densities || sum(ion.density_fast) > 0.0)
             )
             for item in dd_fast
                 push!(out, item)
@@ -1021,24 +1038,21 @@ push!(document[Symbol("Physics profiles")], :is_quasi_neutral)
 """
     enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
 
-If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi neutrality condtion.
+If `species` is `:electrons` then updates `electrons.density_thermal` to meet quasi-neutrality.
 
-If `species` is a ion species, it evaluates the difference in number of charges needed to reach quasi-neutrality, and assigns positive difference to target ion density_thermal species and negative difference to electrons density_thermal
-
-Also, sets `density` to the original expression
+If `species` is an ion species, it evaluates the charge difference needed to reach quasi-neutrality (`q_density_difference`).
+At grid points where `q_density_difference` is negative (i.e., the target ion's required density would be negative, typically due to numerical noise at the boundary),
+the deficit is absorbed by increasing `electrons.density_thermal` at those points, and `q_density_difference` is clamped to zero.
+The positive remainder is then assigned to the target ion: when `density_fast` is present, `density_thermal` is updated and `density` is unfrozen;
+otherwise `density` is updated and `density_thermal` is unfrozen.
 """
 function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, species::Symbol)
-    # Make sure expressions are used for total densities
-    IMAS.unfreeze!(cp1d.electrons, :density)
-    for ion in cp1d.ion
-        IMAS.unfreeze!(ion, :density)
-    end
-
     if species == :electrons
         cp1d.electrons.density_thermal = sum(ion.density .* avgZ(ion) for ion in cp1d.ion)
         if hasdata(cp1d.electrons, :density_fast)
             cp1d.electrons.density_thermal .-= cp1d.electrons.density_fast
         end
+        IMAS.unfreeze!(cp1d.electrons, :density)
 
     else
         # identify ion species
@@ -1057,14 +1071,24 @@ function enforce_quasi_neutrality!(cp1d::IMAS.core_profiles__profiles_1d, specie
             q_density_difference .-= ion0.density_fast .* avgZ(ion0)
         end
 
-        # positive difference is assigned to target ion density_thermal
-        index = q_density_difference .> 0.0
-        ion0.density_thermal = zero(cp1d.electrons.density_thermal)
-        ion0.density_thermal[index] .= q_density_difference[index] ./ avgZ(ion0)[index]
-
-        # negative difference is assigned to electrons density_thermal
+        # where q_density_difference is negative, adjust electrons density_thermal instead
         index = q_density_difference .< 0.0
-        cp1d.electrons.density_thermal[index] .+= abs.(q_density_difference[index])
+        if any(index)
+            cp1d.electrons.density_thermal[index] .+= abs.(q_density_difference[index])
+            q_density_difference[index] .= 0.0
+        end
+
+        if hasdata(ion0, :density_fast)
+            ion0.density_thermal = q_density_difference ./ avgZ(ion0)
+            unfreeze!(ion0, :density)
+        else
+            # we want density fixed to ensure quasi-neutrality,
+            #   so we update density and unfreeze density_thermal
+            #   But density_fast isn't set, so set it to zero for now
+            ion0.density = q_density_difference ./ avgZ(ion0)
+            ion0.density_fast = zeros(length(q_density_difference))
+            unfreeze!(ion0, :density_thermal)
+        end
     end
 
     return nothing
@@ -1321,6 +1345,7 @@ function bundle_DT!(cp1d::IMAS.core_profiles__profiles_1d; d_label::String="D", 
         # No fast density data available - this is okay
         total_density_fast = zeros(length(d_ion.temperature))
     end
+    IMAS.unfreeze!(dt_ion, :density)
 
     # Handle temperatures with density-weighted average
     if IMAS.hasdata(d_ion, :temperature) && IMAS.hasdata(t_ion, :temperature)
@@ -1422,6 +1447,7 @@ function new_impurity_fraction!(cp1d::IMAS.core_profiles__profiles_1d, impurity_
 
     new_ion.density_thermal = cp1d.electrons.density_thermal .* impurity_ne_fraction
     new_ion.density_fast = zeros(length(cp1d.electrons.density_thermal))
+    IMAS.unfreeze!(new_ion, :density)
     new_ion.temperature = cp1d.ion[1].temperature
 
     main_ion = cp1d.ion[1]
@@ -1496,9 +1522,9 @@ function zeff(cp1d::IMAS.core_profiles__profiles_1d{T}) where {T<:Real}
     z = zero(cp1d.grid.rho_tor_norm)
     for ion in cp1d.ion
         Zi = avgZ(ion)
-        @. z += ion.density_thermal * Zi^2
+        @. z += ion.density * Zi^2
     end
-    @. z /= cp1d.electrons.density_thermal
+    @. z /= cp1d.electrons.density
     clamp!(z, 1.0, Inf) # Zeff must be at least 1.0
     return z
 end
@@ -1544,6 +1570,10 @@ function avgZ(Z::Real, Ti::T) where {T<:Real}
     if Z == 1.0
         return one(T)
     end
+    if Ti <= 0.0
+        @warn "avgZ: Ti=$Ti ≤ 0, clamping to 1.0 eV"
+        Ti = one(T)
+    end
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return @. 10.0^(func(log10(Ti / 1E3), Z)) - 1.0
 end
@@ -1552,11 +1582,18 @@ function avgZ(Z::Real, Ti::AbstractVector{T}) where {T<:Real}
     if Z == 1.0
         return ones(T, length(Ti))
     end
+    if any(t -> t <= 0.0, Ti)
+        @warn "avgZ: $(count(t -> t <= 0.0, Ti)) negative/zero Ti values detected, clamping to 1.0 eV"
+        Ti = max.(Ti, one(T))
+    end
     func = avgZinterpolator(joinpath(@__DIR__, "..", "..", "data", "Zavg_z_t.dat"))
     return avgZ.(Ref(func), Z, Ti)
 end
 
 function avgZ(func::F, Z::Real, Ti::Real) where {F}
+    if Ti <= 0.0
+        Ti = 1.0
+    end
     return 10.0^(func(log10(Ti / 1E3), Z)) - 1.0
 end
 
@@ -1675,7 +1712,11 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
     nh = zero(T)
     nim_Z = zero(T)
     nim_Z2 = zero(T)
+    fast_charge = zero(T)
     for ion in cp1d.ion
+        if hasdata(ion, :density_fast)
+            fast_charge += ion.density_fast[rho_index] * avgZ(ion.element[1].z_n, ion.temperature[rho_index])
+        end
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
                 nh += ion.density_thermal[rho_index]
@@ -1688,8 +1729,9 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    ne_eff = ne - fast_charge
+    impurity_scale = (target_zeff .- 1.0) .* ne_eff ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
@@ -1717,7 +1759,11 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
     nh = zero(ne)
     nim_Z = zero(ne)
     nim_Z2 = zero(ne)
+    fast_charge = zero(ne)
     for ion in cp1d.ion
+        if hasdata(ion, :density_fast)
+            fast_charge .+= ion.density_fast .* avgZ(ion)
+        end
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
                 nh .+= ion.density_thermal
@@ -1730,8 +1776,9 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-    impurity_scale = (target_zeff .- 1.0) .* ne ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne .- impurity_scale .* nim_Z) ./ nh
+    ne_eff = ne .- fast_charge
+    impurity_scale = (target_zeff .- 1.0) .* ne_eff ./ (nim_Z2 .- nim_Z)
+    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
@@ -1763,10 +1810,11 @@ function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_
     for ion in cp1d.ion
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
-                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+                ion.density_thermal = ion.density_thermal .* scales.manion_scale
             else
-                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+                ion.density_thermal = ion.density_thermal .* scales.impurity_scale
             end
+            IMAS.unfreeze!(ion, :density)
         end
     end
     return scales
@@ -1784,10 +1832,11 @@ function scale_ion_densities_to_target_zeff!(cp1d::IMAS.core_profiles__profiles_
     for ion in cp1d.ion
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
-                ion.density_thermal .= ion.density_thermal .* scales.manion_scale
+                ion.density_thermal = ion.density_thermal .* scales.manion_scale
             else
-                ion.density_thermal .= ion.density_thermal .* scales.impurity_scale
+                ion.density_thermal = ion.density_thermal .* scales.impurity_scale
             end
+            IMAS.unfreeze!(ion, :density)
         end
     end
     return scales

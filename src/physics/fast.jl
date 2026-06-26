@@ -180,7 +180,7 @@ function critical_energy(cp1d::IMAS.core_profiles__profiles_1d, mf::Real, Zf::Re
     Te = cp1d.electrons.temperature
 
     avg_cmr = sum(ion.density_thermal .* (avgZ(ion.element[1].z_n, sum(ion.temperature) / length(ion.temperature))^2) / ion.element[1].a for ion in cp1d.ion) ./ ne
-    Ec = 14.8 .* mf .* Te .* avg_cmr .^ 1.5
+    Ec = 14.8 .* mf .* Te .* avg_cmr .^ (2.0 / 3.0)
     if !approximate
         Ec1 = critical_energy(cp1d, 1, mf, Zf; approximate)
         Ec = Ec .* (Ec1 ./ Ec[1])
@@ -286,13 +286,17 @@ end
 push!(document[Symbol("Physics fast")], :fast_ion_thermalization_time)
 
 """
-    fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false)
+    fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.8, modify_electron_density::Bool=false)
 
 Fills the core_profiles fast ion densities and pressures that result from fast ion sources (eg. fusion and nbi)
 
 This calculation is done based on the `slowing_down_time` and `thermalization_time` of the fast ion species.
+
+By default the fast ion density is subtracted from the thermal density of the same ion species, keeping the total
+ion density (and thus the electron density) unchanged. If `modify_electron_density` is `true`, the thermal ion density
+is instead left unchanged and the electron density is recomputed to satisfy quasi-neutrality.
 """
-function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.9)
+function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.8, modify_electron_density::Bool=false)
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
@@ -337,25 +341,38 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     taus = slowing_down_time.(ne, Te, particle_mass, particle_charge)
                     taut = thermalization_time(cp1d, particle_energy, particle_mass, particle_charge)
                     _, i4 = estrada_I_integrals(cp1d, particle_energy, particle_mass, particle_charge)
-                    
+
                     density = cion.density
                     sion_particles = interp1d(source1d.grid.rho_tor_norm, sion.particles).(cp1d.grid.rho_tor_norm)
                     pressa = i4 .* taus .* 2.0 ./ 3.0 .* (sion_particles .* particle_energy .* mks.e)
                     cion.pressure_fast_parallel .+= pressa ./ 3.0
                     cion.pressure_fast_perpendicular .+= pressa ./ 3.0
                     cion.density_fast .+= sion_particles .* taut
-                    limit = max_fast_frac .* cion.density_thermal
+                    limit = max_fast_frac .* cion.density_thermal # here density_thermal includes the old fast-ion contribution
                     mask = cion.density_fast .> limit
                     cion.density_fast[mask] .= limit[mask]
-                    cion.density_thermal = density - cion.density_fast
+                    if modify_electron_density
+                        # leave the thermal ion density unchanged: the electron density is adjusted
+                        # below to satisfy quasi-neutrality once all fast-ion sources are accounted for
+                        IMAS.unfreeze!(cion, :density)
+                    else
+                        # subtract the fast ion density from the thermal density of the same species,
+                        # keeping the total ion density (and electron density) unchanged
+                        cion.density_thermal = max.(density .- cion.density_fast, 0.0)
+                        IMAS.unfreeze!(cion, :density)
+                    end
                 end
             end
         end
     end
+
+    if modify_electron_density
+        enforce_quasi_neutrality!(cp1d, :electrons)
+    end
 end
 
-function fast_particles_profiles!(dd::IMAS.dd; verbose::Bool=false)
-    return fast_particles_profiles!(dd.core_sources, dd.core_profiles.profiles_1d[]; verbose)
+function fast_particles_profiles!(dd::IMAS.dd; verbose::Bool=false, modify_electron_density::Bool=false)
+    return fast_particles_profiles!(dd.core_sources, dd.core_profiles.profiles_1d[]; verbose, modify_electron_density)
 end
 
 @compat public fast_particles_profiles!

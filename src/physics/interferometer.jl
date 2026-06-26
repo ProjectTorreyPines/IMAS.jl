@@ -61,7 +61,7 @@ function line_average(
     @assert ϕ1 == ϕ2 "line_average cannot handle different ϕ yet"
 
     # Create 1D interpolant for the quantity q
-    q_interp = cubic_interp1d(rho_tor_norm, q)
+    q_interp = linear_interp1d(rho_tor_norm, q)
 
     # Find intersections between line and LCFS
     intersections = intersection([r1, r2], [z1, z2], lcfs_r, lcfs_z)
@@ -83,7 +83,7 @@ function line_average(
         rho_seg = rho_interp.RHO_interpolant.(r_seg, z_seg)
 
         # Interpolate quantity q along the segment
-        q_seg = q_interp.(rho_seg)
+        q_seg = max.(q_interp.(rho_seg), zero(T))
 
         # Calculate path length inside LCFS
         path_length_inside_lcfs = sqrt((r_exit - r_entry)^2 + (z_exit - z_entry)^2)
@@ -256,3 +256,75 @@ end
 @compat public ne_line
 push!(document[Symbol("Physics interferometer")], :ne_line)
 
+"""
+    interferometer!(
+        intf::IMAS.interferometer,
+        eqt::IMAS.equilibrium__time_slice,
+        cp1d::IMAS.core_profiles__profiles_1d;
+        time0::Float64=eqt.time,
+        n_points::Int=100
+    )
+
+Populate interferometer IDS with synthetic line-averaged and line-integrated electron density measurements for a single time slice.
+"""
+function interferometer!(
+    intf::IMAS.interferometer,
+    eqt::IMAS.equilibrium__time_slice,
+    cp1d::IMAS.core_profiles__profiles_1d;
+    time0::Float64=eqt.time,
+    n_points::Int=100
+)
+    for ch in intf.channel
+        # Calculate line average density for this time slice
+        density_result = line_average(
+            eqt,
+            cp1d.electrons.density_thermal,
+            cp1d.grid.rho_tor_norm,
+            ch.line_of_sight;
+            n_points
+        )
+
+        # Store using set_time_array
+        IMAS.set_time_array(ch.n_e_line_average, :data, time0, density_result.line_average)
+        IMAS.set_time_array(ch.n_e_line, :data, time0, density_result.line_integral)
+    end
+
+    return intf
+end
+
+"""
+    interferometer!(
+        intf::IMAS.interferometer,
+        eq::IMAS.equilibrium,
+        cp::IMAS.core_profiles;
+        n_points::Int=100
+    )
+
+Populate interferometer IDS with synthetic line-averaged and line-integrated electron density measurements for all time slices.
+"""
+function interferometer!(
+    intf::IMAS.interferometer,
+    eq::IMAS.equilibrium,
+    cp::IMAS.core_profiles;
+    n_points::Int=100
+)
+
+    # remove existing data
+    for channel in intf.channel
+        empty!(channel.n_e)
+        empty!(channel.n_e_line)
+        empty!(channel.n_e_line_average)
+    end
+
+    # calculate new data for all equilibrium time slices
+    for time0 in eq.time
+        eqt = eq.time_slice[time0]
+        cp1d = cp.profiles_1d[time0]
+        interferometer!(intf, eqt, cp1d; time0, n_points)
+    end
+
+    return intf
+end
+
+@compat public interferometer!
+push!(document[Symbol("Physics interferometer")], :interferometer!)

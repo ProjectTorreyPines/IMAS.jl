@@ -138,13 +138,13 @@ function total_fluxes!(
 
     # initialize ions
     for ion in cp1d.ion
-        resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
+        resize!(total_flux1d.ion, "element[1].a" => ion.element[1].a, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
     end
     for model in core_transport.model
         if !isempty(model.profiles_1d) && time0 >= model.profiles_1d[1].time
             model1d = model.profiles_1d[time0]
             for ion in model1d.ion
-                resize!(total_flux1d.ion, "element[1].a" => ion.element[1].z_n, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
+                resize!(total_flux1d.ion, "element[1].a" => ion.element[1].a, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label; wipe=false)
             end
         end
     end
@@ -193,7 +193,7 @@ function total_fluxes!(
                     goto(m1d, path)
                 catch e
                     if isa(e, InterruptException)
-                        retrhow(e)
+                        rethrow(e)
                     else
                         continue
                     end
