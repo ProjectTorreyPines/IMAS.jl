@@ -178,7 +178,7 @@ function find_flux(particles::Vector{Particle{T}}, I_per_trace::T, rwall::Vector
     # smooth the load of each particle within a window
     # note: flux is defined at the cells, not at the nodes
 
-    d = sqrt.(diff(rwall) .^ 2.0 .+ diff(zwall) .^ 2.0) # length of each cell
+    d = sqrt.(diff(rwall) .^ 2 .+ diff(zwall) .^ 2) # length of each cell
     l = cumsum(d)
     wall_r = (rwall[1:end-1] .+ rwall[2:end]) ./ 2.0
     wall_z = (zwall[1:end-1] .+ zwall[2:end]) ./ 2.0
@@ -541,7 +541,7 @@ function pencil_beam(starting_position::Vector{T}, velocity_vector::Vector{T}, t
     x = starting_position[1] .+ velocity_vector[1] .* time
     y = starting_position[2] .+ velocity_vector[2] .* time
     z = starting_position[3] .+ velocity_vector[3] .* time
-    r = sqrt.(x .^ 2.0 .+ y .^ 2.0)
+    r = sqrt.(x .^ 2 .+ y .^ 2)
     return (x=x, y=y, z=z, r=r)
 end
 

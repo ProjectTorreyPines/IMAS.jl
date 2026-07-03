@@ -1179,7 +1179,7 @@ function trace_simple_surfaces!(
 
             # flux expansion = 1 / abs(Bp)
             Br, Bz = Br_Bz(PSI_interpolant, pr[i], pz[i])
-            fluxexpansion[i] = 1.0 / sqrt(Br^2.0 + Bz^2.0)
+            fluxexpansion[i] = 1.0 / sqrt(Br^2 + Bz^2)
         end
         int_fluxexpansion_dl = trapz(ll, fluxexpansion)
 
@@ -1203,8 +1203,8 @@ function trace_surfaces(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVe
     r, z, PSI_interpolant = ψ_interpolant(eqt2d)
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.z
-    Br, Bz = Br_Bz(eqt2d)
-    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema)
+    xpoints = [(xp.r, xp.z) for xp in eqt.boundary.x_point]
+    return trace_surfaces(eqt.profiles_1d.psi, eqt.profiles_1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema, xpoints)
 end
 
 """
@@ -1214,8 +1214,6 @@ end
         r::AbstractVector{T},
         z::AbstractVector{T},
         PSI::Matrix{T},
-        BR::Matrix{T},
-        BZ::Matrix{T},
         PSI_interpolant,
         RA::T,
         ZA::T,
@@ -1224,25 +1222,28 @@ end
         refine_extrema::Bool=true
     ) where {T<:Real}
 """
-function trace_surfaces(
+@with_pool pool function trace_surfaces(
     psi::AbstractVector{T},
     f::AbstractVector{T},
     r::AbstractVector{T},
     z::AbstractVector{T},
     PSI::Matrix{T},
-    BR::Matrix{T},
-    BZ::Matrix{T},
     PSI_interpolant,
     RA::T,
     ZA::T,
     wall_r::AbstractVector{T},
     wall_z::AbstractVector{T};
-    refine_extrema::Bool=true
+    refine_extrema::Bool=true,
+    xpoints=()
 ) where {T<:Real}
 
     N = length(psi)
     surfaces = Vector{FluxSurface{T}}(undef, N)
-    r_cache, z_cache = IMASutils.contour_cache(r, z)
+    # Assume rectangle (aggression_level == 2)
+    Ncache = 2 * (length(r) + length(z))
+    r_cache = acquire!(pool, T, Ncache)
+    z_cache = acquire!(pool, T, Ncache)
+
     PSIA = PSI_interpolant(RA, ZA)
     for k in N:-1:1
         psi_level = psi[k]
@@ -1270,10 +1271,14 @@ function trace_surfaces(
         # surface length
         ll = arc_length(pr, pz)
 
+        # Allocate temporary arrays
+        Bp2 = acquire!(pool, T, length(pr))
+        Bp_abs = acquire!(pool, T, length(pr))
+
         # poloidal magnetic field (with sign)
         Br, Bz = Br_Bz(PSI_interpolant, pr, pz)
-        Bp2 = Br .^ 2.0 .+ Bz .^ 2.0
-        Bp_abs = sqrt.(Bp2)
+        Bp2 .= Br .^ 2 .+ Bz .^ 2
+        Bp_abs .= sqrt.(Bp2)
         Bp = Bp_abs .* sign.((pz .- ZA) .* Br .- (pr .- RA) .* Bz)
         Btot = sqrt.(Bp2 .+ (f[k] ./ pr) .^ 2)
 
@@ -1307,156 +1312,30 @@ function trace_surfaces(
     end
 
     if refine_extrema
-        N2 = round(Int, N / 2, RoundUp)
-        psi_norm = abs(psi[end] - psi[1]) / N
-        space_norm = (surfaces[N].max_r - surfaces[N].min_r) / 2 / N
-
-        # Find where Br changes sign
-        lines = Contour.lines(Contour.contour(r, z, BR, 0.0))
-        k = 0
-        d = Inf
-        for (kk, line) in enumerate(lines)
-            pr, pz = Contour.coordinates(line)
-            # plot!(pr, pz)
-            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].max_r) .^ 2 .+ (pz .- surfaces[N2].z_at_max_r) .^ 2)); init=Inf)
-            if dd < d
-                d = dd
-                k = kk
-            end
-        end
-        leftright_r, leftright_z = Contour.coordinates(lines[k])
-        index = .!(isnan.(leftright_r) .|| isnan.(leftright_z))
-        leftright_r = @view leftright_r[index]
-        leftright_z = @view leftright_z[index]
-
-        # extrema in R
-        interp_r = interp1d(1:length(leftright_r), leftright_r)
-        interp_z = interp1d(1:length(leftright_z), leftright_z)
-        for k in 1:N
-            #@show "R", k
-            index = _extrema_index(leftright_r, leftright_z, surfaces[k].max_r, surfaces[k].z_at_max_r, :right)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].max_r,
-                    surfaces[k].z_at_max_r,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :right
-                )
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            surfaces[k].max_r, surfaces[k].z_at_max_r = interp_r(x), interp_z(x)
-            index = _extrema_index(leftright_r, leftright_z, surfaces[k].min_r, surfaces[k].z_at_min_r, :left)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].min_r,
-                    surfaces[k].z_at_min_r,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :left
-                )
-            #plot!(leftright_r[index], leftright_z[index]; label="")
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            min_r, z_at_min_r = interp_r(x), interp_z(x)
-            surfaces[k].min_r, surfaces[k].z_at_min_r = min_r, z_at_min_r
-            @assert surfaces[k].min_r < surfaces[k].max_r
-            if k < 3
-                surfaces[k+1].z_at_max_r = ZA
-                surfaces[k+1].z_at_min_r = ZA
-            elseif k < N
-                surfaces[k+1].z_at_max_r = (surfaces[k+1].z_at_max_r + surfaces[k].z_at_max_r) / 2.0
-                surfaces[k+1].z_at_min_r = (surfaces[k].z_at_min_r + surfaces[k+1].z_at_min_r) / 2.0
-            end
+        # Refine the four geometric extrema (max_r/min_r/max_z/min_z) with a globalized X-point-aware
+        # 2-D Newton (`_robust_refine_extremum!`) on the ψ interpolant (analytic ∇ψ/Hessian), sharing
+        # one 2×2 Hessian scratch across all calls.
+        axis = (RA, ZA)
+        lo = (first(r), first(z))   # ψ grid domain box — the refine search is clamped to it
+        hi = (last(r), last(z))
+        H = acquire!(pool, T, 2, 2)
+        for k in 2:N   # skip k=1 (artificial on-axis surface); rebuilt below
+            s = surfaces[k]
+            (s.max_r, s.z_at_max_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.max_r, s.z_at_max_r), :R, axis, xpoints; lo, hi)
+            (s.min_r, s.z_at_min_r) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.min_r, s.z_at_min_r), :R, axis, xpoints; lo, hi)
+            (s.r_at_max_z, s.max_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_max_z, s.max_z), :Z, axis, xpoints; lo, hi)
+            (s.r_at_min_z, s.min_z) = _robust_refine_extremum!(H, PSI_interpolant, psi[k], (s.r_at_min_z, s.min_z), :Z, axis, xpoints; lo, hi)
         end
 
-        # Find where Bz changes sign
-        lines = Contour.lines(Contour.contour(r, z, BZ, 0.0))
-        k = 0
-        d = Inf
-        for (kk, line) in enumerate(lines)
-            pr, pz = Contour.coordinates(line)
-            # plot!(pr, pz)
-            dd = minimum(filter(!isnan, sqrt.((pr .- surfaces[N2].r_at_max_z) .^ 2 .+ (pz .- surfaces[N2].max_z) .^ 2)); init=Inf)
-            if dd < d
-                d = dd
-                k = kk
-            end
-        end
-        updown_r, updown_z = Contour.coordinates(lines[k])
-        index = .!(isnan.(updown_r) .|| isnan.(updown_z))
-        updown_r = @view updown_r[index]
-        updown_z = @view updown_z[index]
-
-        # extrema in Z
-        interp_r = interp1d(1:length(updown_r), updown_r)
-        interp_z = interp1d(1:length(updown_z), updown_z)
-        for k in 1:N
-            #@show "Z", k
-            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_max_z, surfaces[k].max_z, :up)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].r_at_max_z,
-                    surfaces[k].max_z,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :up
-                )
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            surfaces[k].r_at_max_z, surfaces[k].max_z = interp_r(x), interp_z(x)
-            index = _extrema_index(updown_r, updown_z, surfaces[k].r_at_min_z, surfaces[k].min_z, :down)
-            cost =
-                x -> _extrema_cost(
-                    interp_r(x),
-                    interp_z(x),
-                    psi[k],
-                    PSI_interpolant,
-                    surfaces[k].r_at_min_z,
-                    surfaces[k].min_z,
-                    RA,
-                    ZA,
-                    psi_norm,
-                    space_norm,
-                    :down
-                )
-            # plot!(updown_r[index], updown_z[index]; label="")
-            x = Optim.optimize(cost, index[1], index[end], Optim.Brent()).minimizer
-            surfaces[k].r_at_min_z, surfaces[k].min_z = interp_r(x), interp_z(x)
-            @assert surfaces[k].min_z < surfaces[k].max_z
-            if k < 3
-                surfaces[k+1].r_at_max_z = RA
-                surfaces[k+1].r_at_min_z = RA
-            elseif k < N
-                surfaces[k+1].r_at_max_z = (surfaces[k+1].r_at_max_z + surfaces[k].r_at_max_z) / 2.0
-                surfaces[k+1].r_at_min_z = (surfaces[k+1].r_at_min_z + surfaces[k].r_at_min_z) / 2.0
-            end
-        end
-
-        # first flux surface just a scaled down version of the second one
+        # first flux surface just a scaled down version of the second one (all scalar fields)
         frac = 0.01
-        surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z .- RA) .* frac .+ RA
-        surfaces[1].max_z = (surfaces[2].max_z .- ZA) .* frac .+ ZA
-        surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z .- RA) .* frac .+ RA
-        surfaces[1].min_z = (surfaces[2].min_z .- ZA) .* frac .+ ZA
-        surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r .- ZA) .* frac .+ ZA
+        surfaces[1].r_at_max_z = (surfaces[2].r_at_max_z - RA) * frac + RA
+        surfaces[1].max_z = (surfaces[2].max_z - ZA) * frac + ZA
+        surfaces[1].r_at_min_z = (surfaces[2].r_at_min_z - RA) * frac + RA
+        surfaces[1].min_z = (surfaces[2].min_z - ZA) * frac + ZA
+        surfaces[1].z_at_max_r = (surfaces[2].z_at_max_r - ZA) * frac + ZA
         surfaces[1].max_r = (surfaces[2].max_r - RA) * frac + RA
-        surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r .- ZA) .* frac .+ ZA
+        surfaces[1].z_at_min_r = (surfaces[2].z_at_min_r - ZA) * frac + ZA
         surfaces[1].min_r = (surfaces[2].min_r - RA) * frac + RA
     end
 
@@ -1465,74 +1344,6 @@ end
 
 @compat public trace_surfaces
 push!(document[Symbol("Physics flux-surfaces")], :trace_surfaces)
-
-function _extrema_index(r::AbstractVector{T}, z::AbstractVector{T}, r0::T, Z0::T, direction::Symbol) where {T<:Real}
-    i = argmin((r .- r0) .^ 2 .+ (z .- Z0) .^ 2)
-    N = length(z)
-    j = round(Int, N / 2, RoundUp)
-    n = 3
-    if direction == :right
-        if (r[j] - r[j-1]) > 0 # oriented right
-            return max(1, i - 1):min(N, i + n)
-        else # opposite orientation
-            return max(1, i - n):min(N, i + 1)
-        end
-    elseif direction == :left
-        if (r[j] - r[j-1]) < 0 # oriented left
-            return max(1, i - 1):min(N, i + n)
-        else
-            return max(1, i - n):min(N, i + 1)
-        end
-    elseif direction == :up
-        if (z[j] - z[j-1]) > 0 # oriented up
-            return max(1, i - 1):min(N, i + n)
-        else
-            return max(1, i - n):min(N, i + 1)
-        end
-    elseif direction == :down
-        if (z[j] - z[j-1]) < 0 # oriented down
-            return max(1, i - 1):min(N, i + n)
-        else
-            return max(1, i - n):min(N, i + 1)
-        end
-    else
-        error("_extrema_index(..., direction::Symbol) can only be (:left, :right, :up, :down)")
-    end
-end
-
-# accurate geometric quantities by finding geometric extrema as optimization problem
-function _extrema_cost(
-    r::T,
-    z::T,
-    psi_level::T,
-    PSI_interpolant,
-    r_orig::T,
-    z_orig::T,
-    RA::T,
-    ZA::T,
-    psi_norm::T,
-    space_norm::T,
-    direction::Symbol
-) where {T<:Real}
-    cost_psi = (PSI_interpolant(r, z) - psi_level) / psi_norm * space_norm # convert psi cost into spatial units
-    if direction == :right
-        cost_dir = abs(r - r_orig) * (r > r_orig)
-        cost_dir += abs(r - RA) * (r < RA) + (r < RA) # extra penalty needed for flux surfaces near axis
-    elseif direction == :left
-        cost_dir = abs(r - r_orig) * (r < r_orig)
-        cost_dir += abs(r - RA) * (r > RA) + (r > RA)
-    elseif direction == :up
-        cost_dir = abs(z - z_orig) * (z > z_orig)
-        cost_dir += abs(z - ZA) * (z < ZA) + (z < ZA)
-    elseif direction == :down
-        cost_dir = abs(z - z_orig) * (z < z_orig)
-        cost_dir += abs(z - ZA) * (z > ZA) + (z > ZA)
-    else
-        error("_extrema_cost(..., direction::Symbol) can only be (:left, :right, :up, :down)")
-    end
-    cost = norm((cost_psi, cost_dir^2)) # linear in psi since it already varies quadratically in space
-    return cost
-end
 
 """
     flux_surfaces(eq::equilibrium{T}, wall_r::AbstractVector{T}, wall_z::AbstractVector{T}) where {T<:Real}
@@ -1649,8 +1460,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     end
 
     # trace flux surfaces
-    Br, Bz = Br_Bz(eqt2d)
-    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, Br, Bz, PSI_interpolant, RA, ZA, wall_r, wall_z;refine_extrema=true)
+    surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema=true, xpoints=[(xp.r, xp.z) for xp in eqt.boundary.x_point])
 
     # calculate flux surface averaged and geometric quantities
     N = length(eqt1d.psi)
@@ -2278,14 +2088,28 @@ Returns extrema indexes and values of R,Z flux surfaces vectors:
     z_at_min_r, min_r
 """
 function fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
-    _, imaxr = findmax(pr)
-    _, iminr = findmin(pr)
-    _, imaxz = findmax(pz)
-    _, iminz = findmin(pz)
-    r_at_max_z, max_z = pr[imaxz], pz[imaxz]
-    r_at_min_z, min_z = pr[iminz], pz[iminz]
-    z_at_max_r, max_r = pz[imaxr], pr[imaxr]
-    z_at_min_r, min_r = pz[iminr], pr[iminr]
+    n = length(pr)
+    n == length(pz) || throw(DimensionMismatch("fluxsurface_extrema: pr and pz must have equal length"))
+    # One sweep tracks all four extrema (value+index) at once — an order of magnitude faster than
+    # four findmax/findmin calls (NaN-aware ordering + index reduction don't vectorize). Plain >/<
+    # is safe: traced flux-surface coordinates are finite.
+    @inbounds begin
+        max_r = min_r = pr[1]
+        max_z = min_z = pz[1]
+        imaxr = iminr = imaxz = iminz = 1
+        for i in 2:n
+            pri = pr[i]
+            pzi = pz[i]
+            if pri > max_r; max_r = pri; imaxr = i; end
+            if pri < min_r; min_r = pri; iminr = i; end
+            if pzi > max_z; max_z = pzi; imaxz = i; end
+            if pzi < min_z; min_z = pzi; iminz = i; end
+        end
+        r_at_max_z = pr[imaxz]
+        r_at_min_z = pr[iminz]
+        z_at_max_r = pz[imaxr]
+        z_at_min_r = pz[iminr]
+    end
     return (imaxr, iminr, imaxz, iminz,
         r_at_max_z, max_z,
         r_at_min_z, min_z,

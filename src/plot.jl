@@ -3074,7 +3074,7 @@ end
     title = "Wall flux"
     units = "[W/m²]"
     if component == :norm
-        data = sqrt.(nwl.flux_r .^ 2.0 .+ nwl.flux_z .^ 2.0)
+        data = sqrt.(nwl.flux_r .^ 2 .+ nwl.flux_z .^ 2)
     elseif component == :r
         data = nwl.flux_r
     elseif component == :z

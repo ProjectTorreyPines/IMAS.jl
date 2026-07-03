@@ -96,10 +96,10 @@ function OpenFieldLine(
 
     # calculate quantities along field line
     Br, Bz = Br_Bz(PSI_interpolant, rr, zz) # r and z component of B for each point in (r,z)
-    Bp = sqrt.(Br .^ 2.0 .+ Bz .^ 2.0)     # poloidal component of B for each point in (r,z)
+    Bp = sqrt.(Br .^ 2 .+ Bz .^ 2)     # poloidal component of B for each point in (r,z)
     Bt = abs.(B0 .* R0 ./ rr)              # toroidal component of B for each point in (r,z)
     B = sqrt.(Bp .^ 2 + Bt .^ 2)           # total magnetic field B for each point in (r,z)
-    dp = sqrt.(gradient(rr) .^ 2.0 .+ gradient(zz) .^ 2.0) # curvilinear abscissa increments of poloidal projection of SOL surface
+    dp = sqrt.(gradient(rr) .^ 2 .+ gradient(zz) .^ 2) # curvilinear abscissa increments of poloidal projection of SOL surface
     pitch = sqrt.(1.0 .+ (Bt ./ Bp) .^ 2) # ds = dp*sqrt(1 + (Bt/Bp)^2) (pythagora)
     s = cumsum(pitch .* dp) # s = integral(ds)
     s = abs.(s .- s[midplane_index]) # fix 0 at outer midplane
