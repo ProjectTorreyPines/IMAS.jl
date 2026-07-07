@@ -317,9 +317,9 @@ function sol(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wall; levels::Union{I
 end
 
 """
-    sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
+    sol(dd::IMAS.DD; levels::Union{Int,AbstractVector}=20, use_wall::Bool=true)
 """
-function sol(dd::IMAS.dd; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(first_wall(dd.wall).r))
+function sol(dd::IMAS.DD; levels::Union{Int,AbstractVector}=20, use_wall::Bool=!isempty(first_wall(dd.wall).r))
     return sol(dd.equilibrium.time_slice[], dd.wall; levels, use_wall)
 end
 
@@ -552,9 +552,9 @@ function find_levels_from_P(
 end
 
 """
-    find_levels_from_P(dd::IMAS.dd, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
+    find_levels_from_P(dd::IMAS.DD, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
 """
-function find_levels_from_P(dd::IMAS.dd, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
+function find_levels_from_P(dd::IMAS.DD, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
     return find_levels_from_P(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, q, r, levels)
 end
@@ -607,9 +607,9 @@ function find_levels_from_wall(eqt::IMAS.equilibrium__time_slice, wall::IMAS.wal
 end
 
 """
-    find_levels_from_wall(dd::IMAS.dd)
+    find_levels_from_wall(dd::IMAS.DD)
 """
-function find_levels_from_wall(dd::IMAS.dd)
+function find_levels_from_wall(dd::IMAS.DD)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
     return find_levels_from_wall(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant)
 end
@@ -874,9 +874,9 @@ function power_sol(core_sources::IMAS.core_sources, cp1d::IMAS.core_profiles__pr
 end
 
 """
-    power_sol(dd::IMAS.dd; time0::Float64=dd.global_time)
+    power_sol(dd::IMAS.DD; time0::Float64=dd.global_time)
 """
-function power_sol(dd::IMAS.dd; time0::Float64=dd.global_time)
+function power_sol(dd::IMAS.DD; time0::Float64=dd.global_time)
     return power_sol(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0)
 end
 
@@ -906,9 +906,9 @@ function widthSOL_loarte(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_prof
 end
 
 """
-    widthSOL_loarte(dd::IMAS.dd)
+    widthSOL_loarte(dd::IMAS.DD)
 """
-function widthSOL_loarte(dd::IMAS.dd)
+function widthSOL_loarte(dd::IMAS.DD)
     return widthSOL_loarte(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
@@ -957,9 +957,9 @@ function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_pro
 end
 
 """
-    widthSOL_sieglin(dd::IMAS.dd)
+    widthSOL_sieglin(dd::IMAS.DD)
 """
-function widthSOL_sieglin(dd::IMAS.dd)
+function widthSOL_sieglin(dd::IMAS.DD)
     return widthSOL_sieglin(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
@@ -999,9 +999,9 @@ function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profil
 end
 
 """
-    widthSOL_eich(dd::IMAS.dd)
+    widthSOL_eich(dd::IMAS.DD)
 """
-function widthSOL_eich(dd::IMAS.dd)
+function widthSOL_eich(dd::IMAS.DD)
     return widthSOL_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
@@ -1022,9 +1022,9 @@ function q_pol_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profi
 end
 
 """
-    q_pol_omp_eich(dd::IMAS.dd)
+    q_pol_omp_eich(dd::IMAS.DD)
 """
-function q_pol_omp_eich(dd::IMAS.dd)
+function q_pol_omp_eich(dd::IMAS.DD)
     return q_pol_omp_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
@@ -1045,9 +1045,9 @@ function q_par_omp_eich(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profi
 end
 
 """
-    q_par_omp_eich(dd::IMAS.dd)
+    q_par_omp_eich(dd::IMAS.DD)
 """
-function q_par_omp_eich(dd::IMAS.dd)
+function q_par_omp_eich(dd::IMAS.DD)
     return q_par_omp_eich(dd.equilibrium.time_slice[], dd.core_profiles.profiles_1d[], dd.core_sources)
 end
 
@@ -1075,9 +1075,9 @@ function zohm_divertor_figure_of_merit(core_sources::IMAS.core_sources, cp1d::IM
 end
 
 """
-    zohm_divertor_figure_of_merit(dd::IMAS.dd)
+    zohm_divertor_figure_of_merit(dd::IMAS.DD)
 """
-function zohm_divertor_figure_of_merit(dd::IMAS.dd)
+function zohm_divertor_figure_of_merit(dd::IMAS.DD)
     return zohm_divertor_figure_of_merit(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
 

@@ -7,7 +7,7 @@ and is generally handy when coupling different codes/modules/actors.
 ===#
 
 # ip [A]
-function get_from(dd::IMAS.dd{T}, what::Val{:ip}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.DD{T}, what::Val{:ip}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :equilibrium
         return Ip(dd.equilibrium.time_slice[time0])
     elseif from_where == :core_profiles
@@ -19,7 +19,7 @@ function get_from(dd::IMAS.dd{T}, what::Val{:ip}, from_where::Symbol; time0::Flo
 end
 
 # vacuum_r0_b0 [m], [T]
-function get_from(dd::IMAS.dd, what::Val{:vacuum_r0_b0}, from_where::Symbol; time0::Float64=dd.global_time)
+function get_from(dd::IMAS.DD, what::Val{:vacuum_r0_b0}, from_where::Symbol; time0::Float64=dd.global_time)
     if from_where == :equilibrium
         eqt = dd.equilibrium.time_slice[time0]
         return (r0=eqt.global_quantities.vacuum_toroidal_field.r0, b0=eqt.global_quantities.vacuum_toroidal_field.b0)
@@ -30,7 +30,7 @@ function get_from(dd::IMAS.dd, what::Val{:vacuum_r0_b0}, from_where::Symbol; tim
 end
 
 # vloop [V]
-function get_from(dd::IMAS.dd{T}, what::Val{:vloop}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.DD{T}, what::Val{:vloop}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :equilibrium
         return vloop(dd.equilibrium; time0)
     elseif from_where == :core_profiles
@@ -44,7 +44,7 @@ function get_from(dd::IMAS.dd{T}, what::Val{:vloop}, from_where::Symbol; time0::
 end
 
 # beta_normal [-]
-function get_from(dd::IMAS.dd{T}, what::Val{:βn}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.DD{T}, what::Val{:βn}, from_where::Symbol; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :equilibrium
         return dd.equilibrium.time_slice[time0].global_quantities.beta_normal
     elseif from_where == :core_profiles
@@ -54,7 +54,7 @@ function get_from(dd::IMAS.dd{T}, what::Val{:βn}, from_where::Symbol; time0::Fl
 end
 
 # ne_ped w/ pedestal fit [m^-3]
-function get_from(dd::IMAS.dd{T}, what::Val{:ne_ped}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.DD{T}, what::Val{:ne_ped}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
         pedestal = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
@@ -67,7 +67,7 @@ function get_from(dd::IMAS.dd{T}, what::Val{:ne_ped}, from_where::Symbol, rho_pe
 end
 
 # ne_ped [m^-3]
-function get_from(dd::IMAS.dd{T}, what::Val{:ne_ped}, from_where::Symbol, rho_ped::Float64; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.DD{T}, what::Val{:ne_ped}, from_where::Symbol, rho_ped::Float64; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :summary
         return get_time_array(dd.summary.local.pedestal.n_e, :value, time0)
     elseif from_where == :core_profiles
@@ -92,7 +92,7 @@ function get_from(dd::IMAS.dd{T}, what::Val{:ne_ped}, from_where::Symbol, rho_pe
 end
 
 # zeff_ped w/ pedestal fit [-]
-function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.DD{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_ped::Nothing; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :core_profiles
         cp1d = dd.core_profiles.profiles_1d[time0]
         pedestal = pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.psi_norm)
@@ -104,7 +104,7 @@ function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_
 end
 
 # zeff_ped [-]
-function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_ped::Float64; time0::Float64=dd.global_time)::T where {T<:Real}
+function get_from(dd::IMAS.DD{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_ped::Float64; time0::Float64=dd.global_time)::T where {T<:Real}
     if from_where == :summary
         return get_time_array(dd.summary.local.pedestal.zeff, :value, time0)
     elseif from_where == :core_profiles
@@ -122,7 +122,7 @@ function get_from(dd::IMAS.dd{T}, what::Val{:zeff_ped}, from_where::Symbol, rho_
 end
 
 Base.Docs.@doc """
-    get_from(dd::IMAS.dd, what::Symbol, from_where::Symbol; time0::Float64=dd.global_time)
+    get_from(dd::IMAS.DD, what::Symbol, from_where::Symbol; time0::Float64=dd.global_time)
 
 IMAS stores the same physical quantities in different IDSs, and `get_from()` abstracts away the details
 of which IDS to access, depending on the requested quantity (`what`) and the specified source (`from_where`).

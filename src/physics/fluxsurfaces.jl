@@ -2183,7 +2183,7 @@ push!(document[Symbol("Physics flux-surfaces")], :areal_elongation)
 
 
 """
-    rec_to_mxh_coeffs(dd::IMAS.dd)
+    rec_to_mxh_coeffs(dd::IMAS.DD)
 
 fits rectangular flux surface mesh in dd to MXH
 """

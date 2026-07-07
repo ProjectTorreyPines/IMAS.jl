@@ -14,7 +14,7 @@ mutable struct FxpDD
     client::Jedis.Client
 end
 
-function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
+function Base.deepcopy_internal(x::IMAS.DD{T}, dict::IdDict) where {T<:Real}
     if haskey(dict, x)
         return dict[x]
     end
@@ -43,7 +43,7 @@ function Base.deepcopy_internal(x::IMAS.dd{T}, dict::IdDict) where {T<:Real}
     return new_obj
 end
 
-function fxp_connect(dd::IMAS.dd; host::String="localhost", port::Int=55000, password::String="redispw")
+function fxp_connect(dd::IMAS.DD; host::String="localhost", port::Int=55000, password::String="redispw")
     aux = getfield(dd, :_aux)
     client = Jedis.Client(; host, port, password, keepalive_enable=true)
     identifier = string(objectid(dd))
@@ -62,7 +62,7 @@ function fxp_client(dd)
     end
 end
 
-function fxp_identifier(dd::IMAS.dd)
+function fxp_identifier(dd::IMAS.DD)
     aux = getfield(dd, :_aux)
     if :fxp ∈ keys(aux)
         return aux[:fxp].identifier
@@ -71,7 +71,7 @@ function fxp_identifier(dd::IMAS.dd)
     end
 end
 
-function fxp_has_service_provider(dd::IMAS.dd, service_name::String)
+function fxp_has_service_provider(dd::IMAS.DD, service_name::String)
     client = fxp_client(dd)
     if client !== nothing
         return FXP.has_service_provider(client, service_name)
@@ -80,12 +80,12 @@ function fxp_has_service_provider(dd::IMAS.dd, service_name::String)
     end
 end
 
-function fxp_negotiate_service(dd::IMAS.dd, service_name::String)
+function fxp_negotiate_service(dd::IMAS.DD, service_name::String)
     client = fxp_client(dd)
     return FXP.negotiate_service(client, fxp_identifier(dd), service_name)
 end
 
-function fxp_request_service(dd::IMAS.dd, service_name::String)
+function fxp_request_service(dd::IMAS.DD, service_name::String)
     if fxp_has_service_provider(dd, service_name)
         fxp_negotiate_service(dd, service_name)
         return true

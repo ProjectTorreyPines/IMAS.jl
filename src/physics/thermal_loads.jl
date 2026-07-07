@@ -149,7 +149,7 @@ function core_radiation_heat_flux(
 end
 
 """
-    mesher_heat_flux(dd::IMAS.dd;
+    mesher_heat_flux(dd::IMAS.DD;
         r::AbstractVector{T}=Float64[],
         q::AbstractVector{T}=Float64[],
         merge_wall::Bool = true,
@@ -163,7 +163,7 @@ s                     curvilinear abscissa computed from (Rwall, Zwall), clockwi
 SOL                   list of OpenFieldLines used to compute (Rwall, Zwall)
 (r,q)                 Hypothesis of power density decay at omp for definition of SOL
 """
-function mesher_heat_flux(dd::IMAS.dd;
+function mesher_heat_flux(dd::IMAS.DD;
     r::AbstractVector{T}=Float64[],
     q::AbstractVector{T}=Float64[],
     merge_wall::Bool=true,

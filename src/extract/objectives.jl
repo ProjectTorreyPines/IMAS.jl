@@ -21,11 +21,11 @@ end
 push!(document[Symbol("Functions library")], :ObjectiveFunction)
 
 """
-    (objf::ObjectiveFunction)(dd::IMAS.dd)
+    (objf::ObjectiveFunction)(dd::IMAS.DD)
 
 From real domain to objective domain (Metaheuristics will always minimize)
 """
-function (objf::ObjectiveFunction)(dd::IMAS.dd)
+function (objf::ObjectiveFunction)(dd::IMAS.DD)
     if isinf(objf.target)
         if objf.target < 0
             return objf.func(dd)

@@ -33,7 +33,7 @@ end
 @compat public ConstraintFunction
 push!(document[Symbol("Functions library")], :ConstraintFunction)
 
-function (cnst::ConstraintFunction)(dd::IMAS.dd)
+function (cnst::ConstraintFunction)(dd::IMAS.DD)
     return constraint_cost_transform(cnst.func(dd), cnst.operation, cnst.limit, cnst.tolerance)
 end
 

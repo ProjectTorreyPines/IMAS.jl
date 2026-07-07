@@ -35,7 +35,7 @@ function ExtractLibFunction(group::Symbol, name::Symbol, units::String, func::Fu
 end
 
 """
-    (xfun::ExtractFunction)(dd::IMAS.dd)
+    (xfun::ExtractFunction)(dd::IMAS.DD)
 
 Run the extract function and store its result in xfun.value
 
@@ -52,7 +52,7 @@ function (xfun::ExtractFunction)(dd::IMAS.DD)
 end
 
 """
-    extract(dd::IMAS.dd, library::Symbol=:extract)
+    extract(dd::IMAS.DD, library::Symbol=:extract)
 
 library can be one of:
 
@@ -83,7 +83,7 @@ function extract(dd::IMAS.DD, library::Symbol=:extract)
 end
 
 """
-    extract(dd::IMAS.dd, xtract::AbstractDict{Symbol,<:ExtractFunction})
+    extract(dd::IMAS.DD, xtract::AbstractDict{Symbol,<:ExtractFunction})
 
 Extract data from `dd`. Each of the `ExtractFunction` should accept `dd` as input, like this:
 
@@ -102,11 +102,11 @@ function extract(dd::IMAS.DD, xtract::AbstractDict{Symbol,<:ExtractFunction})
 end
 
 """
-    extract(dd::IMAS.dd, filename::AbstractString, args...; kw...)
+    extract(dd::IMAS.DD, filename::AbstractString, args...; kw...)
 
 Like `extract(dd)` but saves the data to HDF5 file
 """
-function extract(dd::IMAS.dd, filename::AbstractString, args...; kw...)
+function extract(dd::IMAS.DD, filename::AbstractString, args...; kw...)
     HDF5 = IMASdd.HDF5
     xtract = extract(dd, args...; kw...)
     HDF5.h5open(filename, "w") do fid
@@ -249,7 +249,7 @@ function print_tiled(io::IO, xtract::AbstractDict{Symbol,ExtractFunction}; termi
     end
 end
 
-function select_direct_captial_cost(dd::IMAS.dd, what::String)
+function select_direct_captial_cost(dd::IMAS.DD, what::String)
     for sys in dd.costing.cost_direct_capital.system
         idx = findfirst(x -> x.name == what, sys.subsystem)
         if !isnothing(idx)

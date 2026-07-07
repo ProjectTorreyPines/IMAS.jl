@@ -216,9 +216,9 @@ function total_fluxes!(
 end
 
 """
-    total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
+    total_fluxes(dd::IMAS.DD, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
 """
-function total_fluxes(dd::IMAS.dd, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
+function total_fluxes(dd::IMAS.DD, rho_total_fluxes::AbstractVector{<:Real}=dd.core_profiles.profiles_1d[].grid.rho_tor_norm; time0::Float64=dd.global_time)
     return total_fluxes(dd.core_transport, dd.core_profiles.profiles_1d[], rho_total_fluxes; time0)
 end
 
@@ -228,7 +228,7 @@ end
 
 Compute transport particle, heat, and rotation diffusivities from desired profiles.
 """
-function calculate_diffusivities(dd::IMAS.dd{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
+function calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
 
     cs1d = IMAS.total_sources(dd)
     cp1d = dd.core_profiles.profiles_1d[]

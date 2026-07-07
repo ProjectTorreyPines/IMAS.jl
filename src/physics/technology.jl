@@ -19,11 +19,11 @@ const pure_copper = MaterialProperties(;
 )
 
 """
-    mechanical_technology(dd::IMAS.dd, what::Symbol)
+    mechanical_technology(dd::IMAS.DD, what::Symbol)
 
 Set `yield_strength`, `poisson_ratio`, and `young_modulus` properties for `:pl`, `:oh` and `:tf`
 """
-function mechanical_technology(dd::IMAS.dd, what::Symbol)
+function mechanical_technology(dd::IMAS.DD, what::Symbol)
     @assert what in (:pl, :oh, :tf)
     if what != :pl && getproperty(dd.build, what).technology.material == "copper"
         material = pure_copper
