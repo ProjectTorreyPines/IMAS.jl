@@ -1735,12 +1735,25 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-    # target_zeff must be matched against the REAL zeff formula (total ion
-    # density incl. fast, divided by total electron density incl. fast) —
-    # not the thermal-only ne_eff trick used just for quasi-neutrality below.
+    # Direct algebraic solve — 2 equations (Zeff definition, quasi-neutrality),
+    # 2 unknowns (main-ion thermal density, aggregate impurity thermal charge).
+    # density_fast is known (not solved for) for every species, so this is
+    # exact regardless of how many distinct impurity species are present:
+    # Z_eff_impurity is a fixed reference ratio from the ORIGINAL shapes
+    # (generalizes the "Zc=6 for carbon" two-species algebra to any mixture),
+    # and nim_Z_target/manion_target are solved directly from ne_total and
+    # target_zeff — not by scaling the original shape, so no dependence on
+    # whatever imbalance the original profile may have carried.
     ne_eff = ne_total - fast_charge
-    impurity_scale = (target_zeff .* ne_total .- ne_eff .- fast_zeff_num) ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
+    Z_eff_impurity = nim_Z2 / nim_Z
+    nim_Z_target = ((target_zeff - 1.0) * ne_total + fast_charge - fast_zeff_num) / (Z_eff_impurity - 1.0)
+    manion_target = ne_total - nim_Z_target - fast_charge
+
+    # Distribute the aggregate impurity charge across individual impurity
+    # species proportionally to their original relative share of nim_Z —
+    # same assumption already implicit in using one shared impurity_scale.
+    impurity_scale = nim_Z_target / nim_Z
+    manion_scale = manion_target / nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2 .+ fast_zeff_num) ./ ne_total
@@ -1791,12 +1804,25 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-    # target_zeff must be matched against the REAL zeff formula (total ion
-    # density incl. fast, divided by total electron density incl. fast) —
-    # not the thermal-only ne_eff trick used just for quasi-neutrality below.
+    # Direct algebraic solve — 2 equations (Zeff definition, quasi-neutrality),
+    # 2 unknowns (main-ion thermal density, aggregate impurity thermal charge).
+    # density_fast is known (not solved for) for every species, so this is
+    # exact regardless of how many distinct impurity species are present:
+    # Z_eff_impurity is a fixed reference ratio from the ORIGINAL shapes
+    # (generalizes the "Zc=6 for carbon" two-species algebra to any mixture),
+    # and nim_Z_target/manion_target are solved directly from ne_total and
+    # target_zeff — not by scaling the original shape, so no dependence on
+    # whatever imbalance the original profile may have carried.
     ne_eff = ne_total .- fast_charge
-    impurity_scale = (target_zeff .* ne_total .- ne_eff .- fast_zeff_num) ./ (nim_Z2 .- nim_Z)
-    manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
+    Z_eff_impurity = nim_Z2 ./ nim_Z
+    nim_Z_target = ((target_zeff .- 1.0) .* ne_total .+ fast_charge .- fast_zeff_num) ./ (Z_eff_impurity .- 1.0)
+    manion_target = ne_total .- nim_Z_target .- fast_charge
+
+    # Distribute the aggregate impurity charge across individual impurity
+    # species proportionally to their original relative share of nim_Z —
+    # same assumption already implicit in using one shared impurity_scale.
+    impurity_scale = nim_Z_target ./ nim_Z
+    manion_scale = manion_target ./ nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
     original_zeff = (nh .+ nim_Z2 .+ fast_zeff_num) ./ ne_total
