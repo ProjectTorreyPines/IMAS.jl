@@ -1708,14 +1708,20 @@ Returns scale coefficients for main ions and impurity density profiles needed to
 """
 function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, rho_scale::Real, target_zeff::Real) where {T<:Real}
     rho_index = argmin_abs(cp1d.grid.rho_tor_norm, rho_scale)
-    ne = cp1d.electrons.density_thermal[rho_index]
+    ne_thermal = cp1d.electrons.density_thermal[rho_index]
+    ne_fast = hasdata(cp1d.electrons, :density_fast) ? cp1d.electrons.density_fast[rho_index] : zero(T)
+    ne_total = ne_thermal + ne_fast
+
     nh = zero(T)
     nim_Z = zero(T)
     nim_Z2 = zero(T)
-    fast_charge = zero(T)
+    fast_charge = zero(T)   # Σ n_fast,i · Zi  (ions, for quasi-neutrality)
+    fast_zeff_num = zero(T) # Σ n_fast,i · Zi² (ions, for zeff numerator)
     for ion in cp1d.ion
         if hasdata(ion, :density_fast)
-            fast_charge += ion.density_fast[rho_index] * avgZ(ion.element[1].z_n, ion.temperature[rho_index])
+            Zi = avgZ(ion.element[1].z_n, ion.temperature[rho_index])
+            fast_charge += ion.density_fast[rho_index] * Zi
+            fast_zeff_num += ion.density_fast[rho_index] * Zi^2
         end
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
@@ -1729,15 +1735,18 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-    ne_eff = ne - fast_charge
-    impurity_scale = (target_zeff .- 1.0) .* ne_eff ./ (nim_Z2 .- nim_Z)
+    # target_zeff must be matched against the REAL zeff formula (total ion
+    # density incl. fast, divided by total electron density incl. fast) —
+    # not the thermal-only ne_eff trick used just for quasi-neutrality below.
+    ne_eff = ne_total - fast_charge
+    impurity_scale = (target_zeff .* ne_total .- ne_eff .- fast_zeff_num) ./ (nim_Z2 .- nim_Z)
     manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
-    original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
-    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
-    original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
-    new_quasineutrality = (ne .- manion_scale .* nh .- impurity_scale .* nim_Z) ./ ne
+    original_zeff = (nh .+ nim_Z2 .+ fast_zeff_num) ./ ne_total
+    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2 .+ fast_zeff_num) ./ ne_total
+    original_quasineutrality = (ne_total .- nh .- nim_Z .- fast_charge) ./ ne_total
+    new_quasineutrality = (ne_total .- manion_scale .* nh .- impurity_scale .* nim_Z .- fast_charge) ./ ne_total
 
     return (
         impurity_scale=impurity_scale,
@@ -1755,14 +1764,20 @@ end
 Returns scale coefficients for main ions and impurity density profiles needed to achieve a target zeff profile
 """
 function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1d{T}, target_zeff::Vector{T}) where {T<:Real}
-    ne = cp1d.electrons.density_thermal
-    nh = zero(ne)
-    nim_Z = zero(ne)
-    nim_Z2 = zero(ne)
-    fast_charge = zero(ne)
+    ne_thermal = cp1d.electrons.density_thermal
+    ne_fast = hasdata(cp1d.electrons, :density_fast) ? cp1d.electrons.density_fast : zero(ne_thermal)
+    ne_total = ne_thermal .+ ne_fast
+
+    nh = zero(ne_thermal)
+    nim_Z = zero(ne_thermal)
+    nim_Z2 = zero(ne_thermal)
+    fast_charge = zero(ne_thermal)   # Σ n_fast,i · Zi  (ions, for quasi-neutrality)
+    fast_zeff_num = zero(ne_thermal) # Σ n_fast,i · Zi² (ions, for zeff numerator)
     for ion in cp1d.ion
         if hasdata(ion, :density_fast)
-            fast_charge .+= ion.density_fast .* avgZ(ion)
+            Zi = avgZ(ion)
+            fast_charge .+= ion.density_fast .* Zi
+            fast_zeff_num .+= ion.density_fast .* Zi .^ 2
         end
         if !ismissing(ion, :density_thermal)
             if is_hydrogenic(ion)
@@ -1776,15 +1791,18 @@ function scale_ion_densities_to_target_zeff(cp1d::IMAS.core_profiles__profiles_1
         end
     end
 
-    ne_eff = ne .- fast_charge
-    impurity_scale = (target_zeff .- 1.0) .* ne_eff ./ (nim_Z2 .- nim_Z)
+    # target_zeff must be matched against the REAL zeff formula (total ion
+    # density incl. fast, divided by total electron density incl. fast) —
+    # not the thermal-only ne_eff trick used just for quasi-neutrality below.
+    ne_eff = ne_total .- fast_charge
+    impurity_scale = (target_zeff .* ne_total .- ne_eff .- fast_zeff_num) ./ (nim_Z2 .- nim_Z)
     manion_scale = (ne_eff .- impurity_scale .* nim_Z) ./ nh
     @assert all(impurity_scale .>= 0.0) "all(impurity_scale .>= 0.0) ", string(impurity_scale)
     @assert all(manion_scale .>= 0.0) "all(manion_scale .>= 0.0) ", string(manion_scale)
-    original_zeff = (nh .+ nim_Z2) ./ (nh .+ nim_Z)
-    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2) ./ (manion_scale .* nh .+ impurity_scale .* nim_Z)
-    original_quasineutrality = (ne .- nh .- nim_Z) ./ ne
-    new_quasineutrality = (ne .- manion_scale .* nh .- impurity_scale .* nim_Z) ./ ne
+    original_zeff = (nh .+ nim_Z2 .+ fast_zeff_num) ./ ne_total
+    new_zeff = (manion_scale .* nh .+ impurity_scale .* nim_Z2 .+ fast_zeff_num) ./ ne_total
+    original_quasineutrality = (ne_total .- nh .- nim_Z .- fast_charge) ./ ne_total
+    new_quasineutrality = (ne_total .- manion_scale .* nh .- impurity_scale .* nim_Z .- fast_charge) ./ ne_total
 
     return (
         impurity_scale=impurity_scale,
