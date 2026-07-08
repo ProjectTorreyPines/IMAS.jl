@@ -132,7 +132,7 @@ end
 push!(document[Symbol("Physics nuclear")], :D_T_to_He4_reactions)
 
 """
-    D_D_to_He3_reactions(dd::IMAS.dd)
+    D_D_to_He3_reactions(dd::IMAS.DD)
 
 Calculates the number of D-D thermal fusion reactions to He3 in [reactions/m³/s]
 """
@@ -162,7 +162,7 @@ end
 push!(document[Symbol("Physics nuclear")], :D_D_to_He3_reactions)
 
 """
-    D_D_to_T_reactions(dd::IMAS.dd)
+    D_D_to_T_reactions(dd::IMAS.DD)
 
 Calculates the number of D-D thermal fusion reactions to T in [reactions/m³/s]
 """
@@ -476,9 +476,9 @@ function fusion_plasma_power(cp1d::IMAS.core_profiles__profiles_1d)
 end
 
 """
-    fusion_plasma_power(dd::IMAS.dd)
+    fusion_plasma_power(dd::IMAS.DD)
 """
-function fusion_plasma_power(dd::IMAS.dd)
+function fusion_plasma_power(dd::IMAS.DD)
     return fusion_plasma_power(dd.core_profiles.profiles_1d[])
 end
 

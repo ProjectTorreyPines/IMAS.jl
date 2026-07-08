@@ -207,7 +207,7 @@ function is_metallic_wall(bd::IMAS.build)
     return true
 end
 
-is_metallic_wall(dd::IMAS.dd) = is_metallic_wall(dd.build)
+is_metallic_wall(dd::IMAS.DD) = is_metallic_wall(dd.build)
 
 @compat public is_metallic_wall
 push!(document[Symbol("Physics build")], :is_metallic_wall)

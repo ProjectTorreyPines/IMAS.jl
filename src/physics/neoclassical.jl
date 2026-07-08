@@ -68,13 +68,13 @@ end
 push!(document[Symbol("Physics neoclassical")], :collision_frequencies)
 
 """
-    Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool, same_ne_ni::Bool)
+    Sauter_neo2021_bootstrap(dd::IMAS.DD; neo_2021::Bool, same_ne_ni::Bool)
 
 Calculates bootstrap current from the data dictionary. Both keyword arguments are required.
 
 See `Sauter_neo2021_bootstrap(eqt, cp1d; ...)` for details on the keyword arguments.
 """
-function Sauter_neo2021_bootstrap(dd::IMAS.dd; neo_2021::Bool, same_ne_ni::Bool)
+function Sauter_neo2021_bootstrap(dd::IMAS.DD; neo_2021::Bool, same_ne_ni::Bool)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
     return Sauter_neo2021_bootstrap(eqt, cp1d; neo_2021, same_ne_ni)
@@ -319,7 +319,7 @@ function Sauter_neo2021_bootstrap(
     return abs.(j_boot) .* sign(ip) ./ abs(B0)
 end
 
-function collisionless_bootstrap_coefficient(dd::IMAS.dd)
+function collisionless_bootstrap_coefficient(dd::IMAS.DD)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
     return collisionless_bootstrap_coefficient(eqt, cp1d)

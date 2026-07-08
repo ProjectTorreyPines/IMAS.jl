@@ -24,11 +24,11 @@ end
 push!(document[Symbol("Physics radiation")], :radiation_losses)
 
 """
-    bremsstrahlung_source!(dd::IMAS.dd)
+    bremsstrahlung_source!(dd::IMAS.DD)
 
 Calculates approximate NRL Bremsstrahlung radiation source and modifies dd.core_sources
 """
-function bremsstrahlung_source!(dd::IMAS.dd)
+function bremsstrahlung_source!(dd::IMAS.DD)
     cp1d = dd.core_profiles.profiles_1d[]
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
@@ -76,11 +76,11 @@ end
 push!(document[Symbol("Physics radiation")], :rad_sync)
 
 """
-    synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.0)
+    synchrotron_source!(dd::IMAS.DD; wall_reflection_coefficient=0.0)
 
 Calculates synchrotron radiation source and modifies dd.core_sources
 """
-function synchrotron_source!(dd::IMAS.dd; wall_reflection_coefficient=0.8)
+function synchrotron_source!(dd::IMAS.DD; wall_reflection_coefficient=0.8)
     cp1d = dd.core_profiles.profiles_1d[]
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
@@ -104,11 +104,11 @@ end
 push!(document[Symbol("Physics radiation")], :synchrotron_source!)
 
 """
-    line_radiation_source!(dd::IMAS.dd)
+    line_radiation_source!(dd::IMAS.DD)
 
 Calculates line radiation sources and modifies dd.core_sources
 """
-function line_radiation_source!(dd::IMAS.dd)
+function line_radiation_source!(dd::IMAS.DD)
     cp1d = dd.core_profiles.profiles_1d[]
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature

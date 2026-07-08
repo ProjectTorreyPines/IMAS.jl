@@ -1,7 +1,7 @@
 """
     getdata(
         what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp},Val{:ω_tor}},
-        dd::IMAS.dd{T},
+        dd::IMAS.DD{T},
         time0::Union{Nothing,Float64}=nothing,
         time_averaging::Float64=0.0
     ) where {T<:Real}
@@ -18,7 +18,7 @@ Data is always of type Measurements.Measurement{T}
 """
 function getdata(
     what_val::Union{Val{:t_i},Val{:n_i_over_n_e},Val{:zeff},Val{:n_imp},Val{:ω_tor}},
-    dd::IMAS.dd{T},
+    dd::IMAS.DD{T},
     time0::Union{Nothing,Float64}=nothing,
     time_averaging::Float64=0.0
 ) where {T<:Real}
@@ -124,7 +124,7 @@ function getdata(
 end
 
 """
-    getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
+    getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.DD{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
 
 Extract Thomson scattering data for electron temperature or density.
 
@@ -136,7 +136,7 @@ Returns NamedTuple with (:time, :rho, :data, :weights)
 
 Data is always of type Measurements.Measurement{T}
 """
-function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
+function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.DD{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
     ts = dd.thomson_scattering
 
@@ -197,7 +197,7 @@ function getdata(what_val::Union{Val{:t_e},Val{:n_e}}, dd::IMAS.dd{T}, time0::Un
 end
 
 """
-    getavg(what_val::Union{Val{:b_field_pol_probe},Val{:flux_loop}}, dd::IMAS.dd{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
+    getavg(what_val::Union{Val{:b_field_pol_probe},Val{:flux_loop}}, dd::IMAS.DD{T}, time0::Union{Nothing,Float64}=nothing, time_averaging::Float64=0.0) where {T<:Real}
 
 Averages magnetics data for b_field_pol_probe or flux_loop.
 
@@ -209,7 +209,7 @@ Returns NamedTuple with (:time, :data, :units)
 
 Data is always of type Measurements.Measurement{T}
 """
-function getavg(what_val::Union{Val{:b_field_pol_probe},Val{:flux_loop}}, dd::IMAS.dd{T}, time0::Float64=0.0, time_averaging::Float64=0.0) where {T<:Real}
+function getavg(what_val::Union{Val{:b_field_pol_probe},Val{:flux_loop}}, dd::IMAS.DD{T}, time0::Float64=0.0, time_averaging::Float64=0.0) where {T<:Real}
     what = typeof(what_val).parameters[1]
     ids = getproperty(dd.magnetics, what)
     if what == :b_field_pol_probe

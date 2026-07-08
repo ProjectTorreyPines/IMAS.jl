@@ -31,9 +31,9 @@ function fusion_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles; DD_fusion
 end
 
 """
-    fusion_source!(dd::IMAS.dd; DD_fusion::Bool=false)
+    fusion_source!(dd::IMAS.DD; DD_fusion::Bool=false)
 """
-function fusion_source!(dd::IMAS.dd; DD_fusion::Bool=false)
+function fusion_source!(dd::IMAS.DD; DD_fusion::Bool=false)
     return fusion_source!(dd.core_sources, dd.core_profiles; DD_fusion)
 end
 
@@ -41,11 +41,11 @@ end
 push!(document[Symbol("Physics sources")], :fusion_source!)
 
 """
-    collisional_exchange_source!(dd::IMAS.dd)
+    collisional_exchange_source!(dd::IMAS.DD)
 
 Calculates collisional exchange source and adds it to `dd.core_sources`
 """
-function collisional_exchange_source!(dd::IMAS.dd)
+function collisional_exchange_source!(dd::IMAS.DD)
     cp1d = dd.core_profiles.profiles_1d[]
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
@@ -65,11 +65,11 @@ end
 push!(document[Symbol("Physics sources")], :collisional_exchange_source!)
 
 """
-    ohmic_source!(dd::IMAS.dd)
+    ohmic_source!(dd::IMAS.DD)
 
 Calculates the ohmic source from data in `dd.core_profiles` and adds it to `dd.core_sources`
 """
-function ohmic_source!(dd::IMAS.dd)
+function ohmic_source!(dd::IMAS.DD)
     cp1d = dd.core_profiles.profiles_1d[]
     j_ohmic = getproperty(cp1d, :j_ohmic, missing)
     if !ismissing(j_ohmic)
@@ -94,12 +94,12 @@ end
 push!(document[Symbol("Physics sources")], :ohmic_source!)
 
 """
-    bootstrap_source!(dd::IMAS.dd)
+    bootstrap_source!(dd::IMAS.DD)
 
 Calculates the bootsrap current from profiles in `dd.core_profiles`
 and adds it both as source in `dd.core_sources` and `cp1d.j_bootstrap`
 """
-function bootstrap_source!(dd::IMAS.dd)
+function bootstrap_source!(dd::IMAS.DD)
     eqt = dd.equilibrium.time_slice[]
     cp1d = dd.core_profiles.profiles_1d[]
     j_bootstrap = Sauter_neo2021_bootstrap(eqt, cp1d)
@@ -114,7 +114,7 @@ end
 push!(document[Symbol("Physics sources")], :bootstrap_source!)
 
 """
-    radiation_source!(dd::IMAS.dd)
+    radiation_source!(dd::IMAS.DD)
 
 Calculates the total radiation by calling:
 
@@ -124,7 +124,7 @@ Calculates the total radiation by calling:
 
 NOTE: if found, it removes total :radiation source to avoid double counting radiation
 """
-function radiation_source!(dd::IMAS.dd)
+function radiation_source!(dd::IMAS.DD)
     # if we find a total radiation source, let's remove it,
     # since here we calculate the individual contributions
     # and we don't want to double count
@@ -143,7 +143,7 @@ end
 push!(document[Symbol("Physics sources")], :radiation_source!)
 
 """
-    intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
+    intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
 
 Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
 
@@ -152,7 +152,7 @@ Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
   - `fast_ion_densities`: Update fast ion density profiles after fusion source calculation
   - `modify_electron_density`: When updating fast ion densities, adjust the electron density to satisfy quasi-neutrality instead of subtracting the fast density from the thermal ion density
 """
-function intrinsic_sources!(dd::IMAS.dd; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false)
+function intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false)
 
     collisional_exchange_source!(dd) # electron and ion energy
 
@@ -173,13 +173,13 @@ end
 push!(document[Symbol("Physics sources")], :intrinsic_sources!)
 
 """
-    time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; zero_out::Bool)
+    time_derivative_source!(dd::IMAS.DD, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; zero_out::Bool)
 
 Calculates time dependent sources and sinks, and adds them to `dd.core_sources`
 
 These are the ∂/∂t term in the transport equations
 """
-function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; name::String="∂/∂t")
+function time_derivative_source!(dd::IMAS.DD, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; name::String="∂/∂t")
     cp1d = dd.core_profiles.profiles_1d[]
     eqt1d = dd.equilibrium.time_slice[].profiles_1d
     R_flux_avg = interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
@@ -225,9 +225,9 @@ function time_derivative_source!(dd::IMAS.dd, cp1d_old::IMAS.core_profiles__prof
 end
 
 """
-    time_derivative_source!(dd::IMAS.dd; zero_out::Bool=false)
+    time_derivative_source!(dd::IMAS.DD; zero_out::Bool=false)
 """
-function time_derivative_source!(dd::IMAS.dd; name::String="∂/∂t", zero_out::Bool=false)
+function time_derivative_source!(dd::IMAS.DD; name::String="∂/∂t", zero_out::Bool=false)
     if zero_out
         time_derivative_source!(dd, dd.core_profiles.profiles_1d[], 0.0; name)
     else
@@ -534,9 +534,9 @@ function total_sources!(
 end
 
 """
-    total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+    total_sources(dd::IMAS.DD; time0::Float64=dd.global_time, kw...)
 """
-function total_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+function total_sources(dd::IMAS.DD; time0::Float64=dd.global_time, kw...)
     return total_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0, kw...)
 end
 
@@ -555,9 +555,9 @@ function total_radiation_sources(
 end
 
 """
-    total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+    total_radiation_sources(dd::IMAS.DD; time0::Float64=dd.global_time, kw...)
 """
-function total_radiation_sources(dd::IMAS.dd; time0::Float64=dd.global_time, kw...)
+function total_radiation_sources(dd::IMAS.DD; time0::Float64=dd.global_time, kw...)
     return total_radiation_sources(dd.core_sources, dd.core_profiles.profiles_1d[time0]; time0, kw...)
 end
 
@@ -566,7 +566,7 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
 
 """
-    sawteeth_source!(dd::IMAS.dd; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
+    sawteeth_source!(dd::IMAS.DD; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
 
 Model sawteeth by flattening all sources where abs(q) drops below qmin_desired.
 
@@ -574,7 +574,7 @@ Model sawteeth by flattening all sources where abs(q) drops below qmin_desired.
     `dd.sawteeth.diagnostics.rho_tor_norm_inversion` if available, otherwise falls back to `1.0`
   - `flat_factor`: Relaxation factor for flattening, from 0.0 (no change) to 1.0 (full flattening)
 """
-function sawteeth_source!(dd::IMAS.dd; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
+function sawteeth_source!(dd::IMAS.DD; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
 
     if qmin_desired === nothing
         if !ismissing(dd.sawteeth.diagnostics, :rho_tor_norm_inversion)
@@ -593,25 +593,25 @@ function sawteeth_source!(dd::IMAS.dd; qmin_desired::Union{Float64, Nothing}=not
     end
 end
 
-function sawteeth_source!(dd::IMAS.dd{T}, ::Nothing; flat_factor::Real=0.5) where {T<:Real}
+function sawteeth_source!(dd::IMAS.DD{T}, ::Nothing; flat_factor::Real=0.5) where {T<:Real}
     # no inversion radius, so call with rho0 = 0.0
     return sawteeth_source!(dd, 0.0; flat_factor)
 end
 
-function sawteeth_source!(dd::IMAS.dd{T}, i_qdes::Int; flat_factor::Real=0.5) where {T<:Real}
+function sawteeth_source!(dd::IMAS.DD{T}, i_qdes::Int; flat_factor::Real=0.5) where {T<:Real}
     cp1d = dd.core_profiles.profiles_1d[]
     return sawteeth_source!(dd, cp1d.grid.rho_tor_norm[i_qdes]; flat_factor)
 end
 
 """
-    sawteeth_source!(dd::IMAS.dd{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
+    sawteeth_source!(dd::IMAS.DD{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
 
 Model sawteeth by flattening all sources within the inversion radius rho0
 
   - `rho0`: Normalized toroidal flux coordinate of the inversion radius
   - `flat_factor`: Relaxation factor for flattening (0 = no change, 1 = full flattening)
 """
-function sawteeth_source!(dd::IMAS.dd{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
+function sawteeth_source!(dd::IMAS.DD{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
     @assert rho0 <= 1.0
     cp1d = dd.core_profiles.profiles_1d[]
 

@@ -14,7 +14,7 @@ function (nnmi::NaturalNeighboursMeasurementInterpolator)(rho::AbstractVector{<:
 end
 
 """
-    fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real, F<:Function}
+    fit2d(what::Val, dd::IMAS.DD{T}; transform::F=x -> x) where {T<:Real, F<:Function}
 
 Create 2D interpolation of experimental data over time and radial coordinate.
 
@@ -24,7 +24,7 @@ Returns interpolation function for 2D data (rho, time) -> transformed_data
 
 NOTE: what is a Val{<:Symbol} that gets passed to the `getrawdata(what, dd)`
 """
-function fit2d(what::Val, dd::IMAS.dd{T}; transform::F=x -> x) where {T<:Real,F<:Function}
+function fit2d(what::Val, dd::IMAS.DD{T}; transform::F=x -> x) where {T<:Real,F<:Function}
     meas = getdata(what, dd)
     transformed_data = transform.(meas.data)::typeof(meas.data) # force type for empty arrays
     return fit2d(meas.time, meas.rho, transformed_data)

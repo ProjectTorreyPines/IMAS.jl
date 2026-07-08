@@ -4140,7 +4140,7 @@ end
     end
 end
 
-@recipe function plot_field_1d_manyDDs(ids::IDS, field::Symbol, DDs::AbstractVector{<:IMAS.dd})
+@recipe function plot_field_1d_manyDDs(ids::IDS, field::Symbol, DDs::AbstractVector{<:IMAS.DD})
     @series begin
         [IMAS.goto(dd, IMAS.location(ids)) for dd in DDs], field
     end

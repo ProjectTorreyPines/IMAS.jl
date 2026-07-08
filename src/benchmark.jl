@@ -8,7 +8,7 @@ document[Symbol("Benchmark")] = Symbol[]
 Struct for benchmarking time-dependent dd data structures
 """
 struct Benchmark{T}
-    dd::IMAS.dd{T}
+    dd::IMAS.DD{T}
     data::Dict{String,Vector{T}}
 end
 
@@ -16,11 +16,11 @@ end
 push!(document[Symbol("Benchmark")], :Benchmark)
 
 """
-    Benchmark(dd::IMAS.dd{T}) where {T<:Real}
+    Benchmark(dd::IMAS.DD{T}) where {T<:Real}
 
 Construct Benchmark from frozen dd, extracting all leaf data
 """
-function Benchmark(dd::IMAS.dd{T}) where {T<:Real}
+function Benchmark(dd::IMAS.DD{T}) where {T<:Real}
     @assert IMAS.isfrozen(dd)
 
     data = Dict{String,Vector{T}}()
@@ -50,11 +50,11 @@ function Benchmark(dd::IMAS.dd{T}) where {T<:Real}
 end
 
 """
-    benchmark(dd_ben::IMAS.dd{T}, times::AbstractVector{Float64}) where {T<:Real}
+    benchmark(dd_ben::IMAS.DD{T}, times::AbstractVector{Float64}) where {T<:Real}
 
 Evaluate self-consistency of a given IDS (flux-matching errors, etc.)
 """
-function benchmark(dd_ben::IMAS.dd{T}, times::AbstractVector{Float64}) where {T<:Real}
+function benchmark(dd_ben::IMAS.DD{T}, times::AbstractVector{Float64}) where {T<:Real}
     dd_cst = IMAS.dd(; frozen=true)
 
     for time0 in times
@@ -129,11 +129,11 @@ function benchmark(dd_ben::IMAS.dd{T}, times::AbstractVector{Float64}) where {T<
 end
 
 """
-    benchmark(dd_ben::IMAS.dd{T}, dd_ref::IMAS.dd{T}, times::AbstractVector{Float64}; self_benchmark::Bool=true) where {T<:Real}
+    benchmark(dd_ben::IMAS.DD{T}, dd_ref::IMAS.DD{T}, times::AbstractVector{Float64}; self_benchmark::Bool=true) where {T<:Real}
 
 Benchmark two dd structures at specified times
 """
-function benchmark(dd_ben::IMAS.dd{T}, dd_ref::IMAS.dd{T}, times::AbstractVector{Float64}; self_benchmark::Bool=true) where {T<:Real}
+function benchmark(dd_ben::IMAS.DD{T}, dd_ref::IMAS.DD{T}, times::AbstractVector{Float64}; self_benchmark::Bool=true) where {T<:Real}
     if self_benchmark
         dd_cst = benchmark(dd_ben, times).dd
     else

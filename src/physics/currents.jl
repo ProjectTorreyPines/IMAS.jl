@@ -355,11 +355,11 @@ end
 push!(document[Symbol("Physics currents")], :Ip)
 
 """
-    plasma_lumped_resistance(dd::IMAS.dd)
+    plasma_lumped_resistance(dd::IMAS.DD)
 
 Returns equivalent plasma lumped resistance in ohms
 """
-function plasma_lumped_resistance(dd::IMAS.dd)
+function plasma_lumped_resistance(dd::IMAS.DD)
     cp1d = dd.core_profiles.profiles_1d[]
     eqt = dd.equilibrium.time_slice[]
     P_ohm = dd.core_sources.source[:ohmic].profiles_1d[].electrons.power_inside[end]

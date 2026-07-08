@@ -371,7 +371,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     end
 end
 
-function fast_particles_profiles!(dd::IMAS.dd; verbose::Bool=false, modify_electron_density::Bool=false)
+function fast_particles_profiles!(dd::IMAS.DD; verbose::Bool=false, modify_electron_density::Bool=false)
     return fast_particles_profiles!(dd.core_sources, dd.core_profiles.profiles_1d[]; verbose, modify_electron_density)
 end
 
