@@ -1,6 +1,6 @@
 name = "IMAS"
 uuid = "13ead8c1-b7d1-41bb-a6d0-5b8b65ed587a"
-version = "7.1.8"
+version = "7.2.0"
 authors = ["Orso Meneghini <orso82@gmail.com>"]
 
 [deps]
