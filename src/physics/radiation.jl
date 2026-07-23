@@ -113,14 +113,14 @@ function line_radiation_source!(dd::IMAS.DD)
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
-    # Remove any pre-existing line_radiation sources before recomputing the per-impurity
-    # contributions below. Bremsstrahlung and synchrotron are single sources and get overwritten
-    # by index via `resize!`; line radiation is split one-source-per-impurity, so a differently
-    # named pre-existing source (e.g. a lumped `qline` loaded from an ODS/OMFIT, or stale sources
-    # from a previous call) would otherwise survive and be double-counted by `radiation_losses`
-    # / `total_power_inside`. `deleteat!(..., :line_radiation)` matches by identifier index, so it
-    # catches such sources regardless of their name.
-    deleteat!(dd.core_sources.source, :line_radiation)
+    keep = Set("line " * string(elements[round(Int, ion.element[1].z_n, RoundDown)].symbol) for ion in cp1d.ion)
+    li = name_2_index(dd.core_sources.source)[:line_radiation]
+    for k in reverse(eachindex(dd.core_sources.source))
+        s = dd.core_sources.source[k]
+        if s.identifier.index == li && !(s.identifier.name in keep)
+            deleteat!(dd.core_sources.source, k)
+        end
+    end
 
     sources = [for ion in cp1d.ion
         ni = ion.density_thermal
