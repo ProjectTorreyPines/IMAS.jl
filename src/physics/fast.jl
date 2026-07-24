@@ -301,6 +301,15 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     Te = cp1d.electrons.temperature
 
     Npsi = length(ne)
+    
+    # --- guard: if no source can rebuild fast ions, leave existing density_fast/pressure_fast alone ---
+    has_fast_source = any(
+        !isempty(s.profiles_1d) && any(
+            !ismissing(si, :particles) && sum(si.particles) > 0.0 &&
+            !ismissing(si, :fast_particles_energy) && si.fast_particles_energy > 0.0
+            for si in s.profiles_1d[].ion)
+        for s in cs.source)
+    has_fast_source || return
 
     # zero out all cp1d fast-ion related quantities
     cp1d.electrons.density_fast = zeros(Npsi)
