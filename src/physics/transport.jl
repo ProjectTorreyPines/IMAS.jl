@@ -244,6 +244,8 @@ function _diffusivity_terms(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T}=T[]
     surf = IMAS.interp1d(rho_eq, eqt1d.surface).(rho_cp)
     dVdρ = IMAS.interp1d(rho_eq, eqt1d.dvolume_drho_tor).(rho_cp)
 
+    # used below into real-space gradients. Uses <|∇ρ|²> ≈ <|∇ρ|>² because `gm3` is not among the
+    Leff = @. eqt1d.rho_tor[end] * dVdρ / surf
     isfinite(Leff[1]) || (Leff[1] = Leff[2])             # surf and dVdρ both vanish on axis
 
     # Default profiles if not provided
