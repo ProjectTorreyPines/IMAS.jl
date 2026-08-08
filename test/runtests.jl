@@ -23,4 +23,6 @@ else
     include("runtests_extract.jl")
 
     include("runtests_plot_recipes.jl")
+
+    include("physics/particles/test_toroidal_intersection.jl")
 end
