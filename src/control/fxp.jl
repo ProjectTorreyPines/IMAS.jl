@@ -22,7 +22,7 @@ function Base.deepcopy_internal(x::IMAS.DD{T}, dict::IdDict) where {T<:Real}
     # Use the default `deepcopy_internal` to handle the copying process.
     # This creates a shallow copy of `x`, so all mutable fields will
     # still be copied correctly later.
-    new_obj = IMAS.dd{T}()
+    new_obj = typeof(x)()
 
     # Register the new object in `dict` to handle cyclic references.
     dict[x] = new_obj

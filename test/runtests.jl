@@ -23,4 +23,6 @@ else
     include("runtests_extract.jl")
 
     include("runtests_plot_recipes.jl")
+
+    include("runtests_satellite.jl")
 end
