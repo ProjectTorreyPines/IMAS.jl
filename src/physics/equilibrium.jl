@@ -310,3 +310,20 @@ end
 
 @compat public optimal_kappa_delta
 push!(document[Symbol("Physics equilibrium")], :optimal_kappa_delta)
+
+"""
+    b_field_poloidal_average(eqt::IMAS.equilibrium__time_slice)
+
+Average poloidal magnetic field of an equilibrium, from the plasma current and the poloidal perimeter
+of the boundary:
+
+    Bp = μ₀ Ip / length_pol
+
+This is the poloidal field that the global `eqt.global_quantities.beta_pol` is normalized to
+"""
+function b_field_poloidal_average(eqt::IMAS.equilibrium__time_slice)
+    return mks.μ_0 * eqt.global_quantities.ip / eqt.global_quantities.length_pol
+end
+
+@compat public b_field_poloidal_average
+push!(document[Symbol("Physics equilibrium")], :b_field_poloidal_average)
