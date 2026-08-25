@@ -392,3 +392,22 @@ function h_mode_detector(rho::AbstractVector{T}, electrons_pressure::AbstractVec
 
     return hmode
 end
+
+"""
+    pedestal_poloidal_beta(eqt::IMAS.equilibrium__time_slice, pped::Real)
+
+Poloidal beta of the pedestal pressure `pped` [Pa]:
+
+    βₚ,ped = pped / (Bp² / 2μ₀)
+
+with `Bp` the average poloidal magnetic field of the equilibrium (`b_field_poloidal_average`), the
+same convention that the global `eqt.global_quantities.beta_pol` uses for the volume averaged
+pressure. This is the beta that sets the analytic EPED pedestal width `w_ped = 0.076·√βₚ,ped`
+"""
+function pedestal_poloidal_beta(eqt::IMAS.equilibrium__time_slice, pped::Real)
+    Bp = b_field_poloidal_average(eqt)
+    return abs(pped / (Bp^2 / 2.0 / mks.μ_0))
+end
+
+@compat public pedestal_poloidal_beta
+push!(document[Symbol("Physics pedestal")], :pedestal_poloidal_beta)
