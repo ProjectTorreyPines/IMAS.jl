@@ -224,11 +224,14 @@ end
 
 
 """
-    calculate_diffusivities(dd; ne=:none, Te=:none, Ti=:none, omega=:none)
+    _diffusivity_terms(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
 
-Compute transport particle, heat, and rotation diffusivities from desired profiles.
+Geometry, profile, and conducted-power terms shared by `calculate_diffusivities` and `pedestal_diffusivities`.
+
+Everything is returned on the `total_sources` grid `rho` (= `rho_tor_norm`). The logarithmic gradients
+`dln*dr` are taken with respect to `rho` and are positive where a profile decreases outwards.
 """
-function calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
+function _diffusivity_terms(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
 
     cs1d = IMAS.total_sources(dd)
     cp1d = dd.core_profiles.profiles_1d[]
@@ -239,6 +242,11 @@ function calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T
 
     # Volumes and surfaces
     surf = IMAS.interp1d(rho_eq, eqt1d.surface).(rho_cp)
+    dVdρ = IMAS.interp1d(rho_eq, eqt1d.dvolume_drho_tor).(rho_cp)
+
+    # used below into real-space gradients. Uses <|∇ρ|²> ≈ <|∇ρ|>² because `gm3` is not among the
+    Leff = @. eqt1d.rho_tor[end] * dVdρ / surf
+    isfinite(Leff[1]) || (Leff[1] = Leff[2])             # surf and dVdρ both vanish on axis
 
     # Default profiles if not provided
     ne = isempty(ne) ? cp1d.electrons.density_thermal : ne
@@ -246,17 +254,19 @@ function calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T
     Ti = isempty(Ti) ? cp1d.ion[1].temperature : Ti
     ω = isempty(ω) ? cp1d.rotation_frequency_tor_sonic : ω
 
-    # omega currently not used
     zeff = cp1d.zeff
+    ni = @. ne / zeff                                    # main-ion density
 
     # Logarithmic gradients
     dlntedr = .-IMAS.calc_z(rho_cp, Te, :backward)
     dlnnedr = .-IMAS.calc_z(rho_cp, ne, :backward)
     dlntidr = .-IMAS.calc_z(rho_cp, Ti, :backward)
 
-    # Pressure gradient terms
-    dpe = @. ne * IMAS.mks.e * Te * (dlntedr + dlnnedr)
-    dpi = @. ne * IMAS.mks.e * Ti * (dlntidr + dlnnedr) / zeff
+    # Volume-integrated fluxes, and the conducted part of the power (total minus the 5/2⋅Γ⋅T convected part)
+    Γe = cs1d.electrons.particles_inside                 # [particles/s]
+    Γi = @. Γe / zeff                                    # main-ion flux, consistent with `ni`
+    Qe_cond = @. cs1d.electrons.power_inside - 2.5 * IMAS.mks.e * Te * Γe
+    Qi_cond = @. cs1d.total_ion_power_inside - 2.5 * IMAS.mks.e * Ti * Γi
 
     # momentum pressure
     mi = cp1d.ion[1].element[1].a * IMAS.mks.m_p
@@ -264,11 +274,36 @@ function calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T
     dωdr = .-IMAS.calc_z(rho_cp, ω, :backward) .* ω
     pφ = dωdr .* ne .* mi .* Rmaj .^ 2
 
+    return (; rho=rho_cp, surf, Leff, ne, ni, Te, Ti, zeff, dlnnedr, dlntedr, dlntidr,
+        Γe, Qe_cond, Qi_cond, pφ, torque=cs1d.torque_tor_inside)
+end
+
+"""
+    calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
+
+Compute transport particle, heat, and rotation effective diffusivities `(Dn, χe, χi, χφ)` [m²/s] from desired profiles.
+
+The coefficients are inverted from the flux-surface-averaged transport equation
+
+    S_inside(ρ) = -Y ⟨|∇ρ_tor|²⟩ (dV/dρ_tor) dX/dρ_tor
+
+where `S_inside` is a volume-integrated source, `X` the driving profile and `Y` the diffusivity. Gradients
+are evaluated against `rho_tor_norm` and converted to real-space gradients with the effective radial length
+`Leff = 1/⟨|∇ρ_tor_norm|⟩ = ρ_tor_boundary (dV/dρ_tor) / surface` [m], which relies on ⟨|∇ρ|²⟩ ≈ ⟨|∇ρ|⟩².
+
+`χe` and `χi` follow the conduction-only convention `χ = -q_cond / (n dT/dr)` used by edge codes: the
+convected `5/2 Γ T` part of the power is subtracted from the numerator, and the denominator holds the
+temperature gradient rather than the pressure gradient.
+"""
+function calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[], ω::Vector{T}=T[]) where {T<:Real}
+
+    trm = _diffusivity_terms(dd; ne, Te, Ti, ω)
+
     # Diffusivities
-    Dn = @. cs1d.electrons.particles_inside / (surf * dlnnedr * ne)
-    χe = @. cs1d.electrons.power_inside / (surf * dpe)
-    χi = @. cs1d.total_ion_power_inside / (surf * dpi)
-    χφ = @. cs1d.torque_tor_inside / (surf * pφ)
+    Dn = @. trm.Leff * trm.Γe / (trm.surf * trm.dlnnedr * trm.ne)
+    χe = @. trm.Leff * trm.Qe_cond / (trm.surf * trm.ne * IMAS.mks.e * trm.Te * trm.dlntedr)
+    χi = @. trm.Leff * trm.Qi_cond / (trm.surf * trm.ni * IMAS.mks.e * trm.Ti * trm.dlntidr)
+    χφ = @. trm.Leff * trm.torque / (trm.surf * trm.pφ)
 
     # Patch singular boundary values
     Dn[1] = Dn[2]
@@ -279,6 +314,81 @@ function calculate_diffusivities(dd::IMAS.DD{T}; ne::Vector{T}=T[], Te::Vector{T
     return Dn, χe, χi, χφ
 end
 
+@compat public calculate_diffusivities
+push!(document[Symbol("Physics transport")], :calculate_diffusivities)
+
+"""
+    _pedestal_average(rho::AbstractVector{<:Real}, y::AbstractVector{<:Real}, index::AbstractVector{Int})
+
+Average `y` over the samples `index`, dropping non-finite and non-positive entries.
+
+Returns `NaN` when nothing usable survives, leaving it to the caller to decide on a fallback.
+"""
+function _pedestal_average(rho::AbstractVector{<:Real}, y::AbstractVector{<:Real}, index::AbstractVector{Int})
+    keep = [k for k in index if isfinite(y[k]) && y[k] > 0.0]
+    if isempty(keep)
+        return NaN
+    elseif length(keep) == 1
+        return float(y[keep[1]])
+    end
+    x = @views rho[keep]
+    return trapz(x, @views y[keep]) / (x[end] - x[1])
+end
+
+"""
+    pedestal_diffusivities(dd::IMAS.DD{T}; rho_ped::Float64=NaN, ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[]) where {T<:Real}
+
+Cross-field transport coefficients [m²/s] averaged over the pedestal region `[rho_ped, 1.0]`, for use as
+boundary/edge transport inputs (e.g. the `D_perp`/`chi_perp` of a SOL or edge-plasma code).
+
+Returns `(; D_perp, chi_e, chi_i, chi_perp, rho_ped)`.
+
+`chi_perp` is a *single* heat diffusivity for both species, built to conserve the total conducted heat flux
+(`chi_perp = (Qe_cond + Qi_cond) / (surface ⟨|∇ρ|⟩ e (ne dTe/dρ + ni dTi/dρ))`) rather than by naively
+averaging `chi_e` and `chi_i` — this matches edge codes that run a common `kye = kyi`.
+
+`rho_ped` defaults to `dd.summary.local.pedestal.position.rho_tor_norm`, falling back to a
+[`pedestal_finder`](@ref) fit of the electron density when the summary is not filled.
+
+Any coefficient for which no finite, positive sample exists in the pedestal comes back as `NaN`.
+"""
+function pedestal_diffusivities(dd::IMAS.DD{T}; rho_ped::Float64=NaN, ne::Vector{T}=T[], Te::Vector{T}=T[], Ti::Vector{T}=T[]) where {T<:Real}
+
+    trm = _diffusivity_terms(dd; ne, Te, Ti)
+
+    if isnan(rho_ped)
+        if hasdata(dd.summary.local.pedestal.position, :rho_tor_norm)
+            rho_ped = @ddtime(dd.summary.local.pedestal.position.rho_tor_norm)
+        else
+            cp1d = dd.core_profiles.profiles_1d[]
+            rho_ped = 1.0 - pedestal_finder(cp1d.electrons.density_thermal, cp1d.grid.rho_tor_norm).width
+        end
+    end
+
+    # pedestal samples, always keeping at least the two outermost points
+    index = findall(x -> x >= rho_ped, trm.rho)
+    if length(index) < 2
+        index = collect(length(trm.rho)-1:length(trm.rho))
+    end
+
+    Dn = @. trm.Leff * trm.Γe / (trm.surf * trm.dlnnedr * trm.ne)
+    χe = @. trm.Leff * trm.Qe_cond / (trm.surf * trm.ne * IMAS.mks.e * trm.Te * trm.dlntedr)
+    χi = @. trm.Leff * trm.Qi_cond / (trm.surf * trm.ni * IMAS.mks.e * trm.Ti * trm.dlntidr)
+
+    # single heat diffusivity conserving the total conducted heat flux
+    χ = @. trm.Leff * (trm.Qe_cond + trm.Qi_cond) /
+           (trm.surf * IMAS.mks.e * (trm.ne * trm.Te * trm.dlntedr + trm.ni * trm.Ti * trm.dlntidr))
+
+    return (;
+        D_perp=_pedestal_average(trm.rho, Dn, index),
+        chi_e=_pedestal_average(trm.rho, χe, index),
+        chi_i=_pedestal_average(trm.rho, χi, index),
+        chi_perp=_pedestal_average(trm.rho, χ, index),
+        rho_ped)
+end
+
+@compat public pedestal_diffusivities
+push!(document[Symbol("Physics transport")], :pedestal_diffusivities)
 
 @compat public total_fluxes
 push!(document[Symbol("Physics transport")], :total_fluxes)

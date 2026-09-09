@@ -113,6 +113,15 @@ function line_radiation_source!(dd::IMAS.DD)
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
+    keep = Set("line " * string(elements[round(Int, ion.element[1].z_n, RoundDown)].symbol) for ion in cp1d.ion)
+    li = name_2_index(dd.core_sources.source)[:line_radiation]
+    for k in reverse(eachindex(dd.core_sources.source))
+        s = dd.core_sources.source[k]
+        if s.identifier.index == li && !(s.identifier.name in keep)
+            deleteat!(dd.core_sources.source, k)
+        end
+    end
+
     sources = [for ion in cp1d.ion
         ni = ion.density_thermal
         zi = ion.element[1].z_n
@@ -216,7 +225,7 @@ function adas21(Te, name)
             +8.700125448336e-02,
             -6.988848399826e-02,
             +4.169797142892e-03,
-            +4.169797142892e-03
+            +9.826847754665e-03
         ]
     elseif name == "B"
         coefficients = [
@@ -231,7 +240,7 @@ function adas21(Te, name)
             -2.497690268099e-02,
             +1.137544241417e-02,
             -2.413605670955e-03,
-            -2.413605670955e-03
+            -1.124244591834e-03
         ]
     elseif name == "He"
         coefficients = [
@@ -246,7 +255,7 @@ function adas21(Te, name)
             -1.770156311492e-03,
             +5.783337251866e-04,
             +2.308975845735e-05,
-            +2.308975845735e-05
+            -4.276172509745e-04
         ]
     elseif name == "Be"
         coefficients = [
@@ -261,7 +270,7 @@ function adas21(Te, name)
             +2.551848339714e-03,
             -1.268897504553e-03,
             +2.514022413007e-04,
-            +2.514022413007e-04
+            -8.449017995079e-04
         ]
     elseif name == "C"
         coefficients = [
@@ -276,7 +285,7 @@ function adas21(Te, name)
             +2.170627066061e-02,
             -3.195887243365e-02,
             +2.481800173124e-02,
-            +2.481800173124e-02
+            -8.949718256775e-03
         ]
     elseif name == "O"
         coefficients = [
@@ -291,7 +300,7 @@ function adas21(Te, name)
             +4.535099018906e-02,
             +5.682622389415e-02,
             -7.724691172118e-02,
-            -7.724691172118e-02
+            +4.671388518804e-02
         ]
     elseif name == "N"
         coefficients = [
@@ -306,7 +315,7 @@ function adas21(Te, name)
             +1.367404249744e-01,
             -7.076042601889e-02,
             +1.377707920484e-02,
-            +1.377707920484e-02
+            +1.681956225002e-02
         ]
     elseif name == "F"
         coefficients = [
@@ -321,7 +330,7 @@ function adas21(Te, name)
             -1.483369633643e-01,
             +1.362062267100e-01,
             -4.689893298094e-02,
-            -4.689893298094e-02
+            -2.644300012089e-02
         ]
     elseif name == "Ne"
         coefficients = [
@@ -336,7 +345,7 @@ function adas21(Te, name)
             -1.804901948539e-01,
             +1.138691735006e-01,
             +1.238414608039e-02,
-            +1.238414608039e-02
+            -7.946295188381e-02
         ]
     elseif name == "Al"
         coefficients = [
@@ -351,7 +360,7 @@ function adas21(Te, name)
             +1.194090655176e-01,
             -2.087103454071e-01,
             +8.992619526224e-02,
-            +8.992619526224e-02
+            +3.923399787447e-02
         ]
     elseif name == "Si"
         coefficients = [
@@ -366,7 +375,7 @@ function adas21(Te, name)
             +2.108242428513e-01,
             -1.792043287525e-01,
             +9.913893641685e-03,
-            +9.913893641685e-03
+            +7.490321841247e-02
         ]
     elseif name == "Ar"
         coefficients = [
@@ -381,7 +390,7 @@ function adas21(Te, name)
             +4.842130798317e-02,
             +1.715110727683e-01,
             -1.077751857577e-01,
-            -1.077751857577e-01
+            -4.574007342660e-02
         ]
     elseif name == "Ca"
         coefficients = [
@@ -396,7 +405,7 @@ function adas21(Te, name)
             -1.771137529772e-02,
             +1.469773755999e-01,
             -1.213876050533e-02,
-            -1.213876050533e-02
+            -5.491593884657e-02
         ]
     elseif name == "Fe"
         coefficients = [
@@ -411,7 +420,7 @@ function adas21(Te, name)
             +2.140105004146e-02,
             -1.785057925001e-01,
             +5.091860663164e-02,
-            +5.091860663164e-02
+            +6.171044344444e-02
         ]
     elseif name == "Ni"
         coefficients = [
@@ -426,7 +435,7 @@ function adas21(Te, name)
             +1.513611521059e-01,
             -2.308718720128e-01,
             -9.023390843523e-03,
-            -9.023390843523e-03
+            +1.781391433306e-01
         ]
     elseif name == "Kr"
         coefficients = [
@@ -441,7 +450,7 @@ function adas21(Te, name)
             +1.229092533413e-01,
             +5.721604110683e-02,
             -3.858573093198e-02,
-            -3.858573093198e-02
+            -7.656826000830e-02
         ]
     elseif name == "Mo"
         coefficients = [
@@ -456,7 +465,7 @@ function adas21(Te, name)
             -1.749938253055e-01,
             +7.007588723552e-02,
             +8.557768114101e-02,
-            +8.557768114101e-02
+            -7.082562416821e-02
         ]
     elseif name == "Xe"
         coefficients = [
@@ -471,7 +480,7 @@ function adas21(Te, name)
             +1.738552444143e-02,
             +3.245918863202e-03,
             -6.535620998184e-02,
-            -6.535620998184e-02
+            +3.866947213111e-03
         ]
     elseif name == "Li"
         coefficients = [
@@ -486,7 +495,7 @@ function adas21(Te, name)
             +7.058675207572e-03,
             -3.451108596954e-03,
             -2.663068572132e-03,
-            -2.663068572132e-03
+            +6.045007428451e-03
         ]
     elseif name == "H"
         coefficients = [
@@ -501,7 +510,7 @@ function adas21(Te, name)
             +4.909076663983e-05,
             -5.820357621765e-05,
             +8.674684934388e-05,
-            +8.674684934388e-05
+            -9.027712584843e-05
         ]
     else
         error("No line radiation for $name")
