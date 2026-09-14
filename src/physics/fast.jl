@@ -404,7 +404,6 @@ function sivukhin_fraction(cp1d::IMAS.core_profiles__profiles_1d, particle_energ
         if !ismissing(ion, :temperature) # ion temperature may be missing for purely fast-ions species
             ni = ion.density_thermal
             if !all(ni .>= 0.0)
-                display(plot(cp1d))
                 error("Ion `$(ion.label)` has negative densities\n$ni")
             end
             Zi = avgZ(ion)
