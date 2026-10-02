@@ -1613,7 +1613,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     Btvac = B0 * R0 / Rgeo
 
     # average poloidal magnetic field
-    Bpave = eqt.global_quantities.ip * mks.μ_0 / eqt.global_quantities.length_pol
+    Bpave = b_field_poloidal_average(eqt)
 
     # li
     Bp2v = trapz(eqt1d.psi, T1[trapz(surface.ll, surface.Bp) for surface in surfaces])
