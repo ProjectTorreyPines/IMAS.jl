@@ -26,7 +26,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
         c6 = -1.06750e-4
         c7 = 1.36600e-5
         bg = 34.3827
-        er = 1.124656e6
+        mc2 = 1124656.0
         if polarized_fuel_fraction > 0.0
             spf = 1.5 #spin polarization factor - 1.5 chosen according to GACP 20010393
         end
@@ -40,7 +40,6 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
         c5 = 1.35776e-4
         c6 = 0.0
         c7 = 0.0
-        er = 18.3e6
         if polarized_fuel_fraction > 0.0
             spf = 1.5 #also 1.5 for D+He3→He4 according to Kulsrud (1982), PRL 49(17), 1248-1251
         end
@@ -54,7 +53,6 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
         c5 = 1.05060e-5
         c6 = 0.0
         c7 = 0.0
-        er = 4.03e6
         if polarized_fuel_fraction > 0.0
             error("Sorry, spin polarized fuel option is not available for $(model)")
         end
@@ -68,7 +66,6 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
         c5 = -2.96400e-6
         c6 = 0.0
         c7 = 0.0
-        er = 0.82e6
         if polarized_fuel_fraction > 0.0
             error("Sorry, spin polarized fuel option is not available for $(model)")
         end
@@ -88,7 +85,7 @@ function reactivity(Ti::AbstractVector{<:Real}, model::String; polarized_fuel_fr
     theta = Ti ./ (1.0 .- r0)
 
     xi = (bg .^ 2 ./ (4.0 .* theta)) .^ (1.0 ./ 3.0)
-    sigv = c1 .* theta .* sqrt.(xi ./ (er .* Ti .^ 3)) .* exp.(-3.0 .* xi)
+    sigv = c1 .* theta .* sqrt.(xi ./ (mc2 .* Ti .^ 3)) .* exp.(-3.0 .* xi)
 
     return ((1.0 .- polarized_fuel_fraction) .+ spf * polarized_fuel_fraction) .* sigv / 1e6  # m^3/s
 end
