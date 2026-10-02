@@ -132,6 +132,8 @@ push!(document[Symbol("Physics nuclear")], :D_T_to_He4_reactions)
     D_D_to_He3_reactions(dd::IMAS.DD)
 
 Calculates the number of D-D thermal fusion reactions to He3 in [reactions/m³/s]
+
+NOTE: includes the 1/2 factor that avoids double counting pairs of identical reactants
 """
 function D_D_to_He3_reactions(cp1d::IMAS.core_profiles__profiles_1d)
     ion_list = (ion.label for ion in cp1d.ion)
@@ -142,14 +144,14 @@ function D_D_to_He3_reactions(cp1d::IMAS.core_profiles__profiles_1d)
         n_deuterium = cp1d.ion[D_index].density_thermal
         Ti = cp1d.ion[D_index].temperature
         sigv = reactivity(Ti, "D+D→He3")
-        result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
+        result .= n_deuterium .^ 2 .* sigv ./ 2.0  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
         n_deuterium = cp1d.ion[DT_index].density_thermal ./ 2.0
         Ti = cp1d.ion[DT_index].temperature
         sigv = reactivity(Ti, "D+D→He3")
-        result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
+        result .= n_deuterium .^ 2 .* sigv ./ 2.0  #  reactions/m³/s
     end
 
     return result
@@ -162,6 +164,8 @@ push!(document[Symbol("Physics nuclear")], :D_D_to_He3_reactions)
     D_D_to_T_reactions(dd::IMAS.DD)
 
 Calculates the number of D-D thermal fusion reactions to T in [reactions/m³/s]
+
+NOTE: includes the 1/2 factor that avoids double counting pairs of identical reactants
 """
 function D_D_to_T_reactions(cp1d::IMAS.core_profiles__profiles_1d)
     ion_list = (ion.label for ion in cp1d.ion)
@@ -172,14 +176,14 @@ function D_D_to_T_reactions(cp1d::IMAS.core_profiles__profiles_1d)
         n_deuterium = cp1d.ion[D_index].density_thermal
         Ti = cp1d.ion[D_index].temperature
         sigv = reactivity(Ti, "D+D→T")
-        result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
+        result .= n_deuterium .^ 2 .* sigv ./ 2.0  #  reactions/m³/s
 
     elseif "DT" in ion_list
         DT_index = findfirst(ion -> isequal(ion, "DT"), ion_list)
         n_deuterium = cp1d.ion[DT_index].density_thermal ./ 2.0
         Ti = cp1d.ion[DT_index].temperature
         sigv = reactivity(Ti, "D+D→T")
-        result .= n_deuterium .^ 2 .* sigv  #  reactions/m³/s
+        result .= n_deuterium .^ 2 .* sigv ./ 2.0  #  reactions/m³/s
     end
 
     return result
@@ -198,10 +202,13 @@ push!(document[Symbol("Physics nuclear")], :D_D_to_T_reactions)
         in1::Symbol,
         in2::Symbol,
         out::Symbol,
-        eV::Float64
+        eV::Float64;
+        reactants_fraction::Float64=1.0
     )
 
 Add a fusion reaction source for two isotopes coming in and one coming out
+
+Use `reactants_fraction` when the same reaction is split across multiple sources, so that the reactants are only removed once in total
 """
 function fusion_reaction_source(
     s1d::IMAS.core_sources__source___profiles_1d,
@@ -209,7 +216,8 @@ function fusion_reaction_source(
     in1::Symbol,
     in2::Symbol,
     out::Symbol,
-    eV::Float64
+    eV::Float64;
+    reactants_fraction::Float64=1.0
 )
 
     k = 0
@@ -218,17 +226,17 @@ function fusion_reaction_source(
         k += 1
         ion = resize!(s1d.ion, k)[k]
         ion_element!(ion, in1)
-        ion.particles = -2.0 * reactivity
+        ion.particles = -2.0 * reactants_fraction * reactivity
     else
         k += 1
         ion = resize!(s1d.ion, k)[k]
         ion_element!(ion, in1)
-        ion.particles = -reactivity
+        ion.particles = -reactants_fraction * reactivity
 
         k += 1
         ion = resize!(s1d.ion, k)[k]
         ion_element!(ion, in2)
-        ion.particles = -reactivity
+        ion.particles = -reactants_fraction * reactivity
     end
 
     k += 1
@@ -348,7 +356,8 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_reaction_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :T, eV1)
+    # D+D→T+H is split in two sources: each one removes half of the two D consumed by a reaction
+    fusion_reaction_source(source.profiles_1d[], reactivity, :D, :D, :T, eV1; reactants_fraction=0.5)
 
     name = "D+D→H"
     eV2 = 3.0225e6
@@ -366,7 +375,7 @@ function D_D_to_T_source!(cs::IMAS.core_sources, cp::IMAS.core_profiles)
         total_ion_energy=energy .* ion_to_electron_fraction
     )
 
-    fusion_reaction_source(source.profiles_1d[], reactivity / 2.0, :D, :D, :H, eV2)
+    fusion_reaction_source(source.profiles_1d[], reactivity, :D, :D, :H, eV2; reactants_fraction=0.5)
 
     return source
 end
