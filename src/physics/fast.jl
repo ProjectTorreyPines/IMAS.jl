@@ -286,7 +286,34 @@ end
 push!(document[Symbol("Physics fast")], :fast_ion_thermalization_time)
 
 """
-    fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.8, modify_electron_density::Bool=false)
+    fast_density_cap!(nf::AbstractVector, limit::AbstractVector, knee::Real)
+
+Limit the fast-ion density `nf` to `limit` in place.
+
+`knee >= 1` is a hard clamp, `min(nf, limit)`. With `knee < 1`, `nf` is unchanged up to `knee * limit` and saturates smoothly
+above it, `limit * (knee + (1 - knee) * tanh((x - knee) / (1 - knee)))` with `x = nf / limit`, so that profiles where the cap
+engages over part of the radius have no slope break.
+"""
+function fast_density_cap!(nf::AbstractVector, limit::AbstractVector, knee::Real)
+    for i in eachindex(nf, limit)
+        L = limit[i]
+        if knee >= 1 || L <= 0
+            nf[i] > L && (nf[i] = L)
+        else
+            x = nf[i] / L
+            if x > knee
+                nf[i] = L * (knee + (1 - knee) * tanh((x - knee) / (1 - knee)))
+            end
+        end
+    end
+    return nf
+end
+
+@compat public fast_density_cap!
+push!(document[Symbol("Physics fast")], :fast_density_cap!)
+
+"""
+    fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.8, fast_density_knee::Real=1.0, modify_electron_density::Bool=false)
 
 Fills the core_profiles fast ion densities and pressures that result from fast ion sources (eg. fusion and nbi)
 
@@ -295,8 +322,10 @@ This calculation is done based on the `slowing_down_time` and `thermalization_ti
 By default the fast ion density is subtracted from the thermal density of the same ion species, keeping the total
 ion density (and thus the electron density) unchanged. If `modify_electron_density` is `true`, the thermal ion density
 is instead left unchanged and the electron density is recomputed to satisfy quasi-neutrality.
+
+The fast ion density is capped at `max_fast_frac` times the thermal density, see [`fast_density_cap!`](@ref) for `fast_density_knee`.
 """
-function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.8, modify_electron_density::Bool=false)
+function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profiles__profiles_1d; verbose::Bool=false, max_fast_frac::Float64=0.8, fast_density_knee::Real=1.0, modify_electron_density::Bool=false)
     ne = cp1d.electrons.density_thermal
     Te = cp1d.electrons.temperature
 
@@ -359,8 +388,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     cion.pressure_fast_perpendicular .+= pressa ./ 3.0
                     cion.density_fast .+= sion_particles .* taut
                     limit = max_fast_frac .* cion.density_thermal # here density_thermal includes the old fast-ion contribution
-                    mask = cion.density_fast .> limit
-                    cion.density_fast[mask] .= limit[mask]
+                    fast_density_cap!(cion.density_fast, limit, fast_density_knee)
                     if modify_electron_density
                         # leave the thermal ion density unchanged: the electron density is adjusted
                         # below to satisfy quasi-neutrality once all fast-ion sources are accounted for
@@ -381,8 +409,8 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     end
 end
 
-function fast_particles_profiles!(dd::IMAS.DD; verbose::Bool=false, modify_electron_density::Bool=false)
-    return fast_particles_profiles!(dd.core_sources, dd.core_profiles.profiles_1d[]; verbose, modify_electron_density)
+function fast_particles_profiles!(dd::IMAS.DD; verbose::Bool=false, fast_density_knee::Real=1.0, modify_electron_density::Bool=false)
+    return fast_particles_profiles!(dd.core_sources, dd.core_profiles.profiles_1d[]; verbose, fast_density_knee, modify_electron_density)
 end
 
 @compat public fast_particles_profiles!
