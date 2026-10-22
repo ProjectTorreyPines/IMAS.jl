@@ -392,3 +392,140 @@ push!(document[Symbol("Physics transport")], :pedestal_diffusivities)
 
 @compat public total_fluxes
 push!(document[Symbol("Physics transport")], :total_fluxes)
+
+"""
+    rho_q_surface(rho::AbstractVector{<:Real}, q::AbstractVector{<:Real}, q_res::Real)
+
+Returns the outermost rho where abs(q) crosses q_res (linearly interpolated), or `nothing` if no crossing is found
+"""
+function rho_q_surface(rho::AbstractVector{<:Real}, q::AbstractVector{<:Real}, q_res::Real)
+    if abs(q[end]) == q_res
+        return rho[end]
+    end
+    for k in length(q)-1:-1:1
+        q1 = abs(q[k]) - q_res
+        q2 = abs(q[k+1]) - q_res
+        if q1 == 0.0
+            return rho[k]
+        elseif q1 * q2 < 0.0
+            return rho[k] + (rho[k+1] - rho[k]) * q1 / (q1 - q2)
+        end
+    end
+    return nothing
+end
+
+@compat public rho_q_surface
+push!(document[Symbol("Physics transport")], :rho_q_surface)
+
+"""
+    island_window(rho::AbstractVector{T}, rho_res::Real, island_width::Real, w_c::Real) where {T<:Real}
+
+Radial shape [0, 1] of the transport enhancement due to a magnetic island of full width `island_width` centered at `rho_res`
+
+    W(ρ) = f₀(w) * ½ [tanh((ρ - ρ_res + w/2) / δ) - tanh((ρ - ρ_res - w/2) / δ)]
+
+  - `δ = w_c / 2`: the edges are smoothed over the critical island width `w_c`, over which perpendicular and parallel transport compete
+  - `f₀(w) = w² / (w² + w_c²)`: islands smaller than `w_c` do not flatten the profiles (heuristic)
+"""
+function island_window(rho::AbstractVector{T}, rho_res::Real, island_width::Real, w_c::Real) where {T<:Real}
+    @assert w_c > 0.0 "w_c must be > 0.0"
+    if island_width <= 0.0
+        return zeros(T, length(rho))
+    end
+    w = island_width
+    δ = w_c / 2
+    f0 = w^2 / (w^2 + w_c^2)
+    return @. f0 * 0.5 * (tanh((rho - rho_res + w / 2) / δ) - tanh((rho - rho_res - w / 2) / δ))
+end
+
+@compat public island_window
+push!(document[Symbol("Physics transport")], :island_window)
+
+"""
+    tearing_mode_transport!(
+        m1d::IMAS.core_transport__model___profiles_1d,
+        cp1d::IMAS.core_profiles__profiles_1d,
+        rho_transport::AbstractVector{<:Real},
+        window::AbstractVector{<:Real};
+        chi_e::Real,
+        chi_i::Real,
+        D::Real,
+        chi_tor::Real,
+        R0::Real)
+
+Fills `m1d` with the fluxes at `rho_transport` due to ad hoc diffusivities `χ(ρ) = χ_island W(ρ)` inside magnetic islands,
+where `W(ρ)` is the radial shape of the islands evaluated on the `cp1d` grid (see `island_window`).
+
+This mimics the short-circuiting of radial transport by parallel transport along the island field lines:
+when `χ_island` is much larger than the turbulent diffusivity, flux matching drives the gradients inside the island
+below the turbulence threshold and the profiles flatten (the bootstrap hole then follows from the flattened pressure).
+
+The fluxes follow the same convention as `calculate_diffusivities`, with `Leff = (dV/dρ) / surface`:
+
+    q_e = χ_e e n_e T_e (-dlnT_e/dρ) / Leff        [W/m²]
+    q_i = Σ_k χ_i e n_k T_k (-dlnT_k/dρ) / Leff
+    Γ_s = D n_s (-dln n_s/dρ) / Leff                [1/m²/s]
+    Π   = χ_tor m_i n_e R0² (-dω/dρ) / Leff          [N/m]
+
+with `ρ = rho_tor_norm`, temperatures in eV, and the diffusivities in m²/s.
+"""
+function tearing_mode_transport!(
+    m1d::IMAS.core_transport__model___profiles_1d,
+    cp1d::IMAS.core_profiles__profiles_1d,
+    rho_transport::AbstractVector{<:Real},
+    window::AbstractVector{<:Real};
+    chi_e::Real,
+    chi_i::Real,
+    D::Real,
+    chi_tor::Real,
+    R0::Real)
+
+    rho = cp1d.grid.rho_tor_norm
+    gridpoints = [argmin_abs(rho, rho_x) for rho_x in rho_transport]
+
+    dVdρ = gradient(rho, cp1d.grid.volume)[gridpoints]
+    Leff = dVdρ ./ cp1d.grid.surface[gridpoints]
+    W = window[gridpoints]
+
+    # conductive flux of a profile X with diffusivity Y: Y * X * (-dlnX/dρ) / Leff (calc_z returns dlnX/dρ)
+    flux(Y, X) = .-Y .* W .* X[gridpoints] .* calc_z(rho, X, :backward)[gridpoints] ./ Leff
+
+    m1d.grid_flux.rho_tor_norm = rho_transport
+
+    ne = cp1d.electrons.density_thermal
+    Te = cp1d.electrons.temperature
+    m1d.electrons.energy.flux = flux(chi_e, Te) .* ne[gridpoints] .* mks.e
+    m1d.electrons.particles.flux = flux(D, ne)
+
+    qi = zeros(eltype(m1d.electrons.energy.flux), length(gridpoints))
+    for ion in cp1d.ion
+        mion = resize!(m1d.ion, "element[1].a" => ion.element[1].a, "element[1].z_n" => ion.element[1].z_n, "label" => ion.label)
+        if !ismissing(ion, :density_thermal) && all(ion.density_thermal .> 0.0)
+            mion.particles.flux = flux(D, ion.density_thermal)
+            if !ismissing(ion, :temperature)
+                mion.energy.flux = flux(chi_i, ion.temperature) .* ion.density_thermal[gridpoints] .* mks.e
+                qi .+= mion.energy.flux
+            else
+                mion.energy.flux = zero(qi)
+            end
+        else
+            mion.particles.flux = zero(qi)
+            mion.energy.flux = zero(qi)
+        end
+    end
+    m1d.total_ion_energy.flux = qi
+
+    if !ismissing(cp1d, :rotation_frequency_tor_sonic)
+        ω = cp1d.rotation_frequency_tor_sonic
+        mi = cp1d.ion[1].element[1].a * mks.m_p
+        dωdρ = gradient(rho, ω)[gridpoints]
+        m1d.momentum_tor.flux = @. -chi_tor * W * mi * ne[gridpoints] * R0^2 * dωdρ / Leff
+    else
+        m1d.momentum_tor.flux = zero(qi)
+    end
+
+    return m1d
+end
+
+@compat public tearing_mode_transport!
+push!(document[Symbol("Physics transport")], :tearing_mode_transport!)
