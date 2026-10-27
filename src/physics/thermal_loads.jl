@@ -369,7 +369,7 @@ function mesher_heat_flux(dd::IMAS.DD;
         #! format: off
         add_indexes = add_indexes[(psi_wall .< psi_boundaries.first_open .|| psi_wall .> psi_wall_midplane) .|| # add private flux region  around first null (psi<psi_sep) + add everyhting above psi midplane
                                 (psi_wall .>= psi_boundaries.first_open .&& psi_wall .<= psi_first_lfs_far .&&  # add also points inside the private region around second null (only if null is within wall)
-                                sign(eqt.boundary.x_point[end].z).*zwall.>abs(eqt.boundary.x_point[end].z)) .&& null_within_wall .||
+                                sign(eqt.boundary.x_point[end].z - Z0).*(zwall .- Z0).>abs(eqt.boundary.x_point[end].z - Z0)) .&& null_within_wall .||
                                 psi_wall .> psi_first_lfs_far .&& (rwall.<eqt.boundary.x_point[end].r) .|| # add point in :hfs
                                 (psi_wall .< psi_wall_midplane .&& (zwall.<=tollZ) .&& (zwall .>= -tollZ) .&& (rwall.>eqt.boundary.x_point[end].r) .&& add_omp) # add also points close to OMP but with psi lower than psi_wall midplane within tollZ from omp
                                 ]

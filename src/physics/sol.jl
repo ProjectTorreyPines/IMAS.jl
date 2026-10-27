@@ -255,8 +255,8 @@ function sol(
         #levels is a vector of psi_levels for the discretization of the SOL
         @assert psi_sign * levels[1] >= psi_sign * psi_boundaries.first_open "psi_boundaries.first_open = $(psi_boundaries.first_open) , psi_levels[1] = $(levels[1]) "
         @assert psi_sign * levels[end] <= psi_sign * psi_wall_midplane "psi_wall_midplane = $psi_wall_midplane , psi_levels[end] = $(levels[end]) "
-        levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
-        @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
+        levels_is_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
+        @assert levels_is_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
         levels[1] = psi_boundaries.first_open
         # push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))

@@ -838,7 +838,7 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
             ∇B_drift_direction = +1
         end
         # L_H_threshold doubles when ion ∇B drift is away from primary X-point
-        if sign(eqt.boundary.x_point[1].z) == ∇B_drift_direction
+        if sign(eqt.boundary.x_point[1].z - eqt.global_quantities.magnetic_axis.z) == ∇B_drift_direction
             ∇B_drift_factor = 1.0
         else
             ∇B_drift_factor = 2.0

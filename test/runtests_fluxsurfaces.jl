@@ -182,3 +182,70 @@ end
     @test a[1] ≈ b[1]
     @test a[1] ≈ c[1]
 end
+
+# shift an equilibrium (and its derived points) vertically by dz, for translation-invariance tests
+function shifted_eqt_z(eqt, dz)
+    e2 = deepcopy(eqt)
+    e2d = findfirst(:rectangular, e2.profiles_2d)
+    e2d.grid.dim2 = e2d.grid.dim2 .+ dz
+    e2.global_quantities.magnetic_axis.z += dz
+    e2.boundary.outline.z = e2.boundary.outline.z .+ dz
+    for sp in e2.boundary.strike_point
+        sp.z += dz
+    end
+    for xp in e2.boundary.x_point
+        xp.z += dz
+    end
+    return e2
+end
+
+@testset "find_psi_tangent_omp / find_psi_max translation invariance" begin
+    dd, eqt, fw, PSI = sample_eqt_with_wall()
+    t0 = IMAS.find_psi_tangent_omp(eqt, fw.r, fw.z, PSI)
+    m0 = IMAS.find_psi_max(eqt)
+    @test isfinite(t0.psi_tangent_in) && isfinite(t0.psi_tangent_out) && isfinite(m0)
+    for dz in (1.5, 3.0)
+        e2 = shifted_eqt_z(eqt, dz)
+        _, _, PSI2 = IMAS.ψ_interpolant(e2.profiles_2d)
+        t = IMAS.find_psi_tangent_omp(e2, fw.r, fw.z .+ dz, PSI2)
+        @test isapprox(t.psi_tangent_in, t0.psi_tangent_in; rtol=1e-6)
+        @test isapprox(t.psi_tangent_out, t0.psi_tangent_out; rtol=1e-6)
+        @test isapprox(IMAS.find_psi_max(e2), m0; rtol=1e-6)
+    end
+end
+
+@testset "interp_rmid_at_psi monotonic truncation" begin
+    R = collect(range(2.0, 2.5; length=51))
+    # monotonic: every sample is used, including the last one
+    f_quad = (r, z) -> (r - 2.0)^2
+    itp = IMAS.interp_rmid_at_psi(f_quad, R, 0.0)
+    @test isapprox(itp(0.5^2), 2.5; atol=1e-9)
+    # increasing, then decreasing, then increasing again: only the first monotonic stretch may be used
+    f_updown = (r, z) -> r < 2.2 ? (r - 2.0) : (r < 2.3 ? 0.2 - (r - 2.2) : 0.1 + (r - 2.3))
+    itp2 = IMAS.interp_rmid_at_psi(f_updown, R, 0.0)
+    @test isapprox(itp2(0.15), 2.15; atol=1e-9)
+    @test isapprox(itp2(0.05), 2.05; atol=1e-9)
+end
+
+@testset "boundary_shape quadrant end points" begin
+    kw = (a=0.6, eps=0.35, kapu=1.9, kapl=1.7, delu=0.4, dell=0.5, zetaou=-0.1, zetaiu=-0.3, zetail=-0.2, zetaol=-0.15)
+    npts = 90
+    b = IMAS.boundary_shape(; kw..., zoffset=0.0, npts)
+    R0 = kw.a / kw.eps
+    @test length(b.r) == 4 * npts + 1
+    @test b.r[1] == b.r[end] && b.z[1] == b.z[end]                               # closed
+    @test length(unique(collect(zip(b.r, b.z)))) == length(b.r) - 1              # no duplicate points besides the closing one
+    @test isapprox(minimum(b.r), R0 - kw.a; atol=1e-12)                          # inner midplane point is generated
+    @test isapprox(maximum(b.r), R0 + kw.a; atol=1e-12)
+    @test isapprox(maximum(b.z), kw.a * kw.kapu; atol=1e-12)                     # top and bottom points are generated
+    @test isapprox(minimum(b.z), -kw.a * kw.kapl; atol=1e-12)
+    @test isapprox(b.r[argmax(b.z)], R0 - kw.a * kw.delu; atol=1e-12)
+    @test isapprox(b.r[argmin(b.z)], R0 - kw.a * kw.dell; atol=1e-12)
+    # round trip through the shape analysis recovers the input parameters
+    g = IMAS.miller_R_a_κ_δ_ζ(b.r, b.z)
+    @test isapprox(g.R0, R0; atol=1e-12) && isapprox(g.a, kw.a; atol=1e-12)
+    @test isapprox(g.δu, kw.delu; atol=1e-12) && isapprox(g.δl, kw.dell; atol=1e-12)
+    for (got, want) in ((g.ζou, kw.zetaou), (g.ζol, kw.zetaol), (g.ζiu, kw.zetaiu), (g.ζil, kw.zetail))
+        @test isapprox(got, want; atol=2e-3)
+    end
+end

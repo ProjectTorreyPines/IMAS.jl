@@ -665,16 +665,16 @@ function find_psi_tangent_omp(
 
     ((_, zsep),) = flux_surface(eqt, psi_separatrix, :closed, wall_r, wall_z)
 
-    b = maximum(abs.([minimum(zsep), maximum(zsep)]))
+    b = maximum(abs.(zsep .- ZA)) # half-height of the separatrix about the magnetic axis
 
-    wallr = wall_r[wall_r.>RA.&&abs.(wall_z).<b/2]
-    wallz = wall_z[wall_r.>RA.&&abs.(wall_z).<b/2]
+    wallr = wall_r[wall_r.>RA.&&abs.(wall_z .- ZA).<b/2]
+    wallz = wall_z[wall_r.>RA.&&abs.(wall_z .- ZA).<b/2]
 
     # add intersection at +/- b/2 meter
-    crossings = intersection([RA, 3 * RA], [1.0, 1.0] * b / 2, wall_r, wall_z).crossings # find where flux surface crosses wall around MP
+    crossings = intersection([RA, 3 * RA], [1.0, 1.0] * (ZA + b / 2), wall_r, wall_z).crossings # find where flux surface crosses wall around MP
     wallr = vcat(crossings[1][1], wallr)
     wallz = vcat(crossings[1][2], wallz)
-    crossings = intersection([RA, 3 * RA], [-1.0, -1.0] * b / 2, wall_r, wall_z).crossings # find where flux surface crosses wall around MP
+    crossings = intersection([RA, 3 * RA], [1.0, 1.0] * (ZA - b / 2), wall_r, wall_z).crossings # find where flux surface crosses wall around MP
     push!(wallr, crossings[1][1])
     push!(wallz, crossings[1][2])
 
@@ -777,7 +777,7 @@ function find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1
             continue
         end
 
-        if z[1] * z[end] < 0
+        if (z[1] - ZA) * (z[end] - ZA) < 0
             #surface starts and finishes in opposite sides of the midplane is the surface we want
             return psi_up
         end
@@ -814,9 +814,9 @@ function find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1
                 continue
             end
 
-            if z[end] * z[1] < 0
+            if (z[end] - ZA) * (z[1] - ZA) < 0
                 # psi starts and finishes on opposite sides of the midplane
-                if abs(z[end] * z[1] - zmax * zmin) / (zmax^2) < 0.1
+                if abs((z[end] - ZA) * (z[1] - ZA) - (zmax - ZA) * (zmin - ZA)) / ((zmax - ZA)^2) < 0.1
                     # make sure that indeed the surface goes from zmin to zmax, or close to that
                     psi_low = psi
                 else
@@ -919,7 +919,8 @@ function interp_rmid_at_psi(PSI_interpolant, R::AbstractVector{T}, ZA::T) where 
     # consider only portion where psi is monotonic
     # generally not an issue, but can psi can become non-monotoinic when coils are close to the lcfs
     dpsi = diff(psi)
-    index = findlast(x -> sign(x) == sign(dpsi[1]), dpsi)
+    k = findfirst(x -> sign(x) != sign(dpsi[1]), dpsi)
+    index = k === nothing ? length(psi) : k # psi[1:k] is monotonic, dpsi[k] is the first sign change
     return cubic_interp1d(psi[1:index], R[1:index])
 end
 
@@ -1859,7 +1860,7 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :volume_integrate)
 
 """
-    volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+    cumlul_volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
 
 Cumulative integrate quantity over volume
 """
@@ -1888,7 +1889,7 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :surface_integrate)
 
 """
-    surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+    cumlul_surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
 
 Cumulative integrate quantity over surface
 """

@@ -35,7 +35,7 @@ Function used to generate boundary shapes based on `T. C. Luce, PPCF, 55 9 (2013
   - `a`: minor radius
   - `eps`: aspect ratio
   - `kapu`: upper elongation
-  - `lkap`: lower elongation
+  - `kapl`: lower elongation
   - `delu`: upper triangularity
   - `dell`: lower triangularity
   - `zetaou`: upper outer squareness
@@ -73,18 +73,20 @@ function boundary_shape(;
     i5 = 7
     i95 = 100 - i5
 
-    r1 = zeros(npts)
-    r2 = zeros(npts)
-    r3 = zeros(npts - 1)
-    r4 = zeros(npts - 1)
-    z1 = zeros(npts)
-    z2 = zeros(npts)
-    z3 = zeros(npts - 1)
-    z4 = zeros(npts - 1)
-    z1ref = zeros(npts)
-    z2ref = zeros(npts)
-    z3ref = zeros(npts - 1)
-    z4ref = zeros(npts - 1)
+    # quadrants 1 and 2 (upper outer, upper inner) include both of their end points (θ = 0, π/2 and θ = π/2, π);
+    # the lower quadrants are mirrored from them and drop the point shared with the previous quadrant
+    r1 = zeros(npts + 1)
+    r2 = zeros(npts + 1)
+    r3 = zeros(npts)
+    r4 = zeros(npts)
+    z1 = zeros(npts + 1)
+    z2 = zeros(npts + 1)
+    z3 = zeros(npts)
+    z4 = zeros(npts)
+    z1ref = zeros(npts + 1)
+    z2ref = zeros(npts + 1)
+    z3ref = zeros(npts)
+    z4ref = zeros(npts)
 
     for is_upper in (false, true)
 
@@ -101,8 +103,8 @@ function boundary_shape(;
         end
 
         ang = range(0, 2 * π, (npts * 4 + 1))
-        i1 = findall((ang .>= 0 * π / 2.0) .&& (ang .< 1 * π / 2.0))
-        i2 = findall((ang .>= 1 * π / 2.0) .&& (ang .< 2 * π / 2.0))
+        i1 = 1:npts+1            # θ ∈ [0, π/2]
+        i2 = npts+1:2*npts+1     # θ ∈ [π/2, π]
         ang1 = ang[i1]
         ang2 = ang[i2]
         rsr2 = 1.0 / sqrt(2.0)
@@ -255,9 +257,15 @@ function boundary_shape(;
 
     end
 
-    r = vcat(r1, r2, r3, r4)
-    z = vcat(z1, z2, z3, z4)
-    zref = vcat(z1ref, z2ref, z3ref, z4ref)
+    # r2 starts at θ = π/2 where r1 ends; r3 and r4 already had their shared points dropped; r4 ends at θ = 0 (closed)
+    r = vcat(r1, r2[2:end], r3, r4)
+    z = vcat(z1, z2[2:end], z3, z4)
+    zref = vcat(z1ref, z2ref[2:end], z3ref, z4ref)
+    # the θ = 0 point is reached once with the upper and once with the lower triangularity, which differ in rounding:
+    # make the polygon exactly closed
+    r[end] = r[1]
+    z[end] = z[1]
+    zref[end] = zref[1]
 
     return (r=r, z=z, zref=zref)
 end
