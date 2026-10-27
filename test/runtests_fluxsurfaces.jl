@@ -77,3 +77,26 @@ end
     @test isapprox(g.δu, 0.4; atol=1e-6)
     @test isapprox(g.δl, 0.5; atol=1e-6)
 end
+
+@testset "boundary_shape zoffset" begin
+    # the lower half must be mirrored about Z = zoffset, so a nonzero zoffset is a pure vertical translation
+    kw = (a=0.6, eps=0.35, kapu=1.9, kapl=1.7, delu=0.4, dell=0.5, zetaou=-0.1, zetaiu=-0.3, zetail=-0.2, zetaol=-0.15)
+    b0 = IMAS.boundary_shape(; kw..., zoffset=0.0)
+    for zoffset in (-0.05, 0.12)
+        b = IMAS.boundary_shape(; kw..., zoffset)
+        @test b.r ≈ b0.r
+        @test b.z ≈ b0.z .+ zoffset
+        @test b.zref ≈ b0.zref .+ zoffset
+        @test isapprox(maximum(b.z), zoffset + kw.a * kw.kapu; atol=1e-3)
+        @test isapprox(minimum(b.z), zoffset - kw.a * kw.kapl; atol=1e-3)
+        @test isapprox(b.z[argmax(b.r)], zoffset; atol=1e-3)
+    end
+    # same with x-point branches active (parameters from the boundary_shape docstring)
+    kwx = (a=0.608, eps=0.374, kapu=1.920, kapl=1.719, delu=0.769, dell=0.463, zetaou=-0.155, zetaiu=-0.255, zetail=-0.174, zetaol=-0.227)
+    for (upnull, lonull) in ((true, false), (false, true), (true, true))
+        b0 = IMAS.boundary_shape(; kwx..., zoffset=0.0, upnull, lonull)
+        b = IMAS.boundary_shape(; kwx..., zoffset=0.1, upnull, lonull)
+        @test b.r ≈ b0.r
+        @test b.z ≈ b0.z .+ 0.1
+    end
+end
