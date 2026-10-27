@@ -1,6 +1,8 @@
 using IMAS
 using Test
 
+include("helpers.jl")
+
 do_plot = false
 if do_plot
     using Plots
@@ -26,7 +28,7 @@ end
     pr = [1.0, 2.0, 1.5, 0.5, 1.0]
     pz = [0.0, 0.5, 1.0, 0.3, 0.0]
     #     imaxr iminr imaxz iminz  r@maxz max_z r@minz min_z  z@maxr max_r z@minr min_r
-    @test IMAS.fluxsurface_extrema(pr, pz) ==
+    @test Tuple(IMAS.fluxsurface_extrema(pr, pz)) ==
           (2, 4, 3, 1, 1.5, 1.0, 1.0, 0.0, 0.5, 2.0, 0.3, 0.5)
 
     # equivalence with findmax/findmin on a closed D-shaped polyline
@@ -39,30 +41,6 @@ end
     @test (g[6], g[8], g[10], g[12]) == (maximum(pz2), minimum(pz2), maximum(pr2), minimum(pr2))
 
     @test_throws DimensionMismatch IMAS.fluxsurface_extrema([1.0, 2.0], [0.0])
-end
-# Luce superellipse boundary with prescribed per-quadrant squareness
-# T.C. Luce, Plasma Phys. Control. Fusion 55 (2013) 095009
-function luce_boundary(; R0=1.7, a=0.6, Zrm=0.0, κu=1.8, κl=1.9, δu=0.4, δl=0.5,
-    ζ=(ou=0.10, iu=-0.20, il=0.25, ol=-0.05), n=401)
-    nexp(ζ) = -log(2) / log(1 / sqrt(2) + ζ * (1 - 1 / sqrt(2)))
-    pr = Float64[]
-    pz = Float64[]
-    for θ in range(0, 2π; length=n)[1:end-1]
-        if θ < π / 2          # upper outer
-            t = θ; A = a * (1 + δu); B = κu * a; nn = nexp(ζ.ou); Rc = R0 - a * δu; sx = +1; sz = +1
-        elseif θ < π          # upper inner
-            t = π - θ; A = a * (1 - δu); B = κu * a; nn = nexp(ζ.iu); Rc = R0 - a * δu; sx = -1; sz = +1
-        elseif θ < 3π / 2     # lower inner
-            t = θ - π; A = a * (1 - δl); B = κl * a; nn = nexp(ζ.il); Rc = R0 - a * δl; sx = -1; sz = -1
-        else                  # lower outer
-            t = 2π - θ; A = a * (1 + δl); B = κl * a; nn = nexp(ζ.ol); Rc = R0 - a * δl; sx = +1; sz = -1
-        end
-        x = A * abs(cos(t))^(2 / nn)
-        y = B * abs(sin(t))^(2 / nn)
-        push!(pr, Rc + sx * x)
-        push!(pz, Zrm + sz * y)
-    end
-    return pr, pz
 end
 
 @testset "luce_squareness quadrant labels" begin
@@ -102,19 +80,9 @@ end
 end
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Regression tests for label / axis / argument-order defects found in the Oct 2026 review.
-# All cases are deliberately asymmetric (axis off the grid centre, nonzero vertical offsets) so that a swapped
-# label or a mirror about the wrong axis changes the answer.
+# Label / axis / argument-order checks on deliberately asymmetric cases (axis off the grid centre, nonzero vertical
+# offsets), so that a swapped label or a mirror about the wrong axis changes the answer.
 
-function sample_eqt_with_wall()
-    samp = joinpath(dirname(dirname(pathof(IMAS.IMASdd))), "sample")
-    dd = IMAS.json2imas(joinpath(samp, "D3D_eq_ods.json"); show_warnings=false)
-    fw = IMAS.first_wall(dd.wall)
-    eqt = dd.equilibrium.time_slice[]
-    IMAS.flux_surfaces(eqt, fw.r, fw.z)
-    _, _, PSI = IMAS.ψ_interpolant(eqt.profiles_2d)
-    return dd, eqt, fw, PSI
-end
 
 @testset "find_psi_separatrix labels" begin
     dd, eqt, fw, PSI = sample_eqt_with_wall()
@@ -184,20 +152,6 @@ end
 end
 
 # shift an equilibrium (and its derived points) vertically by dz, for translation-invariance tests
-function shifted_eqt_z(eqt, dz)
-    e2 = deepcopy(eqt)
-    e2d = findfirst(:rectangular, e2.profiles_2d)
-    e2d.grid.dim2 = e2d.grid.dim2 .+ dz
-    e2.global_quantities.magnetic_axis.z += dz
-    e2.boundary.outline.z = e2.boundary.outline.z .+ dz
-    for sp in e2.boundary.strike_point
-        sp.z += dz
-    end
-    for xp in e2.boundary.x_point
-        xp.z += dz
-    end
-    return e2
-end
 
 @testset "find_psi_tangent_omp / find_psi_max translation invariance" begin
     dd, eqt, fw, PSI = sample_eqt_with_wall()

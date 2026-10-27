@@ -921,6 +921,10 @@ function interp_rmid_at_psi(PSI_interpolant, R::AbstractVector{T}, ZA::T) where 
     dpsi = diff(psi)
     k = findfirst(x -> sign(x) != sign(dpsi[1]), dpsi)
     index = k === nothing ? length(psi) : k # psi[1:k] is monotonic, dpsi[k] is the first sign change
+    if psi[index] < psi[1]
+        # decreasing psi(R): hand the interpolant increasing knots, so that both signs of psi give the same r_mid
+        return cubic_interp1d(reverse(psi[1:index]), reverse(R[1:index]))
+    end
     return cubic_interp1d(psi[1:index], R[1:index])
 end
 
@@ -2082,7 +2086,7 @@ push!(document[Symbol("Physics flux-surfaces")], :miller_R_a_κ_δ_ζ)
 """
     fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
 
-Returns extrema indexes and values of R,Z flux surfaces vectors:
+Returns a NamedTuple with the extrema indexes and values of R,Z flux surfaces vectors (positional unpacking also works):
 
     imaxr, iminr,
     imaxz, iminz,
@@ -2114,7 +2118,7 @@ function fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
         z_at_max_r = pz[imaxr]
         z_at_min_r = pz[iminr]
     end
-    return (imaxr, iminr, imaxz, iminz,
+    return (; imaxr, iminr, imaxz, iminz,
         r_at_max_z, max_z,
         r_at_min_z, min_z,
         z_at_max_r, max_r,
@@ -2130,7 +2134,7 @@ push!(document[Symbol("Physics flux-surfaces")], :fluxsurface_extrema)
 Squareness from: "An analytic functional form for characterization and generation of axisymmetric plasma boundaries"
 T.C. Luce, Plasma Phys. Control. Fusion 55 (2013) http://dx.doi.org/10.1088/0741-3335/55/9/095009
 
-Returns: zetaou, zetaol, zetail, zetaiu
+Returns a NamedTuple (zetaou, zetaol, zetail, zetaiu); positional unpacking also works
 """
 function luce_squareness(
     pr::AbstractVector{T}, pz::AbstractVector{T},
@@ -2161,7 +2165,7 @@ function luce_squareness(
         end
     end
     zetaou, zetaol, zetaiu, zetail = z
-    return zetaou, zetaol, zetail, zetaiu
+    return (; zetaou, zetaol, zetail, zetaiu)
 end
 
 @compat public luce_squareness

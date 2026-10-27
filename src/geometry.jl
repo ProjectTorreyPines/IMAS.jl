@@ -147,6 +147,7 @@ function intersection(
     for k1 in 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
         s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
+        n0 = length(crossings)
         for k2 in 1:(length(l2_x)-1)
             s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
@@ -156,6 +157,15 @@ function intersection(
                 push!(indexes, (k1, k2))
                 push!(crossings, (crossing[1], crossing[2]))
             end
+        end
+        # several crossings on the same segment of the first path come out in second-path order:
+        # sort them along the first path, so that the crossings follow the direction of (l1_x, l1_y)
+        if length(crossings) - n0 > 1
+            rng = (n0+1):length(crossings)
+            d = s1_e - s1_s
+            perm = sortperm([LinearAlgebra.dot(crossings[k] - s1_s, d) for k in rng])
+            crossings[rng] = crossings[rng][perm]
+            indexes[rng] = indexes[rng][perm]
         end
     end
 
@@ -170,7 +180,8 @@ end
         l2_y::AbstractVector{T},
         tolerance::Float64) where {T<:Real}
 
-Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
+Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points,
+ordered along the first path
 
 Endpoints crossings are checked with some tolerance
 """

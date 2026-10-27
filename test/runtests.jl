@@ -16,6 +16,10 @@ else
 
     include("runtests_geometry.jl")
 
+    include("runtests_invariance.jl")
+
+    include("runtests_smoke.jl")
+
     include("runtests_interpolations.jl")
 
     include("runtests_interp1d.jl")

@@ -363,22 +363,14 @@ function find_levels_from_P(
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     rmax = eqt2d.grid.dim1[end]
     r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(rmax), 1000)
-    r_mid = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
+    r_mid = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA) # keeps only the monotonic part of psi(R), for either sign of psi
     psi_mid = PSI_interpolant.(r_mid_of_interest, r_mid_of_interest .* 0.0 .+ ZA)
     psi_sign = sign(psi_mid[end] - psi_mid[1])
-    if psi_sign < 0
-        r_mid = FI.cubic_interp(-psi_mid, r_mid_of_interest; extrap=FI.ExtendExtrap())
-    end
 
     psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt).not_diverted # psi of the second magnetic separatrix
-    if psi_sign > 0
-        r_separatrix_midplane = r_mid(psi_boundaries.first_open) # R OMP at separatrix
-        r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
-    else
-        r_separatrix_midplane = r_mid(-psi_boundaries.first_open) # R OMP at separatrix
-        r_2ndseparatrix_midplane = r_mid(-psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
-    end
+    r_separatrix_midplane = r_mid(psi_boundaries.first_open) # R OMP at separatrix
+    r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
 
     if isempty(wall_r) .|| isempty(wall_z)
         # no wall
@@ -393,12 +385,7 @@ function find_levels_from_P(
         psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
         psi_last_lfs, _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
 
-        if psi_sign > 0
-            r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
-        else
-
-            r_last_diverted = r_mid.([-psi_last_lfs, -psi_first_lfs_far]) # R coordinate at OMP of grazing surface
-        end
+        r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
     end
     r = r .+ r_separatrix_midplane
     order = sortperm(r)
