@@ -100,3 +100,85 @@ end
         @test b.z ≈ b0.z .+ 0.1
     end
 end
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Regression tests for label / axis / argument-order defects found in the Oct 2026 review.
+# All cases are deliberately asymmetric (axis off the grid centre, nonzero vertical offsets) so that a swapped
+# label or a mirror about the wrong axis changes the answer.
+
+function sample_eqt_with_wall()
+    samp = joinpath(dirname(dirname(pathof(IMAS.IMASdd))), "sample")
+    dd = IMAS.json2imas(joinpath(samp, "D3D_eq_ods.json"); show_warnings=false)
+    fw = IMAS.first_wall(dd.wall)
+    eqt = dd.equilibrium.time_slice[]
+    IMAS.flux_surfaces(eqt, fw.r, fw.z)
+    _, _, PSI = IMAS.ψ_interpolant(eqt.profiles_2d)
+    return dd, eqt, fw, PSI
+end
+
+@testset "find_psi_separatrix labels" begin
+    dd, eqt, fw, PSI = sample_eqt_with_wall()
+    s = IMAS.find_psi_separatrix(eqt)
+    isclosed(psi) = (sf = IMAS.flux_surface(eqt, psi, :encircling, Float64[], Float64[]); length(sf) == 1 && sf[1].r[1] == sf[1].r[end] && sf[1].z[1] == sf[1].z[end])
+    psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
+    @test isclosed(s.psi_sep_closed)
+    @test !isclosed(s.psi_sep_open)
+    @test psi_sign * (s.psi_sep_open - s.psi_sep_closed) > 0
+end
+
+@testset "find_psi_last_diverted limited branch" begin
+    dd, eqt, fw, PSI = sample_eqt_with_wall()
+    eqt_lim = deepcopy(eqt)
+    eqt_lim.boundary.psi = eqt_lim.boundary_separatrix.psi   # forces the limited-plasma branch
+    res = IMAS.find_psi_last_diverted(eqt_lim, fw.r, fw.z, PSI)
+    @test isfinite(res.psi_last_lfs) && isfinite(res.psi_first_lfs_far)
+end
+
+@testset "find_psi_last_diverted consumers" begin
+    dd, eqt, fw, PSI = sample_eqt_with_wall()
+    res = IMAS.find_psi_last_diverted(eqt, fw.r, fw.z, PSI)
+    @test keys(res) == (:psi_last_lfs, :psi_first_open, :psi_first_lfs_far, :null_within_wall)
+    @test res.null_within_wall isa Bool
+    # particle_heat_flux unpacks this result; it must run and return finite heat fluxes
+    # (explicit q(r) at the OMP, since the equilibrium-only sample has no power data for the default Eich width)
+    r = collect(range(0.0, 0.4; length=200))
+    q = 1e7 .* exp.(-r ./ 0.01)
+    Rwall, Zwall, s, SOL, r, q = IMAS.mesher_heat_flux(dd; r, q)
+    q_part, q_par = IMAS.particle_heat_flux(SOL, Rwall, Zwall, r, q)
+    @test length(q_part) == length(Rwall)
+    @test all(isfinite, q_part) && all(isfinite, q_par)
+end
+
+@testset "find_x_point! translation invariance" begin
+    dd, eqt, fw, PSI = sample_eqt_with_wall()
+    xp0 = [(x.r, x.z) for x in eqt.boundary.x_point]
+    @test length(xp0) == 2
+    # shifting everything vertically must shift the x-points and nothing else (fails when Z=0 is used instead of Z0)
+    for dz in (0.5, 1.5, 2.0, 3.0)
+        e2 = deepcopy(eqt)
+        e2d = findfirst(:rectangular, e2.profiles_2d)
+        e2d.grid.dim2 = e2d.grid.dim2 .+ dz
+        e2.global_quantities.magnetic_axis.z += dz
+        e2.boundary.outline.z = e2.boundary.outline.z .+ dz
+        for sp in e2.boundary.strike_point
+            sp.z += dz
+        end
+        IMAS.find_x_point!(e2, fw.r, fw.z .+ dz)
+        xp = [(x.r, x.z - dz) for x in e2.boundary.x_point]
+        @test length(xp) == length(xp0)
+        if length(xp) == length(xp0)
+            @test all(isapprox(a[1], b[1]; atol=1e-6) && isapprox(a[2], b[2]; atol=1e-6) for (a, b) in zip(xp, xp0))
+        end
+    end
+end
+
+@testset "find_levels_from_P method consistency" begin
+    dd, eqt, fw, PSI = sample_eqt_with_wall()
+    r = collect(range(0.0, 0.05; length=50))
+    q = exp.(-r ./ 0.01)
+    a = IMAS.find_levels_from_P(eqt, fw.r, fw.z, PSI, r, q, 10)
+    b = IMAS.find_levels_from_P(eqt, dd.wall, PSI, r, q, 10)
+    c = IMAS.find_levels_from_P(dd, r, q, 10)
+    @test a[1] ≈ b[1]
+    @test a[1] ≈ c[1]
+end

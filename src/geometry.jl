@@ -831,9 +831,11 @@ The path is assumed to be closed if the first and last points are the same, and 
 function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     n = length(pr)
     curvature_res = Vector{T}(undef, n)
-    if is_closed_polygon(pr, pz)
-        dr1 = pr[end-1] - pr[1]
-        dz1 = pz[end-1] - pz[1]
+    closed = is_closed_polygon(pr, pz)
+    if closed
+        # the last point duplicates the first: the segment entering point 1 comes from point n-1
+        dr1 = pr[1] - pr[end-1]
+        dz1 = pz[1] - pz[end-1]
     else
         dr1 = 0.0
         dz1 = 0.0
@@ -842,11 +844,15 @@ function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     for i in 1:n
         dr2 = if i < n
             pr[i+1] - pr[i]
+        elseif closed
+            pr[2] - pr[1] # point n duplicates point 1: the segment leaving it goes to point 2
         else
             pr[1] - pr[end]
         end
         dz2 = if i < n
             pz[i+1] - pz[i]
+        elseif closed
+            pz[2] - pz[1]
         else
             pz[1] - pz[end]
         end

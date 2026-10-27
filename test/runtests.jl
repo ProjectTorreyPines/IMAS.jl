@@ -12,6 +12,10 @@ else
 
     include("runtests_fluxsurfaces.jl")
 
+    include("runtests_equilibrium.jl")
+
+    include("runtests_geometry.jl")
+
     include("runtests_interpolations.jl")
 
     include("runtests_interp1d.jl")

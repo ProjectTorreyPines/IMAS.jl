@@ -241,8 +241,8 @@ function sol(
         # Case of limited plasma - Also add first magnetic separatrix
         psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
 
-        if psi_sign * psi_sep_open > psi_sign * psi_boundaries.first_open
-            # if psi_boundary is inside separatrix -> limited case
+        if psi_sign * psi_sep_closed > psi_sign * psi_boundaries.first_open
+            # if psi_boundary is inside the (closed side of the) separatrix -> limited case
             levels = unique!(sort(vcat(levels, psi_sep_closed, psi_sep_open)))
         end
 
@@ -548,7 +548,7 @@ function find_levels_from_P(
     q::Vector{<:Real},
     levels::Int
 )
-    return find_levels_from_P(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant, q, r, levels)
+    return find_levels_from_P(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant, r, q, levels)
 end
 
 """
@@ -556,7 +556,7 @@ end
 """
 function find_levels_from_P(dd::IMAS.DD, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
-    return find_levels_from_P(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, q, r, levels)
+    return find_levels_from_P(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, r, q, levels)
 end
 
 @compat public find_levels_from_P

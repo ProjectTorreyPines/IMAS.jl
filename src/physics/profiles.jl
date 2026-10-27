@@ -1498,7 +1498,7 @@ function new_impurity_radiation!(dd::IMAS.DD, impurity_name::Symbol, time_total_
             IMAS.new_impurity_radiation!(dd, impurity_name, total_radiated_power_itp(time0))
         catch e
             if isa(e, InterruptException)
-                retrhow(e)
+                rethrow(e)
             else
                 @warn("$(typeof(e)): Could not set new_impurity_radiation!(dd, $(impurity_name), $(total_radiated_power_itp(time0))) at time $(dd.global_time)")
             end

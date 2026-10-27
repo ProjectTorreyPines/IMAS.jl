@@ -352,7 +352,9 @@ function mesher_heat_flux(dd::IMAS.DD;
         crossings = intersection([(minimum(rwall) + maximum(rwall)) / 2, maximum(rwall) * 1.05], [Z0, Z0], rwall, zwall)[2] # (r,z) point of intersection btw outer midplane (OMP) with wall
         r_wall_midplane = crossings[1][1] # R coordinate of the wall at OMP
         psi_wall_midplane = PSI_interpolant(r_wall_midplane, Z0)
-        _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, rwall, zwall, PSI_interpolant) # psi of grazing surface
+        last_diverted = find_psi_last_diverted(eqt, rwall, zwall, PSI_interpolant) # psi of grazing surface
+        psi_first_lfs_far = last_diverted.psi_first_lfs_far
+        null_within_wall = last_diverted.null_within_wall
         psi_wall = PSI_interpolant.(rwall, zwall)
         tollZ = max(abs(Z0), 2 * abs(zwall[2] - zwall[1]))
         if Zwall[1] >= -tollZ # check if the particle reach the wall around the midplane

@@ -312,7 +312,8 @@ function find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Fl
         end
     end
 
-    return (psi_sep_closed=psi_up, psi_sep_open=psi_low)
+    # psi_low tracks the last surface found closed, psi_up the first found open
+    return (psi_sep_closed=psi_low, psi_sep_open=psi_up)
 end
 
 @compat public find_psi_separatrix
@@ -417,7 +418,7 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_2nd_separatrix)
         PSI_interpolant;
         precision::Float64=flux_surfaces_precision)
 
-Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
+Returns named tuple with `psi_last_lfs`, `psi_first_open`, `psi_first_lfs_far`, and `null_within_wall`
 
   - `psi_first_lfs_far` will be the first surface inside `OFL[:lfs_far]`
 
@@ -445,7 +446,7 @@ function find_psi_last_diverted(
         # the plasma is limited and not diverted
         limited = true
         Xpoint2 = [eqt.boundary.x_point[1].r, eqt.boundary.x_point[1].z]
-        psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
+        psi_2ndseparatrix = find_psi_separatrix(eqt).psi_sep_open # first open surface outside the first magnetic separatrix
     else
         limited = false
         Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
@@ -1913,9 +1914,11 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
     empty!(eqt.boundary.x_point)
 
     for (pr, pz) in private
-        if (sum(pz) < Z0)
+        mean_z = sum(pz) / length(pz)
+        if mean_z < Z0
+            # lower private region
             index = argmax(pz)
-        elseif (sum(pz) > Z0)
+        elseif mean_z > Z0
             # upper private region
             index = argmin(pz)
         else
@@ -1989,16 +1992,16 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         index = sortperm(psidist_lcfs_xpoints; by=abs)
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
-        # save up to the x_point with Z coordinate opposite to first x point
-        # save up to first index where z_x.*z_x[1].<0 is 1
-        eqt.boundary.x_point = eqt.boundary.x_point[1:argmax(z_x .* z_x[1] .< 0)]
+        # save up to the x_point on the opposite side of Z0 with respect to the first x point
+        # save up to first index where (z_x-Z0).*(z_x[1]-Z0).<0 is 1
+        eqt.boundary.x_point = eqt.boundary.x_point[1:argmax((z_x .- Z0) .* (z_x[1] - Z0) .< 0)]
 
         #check if primary x-point consistent with strike points
         if isempty(eqt.boundary.strike_point)
             #case with case not already saved  - look at first open surface
             psi_first_open = eqt.boundary_separatrix.psi
             (_, z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
-            if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)
+            if sign(Z0 - z_first_open[1]) != sign(eqt.boundary.x_point[end].z - Z0)
                 # x_point are not oredered correctly
                 if length(eqt.boundary.x_point) <= 2
                     # if just 2, it is enough to flip them
@@ -2010,7 +2013,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
             end
         else
             # case with strike_points already saved
-            if sign(-eqt.boundary.strike_point[1].z) !== sign(eqt.boundary.x_point[end].z)
+            if sign(Z0 - eqt.boundary.strike_point[1].z) != sign(eqt.boundary.x_point[end].z - Z0)
                 # x_point are not oredered correctly
                 if length(eqt.boundary.x_point) <= 2
                     reverse!(eqt.boundary.x_point)
