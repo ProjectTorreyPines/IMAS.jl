@@ -214,11 +214,6 @@ function intersection(
         end
     end
 
-    # plot(l1_x,l1_y)
-    # plot!(l2_x,l2_y)
-    # scatter!([cr[1] for cr in crossings],[cr[2] for cr in crossings])
-    # display(plot!())
-
     return (indexes=indexes, crossings=crossings)
 end
 
@@ -1235,7 +1230,6 @@ function inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float
     area_calc_z = Vector{Float64}(undef, max_size)
 
     iteration = 0
-    total_removed = 0
 
     while length(inscribed_r) > 3 && iteration < max_iterations
         iteration += 1
@@ -1341,8 +1335,6 @@ function inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float
         resize!(inscribed_z, new_length)
         resize!(current_indices, new_length)
 
-        total_removed += 1
-
         # Calculate new area for early exit check
         @inbounds for i in 1:new_length
             area_calc_r[i] = inscribed_r[i]
@@ -1369,17 +1361,6 @@ function inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float
     end
     inscribed_r_closed[final_length+1] = inscribed_r[1]
     inscribed_z_closed[final_length+1] = inscribed_z[1]
-
-    final_area = area(inscribed_r_closed, inscribed_z_closed)
-    final_fraction = final_area / original_area
-
-    # println("\nOptimized shrinking algorithm completed:")
-    # println("  Iterations: $(iteration)")
-    # println("  Points removed: $(total_removed)")
-    # println("  Final vertices: $(length(inscribed_r))")
-    # println("  Final area: $(final_area)")
-    # println("  Area fraction: $(100*final_fraction)%")
-    # println("  Remaining indices: $(current_indices)")
 
     return inscribed_r_closed, inscribed_z_closed
 end

@@ -1068,8 +1068,8 @@ function zohm_divertor_figure_of_merit(dd::IMAS.DD)
     return zohm_divertor_figure_of_merit(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
 
-@compat public q_par_omp_eich
-push!(document[Symbol("Physics sol")], :q_par_omp_eich)
+@compat public zohm_divertor_figure_of_merit
+push!(document[Symbol("Physics sol")], :zohm_divertor_figure_of_merit)
 
 # ============= #
 # Strike points #

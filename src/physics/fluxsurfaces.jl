@@ -489,16 +489,8 @@ function find_psi_last_diverted(
     r_intersect = r_intersect[sortperm(angle)]
     z_intersect = z_intersect[sortperm(angle)]
 
-    # for safety, and to simplify eventual debugging
     if length(r_intersect) != 2
-        plot(wall_r, wall_z)
-        for (r, z) in surface
-            @show point_to_path_distance(r[end], z[end], wall_r, wall_z)
-            plot!(r, z)
-        end
-        scatter!(r_intersect, z_intersect)
-        display(plot!())
-        @assert length(r_intersect) == 2
+        error("find_psi_last_diverted: expected 2 intersections of the second separatrix with the wall, found $(length(r_intersect)) at (r, z) = $(collect(zip(r_intersect, z_intersect)))")
     end
 
     # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
@@ -1268,8 +1260,6 @@ end
                 pz = (surfaces[k+1].z .- ZA) ./ 2 .+ ZA
             end
             if k == N && !is_closed_surface(pr, pz, wall_r, wall_z) || isempty(pr)
-                # contour(r, z, PSI'; levels=psi)
-                # display(plot!(wall_r, wall_z; aspect_ratio=:equal, color=:black))
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
         end
@@ -2149,20 +2139,16 @@ function luce_squareness(
 
     z = T[]
     for (name, PO, PE) in zip(names, POs, PEs)
-        try
-            PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-            PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-            push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
-        catch e
-            if isa(e, InterruptException)
-                rethrow(e)
-            else
-                push!(z, T(0.0))
-            end
-            # plot(pr,pz;aspect_ratio=:equal,title=name)
-            # display(plot!([PO[1], PE[1]], [PO[2], PE[2]]))
-            # rethrow(e)
+        crossings = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings
+        if isempty(crossings)
+            # the diagonal from the quadrant corner misses the boundary: squareness is undefined for this quadrant
+            @warn "luce_squareness: boundary does not cross the $name diagonal" maxlog = 1
+            push!(z, T(NaN))
+            continue
         end
+        PD = crossings[1]
+        PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
+        push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
     end
     zetaou, zetaol, zetaiu, zetail = z
     return (; zetaou, zetaol, zetail, zetaiu)

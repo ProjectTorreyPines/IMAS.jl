@@ -636,9 +636,6 @@ function beta_tor(pressure_average::Real, Bt::Real)
     return pi * 8.0e-7 * pressure_average / Bt^2
 end
 
-@compat public beta_tor
-push!(document[Symbol("Physics profiles")], :beta_tor)
-
 """
     beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
 
@@ -1661,8 +1658,8 @@ function exponential_profile(x::Union{Real,AbstractArray}, x0::Real, sigma::Real
     return exp.(.-(x .- x0) / sigma)
 end
 
-@compat public edge_profile
-push!(document[Symbol("Physics profiles")], :edge_profile)
+@compat public exponential_profile
+push!(document[Symbol("Physics profiles")], :exponential_profile)
 
 """
     core_edge_energy(cp1d::IMAS.core_profiles__profiles_1d, rho_ped::Real; thermal::Bool=true)
