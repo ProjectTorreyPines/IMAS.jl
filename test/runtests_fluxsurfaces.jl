@@ -40,3 +40,63 @@ end
 
     @test_throws DimensionMismatch IMAS.fluxsurface_extrema([1.0, 2.0], [0.0])
 end
+# Luce superellipse boundary with prescribed per-quadrant squareness
+# T.C. Luce, Plasma Phys. Control. Fusion 55 (2013) 095009
+function luce_boundary(; R0=1.7, a=0.6, Zrm=0.0, κu=1.8, κl=1.9, δu=0.4, δl=0.5,
+    ζ=(ou=0.10, iu=-0.20, il=0.25, ol=-0.05), n=401)
+    nexp(ζ) = -log(2) / log(1 / sqrt(2) + ζ * (1 - 1 / sqrt(2)))
+    pr = Float64[]
+    pz = Float64[]
+    for θ in range(0, 2π; length=n)[1:end-1]
+        if θ < π / 2          # upper outer
+            t = θ; A = a * (1 + δu); B = κu * a; nn = nexp(ζ.ou); Rc = R0 - a * δu; sx = +1; sz = +1
+        elseif θ < π          # upper inner
+            t = π - θ; A = a * (1 - δu); B = κu * a; nn = nexp(ζ.iu); Rc = R0 - a * δu; sx = -1; sz = +1
+        elseif θ < 3π / 2     # lower inner
+            t = θ - π; A = a * (1 - δl); B = κl * a; nn = nexp(ζ.il); Rc = R0 - a * δl; sx = -1; sz = -1
+        else                  # lower outer
+            t = 2π - θ; A = a * (1 + δl); B = κl * a; nn = nexp(ζ.ol); Rc = R0 - a * δl; sx = +1; sz = -1
+        end
+        x = A * abs(cos(t))^(2 / nn)
+        y = B * abs(sin(t))^(2 / nn)
+        push!(pr, Rc + sx * x)
+        push!(pz, Zrm + sz * y)
+    end
+    return pr, pz
+end
+
+@testset "luce_squareness quadrant labels" begin
+    # four DISTINCT squareness values so that a label swap between quadrants is detected
+    ζ = (ou=0.10, iu=-0.20, il=0.25, ol=-0.05)
+    pr, pz = luce_boundary(; ζ)
+    g = IMAS.miller_R_a_κ_δ_ζ(pr, pz)
+    @test isapprox(g.ζou, ζ.ou; atol=2e-3)
+    @test isapprox(g.ζol, ζ.ol; atol=2e-3)
+    @test isapprox(g.ζil, ζ.il; atol=2e-3)
+    @test isapprox(g.ζiu, ζ.iu; atol=2e-3)
+    @test isapprox(g.δu, 0.4; atol=1e-6)
+    @test isapprox(g.δl, 0.5; atol=1e-6)
+end
+
+@testset "boundary_shape zoffset" begin
+    # the lower half must be mirrored about Z = zoffset, so a nonzero zoffset is a pure vertical translation
+    kw = (a=0.6, eps=0.35, kapu=1.9, kapl=1.7, delu=0.4, dell=0.5, zetaou=-0.1, zetaiu=-0.3, zetail=-0.2, zetaol=-0.15)
+    b0 = IMAS.boundary_shape(; kw..., zoffset=0.0)
+    for zoffset in (-0.05, 0.12)
+        b = IMAS.boundary_shape(; kw..., zoffset)
+        @test b.r ≈ b0.r
+        @test b.z ≈ b0.z .+ zoffset
+        @test b.zref ≈ b0.zref .+ zoffset
+        @test isapprox(maximum(b.z), zoffset + kw.a * kw.kapu; atol=1e-3)
+        @test isapprox(minimum(b.z), zoffset - kw.a * kw.kapl; atol=1e-3)
+        @test isapprox(b.z[argmax(b.r)], zoffset; atol=1e-3)
+    end
+    # same with x-point branches active (parameters from the boundary_shape docstring)
+    kwx = (a=0.608, eps=0.374, kapu=1.920, kapl=1.719, delu=0.769, dell=0.463, zetaou=-0.155, zetaiu=-0.255, zetail=-0.174, zetaol=-0.227)
+    for (upnull, lonull) in ((true, false), (false, true), (true, true))
+        b0 = IMAS.boundary_shape(; kwx..., zoffset=0.0, upnull, lonull)
+        b = IMAS.boundary_shape(; kwx..., zoffset=0.1, upnull, lonull)
+        @test b.r ≈ b0.r
+        @test b.z ≈ b0.z .+ 0.1
+    end
+end

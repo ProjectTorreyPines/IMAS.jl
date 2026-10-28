@@ -244,12 +244,13 @@ function boundary_shape(;
         end
 
         if !is_upper
+            # lower half is the upper-half construction mirrored about Z = zoffset
             r4 .= reverse!(r1)[2:end]
-            z4 .= -reverse!(z1)[2:end]
-            z4ref .= -reverse!(z1ref)[2:end]
+            z4 .= 2 * zoffset .- reverse!(z1)[2:end]
+            z4ref .= 2 * zoffset .- reverse!(z1ref)[2:end]
             r3 .= reverse!(r2)[2:end]
-            z3 .= -reverse!(z2)[2:end]
-            z3ref .= -reverse!(z2ref)[2:end]
+            z3 .= 2 * zoffset .- reverse!(z2)[2:end]
+            z3ref .= 2 * zoffset .- reverse!(z2ref)[2:end]
         end
 
     end

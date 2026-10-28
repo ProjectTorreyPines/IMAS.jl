@@ -2156,7 +2156,7 @@ function luce_squareness(
             # rethrow(e)
         end
     end
-    zetaou, zetaol, zetail, zetaiu = z
+    zetaou, zetaol, zetaiu, zetail = z
     return zetaou, zetaol, zetail, zetaiu
 end
 
