@@ -312,7 +312,8 @@ function find_psi_separatrix(eqt::IMAS.equilibrium__time_slice{T}; precision::Fl
         end
     end
 
-    return (psi_sep_closed=psi_up, psi_sep_open=psi_low)
+    # psi_low tracks the last surface found closed, psi_up the first found open
+    return (psi_sep_closed=psi_low, psi_sep_open=psi_up)
 end
 
 @compat public find_psi_separatrix
@@ -417,7 +418,7 @@ push!(document[Symbol("Physics flux-surfaces")], :find_psi_2nd_separatrix)
         PSI_interpolant;
         precision::Float64=flux_surfaces_precision)
 
-Returns `psi_last_lfs, `psi_first_lfs_far`, and `null_within_wall`
+Returns named tuple with `psi_last_lfs`, `psi_first_open`, `psi_first_lfs_far`, and `null_within_wall`
 
   - `psi_first_lfs_far` will be the first surface inside `OFL[:lfs_far]`
 
@@ -445,7 +446,7 @@ function find_psi_last_diverted(
         # the plasma is limited and not diverted
         limited = true
         Xpoint2 = [eqt.boundary.x_point[1].r, eqt.boundary.x_point[1].z]
-        psi_2ndseparatrix = psi_sep_open # psi first magnetic separatrix
+        psi_2ndseparatrix = find_psi_separatrix(eqt).psi_sep_open # first open surface outside the first magnetic separatrix
     else
         limited = false
         Xpoint2 = [eqt.boundary.x_point[end].r, eqt.boundary.x_point[end].z]
@@ -488,16 +489,8 @@ function find_psi_last_diverted(
     r_intersect = r_intersect[sortperm(angle)]
     z_intersect = z_intersect[sortperm(angle)]
 
-    # for safety, and to simplify eventual debugging
     if length(r_intersect) != 2
-        plot(wall_r, wall_z)
-        for (r, z) in surface
-            @show point_to_path_distance(r[end], z[end], wall_r, wall_z)
-            plot!(r, z)
-        end
-        scatter!(r_intersect, z_intersect)
-        display(plot!())
-        @assert length(r_intersect) == 2
+        error("find_psi_last_diverted: expected 2 intersections of the second separatrix with the wall, found $(length(r_intersect)) at (r, z) = $(collect(zip(r_intersect, z_intersect)))")
     end
 
     # check if upper null is inside the wall, by checking if upper null is left/right of the vector between the 2 (ordered) intersections
@@ -664,16 +657,16 @@ function find_psi_tangent_omp(
 
     ((_, zsep),) = flux_surface(eqt, psi_separatrix, :closed, wall_r, wall_z)
 
-    b = maximum(abs.([minimum(zsep), maximum(zsep)]))
+    b = maximum(abs.(zsep .- ZA)) # half-height of the separatrix about the magnetic axis
 
-    wallr = wall_r[wall_r.>RA.&&abs.(wall_z).<b/2]
-    wallz = wall_z[wall_r.>RA.&&abs.(wall_z).<b/2]
+    wallr = wall_r[wall_r.>RA.&&abs.(wall_z .- ZA).<b/2]
+    wallz = wall_z[wall_r.>RA.&&abs.(wall_z .- ZA).<b/2]
 
     # add intersection at +/- b/2 meter
-    crossings = intersection([RA, 3 * RA], [1.0, 1.0] * b / 2, wall_r, wall_z).crossings # find where flux surface crosses wall around MP
+    crossings = intersection([RA, 3 * RA], [1.0, 1.0] * (ZA + b / 2), wall_r, wall_z).crossings # find where flux surface crosses wall around MP
     wallr = vcat(crossings[1][1], wallr)
     wallz = vcat(crossings[1][2], wallz)
-    crossings = intersection([RA, 3 * RA], [-1.0, -1.0] * b / 2, wall_r, wall_z).crossings # find where flux surface crosses wall around MP
+    crossings = intersection([RA, 3 * RA], [1.0, 1.0] * (ZA - b / 2), wall_r, wall_z).crossings # find where flux surface crosses wall around MP
     push!(wallr, crossings[1][1])
     push!(wallz, crossings[1][2])
 
@@ -776,7 +769,7 @@ function find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1
             continue
         end
 
-        if z[1] * z[end] < 0
+        if (z[1] - ZA) * (z[end] - ZA) < 0
             #surface starts and finishes in opposite sides of the midplane is the surface we want
             return psi_up
         end
@@ -813,9 +806,9 @@ function find_psi_max(eqt::IMAS.equilibrium__time_slice{T}; precision::Float64=1
                 continue
             end
 
-            if z[end] * z[1] < 0
+            if (z[end] - ZA) * (z[1] - ZA) < 0
                 # psi starts and finishes on opposite sides of the midplane
-                if abs(z[end] * z[1] - zmax * zmin) / (zmax^2) < 0.1
+                if abs((z[end] - ZA) * (z[1] - ZA) - (zmax - ZA) * (zmin - ZA)) / ((zmax - ZA)^2) < 0.1
                     # make sure that indeed the surface goes from zmin to zmax, or close to that
                     psi_low = psi
                 else
@@ -918,7 +911,12 @@ function interp_rmid_at_psi(PSI_interpolant, R::AbstractVector{T}, ZA::T) where 
     # consider only portion where psi is monotonic
     # generally not an issue, but can psi can become non-monotoinic when coils are close to the lcfs
     dpsi = diff(psi)
-    index = findlast(x -> sign(x) == sign(dpsi[1]), dpsi)
+    k = findfirst(x -> sign(x) != sign(dpsi[1]), dpsi)
+    index = k === nothing ? length(psi) : k # psi[1:k] is monotonic, dpsi[k] is the first sign change
+    if psi[index] < psi[1]
+        # decreasing psi(R): hand the interpolant increasing knots, so that both signs of psi give the same r_mid
+        return cubic_interp1d(reverse(psi[1:index]), reverse(R[1:index]))
+    end
     return cubic_interp1d(psi[1:index], R[1:index])
 end
 
@@ -1262,8 +1260,6 @@ end
                 pz = (surfaces[k+1].z .- ZA) ./ 2 .+ ZA
             end
             if k == N && !is_closed_surface(pr, pz, wall_r, wall_z) || isempty(pr)
-                # contour(r, z, PSI'; levels=psi)
-                # display(plot!(wall_r, wall_z; aspect_ratio=:equal, color=:black))
                 error("IMAS: Could not trace closed flux surface $k out of $(N) at ψ = $(psi_level)")
             end
         end
@@ -1858,7 +1854,7 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :volume_integrate)
 
 """
-    volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+    cumlul_volume_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
 
 Cumulative integrate quantity over volume
 """
@@ -1887,7 +1883,7 @@ end
 push!(document[Symbol("Physics flux-surfaces")], :surface_integrate)
 
 """
-    surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
+    cumlul_surface_integrate(eqt::IMAS.equilibrium__time_slice, what::AbstractVector{T})::AbstractVector{T} where {T<:Real}
 
 Cumulative integrate quantity over surface
 """
@@ -1913,9 +1909,11 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
     empty!(eqt.boundary.x_point)
 
     for (pr, pz) in private
-        if (sum(pz) < Z0)
+        mean_z = sum(pz) / length(pz)
+        if mean_z < Z0
+            # lower private region
             index = argmax(pz)
-        elseif (sum(pz) > Z0)
+        elseif mean_z > Z0
             # upper private region
             index = argmin(pz)
         else
@@ -1989,16 +1987,16 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
         index = sortperm(psidist_lcfs_xpoints; by=abs)
         eqt.boundary.x_point = eqt.boundary.x_point[index]
         z_x = z_x[index]
-        # save up to the x_point with Z coordinate opposite to first x point
-        # save up to first index where z_x.*z_x[1].<0 is 1
-        eqt.boundary.x_point = eqt.boundary.x_point[1:argmax(z_x .* z_x[1] .< 0)]
+        # save up to the x_point on the opposite side of Z0 with respect to the first x point
+        # save up to first index where (z_x-Z0).*(z_x[1]-Z0).<0 is 1
+        eqt.boundary.x_point = eqt.boundary.x_point[1:argmax((z_x .- Z0) .* (z_x[1] - Z0) .< 0)]
 
         #check if primary x-point consistent with strike points
         if isempty(eqt.boundary.strike_point)
             #case with case not already saved  - look at first open surface
             psi_first_open = eqt.boundary_separatrix.psi
             (_, z_first_open) = flux_surface(eqt, psi_first_open, :encircling, Float64[], Float64[])[1]
-            if sign(-z_first_open[1]) !== sign(eqt.boundary.x_point[end].z)
+            if sign(Z0 - z_first_open[1]) != sign(eqt.boundary.x_point[end].z - Z0)
                 # x_point are not oredered correctly
                 if length(eqt.boundary.x_point) <= 2
                     # if just 2, it is enough to flip them
@@ -2010,7 +2008,7 @@ function find_x_point!(eqt::IMAS.equilibrium__time_slice{T}, wall_r::AbstractVec
             end
         else
             # case with strike_points already saved
-            if sign(-eqt.boundary.strike_point[1].z) !== sign(eqt.boundary.x_point[end].z)
+            if sign(Z0 - eqt.boundary.strike_point[1].z) != sign(eqt.boundary.x_point[end].z - Z0)
                 # x_point are not oredered correctly
                 if length(eqt.boundary.x_point) <= 2
                     reverse!(eqt.boundary.x_point)
@@ -2078,7 +2076,7 @@ push!(document[Symbol("Physics flux-surfaces")], :miller_R_a_κ_δ_ζ)
 """
     fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
 
-Returns extrema indexes and values of R,Z flux surfaces vectors:
+Returns a NamedTuple with the extrema indexes and values of R,Z flux surfaces vectors (positional unpacking also works):
 
     imaxr, iminr,
     imaxz, iminz,
@@ -2110,7 +2108,7 @@ function fluxsurface_extrema(pr::Vector{T}, pz::Vector{T}) where {T<:Real}
         z_at_max_r = pz[imaxr]
         z_at_min_r = pz[iminr]
     end
-    return (imaxr, iminr, imaxz, iminz,
+    return (; imaxr, iminr, imaxz, iminz,
         r_at_max_z, max_z,
         r_at_min_z, min_z,
         z_at_max_r, max_r,
@@ -2126,7 +2124,7 @@ push!(document[Symbol("Physics flux-surfaces")], :fluxsurface_extrema)
 Squareness from: "An analytic functional form for characterization and generation of axisymmetric plasma boundaries"
 T.C. Luce, Plasma Phys. Control. Fusion 55 (2013) http://dx.doi.org/10.1088/0741-3335/55/9/095009
 
-Returns: zetaou, zetaol, zetail, zetaiu
+Returns a NamedTuple (zetaou, zetaol, zetail, zetaiu); positional unpacking also works
 """
 function luce_squareness(
     pr::AbstractVector{T}, pz::AbstractVector{T},
@@ -2141,23 +2139,19 @@ function luce_squareness(
 
     z = T[]
     for (name, PO, PE) in zip(names, POs, PEs)
-        try
-            PD = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings[1]
-            PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
-            push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
-        catch e
-            if isa(e, InterruptException)
-                rethrow(e)
-            else
-                push!(z, T(0.0))
-            end
-            # plot(pr,pz;aspect_ratio=:equal,title=name)
-            # display(plot!([PO[1], PE[1]], [PO[2], PE[2]]))
-            # rethrow(e)
+        crossings = intersection([PO[1], PE[1]], [PO[2], PE[2]], pr, pz).crossings
+        if isempty(crossings)
+            # the diagonal from the quadrant corner misses the boundary: squareness is undefined for this quadrant
+            @warn "luce_squareness: boundary does not cross the $name diagonal" maxlog = 1
+            push!(z, T(NaN))
+            continue
         end
+        PD = crossings[1]
+        PC = (cos(π / 4.0) * (PE[1] - PO[1]) + PO[1], sin(π / 4.0) * (PE[2] - PO[2]) + PO[2])
+        push!(z, (norm(PD .- PO) - norm(PC .- PO)) / norm(PE .- PC))
     end
     zetaou, zetaol, zetaiu, zetail = z
-    return zetaou, zetaol, zetail, zetaiu
+    return (; zetaou, zetaol, zetail, zetaiu)
 end
 
 @compat public luce_squareness

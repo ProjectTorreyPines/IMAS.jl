@@ -636,9 +636,6 @@ function beta_tor(pressure_average::Real, Bt::Real)
     return pi * 8.0e-7 * pressure_average / Bt^2
 end
 
-@compat public beta_tor
-push!(document[Symbol("Physics profiles")], :beta_tor)
-
 """
     beta_n(beta_tor::Real, minor_radius::Real, Bt::Real, Ip::Real)
 
@@ -838,7 +835,7 @@ function scaling_L_to_H_power(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.e
             ∇B_drift_direction = +1
         end
         # L_H_threshold doubles when ion ∇B drift is away from primary X-point
-        if sign(eqt.boundary.x_point[1].z) == ∇B_drift_direction
+        if sign(eqt.boundary.x_point[1].z - eqt.global_quantities.magnetic_axis.z) == ∇B_drift_direction
             ∇B_drift_factor = 1.0
         else
             ∇B_drift_factor = 2.0
@@ -1498,7 +1495,7 @@ function new_impurity_radiation!(dd::IMAS.DD, impurity_name::Symbol, time_total_
             IMAS.new_impurity_radiation!(dd, impurity_name, total_radiated_power_itp(time0))
         catch e
             if isa(e, InterruptException)
-                retrhow(e)
+                rethrow(e)
             else
                 @warn("$(typeof(e)): Could not set new_impurity_radiation!(dd, $(impurity_name), $(total_radiated_power_itp(time0))) at time $(dd.global_time)")
             end
@@ -1661,8 +1658,8 @@ function exponential_profile(x::Union{Real,AbstractArray}, x0::Real, sigma::Real
     return exp.(.-(x .- x0) / sigma)
 end
 
-@compat public edge_profile
-push!(document[Symbol("Physics profiles")], :edge_profile)
+@compat public exponential_profile
+push!(document[Symbol("Physics profiles")], :exponential_profile)
 
 """
     core_edge_energy(cp1d::IMAS.core_profiles__profiles_1d, rho_ped::Real; thermal::Bool=true)

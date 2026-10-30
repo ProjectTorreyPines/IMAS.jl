@@ -541,7 +541,7 @@ function total_sources(dd::IMAS.DD; time0::Float64=dd.global_time, kw...)
 end
 
 @compat public total_sources
-push!(document[Symbol("Physics sources")], :retain_source)
+push!(document[Symbol("Physics sources")], :total_sources)
 
 function total_radiation_sources(
     core_sources::IMAS.core_sources{T},

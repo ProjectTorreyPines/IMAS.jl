@@ -241,8 +241,8 @@ function sol(
         # Case of limited plasma - Also add first magnetic separatrix
         psi_sep_closed, psi_sep_open = find_psi_separatrix(eqt)
 
-        if psi_sign * psi_sep_open > psi_sign * psi_boundaries.first_open
-            # if psi_boundary is inside separatrix -> limited case
+        if psi_sign * psi_sep_closed > psi_sign * psi_boundaries.first_open
+            # if psi_boundary is inside the (closed side of the) separatrix -> limited case
             levels = unique!(sort(vcat(levels, psi_sep_closed, psi_sep_open)))
         end
 
@@ -255,8 +255,8 @@ function sol(
         #levels is a vector of psi_levels for the discretization of the SOL
         @assert psi_sign * levels[1] >= psi_sign * psi_boundaries.first_open "psi_boundaries.first_open = $(psi_boundaries.first_open) , psi_levels[1] = $(levels[1]) "
         @assert psi_sign * levels[end] <= psi_sign * psi_wall_midplane "psi_wall_midplane = $psi_wall_midplane , psi_levels[end] = $(levels[end]) "
-        levels_is_not_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
-        @assert levels_is_not_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
+        levels_is_monotonic_in_Ip_direction = all(psi_sign * diff(levels) .>= 0)
+        @assert levels_is_monotonic_in_Ip_direction # levels must be monotonic according to plasma current direction
         # make sure levels includes separatrix and wall
         levels[1] = psi_boundaries.first_open
         # push!(levels,psi_wall_midplane - psi_sign * 1E-3 * abs(psi_wall_midplane))
@@ -363,22 +363,14 @@ function find_levels_from_P(
     eqt2d = findfirst(:rectangular, eqt.profiles_2d)
     rmax = eqt2d.grid.dim1[end]
     r_mid_of_interest = 10.0 .^ range(log10(maximum(eqt.boundary.outline.r) * 0.99), log10(rmax), 1000)
-    r_mid = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA)
+    r_mid = interp_rmid_at_psi(PSI_interpolant, r_mid_of_interest, ZA) # keeps only the monotonic part of psi(R), for either sign of psi
     psi_mid = PSI_interpolant.(r_mid_of_interest, r_mid_of_interest .* 0.0 .+ ZA)
     psi_sign = sign(psi_mid[end] - psi_mid[1])
-    if psi_sign < 0
-        r_mid = FI.cubic_interp(-psi_mid, r_mid_of_interest; extrap=FI.ExtendExtrap())
-    end
 
     psi_boundaries = (last_closed=eqt.boundary.psi, first_open=eqt.boundary_separatrix.psi)
     psi_2ndseparatrix = find_psi_2nd_separatrix(eqt).not_diverted # psi of the second magnetic separatrix
-    if psi_sign > 0
-        r_separatrix_midplane = r_mid(psi_boundaries.first_open) # R OMP at separatrix
-        r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
-    else
-        r_separatrix_midplane = r_mid(-psi_boundaries.first_open) # R OMP at separatrix
-        r_2ndseparatrix_midplane = r_mid(-psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
-    end
+    r_separatrix_midplane = r_mid(psi_boundaries.first_open) # R OMP at separatrix
+    r_2ndseparatrix_midplane = r_mid(psi_2ndseparatrix) # R coordinate at OMP of 2nd magnetic separatrix
 
     if isempty(wall_r) .|| isempty(wall_z)
         # no wall
@@ -393,12 +385,7 @@ function find_levels_from_P(
         psi_wall_midplane = find_psi_wall_omp(eqt, wall_r, wall_z)
         psi_last_lfs, _, psi_first_lfs_far, null_within_wall = find_psi_last_diverted(eqt, wall_r, wall_z, PSI_interpolant) # psi of grazing surface
 
-        if psi_sign > 0
-            r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
-        else
-
-            r_last_diverted = r_mid.([-psi_last_lfs, -psi_first_lfs_far]) # R coordinate at OMP of grazing surface
-        end
+        r_last_diverted = r_mid.([psi_last_lfs, psi_first_lfs_far]) # R coordinate at OMP of grazing surface
     end
     r = r .+ r_separatrix_midplane
     order = sortperm(r)
@@ -548,7 +535,7 @@ function find_levels_from_P(
     q::Vector{<:Real},
     levels::Int
 )
-    return find_levels_from_P(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant, q, r, levels)
+    return find_levels_from_P(eqt, first_wall(wall).r, first_wall(wall).z, PSI_interpolant, r, q, levels)
 end
 
 """
@@ -556,7 +543,7 @@ end
 """
 function find_levels_from_P(dd::IMAS.DD, r::Vector{<:Real}, q::Vector{<:Real}, levels::Int)
     _, _, PSI_interpolant = ψ_interpolant(dd.equilibrium.time_slice[].profiles_2d)
-    return find_levels_from_P(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, q, r, levels)
+    return find_levels_from_P(dd.equilibrium.time_slice[], dd.wall, PSI_interpolant, r, q, levels)
 end
 
 @compat public find_levels_from_P
@@ -1081,8 +1068,8 @@ function zohm_divertor_figure_of_merit(dd::IMAS.DD)
     return zohm_divertor_figure_of_merit(dd.core_sources, dd.core_profiles.profiles_1d[], dd.equilibrium.time_slice[])
 end
 
-@compat public q_par_omp_eich
-push!(document[Symbol("Physics sol")], :q_par_omp_eich)
+@compat public zohm_divertor_figure_of_merit
+push!(document[Symbol("Physics sol")], :zohm_divertor_figure_of_merit)
 
 # ============= #
 # Strike points #
