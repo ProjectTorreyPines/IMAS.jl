@@ -143,7 +143,7 @@ end
 push!(document[Symbol("Physics sources")], :radiation_source!)
 
 """
-    intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
+    intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false, fast_density_knee::Real=1.0)
 
 Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
 
@@ -151,8 +151,9 @@ Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
   - `DD_fusion`: Include D-D fusion reactions (only relevant for D+D plasmas)
   - `fast_ion_densities`: Update fast ion density profiles after fusion source calculation
   - `modify_electron_density`: When updating fast ion densities, adjust the electron density to satisfy quasi-neutrality instead of subtracting the fast density from the thermal ion density
+  - `fast_density_knee`: Soft cap of the fast ion density (see [`fast_density_cap!`](@ref)); 1.0 is a hard clamp
 """
-function intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false)
+function intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false, fast_density_knee::Real=1.0)
 
     collisional_exchange_source!(dd) # electron and ion energy
 
@@ -160,7 +161,7 @@ function intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=f
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    fast_ion_densities && fast_particles_profiles!(dd; modify_electron_density) # update fast ion densities
+    fast_ion_densities && fast_particles_profiles!(dd; modify_electron_density, fast_density_knee) # update fast ion densities
 
     bootstrap && bootstrap_source!(dd) # current
 
