@@ -1539,6 +1539,10 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         # fsa_bp = <Bp>
         eqt1d.fsa_bp[k] = flux_surface_avg(Bp, surface)
 
+        # <Bp^2>, converted to gm2 once rho_tor is known
+        tmp .= Bp .^ 2
+        eqt1d.gm2[k] = flux_surface_avg(tmp, surface)
+
         # j_tor = <j_tor/R> / <1/R> [A/m²]
         eqt1d.j_tor[k] =
             (
@@ -1600,9 +1604,10 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # ip
     eqt.global_quantities.ip = Ip(eqt)
 
-    # gm2: <∇ρ²/R²>
-    cumtrapz!(tmp, eqt1d.area, eqt1d.j_tor) # It(psi)
-    eqt1d.gm2 = (mks.μ_0 * (2π)^2) .* tmp ./ (eqt1d.dvolume_dpsi .* (eqt1d.dpsi_drho_tor .^ 2))
+    # gm2: <∇ρ²/R²> = <|∇ψ|²/R²> / (dψ/dρ)², with |∇ψ| = 2πR Bp and dψ/dρ = (dΦ/dρ) / q
+    # Purely geometric: no finite differences, independent of j_tor
+    tmp .= 2π .* B0 .* eqt1d.rho_tor ./ eqt1d.q # dψ/dρ_tor
+    eqt1d.gm2 = (2π)^2 .* eqt1d.gm2 ./ tmp .^ 2
     eqt.profiles_1d.gm2[1] = @views cubic_interp1d(eqt1d.rho_tor_norm[2:5], eqt1d.gm2[2:5], 0.0) # extrapolate to axis due to zero / zero division
 
     # Geometric major and minor radii
