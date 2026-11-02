@@ -132,7 +132,7 @@ Extract Thomson scattering data for electron temperature or density.
 
   - time_averaging: time averaging window size (required if time0 is specified)
 
-Returns NamedTuple with (:time, :rho, :data, :weights)
+Returns NamedTuple with (:time, :rho, :data, :weights, :units)
 
 Data is always of type Measurements.Measurement{T}
 """
