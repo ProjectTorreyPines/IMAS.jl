@@ -523,13 +523,28 @@ dyexp["pulse_schedule.tf.b_field_tor_vacuum_r.reference"] =
     (; tf, _...) -> tf.r0 .* tf.b_field_tor_vacuum.reference
 
 dyexp["pulse_schedule.tf.r0"] =
-    (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.r0
+    (; dd, _...) -> hasdata(dd.tf, :r0) ? dd.tf.r0 : dd.equilibrium.vacuum_toroidal_field.r0
 
+# measurements in the tf IDS take priority over the equilibrium.
+# First and last values are held, since pulse_schedule references are queried outside of the measured time range.
 dyexp["pulse_schedule.tf.b_field_tor_vacuum.reference"] =
-    (; dd, _...) -> dd.equilibrium.vacuum_toroidal_field.b0
+    (; dd, tf, _...) -> begin
+        if hasdata(dd.tf.b_field_tor_vacuum_r, :data)
+            bR = dd.tf.b_field_tor_vacuum_r.data
+            return [bR[1]; bR; bR[end]] ./ tf.r0
+        else
+            return dd.equilibrium.vacuum_toroidal_field.b0
+        end
+    end
 
 dyexp["pulse_schedule.tf.time"] =
-    (; dd, _...) -> dd.equilibrium.time
+    (; dd, _...) -> begin
+        if hasdata(dd.tf.b_field_tor_vacuum_r, :data)
+            return [-Inf; dd.tf.b_field_tor_vacuum_r.time; Inf]
+        else
+            return dd.equilibrium.time
+        end
+    end
 
 dyexp["pulse_schedule.nbi.power.reference"] =
     (; nbi, _...) -> sum(unit.power.reference for unit in nbi.unit)
