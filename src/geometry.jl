@@ -148,6 +148,7 @@ function intersection(
     for k1 in 1:(length(l1_x)-1)
         s1_s = StaticArrays.@SVector [l1_x[k1], l1_y[k1]]
         s1_e = StaticArrays.@SVector [l1_x[k1+1], l1_y[k1+1]]
+        n0 = length(crossings)
         for k2 in 1:(length(l2_x)-1)
             s2_s = StaticArrays.@SVector [l2_x[k2], l2_y[k2]]
             s2_e = StaticArrays.@SVector [l2_x[k2+1], l2_y[k2+1]]
@@ -157,6 +158,15 @@ function intersection(
                 push!(indexes, (k1, k2))
                 push!(crossings, (crossing[1], crossing[2]))
             end
+        end
+        # several crossings on the same segment of the first path come out in second-path order:
+        # sort them along the first path, so that the crossings follow the direction of (l1_x, l1_y)
+        if length(crossings) - n0 > 1
+            rng = (n0+1):length(crossings)
+            d = s1_e - s1_s
+            perm = sortperm([LinearAlgebra.dot(crossings[k] - s1_s, d) for k in rng])
+            crossings[rng] = crossings[rng][perm]
+            indexes[rng] = indexes[rng][perm]
         end
     end
 
@@ -171,7 +181,8 @@ end
         l2_y::AbstractVector{T},
         tolerance::Float64) where {T<:Real}
 
-Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points
+Intersections between two 2D paths, returns list of (x,y) intersection indexes and crossing points,
+ordered along the first path
 
 Endpoints crossings are checked with some tolerance
 """
@@ -203,11 +214,6 @@ function intersection(
             end
         end
     end
-
-    # plot(l1_x,l1_y)
-    # plot!(l2_x,l2_y)
-    # scatter!([cr[1] for cr in crossings],[cr[2] for cr in crossings])
-    # display(plot!())
 
     return (indexes=indexes, crossings=crossings)
 end
@@ -832,9 +838,11 @@ The path is assumed to be closed if the first and last points are the same, and 
 function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     n = length(pr)
     curvature_res = Vector{T}(undef, n)
-    if is_closed_polygon(pr, pz)
-        dr1 = pr[end-1] - pr[1]
-        dz1 = pz[end-1] - pz[1]
+    closed = is_closed_polygon(pr, pz)
+    if closed
+        # the last point duplicates the first: the segment entering point 1 comes from point n-1
+        dr1 = pr[1] - pr[end-1]
+        dz1 = pz[1] - pz[end-1]
     else
         dr1 = 0.0
         dz1 = 0.0
@@ -843,11 +851,15 @@ function curvature(pr::AbstractVector{T}, pz::AbstractVector{T}) where {T<:Real}
     for i in 1:n
         dr2 = if i < n
             pr[i+1] - pr[i]
+        elseif closed
+            pr[2] - pr[1] # point n duplicates point 1: the segment leaving it goes to point 2
         else
             pr[1] - pr[end]
         end
         dz2 = if i < n
             pz[i+1] - pz[i]
+        elseif closed
+            pz[2] - pz[1]
         else
             pz[1] - pz[end]
         end
@@ -1219,7 +1231,6 @@ function inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float
     area_calc_z = Vector{Float64}(undef, max_size)
 
     iteration = 0
-    total_removed = 0
 
     while length(inscribed_r) > 3 && iteration < max_iterations
         iteration += 1
@@ -1325,8 +1336,6 @@ function inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float
         resize!(inscribed_z, new_length)
         resize!(current_indices, new_length)
 
-        total_removed += 1
-
         # Calculate new area for early exit check
         @inbounds for i in 1:new_length
             area_calc_r[i] = inscribed_r[i]
@@ -1353,17 +1362,6 @@ function inscribed_polygon(pr::AbstractVector{Float64}, pz::AbstractVector{Float
     end
     inscribed_r_closed[final_length+1] = inscribed_r[1]
     inscribed_z_closed[final_length+1] = inscribed_z[1]
-
-    final_area = area(inscribed_r_closed, inscribed_z_closed)
-    final_fraction = final_area / original_area
-
-    # println("\nOptimized shrinking algorithm completed:")
-    # println("  Iterations: $(iteration)")
-    # println("  Points removed: $(total_removed)")
-    # println("  Final vertices: $(length(inscribed_r))")
-    # println("  Final area: $(final_area)")
-    # println("  Area fraction: $(100*final_fraction)%")
-    # println("  Remaining indices: $(current_indices)")
 
     return inscribed_r_closed, inscribed_z_closed
 end

@@ -203,13 +203,14 @@ function symmetrize_equilibrium!(eqt::IMAS.equilibrium__time_slice)
     psi_sign = sign(eqt.profiles_1d.psi[end] - eqt.profiles_1d.psi[1])
     RA, ZA = find_magnetic_axis(r, z, PSI_interpolant, psi_sign)
 
-    Z1 = (maximum(z) + minimum(z)) / 2.0
-    zz = z .- Z1 .+ ZA
-    zz = range(max(minimum(z), minimum(zz)), min(maximum(z), maximum(zz)), length(z))
+    # Z grid centered on the magnetic axis and clipped symmetrically so that it stays within the original grid:
+    # clipping to the original range would re-center the grid and the up-down mirror below would not be about ZA
+    h = min(ZA - minimum(z), maximum(z) - ZA)
+    zz = range(ZA - h, ZA + h, length(z))
 
-    psi = PSI_interpolant(r, zz)
+    psi = [PSI_interpolant(rr, zzz) for rr in r, zzz in zz]
 
-    eqt2d.grid.dim2 = zz
+    eqt2d.grid.dim2 = collect(zz)
     eqt2d.psi = (psi[1:end, end:-1:1] .+ psi) ./ 2.0
 
     return eqt
