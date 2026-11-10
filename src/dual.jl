@@ -60,8 +60,8 @@ push!(document[:Dual], :retype)
 
 # `convert(D, ids)` is defined in IMASdd for any `Type{<:Real}` and in ForwardDiff for any argument,
 # so for a Dual element type the call is ambiguous unless it is resolved here
-Base.convert(::Type{D}, @nospecialize(ids::IDS)) where {D<:Dual} = retype(D, ids)
-Base.convert(::Type{D}, @nospecialize(ids::IDSvector)) where {D<:Dual} = retype(D, ids)
+Base.convert(::Type{Dual{T,V,N}}, @nospecialize(ids::IDS)) where {T,V,N} = retype(Dual{T,V,N}, ids)
+Base.convert(::Type{Dual{T,V,N}}, @nospecialize(ids::IDSvector)) where {T,V,N} = retype(Dual{T,V,N}, ids)
 
 """
     value_dd(ids::Union{IDS,IDSvector})
