@@ -75,7 +75,17 @@ function blend_core_edge_Hmode(
         # search on value parts, then derivatives of the exponents from the implicit function theorem
         cost = x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets)
         res = Optim.optimize(x -> force_float64(cost(x)), x_guess, Optim.NelderMead(), Optim.Options(; g_tol=pedestal_search_tolerance.simplex[]))
-        exps = _implicit_EPED_exps(cost, Float64[res.minimizer[1], res.minimizer[2]], D, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets)
+        xstar = Float64[res.minimizer[1], res.minimizer[2]]
+        if IMPLICIT_DERIVATIVES[]
+            # The derivative depends on which kind of minimum this is (see `_implicit_EPED_exps`), and that can
+            # only be told apart at a tightly converged minimum: the search is continued to a tight tolerance for
+            # the derivative, while the values remain those of the search at its usual tolerance.
+            polished = Optim.optimize(x -> force_float64(cost(x)), copy(xstar), Optim.NelderMead(), Optim.Options(; g_tol=1E-14, iterations=5000))
+            exps_polished = _implicit_EPED_exps(cost, Float64[polished.minimizer[1], polished.minimizer[2]], D, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets)
+            exps = [xstar[j] + _derivative_part(exps_polished[j]) * (sign(xstar[j]) == sign(ForwardDiff.value(exps_polished[j])) ? 1 : -1) for j in 1:2]
+        else
+            exps = D.(xstar)
+        end
         expin = abs(exps[1])
         expout = abs(exps[2])
     else
@@ -269,7 +279,7 @@ function blend_core_edge_Lmode(
         # derivative of the exponent from the implicit function theorem on the signed mismatch
         profile0 = copy(profile)
         G = u -> (profile .= profile0; [residual_WPED_α!(rho, profile, u[1], value, rho_bound)])
-        α = implicit_solution(G, Float64[res.minimizer], D)[1]
+        α = implicit_solution(G, Float64[res.minimizer], D; atol=1E-2)[1]
         profile .= profile0
         cost_WPED_α!(rho, profile, α, value, rho_bound)
     else

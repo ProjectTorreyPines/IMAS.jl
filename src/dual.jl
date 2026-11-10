@@ -112,11 +112,17 @@ function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:
     return nothing
 end
 
-# visit every filled data leaf of `ids`, calling f(ids_node, other_node, field); `other` must have the same structure
-function _foreach_leaf(f::F, @nospecialize(ids::Union{IDS,IDSvector}), @nospecialize(other::Union{IDS,IDSvector})) where {F}
+# visit every filled data leaf of `ids`, calling f(ids_node, other_node, field); `other` must have the same structure.
+# With `strict=false` arrays of structures of different length (e.g. a different number of X-points) are skipped
+# and counted in `mismatches` instead of raising an error.
+function _foreach_leaf(f::F, @nospecialize(ids::Union{IDS,IDSvector}), @nospecialize(other::Union{IDS,IDSvector}); strict::Bool=true, mismatches::Base.RefValue{Int}=Ref(0)) where {F}
     stack = Tuple{Any,Any}[]
     if ids isa IDSvector
-        @assert length(ids) == length(other) "IDS structures do not match"
+        if length(ids) != length(other)
+            strict && error("IDS structures do not match")
+            mismatches[] += 1
+            return ids
+        end
         for i in eachindex(ids)
             push!(stack, (ids[i], other[i]))
         end
@@ -136,7 +142,11 @@ function _foreach_leaf(f::F, @nospecialize(ids::Union{IDS,IDSvector}), @nospecia
                 elseif field_type <: IDSvector
                     va = getfield(a, field)
                     vb = getfield(b, field)
-                    @assert length(va) == length(vb) "IDS structures do not match at $(location(a, field))"
+                    if length(va) != length(vb)
+                        strict && error("IDS structures do not match at $(location(a, field))")
+                        mismatches[] += 1
+                        continue
+                    end
                     for j in eachindex(va)
                         push!(stack, (va[j], vb[j]))
                     end
@@ -179,7 +189,8 @@ the two, or arrays of different size, is left untouched. Returns the number of l
 """
 function replace_values!(@nospecialize(ids::Union{IDS{<:Dual},IDSvector{<:IDS{<:Dual}}}), @nospecialize(ids_values::Union{IDS{Float64},IDSvector{<:IDS{Float64}}}))
     skipped = 0
-    _foreach_leaf(ids, ids_values) do a, b, field
+    mismatches = Ref(0)
+    _foreach_leaf(ids, ids_values; strict=false, mismatches) do a, b, field
         value = getraw(a, field)
         if field != :time && eltype(value) <: Dual
             filled_b = getfield(b, :_filled)
@@ -201,7 +212,7 @@ function replace_values!(@nospecialize(ids::Union{IDS{<:Dual},IDSvector{<:IDS{<:
             end
         end
     end
-    return skipped
+    return skipped + mismatches[]
 end
 
 @compat public replace_values!
@@ -268,26 +279,39 @@ end
 _implicit_step(x::Real, relstep::Real) = relstep * max(abs(x), 1.0)
 
 """
-    implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D}; relstep::Real=1E-4) where {D<:Dual}
+    implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D}; relstep::Real=1E-4, atol::Real=Inf) where {D<:Dual}
 
 Given `ustar` such that `G(ustar) ≈ 0` on value parts, where `G(u::Vector{D})::Vector{D}` depends on inputs
 that carry derivatives, returns `ustar` as dual numbers with `du/dθ = -(∂G/∂u)⁻¹ ∂G/∂θ`.
 `G` is called with `u` at and around `ustar`; whatever state it leaves behind must be set again by the caller.
+
+`atol` handles searches that end without satisfying their condition (a minimisation of `|G_i|` that stops on a
+plateau, say). It requires `G` and `u` to pair up, the i-th condition being the one that determines the i-th
+unknown: an unknown whose condition is violated by more than `atol` is not determined by it, so it is held
+fixed (zero derivative part) and its condition is left out of the linear system.
 """
-function implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D}; relstep::Real=1E-4) where {D<:Dual}
+function implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D}; relstep::Real=1E-4, atol::Real=Inf) where {D<:Dual}
     n = length(ustar)
     if !IMPLICIT_DERIVATIVES[]
         return D.(ustar)
     end
-    Gθ = _partials_matrix(G(D.(ustar)))
-    J = Matrix{Float64}(undef, size(Gθ, 1), n)
-    for j in 1:n
-        δ = _implicit_step(ustar[j], relstep)
-        up = collect(ustar); up[j] += δ
-        um = collect(ustar); um[j] -= δ
-        J[:, j] .= (ForwardDiff.value.(G(D.(up))) .- ForwardDiff.value.(G(D.(um)))) ./ (2δ)
+    G0 = G(D.(ustar))
+    Gθ = _partials_matrix(G0)
+    active = isfinite(atol) ? [i for i in 1:n if abs(ForwardDiff.value(G0[i])) <= atol] : collect(1:n)
+    isfinite(atol) && @assert length(G0) == n "with `atol`, conditions and unknowns must pair up"
+    du = zeros(n, size(Gθ, 2))
+    if !isempty(active)
+        rows = isfinite(atol) ? active : collect(1:length(G0))
+        J = Matrix{Float64}(undef, length(rows), length(active))
+        for (jj, j) in enumerate(active)
+            δ = _implicit_step(ustar[j], relstep)
+            up = collect(ustar); up[j] += δ
+            um = collect(ustar); um[j] -= δ
+            J[:, jj] .= ((ForwardDiff.value.(G(D.(up))) .- ForwardDiff.value.(G(D.(um)))) ./ (2δ))[rows]
+        end
+        du[active, :] .= -(LinearAlgebra.pinv(J; rtol=1E-12) * Gθ[rows, :])
     end
-    return _with_partials(D, ustar, -(LinearAlgebra.pinv(J; rtol=1E-12) * Gθ))
+    return _with_partials(D, ustar, du)
 end
 
 """
