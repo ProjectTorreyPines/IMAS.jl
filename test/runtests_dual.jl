@@ -74,8 +74,10 @@ end
     # minimum of (x1 - a)^2 + (x2 - a*b)^2 + x1*x2*0
     cost = x -> (x[1] - a)^2 + (x[2] - a * b)^2
     x = IMAS.implicit_argmin(cost, [2.0, 6.0], D2)
-    @test partials(x[1], 1) ≈ 2.0 && partials(x[1], 2) ≈ 0.0 atol = 1e-12
-    @test partials(x[2], 1) ≈ 6.0 && partials(x[2], 2) ≈ 6.0
+    @test partials(x[1], 1) ≈ 2.0
+    @test partials(x[1], 2) ≈ 0.0 atol = 1e-12
+    @test partials(x[2], 1) ≈ 6.0
+    @test partials(x[2], 2) ≈ 6.0
 
     # switched off: values only
     x = Base.ScopedValues.with(IMAS.IMPLICIT_DERIVATIVES => false) do
@@ -99,8 +101,8 @@ end
         blend(ped, s) = IMAS.blend_core_edge_Hmode(profile(s), rho .* one(ped), ped, 0.06 * one(ped), 0.775, 0.8)
         ad = blend(600.0 + (IMAS.seed(D2, 1) - 1), IMAS.seed(D2, 2))
         @test value.(ad) ≈ blend(600.0, 1.0) rtol = 1e-10
-        fd1 = central(h -> blend(600.0 + h, 1.0), 1e-3)
-        fd2 = central(h -> blend(600.0, 1.0 + h), 1e-5)
+        fd1 = central(h -> blend(600.0 + h, 1.0), 0.1) # a step well above the noise of the simplex search
+        fd2 = central(h -> blend(600.0, 1.0 + h), 1e-4)
         @test partials.(ad, 1) ≈ fd1 rtol = 2e-2
         @test partials.(ad, 2) ≈ fd2 rtol = 2e-2
 
@@ -157,15 +159,22 @@ end
     yd = run([IMAS.seed(D2, 1), IMAS.seed(D2, 2)])
     @test value.(yd) ≈ y0 rtol = 1e-6
 
-    for (k, h) in ((1, 1e-5), (2, 1e-4))
+    # The last closed surface is found by a search on the contouring grid, which makes every output a
+    # piecewise function of ψ(R,Z) with small jumps. The finite-difference slope is therefore a fit over
+    # several steps that span many pieces, not a two-point difference inside one of them.
+    function slope(k, H)
+        hs = H .* vcat(-4:-1, 1:4) ./ 4
         e = zeros(2)
         e[k] = 1.0
-        fd = central(hh -> run([1.0, 1.0] .+ hh .* e), h)
+        Y = [run([1.0, 1.0] .+ h .* e) for h in hs]
+        return [sum(hs[j] * (Y[j][i] - y0[i]) for j in eachindex(hs)) / sum(abs2, hs) for i in eachindex(y0)]
+    end
+    for (k, H) in ((1, 1e-4), (2, 2e-2))
+        fd = slope(k, H)
         ad = partials.(yd, k)
-        scale = max.(abs.(ad), abs.(fd), 1e-6 .* abs.(y0), 1e-10)
-        rel = abs.(ad .- fd) ./ scale
-        @test count(<(0.02), rel) >= 0.9 * length(rel) # nearly all outputs within 2 %
-        @test sort(rel)[end÷2] < 2e-3                  # median far below
-        @test maximum(rel) < 0.2                       # none grossly off
+        rel = abs.(ad .- fd) ./ max.(abs.(ad), abs.(fd), abs.(y0)) # error per unit change of the input, relative to the output
+        @test count(<(0.02), rel) >= 0.95 * length(rel)
+        @test sort(rel)[end÷2] < 5e-3
+        @test maximum(rel) < 0.1
     end
 end

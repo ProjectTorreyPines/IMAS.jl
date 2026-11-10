@@ -132,9 +132,55 @@ end
 # mean, and it is the one that lies inside the bracket. When there is none, the surface is limited by
 # the wall, and the level follows ψ at the point of the wall that it touches. The bisection stops a
 # small, fixed fraction of the way inside that limit.
+# Saddle point of ψ (X-point) whose flux is the level `psi_b_v` to within `rtol` of the flux between axis and
+# boundary: Newton iterations on ∇ψ = 0 from the grid nodes near that level where the gradient is smallest.
+function _saddle_at_level(r::AbstractVector{Float64}, z::AbstractVector{Float64}, PSI::Matrix{D}, itp, psi_a_v::Float64, psi_b_v::Float64; rtol::Float64=1E-2) where {D<:Dual}
+    span = abs(psi_b_v - psi_a_v)
+    dr = r[2] - r[1]
+    dz = z[2] - z[1]
+    candidates = Tuple{Float64,Int,Int}[]
+    for j in 2:length(z)-1, i in 2:length(r)-1
+        if abs(ForwardDiff.value(PSI[i, j]) - psi_b_v) <= 5 * rtol * span
+            gR = (ForwardDiff.value(PSI[i+1, j]) - ForwardDiff.value(PSI[i-1, j])) / (2dr)
+            gZ = (ForwardDiff.value(PSI[i, j+1]) - ForwardDiff.value(PSI[i, j-1])) / (2dz)
+            push!(candidates, (hypot(gR, gZ), i, j))
+        end
+    end
+    sort!(candidates)
+    H = zeros(2, 2)
+    best = nothing
+    for (_, i, j) in candidates[1:min(8, end)]
+        R, Z = r[i], z[j]
+        ok = false
+        for _ in 1:30
+            g = _gradient(itp, R, Z)
+            g1 = force_float64(g[1])
+            g2 = force_float64(g[2])
+            _hessian_values!(H, itp, R, Z)
+            det = H[1, 1] * H[2, 2] - H[1, 2] * H[2, 1]
+            det < 0 || break
+            dR = -(H[2, 2] * g1 - H[1, 2] * g2) / det
+            dZ = -(-H[2, 1] * g1 + H[1, 1] * g2) / det
+            R += dR
+            Z += dZ
+            (abs(R - r[i]) <= 2dr && abs(Z - z[j]) <= 2dz) || break
+            if hypot(dR / dr, dZ / dz) < 1E-10
+                ok = true
+                break
+            end
+        end
+        ok || continue
+        miss = abs(force_float64(itp(R, Z)) - psi_b_v)
+        if miss <= rtol * span && (best === nothing || miss < best[1])
+            best = (miss, R, Z)
+        end
+    end
+    return best === nothing ? nothing : (best[2], best[3])
+end
+
 function _implicit_psi_boundary(
     r::AbstractVector{Float64}, z::AbstractVector{Float64}, PSI::Matrix{D}, itp, psi_axis::D, psi_b_v::Float64, psi_open_v::Float64,
-    wall_r::AbstractVector{Float64}, wall_z::AbstractVector{Float64}) where {D<:Dual}
+    wall_r::AbstractVector{Float64}, wall_z::AbstractVector{Float64}; xpoint::Bool=true) where {D<:Dual}
 
     psi_a_v = ForwardDiff.value(psi_axis)
     lo, hi = minmax(psi_b_v, psi_open_v)
@@ -142,7 +188,17 @@ function _implicit_psi_boundary(
     lo -= pad
     hi += pad
     psi_limit = nothing
+    if xpoint
+        # diverted plasma: the last closed surface follows the flux at the X-point. The level found by the
+        # search differs from it by an offset set by the contouring grid, which is piecewise in the inputs;
+        # the derivative is that of the X-point flux, which is the trend over any finite change of the inputs.
+        saddle = _saddle_at_level(r, z, PSI, itp, psi_a_v, psi_b_v)
+        if saddle !== nothing
+            psi_limit = D(itp(saddle[1], saddle[2]))
+        end
+    end
     for j in eachindex(z), i in eachindex(r)
+        psi_limit === nothing || break
         if lo <= ForwardDiff.value(PSI[i, j]) <= hi
             psi_limit = PSI[i, j]
             break
@@ -239,8 +295,12 @@ function flux_surfaces(eqt::equilibrium__time_slice{D}, wall_r::AbstractVector{T
     rescaled = eqt_v.boundary_separatrix.psi !== eqt_v.boundary.psi
     if !isempty(wr) || eqt.global_quantities.free_boundary == 1
         psi_boundary = _implicit_psi_boundary(collect(r), collect(z), eqt2d.psi, itp, psi_axis, psi_b_v, eqt_v.boundary_separatrix.psi, wr, wz)
+        # when the level follows an X-point the points of the last surface are displaced on the smooth ψ(R,Z)
+        # rather than along the grid edges, where the linear interpolation is poor next to the X-point
+        smooth_boundary = _saddle_at_level(collect(r), collect(z), eqt2d.psi, itp, ForwardDiff.value(psi_axis), psi_b_v) !== nothing
     else
         psi_boundary = psi_in[end]
+        smooth_boundary = false
     end
     if rescaled
         eqt1d.psi = (psi_in .- psi_in[1]) ./ (psi_in[end] - psi_in[1]) .* (psi_boundary - psi_axis) .+ psi_axis
@@ -273,7 +333,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{D}, wall_r::AbstractVector{T
             δlevel = _derivative_part(level)
             on_edges = 0
             for i in 1:np
-                point = _contour_point_on_edge(r, z, eqt2d.psi, sv.r[i], sv.z[i], level)
+                point = (k == N && smooth_boundary) ? nothing : _contour_point_on_edge(r, z, eqt2d.psi, sv.r[i], sv.z[i], level)
                 if point === nothing
                     point = _implicit_contour_point(itp, sv.r[i], sv.z[i], δlevel)
                 else
