@@ -324,7 +324,7 @@ function total_power_time(core_sources::IMAS.core_sources, include_indexes::Vect
         append!(sources, findall(core_sources.source, "identifier.index" => index))
     end
     time_array = core_sources.time
-    total_power = zeros(length(time_array))
+    total_power = zeros(eltype(core_sources), length(time_array))
     for source in sources
         total_power .+= [total_power_source(source.profiles_1d[t]) for t in time_array]
     end
@@ -595,7 +595,12 @@ end
 
 function sawteeth_source!(dd::IMAS.DD{T}, ::Nothing; flat_factor::Real=0.5) where {T<:Real}
     # no inversion radius, so call with rho0 = 0.0
-    return sawteeth_source!(dd, 0.0; flat_factor)
+    return sawteeth_source!(dd, zero(T); flat_factor)
+end
+
+function sawteeth_source!(dd::IMAS.DD{T}, rho0::AbstractFloat; flat_factor::Real=0.5) where {T<:ForwardDiff.Dual}
+    # inversion radius given as a plain float for a dd with dual numbers
+    return sawteeth_source!(dd, T(rho0); flat_factor)
 end
 
 function sawteeth_source!(dd::IMAS.DD{T}, i_qdes::Int; flat_factor::Real=0.5) where {T<:Real}
