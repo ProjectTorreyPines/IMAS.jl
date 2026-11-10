@@ -117,37 +117,47 @@ function _dual_psi_boundaries(dimR, dimZ, PSI::Matrix{D}, itp, psi_axis, psimid,
     z = Float64[force_float64(x) for x in dimZ]
     wr = Float64[force_float64(x) for x in fw_r]
     wz = Float64[force_float64(x) for x in fw_z]
-    last_closed = _implicit_psi_boundary(r, z, PSI, itp, D(psi_axis), force_float64(psimid), wr, wz)
+    last_closed = _implicit_psi_boundary(r, z, PSI, itp, D(psi_axis), force_float64(psimid), force_float64(psiend), wr, wz)
     first_open = force_float64(psiend) + _derivative_part(last_closed)
     return (last_closed=last_closed, first_open=first_open)
 end
 
-# Level of the last closed flux surface as a dual number, given its value `psi_b_v` found by the search.
+# Level of the last closed flux surface as a dual number, given the bracket found by the bisection:
+# `psi_b_v` is the last level whose contour is closed and `psi_open_v` the first one whose contour is open.
 #
-# The contours are traced cell by cell on the grid. In a cell where ψ has a saddle (an X-point) the two
-# branches of the contour are connected according to the mean of ψ at the four nodes of the cell, so
-# that mean, not the saddle value of the smooth interpolant, is the level at which the contour opens up.
-# When no such cell matches, the surface is limited by the wall and the level follows ψ at the point of
-# the wall where it touches. The search stops a small, fixed fraction of the way inside that limit.
+# The contours are traced cell by cell on the grid, with linear interpolation of ψ along the edges of the
+# cells. Such a contour changes topology only when its level passes the value of ψ at a grid node, or, in
+# a cell where ψ has a saddle, the mean of ψ at the four nodes of the cell (which decides how the two
+# branches are connected). The level at which the contour opens up is therefore that node value or cell
+# mean, and it is the one that lies inside the bracket. When there is none, the surface is limited by
+# the wall, and the level follows ψ at the point of the wall that it touches. The bisection stops a
+# small, fixed fraction of the way inside that limit.
 function _implicit_psi_boundary(
-    r::AbstractVector{Float64}, z::AbstractVector{Float64}, PSI::Matrix{D}, itp, psi_axis::D, psi_b_v::Float64,
+    r::AbstractVector{Float64}, z::AbstractVector{Float64}, PSI::Matrix{D}, itp, psi_axis::D, psi_b_v::Float64, psi_open_v::Float64,
     wall_r::AbstractVector{Float64}, wall_z::AbstractVector{Float64}) where {D<:Dual}
 
     psi_a_v = ForwardDiff.value(psi_axis)
-    span = abs(psi_b_v - psi_a_v)
-    best = (Inf, 0, 0)
-    for j in 1:length(z)-1, i in 1:length(r)-1
-        v1, v2, v3, v4 = ForwardDiff.value(PSI[i, j]), ForwardDiff.value(PSI[i+1, j]), ForwardDiff.value(PSI[i+1, j+1]), ForwardDiff.value(PSI[i, j+1])
-        m = (v1 + v2 + v3 + v4) / 4
-        distance = abs(m - psi_b_v)
-        if distance < best[1] && ((v1 > m && v3 > m && v2 < m && v4 < m) || (v1 < m && v3 < m && v2 > m && v4 > m))
-            best = (distance, i, j)
+    lo, hi = minmax(psi_b_v, psi_open_v)
+    pad = 1E-3 * (hi - lo)
+    lo -= pad
+    hi += pad
+    psi_limit = nothing
+    for j in eachindex(z), i in eachindex(r)
+        if lo <= ForwardDiff.value(PSI[i, j]) <= hi
+            psi_limit = PSI[i, j]
+            break
         end
     end
-    if best[1] <= 1E-3 * span
-        i, j = best[2], best[3]
-        psi_limit = (PSI[i, j] + PSI[i+1, j] + PSI[i+1, j+1] + PSI[i, j+1]) / 4
-    elseif !isempty(wall_r)
+    if psi_limit === nothing
+        for j in 1:length(z)-1, i in 1:length(r)-1
+            m = (PSI[i, j] + PSI[i+1, j] + PSI[i+1, j+1] + PSI[i, j+1]) / 4
+            if lo <= ForwardDiff.value(m) <= hi
+                psi_limit = m
+                break
+            end
+        end
+    end
+    if psi_limit === nothing && !isempty(wall_r)
         touch = (Inf, 0.0, 0.0)
         for k in eachindex(wall_r)
             k2 = k == length(wall_r) ? 1 : k + 1
@@ -160,7 +170,8 @@ function _implicit_psi_boundary(
             end
         end
         psi_limit = D(itp(touch[2], touch[3]))
-    else
+    end
+    if psi_limit === nothing
         return D(psi_b_v)
     end
     fraction = (psi_b_v - psi_a_v) / (ForwardDiff.value(psi_limit) - psi_a_v)
@@ -227,7 +238,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{D}, wall_r::AbstractVector{T
     psi_b_v = eqt_v.boundary.psi
     rescaled = eqt_v.boundary_separatrix.psi !== eqt_v.boundary.psi
     if !isempty(wr) || eqt.global_quantities.free_boundary == 1
-        psi_boundary = _implicit_psi_boundary(collect(r), collect(z), eqt2d.psi, itp, psi_axis, psi_b_v, wr, wz)
+        psi_boundary = _implicit_psi_boundary(collect(r), collect(z), eqt2d.psi, itp, psi_axis, psi_b_v, eqt_v.boundary_separatrix.psi, wr, wz)
     else
         psi_boundary = psi_in[end]
     end
