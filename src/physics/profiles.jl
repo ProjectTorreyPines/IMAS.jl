@@ -33,11 +33,14 @@ end
     pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
 
 thermal pressure for all ions
+
+An ion contributes when its thermal density is available, either stored or derived from a stored total density
+(`density_thermal = density - density_fast`). Ions with only a fast density have no thermal pressure.
 """
 function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
     p = zero(cp1di[1].temperature)
     for ion in cp1di
-        if hasdata(ion, :density_thermal)
+        if hasdata(ion, :density_thermal) || hasdata(ion, :density)
             p .+= ion.temperature .* ion.density_thermal
         end
     end
