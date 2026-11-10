@@ -88,6 +88,14 @@ end
     # finite derivative parts where the plain function has an infinite derivative
     @test all(isfinite, partials(IMAS.sqrt0(0.0 * IMAS.seed(D2, 1))))
     @test all(isfinite, partials(IMAS._chebyshev_T(3, D2(1.0))))
+
+    # a time basis that starts at -Inf: the smoothed power and its derivative with respect to the time constant
+    time = [-Inf, 0.0, 1.0, 2.0]
+    power = [0.0, 1.0, 3.0, 2.0]
+    smooth(tau) = IMAS.smooth_beam_power(time, power, 2.0, tau)
+    p = smooth(0.7 * IMAS.seed(D2, 1))
+    @test value(p) == smooth(0.7)
+    @test partials(p, 1) ≈ 0.7 * (smooth(0.7 + 1e-6) - smooth(0.7 - 1e-6)) / 2e-6 rtol = 1e-6
 end
 
 @testset "pedestal blending with duals" begin
