@@ -234,6 +234,67 @@ end
 @compat public seed
 push!(document[:Dual], :seed)
 
+# ------------------------------------------------- #
+# Derivatives of solutions found by iterative search #
+# ------------------------------------------------- #
+# Root finders and minimisers (Brent, Nelder-Mead, ...) are run on value parts, exactly as in a Float64
+# calculation. The derivative of what they find with respect to the inputs carried by the dual numbers
+# follows from the implicit function theorem at the solution. The derivatives with respect to the few
+# unknowns are taken by central differences of value parts, so that the function being solved does not
+# need to accept nested dual numbers (many of them update arrays in place).
+
+function _partials_matrix(x::AbstractVector{D}) where {T,V,N,D<:Dual{T,V,N}}
+    return V[ForwardDiff.partials(xi, k) for xi in x, k in 1:N]
+end
+
+function _with_partials(::Type{D}, values::AbstractVector{<:Real}, partials::AbstractMatrix{<:Real}) where {T,V,N,D<:Dual{T,V,N}}
+    return D[D(V(values[i]), ForwardDiff.Partials{N,V}(ntuple(k -> V(partials[i, k]), N))) for i in eachindex(values)]
+end
+
+_implicit_step(x::Real, relstep::Real) = relstep * max(abs(x), 1.0)
+
+"""
+    implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D}; relstep::Real=1E-4) where {D<:Dual}
+
+Given `ustar` such that `G(ustar) ≈ 0` on value parts, where `G(u::Vector{D})::Vector{D}` depends on inputs
+that carry derivatives, returns `ustar` as dual numbers with `du/dθ = -(∂G/∂u)⁻¹ ∂G/∂θ`.
+`G` is called with `u` at and around `ustar`; whatever state it leaves behind must be set again by the caller.
+"""
+function implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D}; relstep::Real=1E-4) where {D<:Dual}
+    n = length(ustar)
+    Gθ = _partials_matrix(G(D.(ustar)))
+    J = Matrix{Float64}(undef, size(Gθ, 1), n)
+    for j in 1:n
+        δ = _implicit_step(ustar[j], relstep)
+        up = collect(ustar); up[j] += δ
+        um = collect(ustar); um[j] -= δ
+        J[:, j] .= (ForwardDiff.value.(G(D.(up))) .- ForwardDiff.value.(G(D.(um)))) ./ (2δ)
+    end
+    return _with_partials(D, ustar, -(J \ Gθ))
+end
+
+"""
+    implicit_argmin(cost, xstar::AbstractVector{<:AbstractFloat}, ::Type{D}) where {D<:Dual}
+
+Given `xstar` that minimises the value part of `cost(x)`, where `cost` depends on inputs that carry
+derivatives, returns `xstar` as dual numbers with `dx/dθ = -(∂²c/∂x²)⁺ ∂(∂c/∂x)/∂θ`.
+
+The gradient and Hessian with respect to `x` are taken by forward-mode differentiation nested inside the
+dual numbers of the inputs, so `cost` must be a pure function of `x` (no in-place update of arrays whose
+element type is `D`). A direction along which the cost is flat does not respond to the inputs (pseudo-inverse).
+"""
+function implicit_argmin(cost, xstar::AbstractVector{<:AbstractFloat}, ::Type{D}) where {D<:Dual}
+    x0 = D.(collect(xstar))
+    gθ = _partials_matrix(ForwardDiff.gradient(cost, x0))
+    H = ForwardDiff.value.(ForwardDiff.hessian(cost, x0))
+    H = (H .+ H') ./ 2
+    return _with_partials(D, xstar, -(LinearAlgebra.pinv(H; rtol=1E-10) * gθ))
+end
+
+@compat public implicit_solution, implicit_argmin
+push!(document[:Dual], :implicit_solution)
+push!(document[:Dual], :implicit_argmin)
+
 # ---- #
 # I/O  #
 # ---- #
