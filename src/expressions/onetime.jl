@@ -21,7 +21,7 @@ otexp["core_profiles.profiles_1d[:].grid.volume"] =
         volume = eqt.profiles_1d.volume
         ori_rho = eqt.profiles_1d.rho_tor_norm
         new_rho = profiles_1d.grid.rho_tor_norm
-        return (cubic_interp1d(ori_rho, sqrt.(volume), new_rho)).^2
+        return (cubic_interp1d(ori_rho, sqrt0.(volume), new_rho)).^2
     end
 
 otexp["core_profiles.profiles_1d[:].grid.area"] =
@@ -30,7 +30,7 @@ otexp["core_profiles.profiles_1d[:].grid.area"] =
         area = eqt.profiles_1d.area
         ori_rho = eqt.profiles_1d.rho_tor_norm
         new_rho = profiles_1d.grid.rho_tor_norm
-        return (cubic_interp1d(ori_rho, sqrt.(area), new_rho)).^2
+        return (cubic_interp1d(ori_rho, sqrt0.(area), new_rho)).^2
     end
 
 otexp["core_profiles.profiles_1d[:].grid.surface"] =
@@ -50,7 +50,7 @@ otexp["core_profiles.profiles_1d[:].grid.psi"] =
         sign_psi = sign(psi[end] - psi[1])
         ori_rho = eqt.profiles_1d.rho_tor_norm
         new_rho = profiles_1d.grid.rho_tor_norm
-        return sign_psi .* cubic_interp1d(ori_rho, sqrt.(abs.(psi .- psi[1])), new_rho).^2 .+ psi[1]
+        return sign_psi .* cubic_interp1d(ori_rho, sqrt0.(abs.(psi .- psi[1])), new_rho).^2 .+ psi[1]
     end
 
 

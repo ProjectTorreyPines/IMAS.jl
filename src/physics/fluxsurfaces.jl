@@ -1583,7 +1583,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     eqt1d.phi = cumtrapz(eqt1d.volume, tmp)
 
     # rho_tor_norm
-    rho = sqrt.(abs.(eqt1d.phi ./ (π * B0)))
+    rho = sqrt0.(abs.(eqt1d.phi ./ (π * B0)))
     rho_meters = rho[end]
     eqt1d.rho_tor = rho
     eqt1d.rho_tor_norm = rho ./ rho_meters

@@ -173,23 +173,35 @@ push!(document[:Dual], :partials_dd)
     replace_values!(ids::Union{IDS,IDSvector}, ids_values::Union{IDS,IDSvector})
 
 Overwrite the value part of every real-valued leaf of the Dual-typed `ids` with the corresponding
-entry of the Float64 `ids_values`, keeping the partials of `ids`. Both must have the same structure
-and array sizes. Used to iterate derivative parts at a fixed solution.
+entry of the Float64 `ids_values`, keeping the partials of `ids`. Used to iterate derivative parts at
+a fixed solution. Both must have the same tree of sub-structures; a leaf that holds data in only one of
+the two, or arrays of different size, is left untouched. Returns the number of leaves left untouched.
 """
 function replace_values!(@nospecialize(ids::Union{IDS{<:Dual},IDSvector{<:IDS{<:Dual}}}), @nospecialize(ids_values::Union{IDS{Float64},IDSvector{<:IDS{Float64}}}))
+    skipped = 0
     _foreach_leaf(ids, ids_values) do a, b, field
         value = getraw(a, field)
         if field != :time && eltype(value) <: Dual
+            filled_b = getfield(b, :_filled)
+            if !(hasfield(typeof(filled_b), field) && getfield(filled_b, field))
+                skipped += 1
+                return
+            end
             newval = getraw(b, field)
             if value isa AbstractArray
-                @assert size(value) == size(newval) "array sizes do not match at $(location(a, field))"
+                if !(newval isa AbstractArray{<:Real}) || size(value) != size(newval)
+                    skipped += 1
+                    return
+                end
                 setfield!(a, field, map((d, v) -> typeof(d)(v, ForwardDiff.partials(d)), value, newval))
-            else
+            elseif newval isa Real
                 setfield!(a, field, typeof(value)(newval, ForwardDiff.partials(value)))
+            else
+                skipped += 1
             end
         end
     end
-    return ids
+    return skipped
 end
 
 @compat public replace_values!
