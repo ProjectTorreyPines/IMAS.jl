@@ -100,6 +100,73 @@ function _implicit_extremum(itp, R::Float64, Z::Float64, dir::Symbol, δlevel::D
     return (R + (a22 * b1 - a12 * b2) / det, Z + (-a21 * b1 + a11 * b2) / det)
 end
 
+# magnetic axis of a ψ interpolant whose data carry derivatives: search on values, then the displacement
+# of the stationary point
+function _dual_magnetic_axis(itp, psi_sign, rguess::Float64, zguess::Float64)
+    s = force_float64(psi_sign)
+    res = Optim.optimize(x -> force_float64(itp(x[1], x[2])) * s, [rguess, zguess], Optim.Newton())
+    D = typeof(itp(rguess, zguess))
+    H = Matrix{Float64}(undef, 2, 2)
+    RA, ZA = _implicit_stationary_point(itp, res.minimizer[1], res.minimizer[2], H, D)
+    return (RA=RA, ZA=ZA)
+end
+
+# levels of the last closed and first open flux surfaces found by the bisection of `find_psi_boundary`
+function _dual_psi_boundaries(dimR, dimZ, PSI::Matrix{D}, itp, psi_axis, psimid, psiend, fw_r, fw_z) where {D<:Dual}
+    r = Float64[force_float64(x) for x in dimR]
+    z = Float64[force_float64(x) for x in dimZ]
+    wr = Float64[force_float64(x) for x in fw_r]
+    wz = Float64[force_float64(x) for x in fw_z]
+    last_closed = _implicit_psi_boundary(r, z, PSI, itp, D(psi_axis), force_float64(psimid), wr, wz)
+    first_open = force_float64(psiend) + _derivative_part(last_closed)
+    return (last_closed=last_closed, first_open=first_open)
+end
+
+# Level of the last closed flux surface as a dual number, given its value `psi_b_v` found by the search.
+#
+# The contours are traced cell by cell on the grid. In a cell where ψ has a saddle (an X-point) the two
+# branches of the contour are connected according to the mean of ψ at the four nodes of the cell, so
+# that mean, not the saddle value of the smooth interpolant, is the level at which the contour opens up.
+# When no such cell matches, the surface is limited by the wall and the level follows ψ at the point of
+# the wall where it touches. The search stops a small, fixed fraction of the way inside that limit.
+function _implicit_psi_boundary(
+    r::AbstractVector{Float64}, z::AbstractVector{Float64}, PSI::Matrix{D}, itp, psi_axis::D, psi_b_v::Float64,
+    wall_r::AbstractVector{Float64}, wall_z::AbstractVector{Float64}) where {D<:Dual}
+
+    psi_a_v = ForwardDiff.value(psi_axis)
+    span = abs(psi_b_v - psi_a_v)
+    best = (Inf, 0, 0)
+    for j in 1:length(z)-1, i in 1:length(r)-1
+        v1, v2, v3, v4 = ForwardDiff.value(PSI[i, j]), ForwardDiff.value(PSI[i+1, j]), ForwardDiff.value(PSI[i+1, j+1]), ForwardDiff.value(PSI[i, j+1])
+        m = (v1 + v2 + v3 + v4) / 4
+        distance = abs(m - psi_b_v)
+        if distance < best[1] && ((v1 > m && v3 > m && v2 < m && v4 < m) || (v1 < m && v3 < m && v2 > m && v4 > m))
+            best = (distance, i, j)
+        end
+    end
+    if best[1] <= 1E-3 * span
+        i, j = best[2], best[3]
+        psi_limit = (PSI[i, j] + PSI[i+1, j] + PSI[i+1, j+1] + PSI[i, j+1]) / 4
+    elseif !isempty(wall_r)
+        touch = (Inf, 0.0, 0.0)
+        for k in eachindex(wall_r)
+            k2 = k == length(wall_r) ? 1 : k + 1
+            for t in range(0.0, 1.0, 21)
+                Rw = wall_r[k] + t * (wall_r[k2] - wall_r[k])
+                Zw = wall_z[k] + t * (wall_z[k2] - wall_z[k])
+                if r[1] <= Rw <= r[end] && z[1] <= Zw <= z[end]
+                    touch = min(touch, (abs(force_float64(itp(Rw, Zw)) - psi_b_v), Rw, Zw))
+                end
+            end
+        end
+        psi_limit = D(itp(touch[2], touch[3]))
+    else
+        return D(psi_b_v)
+    end
+    fraction = (psi_b_v - psi_a_v) / (ForwardDiff.value(psi_limit) - psi_a_v)
+    return psi_b_v + _derivative_part(psi_axis + fraction * (psi_limit - psi_axis))
+end
+
 """
     flux_surfaces(eqt::equilibrium__time_slice{D}, wall_r, wall_z) where {D<:ForwardDiff.Dual}
 
@@ -160,43 +227,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{D}, wall_r::AbstractVector{T
     psi_b_v = eqt_v.boundary.psi
     rescaled = eqt_v.boundary_separatrix.psi !== eqt_v.boundary.psi
     if !isempty(wr) || eqt.global_quantities.free_boundary == 1
-        # the surface is limited by an X-point or by the wall: its ψ follows ψ at that point
-        best = (Inf, RAv, ZAv)
-        for xp in eqt_v.boundary.x_point
-            best = min(best, (abs(itp_v(xp.r, xp.z) - psi_b_v), xp.r, xp.z))
-        end
-        if best[1] > 1E-3 * abs(psi_b_v - force_float64(psi_axis)) && !isempty(wr)
-            best = (Inf, RAv, ZAv)
-            for k in eachindex(wr)
-                k2 = k == length(wr) ? 1 : k + 1
-                for t in range(0.0, 1.0, 21)
-                    Rw = wr[k] + t * (wr[k2] - wr[k])
-                    Zw = wz[k] + t * (wz[k2] - wz[k])
-                    if r[1] <= Rw <= r[end] && z[1] <= Zw <= z[end]
-                        best = min(best, (abs(itp_v(Rw, Zw) - psi_b_v), Rw, Zw))
-                    end
-                end
-            end
-        end
-        # The contours are traced cell by cell on the grid. In the cell that holds an X-point the two
-        # branches of the contour are connected according to the mean of ψ at the four nodes of the cell,
-        # so that mean, not the saddle value of the smooth interpolant, is the level at which the
-        # contour opens up.
-        psi_limit = D(itp(best[2], best[3]))
-        ic = clamp(searchsortedlast(r, best[2]), 1, length(r) - 1)
-        jc = clamp(searchsortedlast(z, best[3]), 1, length(z) - 1)
-        cell = (Inf, 0, 0)
-        for i in max(1, ic - 2):min(length(r) - 1, ic + 2), j in max(1, jc - 2):min(length(z) - 1, jc + 2)
-            cell_mean = (eqt2d_v.psi[i, j] + eqt2d_v.psi[i+1, j] + eqt2d_v.psi[i+1, j+1] + eqt2d_v.psi[i, j+1]) / 4
-            cell = min(cell, (abs(cell_mean - psi_b_v), i, j))
-        end
-        if cell[1] <= 1E-4 * abs(psi_b_v - force_float64(psi_axis))
-            i, j = cell[2], cell[3]
-            psi_limit = (eqt2d.psi[i, j] + eqt2d.psi[i+1, j] + eqt2d.psi[i+1, j+1] + eqt2d.psi[i, j+1]) / 4
-        end
-        # the search stops a small, fixed fraction of the way inside the limiting value
-        fraction = (psi_b_v - force_float64(psi_axis)) / (force_float64(psi_limit) - force_float64(psi_axis))
-        psi_boundary = psi_b_v + _derivative_part(psi_axis + fraction * (psi_limit - psi_axis))
+        psi_boundary = _implicit_psi_boundary(collect(r), collect(z), eqt2d.psi, itp, psi_axis, psi_b_v, wr, wz)
     else
         psi_boundary = psi_in[end]
     end

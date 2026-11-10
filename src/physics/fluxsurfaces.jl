@@ -250,6 +250,10 @@ function find_psi_boundary(
             end
             psibeg = psimid
             if (abs(psiend - psibeg) / (abs(psiend + psibeg) / 2.0)) < precision
+                if T2 <: ForwardDiff.Dual
+                    # the bisection works on values: give the levels the derivative of what limits the surface
+                    return _dual_psi_boundaries(dimR, dimZ, PSI, PSI_interpolant, psi_axis, psimid, psiend, fw_r, fw_z)
+                end
                 return (last_closed=psimid, first_open=psiend)
             end
             # open flux surface
@@ -930,6 +934,10 @@ function find_magnetic_axis(
     psi_sign::T2;
     rguess::T1=r[round(Int, length(r) / 2)],
     zguess::T1=z[round(Int, length(z) / 2)]) where {T1<:Real,T2<:Real}
+
+    if T1 <: ForwardDiff.Dual || T2 <: ForwardDiff.Dual || PSI_interpolant(force_float64(rguess), force_float64(zguess)) isa ForwardDiff.Dual
+        return _dual_magnetic_axis(PSI_interpolant, psi_sign, force_float64(rguess), force_float64(zguess))
+    end
 
     res = Optim.optimize(
         x -> begin
