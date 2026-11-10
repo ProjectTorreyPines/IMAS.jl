@@ -106,6 +106,10 @@ function Base.setproperty!(ids::IDS{T}, field::Symbol, value::ForwardDiff.Dual) 
     return value
 end
 
+function Base.unsafe_trunc(::Type{Int64}, x::ForwardDiff.Dual)
+    return unsafe_trunc(Int64, ForwardDiff.value(x))
+end
+
 function Base.round(::Type{Int64}, x::ForwardDiff.Dual, r::RoundingMode)
     return round(Int, ForwardDiff.value(x), r)
 end

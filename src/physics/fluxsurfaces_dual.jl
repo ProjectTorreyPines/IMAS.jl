@@ -331,3 +331,15 @@ function flux_surfaces(eqt::equilibrium__time_slice{D}, wall_r::AbstractVector{T
 
     return eqt
 end
+
+# The contouring routine takes its tolerances in the number type of the grid, with defaults built from
+# `eps` of that type, which is a plain float also for dual numbers. This method supplies them in the
+# right type when grid and data are dual numbers.
+function IMASutils.contour_from_midplane!(
+    x_cache::Vector{D}, y_cache::Vector{D}, values::Matrix{D}, x_coords::AbstractVector{D}, y_coords::AbstractVector{D},
+    level::D, xaxis::D, yaxis::D, vaxis::D;
+    atol::Real=eps(Float64), rtol::Real=sqrt(eps(Float64)), dynamic_resize::Bool=true) where {D<:Dual}
+    return invoke(IMASutils.contour_from_midplane!,
+        Tuple{Vector{T1},Vector{T1},Matrix{T2},AbstractVector{T1},AbstractVector{T1},T2,T1,T1,T2} where {T1<:Real,T2<:Real},
+        x_cache, y_cache, values, x_coords, y_coords, level, xaxis, yaxis, vaxis; atol=D(atol), rtol=D(rtol), dynamic_resize)
+end
