@@ -357,7 +357,7 @@ Compute the cumulative arc length of a 2D curve defined from the coordinate vect
 function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(pr)
     if include_zero
-        ll = Vector{Float64}(undef, n)
+        ll = Vector{promote_type(Float64, eltype(pr), eltype(pz))}(undef, n)
         ll[1] = 0.0
         @inbounds for i in 2:n
             dx = pr[i] - pr[i-1]

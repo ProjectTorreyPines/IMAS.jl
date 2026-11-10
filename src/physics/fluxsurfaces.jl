@@ -1459,6 +1459,30 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema=true, xpoints=[(xp.r, xp.z) for xp in eqt.boundary.x_point])
 
     # calculate flux surface averaged and geometric quantities
+    _flux_surfaces_from_traced!(eqt, eqt2d, surfaces, psi_sign, R0, B0)
+
+    # find quantities on separatrix
+    find_x_point!(eqt, wall_r, wall_z)
+
+    # secondary separatrix
+    if length(eqt.boundary.x_point) > 1
+        psi2nd = find_psi_2nd_separatrix(eqt).diverted
+        pts = flux_surface(r, z, eqt2d.psi, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
+        if !isempty(pts)
+            eqt.boundary_secondary_separatrix.outline.r = pts[1][1]
+            eqt.boundary_secondary_separatrix.outline.z = pts[1][2]
+        end
+    end
+
+    # find strike points
+    find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.last_closed, psi_boundaries.first_open)
+
+    return eqt
+end
+
+# Flux surface averaged and geometric quantities of an equilibrium time slice from its traced flux surfaces
+function _flux_surfaces_from_traced!(eqt::equilibrium__time_slice{T1}, eqt2d, surfaces::Vector{<:FluxSurface}, psi_sign, R0, B0) where {T1<:Real}
+    eqt1d = eqt.profiles_1d
     N = length(eqt1d.psi)
 
     Np = maximum(length(surface.r) for surface in surfaces)
@@ -1493,7 +1517,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         tmp .= Btot .^ 2
         avg_Btot2 = flux_surface_avg(tmp, surface)
         tmp .= Btot ./ Bmax
-        tmp .= (1.0 .- sqrt.(1.0 .- tmp) .* (1.0 .+ tmp ./ 2.0)) ./ tmp .^ 2
+        tmp .= (1.0 .- sqrt0.(1.0 .- tmp) .* (1.0 .+ tmp ./ 2.0)) ./ tmp .^ 2
         hf = flux_surface_avg(tmp, surface)
         h = avg_Btot / Bmax
         h2 = avg_Btot2 / Bmax^2
@@ -1634,22 +1658,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
     eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
-
-    # find quantities on separatrix
-    find_x_point!(eqt, wall_r, wall_z)
-
-    # secondary separatrix
-    if length(eqt.boundary.x_point) > 1
-        psi2nd = find_psi_2nd_separatrix(eqt).diverted
-        pts = flux_surface(r, z, eqt2d.psi, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
-        if !isempty(pts)
-            eqt.boundary_secondary_separatrix.outline.r = pts[1][1]
-            eqt.boundary_secondary_separatrix.outline.z = pts[1][2]
-        end
-    end
-
-    # find strike points
-    find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.last_closed, psi_boundaries.first_open)
 
     return eqt
 end
