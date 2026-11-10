@@ -101,8 +101,9 @@ push!(document[Symbol("Physics fields")], :Bx_By_Bz)
     Br_Bz_meshgrid(PSI_interpolant, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
 """
 function Br_Bz_meshgrid(PSI_interpolant, r::AbstractVector{T}, z::AbstractVector{T}) where {T<:Real}
-    Br = Matrix{T}(undef, length(r), length(z))
-    Bz = Matrix{T}(undef, length(r), length(z))
+    TB = typeof(Br_Bz(PSI_interpolant, r[1], z[1]).Br) # the field takes the number type of ψ
+    Br = Matrix{TB}(undef, length(r), length(z))
+    Bz = Matrix{TB}(undef, length(r), length(z))
     for kr in eachindex(r)
         for kz in eachindex(z)
             Br[kr, kz], Bz[kr, kz] = Br_Bz(PSI_interpolant, r[kr], z[kz])

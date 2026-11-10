@@ -444,14 +444,14 @@ Smooths out the beam power history based on a given thermalization constant `tau
 Such smoothing mimics the delayed contribution from the instantaneous source,
 as well as the gradual decay of the previous fast ion population over time.
 """
-function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Float64) where {T<:Real}
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Real) where {T<:Real}
     @assert taus >= 0.0
     if taus == 0.0
         return power
     end
 
     n = length(power)
-    smoothed_power = similar(power)
+    smoothed_power = similar(power, promote_type(T, typeof(taus)))
 
     if !isempty(power)
         smoothed_power[1] = power[1]
@@ -477,7 +477,7 @@ end
 
 Return smoothed beam power at time0
 """
-function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Real) where {T<:Real}
     n = length(power)
 
     smoothed_power = power[1]

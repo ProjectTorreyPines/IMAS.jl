@@ -112,7 +112,7 @@ function _implicit_EPED_exps(cost, xstar::Vector{Float64}, ::Type{D}, ped_height
 
     free = [j for j in eachindex(xstar) if abs(xstar[j]) > 1E-2]
     dx = zeros(length(xstar), _npartials(D))
-    if !isempty(free)
+    if !isempty(free) && IMPLICIT_DERIVATIVES[]
         embed(xf) = [j in free ? xf[findfirst(==(j), free)] : oftype(xf[1], xstar[j]) for j in eachindex(xstar)]
         x0 = D.(xstar[free])
         r_z, r_p = mismatches(embed(x0))

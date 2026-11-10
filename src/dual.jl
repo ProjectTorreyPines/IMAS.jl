@@ -243,6 +243,20 @@ push!(document[:Dual], :seed)
 # unknowns are taken by central differences of value parts, so that the function being solved does not
 # need to accept nested dual numbers (many of them update arrays in place).
 
+"""
+    IMPLICIT_DERIVATIVES
+
+Scoped switch for the derivatives of solutions found by iterative search (`implicit_solution`,
+`implicit_argmin` and the functions built on them). An outer solver that only looks at value parts
+turns it off while it iterates, `Base.ScopedValues.with(IMAS.IMPLICIT_DERIVATIVES => false) do ... end`,
+which saves the work and avoids evaluating the implicit function theorem at iterates far from a solution;
+the result of such a search then has zero derivative part.
+"""
+const IMPLICIT_DERIVATIVES = Base.ScopedValues.ScopedValue(true)
+
+@compat public IMPLICIT_DERIVATIVES
+push!(document[:Dual], :IMPLICIT_DERIVATIVES)
+
 function _partials_matrix(x::AbstractVector{D}) where {T,V,N,D<:Dual{T,V,N}}
     return V[ForwardDiff.partials(xi, k) for xi in x, k in 1:N]
 end
@@ -262,6 +276,9 @@ that carry derivatives, returns `ustar` as dual numbers with `du/dθ = -(∂G/�
 """
 function implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D}; relstep::Real=1E-4) where {D<:Dual}
     n = length(ustar)
+    if !IMPLICIT_DERIVATIVES[]
+        return D.(ustar)
+    end
     Gθ = _partials_matrix(G(D.(ustar)))
     J = Matrix{Float64}(undef, size(Gθ, 1), n)
     for j in 1:n
@@ -270,7 +287,7 @@ function implicit_solution(G, ustar::AbstractVector{<:AbstractFloat}, ::Type{D};
         um = collect(ustar); um[j] -= δ
         J[:, j] .= (ForwardDiff.value.(G(D.(up))) .- ForwardDiff.value.(G(D.(um)))) ./ (2δ)
     end
-    return _with_partials(D, ustar, -(J \ Gθ))
+    return _with_partials(D, ustar, -(LinearAlgebra.pinv(J; rtol=1E-12) * Gθ))
 end
 
 """
@@ -285,6 +302,9 @@ element type is `D`). A direction along which the cost is flat does not respond 
 """
 function implicit_argmin(cost, xstar::AbstractVector{<:AbstractFloat}, ::Type{D}) where {D<:Dual}
     x0 = D.(collect(xstar))
+    if !IMPLICIT_DERIVATIVES[]
+        return x0
+    end
     gθ = _partials_matrix(ForwardDiff.gradient(cost, x0))
     H = ForwardDiff.value.(ForwardDiff.hessian(cost, x0))
     H = (H .+ H') ./ 2
