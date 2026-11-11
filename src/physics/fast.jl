@@ -343,6 +343,13 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
         for s in cs.source)
     has_fast_source || return
 
+    # with modify_electron_density the thermal density of every ion fed by a fast-ion source must come
+    # out of this call unchanged, so remember it before the old fast-ion contribution is folded in below
+    if modify_electron_density
+        density_thermal_in = [copy(ion.density_thermal) for ion in cp1d.ion]
+        fed_by_source = falses(length(cp1d.ion))
+    end
+
     for ion in cp1d.ion
         ion.pressure_fast_parallel = zeros(Npsi)
         ion.pressure_fast_perpendicular = zeros(Npsi)
@@ -392,6 +399,7 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     if modify_electron_density
                         # leave the thermal ion density unchanged: the electron density is adjusted
                         # below to satisfy quasi-neutrality once all fast-ion sources are accounted for
+                        fed_by_source[cindex] = true
                         IMAS.unfreeze!(cion, :density)
                     else
                         # subtract the fast ion density from the thermal density of the same species,
@@ -405,6 +413,14 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
     end
 
     if modify_electron_density
+        # undo the fold above for ions fed by a source: without this, every call moves the previous
+        # fast-ion population into the thermal density, and thermal ions (and the electrons) grow on
+        # each call. Ions with no source this call keep the fold: their old fast ions thermalize.
+        for (k, ion) in enumerate(cp1d.ion)
+            fed_by_source[k] || continue
+            ion.density_thermal = density_thermal_in[k]
+            IMAS.unfreeze!(ion, :density)
+        end
         enforce_quasi_neutrality!(cp1d, :electrons)
     end
 end
