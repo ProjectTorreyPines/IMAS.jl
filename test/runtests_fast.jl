@@ -22,3 +22,16 @@ using Test
         @test ec_roots ≈ 93662.596 rtol = 1e-5
     end
 end
+
+@testset "fast_density_cap!" begin
+    L = [1.0, 1.0, 1.0, 1.0, 0.0]
+    nf = [0.5, 0.9, 1.5, 10.0, 0.3]
+    @test IMAS.fast_density_cap!(copy(nf), L, 1.0) == min.(nf, L)
+    soft = IMAS.fast_density_cap!(copy(nf), L, 0.7)
+    @test soft[1] == 0.5
+    @test all(0.7 .< soft[2:4] .<= 1.0) && issorted(soft[2:4])
+    @test soft[5] == 0.0
+    # no slope break at the knee
+    y = IMAS.fast_density_cap!(collect(range(0.0, 3.0, 3001)), ones(3001), 0.7)
+    @test maximum(abs, diff(diff(y))) < 1e-5
+end
