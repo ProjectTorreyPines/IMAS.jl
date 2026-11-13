@@ -163,6 +163,19 @@ function rad_ion_adas(Te, ne, ni, zi, namei)
     return qline
 end
 
+# Chebyshev polynomial of the first kind, T_n(x) = cos(n acos(x)) on [-1, 1].
+# At the ends of the interval the derivative of acos is infinite while T_n'(±1) is finite;
+# inputs are clamped to the interval before this is called, so there the result does not
+# depend on the input and the derivative part is dropped instead of evaluating 0 * Inf.
+_chebyshev_T(n::Int, x::Real) = cos(n * acos(x))
+function _chebyshev_T(n::Int, x::D) where {D<:ForwardDiff.Dual}
+    if abs(ForwardDiff.value(x)) >= 1.0
+        return D(cos(n * acos(ForwardDiff.value(x))))
+    else
+        return cos(n * acos(x))
+    end
+end
+
 """
     adas21(Te, name)
 
@@ -526,7 +539,7 @@ function adas21(Te, name)
     # Sum the Chebyshev series where T_n(x) = cos[n * arccos(x)]
     s = zero(x)
     for i in eachindex(coefficients)
-        s = s .+ (coefficients[i] .* cos.((i - 1) .* acos.(x)))
+        s = s .+ (coefficients[i] .* _chebyshev_T.(i - 1, x))
     end
 
     # Lz (cooling rate) in [erg / cm^3 / s]

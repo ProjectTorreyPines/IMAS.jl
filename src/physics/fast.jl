@@ -472,14 +472,14 @@ Smooths out the beam power history based on a given thermalization constant `tau
 Such smoothing mimics the delayed contribution from the instantaneous source,
 as well as the gradual decay of the previous fast ion population over time.
 """
-function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Float64) where {T<:Real}
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, taus::Real) where {T<:Real}
     @assert taus >= 0.0
     if taus == 0.0
         return power
     end
 
     n = length(power)
-    smoothed_power = similar(power)
+    smoothed_power = similar(power, promote_type(T, typeof(taus)))
 
     if !isempty(power)
         smoothed_power[1] = power[1]
@@ -487,7 +487,7 @@ function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{
             dt = time[i] - time[i-1]
 
             # Calculate the decay factor for the current time step
-            decay_factor = exp(-dt / taus)
+            decay_factor = _decay_factor(dt, taus)
 
             # Calculate the source contribution
             source_term = power[i] * (1.0 - decay_factor)
@@ -500,12 +500,22 @@ function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{
     return smoothed_power
 end
 
+# exp(-dt / taus). An infinite time step (time bases can start at -Inf or end at Inf) gives an exact zero,
+# also in the derivative part when `taus` is a dual number, where the plain expression evaluates 0 * Inf.
+function _decay_factor(dt::Real, taus::Real)
+    if isfinite(dt)
+        return exp(-dt / taus)
+    else
+        return zero(dt / taus)
+    end
+end
+
 """
     smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
 
 Return smoothed beam power at time0
 """
-function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Float64) where {T<:Real}
+function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{T}, time0::Float64, taus::Real) where {T<:Real}
     n = length(power)
 
     smoothed_power = power[1]
@@ -514,7 +524,7 @@ function smooth_beam_power(time::AbstractVector{Float64}, power::AbstractVector{
             dt = time[i] - time[i-1]
 
             # Calculate the decay factor for the current time step
-            decay_factor = exp(-dt / taus)
+            decay_factor = _decay_factor(dt, taus)
 
             # Calculate the source contribution
             source_term = power[i] * (1.0 - decay_factor)

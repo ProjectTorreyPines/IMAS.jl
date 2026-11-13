@@ -33,11 +33,14 @@ end
     pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
 
 thermal pressure for all ions
+
+An ion contributes when its thermal density is available, either stored or derived from a stored total density
+(`density_thermal = density - density_fast`). Ions with only a fast density have no thermal pressure.
 """
 function pressure_thermal(cp1di::IMAS.IDSvector{IMAS.core_profiles__profiles_1d___ion{T}}) where {T<:Real}
     p = zero(cp1di[1].temperature)
     for ion in cp1di
-        if hasdata(ion, :density_thermal)
+        if hasdata(ion, :density_thermal) || hasdata(ion, :density)
             p .+= ion.temperature .* ion.density_thermal
         end
     end
@@ -252,6 +255,16 @@ function ion_element!(
     ion_z::Int;
     fast::Bool=false)
     return ion_element!(ion, elements[ion_z].symbol; fast)
+end
+
+# mass number given in a number type other than Float64 (e.g. read from a dd that carries derivatives):
+# the species is identified from its value
+function ion_element!(
+    ion::Union{IMAS.core_profiles__profiles_1d___ion,IMAS.core_sources__source___profiles_1d___ion},
+    ion_z::Int,
+    ion_a::Real;
+    kw...)
+    return ion_element!(ion, ion_z, force_float64(ion_a); kw...)
 end
 
 @compat public ion_element!

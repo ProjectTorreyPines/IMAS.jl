@@ -250,6 +250,10 @@ function find_psi_boundary(
             end
             psibeg = psimid
             if (abs(psiend - psibeg) / (abs(psiend + psibeg) / 2.0)) < precision
+                if T2 <: ForwardDiff.Dual
+                    # the bisection works on values: give the levels the derivative of what limits the surface
+                    return _dual_psi_boundaries(dimR, dimZ, PSI, PSI_interpolant, psi_axis, psimid, psiend, fw_r, fw_z)
+                end
                 return (last_closed=psimid, first_open=psiend)
             end
             # open flux surface
@@ -931,6 +935,10 @@ function find_magnetic_axis(
     rguess::T1=r[round(Int, length(r) / 2)],
     zguess::T1=z[round(Int, length(z) / 2)]) where {T1<:Real,T2<:Real}
 
+    if T1 <: ForwardDiff.Dual || T2 <: ForwardDiff.Dual || PSI_interpolant(force_float64(rguess), force_float64(zguess)) isa ForwardDiff.Dual
+        return _dual_magnetic_axis(PSI_interpolant, psi_sign, force_float64(rguess), force_float64(zguess))
+    end
+
     res = Optim.optimize(
         x -> begin
             try
@@ -1459,6 +1467,30 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     surfaces = trace_surfaces(eqt1d.psi, eqt1d.f, r, z, eqt2d.psi, PSI_interpolant, RA, ZA, wall_r, wall_z; refine_extrema=true, xpoints=[(xp.r, xp.z) for xp in eqt.boundary.x_point])
 
     # calculate flux surface averaged and geometric quantities
+    _flux_surfaces_from_traced!(eqt, eqt2d, surfaces, psi_sign, R0, B0)
+
+    # find quantities on separatrix
+    find_x_point!(eqt, wall_r, wall_z)
+
+    # secondary separatrix
+    if length(eqt.boundary.x_point) > 1
+        psi2nd = find_psi_2nd_separatrix(eqt).diverted
+        pts = flux_surface(r, z, eqt2d.psi, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
+        if !isempty(pts)
+            eqt.boundary_secondary_separatrix.outline.r = pts[1][1]
+            eqt.boundary_secondary_separatrix.outline.z = pts[1][2]
+        end
+    end
+
+    # find strike points
+    find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.last_closed, psi_boundaries.first_open)
+
+    return eqt
+end
+
+# Flux surface averaged and geometric quantities of an equilibrium time slice from its traced flux surfaces
+function _flux_surfaces_from_traced!(eqt::equilibrium__time_slice{T1}, eqt2d, surfaces::Vector{<:FluxSurface}, psi_sign, R0, B0) where {T1<:Real}
+    eqt1d = eqt.profiles_1d
     N = length(eqt1d.psi)
 
     Np = maximum(length(surface.r) for surface in surfaces)
@@ -1493,7 +1525,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
         tmp .= Btot .^ 2
         avg_Btot2 = flux_surface_avg(tmp, surface)
         tmp .= Btot ./ Bmax
-        tmp .= (1.0 .- sqrt.(1.0 .- tmp) .* (1.0 .+ tmp ./ 2.0)) ./ tmp .^ 2
+        tmp .= (1.0 .- sqrt0.(1.0 .- tmp) .* (1.0 .+ tmp ./ 2.0)) ./ tmp .^ 2
         hf = flux_surface_avg(tmp, surface)
         h = avg_Btot / Bmax
         h2 = avg_Btot2 / Bmax^2
@@ -1587,7 +1619,7 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     eqt1d.phi = cumtrapz(eqt1d.volume, tmp)
 
     # rho_tor_norm
-    rho = sqrt.(abs.(eqt1d.phi ./ (π * B0)))
+    rho = sqrt0.(abs.(eqt1d.phi ./ (π * B0)))
     rho_meters = rho[end]
     eqt1d.rho_tor = rho
     eqt1d.rho_tor_norm = rho ./ rho_meters
@@ -1639,22 +1671,6 @@ function flux_surfaces(eqt::equilibrium__time_slice{T1}, wall_r::AbstractVector{
     # beta_normal
     ip = eqt.global_quantities.ip / 1e6
     eqt.global_quantities.beta_normal = eqt.global_quantities.beta_tor / abs(ip / a / Btvac) * 100
-
-    # find quantities on separatrix
-    find_x_point!(eqt, wall_r, wall_z)
-
-    # secondary separatrix
-    if length(eqt.boundary.x_point) > 1
-        psi2nd = find_psi_2nd_separatrix(eqt).diverted
-        pts = flux_surface(r, z, eqt2d.psi, RA, ZA, wall_r, wall_z, psi2nd, :encircling)
-        if !isempty(pts)
-            eqt.boundary_secondary_separatrix.outline.r = pts[1][1]
-            eqt.boundary_secondary_separatrix.outline.z = pts[1][2]
-        end
-    end
-
-    # find strike points
-    find_strike_points!(eqt, wall_r, wall_z, psi_boundaries.last_closed, psi_boundaries.first_open)
 
     return eqt
 end

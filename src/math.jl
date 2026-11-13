@@ -201,6 +201,15 @@ function cubic_interp1d(x, y, xq)
     return FI.cubic_interp(x, y, xq; extrap = FI.ExtendExtrap())
 end
 
+"""
+    sqrt0(x::Real)
+
+Square root that returns an exact zero (also in its derivative part) for a zero argument.
+For quantities that vanish identically on the magnetic axis (volume, area, ψ - ψ_axis, toroidal flux)
+the plain `sqrt` of a dual number evaluates `0 * Inf` for the derivative there.
+"""
+sqrt0(x::Real) = iszero(x) ? zero(x) : sqrt(x)
+
 # A firm, type-stable linear interpolation function
 function linear_interp1d(x, y)
     return FI.linear_interp(x, y; extrap = FI.ExtendExtrap())
