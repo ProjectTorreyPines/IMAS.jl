@@ -143,7 +143,7 @@ end
 push!(document[Symbol("Physics sources")], :radiation_source!)
 
 """
-    intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true)
+    intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false, fast_density_knee::Real=1.0)
 
 Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
 
@@ -151,8 +151,9 @@ Calculates intrinsic sources and sinks, and adds them to `dd.core_sources`
   - `DD_fusion`: Include D-D fusion reactions (only relevant for D+D plasmas)
   - `fast_ion_densities`: Update fast ion density profiles after fusion source calculation
   - `modify_electron_density`: When updating fast ion densities, adjust the electron density to satisfy quasi-neutrality instead of subtracting the fast density from the thermal ion density
+  - `fast_density_knee`: Soft cap of the fast ion density (see [`fast_density_cap!`](@ref)); 1.0 is a hard clamp
 """
-function intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false)
+function intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=false, fast_ion_densities::Bool=true, modify_electron_density::Bool=false, fast_density_knee::Real=1.0)
 
     collisional_exchange_source!(dd) # electron and ion energy
 
@@ -160,7 +161,7 @@ function intrinsic_sources!(dd::IMAS.DD; bootstrap::Bool=true, DD_fusion::Bool=f
 
     fusion_source!(dd; DD_fusion) # electron and ion energy, particles
 
-    fast_ion_densities && fast_particles_profiles!(dd; modify_electron_density) # update fast ion densities
+    fast_ion_densities && fast_particles_profiles!(dd; modify_electron_density, fast_density_knee) # update fast ion densities
 
     bootstrap && bootstrap_source!(dd) # current
 
@@ -566,22 +567,23 @@ push!(document[Symbol("Physics sources")], :total_radiation_sources)
 
 
 """
-    sawteeth_source!(dd::IMAS.DD; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
+    sawteeth_source!(dd::IMAS.DD; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5, exclude_indexes::AbstractVector{Int}=IMASdd.index_no_sawtooth)
 
 Model sawteeth by flattening all sources where abs(q) drops below qmin_desired.
 
   - `qmin_desired`: Safety factor threshold for sawteeth inversion. If `nothing`, uses
     `dd.sawteeth.diagnostics.rho_tor_norm_inversion` if available, otherwise falls back to `1.0`
   - `flat_factor`: Relaxation factor for flattening, from 0.0 (no change) to 1.0 (full flattening)
+  - `exclude_indexes`: Source indexes that are not flattened (default: those that come from profiles, not external drive)
 """
-function sawteeth_source!(dd::IMAS.DD; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5)
+function sawteeth_source!(dd::IMAS.DD; qmin_desired::Union{Float64, Nothing}=nothing, flat_factor::Real=0.5, exclude_indexes::AbstractVector{Int}=IMASdd.index_no_sawtooth)
 
     if qmin_desired === nothing
         if !ismissing(dd.sawteeth.diagnostics, :rho_tor_norm_inversion)
             rho0 = @ddtime(dd.sawteeth.diagnostics.rho_tor_norm_inversion)
-            return sawteeth_source!(dd, rho0; flat_factor)
+            return sawteeth_source!(dd, rho0; flat_factor, exclude_indexes)
         else
-            return sawteeth_source!(dd; qmin_desired=1.0, flat_factor)
+            return sawteeth_source!(dd; qmin_desired=1.0, flat_factor, exclude_indexes)
         end
     else
         cp1d = dd.core_profiles.profiles_1d[]
@@ -589,34 +591,35 @@ function sawteeth_source!(dd::IMAS.DD; qmin_desired::Union{Float64, Nothing}=not
         # update core_sources with sawteeth
         i_qdes = findlast(q -> (abs(q) < qmin_desired), cp1d.q)
         #rho_qdes = (i_qdes === nothing) ? 0.0 : cp1d.grid.rho_tor_norm[i_qdes]
-        return sawteeth_source!(dd, i_qdes; flat_factor)
+        return sawteeth_source!(dd, i_qdes; flat_factor, exclude_indexes)
     end
 end
 
-function sawteeth_source!(dd::IMAS.DD{T}, ::Nothing; flat_factor::Real=0.5) where {T<:Real}
+function sawteeth_source!(dd::IMAS.DD{T}, ::Nothing; flat_factor::Real=0.5, exclude_indexes::AbstractVector{Int}=IMASdd.index_no_sawtooth) where {T<:Real}
     # no inversion radius, so call with rho0 = 0.0
-    return sawteeth_source!(dd, zero(T); flat_factor)
+    return sawteeth_source!(dd, zero(T); flat_factor, exclude_indexes)
 end
 
-function sawteeth_source!(dd::IMAS.DD{T}, rho0::AbstractFloat; flat_factor::Real=0.5) where {T<:ForwardDiff.Dual}
+function sawteeth_source!(dd::IMAS.DD{T}, rho0::AbstractFloat; flat_factor::Real=0.5, exclude_indexes::AbstractVector{Int}=IMASdd.index_no_sawtooth) where {T<:ForwardDiff.Dual}
     # inversion radius given as a plain float for a dd with dual numbers
-    return sawteeth_source!(dd, T(rho0); flat_factor)
+    return sawteeth_source!(dd, T(rho0); flat_factor, exclude_indexes)
 end
 
-function sawteeth_source!(dd::IMAS.DD{T}, i_qdes::Int; flat_factor::Real=0.5) where {T<:Real}
+function sawteeth_source!(dd::IMAS.DD{T}, i_qdes::Int; flat_factor::Real=0.5, exclude_indexes::AbstractVector{Int}=IMASdd.index_no_sawtooth) where {T<:Real}
     cp1d = dd.core_profiles.profiles_1d[]
-    return sawteeth_source!(dd, cp1d.grid.rho_tor_norm[i_qdes]; flat_factor)
+    return sawteeth_source!(dd, cp1d.grid.rho_tor_norm[i_qdes]; flat_factor, exclude_indexes)
 end
 
 """
-    sawteeth_source!(dd::IMAS.DD{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
+    sawteeth_source!(dd::IMAS.DD{T}, rho0::T; flat_factor::Real=0.5, exclude_indexes::AbstractVector{Int}=IMASdd.index_no_sawtooth) where {T<:Real}
 
 Model sawteeth by flattening all sources within the inversion radius rho0
 
   - `rho0`: Normalized toroidal flux coordinate of the inversion radius
   - `flat_factor`: Relaxation factor for flattening (0 = no change, 1 = full flattening)
+  - `exclude_indexes`: Source indexes that are not flattened (default: those that come from profiles, not external drive)
 """
-function sawteeth_source!(dd::IMAS.DD{T}, rho0::T; flat_factor::Real=0.5) where {T<:Real}
+function sawteeth_source!(dd::IMAS.DD{T}, rho0::T; flat_factor::Real=0.5, exclude_indexes::AbstractVector{Int}=IMASdd.index_no_sawtooth) where {T<:Real}
     @assert rho0 <= 1.0
     cp1d = dd.core_profiles.profiles_1d[]
 
@@ -643,7 +646,7 @@ function sawteeth_source!(dd::IMAS.DD{T}, rho0::T; flat_factor::Real=0.5) where 
     # identify sawteeth inversion radius
     if rho0 > 0.0
         # exclude sources that come from profiles, not external drive
-        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes=IMASdd.index_no_sawtooth)
+        total_source1d = total_sources(dd.core_sources, cp1d; time0=dd.global_time, exclude_indexes)
         fill!(source1d, total_source1d)
     else
         # this will return an empty source
