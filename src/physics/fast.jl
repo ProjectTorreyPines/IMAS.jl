@@ -394,7 +394,13 @@ function fast_particles_profiles!(cs::IMAS.core_sources, cp1d::IMAS.core_profile
                     cion.pressure_fast_parallel .+= pressa ./ 3.0
                     cion.pressure_fast_perpendicular .+= pressa ./ 3.0
                     cion.density_fast .+= sion_particles .* taut
-                    limit = max_fast_frac .* cion.density_thermal # here density_thermal includes the old fast-ion contribution
+                    if modify_electron_density
+                        # the thermal density on entry: at this point density_thermal also holds the fast ions of
+                        # the previous call, and a limit taken from it would rise with every call
+                        limit = max_fast_frac .* density_thermal_in[cindex]
+                    else
+                        limit = max_fast_frac .* cion.density_thermal # here density_thermal includes the old fast-ion contribution
+                    end
                     fast_density_cap!(cion.density_fast, limit, fast_density_knee)
                     if modify_electron_density
                         # leave the thermal ion density unchanged: the electron density is adjusted
