@@ -941,6 +941,8 @@ push!(document[Symbol("Geometry")], :bisector)
     polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
 
 Returns bisecting "rays" (lines) that radiate from vertices of a polygon
+
+NOTE: the k-th ray radiates from vertex k+1 (the last ray radiates from the first vertex)
 """
 function polygon_rays(vertices::AbstractVector, extent_a::Float64, extent_b::Float64)
     @assert is_open_polygon(vertices)
