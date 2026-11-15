@@ -181,7 +181,7 @@ dyexp["core_profiles.global_quantities.beta_tor_norm"] =
     (; dd, core_profiles, _...) -> [beta_tor_norm(dd.equilibrium.time_slice[cp1d.time], cp1d) for cp1d in core_profiles.profiles_1d]
 
 dyexp["core_profiles.global_quantities.v_loop"] =
-    (; dd, _...) -> [v_loop(cp1d) for cp1d in core_profiles.profiles_1d]
+    (; dd, core_profiles, _...) -> [vloop(cp1d, dd.equilibrium.time_slice[cp1d.time]) for cp1d in core_profiles.profiles_1d]
 
 #= ========= =#
 # equilibrium #
@@ -550,7 +550,7 @@ dyexp["pulse_schedule.nbi.power.reference"] =
     (; nbi, _...) -> sum(unit.power.reference for unit in nbi.unit)
 
 dyexp["pulse_schedule.ec.power_launched.reference"] =
-    (; ec, _...) -> sum(beam.power_launched.reference for beam in ec.unit)
+    (; ec, _...) -> sum(beam.power_launched.reference for beam in ec.beam)
 
 dyexp["pulse_schedule.ic.power.reference"] =
     (; ic, _...) -> sum(antenna.power.reference for antenna in ic.antenna)
@@ -627,7 +627,7 @@ dyexp["summary.global_quantities.beta_pol_mhd.value"] =
     (; dd, summary, _...) -> [dd.equilibrium.time_slice[time0].global_quantities.beta_pol for time0 in summary.time]
 
 dyexp["summary.global_quantities.beta_tor.value"] =
-    (; dd, summary, _...) -> [beta_tor(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0]) for time0 in summary.time]
+    (; dd, summary, _...) -> [beta_tor(dd.equilibrium.time_slice[time0], dd.core_profiles.profiles_1d[time0]; norm=false, thermal=false) for time0 in summary.time]
 
 dyexp["summary.global_quantities.beta_tor_mhd.value"] =
     (; dd, summary, _...) -> [dd.equilibrium.time_slice[time0].global_quantities.beta_tor for time0 in summary.time]
