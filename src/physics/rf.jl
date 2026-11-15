@@ -98,7 +98,18 @@ function ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T;
     RA = eqt.global_quantities.magnetic_axis.r
     ZA = eqt.global_quantities.magnetic_axis.r
 
-    layers = Dict{T,Tuple{Vector{T},Vector{T},Int}}()
+    if !(T <: AbstractFloat)
+        # The resonance layer is contoured on value parts and returned without derivative parts:
+        # for number types that carry derivatives, the dependence of the layer position on the
+        # magnetic field is not propagated.
+        R = Float64[force_float64(x) for x in R]
+        Z = Float64[force_float64(x) for x in Z]
+        Bωce_over_Btot = force_float64.(Bωce_over_Btot)
+        RA = force_float64(RA)
+        ZA = force_float64(ZA)
+    end
+
+    layers = Dict{eltype(R),Tuple{Vector{eltype(R)},Vector{eltype(R)},Int}}()
     for harmonic in harmonics
         for line in Contour.lines(Contour.contour(R, Z, Bωce_over_Btot, harmonic))
             pr, pz = Contour.coordinates(line)
@@ -111,7 +122,7 @@ function ech_resonance_layer(eqt::IMAS.equilibrium__time_slice{T}, frequency::T;
         return (r=T[], z=T[], harmonic=0)
     else
         core_layer = layers[minimum(keys(layers))]
-        return (r=core_layer[1], z=core_layer[2], harmonic=core_layer[3])
+        return (r=convert(Vector{T}, core_layer[1]), z=convert(Vector{T}, core_layer[2]), harmonic=core_layer[3])
     end
 end
 

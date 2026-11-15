@@ -464,8 +464,9 @@ Returns all times of intersection between a moving particle and a wall in toroid
   - `vx`, `vy`, `vz`: Velocity components of the particle
 """
 function toroidal_intersections(wallr::Vector{T}, wallz::Vector{T}, px::Real, py::Real, pz::Real, vx::Real, vy::Real, vz::Real; max_intersections::Int=4) where {T<:Real}
-    t0 = 0.0
-    t_intersects = Float64[]
+    TT = promote_type(Float64, T, typeof(px), typeof(py), typeof(pz), typeof(vx), typeof(vy), typeof(vz))
+    t0 = zero(TT)
+    t_intersects = TT[]
     for n in 1:max_intersections
         t = toroidal_intersection(wallr, wallz, px, py, pz, vx, vy, vz)
         if isnan(t)
@@ -524,7 +525,7 @@ push!(document[Symbol("Physics particles")], :pol_tor_angles_2_vector)
 
 returns named tuple with (x, y, z, r) of a beam injected at given (px, py, pz) starting_position with velocity (vx, vy, vz)
 """
-function pencil_beam(starting_position::Vector{T}, velocity_vector::Vector{T}, time::AbstractVector{Float64}) where {T<:Real}
+function pencil_beam(starting_position::Vector{<:Real}, velocity_vector::Vector{<:Real}, time::AbstractVector{<:Real})
     x = starting_position[1] .+ velocity_vector[1] .* time
     y = starting_position[2] .+ velocity_vector[2] .* time
     z = starting_position[3] .+ velocity_vector[3] .* time
@@ -537,7 +538,7 @@ end
 
 returns named tuple with (x, y, z, r) of a beam injected at given (px, py, pz) starting_position with given poloidal and toroidal angles
 """
-function pencil_beam(starting_position::Vector{T}, pol_angle::T, tor_angle::T, time::AbstractVector{Float64}) where {T<:Real}
+function pencil_beam(starting_position::Vector{<:Real}, pol_angle::Real, tor_angle::Real, time::AbstractVector{<:Real})
     vx, vy, vz = pol_tor_angles_2_vector(pol_angle, tor_angle)
     return pencil_beam(starting_position, [vx, vy, vz], time)
 end

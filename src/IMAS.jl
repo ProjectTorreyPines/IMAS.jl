@@ -32,6 +32,7 @@ import AbstractTrees: print_tree
 #= UTILS =#
 #= ===== =#
 include("real.jl")
+include("dual.jl")
 include("get_from.jl")
 include("geometry.jl")
 include("math.jl")

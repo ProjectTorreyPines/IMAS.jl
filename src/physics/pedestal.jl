@@ -1,5 +1,14 @@
 document[Symbol("Physics pedestal")] = Symbol[]
 
+"""
+    pedestal_search_tolerance
+
+Tolerances of the one-dimensional (Brent, relative) and simplex (Nelder-Mead) searches used to blend core
+and pedestal profiles. The defaults are the values these searches have always used; they can be tightened,
+for example to compare derivatives of the result with finite differences.
+"""
+const pedestal_search_tolerance = (brent=Ref(1E-3), simplex=Ref(1E-6))
+
 function diffnorm(A::AbstractVector{<:Real}, B::AbstractVector{<:Real})
     @assert length(A) == length(B)
     return @inbounds norm(A[k] - B[k] for k in eachindex(A))
@@ -61,16 +70,76 @@ function blend_core_edge_Hmode(
     expin = 1.0
     expout = 1.0
     x_guess = StaticArrays.@MVector[expin, expout]
-    res = Optim.optimize(
-        x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets),
-        x_guess,
-        Optim.NelderMead(),
-        Optim.Options(; g_tol=1E-6)
-    )
-    expin = abs(res.minimizer[1])
-    expout = abs(res.minimizer[2])
+    D = promote_type(eltype(profile), typeof(ped_height), typeof(ped_width))
+    if D <: ForwardDiff.Dual
+        # search on value parts, then derivatives of the exponents from the implicit function theorem
+        cost = x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets)
+        res = Optim.optimize(x -> force_float64(cost(x)), x_guess, Optim.NelderMead(), Optim.Options(; g_tol=pedestal_search_tolerance.simplex[]))
+        xstar = Float64[res.minimizer[1], res.minimizer[2]]
+        if IMPLICIT_DERIVATIVES[]
+            # The derivative depends on which kind of minimum this is (see `_implicit_EPED_exps`), and that can
+            # only be told apart at a tightly converged minimum: the search is continued to a tight tolerance for
+            # the derivative, while the values remain those of the search at its usual tolerance.
+            polished = Optim.optimize(x -> force_float64(cost(x)), copy(xstar), Optim.NelderMead(), Optim.Options(; g_tol=1E-14, iterations=5000))
+            exps_polished = _implicit_EPED_exps(cost, Float64[polished.minimizer[1], polished.minimizer[2]], D, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets)
+            exps = [xstar[j] + _derivative_part(exps_polished[j]) * (sign(xstar[j]) == sign(ForwardDiff.value(exps_polished[j])) ? 1 : -1) for j in 1:2]
+        else
+            exps = D.(xstar)
+        end
+        expin = abs(exps[1])
+        expout = abs(exps[2])
+    else
+        res = Optim.optimize(
+            x -> cost_find_EPED_exps(x, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets),
+            x_guess,
+            Optim.NelderMead(),
+            Optim.Options(; g_tol=pedestal_search_tolerance.simplex[])
+        )
+        expin = abs(res.minimizer[1])
+        expout = abs(res.minimizer[2])
+    end
 
     return blend_core_edge_EPED(profile, rho, ped_height, ped_width, tr_bound0, tr_bound1, expin, expout; method)
+end
+
+# Derivatives of the exponents found by the search in `blend_core_edge_Hmode`.
+#
+# The cost is the sum of two norms (mismatch of the inverse scale lengths and of the values at the two
+# blending radii) over two unknowns that enter through their absolute value. Its minimum is of one of
+# three kinds, and the condition that defines the exponents, hence their derivative, differs:
+#   - one of the two mismatches vanishes exactly: the cost has a kink there and the exponents are the
+#     solution of that mismatch being zero;
+#   - an exponent sits at zero, the kink of the absolute value: it stays there;
+#   - otherwise the cost is smooth at the minimum and its gradient vanishes.
+function _implicit_EPED_exps(cost, xstar::Vector{Float64}, ::Type{D}, ped_height, ped_width, rho, profile, p_targets, z_targets, rho_targets) where {D<:ForwardDiff.Dual}
+    function mismatches(x)
+        profile_ped = Hmode_profiles(profile[end], ped_height, length(rho), abs(x[1]), abs(x[2]), ped_width)
+        z_ped = -calc_z(rho, profile_ped, :backward)
+        mismatch_z = collect(z_targets .- interp1d(rho, z_ped).(rho_targets)) ./ sum(abs, z_targets)
+        mismatch_p = collect(p_targets .- interp1d(rho, profile_ped).(rho_targets)) ./ sum(abs, p_targets)
+        return mismatch_z, mismatch_p
+    end
+
+    free = [j for j in eachindex(xstar) if abs(xstar[j]) > 1E-2]
+    dx = zeros(length(xstar), _npartials(D))
+    if !isempty(free) && IMPLICIT_DERIVATIVES[]
+        embed(xf) = [j in free ? xf[findfirst(==(j), free)] : oftype(xf[1], xstar[j]) for j in eachindex(xstar)]
+        x0 = D.(xstar[free])
+        r_z, r_p = mismatches(embed(x0))
+        tol = 1E-6
+        if norm(ForwardDiff.value.(r_z)) < tol || norm(ForwardDiff.value.(r_p)) < tol
+            pick = norm(ForwardDiff.value.(r_z)) < tol ? 1 : 2
+            r = xf -> mismatches(embed(xf))[pick]
+            J = ForwardDiff.value.(ForwardDiff.jacobian(r, x0))
+            dx[free, :] .= -(LinearAlgebra.pinv(J; rtol=1E-10) * _partials_matrix(pick == 1 ? r_z : r_p))
+        else
+            c = xf -> cost(embed(xf))
+            gθ = _partials_matrix(ForwardDiff.gradient(c, x0))
+            H = ForwardDiff.value.(ForwardDiff.hessian(c, x0))
+            dx[free, :] .= -(LinearAlgebra.pinv((H .+ H') ./ 2; rtol=1E-10) * gθ)
+        end
+    end
+    return _with_partials(D, xstar, dx)
 end
 
 @compat public blend_core_edge_Hmode
@@ -204,8 +273,18 @@ function blend_core_edge_Lmode(
 )
     @assert rho[end] == 1.0
 
-    res = Optim.optimize(α -> cost_WPED_α!(rho, profile, α, value, rho_bound), -500, 500, Optim.Brent(); rel_tol=1E-3)
-    cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
+    res = Optim.optimize(α -> force_float64(cost_WPED_α!(rho, profile, α, value, rho_bound)), -500, 500, Optim.Brent(); rel_tol=pedestal_search_tolerance.brent[])
+    D = promote_type(eltype(profile), typeof(value))
+    if D <: ForwardDiff.Dual
+        # derivative of the exponent from the implicit function theorem on the signed mismatch
+        profile0 = copy(profile)
+        G = u -> (profile .= profile0; [residual_WPED_α!(rho, profile, u[1], value, rho_bound)])
+        α = implicit_solution(G, Float64[res.minimizer], D; atol=1E-2)[1]
+        profile .= profile0
+        cost_WPED_α!(rho, profile, α, value, rho_bound)
+    else
+        cost_WPED_α!(rho, profile, res.minimizer, value, rho_bound)
+    end
 
     return profile
 end
@@ -228,6 +307,23 @@ function cost_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Re
 
     cost = abs.((z_profile[rho_ped_idx] - z_profile_ped[rho_ped_idx]) / z_profile[rho_ped_idx])
     return cost
+end
+
+"""
+    residual_WPED_α!(rho, profile, α, value_ped, rho_ped)
+
+Same update of `profile` as `cost_WPED_α!`, returning the signed relative mismatch of the inverse scale
+lengths at the pedestal boundary (`cost_WPED_α!` is its absolute value)
+"""
+function residual_WPED_α!(rho::AbstractVector{<:Real}, profile::AbstractVector{<:Real}, α::Real, value_ped::Real, rho_ped::Real)
+    @assert rho[end] == 1.0
+    rho_ped_idx = argmin_abs(rho, rho_ped)
+    profile_ped = exponential_profile(rho, rho_ped, value_ped, profile[end], α)
+    z_profile_ped = calc_z(rho, profile_ped, :backward)
+    profile .+= (-profile[rho_ped_idx] + value_ped)
+    z_profile = calc_z(rho, profile, :backward)
+    profile[rho_ped_idx+1:end] .= interp1d(rho, profile_ped).(rho[rho_ped_idx+1:end])
+    return (z_profile[rho_ped_idx] - z_profile_ped[rho_ped_idx]) / z_profile[rho_ped_idx]
 end
 
 """

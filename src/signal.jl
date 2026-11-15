@@ -126,7 +126,7 @@ push!(document[Symbol("Signal")], :trap)
 
 Unitary gaussian
 """
-function gaus(t::Float64, order::Float64=1.0)
+function gaus(t::Real, order::Real=1.0)
     return exp(-(t^2 / 2.0)^order)
 end
 
@@ -135,7 +135,7 @@ end
 
 Unitary gaussian centered at t_start and with standard deviation Δt
 """
-function gaus(t::Float64, t_start::Float64, Δt::Float64, order::Float64=1.0)
+function gaus(t::Real, t_start::Real, Δt::Real, order::Real=1.0)
     return gaus((t - t_start) / Δt, order)
 end
 

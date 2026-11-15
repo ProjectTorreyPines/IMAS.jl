@@ -96,21 +96,6 @@ function Base.setproperty!(ids::IDS{T}, field::Symbol, value::Measurements.Measu
     return value
 end
 
-"""
-    fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Float64,T2<:ForwardDiff.Dual{Float64,Float64,0}}
-
-Function used to map fields in `IDS{Dual{T,T,0}}` to `IDS{T}`
-"""
-function Base.fill!(@nospecialize(ids_new::IDS{<:T1}), @nospecialize(ids::IDS{<:T2}), field::Symbol) where {T1<:Float64,T2<:ForwardDiff.Dual{Float64,Float64,0}}
-    value = getraw(ids, field)
-    if eltype(value) <: T2
-        _setproperty!(ids_new, field, ForwardDiff.value.(value); from_cocos=internal_cocos)
-    else
-        _setproperty!(ids_new, field, value; from_cocos=internal_cocos)
-    end
-    return nothing
-end
-
 function Base.setproperty!(ids::IDS{T}, field::Symbol, value::AbstractVector{<:ForwardDiff.Dual}) where {T<:Float64}
     setproperty!(ids, field, [ForwardDiff.value(v) for v in value])
     return value
@@ -119,6 +104,10 @@ end
 function Base.setproperty!(ids::IDS{T}, field::Symbol, value::ForwardDiff.Dual) where {T<:Float64}
     setproperty!(ids, field, ForwardDiff.value(value))
     return value
+end
+
+function Base.unsafe_trunc(::Type{Int64}, x::ForwardDiff.Dual)
+    return unsafe_trunc(Int64, ForwardDiff.value(x))
 end
 
 function Base.round(::Type{Int64}, x::ForwardDiff.Dual, r::RoundingMode)

@@ -6,8 +6,9 @@ document[Symbol("Physics equilibrium")] = Symbol[]
 Returns r, z, and ψ interpolant named tuple
 """
 function ψ_interpolant(eqt2d::IMAS.equilibrium__time_slice___profiles_2d)
-    dim1 = convert(Vector{Float64}, eqt2d.grid.dim1)
-    dim2 = convert(Vector{Float64}, eqt2d.grid.dim2)
+    # the grid is always plain floats, also when ψ carries derivatives
+    dim1 = eltype(eqt2d.grid.dim1) === Float64 ? convert(Vector{Float64}, eqt2d.grid.dim1) : Float64[force_float64(x) for x in eqt2d.grid.dim1]
+    dim2 = eltype(eqt2d.grid.dim2) === Float64 ? convert(Vector{Float64}, eqt2d.grid.dim2) : Float64[force_float64(x) for x in eqt2d.grid.dim2]
     r = range(dim1[1], dim1[end], length(dim1))
     z = range(dim2[1], dim2[end], length(dim2))
     return ψ_interpolant(r, z, eqt2d.psi)

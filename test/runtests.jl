@@ -35,4 +35,8 @@ else
     include("runtests_plot_recipes.jl")
 
     include("runtests_satellite.jl")
+
+    include("runtests_dual.jl")
+
+    include("runtests_profiles.jl")
 end

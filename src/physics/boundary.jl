@@ -357,7 +357,7 @@ Compute the cumulative arc length of a 2D curve defined from the coordinate vect
 function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(pr)
     if include_zero
-        ll = Vector{Float64}(undef, n)
+        ll = Vector{promote_type(Float64, eltype(pr), eltype(pz))}(undef, n)
         ll[1] = 0.0
         @inbounds for i in 2:n
             dx = pr[i] - pr[i-1]
@@ -365,7 +365,7 @@ function arc_length(pr::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; incl
             ll[i] = ll[i-1] + sqrt(dx * dx + dz * dz)
         end
     else
-        ll = Vector{Float64}(undef, n - 1)
+        ll = Vector{promote_type(Float64, eltype(pr), eltype(pz))}(undef, n - 1)
         @inbounds for i in 2:n
             dx = pr[i] - pr[i-1]
             dz = pz[i] - pz[i-1]
@@ -387,7 +387,7 @@ Compute the cumulative arc length of a 3D curve from the Cartesian coordinate ve
 function arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(px)
     if include_zero
-        ll = Vector{Float64}(undef, n)
+        ll = Vector{promote_type(Float64, eltype(px), eltype(py), eltype(pz))}(undef, n)
         ll[1] = 0.0
         @inbounds for i in 2:n
             dx = px[i] - px[i-1]
@@ -396,7 +396,7 @@ function arc_length(px::AbstractVector{<:Real}, py::AbstractVector{<:Real}, pz::
             ll[i] = ll[i-1] + sqrt(dx * dx + dy * dy + dz * dz)
         end
     else
-        ll = Vector{Float64}(undef, n - 1)
+        ll = Vector{promote_type(Float64, eltype(px), eltype(py), eltype(pz))}(undef, n - 1)
         @inbounds for i in 2:n
             dx = px[i] - px[i-1]
             dy = py[i] - py[i-1]
@@ -423,7 +423,7 @@ The arc length is calculated as:
 function arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<:Real}, z::AbstractVector{<:Real}; include_zero::Bool=true)
     n = length(r)
     if include_zero
-        ll = Vector{Float64}(undef, n)
+        ll = Vector{promote_type(Float64, eltype(r), eltype(phi), eltype(z))}(undef, n)
         ll[1] = 0.0
         @inbounds for i in 2:n
             dr = r[i] - r[i-1]
@@ -434,7 +434,7 @@ function arc_length_cylindrical(r::AbstractVector{<:Real}, phi::AbstractVector{<
             ll[i] = ll[i-1] + arc
         end
     else
-        ll = Vector{Float64}(undef, n - 1)
+        ll = Vector{promote_type(Float64, eltype(r), eltype(phi), eltype(z))}(undef, n - 1)
         @inbounds for i in 2:n
             dr = r[i] - r[i-1]
             dphi = phi[i] - phi[i-1]

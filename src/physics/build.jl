@@ -362,6 +362,13 @@ Memoize.@memoize function memoized_inscribed_polygon(pr::AbstractVector{Float64}
     return inscribed_polygon(pr, pz; target_area_fraction)
 end
 
+# The wall outline is machine geometry: for element types other than Float64 the simplification
+# is done on the values and the result is returned in the element type of the input
+function memoized_inscribed_polygon(pr::AbstractVector{T}, pz::AbstractVector{T}, target_area_fraction::Float64) where {T<:Real}
+    r, z = memoized_inscribed_polygon(Float64[force_float64(x) for x in pr], Float64[force_float64(x) for x in pz], target_area_fraction)
+    return T.(r), T.(z)
+end
+
 """
     first_wall(wall::IMAS.wall{T}; simplify_to_inscribed_fractional_area::Float64=1 - 1E-6) where {T<:Real}
 

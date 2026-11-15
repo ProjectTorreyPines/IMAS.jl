@@ -39,8 +39,18 @@ function j_ohmic_steady_state(
         return abs(ip - trapz(cp1d.grid.area, j_tor)) .^ 2
     end
 
-    res = Optim.optimize(cost, [I_ohmic_par_guess], Optim.Newton(); autodiff=:forward)
-    I_ohmic_par = res.minimizer
+    if T <: ForwardDiff.Dual
+        # The total toroidal current is an affine function of the ohmic amplitude, so the condition
+        # ip = ∫ j_tor dA has the closed-form solution below. With dual numbers this replaces the
+        # minimisation (whose Newton solver does not accept them) and carries exact derivatives.
+        ip_of(x) = trapz(cp1d.grid.area, Jpar_2_Jtor(rho_tor_norm, x .* j_oh_par_norm .+ j_non_inductive, true, eqt))
+        ip0 = ip_of(zero(T))
+        ip1 = ip_of(one(T))
+        I_ohmic_par = [(ip - ip0) / (ip1 - ip0)]
+    else
+        res = Optim.optimize(cost, [I_ohmic_par_guess], Optim.Newton(); autodiff=:forward)
+        I_ohmic_par = res.minimizer
+    end
 
     return I_ohmic_par .* j_oh_par_norm
 end
