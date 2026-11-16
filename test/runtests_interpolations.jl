@@ -113,6 +113,16 @@ const RTOL = 1e-2
         # regression goldens
         @test probe.field.data[1] ≈ 0.09799427799636301  rtol = RTOL
         @test loop.flux.data[1]   ≈ -2.1356278924110654  rtol = RTOL
+
+        # a second call replaces the synthetic data
+        IMAS.magnetics!(dd.magnetics, dd.equilibrium)
+        @test length(probe.field.data) == length(dd.equilibrium.time_slice)
+        @test length(loop.flux.data) == length(dd.equilibrium.time_slice)
+
+        # an IDS without probes and loops (no data at all) stays empty
+        mag = typeof(dd.magnetics)()
+        IMAS.magnetics!(mag, dd.equilibrium)
+        @test isempty(mag.b_field_pol_probe) && isempty(mag.flux_loop)
     end
 
     # sol → find_levels_from_P / find_levels_from_wall / find_psi_* / _deduplicate_knots!
