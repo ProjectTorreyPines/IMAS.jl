@@ -448,9 +448,8 @@ function mesher_heat_flux(dd::IMAS.DD;
             counter += 1
             save_length = length(Rwall)
         end
-        # add OMP point
-        if (r_wall_midplane, Z0) in (Rwall, Zwall)
-        else
+        # add OMP point, unless it is in the mesh already
+        if !any((Rwall .== r_wall_midplane) .& (Zwall .== Z0))
             Rwall = vcat(r_wall_midplane, Rwall)
             Zwall = vcat(Z0, Zwall)
         end
