@@ -465,9 +465,9 @@ function mesher_heat_flux(dd::IMAS.DD;
     # Make sure (Rwall,Zwall) is closed
     if !((Rwall[1], Zwall[1]) == (Rwall[end], Zwall[end]))
         # Mesh not closed!
+        push!(s, s[end] + sqrt((Rwall[1] - Rwall[end])^2 + (Zwall[1] - Zwall[end])^2))
         push!(Rwall, Rwall[1])
         push!(Zwall, Zwall[1])
-        push!(s, s[end] + sqrt((Rwall[1] - Rwall[end])^2 + (Zwall[1] - Zwall[end])^2))
     end
 
     return (Rwall=Rwall, Zwall=Zwall, s=s, SOL=SOL, r=r, q=q)
