@@ -7,7 +7,8 @@ Calculates synthetic magnetic probes and flux loops data at all time slices wher
 """
 function magnetics!(mag::IMAS.magnetics, eq::IMAS.equilibrium)
     for leaf in IMASdd.AbstractTrees.Leaves(mag)
-        if leaf.field ∈ (:data_σ, :data, :time)
+        # an IDS (or an element of an array of structures) without data is a leaf itself, not a field
+        if leaf isa IMASdd.IMASnodeRepr && leaf.field ∈ (:data_σ, :data, :time)
             empty!(leaf.ids, leaf.field)
         end
     end

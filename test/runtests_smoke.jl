@@ -121,5 +121,25 @@ finite(x) = all(isfinite, x)
         @test length(mesh.Rwall) == length(mesh.Zwall) > length(fwD.r)
         hf = IMAS.particle_heat_flux(mesh.SOL, mesh.Rwall, mesh.Zwall, mesh.r, mesh.q)
         @test finite(hf[1]) && maximum(hf[1]) > 0.0
+
+        # the mesh is closed, and the abscissa of its closing point includes the closing segment
+        @test (mesh.Rwall[1], mesh.Zwall[1]) == (mesh.Rwall[end], mesh.Zwall[end])
+        @test mesh.s[end] - mesh.s[end-1] ≈ hypot(mesh.Rwall[end] - mesh.Rwall[end-1], mesh.Zwall[end] - mesh.Zwall[end-1])
+        # the outer midplane point (the first one) is in the mesh once
+        @test count((mesh.Rwall[1:end-1] .== mesh.Rwall[1]) .& (mesh.Zwall[1:end-1] .== mesh.Zwall[1])) == 1
+
+        # psi levels given as a vector: with the levels of the mesh above it is the same mesh, with and without
+        # the wall, and the vector is not changed
+        levels = [ofl.psi for ofl in vcat(mesh.SOL[:lfs], mesh.SOL[:lfs_far])]
+        levels[1] += 1e-3 * (levels[2] - levels[1])  # the first level is always the separatrix
+        levels0 = copy(levels)
+        mesh_levels = IMAS.mesher_heat_flux(ddD; r, q, levels)
+        @test levels == levels0
+        @test mesh_levels.Rwall == mesh.Rwall && mesh_levels.Zwall == mesh.Zwall
+        mesh_sol = IMAS.mesher_heat_flux(ddD; r, q, merge_wall=false)
+        mesh_sol_levels = IMAS.mesher_heat_flux(ddD; r, q, levels, merge_wall=false)
+        @test levels == levels0
+        @test mesh_sol_levels.Rwall == mesh_sol.Rwall && mesh_sol_levels.Zwall == mesh_sol.Zwall
+        @test length(mesh_sol.Rwall) < length(mesh.Rwall)
     end
 end
