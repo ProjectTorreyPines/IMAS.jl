@@ -216,10 +216,10 @@ function mesher_heat_flux(dd::IMAS.DD;
     reorder_flux_surface!(rwall, zwall, R0, Z0; force_close=true)
 
     # Parameters for particle heat flux
+    eqt2d = findfirst(:rectangular, eqt.profiles_2d)
+    _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
     if typeof(levels) <: Int
         #levels is an Int, build a vector of psi_levels of that size
-        eqt2d = findfirst(:rectangular, eqt.profiles_2d)
-        _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
         psi_levels, _, _ = find_levels_from_P(eqt, rwall, zwall, PSI_interpolant, r, q, levels)
         add_psi = find_levels_from_wall(eqt, rwall, zwall, PSI_interpolant)
         psi_sign = sign(psi_levels[end] - psi_levels[1])
@@ -230,8 +230,8 @@ function mesher_heat_flux(dd::IMAS.DD;
             psi_levels = reverse!(psi_levels) # if psi is decreasing, sort in descending order
         end
     else
-        #levels is a vector, use it as it is
-        psi_levels = levels
+        #levels is a vector, use it as it is (a copy: the first level is set to the separatrix below)
+        psi_levels = collect(levels)
     end
 
     psi_levels[1] = psi_boundaries.first_open
@@ -340,8 +340,6 @@ function mesher_heat_flux(dd::IMAS.DD;
     end
 
     if merge_wall
-        _, _, PSI_interpolant = ψ_interpolant(eqt2d)  #interpolation of PSI in equilirium at locations (r,z)
-
         #! format: off
         if zwall[1] > Z0 # correction if first point is above midplane
             indexes[indexes .== 1 .&& Zwall.>Z0] .= length(rwall) # put it after index = end
