@@ -39,4 +39,6 @@ else
     include("runtests_dual.jl")
 
     include("runtests_profiles.jl")
+
+    include("runtests_expressions.jl")
 end
