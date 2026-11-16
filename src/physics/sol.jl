@@ -937,7 +937,7 @@ end
 function widthSOL_sieglin(eqt::IMAS.equilibrium__time_slice, cp1d::IMAS.core_profiles__profiles_1d, core_sources::IMAS.core_sources)
     eqt1d = eqt.profiles_1d
     R0 = (eqt1d.r_outboard[end] .+ eqt1d.r_inboard[end]) / 2.0
-    a = (eqt1d.r_outboard[end] .- eqt1d.r_inboard[end])
+    a = (eqt1d.r_outboard[end] .- eqt1d.r_inboard[end]) / 2.0
     Psol = power_sol(core_sources, cp1d)
     ne_ped = interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
     return widthSOL_sieglin(R0, a, Bpol_omp(eqt), Psol, ne_ped)
@@ -961,7 +961,8 @@ push!(document[Symbol("Physics sol")], :widthSOL_sieglin)
 
 Returns midplane power decay length λ_q in meters
 
-Eich scaling (NF 53 093031)
+Eich scaling (NF 53 093031, regression #15), with major radius `R0` [m], minor radius `a` [m],
+poloidal magnetic field at the outer midplane separatrix `Bpol_omp` [T] and power crossing the separatrix `Psol` [W]
 """
 function widthSOL_eich(R0::T, a::T, Bpol_omp::T, Psol::T) where {T<:Real}
     return 1.35 * 1E-3 * (Psol / 1E6)^-0.02 * R0^0.04 * Bpol_omp^-0.92 * (a / R0)^0.42
@@ -973,7 +974,7 @@ end
 function widthSOL_eich(eqt::IMAS.equilibrium__time_slice, Psol::Real)
     eqt1d = eqt.profiles_1d
     R0 = (eqt1d.r_outboard[end] .+ eqt1d.r_inboard[end]) / 2.0
-    a = (eqt1d.r_outboard[end] .- eqt1d.r_inboard[end])
+    a = (eqt1d.r_outboard[end] .- eqt1d.r_inboard[end]) / 2.0
     return widthSOL_eich(R0, a, Bpol_omp(eqt), Psol)
 end
 

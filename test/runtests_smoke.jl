@@ -111,6 +111,24 @@ finite(x) = all(isfinite, x)
         end
     end
 
+    @testset "sol.jl" begin
+        # Eich regression #15 (NF 53 093031) with the ITER parameters of its table 1: the paper quotes λq = 0.73 mm
+        @test IMAS.widthSOL_eich(6.2, 2.0, 1.185, 100E6) ≈ 0.73E-3 rtol = 0.05
+
+        # the aspect ratio of the scaling is the one of the minor radius
+        R0 = (eqt.profiles_1d.r_outboard[end] + eqt.profiles_1d.r_inboard[end]) / 2.0
+        a = (eqt.profiles_1d.r_outboard[end] - eqt.profiles_1d.r_inboard[end]) / 2.0
+        Bpol_omp = IMAS.Bpol_omp(eqt)
+        Psol = 2E6
+        @test a ≈ eqt.boundary.minor_radius
+        @test IMAS.widthSOL_eich(eqt, Psol) ≈ IMAS.widthSOL_eich(R0, a, Bpol_omp, Psol)
+
+        Psol = IMAS.power_sol(dd.core_sources, cp1d)
+        ne_ped = IMAS.interp1d(cp1d.grid.rho_tor_norm, cp1d.electrons.density_thermal).(0.95)
+        @test IMAS.widthSOL_eich(dd) ≈ IMAS.widthSOL_eich(R0, a, Bpol_omp, Psol)
+        @test IMAS.widthSOL_sieglin(dd) ≈ IMAS.widthSOL_sieglin(R0, a, Bpol_omp, Psol, ne_ped)
+    end
+
     @testset "thermal_loads.jl" begin
         ddD, fwD = fresh_sample()
         IMAS.flux_surfaces(ddD.equilibrium, fwD.r, fwD.z)
