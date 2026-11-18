@@ -473,93 +473,282 @@ end
 @compat public sawtooth_conductivity
 push!(document[Symbol("Physics neoclassical")], :sawtooth_conductivity)
 
+#= ================================================================================== =#
+#  Species rotation from radial force balance
+#
+#  Every species s on a flux surface has a flow of the form (Hinton & Wong 1985)
+#      V_s = ω_s(ψ) R² ∇φ + u_s(ψ) B ,     ω_s = ω_E - ω_*s
+#  with the common ExB frequency ω_E = -dΦ/dψ (`rotation_frequency_tor_sonic`) and the
+#  diamagnetic frequency ω_*s = (1 / (Z_s e n_s)) dp_s/dψ, where ψ is the poloidal flux
+#  per radian. The flux-surface toroidal rotation frequency of species s is then
+#      Ω_φ,s = ω_E + Δ_s ,     Δ_s = -ω_*s + u_s F ⟨R⁻²⟩
+#  so all species are tied to one free rotation function per surface, and Δ_s depends only
+#  on the n, T profiles (and on the poloidal-flow model that sets u_s).
+#= ================================================================================== =#
+
 """
-    ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0)
+    poloidal_flux_per_radian(cp1d::IMAS.core_profiles__profiles_1d)
 
-Populates ExB rotation based on ion omega_tor assuming ωpol=0.0
+Poloidal flux on the `cp1d` grid normalized as in Hinton & Wong (ψ per radian, B_p = ∇φ × ∇ψ),
+the normalization in which `ω_E = -dΦ/dψ` is an angular frequency.
 
-Returns the updated `cp1d` with `rotation_frequency_tor_sonic` populated and all ion rotation frequencies updated.
-
-`ind` is the ion species index to use as reference (0 = auto-select first non-zero rotation)
-
-`rho_correction` is the near axis value where begin to taper dpi_dpsi term to zero, 
-    (This is needed to handle large gradients from fast ion subtraction)
+IMAS stores the total poloidal flux in Wb (COCOS 11, `exp_Bp = 1`), so that |∇ψ| = 2π R B_p.
 """
-function ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0, rho_correction::Real=0.2) where {T<:Real}
+function poloidal_flux_per_radian(cp1d::IMAS.core_profiles__profiles_1d)
+    COCOS = cocos(internal_cocos)
+    return cp1d.grid.psi .* (COCOS.sigma_Bp / (2π)^COCOS.exp_Bp)
+end
+
+@compat public poloidal_flux_per_radian
+push!(document[Symbol("Physics neoclassical")], :poloidal_flux_per_radian)
+
+"""
+    rotation_taper(rho::Real, rho_correction::Real)
+
+Factor `min(ρ/ρ_c, 1)²` that tapers gradient-driven rotation offsets to zero near the magnetic
+axis, where gradients of fast-ion-subtracted thermal pressure are noisy. `rho_correction = 0` disables it.
+"""
+function rotation_taper(rho::Real, rho_correction::Real)
+    return rho_correction > 0 ? min(rho / rho_correction, one(rho))^2 : one(rho)
+end
+
+"""
+    diamagnetic_rotation_frequency(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion; rho_correction::Real=0.2, psi=poloidal_flux_per_radian(cp1d))
+
+Diamagnetic angular frequency of an ion species `ω_*s = (1 / (Z_s e n_s)) dp_s/dψ` [rad/s], with ψ per radian.
+
+Returns zero where the thermal density of the species vanishes.
+"""
+function diamagnetic_rotation_frequency(
+    cp1d::IMAS.core_profiles__profiles_1d,
+    ion::IMAS.core_profiles__profiles_1d___ion;
+    rho_correction::Real=0.2,
+    psi::AbstractVector{<:Real}=poloidal_flux_per_radian(cp1d))
+    rho = cp1d.grid.rho_tor_norm
+    ni = ion.density_thermal
+    dp_dpsi = gradient(psi, ion.density_thermal .* ion.temperature .* mks.e)
+    return @. ifelse(ni > 0, dp_dpsi / (max(ni, eps(one(ni))) * ion.z_ion * mks.e), zero(dp_dpsi)) * rotation_taper(rho, rho_correction)
+end
+
+@compat public diamagnetic_rotation_frequency
+push!(document[Symbol("Physics neoclassical")], :diamagnetic_rotation_frequency)
+
+"""
+    thermal_rotation_frequency(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion; rho_correction::Real=0.2, psi=poloidal_flux_per_radian(cp1d))
+
+Temperature-gradient angular frequency of an ion species `ω_T,s = (1 / (Z_s e)) dT_s/dψ` [rad/s], with ψ per radian.
+"""
+function thermal_rotation_frequency(
+    cp1d::IMAS.core_profiles__profiles_1d,
+    ion::IMAS.core_profiles__profiles_1d___ion;
+    rho_correction::Real=0.2,
+    psi::AbstractVector{<:Real}=poloidal_flux_per_radian(cp1d))
+    rho = cp1d.grid.rho_tor_norm
+    # temperature is in eV, so (1/(Z e)) d(e T)/dψ = (dT/dψ) / Z
+    return gradient(psi, ion.temperature) ./ ion.z_ion .* rotation_taper.(rho, rho_correction)
+end
+
+@compat public thermal_rotation_frequency
+push!(document[Symbol("Physics neoclassical")], :thermal_rotation_frequency)
+
+"""
+    main_ion_index(cp1d::IMAS.core_profiles__profiles_1d)
+
+Index of the thermal ion species with the largest (grid-summed) thermal density
+"""
+function main_ion_index(cp1d::IMAS.core_profiles__profiles_1d)
+    return argmax([hasdata(ion, :density_thermal) || hasdata(ion, :density) ? sum(ion.density_thermal) : 0.0 for ion in cp1d.ion])
+end
+
+@compat public main_ion_index
+push!(document[Symbol("Physics neoclassical")], :main_ion_index)
+
+"""
+    poloidal_flow_coefficient(nustar::Real, epsilon::Real)
+
+Neoclassical main-ion poloidal flow coefficient `k_i`, interpolated across collisionality regimes
+
+    k_i = [(1.17 - 0.35 √ν*) / (1 + 0.7 √ν*) - 2.1 ν*² ε³] / (1 + ν*² ε³)
+
+which tends to 1.17 in the banana regime and -2.1 in the Pfirsch-Schlüter regime
+(Hinton & Hazeltine 1976; interpolation as in Kim, Diamond & Groebner, Phys. Fluids B 3, 2050 (1991)).
+"""
+function poloidal_flow_coefficient(nustar::Real, epsilon::Real)
+    sn = sqrt(nustar)
+    ne3 = nustar^2 * epsilon^3
+    return ((1.17 - 0.35 * sn) / (1.0 + 0.7 * sn) - 2.1 * ne3) / (1.0 + ne3)
+end
+
+@compat public poloidal_flow_coefficient
+push!(document[Symbol("Physics neoclassical")], :poloidal_flow_coefficient)
+
+"""
+    rotation_frequency_offset(
+        cp1d::IMAS.core_profiles__profiles_1d,
+        ion::IMAS.core_profiles__profiles_1d___ion;
+        poloidal_flow::Symbol=:none,
+        eqt::Union{Nothing,IMAS.equilibrium__time_slice}=nothing,
+        rho_correction::Real=0.2,
+        psi=poloidal_flux_per_radian(cp1d))
+
+Offset `Δ_s` of the toroidal rotation frequency of species `ion` from the ExB frequency, `Ω_φ,s = ω_E + Δ_s` [rad/s]
+
+`poloidal_flow` selects the model for the poloidal flow of each species:
+
+  - `:none`: no poloidal flow for any species, `Δ_s = -ω_*s`
+
+  - `:analytic` (requires `eqt`): main ion (see `main_ion_index`) with the neoclassical poloidal flow
+    `Ω_φ,i = ω_E - ω_*i + k_i f ω_T,i`, where `k_i = poloidal_flow_coefficient(ν*_i, ε)` and `f = F² ⟨R⁻²⟩ / ⟨B²⟩`.
+    Every other ion has its parallel flow locked to the main ion by friction (trace-impurity limit),
+    `Ω_φ,z = Ω_φ,i - (1 - f)(ω_*z - ω_*i)`. NOTE: the impurity thermal force, which is of the same order
+    as the `k_i` term, is neglected: for quantitative impurity rotation use species flows from NEO.
+"""
+function rotation_frequency_offset(
+    cp1d::IMAS.core_profiles__profiles_1d,
+    ion::IMAS.core_profiles__profiles_1d___ion;
+    poloidal_flow::Symbol=:none,
+    eqt::Union{Nothing,IMAS.equilibrium__time_slice}=nothing,
+    rho_correction::Real=0.2,
+    psi::AbstractVector{<:Real}=poloidal_flux_per_radian(cp1d))
+
+    if poloidal_flow == :none
+        return -diamagnetic_rotation_frequency(cp1d, ion; rho_correction, psi)
+
+    elseif poloidal_flow == :analytic
+        @assert eqt !== nothing "rotation_frequency_offset: `poloidal_flow=:analytic` requires the equilibrium time slice `eqt`"
+        rho = cp1d.grid.rho_tor_norm
+        eqt1d = eqt.profiles_1d
+        itp(y) = interp1d(eqt1d.rho_tor_norm, y).(rho)
+        f_geo = itp(eqt1d.f .^ 2 .* eqt1d.gm1 ./ eqt1d.gm5)
+        epsilon = itp((eqt1d.r_outboard .- eqt1d.r_inboard) ./ (eqt1d.r_outboard .+ eqt1d.r_inboard))
+        k_i = poloidal_flow_coefficient.(nuistar(eqt, cp1d), epsilon)
+
+        main_ion = cp1d.ion[main_ion_index(cp1d)]
+        ωstar_main = diamagnetic_rotation_frequency(cp1d, main_ion; rho_correction, psi)
+        Δ_main = -ωstar_main .+ k_i .* f_geo .* thermal_rotation_frequency(cp1d, main_ion; rho_correction, psi)
+        if ion === main_ion
+            return Δ_main
+        else
+            ωstar_ion = diamagnetic_rotation_frequency(cp1d, ion; rho_correction, psi)
+            return Δ_main .- (1.0 .- f_geo) .* (ωstar_ion .- ωstar_main)
+        end
+
+    else
+        error("rotation_frequency_offset: `poloidal_flow` must be `:none` or `:analytic`, not `:$poloidal_flow`")
+    end
+end
+
+@compat public rotation_frequency_offset
+push!(document[Symbol("Physics neoclassical")], :rotation_frequency_offset)
+
+"""
+    ωtor2sonic(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0, poloidal_flow::Symbol=:none, eqt=nothing, rho_correction::Real=0.2)
+
+ExB rotation frequency `ω_E = Ω_φ,ref - Δ_ref` [rad/s] from the toroidal rotation of a reference ion species
+
+`ind` is the index of the reference species (0 = first ion with non-zero `rotation_frequency_tor`).
+See `rotation_frequency_offset` for `poloidal_flow` and `rho_correction`.
+"""
+function ωtor2sonic(
+    cp1d::IMAS.core_profiles__profiles_1d{T};
+    ind::Int=0,
+    poloidal_flow::Symbol=:none,
+    eqt::Union{Nothing,IMAS.equilibrium__time_slice}=nothing,
+    rho_correction::Real=0.2) where {T<:Real}
     if ind == 0
         ind = findfirst(x -> hasdata(x, :rotation_frequency_tor) && sum(abs.(x.rotation_frequency_tor)) != 0.0, cp1d.ion)
         if ind === nothing
             return zero(cp1d.grid.rho_tor_norm)
         end
     end
-    ni = cp1d.ion[ind].density_thermal
-    zi = cp1d.ion[ind].z_ion
-    rot_freq = cp1d.ion[ind].rotation_frequency_tor
-    rho = cp1d.grid.rho_tor_norm
-    dpi_dpsi = gradient(cp1d.grid.psi, cp1d.ion[ind].pressure_thermal)
-    correction = @. dpi_dpsi / (ni * zi * IMAS.mks.e) * min(rho / rho_correction, 1.0)^2
-    return @. rot_freq + correction
+    ion = cp1d.ion[ind]
+    return ion.rotation_frequency_tor .- rotation_frequency_offset(cp1d, ion; poloidal_flow, eqt, rho_correction)
 end
 
 @compat public ωtor2sonic
 push!(document[Symbol("Physics neoclassical")], :ωtor2sonic)
 
 """
-    ωtor2sonic!(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0)
+    ωtor2sonic!(cp1d::IMAS.core_profiles__profiles_1d; ind::Int=0, poloidal_flow::Symbol=:none, eqt=nothing, rho_correction::Real=0.2)
 
-Updates `cp1d.rotation_frequency_tor_sonic` in place based on the specified ion species toroidal rotation, assuming poloidal rotation ωpol=0.0.
+Updates `cp1d.rotation_frequency_tor_sonic` in place from the toroidal rotation of a reference ion species (see `ωtor2sonic`)
 """
-function ωtor2sonic!(cp1d::IMAS.core_profiles__profiles_1d{T}; ind::Int=0) where {T<:Real}
-    return cp1d.rotation_frequency_tor_sonic = ωtor2sonic(cp1d; ind)
+function ωtor2sonic!(cp1d::IMAS.core_profiles__profiles_1d{T}; kw...) where {T<:Real}
+    return cp1d.rotation_frequency_tor_sonic = ωtor2sonic(cp1d; kw...)
 end
 
 @compat public ωtor2sonic!
 push!(document[Symbol("Physics neoclassical")], :ωtor2sonic!)
 
 """
-    sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
+    sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion; poloidal_flow::Symbol=:none, eqt=nothing, rho_correction::Real=0.2)
 
-Returns ion ω_tor based on ExB rotation assuming ω_pol=0.0
+Toroidal rotation frequency of ion species `ion`, `Ω_φ,s = ω_E + Δ_s` [rad/s], from the ExB rotation `rotation_frequency_tor_sonic`
 
-`rho_correction` is the near axis value where begin to taper dpi_dpsi term to zero, 
-    (This is needed to handle large gradients from fast ion subtraction)
-
-Uses the existing `rotation_frequency_tor_sonic` field to compute individual ion toroidal rotation frequencies
+See `rotation_frequency_offset` for `poloidal_flow` and `rho_correction`.
 """
-function sonic2ωtor(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion; rho_correction::Real=0.2)
-    ωExB = cp1d.rotation_frequency_tor_sonic
-    ni = ion.density_thermal
-    zi = ion.z_ion
-    rho = cp1d.grid.rho_tor_norm
-    dpi_dpsi = gradient(cp1d.grid.psi, ion.pressure_thermal)
-    correction = @. dpi_dpsi / (ni * zi * IMAS.mks.e) * min(rho / rho_correction, 1.0)^2
-    return @. ωExB - correction
+function sonic2ωtor(
+    cp1d::IMAS.core_profiles__profiles_1d,
+    ion::IMAS.core_profiles__profiles_1d___ion;
+    poloidal_flow::Symbol=:none,
+    eqt::Union{Nothing,IMAS.equilibrium__time_slice}=nothing,
+    rho_correction::Real=0.2)
+    return cp1d.rotation_frequency_tor_sonic .+ rotation_frequency_offset(cp1d, ion; poloidal_flow, eqt, rho_correction)
 end
 
 @compat public sonic2ωtor
 push!(document[Symbol("Physics neoclassical")], :sonic2ωtor)
 
 """
-    sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
+    sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion; kw...)
 
-In-place conversion of ExB sonic rotation to ion toroidal rotation frequencies.
-
-Updates individual ion `rotation_frequency_tor` fields based on the existing ExB sonic rotation, assuming poloidal rotation ωpol=0.0.
+In-place conversion of ExB rotation to the toroidal rotation of `ion` (see `sonic2ωtor`)
 """
-function sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion)
-    return ion.rotation_frequency_tor = sonic2ωtor(cp1d, ion)
+function sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d, ion::IMAS.core_profiles__profiles_1d___ion; kw...)
+    return ion.rotation_frequency_tor = sonic2ωtor(cp1d, ion; kw...)
 end
 
 """
-    sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d)
+    sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d; kw...)
 
-All ions: Updates rotation frequencies for all ion species in the profile
+All ions: Updates the toroidal rotation frequency of every ion species from the ExB rotation (see `sonic2ωtor`)
 """
-function sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d)
+function sonic2ωtor!(cp1d::IMAS.core_profiles__profiles_1d; kw...)
     for ion in cp1d.ion
-        sonic2ωtor!(cp1d, ion)
+        sonic2ωtor!(cp1d, ion; kw...)
     end
 end
 
 @compat public sonic2ωtor!
 push!(document[Symbol("Physics neoclassical")], :sonic2ωtor!)
+
+"""
+    toroidal_angular_momentum_density(cp1d::IMAS.core_profiles__profiles_1d, eqt::IMAS.equilibrium__time_slice; psi=poloidal_flux_per_radian(cp1d), rho_correction::Real=0.2)
+
+Toroidal angular momentum density of the thermal ions `Σ_s m_s n_s ⟨R²⟩ Ω_φ,s` [kg m⁻¹ s⁻¹],
+with `Ω_φ,s = ω_E + Δ_s` from `rotation_frequency_offset` (no poloidal flow).
+
+`psi` can be passed for profiles that do not carry their own `grid.psi` (e.g. a copy at a previous time step).
+Electron and fast-ion contributions are neglected.
+"""
+function toroidal_angular_momentum_density(
+    cp1d::IMAS.core_profiles__profiles_1d,
+    eqt::IMAS.equilibrium__time_slice;
+    psi::AbstractVector{<:Real}=poloidal_flux_per_radian(cp1d),
+    rho_correction::Real=0.2)
+    eqt1d = eqt.profiles_1d
+    # ⟨R²⟩ (gm10) is filled by `flux_surfaces`; equilibria loaded from file may only carry ⟨R⟩ (gm8): ⟨R⟩² ≈ ⟨R²⟩ to O(ε²/2)
+    R2 = hasdata(eqt1d, :gm10) ? eqt1d.gm10 : eqt1d.gm8 .^ 2
+    R2_avg = interp1d(eqt1d.rho_tor_norm, R2).(cp1d.grid.rho_tor_norm)
+    ωE = cp1d.rotation_frequency_tor_sonic
+    L = zero(ωE)
+    for ion in cp1d.ion
+        hasdata(ion, :density_thermal) || hasdata(ion, :density) || continue
+        Ω = ωE .+ rotation_frequency_offset(cp1d, ion; rho_correction, psi)
+        L = L .+ (ion.element[1].a * mks.m_p) .* ion.density_thermal .* Ω
+    end
+    return L .* R2_avg
+end
+
+@compat public toroidal_angular_momentum_density
+push!(document[Symbol("Physics neoclassical")], :toroidal_angular_momentum_density)

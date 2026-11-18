@@ -41,4 +41,6 @@ else
     include("runtests_profiles.jl")
 
     include("runtests_expressions.jl")
+
+    include("runtests_rotation.jl")
 end

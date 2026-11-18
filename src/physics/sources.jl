@@ -182,8 +182,7 @@ These are the ∂/∂t term in the transport equations
 """
 function time_derivative_source!(dd::IMAS.DD, cp1d_old::IMAS.core_profiles__profiles_1d, Δt::Float64; name::String="∂/∂t")
     cp1d = dd.core_profiles.profiles_1d[]
-    eqt1d = dd.equilibrium.time_slice[].profiles_1d
-    R_flux_avg = interp1d(eqt1d.rho_tor_norm, eqt1d.gm8).(cp1d.grid.rho_tor_norm)
+    eqt = dd.equilibrium.time_slice[]
 
     if Δt == 0.0
         electrons_particles = zero(cp1d.grid.rho_tor_norm)
@@ -197,9 +196,12 @@ function time_derivative_source!(dd::IMAS.DD, cp1d_old::IMAS.core_profiles__prof
 
         total_ion_energy = -1.5 * (pressure_thermal(cp1d.ion) .- pressure_thermal(cp1d_old.ion)) / Δt
 
-        d_new = cp1d.rotation_frequency_tor_sonic .* total_mass_density(cp1d) .* R_flux_avg / Δt
-        d_old = cp1d_old.rotation_frequency_tor_sonic .* total_mass_density(cp1d_old) .* R_flux_avg / Δt
-        momentum_tor = d_new .- d_old
+        # angular momentum density Σ_s m_s n_s ⟨R²⟩ Ω_φ,s [kg m⁻¹ s⁻¹], same sign convention as the other channels
+        # cp1d_old may not carry grid.psi, so both time levels use the flux of the current profiles
+        psi = poloidal_flux_per_radian(cp1d)
+        L_new = toroidal_angular_momentum_density(cp1d, eqt; psi)
+        L_old = toroidal_angular_momentum_density(cp1d_old, eqt; psi)
+        momentum_tor = -(L_new .- L_old) / Δt
     end
 
     # fill in time derivative sources for electrons_particles, electrons_energy, total_ion_energy, momentum_tor
